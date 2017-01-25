@@ -35,12 +35,14 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
+import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -74,6 +76,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
 
         registerLeaderElectionService(configuration);
+
+        registerHealthCheck(configuration);
     }
 
     private void registerPaxosResource() {
@@ -82,7 +86,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private void registerLeaderElectionService(TimeLockServerConfiguration configuration) {
-        remoteServers = getRemotePaths(configuration);
+        remoteServers = getRemoteServerPaths(configuration);
 
         LeaderConfig leaderConfig = getLeaderConfig(configuration);
 
@@ -102,6 +106,13 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 localPaxosServices.ourAcceptor(),
                 localPaxosServices.ourLearner()));
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
+    }
+
+    private void registerHealthCheck(TimeLockServerConfiguration configuration) {
+        Set<PingableLeader> pingableLeaders = Leaders.generatePingables(
+                getAllServerPaths(configuration),
+                TransactionManagers.createSslSocketFactory(paxosConfiguration.sslConfiguration())).keySet();
+        environment.healthChecks().register("leader-ping", new LeaderPingHealthCheck(pingableLeaders));
     }
 
     private LeaderConfig getLeaderConfig(TimeLockServerConfiguration configuration) {
@@ -195,8 +206,12 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 ImmutableSet.of(configuration.cluster().localServer()));
     }
 
-    private Set<String> getRemotePaths(TimeLockServerConfiguration configuration) {
+    private Set<String> getRemoteServerPaths(TimeLockServerConfiguration configuration) {
         return addProtocols(getRemoteServerAddresses(configuration));
+    }
+
+    private Set<String> getAllServerPaths(TimeLockServerConfiguration configuration) {
+        return addProtocols(configuration.cluster().servers());
     }
 
     private String addProtocol(String address) {
