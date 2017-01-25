@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.timelock.ServerImplementation;
+import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.config.AtomixConfiguration;
 import com.palantir.atlasdb.timelock.config.AtomixSslConfiguration;
@@ -40,8 +40,8 @@ import io.atomix.group.LocalMember;
 import io.atomix.variables.DistributedLong;
 import io.atomix.variables.DistributedValue;
 
-public class AtomixServerImplementation implements ServerImplementation {
-    private static final Logger log = LoggerFactory.getLogger(AtomixServerImplementation.class);
+public class AtomixTimeLockServer implements TimeLockServer {
+    private static final Logger log = LoggerFactory.getLogger(AtomixTimeLockServer.class);
 
     private AtomixReplica replica;
     private LocalMember localMember;

@@ -42,6 +42,27 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Make fetch size bounded from above in ``DbKvs.getRowsColumnRange()``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1478>`__)
+
+    *    - |fixed|
+         - Prevent deadlocks during parallel reads from DB KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
+
+    *    - |improved|
+         - Added support for benchmarking custom Key Value Stores; see `documentation <http://palantir.github.io/atlasdb/html/performance/writing.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1459>`__)
+
+    *    - |fixed|
+         - Don't retry interrupted remote calls, shut down the scrubber immediately when interrupted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1488>`__)
+
+    *    - |improved|
+         - Updated our dependency on ``gradle-java-distribution`` from 1.2.0 to 1.3.0.
+           See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1500>`__)
+
     *    - |deprecated|
          - ``GenericStreamStore.loadStream`` has been deprecated. Use ``loadSingleStream``, which returns an
            ``Optional<InputStream>``, instead.
@@ -50,36 +71,41 @@ develop
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.25.0
+v0.29.0
 =======
 
 .. list-table::
     :widths: 5 40
     :header-rows: 1
 
+    *    - Type
+         - Change
+
     *    - |new|
-         - Returned `RemotingKeyValueService` and associated remoting classes to the AtlasDB code base.  These now live
-           in `atlasdb-remoting`.  This KVS will pass remote calls to a local delegate KVS.
+         - Returned ``RemotingKeyValueService`` and associated remoting classes to the AtlasDB code base.
+           These now live in ``atlasdb-remoting``.
+           This KVS will pass remote calls to a local delegate KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1304>`__)
 
     *    - |fixed|
          - Stream store compression, introduced in 0.27.0, no longer creates a transaction inside a transaction when streaming directly to a file.
-           Additionally, a check was added to enforce the condition imposed in 0.28.0, namely that the caller of ``AbstractGenericStreamStore.loadStream`` should not
-           call ``InputStream.read()`` within the transaction that was used to fetch the stream.
+           Additionally, a check was added to enforce the condition imposed in 0.28.0, namely that the caller of ``AbstractGenericStreamStore.loadStream`` should not call ``InputStream.read()`` within the transaction that was used to fetch the stream.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1460>`__)
 
     *    - |improved|
-         - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
+         - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
 
     *    - |new|
          - Added a new ``KeyValueService`` API method, ``checkAndSet``.
+           This is to be used in upcoming backup lock changes, and is not intended for other usage. If you think your application would benefit from using this directly, please contact the AtlasDB dev team.
            This is supported for Cassandra, Postgres, and Oracle, but in the latter case support is only provided for tables which are not overflow tables.
-           ``checkAndSet`` is **not** supported for RocksDB or JDBC. However, it will only be used in a future release.
+           ``checkAndSet`` is **not** supported for RocksDB or JDBC.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1435>`__)
 
     *    - |fixed|
-         - Fixed the |devbreak| below by returning the ``DebugLogger`` to it's original location.
+         - Reverted the ``devbreak`` in AtlasDB 0.28.0 by returning the ``DebugLogger`` to its original location.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1469>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -95,8 +121,8 @@ v0.28.0
          - Change
 
     *    - |devbreak|
-         - The ``DebugLogger`` class was moved from package ``com.palantir.timestamp`` in project ``timestamp-impl`` to ``com.palantir.util`` in project ``atlasdb-commons``.  This is
-           fixed in the next release 0.29.0.
+         - The ``DebugLogger`` class was moved from package ``com.palantir.timestamp`` in project ``timestamp-impl`` to ``com.palantir.util`` in project ``atlasdb-commons``.
+           This break is reverted in the next release (AtlasDB 0.29.0) and will not affect services who skip this release.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1445>`__)
 
     *    - |improved|
@@ -139,6 +165,12 @@ v0.28.0
          - All SnapshotTransaction ``get`` methods are now safe for tables declared with SweepStrategy.THOROUGH.
            Previously, a validation check was omitted for ``getRowsColumnRange``, ``getRowsIgnoringLocalWrites``, and ``getIgnoringLocalWrites``, which in very rare cases could have resulted in deleted values being returned by a long-running read transaction.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1421>`__)
+
+    *    - |userbreak|
+         - Users must not create a client named ``leader``. AtlasDB Timelock Server will fail to start if this is found.
+           Previously, using ``leader`` would have silently failed, since the JAXRS 3.7.2 algorithm does not include backtracking over
+           root resource classes (so either leader election or timestamp requests would have failed).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1442>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

@@ -29,7 +29,9 @@ import java.util.concurrent.Executors;
 
 import org.junit.Test;
 
-public class PersistentTimestampServiceTest {
+// Mock AvailableTimestamps to test PersistentTimestampService.
+// See also PersistentTimestampServiceTests for end-to-end style tests.
+public class PersistentTimestampServiceMockingTest {
 
     private static final long INITIAL_TIMESTAMP = 12345L;
     private static final long TIMESTAMP = 100 * 1000;

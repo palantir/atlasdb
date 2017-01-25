@@ -32,7 +32,6 @@ import javax.annotation.CheckForNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -123,15 +122,14 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         BlockGetter pageRefresher = new BlockGetter() {
             @Override
             public void get(long firstBlock, long numBlocks, OutputStream destination) {
-                Preconditions.checkState(!parent.isUncommitted(),
-                        "Tried to read from a stream while the transaction used to fetch the stream was still open. "
-                                + "This is forbidden, because it would cause a transaction to run inside another one.");
-                txnMgr.runTaskReadOnly(txn -> {
-                    for (long i = 0; i < numBlocks; i++) {
-                        loadSingleBlockToOutputStream(txn, id, firstBlock + i, destination);
-                    }
-                    return null;
-                });
+                if (parent.isUncommitted()) {
+                    loadNBlocksToOutputStream(parent, id, firstBlock, numBlocks, destination);
+                } else {
+                    txnMgr.runTaskReadOnly(txn -> {
+                        loadNBlocksToOutputStream(txn, id, firstBlock, numBlocks, destination);
+                        return null;
+                    });
+                }
             }
 
             @Override
@@ -195,6 +193,17 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             } catch (IOException e) {
                 // Do nothing
             }
+        }
+    }
+
+    private void loadNBlocksToOutputStream(
+            Transaction tx,
+            ID streamId,
+            long firstBlock,
+            long numBlocks,
+            OutputStream os) {
+        for (long i = 0; i < numBlocks; i++) {
+            loadSingleBlockToOutputStream(tx, streamId, firstBlock + i, os);
         }
     }
 

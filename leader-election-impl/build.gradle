@@ -11,3 +11,13 @@ dependencies {
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
 }
+
+configurations {
+    testArtifacts {
+       extendsFrom testRuntime
+    }
+}
+
+artifacts {
+    testArtifacts testJar
+}
