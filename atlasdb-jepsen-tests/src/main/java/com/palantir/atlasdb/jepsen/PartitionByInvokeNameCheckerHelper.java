@@ -29,7 +29,6 @@ import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 
 public class PartitionByInvokeNameCheckerHelper implements Checker {
-
     private final Supplier<Checker> checkerSupplier;
 
     public PartitionByInvokeNameCheckerHelper(Supplier<Checker> checkerSupplier) {
@@ -53,6 +52,9 @@ public class PartitionByInvokeNameCheckerHelper implements Checker {
                 lastInvokeValueForProcess.put(process, invokeEvent.value());
             }
             String key = lastInvokeValueForProcess.getOrDefault(process, null);
+            /*
+             * Note that all InfoEvents get mapped to null
+             */
             if (event instanceof InfoEvent) {
                 key = null;
             }

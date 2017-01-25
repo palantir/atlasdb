@@ -77,8 +77,6 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
         @Override
         public void visit(OkEvent event) {
             int currentProcess = event.process();
-            //String lockName = pendingForProcess.get(currentProcess).value();
-            //Pair<Integer, String> processLock = new Pair(currentProcess, lockName);
 
             switch (event.function()) {
                 case RequestType.LOCK:

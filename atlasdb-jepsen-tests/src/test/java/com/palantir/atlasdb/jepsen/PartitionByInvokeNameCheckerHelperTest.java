@@ -43,7 +43,7 @@ public class PartitionByInvokeNameCheckerHelperTest {
     private static final String LOCK_1 = "lock1";
     private static final String LOCK_2 = "lock2";
 
-    private static List<Event> eventList = ImmutableList.<Event>builder()
+    private static final List<Event> eventList = ImmutableList.<Event>builder()
             .add(TestEventUtils.invokeLock(0, PROCESS_1, LOCK_1))
             .add(TestEventUtils.invokeRefresh(1, PROCESS_2, LOCK_1))
             .add(TestEventUtils.lockSuccess(2, PROCESS_1))
@@ -55,14 +55,14 @@ public class PartitionByInvokeNameCheckerHelperTest {
             .add(TestEventUtils.lockSuccess(7, PROCESS_2))
             .build();
 
-    private static List<Event> onlyLock2EventList = ImmutableList.<Event>builder()
+    private static final List<Event> onlyLock2EventList = ImmutableList.<Event>builder()
             .add(TestEventUtils.invokeUnlock(3, PROCESS_1, LOCK_2))
             .add(TestEventUtils.unlockSuccess(4, PROCESS_1))
             .add(TestEventUtils.invokeLock(6, PROCESS_2, LOCK_2))
             .add(TestEventUtils.lockSuccess(7, PROCESS_2))
             .build();
 
-    private static CheckerResult validResult = ImmutableCheckerResult.builder()
+    private static final CheckerResult validResult = ImmutableCheckerResult.builder()
             .valid(true)
             .errors(new ArrayList<>())
             .build();
@@ -72,7 +72,7 @@ public class PartitionByInvokeNameCheckerHelperTest {
      * PartitionByInvokeNameCheckerHelper manipulates the list. The value of the valid parameter is set to false purely
      * for consistency reasons (since the list of errors is not empty).
      */
-    private static Checker identityChecker = Mockito.mock(Checker.class);
+    private static final Checker identityChecker = Mockito.mock(Checker.class);
 
     static {
         Mockito.when(identityChecker.check(Matchers.anyListOf(Event.class))).then(
@@ -168,30 +168,34 @@ public class PartitionByInvokeNameCheckerHelperTest {
         Mockito.when(mockChecker.check(Matchers.anyListOf(Event.class))).then(
                 args -> {
                     List<Event> events = (List) args.getArguments()[0];
-                    boolean noOtherLock = true;
-                    boolean atLeatOneInvoke = false;
-                    for (Event event : events) {
-                        if (event instanceof InvokeEvent) {
-                            atLeatOneInvoke = true;
-                            InvokeEvent invokeEvent = (InvokeEvent) event;
-                            if (!invokeEvent.value().equals(lockName)) {
-                                noOtherLock = false;
-                            }
-                        }
-                    }
-                    if (noOtherLock && atLeatOneInvoke) {
-                        return ImmutableCheckerResult.builder()
-                                .valid(false)
-                                .errors(events)
-                                .build();
-                    } else {
-                        return ImmutableCheckerResult.builder()
-                                .valid(true)
-                                .errors(new ArrayList<>())
-                                .build();
-                    }
+                    return checkLockName(lockName, events);
                 });
         return mockChecker;
+    }
+
+    private CheckerResult checkLockName(String lockName, List<Event> events) {
+        boolean noOtherLock = true;
+        boolean atLeastOneInvoke = false;
+        for (Event event : events) {
+            if (event instanceof InvokeEvent) {
+                atLeastOneInvoke = true;
+                InvokeEvent invokeEvent = (InvokeEvent) event;
+                if (!invokeEvent.value().equals(lockName)) {
+                    noOtherLock = false;
+                }
+            }
+        }
+        if (noOtherLock && atLeastOneInvoke) {
+            return ImmutableCheckerResult.builder()
+                    .valid(false)
+                    .errors(events)
+                    .build();
+        } else {
+            return ImmutableCheckerResult.builder()
+                    .valid(true)
+                    .errors(new ArrayList<>())
+                    .build();
+        }
     }
 
     private static CheckerResult runPartitionChecker(Supplier<Checker> checker, List<Event> events) {
