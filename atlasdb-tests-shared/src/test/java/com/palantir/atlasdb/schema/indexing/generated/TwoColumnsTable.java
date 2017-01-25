@@ -678,12 +678,10 @@ public final class TwoColumnsTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<TwoColumnsRowResult> getRow(TwoColumnsRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<TwoColumnsRowResult> getRow(TwoColumnsRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -2293,5 +2291,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "CoGTujrSWASTbNC1oi69+w==";
+    static String __CLASS_HASH = "UpDk9nRzPSLNVC6dlfbS7g==";
 }

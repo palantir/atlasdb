@@ -1027,12 +1027,10 @@ public final class SweepPriorityTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<SweepPriorityRowResult> getRow(SweepPriorityRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<SweepPriorityRowResult> getRow(SweepPriorityRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -1275,5 +1273,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vCEOH0g8QatgT/jpEZEk5w==";
+    static String __CLASS_HASH = "URN0DNH5wLcp9bwsNvieGQ==";
 }
