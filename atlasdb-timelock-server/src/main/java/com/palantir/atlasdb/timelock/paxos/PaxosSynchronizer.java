@@ -25,7 +25,6 @@ import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosQuorumChecker;
@@ -48,8 +47,7 @@ public final class PaxosSynchronizer {
         }
     }
 
-    @VisibleForTesting
-    static Optional<PaxosValue> getMostRecentLearnedValue(List<PaxosLearner> paxosLearners) {
+    private static Optional<PaxosValue> getMostRecentLearnedValue(List<PaxosLearner> paxosLearners) {
         ExecutorService executor = Executors.newCachedThreadPool();
         List<PaxosValueResponse> responses = PaxosQuorumChecker.collectQuorumResponses(
                 ImmutableList.copyOf(paxosLearners),

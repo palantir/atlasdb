@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -26,6 +27,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.Lists;
+import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosValue;
@@ -41,15 +43,24 @@ public class PaxosSynchronizerTest {
     private static final PaxosValue VALUE_ONE = new PaxosValue(LEADER_ID, SEQUENCE_ONE, PAXOS_DATA);
     private static final long SEQUENCE_TWO = 2L;
     private static final PaxosValue VALUE_TWO = new PaxosValue(LEADER_ID, SEQUENCE_TWO, PAXOS_DATA);
+    private static final RuntimeException EXCEPTION = new RuntimeException("exception");
 
     private final List<PaxosLearner> learners = Lists.newArrayList();
+    private final List<AtomicBoolean> failureToggles = Lists.newArrayList();
 
     private PaxosLearner ourLearner;
 
     @Before
     public void setUp() throws IOException {
         for (int i = 0; i < NUM_NODES; i++) {
-            learners.add(PaxosLearnerImpl.newLearner(TEMPORARY_FOLDER.newFolder().getPath()));
+            AtomicBoolean failureController = new AtomicBoolean(false);
+            PaxosLearner learner = PaxosLearnerImpl.newLearner(TEMPORARY_FOLDER.newFolder().getPath());
+            learners.add(ToggleableExceptionProxy.newProxyInstance(
+                    PaxosLearner.class,
+                    learner,
+                    failureController,
+                    EXCEPTION));
+            failureToggles.add(failureController);
         }
         ourLearner = learners.get(0);
     }
@@ -67,10 +78,56 @@ public class PaxosSynchronizerTest {
     }
 
     @Test
-    public void synchronizeDoesNotUpdateUsIfWeHaveTheMostRecentData() {
+    public void synchronizeUpdatesUsToTheMostRecentData() {
+        learners.get(1).learn(SEQUENCE_ONE, VALUE_ONE);
+        learners.get(2).learn(SEQUENCE_TWO, VALUE_TWO);
+        PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
+        assertThat(ourLearner.getLearnedValue(SEQUENCE_TWO)).isEqualTo(VALUE_TWO);
+    }
+
+    @Test
+    public void synchronizeCanCopeWithDuplicateValues() {
+        learners.stream()
+                .filter(learner -> learner != ourLearner)
+                .forEach(remoteLearner -> remoteLearner.learn(SEQUENCE_ONE, VALUE_ONE));
+        PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
+        assertThat(ourLearner.getGreatestLearnedValue()).isEqualTo(VALUE_ONE);
+    }
+
+    @Test
+    public void synchronizeUpdatesUsIfOurDataIsNotTheMostRecent() {
+        ourLearner.learn(SEQUENCE_ONE, VALUE_ONE);
+        learners.get(2).learn(SEQUENCE_TWO, VALUE_TWO);
+        PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
+        assertThat(ourLearner.getLearnedValue(SEQUENCE_TWO)).isEqualTo(VALUE_TWO);
+    }
+
+    @Test
+    public void synchronizeDoesNotUpdateUsToThePast() {
         learners.get(1).learn(SEQUENCE_ONE, VALUE_ONE);
         ourLearner.learn(SEQUENCE_TWO, VALUE_TWO);
         PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
         assertThat(ourLearner.getGreatestLearnedValue()).isEqualTo(VALUE_TWO);
+    }
+
+    @Test
+    public void synchronizePassesIfNodesCannotBeReached() {
+        failureToggles.get(1).set(true);
+        PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
+    }
+
+    @Test
+    public void synchronizePassesEvenIfWeAreIsolated() {
+        failureToggles.forEach(atomicBoolean -> atomicBoolean.set(false));
+        PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
+    }
+
+    @Test
+    public void synchronizeLearnsValuesOnABestEffortBasis() {
+        learners.get(1).learn(SEQUENCE_ONE, VALUE_ONE);
+        learners.get(2).learn(SEQUENCE_TWO, VALUE_TWO);
+        failureToggles.get(2).set(true);
+        PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
+        assertThat(ourLearner.getGreatestLearnedValue()).isEqualTo(VALUE_ONE);
     }
 }
