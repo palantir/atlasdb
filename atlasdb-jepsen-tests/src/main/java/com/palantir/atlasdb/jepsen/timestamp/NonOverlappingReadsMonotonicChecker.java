@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen;
+package com.palantir.atlasdb.jepsen.timestamp;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,6 +23,8 @@ import java.util.NavigableSet;
 import java.util.TreeSet;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.jepsen.CheckerResult;
+import com.palantir.atlasdb.jepsen.ImmutableCheckerResult;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
@@ -30,6 +32,7 @@ import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
+import com.palantir.atlasdb.jepsen.events.RequestType;
 
 public class NonOverlappingReadsMonotonicChecker implements Checker {
     @Override
@@ -103,6 +106,7 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
                     .time(time)
                     .process(DUMMY_PROCESS)
                     .value(DUMMY_VALUE)
+                    .function(RequestType.TIMESTAMP)
                     .build();
             return acknowledgedReadsOverTime.floor(dummyOkEvent);
         }

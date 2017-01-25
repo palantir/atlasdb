@@ -36,7 +36,7 @@ public abstract class InfoEvent implements Event {
     @JsonProperty("f")
     public abstract String function();
 
-    public abstract String process();
+    public abstract int process();
 
     public abstract long time();
 
