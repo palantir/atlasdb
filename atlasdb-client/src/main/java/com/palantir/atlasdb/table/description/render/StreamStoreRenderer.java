@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -83,6 +84,7 @@ import com.palantir.util.file.TempFileUtils;
 
 import net.jpountz.lz4.LZ4BlockInputStream;
 
+@SuppressWarnings("CheckStyle")
 public class StreamStoreRenderer {
     private final String name;
     private final ValueType streamIdType;
@@ -765,6 +767,7 @@ public class StreamStoreRenderer {
         DigestInputStream.class,
         MessageDigest.class,
         Collection.class,
+        Optional.class,
         Map.class,
         Entry.class,
         Set.class,

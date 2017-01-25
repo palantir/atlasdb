@@ -471,6 +471,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link MessageDigest}
      * {@link Multimap}
      * {@link Multimaps}
+     * {@link Optional}
      * {@link OutputStream}
      * {@link Pair}
      * {@link PersistentStreamStore}
