@@ -23,6 +23,8 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
+import com.palantir.atlasdb.jepsen.PartitionByInvokeNameCheckerHelper;
+import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
@@ -190,11 +192,12 @@ public class LockCorrectnessCheckerTest {
     }
 
     private static CheckerResult runLockCorrectnessChecker(ImmutableList<Event> events) {
-        LockCorrectnessChecker lockCorrectnessChecker = new LockCorrectnessChecker();
+        Checker lockCorrectnessChecker = new PartitionByInvokeNameCheckerHelper(LockCorrectnessChecker::new);
         return lockCorrectnessChecker.check(events);
     }
 
     private static void assertNoError(List<Event> events) {
-        CheckerTestUtils.assertNoErrors(LockCorrectnessChecker::new, events);
+        CheckerTestUtils.assertNoErrors(() -> new PartitionByInvokeNameCheckerHelper(LockCorrectnessChecker::new),
+                events);
     }
 }

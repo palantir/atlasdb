@@ -66,13 +66,13 @@ public class JepsenHistoryCheckerIntegrationTest {
 
         Map<Keyword, ?> nemesisStartEventMap = ImmutableMap.of(
                 Keyword.intern("f"), "start",
-                Keyword.intern("process"), "nemesis",
+                Keyword.intern("process"), JepsenConstants.NEMESIS_PROCESS,
                 Keyword.intern("type"), "info",
                 Keyword.intern("value"), "start!",
                 Keyword.intern("time"), 18784227842L);
         Map<Keyword, ?> nemesisStopEventMap = ImmutableMap.of(
                 Keyword.intern("f"), "stop",
-                Keyword.intern("process"), "nemesis",
+                Keyword.intern("process"), JepsenConstants.NEMESIS_PROCESS,
                 Keyword.intern("type"), "info",
                 Keyword.intern("value"), "stop!",
                 Keyword.intern("time"), 18805796986L);

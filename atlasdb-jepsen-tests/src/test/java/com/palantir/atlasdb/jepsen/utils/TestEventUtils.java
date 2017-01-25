@@ -117,7 +117,7 @@ public abstract class TestEventUtils {
                 .build();
     }
 
-    public static InfoEvent createInfoEvent(long time, String process, String requestType) {
+    public static InfoEvent createInfoEvent(long time, int process, String requestType) {
         return ImmutableInfoEvent.builder()
                 .time(time)
                 .process(process)
@@ -125,7 +125,7 @@ public abstract class TestEventUtils {
                 .build();
     }
 
-    public static InfoEvent createInfoEvent(long time, String process, String requestType, String value) {
+    public static InfoEvent createInfoEvent(long time, int process, String requestType, String value) {
         return ImmutableInfoEvent.builder()
                 .time(time)
                 .process(process)

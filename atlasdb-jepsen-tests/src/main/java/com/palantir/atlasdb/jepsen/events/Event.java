@@ -25,6 +25,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.palantir.atlasdb.jepsen.utils.EventUtils;
 
 import clojure.lang.Keyword;
 import one.util.streamex.EntryStream;
@@ -42,8 +43,9 @@ public interface Event {
             .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
 
     static Event fromKeywordMap(Map<Keyword, ?> map) {
+        Map<Keyword, ?> encodedMap = EventUtils.encodeNemesis(map);
         Map<String, Object> convertedMap = new HashMap<>();
-        EntryStream.of(map)
+        EntryStream.of(encodedMap)
                 .mapKeys(Keyword::getName)
                 .mapValues(value -> value != null && value instanceof Keyword ? ((Keyword) value).getName() : value)
                 .forKeyValue(convertedMap::put);
@@ -59,6 +61,8 @@ public interface Event {
     }
 
     long time();
+
+    int process();
 
     void accept(EventVisitor visitor);
 }
