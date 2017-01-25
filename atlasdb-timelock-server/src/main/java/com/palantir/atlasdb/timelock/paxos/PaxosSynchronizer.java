@@ -21,6 +21,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import javax.annotation.Nullable;
+
 import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -31,6 +33,8 @@ import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosValue;
 
 public final class PaxosSynchronizer {
+    public static final boolean ONLY_LOG_ON_QUORUM_FAILURE = true;
+
     private PaxosSynchronizer() {
         // utility
     }
@@ -52,8 +56,10 @@ public final class PaxosSynchronizer {
                 learner -> ImmutablePaxosValueResponse.of(learner.getGreatestLearnedValue()),
                 paxosLearners.size(),
                 executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
+                ONLY_LOG_ON_QUORUM_FAILURE);
         return responses.stream()
+                .filter(response -> response.paxosValue() != null)
                 .map(PaxosValueResponse::paxosValue)
                 .max(Comparator.comparingLong(PaxosValue::getRound));
     }
@@ -65,6 +71,7 @@ public final class PaxosSynchronizer {
         }
 
         @Value.Parameter
+        @Nullable
         PaxosValue paxosValue();
     }
 }
