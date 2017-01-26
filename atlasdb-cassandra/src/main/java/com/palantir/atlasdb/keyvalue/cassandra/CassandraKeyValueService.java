@@ -1982,7 +1982,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     CheckAndSetRequest request = CheckAndSetRequest.newCell(tableRef, e.getKey(), e.getValue());
                     CASResult casResult = executeCheckAndSet(client, request);
                     if (!casResult.isSuccess()) {
-                        throw new KeyAlreadyExistsException("This transaction row already exists.",
+                        throw new KeyAlreadyExistsException(
+                                String.format("The row in table %s already exists.", tableRef.getQualifiedName()),
                                 ImmutableList.of(e.getKey()));
                     }
                 }
