@@ -42,6 +42,12 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - Sweep now takes out an backup lock when removing cells.
+           Users performing live backups should grab this lock before performing a backup, and release the lock once the backup is complete.
+           This would enable the backup to safely run alongside either the background sweeper or the sweep CLI.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/15xx>`__)
+
     *    - |fixed|
          - Fixed schema generation with Java 8 optionals.
            To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.

@@ -18,18 +18,38 @@ package com.palantir.atlasdb.sweep;
 import java.util.Collection;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.persistentlock.LockEntry;
+import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class CellsSweeper {
+    private static final Logger log = LoggerFactory.getLogger(CellsSweeper.class);
+
     private final TransactionManager txManager;
     private final KeyValueService keyValueService;
+    private final PersistentLockService persistentLockService;
     private final Collection<Follower> followers;
+
+    public CellsSweeper(
+            TransactionManager txManager,
+            KeyValueService keyValueService,
+            PersistentLockService persistentLockService,
+            Collection<Follower> followers) {
+        this.txManager = txManager;
+        this.keyValueService = keyValueService;
+        this.persistentLockService = persistentLockService;
+        this.followers = followers;
+    }
 
     public CellsSweeper(
             TransactionManager txManager,
@@ -38,6 +58,8 @@ public class CellsSweeper {
         this.txManager = txManager;
         this.keyValueService = keyValueService;
         this.followers = followers;
+
+        this.persistentLockService = PersistentLockService.create(keyValueService);
     }
 
     public void sweepCells(
@@ -51,11 +73,29 @@ public class CellsSweeper {
         for (Follower follower : followers) {
             follower.run(txManager, tableRef, cellTsPairsToSweep.keySet(), Transaction.TransactionType.HARD_DELETE);
         }
-        if (!sentinelsToAdd.isEmpty()) {
-            keyValueService.addGarbageCollectionSentinelValues(
-                    tableRef,
-                    sentinelsToAdd);
+
+        LockEntry lockEntry = persistentLockService.acquireLock("Sweep");
+        log.info("Successfully acquired persistent lock for sweep: {}", lockEntry);
+
+        try {
+            if (!sentinelsToAdd.isEmpty()) {
+                keyValueService.addGarbageCollectionSentinelValues(
+                        tableRef,
+                        sentinelsToAdd);
+            }
+
+            keyValueService.delete(tableRef, cellTsPairsToSweep);
+        } finally {
+            releasePersistentLock(lockEntry);
         }
-        keyValueService.delete(tableRef, cellTsPairsToSweep);
+    }
+
+    private void releasePersistentLock(LockEntry entry) {
+        try {
+            persistentLockService.releaseLock(entry);
+        } catch (CheckAndSetException e) {
+            log.error("Failed to release persistent lock {}. "
+                    + "Either the lock was already released, or communications with the database failed.", entry, e);
+        }
     }
 }
