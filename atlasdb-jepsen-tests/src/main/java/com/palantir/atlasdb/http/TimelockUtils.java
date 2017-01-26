@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.net.Socket;
 import java.util.List;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -46,14 +45,4 @@ public final class TimelockUtils {
                 endpointUris,
                 type);
     }
-
-    private static boolean hostIsListening(String host) {
-        try {
-            new Socket(host, PORT);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
 }
