@@ -16,13 +16,13 @@
       (c/su
         (debian/install-jdk8!)
         (info node "Uploading and unpacking timelock server")
-        (c/upload "resources/atlasdb/atlasdb-timelock-server.tgz" "/")
-        (c/exec :mkdir "/atlasdb-timelock-server")
-        (c/exec :tar :xf "/atlasdb-timelock-server.tgz" "-C" "/atlasdb-timelock-server" "--strip-components" "1")
-        (c/upload "resources/atlasdb/timelock.yml" "/atlasdb-timelock-server/var/conf")
-        (c/exec :sed :-i (format "s/<HOSTNAME>/%s/" (name node)) "/atlasdb-timelock-server/var/conf/timelock.yml")
+        (c/upload "resources/atlasdb/timelock-server.tgz" "/")
+        (c/exec :mkdir "/timelock-server")
+        (c/exec :tar :xf "/timelock-server.tgz" "-C" "/timelock-server" "--strip-components" "1")
+        (c/upload "resources/atlasdb/timelock.yml" "/timelock-server/var/conf")
+        (c/exec :sed :-i (format "s/<HOSTNAME>/%s/" (name node)) "/timelock-server/var/conf/timelock.yml")
         (info node "Starting timelock server")
-        (c/exec :env "JAVA_HOME=/usr/lib/jvm/java-8-oracle" "/atlasdb-timelock-server/service/bin/init.sh" "start")
+        (c/exec :env "JAVA_HOME=/usr/lib/jvm/java-8-oracle" "/timelock-server/service/bin/init.sh" "start")
         (info node "Waiting until timelock node is ready")
         (TimelockUtils/waitUntilHostReady (name node))))
 
@@ -31,9 +31,9 @@
         (info node "Forcibly killing all Java processes")
         (try (c/exec :pkill "-9" "java") (catch Exception _))
         (info node "Removing any timelock server files")
-        (try (c/exec :rm :-rf "/atlasdb-timelock-server") (catch Exception _))
-        (try (c/exec :rm :-f "/atlasdb-timelock-server.tgz") (catch Exception _))))
+        (try (c/exec :rm :-rf "/timelock-server") (catch Exception _))
+        (try (c/exec :rm :-f "/timelock-server.tgz") (catch Exception _))))
 
     db/LogFiles
     (log-files [_ test node]
-      ["/atlasdb-timelock-server/var/log/atlasdb-timelock-server-startup.log"])))
+      ["/timelock-server/var/log/timelock-server-startup.log"])))
