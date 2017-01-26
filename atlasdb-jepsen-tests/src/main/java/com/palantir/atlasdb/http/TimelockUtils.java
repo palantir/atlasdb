@@ -17,13 +17,11 @@ package com.palantir.atlasdb.http;
 
 import java.net.Socket;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
-import com.jayway.awaitility.Awaitility;
 
 public final class TimelockUtils {
     private static final int PORT = 8080;
@@ -31,12 +29,6 @@ public final class TimelockUtils {
     private static final String NAMESPACE = "test";
 
     private TimelockUtils() {
-    }
-
-    public static void waitUntilHostReady(String host) {
-        Awaitility.await()
-                .atMost(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                .until(() -> hostIsListening(host));
     }
 
     public static <T> T createClient(List<String> hosts, Class<T> type) {

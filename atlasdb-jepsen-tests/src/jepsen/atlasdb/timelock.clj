@@ -22,9 +22,7 @@
         (c/upload "resources/atlasdb/timelock.yml" "/timelock-server/var/conf")
         (c/exec :sed :-i (format "s/<HOSTNAME>/%s/" (name node)) "/timelock-server/var/conf/timelock.yml")
         (info node "Starting timelock server")
-        (c/exec :env "JAVA_HOME=/usr/lib/jvm/java-8-oracle" "/timelock-server/service/bin/init.sh" "start")
-        (info node "Waiting until timelock node is ready")
-        (TimelockUtils/waitUntilHostReady (name node))))
+        (c/exec :env "JAVA_HOME=/usr/lib/jvm/java-8-oracle" "/timelock-server/service/bin/init.sh" "start")))
 
     (teardown! [_ _ node]
       (c/su
