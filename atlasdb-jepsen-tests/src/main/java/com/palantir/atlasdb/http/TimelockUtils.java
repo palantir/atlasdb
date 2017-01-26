@@ -24,7 +24,6 @@ import com.google.common.collect.Lists;
 
 public final class TimelockUtils {
     private static final int PORT = 8080;
-    private static final int TIMEOUT_SECONDS = 60;
     private static final String NAMESPACE = "test";
 
     private TimelockUtils() {
