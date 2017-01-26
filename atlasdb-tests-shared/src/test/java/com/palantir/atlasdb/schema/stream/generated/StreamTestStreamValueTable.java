@@ -483,12 +483,10 @@ public final class StreamTestStreamValueTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<StreamTestStreamValueRowResult> getRow(StreamTestStreamValueRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<StreamTestStreamValueRowResult> getRow(StreamTestStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -731,5 +729,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "QKcLUySpgG4UCchkSoGqXQ==";
+    static String __CLASS_HASH = "bGruW2fk4ePTtlzh25i7mA==";
 }

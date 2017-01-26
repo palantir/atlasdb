@@ -13,16 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen;
+package com.palantir.atlasdb.jepsen.events;
 
-public final class JepsenConstants {
-    public static final int NEMESIS_PROCESS = -1;
-    public static final String NEMESIS_PROCESS_NAME = "nemesis";
-
-    public static final String START_FUNCTION = "start";
-    public static final String STOP_FUNCTION = "stop";
-
-    private JepsenConstants() {
-        // utility class
-    }
+public abstract class RequestType {
+    public static final String TIMESTAMP = "timestamp";
+    public static final String LOCK = "lock";
+    public static final String REFRESH = "refresh";
+    public static final String UNLOCK = "unlock";
 }

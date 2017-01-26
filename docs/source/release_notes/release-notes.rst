@@ -43,13 +43,22 @@ develop
          - Change
 
     *    - |fixed|
+         - Fixed schema generation with Java 8 optionals.
+           To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
+
+    *    - |devbreak|
+         - The above fix requires all projects to regenerate their schemas, even if not using Java 8 optionals.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
+
+    *    - |fixed|
          - Make fetch size bounded from above in ``DbKvs.getRowsColumnRange()``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1478>`__)
 
     *    - |fixed|
          - Prevent deadlocks during parallel reads from DB KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
-           
+
     *    - |improved|
          - Added support for benchmarking custom Key Value Stores; see `documentation <http://palantir.github.io/atlasdb/html/performance/writing.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1459>`__)
@@ -61,6 +70,11 @@ develop
     *    - |improved|
          - Added request and exception rates metrics in CassandraClientPool. This will provide access to 1-, 5-, and 15-minute moving averages.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1497>`__)
+
+    *    - |improved|
+         - Updated our dependency on ``gradle-java-distribution`` from 1.2.0 to 1.3.0.
+           See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1500>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

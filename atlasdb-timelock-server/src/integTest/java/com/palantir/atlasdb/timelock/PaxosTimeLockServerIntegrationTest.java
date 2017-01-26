@@ -39,6 +39,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.testing.ResourceHelpers;
@@ -50,6 +51,10 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_2 = "test2";
     private static final String NONEXISTENT_CLIENT = "nonexistent";
     private static final String INVALID_CLIENT = "test2\b";
+
+    private static final long ONE_MILLION = 1000000;
+    private static final long TWO_MILLION = 2000000;
+    private static final int FORTY_TWO = 42;
 
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final String LOCK_CLIENT_NAME = "lock-client-name";
@@ -63,6 +68,9 @@ public class PaxosTimeLockServerIntegrationTest {
             new TemporaryConfigurationHolder(TEMPORARY_FOLDER, TIMELOCK_CONFIG_TEMPLATE);
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
             new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
+
+    private final TimestampService timestampService = getTimestampService(CLIENT_1);
+    private final TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
 
     @ClassRule
     public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
@@ -119,8 +127,6 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void timestampServiceShouldGiveUsIncrementalTimestamps() {
-        TimestampService timestampService = getTimestampService(CLIENT_1);
-
         long timestamp1 = timestampService.getFreshTimestamp();
         long timestamp2 = timestampService.getFreshTimestamp();
 
@@ -143,6 +149,49 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void timestampServiceRespectsTimestampManagementService() {
+        long currentTimestampIncrementedByOneMillion = timestampService.getFreshTimestamp() + ONE_MILLION;
+        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
+        assertThat(timestampService.getFreshTimestamp()).isGreaterThan(currentTimestampIncrementedByOneMillion);
+    }
+
+    @Test
+    public void timestampManagementServiceRespectsTimestampService() {
+        long currentTimestampIncrementedByOneMillion = timestampService.getFreshTimestamp() + ONE_MILLION;
+        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
+        getFortyTwoFreshTimestamps(timestampService);
+        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion + 1);
+        assertThat(timestampService.getFreshTimestamp())
+                .isGreaterThan(currentTimestampIncrementedByOneMillion + FORTY_TWO);
+    }
+
+    private static void getFortyTwoFreshTimestamps(TimestampService timestampService) {
+        for (int i = 0; i < FORTY_TWO; i++) {
+            timestampService.getFreshTimestamp();
+        }
+    }
+
+    @Test
+    public void fastForwardRespectsDistinctClients() {
+        TimestampManagementService anotherClientTimestampManagementService = getTimestampManagementService(CLIENT_2);
+
+        long currentTimestamp = timestampService.getFreshTimestamp();
+        anotherClientTimestampManagementService.fastForwardTimestamp(currentTimestamp + ONE_MILLION);
+        assertEquals(currentTimestamp + 1, timestampService.getFreshTimestamp());
+    }
+
+    @Test
+    public void fastForwardToThePastDoesNothing() {
+        long currentTimestamp = timestampService.getFreshTimestamp();
+        long currentTimestampIncrementedByOneMillion = currentTimestamp + ONE_MILLION;
+        long currentTimestampIncrementedByTwoMillion = currentTimestamp + TWO_MILLION;
+
+        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByTwoMillion);
+        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
+        assertThat(timestampService.getFreshTimestamp()).isGreaterThan(currentTimestampIncrementedByTwoMillion);
+    }
+
+    @Test
     public void returnsNotFoundOnQueryingNonexistentClient() {
         RemoteLockService lockService = getLockService(NONEXISTENT_CLIENT);
         assertThatThrownBy(lockService::currentTimeMillis)
@@ -151,8 +200,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void returnsNotFoundOnQueryingClientWithInvalidName() {
-        TimestampService timestampService = getTimestampService(INVALID_CLIENT);
-        assertThatThrownBy(timestampService::getFreshTimestamp)
+        TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
+        assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
                 .hasMessageContaining(NOT_FOUND_CODE);
     }
 
@@ -163,16 +212,21 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static RemoteLockService getLockService(String client) {
-        return AtlasDbHttpClients.createProxy(
-                NO_SSL,
-                String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client),
-                RemoteLockService.class);
+        return getProxyForService(client, RemoteLockService.class);
     }
 
     private static TimestampService getTimestampService(String client) {
+        return getProxyForService(client, TimestampService.class);
+    }
+
+    private static TimestampManagementService getTimestampManagementService(String client) {
+        return getProxyForService(client, TimestampManagementService.class);
+    }
+
+    private static <T> T getProxyForService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
                 NO_SSL,
                 String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client),
-                TimestampService.class);
+                clazz);
     }
 }

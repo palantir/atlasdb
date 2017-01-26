@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen;
+package com.palantir.atlasdb.timelock.paxos;
 
-public final class JepsenConstants {
-    public static final int NEMESIS_PROCESS = -1;
-    public static final String NEMESIS_PROCESS_NAME = "nemesis";
+import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampService;
 
-    public static final String START_FUNCTION = "start";
-    public static final String STOP_FUNCTION = "stop";
-
-    private JepsenConstants() {
-        // utility class
-    }
+public interface ManagedTimestampService extends TimestampService, TimestampManagementService {
 }

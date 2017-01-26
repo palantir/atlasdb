@@ -471,12 +471,10 @@ public final class KeyValueTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<KeyValueRowResult> getRow(KeyValueRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<KeyValueRowResult> getRow(KeyValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -719,5 +717,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "SMiJwwtb7UOGyQ5QanH9sg==";
+    static String __CLASS_HASH = "26REEPuBZ5/GeJc3UVRfug==";
 }
