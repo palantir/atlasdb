@@ -135,7 +135,7 @@ public final class TransactionManagers {
 
         KeyValueService kvs = getKeyValueService(atlasFactory, lts);
 
-        createAndRegisterPersistentLockService(kvs, env);
+        PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
@@ -183,7 +183,7 @@ public final class TransactionManagers {
                 getImmutableTsSupplier(transactionManager),
                 transactionService,
                 sweepStrategyManager,
-                new CellsSweeper(transactionManager, kvs, ImmutableList.of(follower)));
+                new CellsSweeper(transactionManager, kvs, persistentLockService, ImmutableList.of(follower)));
         BackgroundSweeper backgroundSweeper = new BackgroundSweeperImpl(
                 transactionManager,
                 kvs,
@@ -199,9 +199,10 @@ public final class TransactionManagers {
         return transactionManager;
     }
 
-    private static void createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
+    private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
         PersistentLockService pls = PersistentLockService.create(kvs);
         env.register(pls);
+        return pls;
     }
 
     private static KeyValueService getKeyValueService(ServiceDiscoveringAtlasSupplier atlasFactory,
