@@ -2,8 +2,7 @@
   (:require [clojure.tools.logging :refer :all]
             [jepsen.control :as c]
             [jepsen.db :as db]
-            [jepsen.os.debian :as debian])
-  (:import com.palantir.atlasdb.http.TimelockUtils))
+            [jepsen.os.debian :as debian]))
 
 (defn create-db
   "Creates an object that implements the db/DB protocol.
