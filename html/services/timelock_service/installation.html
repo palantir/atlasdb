@@ -166,20 +166,20 @@
 </div>
 </li>
 <li><p class="first">Generate a tar file with Gradle:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">gradlew</span> <span class="n">atlasdb</span><span class="o">-</span><span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="n">distTar</span>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">gradlew</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="n">distTar</span>
 </pre></div>
 </div>
 </li>
 </ol>
 <blockquote>
-<div>This will place a tar file in the <code class="docutils literal"><span class="pre">build/distributions</span></code> directory of the <code class="docutils literal"><span class="pre">atlasdb-timelock-server</span></code> project. The
+<div>This will place a tar file in the <code class="docutils literal"><span class="pre">build/distributions</span></code> directory of the <code class="docutils literal"><span class="pre">timelock-server</span></code> project. The
 tar file follows semantic versioning.</div></blockquote>
 <ol class="arabic" start="3">
 <li><p class="first">Copy this tar file to the server on which you want to deploy Timelock Server.
 (If you wish to run Timelock Server locally, this step may be omitted.)</p>
 </li>
 <li><p class="first">On the server which you intend to deploy Timelock Server, untar the archive.</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">tar</span> <span class="o">-</span><span class="n">zxvf</span> <span class="n">atlasdb</span><span class="o">-</span><span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mf">0.</span><span class="n">sls</span><span class="o">.</span><span class="n">tgz</span><span class="p">;</span> <span class="n">cd</span> <span class="n">atlasdb</span><span class="o">-</span><span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mi">0</span>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">tar</span> <span class="o">-</span><span class="n">zxvf</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mf">0.</span><span class="n">sls</span><span class="o">.</span><span class="n">tgz</span><span class="p">;</span> <span class="n">cd</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mi">0</span>
 </pre></div>
 </div>
 </li>
