@@ -14,3 +14,4 @@ collaborate to elect a leader via the Paxos algorithm.
 
    overview
    clustering
+   management
