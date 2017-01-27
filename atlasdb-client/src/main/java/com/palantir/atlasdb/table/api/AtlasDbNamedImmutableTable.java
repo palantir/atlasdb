@@ -20,9 +20,12 @@ import java.util.concurrent.ExecutorService;
 
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 
-/*
+/**
  * All named atlasdb tables should implement this interface.
+ *
+ * @deprecated This interface has been partially pruned, should not be used directly, and may be removed.
  */
+@Deprecated
 public interface AtlasDbNamedImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
     List<ROW_RESULT> getRows(Iterable<ROW> rows);
