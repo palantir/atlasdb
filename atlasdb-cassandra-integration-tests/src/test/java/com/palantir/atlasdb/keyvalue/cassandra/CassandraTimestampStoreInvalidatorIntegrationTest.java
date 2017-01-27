@@ -74,8 +74,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     @Test
     public void canInvalidateTimestampTableIfItAlreadyExistsWithData() {
-        timestampBoundStore.getUpperLimit();
-        timestampBoundStore.storeUpperLimit(ONE_MILLION);
+        takeOutOneMillionTimestamps();
         invalidateAndThenCheckCannotReadBound();
     }
 
@@ -98,31 +97,36 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     @Test
     public void resilientToMultipleConcurrentInvalidations() {
+        takeOutOneMillionTimestamps();
         executeInParallelOnExecutorService(this::invalidateAndThenCheckCannotReadBound);
-        revalidateAndThenCheckCanReadBound(ZERO);
+        revalidateAndThenCheckCanReadBound(ONE_MILLION);
+    }
+
+    private void takeOutOneMillionTimestamps() {
+        timestampBoundStore.getUpperLimit();
+        timestampBoundStore.storeUpperLimit(ONE_MILLION);
     }
 
     @Test
     public void cannotGoBackInTimeWithRevalidation() {
         invalidateAndThenCheckCannotReadBound();
         revalidateAndThenCheckCanReadBound(ZERO);
-        timestampBoundStore.getUpperLimit();
-        timestampBoundStore.storeUpperLimit(ONE_MILLION);
+        takeOutOneMillionTimestamps();
         revalidateAndThenCheckCanReadBound(ONE_MILLION); // in particular, not ZERO
     }
 
     @Test
     public void canReadTimestampTableAfterRevalidation() {
-        timestampBoundStore.getUpperLimit();
-        timestampBoundStore.storeUpperLimit(ONE_MILLION);
+        takeOutOneMillionTimestamps();
         invalidateAndThenCheckCannotReadBound();
         revalidateAndThenCheckCanReadBound(ONE_MILLION);
     }
 
     @Test
     public void resilientToMultipleConcurrentRevalidations() {
+        takeOutOneMillionTimestamps();
         invalidateAndThenCheckCannotReadBound();
-        executeInParallelOnExecutorService(() -> revalidateAndThenCheckCanReadBound(ZERO));
+        executeInParallelOnExecutorService(() -> revalidateAndThenCheckCanReadBound(ONE_MILLION));
     }
 
     private void invalidateAndThenCheckCannotReadBound() {
