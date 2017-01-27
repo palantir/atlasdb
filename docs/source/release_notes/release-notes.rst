@@ -43,6 +43,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Fixed (`MultipleRunningTimestampServicesError <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1515>`__)
+
+    *    - |fixed|
          - Fixed schema generation with Java 8 optionals.
            To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
