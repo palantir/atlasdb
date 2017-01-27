@@ -43,10 +43,10 @@ develop
          - Change
 
     *    - |new|
-         - Sweep now takes out an backup lock when removing cells.
-           Users performing live backups should grab this lock before performing a backup, and release the lock once the backup is complete.
-           This would enable the backup to safely run alongside either the background sweeper or the sweep CLI.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/15xx>`__)
+         - Sweep now takes out a lock to ensure data is not corrupted during online backups.
+           Users performing `live backups <https://palantir.github.io/atlasdb/html/cluster_management/backup-restore.html>`__ should grab this lock before performing a backup, and release the lock once the backup is complete.
+           This enables the backup to safely run alongside either the `background sweeper <https://palantir.github.io/atlasdb/html/cluster_management/sweep/background-sweep.html>`__ or the `sweep CLI <https://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-cli.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1509>`__)
 
     *    - |fixed|
          - Fixed schema generation with Java 8 optionals.
