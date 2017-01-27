@@ -36,9 +36,10 @@ public class CassandraTimestampCqlExecutor {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampCqlExecutor.class);
 
     private static final String ROW_AND_COLUMN_NAME = "ts";
-    public static final byte[] ROW_AND_COLUMN_NAME_BYTES = PtBytes.toBytes(ROW_AND_COLUMN_NAME);
     private static final String BACKUP_COLUMN_NAME = "oldTs";
-    public static final byte[] BACKUP_COLUMN_NAME_BYTES = PtBytes.toBytes(BACKUP_COLUMN_NAME);
+
+    static final byte[] ROW_AND_COLUMN_NAME_BYTES = PtBytes.toBytes(ROW_AND_COLUMN_NAME);
+    static final byte[] BACKUP_COLUMN_NAME_BYTES = PtBytes.toBytes(BACKUP_COLUMN_NAME);
 
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
@@ -81,16 +82,16 @@ public class CassandraTimestampCqlExecutor {
                 .stream()
                 .map(entry -> constructCqlInsertCommandForTimestampTable(entry.getKey(), entry.getValue()))
                 .collect(Collectors.joining());
-        return "BEGIN BATCH\n" +
-                insertions +
-                "APPLY BATCH;";
+        return "BEGIN BATCH\n"
+                + insertions
+                + "APPLY BATCH;";
     }
 
     private String constructCqlInsertCommandForTimestampTable(byte[] rowAndColumnName, byte[] value) {
         String hexName = encodeCassandraHexValue(rowAndColumnName);
         String hexValue = encodeCassandraHexValue(value);
         return String.format(
-                "INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, -1, %s);\n",
+                "INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, -1, %s);%n",
                 "\"" + AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName() + "\"",
                 hexName,
                 hexName,

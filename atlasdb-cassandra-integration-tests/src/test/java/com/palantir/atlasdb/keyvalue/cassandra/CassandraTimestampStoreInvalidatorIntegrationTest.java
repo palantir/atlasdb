@@ -48,7 +48,6 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     private static final long ZERO = 0L;
     private static final long ONE_MILLION = 1000000L;
-    private static final long TWO_MILLION = 2000000L;
     private static final int POOL_SIZE = 16;
     private static final int TIMEOUT_SECONDS = 5;
 
