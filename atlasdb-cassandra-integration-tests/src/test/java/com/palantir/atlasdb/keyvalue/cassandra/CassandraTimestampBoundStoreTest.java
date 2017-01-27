@@ -52,18 +52,19 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
     }
 
     @Test
-    public void storeWithEmptyTableThrows(){
-        store.storeUpperLimit(NEW_LIMIT);
+    public void storeWithEmptyTableThrows() {
+        assertThatThrownBy(() -> store.storeUpperLimit(NEW_LIMIT + 1))
+                .isExactlyInstanceOf(Error.class);
     }
 
     @Test
-    public void canGetNewFormat(){
+    public void canGetNewFormat() {
         insertTimestampWithCorrectId(NEW_LIMIT + 1);
         assertCorrect();
     }
 
     @Test
-    public void canGetOldFormat(){
+    public void canGetOldFormat() {
         insertTimestampOld(NEW_LIMIT + 1);
         assertCorrect();
     }
@@ -91,16 +92,16 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
         long limit = store.getUpperLimit();
         insertTimestampWithFakeId(NEW_LIMIT);
         assertThat(limit).isNotEqualTo(NEW_LIMIT);
-        assertThatThrownBy(() -> store.storeUpperLimit(NEW_LIMIT + 1)).
-                isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
+        assertThatThrownBy(() -> store.storeUpperLimit(NEW_LIMIT + 1))
+                .isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
     }
 
     @Test
     public void storeWithRightTimestampWrongIdThrows() {
         long limit = store.getUpperLimit();
         insertTimestampWithFakeId(limit);
-        assertThatThrownBy(() -> store.storeUpperLimit(NEW_LIMIT + 1)).
-                isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
+        assertThatThrownBy(() -> store.storeUpperLimit(NEW_LIMIT + 1))
+                .isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
     }
 
     @After
