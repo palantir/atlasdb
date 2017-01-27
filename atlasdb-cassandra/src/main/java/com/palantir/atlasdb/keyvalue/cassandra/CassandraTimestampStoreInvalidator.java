@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.Map;
 import java.util.Optional;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -33,8 +34,14 @@ public class CassandraTimestampStoreInvalidator implements TimestampStoreInvalid
     private final CassandraTimestampCqlExecutor cassandraTimestampCqlExecutor;
 
     public CassandraTimestampStoreInvalidator(CassandraKeyValueService rawCassandraKvs) {
+        this(rawCassandraKvs, new CassandraTimestampCqlExecutor(rawCassandraKvs));
+    }
+
+    @VisibleForTesting
+    CassandraTimestampStoreInvalidator(CassandraKeyValueService rawCassandraKvs,
+            CassandraTimestampCqlExecutor cassandraTimestampCqlExecutor) {
         this.rawCassandraKvs = rawCassandraKvs;
-        this.cassandraTimestampCqlExecutor = new CassandraTimestampCqlExecutor(rawCassandraKvs);
+        this.cassandraTimestampCqlExecutor = cassandraTimestampCqlExecutor;
     }
 
     @Override
