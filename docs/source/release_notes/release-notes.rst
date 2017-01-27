@@ -42,8 +42,11 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed| |improved|
+         - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `ticket <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
+
+           This fix also enables better detection of legitimate occurrences of ``MultipleRunningTimestampServicesError``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1515>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -62,7 +65,7 @@ v0.31.0
 
     *    - |improved| |devbreak|
          - Improved performance by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
-           Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.          
+           Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
 
     *    - |devbreak|
