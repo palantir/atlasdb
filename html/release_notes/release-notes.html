@@ -195,12 +195,16 @@ To use Java8 optionals, supply <code class="docutils literal"><span class="pre">
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1488">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Added request and exception rates metrics in CassandraClientPool. This will provide access to 1-, 5-, and 15-minute moving averages.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1497">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>More informative logging around retrying of transactions.
 If a transaction succeeds after being retried, we log the success (at the INFO level).
 If a transaction failed, but will be retried, we now also log the number of failures so far (at INFO).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1376">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Updated our dependency on <code class="docutils literal"><span class="pre">gradle-java-distribution</span></code> from 1.2.0 to 1.3.0.
 See gradle-java-distribution <a class="reference external" href="https://github.com/palantir/gradle-java-distribution/releases">release notes</a> for details.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1500">Pull Request</a>)</td>
