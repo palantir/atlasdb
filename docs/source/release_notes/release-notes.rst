@@ -63,7 +63,7 @@ develop
     *    - |improved|
          - Don't retry interrupted remote calls.
 
-           This should have the effect of shutting down faster in situations where we receive a `InterruptedException`.
+           This should have the effect of shutting down faster in situations where we receive a ``InterruptedException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1488>`__)
 
     *    - |improved|
