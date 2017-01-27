@@ -46,17 +46,21 @@ public class CassandraTimestampStoreInvalidator implements TimestampStoreInvalid
 
     @Override
     public void invalidateTimestampStore() {
-        // Avoid Cassandra exploding on later reads if the table happens not to exist yet.
-        rawCassandraKvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE,
-                CassandraTimestampBoundStore.TIMESTAMP_TABLE_METADATA.persistToBytes());
+        ensureTimestampTableExists();
         Optional<Long> bound = getCurrentTimestampBound();
         bound.ifPresent(cassandraTimestampCqlExecutor::backupBound);
     }
 
     @Override
     public void revalidateTimestampStore() {
+        ensureTimestampTableExists();
         Optional<Long> bound = getBackupTimestampBound();
         bound.ifPresent(cassandraTimestampCqlExecutor::restoreBoundFromBackup);
+    }
+
+    private void ensureTimestampTableExists() {
+        rawCassandraKvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE,
+                CassandraTimestampBoundStore.TIMESTAMP_TABLE_METADATA.persistToBytes());
     }
 
     private Optional<Long> getCurrentTimestampBound() {
