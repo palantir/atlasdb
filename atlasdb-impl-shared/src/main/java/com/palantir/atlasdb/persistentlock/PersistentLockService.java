@@ -15,8 +15,13 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -48,7 +53,9 @@ public class PersistentLockService {
      *   essential that you retain a reference to this lock, as you will need it in order to release the lock.
      * @throws CheckAndSetException if the lock was already taken.
      */
+    @GET
     @Path("acquire")
+    @Produces(MediaType.APPLICATION_JSON)
     public LockEntry acquireLock(@PathParam("reason") String reason) throws CheckAndSetException {
         return lockStore.acquireLock(reason);
     }
@@ -59,8 +66,11 @@ public class PersistentLockService {
      * @param lockEntry the {@link LockEntry} you were given when you called {@link #acquireLock(String)}
      * @throws CheckAndSetException if the lock was no longer valid, most likely because it was already released.
      */
+    @POST
     @Path("release")
-    public void releaseLock(LockEntry lockEntry) throws CheckAndSetException {
+    @Consumes(MediaType.APPLICATION_JSON)
+    public boolean releaseLock(LockEntry lockEntry) throws CheckAndSetException {
         lockStore.releaseLock(lockEntry);
+        return true;
     }
 }
