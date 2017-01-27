@@ -54,7 +54,7 @@ public class PersistentLockService {
      * @throws CheckAndSetException if the lock was already taken.
      */
     @GET
-    @Path("acquire")
+    @Path("acquire/{reason}")
     @Produces(MediaType.APPLICATION_JSON)
     public LockEntry acquireLock(@PathParam("reason") String reason) throws CheckAndSetException {
         return lockStore.acquireLock(reason);
