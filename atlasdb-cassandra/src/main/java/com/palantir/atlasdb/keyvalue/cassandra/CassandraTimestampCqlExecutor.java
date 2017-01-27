@@ -58,6 +58,7 @@ public class CassandraTimestampCqlExecutor {
     public void restoreBoundFromBackup(long bound) {
         executeCqlBatchInsertOnTimestampTable(ImmutableMap.<byte[], byte[]>builder()
                 .put(ROW_AND_COLUMN_NAME_BYTES, PtBytes.toBytes(bound))
+                .put(BACKUP_COLUMN_NAME_BYTES, EMPTY_BYTE_ARRAY) // else 2x revalidate will mean we go back in time
                 .build());
     }
 
