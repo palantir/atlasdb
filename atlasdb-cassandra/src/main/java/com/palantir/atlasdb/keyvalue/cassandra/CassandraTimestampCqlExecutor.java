@@ -92,10 +92,14 @@ public class CassandraTimestampCqlExecutor {
         String hexValue = encodeCassandraHexValue(value);
         return String.format(
                 "INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, -1, %s);%n",
-                "\"" + AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName() + "\"",
+                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
                 hexName,
                 hexName,
                 hexValue);
+    }
+
+    private String wrapInQuotes(String tableName) {
+        return "\"" + tableName + "\"";
     }
 
     private String encodeCassandraHexValue(byte[] value) {
