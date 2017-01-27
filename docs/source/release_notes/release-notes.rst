@@ -68,6 +68,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1488>`__)
 
     *    - |improved|
+         - Added request and exception rates metrics in CassandraClientPool. This will provide access to 1-, 5-, and 15-minute moving averages.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1497>`__)
+
+    *    - |improved|
          - More informative logging around retrying of transactions.
            If a transaction succeeds after being retried, we log the success (at the INFO level).
            If a transaction failed, but will be retried, we now also log the number of failures so far (at INFO).

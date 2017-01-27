@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 
 public class MetricsManager {
@@ -52,6 +53,20 @@ public class MetricsManager {
             // Primarily to handle integration tests that instantiate this class multiple times in a row
             log.error("Unable to register metric {}", fullyQualifiedMetricName, e);
         }
+    }
+
+    public Meter registerMeter(Class clazz, String meterName) {
+        return registerMeter(MetricRegistry.name(clazz, meterName));
+    }
+
+    public Meter registerMeter(Class clazz, String metricPrefix, String meterName) {
+        return registerMeter(MetricRegistry.name(clazz, metricPrefix, meterName));
+    }
+
+    private synchronized Meter registerMeter(String fullyQualifiedMeterName) {
+        Meter meter = metricRegistry.meter(fullyQualifiedMeterName);
+        registeredMetrics.add(fullyQualifiedMeterName);
+        return meter;
     }
 
     public synchronized void deregisterMetrics() {
