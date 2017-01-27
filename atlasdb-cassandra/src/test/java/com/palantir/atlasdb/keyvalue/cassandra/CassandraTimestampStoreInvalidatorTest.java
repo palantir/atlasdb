@@ -69,7 +69,7 @@ public class CassandraTimestampStoreInvalidatorTest {
     }
 
     @Test
-    public void revalidatePassesBackupValueFromKvsToBeBackedUp() {
+    public void revalidatePassesBackupValueFromKvsToBeRestored() {
         invalidator.revalidateTimestampStore();
         verify(cqlExecutor, times(1)).restoreBoundFromBackup(eq(FORTY_THREE));
     }
