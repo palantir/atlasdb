@@ -42,29 +42,28 @@ develop
     *    - Type
          - Change
 
-    *    - |fixed|
+    *    - |fixed| |devbreak|
          - Fixed schema generation with Java 8 optionals.
            To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
 
-    *    - |devbreak|
-         - The above fix requires all projects to regenerate their schemas, even if not using Java 8 optionals.
+           Additionally, this fix requires all AtlasDB clients to regenerate their schema, even if they do not use the Java 8 optionals.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
 
     *    - |fixed|
-         - Make fetch size bounded from above in ``DbKvs.getRowsColumnRange()``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1478>`__)
-
-    *    - |fixed|
-         - Prevent deadlocks during parallel reads from DB KVS.
+         - Prevent deadlocks in an edge case where we perform parallel reads with a small connection pool on DB KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
 
-    *    - |improved|
-         - Added support for benchmarking custom Key Value Stores; see `documentation <http://palantir.github.io/atlasdb/html/performance/writing.html>`__.
+    *    - |new|
+         - Added support for benchmarking custom Key Value Stores.
+           In the future this will enable performance regression testing for Oracle.
+
+           See our :ref:`performance writing <performance-writing>` documentation for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1459>`__)
 
-    *    - |fixed|
-         - Don't retry interrupted remote calls, shut down the scrubber immediately when interrupted.
+    *    - |improved|
+         - Don't retry interrupted remote calls.
+
+           This should have the effect of shutting down faster in situations where we receive a `InterruptedException`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1488>`__)
 
     *    - |improved|

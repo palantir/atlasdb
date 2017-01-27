@@ -1,3 +1,5 @@
+.. _performance-writing:
+
 ==================
 Writing Benchmarks
 ==================
