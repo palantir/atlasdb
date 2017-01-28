@@ -43,6 +43,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Actions run by the `ReadOnlyTransactionManager` can no longer bypass necessary protections when using `getRowsColumnRange()`
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1521>`__)
+
+    *    - |fixed|
          - Fixed schema generation with Java 8 optionals.
            To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
