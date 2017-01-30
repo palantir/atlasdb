@@ -59,6 +59,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting1.tracing.Tracers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -78,8 +79,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     public AbstractKeyValueService(ExecutorService executor) {
         this.executor = executor;
         this.tracingPrefs = new TracingPrefsConfig();
-        this.scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory(getClass().getSimpleName() + "-tracing-prefs", true));
+        this.scheduledExecutor = Tracers.wrap(PTExecutors.newSingleThreadScheduledExecutor(
+                new NamedThreadFactory(getClass().getSimpleName() + "-tracing-prefs", true)));
         this.scheduledExecutor.scheduleWithFixedDelay(this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
     }
 
@@ -88,11 +89,11 @@ public abstract class AbstractKeyValueService implements KeyValueService {
      * @param poolSize fixed thread pool size
      * @return a new fixed size thread pool with a keep alive time of 1 minute.
      */
-    protected static ThreadPoolExecutor createFixedThreadPool(String threadNamePrefix, int poolSize) {
+    protected static ExecutorService createFixedThreadPool(String threadNamePrefix, int poolSize) {
         ThreadPoolExecutor executor = PTExecutors.newFixedThreadPool(poolSize,
                 new NamedThreadFactory(threadNamePrefix, false));
         executor.setKeepAliveTime(1, TimeUnit.MINUTES);
-        return executor;
+        return Tracers.wrap(executor);
     }
 
     @Override

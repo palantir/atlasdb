@@ -44,6 +44,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.remoting1.tracing.Tracers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -115,7 +116,8 @@ public class AtlasDbTestCase {
         return TracingKeyValueService.create(
                 NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(
                         new InMemoryKeyValueService(false,
-                                PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)))));
+                                Tracers.wrap(PTExecutors.newSingleThreadExecutor(
+                                        PTExecutors.newNamedThreadFactory(true))))));
     }
 
     @After

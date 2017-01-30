@@ -33,6 +33,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
+import com.palantir.remoting1.tracing.Tracers;
 
 public class LockRefreshingLockService extends ForwardingLockService {
     private static final Logger log = LoggerFactory.getLogger(LockRefreshingLockService.class);
@@ -72,7 +73,7 @@ public class LockRefreshingLockService extends ForwardingLockService {
     private LockRefreshingLockService(LockService delegate) {
         this.delegate = delegate;
         toRefresh = Sets.newConcurrentHashSet();
-        exec = PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
+        exec = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true)));
     }
 
     @Override

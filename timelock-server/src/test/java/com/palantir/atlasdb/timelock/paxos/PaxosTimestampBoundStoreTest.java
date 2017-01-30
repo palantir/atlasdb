@@ -49,6 +49,7 @@ import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.PaxosRoundFailureException;
+import com.palantir.remoting1.tracing.Tracers;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 
 public class PaxosTimestampBoundStoreTest {
@@ -66,7 +67,7 @@ public class PaxosTimestampBoundStoreTest {
 
     private static final RuntimeException EXCEPTION = new RuntimeException("exception");
 
-    private final ExecutorService executor = PTExecutors.newCachedThreadPool();
+    private final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool());
     private final List<PaxosAcceptor> acceptors = Lists.newArrayList();
     private final List<PaxosLearner> learners = Lists.newArrayList();
     private final List<AtomicBoolean> failureToggles = Lists.newArrayList();
