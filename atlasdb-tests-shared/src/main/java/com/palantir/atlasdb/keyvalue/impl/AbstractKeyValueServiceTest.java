@@ -738,6 +738,24 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void testDeleteRangeReverse() {
+        if (reverseRangesSupported()) {
+            putTestDataForMultipleRows(); // set up rows row0,row1,row2
+            RangeRequest range = RangeRequest.builder(true)
+                    .startRowInclusive("row1b".getBytes())
+                    .endRowExclusive(row0)
+                    .build();
+            // should delete only row1
+            keyValueService.deleteRange(TEST_TABLE, range);
+
+            List<byte[]> keys = Lists.newArrayList();
+            keyValueService.getRange(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE)
+                    .forEachRemaining(row -> keys.add(row.getRowName()));
+            assertTrue(Arrays.deepEquals(keys.toArray(), ImmutableList.of(row0, row2).toArray()));
+        }
+    }
+
+    @Test
     public void testDeleteRangeStartRowInclusivity() {
         putTestDataForMultipleRows(); // set up rows row0,row1,row2
 
