@@ -356,12 +356,7 @@ public final class TieredKeyValueService implements KeyValueService {
             primary.deleteRange(tableRef, range);
             return;
         }
-        Future<?> primaryFuture = executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                primary.deleteRange(tableRef, range);
-            }
-        });
+        Future<?> primaryFuture = executor.submit(() -> primary.deleteRange(tableRef, range));
         secondary.deleteRange(tableRef, range);
         Futures.getUnchecked(primaryFuture);
     }

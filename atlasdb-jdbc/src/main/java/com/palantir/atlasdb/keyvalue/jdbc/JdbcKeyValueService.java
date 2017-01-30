@@ -92,9 +92,9 @@ import org.jooq.impl.DSL;
 
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -103,11 +103,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -644,16 +644,11 @@ public class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
-        try (ClosableIterator<RowResult<Set<Long>>> iterator = getRangeOfTimestamps(tableRef, range, Long.MAX_VALUE)) {
+        try (ClosableIterator<RowResult<Set<Long>>> iterator = getRangeOfTimestamps(tableRef, range, AtlasDbConstants.MAX_TS)) {
             while (iterator.hasNext()) {
                 RowResult<Set<Long>> rowResult = iterator.next();
 
-                Multimap<Cell, Long> cellsToDelete = Multimaps.newSetMultimap(Maps.<Cell, Collection<Long>>newHashMap(), new Supplier<Set<Long>>() {
-                    @Override
-                    public Set<Long> get() {
-                        return Sets.newHashSet();
-                    }
-                });
+                Multimap<Cell, Long> cellsToDelete = HashMultimap.create();
                 for (Entry<Cell, Set<Long>> entry : rowResult.getCells()) {
                     cellsToDelete.putAll(entry.getKey(), entry.getValue());
                 }

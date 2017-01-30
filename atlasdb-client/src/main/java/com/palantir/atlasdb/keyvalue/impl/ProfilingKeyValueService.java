@@ -280,7 +280,7 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             ClosableIterator<RowResult<Value>> result = delegate.getRange(tableRef, rangeRequest, timestamp);
-            logTimeAndTable("getRange", tableRef.getQualifiedName(), stopwatch);
+            logTimeAndTableRange("getRange", tableRef.getQualifiedName(), rangeRequest, stopwatch);
             return result;
         } else {
             return delegate.getRange(tableRef, rangeRequest, timestamp);
@@ -292,7 +292,7 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             ClosableIterator<RowResult<Set<Long>>> result = delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
-            logTimeAndTable("getRangeOfTimestamps", tableRef.getQualifiedName(), stopwatch);
+            logTimeAndTableRange("getRangeOfTimestamps", tableRef.getQualifiedName(), rangeRequest, stopwatch);
             return result;
         } else {
             return delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
