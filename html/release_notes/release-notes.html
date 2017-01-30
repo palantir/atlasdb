@@ -169,30 +169,29 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed schema generation with Java 8 optionals.
-To use Java8 optionals, supply <code class="docutils literal"><span class="pre">OptionalType.JAVA8</span></code> as an additional constructor argument when creating your <code class="docutils literal"><span class="pre">Schema</span></code> object.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1501">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>The above fix requires all projects to regenerate their schemas, even if not using Java 8 optionals.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1501">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Make fetch size bounded from above in <code class="docutils literal"><span class="pre">DbKvs.getRowsColumnRange()</span></code>.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1478">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><p class="first">Fixed schema generation with Java 8 optionals.
+To use Java8 optionals, supply <code class="docutils literal"><span class="pre">OptionalType.JAVA8</span></code> as an additional constructor argument when creating your <code class="docutils literal"><span class="pre">Schema</span></code> object.</p>
+<p class="last">Additionally, this fix requires all AtlasDB clients to regenerate their schema, even if they do not use the Java 8 optionals.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1501">Pull Request</a>)</p>
+</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Prevent deadlocks during parallel reads from DB KVS.
+<td>Prevent deadlocks in an edge case where we perform parallel reads with a small connection pool on DB KVS.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1468">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Added support for benchmarking custom Key Value Stores; see <a class="reference external" href="http://palantir.github.io/atlasdb/html/performance/writing.html">documentation</a>.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1459">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td><p class="first">Added support for benchmarking custom Key Value Stores.
+In the future this will enable performance regression testing for Oracle.</p>
+<p class="last">See our <a class="reference internal" href="../performance/writing.html#performance-writing"><span class="std std-ref">performance writing</span></a> documentation for details.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1459">Pull Request</a>)</p>
+</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Don&#8217;t retry interrupted remote calls, shut down the scrubber immediately when interrupted.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1488">Pull Request</a>)</td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><p class="first">Don&#8217;t retry interrupted remote calls.</p>
+<p class="last">This should have the effect of shutting down faster in situations where we receive a <code class="docutils literal"><span class="pre">InterruptedException</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1488">Pull Request</a>)</p>
+</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Added request and exception rates metrics in CassandraClientPool. This will provide access to 1-, 5-, and 15-minute moving averages.
