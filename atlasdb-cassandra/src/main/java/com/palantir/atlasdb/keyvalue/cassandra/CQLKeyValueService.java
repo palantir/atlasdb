@@ -43,6 +43,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.PreparedStatement;
@@ -51,7 +52,6 @@ import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
-import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
@@ -169,11 +169,11 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         clusterBuilder.withCompression(Compression.LZ4);
 
         if (config.sslConfiguration().isPresent()) {
+            // We could switch to newer netty SSL configuration (perf++), but all of our other stuff
+            // uses the built-in java SSL configuration and doing something different could be a headache
             SSLContext sslContext = SslSocketFactories.createSslContext(config.sslConfiguration().get());
-            SSLOptions sslOptions = new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
+            JdkSSLOptions sslOptions = JdkSSLOptions.builder().withSSLContext(sslContext).build();
             clusterBuilder.withSSL(sslOptions);
-        } else if (config.ssl().isPresent() && config.ssl().get()) {
-            clusterBuilder.withSSL();
         }
 
         PoolingOptions poolingOptions = new PoolingOptions();
