@@ -36,13 +36,15 @@ import com.palantir.timestamp.TimestampBoundStore;
 public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
     private static final long CASSANDRA_TIMESTAMP = 0L;
     private static final String ROW_AND_COLUMN_NAME = "ts";
-    public static final long NEW_LIMIT = 100;
+    private static final long OFFSET = 100;
+    private static final long SECOND_OFFSET = OFFSET + 1;
+
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private CassandraKeyValueService kv = CassandraKeyValueService.create(
+    private final CassandraKeyValueService kv = CassandraKeyValueService.create(
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
             CassandraContainer.LEADER_CONFIG);
 
@@ -53,55 +55,57 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
 
     @Test
     public void storeWithEmptyTableThrows() {
-        assertThatThrownBy(() -> store.storeUpperLimit(NEW_LIMIT + 1))
-                .isExactlyInstanceOf(Error.class);
+        assertThatStoreUpperLimitThrows(SECOND_OFFSET);
     }
 
     @Test
     public void canGetNewFormat() {
-        insertTimestampWithCorrectId(NEW_LIMIT + 1);
-        assertCorrect();
+        insertTimestampWithCorrectId(OFFSET);
+        assertBoundInDbIsEqualTo(OFFSET);
     }
 
     @Test
     public void canGetOldFormat() {
-        insertTimestampOld(NEW_LIMIT + 1);
-        assertCorrect();
+        insertTimestampOld(OFFSET);
+        assertBoundInDbIsEqualTo(OFFSET);
     }
 
     @Test
     public void storeWithWrongTimestampCorrectIdSucceeds() {
         long limit = store.getUpperLimit();
-        insertTimestampWithCorrectId(NEW_LIMIT);
-        assertThat(limit).isNotEqualTo(NEW_LIMIT);
-        store.storeUpperLimit(NEW_LIMIT + 1);
-        assertCorrect();
+        insertTimestampWithCorrectId(limit + OFFSET);
+        store.storeUpperLimit(limit + SECOND_OFFSET);
+        assertBoundInDbIsEqualTo(limit + SECOND_OFFSET);
     }
 
     @Test
-    public void storeWithWrongTimestampNoIdSucceeds() {
+    public void storeWithWrongTimestampNoIdThrows() {
         long limit = store.getUpperLimit();
-        insertTimestampOld(NEW_LIMIT);
-        assertThat(limit).isNotEqualTo(NEW_LIMIT);
-        store.storeUpperLimit(NEW_LIMIT + 1);
-        assertCorrect();
+        insertTimestampOld(limit + OFFSET);
+        assertThatStoreUpperLimitThrows(limit + SECOND_OFFSET);
     }
 
     @Test
     public void storeWithWrongTimestampWrongIdThrows() {
         long limit = store.getUpperLimit();
-        insertTimestampWithFakeId(NEW_LIMIT);
-        assertThat(limit).isNotEqualTo(NEW_LIMIT);
-        assertThatThrownBy(() -> store.storeUpperLimit(NEW_LIMIT + 1))
-                .isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
+        insertTimestampWithFakeId(limit + OFFSET);
+        assertThatStoreUpperLimitThrows(limit + SECOND_OFFSET);
     }
 
     @Test
-    public void storeWithRightTimestampWrongIdThrows() {
-        long limit = store.getUpperLimit();
-        insertTimestampWithFakeId(limit);
-        assertThatThrownBy(() -> store.storeUpperLimit(NEW_LIMIT + 1))
-                .isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
+    public void storeWithRightTimestampNoIdSucceeds() {
+        insertTimestampOld(OFFSET);
+        assertThat(store.getUpperLimit()).isEqualTo(OFFSET);
+        store.storeUpperLimit(SECOND_OFFSET);
+        assertBoundInDbIsEqualTo(SECOND_OFFSET);
+    }
+
+    @Test
+    public void storeWithRightTimestampWrongIdSucceeds() {
+        insertTimestampWithFakeId(OFFSET);
+        store.getUpperLimit();
+        store.storeUpperLimit(SECOND_OFFSET);
+        assertBoundInDbIsEqualTo(SECOND_OFFSET);
     }
 
     @After
@@ -109,8 +113,13 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 
-    private void assertCorrect() {
-        assertThat(store.getUpperLimit()).isEqualTo(NEW_LIMIT + 1);
+    private void assertBoundInDbIsEqualTo(long limit) {
+        assertThat(store.getUpperLimit()).isEqualTo(limit);
+    }
+
+    private void assertThatStoreUpperLimitThrows(long limit) {
+        assertThatThrownBy(() -> store.storeUpperLimit(limit))
+                .isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
     }
 
     private void insertTimestampWithCorrectId(long value) {
@@ -122,7 +131,7 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
     }
 
     private void insertTimestampOld(long value) {
-        insertIntoTimestampTable(PtBytes.toBytes(value));
+        setTimestampTableValueTo(PtBytes.toBytes(value));
     }
 
     private void insertTimestampWithIdChanged(long value, boolean changeId) {
@@ -130,10 +139,10 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
         if (changeId) {
             id = id % 2 + 1;
         }
-        insertIntoTimestampTable(PtBytes.toBytes(Long.toString(id) + "_" + Long.toString(value)));
+        setTimestampTableValueTo(PtBytes.toBytes(Long.toString(id) + "_" + Long.toString(value)));
     }
 
-    private void insertIntoTimestampTable(byte[] data) {
+    private void setTimestampTableValueTo(byte[] data) {
         kv.truncateTable(AtlasDbConstants.TIMESTAMP_TABLE);
         kv.put(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(Cell.create(PtBytes.toBytes(ROW_AND_COLUMN_NAME),
                 PtBytes.toBytes(ROW_AND_COLUMN_NAME)), data), CASSANDRA_TIMESTAMP);
