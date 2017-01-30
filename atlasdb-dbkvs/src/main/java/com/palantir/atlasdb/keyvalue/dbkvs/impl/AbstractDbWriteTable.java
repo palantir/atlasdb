@@ -20,10 +20,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -31,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.nexus.db.sql.PalantirSqlConnection;
 
@@ -145,7 +148,31 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
                 args);
         if (updated == 0) {
             // right now we don't know what's actually in the db :-(
-            throw new CheckAndSetException(cell, tableRef, oldValue, ImmutableList.of());
+            byte[] actualValue = getActualValue(cell, ts);
+            throw new CheckAndSetException(cell, tableRef, oldValue, ImmutableList.of(actualValue));
+        }
+    }
+
+    private byte[] getActualValue(Cell cell, long ts) {
+        String prefixedTableName = prefixedTableNames.get(tableRef);
+        Object[] args = new Object[] {
+                cell.getRowName(),
+                cell.getColumnName(),
+                ts
+        };
+        String sqlString = "/* SELECT (" + prefixedTableName + ") */"
+                + " SELECT val from " + prefixedTableName + ""
+                + " WHERE row_name = ?"
+                + " AND col_name = ?"
+                + " AND ts = ?";
+        AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(sqlString, args);
+        if (results.size() < 1) {
+            return PtBytes.EMPTY_BYTE_ARRAY;
+        } else {
+            //noinspection deprecation
+            return MoreObjects.firstNonNull(
+                    Iterables.getOnlyElement(results.rows()).getBytes("val"),
+                    PtBytes.EMPTY_BYTE_ARRAY);
         }
     }
 
