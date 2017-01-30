@@ -29,9 +29,14 @@ Taking a Backup
 ===============
 
 1. Obtain the Backup Lock
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Call the ``persistent-lock/acquire`` endpoint, supplying your reason as a string, e.g. ``<product>/persistent-lock/acquire/backup``.
+Call the ``persistent-lock/acquire`` endpoint, supplying your reason as a string:
+
+.. code:: bash
+
+  $ curl -X GET --header 'Accept: application/json' '<product-base-url>/persistent-lock/acquire/backup'
+
 If the request succeeds, you will receive a ``LockEntry`` back. It is essential that you save this lock somewhere, so that you can release it later in the process.
 
 2. Obtain a backup timestamp
@@ -66,14 +71,14 @@ Finally, we take the fast-forward timestamp.  Like the backup timestamp, the fas
 These two timestamp files and the entirety of your underlying storage's backup are your entire atlasdb backup.
 
 5. Release the Backup Lock
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Call the ``persistent-lock/release`` endpoint, passing back the ``LockEntry`` that you received in step 1.
 For example (replace the serialised ``LockEntry`` with your own from step 1):
 
 .. code:: bash
 
-   $ ./<product>/persistent-lock/release -d "{'name':'DeletionLock', 'lockId':'92d2dcea-e3c0-11e6-bf01-fe55135034f3', 'reason':'backup'}"
+   $ curl -X POST --header 'content-type: application/json' '<product-base-url>/persistent-lock/release' -d '{"rowName":"DeletionLock","lockId":"9dbae91b-a35c-4938-82fe-58fb31772738","reason":"backup"}'
 
 
 Restoring from a Backup
