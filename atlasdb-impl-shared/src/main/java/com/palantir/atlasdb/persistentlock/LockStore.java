@@ -88,6 +88,7 @@ public class LockStore {
                 lockEntry.value());
 
         keyValueService.checkAndSet(request);
+        log.info("Successfully acquired the persistent lock: {}", lockEntry);
         return lockEntry;
     }
 
@@ -98,6 +99,7 @@ public class LockStore {
                 LOCK_OPEN.value());
 
         keyValueService.checkAndSet(request);
+        log.info("Successfully released the persistent lock.");
     }
 
     @VisibleForTesting
