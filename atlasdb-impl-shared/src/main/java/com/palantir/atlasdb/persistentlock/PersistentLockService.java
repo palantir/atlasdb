@@ -24,6 +24,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
@@ -57,6 +58,7 @@ public class PersistentLockService {
     @Path("acquire/{reason}")
     @Produces(MediaType.APPLICATION_JSON)
     public LockEntry acquireLock(@PathParam("reason") String reason) throws CheckAndSetException {
+        Preconditions.checkNotNull(reason, "Please provide a reason for acquiring the lock.");
         return lockStore.acquireLock(reason);
     }
 
@@ -70,6 +72,7 @@ public class PersistentLockService {
     @Path("release")
     @Consumes(MediaType.APPLICATION_JSON)
     public boolean releaseLock(LockEntry lockEntry) throws CheckAndSetException {
+        Preconditions.checkNotNull(lockEntry, "Please provide a LockEntry to release.");
         lockStore.releaseLock(lockEntry);
         return true;
     }
