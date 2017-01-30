@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -132,12 +133,20 @@ public class LockStore {
                 // This can happen if multiple LockStores are started at once. We don't actually mind.
                 // All we care about is that we're in the state machine of "LOCK_OPEN"/"LOCK_TAKEN".
                 // It still might be interesting, so we'll log it.
-                List<String> values = e.getActualValues().stream()
-                        .map(v -> new String(v, StandardCharsets.UTF_8))
-                        .collect(Collectors.toList());
+                List<String> values = getActualValues(e);
                 log.info("Encountered a CheckAndSetException when creating the LockStore. This means that two "
                         + "LockStore objects were created near-simultaneously, and is probably not a problem. "
                         + "For the record, we observed these values: {}", values);
+            }
+        }
+
+        private List<String> getActualValues(CheckAndSetException ex) {
+            if (ex.getActualValues() != null) {
+                return ex.getActualValues().stream()
+                        .map(v -> new String(v, StandardCharsets.UTF_8))
+                        .collect(Collectors.toList());
+            } else {
+                return ImmutableList.of();
             }
         }
     }
