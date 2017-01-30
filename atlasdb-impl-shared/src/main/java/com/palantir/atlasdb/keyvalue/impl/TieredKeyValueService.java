@@ -56,6 +56,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting1.tracing.Tracers;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -76,7 +77,7 @@ public final class TieredKeyValueService implements KeyValueService {
                                                KeyValueService primary,
                                                KeyValueService secondary) {
         return create(tieredTables, primary, secondary,
-                PTExecutors.newCachedThreadPool(PTExecutors.newNamedThreadFactory()));
+                Tracers.wrap(PTExecutors.newCachedThreadPool(PTExecutors.newNamedThreadFactory())));
     }
 
     public static TieredKeyValueService create(Set<TableReference> tieredTables,
