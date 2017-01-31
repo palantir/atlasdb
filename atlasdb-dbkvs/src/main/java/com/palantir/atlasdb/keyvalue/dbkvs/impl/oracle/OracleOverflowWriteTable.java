@@ -45,6 +45,8 @@ import com.palantir.nexus.db.sql.SqlConnection;
 public final class OracleOverflowWriteTable implements DbWriteTable {
     private static final Logger log = LoggerFactory.getLogger(OracleOverflowWriteTable.class);
 
+    static final int OVERFLOW_THRESHOLD = 2000;
+
     private final OracleDdlConfig config;
     private final ConnectionSupplier conns;
     private final OverflowSequenceSupplier overflowSequenceSupplier;
@@ -80,7 +82,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         for (Entry<Cell, byte[]> entry : data) {
             Cell cell = entry.getKey();
             byte[] val = entry.getValue();
-            if (val.length <= 2000) {
+            if (val.length <= OVERFLOW_THRESHOLD) {
                 args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, val, null });
             } else {
                 long overflowId = config.overflowIds().orElse(overflowSequenceSupplier).get();
@@ -98,7 +100,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         for (Entry<Cell, Value> entry : data) {
             Cell cell = entry.getKey();
             Value val = entry.getValue();
-            if (val.getContents().length <= 2000) {
+            if (val.getContents().length <= OVERFLOW_THRESHOLD) {
                 args.add(new Object[] {
                         cell.getRowName(), cell.getColumnName(), val.getTimestamp(), val.getContents(), null
                 });

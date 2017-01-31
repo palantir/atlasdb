@@ -80,7 +80,7 @@ public final class OracleDdlTable implements DbDdlTable {
         boolean needsOverflow = false;
         TableMetadata metadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata);
         if (metadata != null) {
-            needsOverflow = metadata.getColumns().getMaxValueSize() > 2000;
+            needsOverflow = metadata.getColumns().getMaxValueSize() > OracleOverflowWriteTable.OVERFLOW_THRESHOLD;
         }
 
         createTable(needsOverflow);
@@ -101,7 +101,7 @@ public final class OracleDdlTable implements DbDdlTable {
                 + "  row_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
                 + "  col_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
                 + "  ts         NUMBER(20) NOT NULL,"
-                + "  val        RAW(2000), "
+                + "  val        RAW(" + OracleOverflowWriteTable.OVERFLOW_THRESHOLD + "), "
                 + (needsOverflow ? "overflow   NUMBER(38), " : "")
                 + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortTableName)
                 + " PRIMARY KEY (row_name, col_name, ts) "
