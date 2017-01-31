@@ -167,18 +167,22 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 namespacedUris,
                 optionalSecurity,
                 PaxosAcceptor.class);
+
+        PaxosLearner ourLearner = paxosResource.getPaxosLearner(client);
         List<PaxosLearner> learners = Leaders.createProxyAndLocalList(
-                paxosResource.getPaxosLearner(client),
+                ourLearner,
                 namespacedUris,
                 optionalSecurity,
                 PaxosLearner.class);
 
         PaxosProposer proposer = Leaders.createPaxosProposer(
-                paxosResource.getPaxosLearner(client),
+                ourLearner,
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
                 getQuorumSize(acceptors),
                 executor);
+
+        PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
 
         return AwaitingLeadershipProxy.newProxyInstance(
                 ManagedTimestampService.class,
