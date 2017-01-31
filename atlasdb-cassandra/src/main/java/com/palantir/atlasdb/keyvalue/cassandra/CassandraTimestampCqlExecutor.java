@@ -27,10 +27,13 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.base.Throwables;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CassandraTimestampCqlExecutor {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampCqlExecutor.class);
@@ -41,7 +44,7 @@ public class CassandraTimestampCqlExecutor {
     static final byte[] ROW_AND_COLUMN_NAME_BYTES = PtBytes.toBytes(ROW_AND_COLUMN_NAME);
     static final byte[] BACKUP_COLUMN_NAME_BYTES = PtBytes.toBytes(BACKUP_COLUMN_NAME);
 
-    private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    private static final byte[] ONE_BYTE_ARRAY = new byte[1];
 
     private final CassandraKeyValueService rawCassandraKvs;
 
@@ -50,17 +53,24 @@ public class CassandraTimestampCqlExecutor {
     }
 
     public void backupBound(long bound) {
+        checkBoundIsPossible(bound);
         executeCqlBatchInsertOnTimestampTable(ImmutableMap.<byte[], byte[]>builder()
-                .put(ROW_AND_COLUMN_NAME_BYTES, EMPTY_BYTE_ARRAY)
+                .put(ROW_AND_COLUMN_NAME_BYTES, ONE_BYTE_ARRAY)
                 .put(BACKUP_COLUMN_NAME_BYTES, PtBytes.toBytes(bound))
                 .build());
     }
 
     public void restoreBoundFromBackup(long bound) {
+        checkBoundIsPossible(bound);
         executeCqlBatchInsertOnTimestampTable(ImmutableMap.<byte[], byte[]>builder()
                 .put(ROW_AND_COLUMN_NAME_BYTES, PtBytes.toBytes(bound))
-                .put(BACKUP_COLUMN_NAME_BYTES, EMPTY_BYTE_ARRAY) // else 2x revalidate will mean we go back in time
+                .put(BACKUP_COLUMN_NAME_BYTES, ONE_BYTE_ARRAY) // else 2x revalidate will mean we go back in time
                 .build());
+    }
+
+    private void checkBoundIsPossible(long bound) {
+        Preconditions.checkArgument(bound >= CassandraTimestampBoundStore.INITIAL_VALUE,
+                "Cannot backup a bound less than the initial value of a CassandraTimestampBoundStore!");
     }
 
     private void executeCqlBatchInsertOnTimestampTable(Map<byte[], byte[]> rowsToValues) {
@@ -87,11 +97,12 @@ public class CassandraTimestampCqlExecutor {
                 + "APPLY BATCH;";
     }
 
+    @SuppressFBWarnings("VA_FORMAT_STRING_USES_NEWLINE")
     private String constructCqlInsertCommandForTimestampTable(byte[] rowAndColumnName, byte[] value) {
         String hexName = encodeCassandraHexValue(rowAndColumnName);
         String hexValue = encodeCassandraHexValue(value);
         return String.format(
-                "INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, -1, %s);%n",
+                "INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, -1, %s);\n",
                 wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
                 hexName,
                 hexName,

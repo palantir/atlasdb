@@ -84,7 +84,7 @@ public class CassandraTimestampStoreInvalidator implements TimestampStoreInvalid
 
     private Optional<Long> getLongFromValue(Value value) {
         byte[] contents = value.getContents();
-        if (contents.length == 0) {
+        if (contents.length < Long.BYTES) {
             return Optional.empty();
         }
         return Optional.of(PtBytes.toLong(contents));

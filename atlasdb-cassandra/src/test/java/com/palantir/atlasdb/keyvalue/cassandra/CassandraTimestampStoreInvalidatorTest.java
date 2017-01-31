@@ -36,10 +36,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 
 public class CassandraTimestampStoreInvalidatorTest {
     private static final long CASSANDRA_TIMESTAMP = 0L;
-    private static final long FORTY_TWO = 42L;
-    private static final byte[] FORTY_TWO_IN_BYTES = PtBytes.toBytes(FORTY_TWO);
-    private static final long FORTY_THREE = 43L;
-    private static final byte[] FORTY_THREE_IN_BYTES = PtBytes.toBytes(FORTY_THREE);
+    private static final long BACKUP_VALUE = 42L;
+    private static final long RESTORE_VALUE = 43L;
 
     private final CassandraKeyValueService kvs = mock(CassandraKeyValueService.class);
     private final CassandraTimestampCqlExecutor cqlExecutor = mock(CassandraTimestampCqlExecutor.class);
@@ -52,25 +50,28 @@ public class CassandraTimestampStoreInvalidatorTest {
     }
 
     private Map<Cell, Value> constructKeyValueStoreReply(InvocationOnMock invocation) {
+        // Obtain the map queried for - we use this to return different values for backup and restore.
         Map<Cell, Long> queries = (Map<Cell, Long>) invocation.getArguments()[1];
         Cell cell = queries.keySet().iterator().next();
 
-        Value valueToReturn = Value.create(FORTY_THREE_IN_BYTES, CASSANDRA_TIMESTAMP);
-        if (Arrays.equals(cell.getRowName(), CassandraTimestampCqlExecutor.ROW_AND_COLUMN_NAME_BYTES)) {
-            valueToReturn = Value.create(FORTY_TWO_IN_BYTES, CASSANDRA_TIMESTAMP);
-        }
+        byte[] bytesToReturn = isTimestampRow(cell) ? PtBytes.toBytes(BACKUP_VALUE) : PtBytes.toBytes(RESTORE_VALUE);
+        Value valueToReturn = Value.create(bytesToReturn, CASSANDRA_TIMESTAMP);
         return ImmutableMap.of(cell, valueToReturn);
+    }
+
+    private boolean isTimestampRow(Cell cell) {
+        return Arrays.equals(cell.getRowName(), CassandraTimestampCqlExecutor.ROW_AND_COLUMN_NAME_BYTES);
     }
 
     @Test
     public void invalidatePassesCurrentTimestampValueFromKvsToBeBackedUp() {
         invalidator.invalidateTimestampStore();
-        verify(cqlExecutor, times(1)).backupBound(eq(FORTY_TWO));
+        verify(cqlExecutor, times(1)).backupBound(eq(BACKUP_VALUE));
     }
 
     @Test
     public void revalidatePassesBackupValueFromKvsToBeRestored() {
         invalidator.revalidateTimestampStore();
-        verify(cqlExecutor, times(1)).restoreBoundFromBackup(eq(FORTY_THREE));
+        verify(cqlExecutor, times(1)).restoreBoundFromBackup(eq(RESTORE_VALUE));
     }
 }
