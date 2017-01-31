@@ -43,6 +43,16 @@ public abstract class LockEntry {
     public static LockEntry fromRowResult(RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
         String rowName = asString(rowResult.getRowName());
         String lockAndReason = valueOfColumnInRow(LOCK_COLUMN, rowResult);
+        return fromRowLockAndReason(rowName, lockAndReason);
+    }
+
+    public static LockEntry fromRowAndValue(byte[] rowBytes, byte[] value) {
+        String rowName = asString(rowBytes);
+        String lockAndReason = asString(value);
+        return fromRowLockAndReason(rowName, lockAndReason);
+    }
+
+    private static LockEntry fromRowLockAndReason(String rowName, String lockAndReason) {
         String[] split = StringUtils.split(lockAndReason, '_');
         Preconditions.checkState(split.length == 2, "The stored lock was in the wrong format; found %s", lockAndReason);
         String lockId = split[0];

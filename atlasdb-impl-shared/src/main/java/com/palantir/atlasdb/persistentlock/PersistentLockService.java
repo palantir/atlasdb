@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import java.util.List;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -22,9 +24,14 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
@@ -34,6 +41,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
  */
 @Path("/persistent-lock")
 public class PersistentLockService {
+    private static final Logger log = LoggerFactory.getLogger(PersistentLockService.class);
+
     private final LockStore lockStore;
 
     @VisibleForTesting
@@ -57,7 +66,7 @@ public class PersistentLockService {
     @GET
     @Path("acquire/{reason}")
     @Produces(MediaType.APPLICATION_JSON)
-    public LockEntry acquireLock(@PathParam("reason") String reason) throws CheckAndSetException {
+    public LockEntry acquireLock(@PathParam("reason") String reason) {
         Preconditions.checkNotNull(reason, "Please provide a reason for acquiring the lock.");
         return lockStore.acquireLock(reason);
     }
@@ -66,14 +75,62 @@ public class PersistentLockService {
      * Release a lock that you have previously acquired.
      * Call this method as soon as you no longer need the lock (e.g. because you finished deleting stuff).
      * @param lockEntry the {@link LockEntry} you were given when you called {@link #acquireLock(String)}
-     * @throws CheckAndSetException if the lock was no longer valid, most likely because it was already released.
+     * @return OK (200) if the lock was successfully released, or CONFLICT (409) if there was a conflict.
      */
     @POST
     @Path("release")
     @Consumes(MediaType.APPLICATION_JSON)
-    public boolean releaseLock(LockEntry lockEntry) throws CheckAndSetException {
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response releaseLock(LockEntry lockEntry) {
         Preconditions.checkNotNull(lockEntry, "Please provide a LockEntry to release.");
-        lockStore.releaseLock(lockEntry);
-        return true;
+        try {
+            lockStore.releaseLock(lockEntry);
+            return Response.ok().build();
+        } catch (CheckAndSetException e) {
+            LockEntry actualEntry = extractStoredLockEntry(e);
+            return createReleaseErrorResponse(actualEntry);
+        }
+    }
+
+    private LockEntry extractStoredLockEntry(CheckAndSetException ex) {
+        // Want a slightly different response if the lock was already open
+        List<byte[]> actualValues = ex.getActualValues();
+        if (actualValues == null || actualValues.size() != 1) {
+            // Rethrow - something odd happened in the db, and here we _do_ want the log message/stack trace.
+            throw ex;
+        }
+
+        byte[] rowName = ex.getKey().getRowName();
+        byte[] actualValue = Iterables.getOnlyElement(actualValues);
+        return LockEntry.fromRowAndValue(rowName, actualValue);
+    }
+
+    private Response createReleaseErrorResponse(LockEntry actualEntry) {
+        log.error("persistent-lock/release failed. Stored LockEntry: {}", actualEntry);
+        String message = LockStore.LOCK_OPEN.equals(actualEntry)
+                ? "The lock has already been released"
+                : String.format("Another lock has been taken out: %s", actualEntry);
+        return getConflictResponse(message);
+    }
+
+    private Response getConflictResponse(final String message) {
+        Response.StatusType statusType = new Response.StatusType() {
+            @Override
+            public int getStatusCode() {
+                return Response.Status.CONFLICT.getStatusCode();
+            }
+
+            @Override
+            public Response.Status.Family getFamily() {
+                return Response.Status.Family.CLIENT_ERROR;
+            }
+
+            @Override
+            public String getReasonPhrase() {
+                return message;
+            }
+        };
+
+        return Response.status(statusType).build();
     }
 }
