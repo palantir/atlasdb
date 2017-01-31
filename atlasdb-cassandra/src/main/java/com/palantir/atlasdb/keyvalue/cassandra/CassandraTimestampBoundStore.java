@@ -22,6 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.GuardedBy;
+import javax.validation.constraints.NotNull;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -205,7 +206,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         }
     }
 
-    private Column makeColumnWithNewFormat(long idToUse, Long ts) {
+    private Column makeColumnWithNewFormat(@NotNull Long idToUse, Long ts) {
         if (ts == null) {
             return null;
         }
