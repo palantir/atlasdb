@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -224,11 +225,12 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         return currentIdAndTimestamp.getTimestamp() == currentLimit
                 || (currentIdAndTimestamp.hasId() && currentIdAndTimestamp.getId() == getId());
     }
+    
     private Column getExpectedColumn(IdAndTimestamp currentIdAndTimestamp) {
         if (currentIdAndTimestamp.hasId()) {
             return makeColumnWithNewFormat(currentIdAndTimestamp.getId(), currentIdAndTimestamp.getTimestamp());
         }
-        return  makeColumnWithOldFormat(currentIdAndTimestamp.getTimestamp());
+        return makeColumnWithOldFormat(currentIdAndTimestamp.getTimestamp());
     }
 
     private static byte[] getColumnName() {
@@ -278,7 +280,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         }
 
         private IdAndTimestamp(CASResult result) {
-            this(result.getCurrent_values().get(0).getValue());
+            this(Iterables.getOnlyElement(result.getCurrent_values()).getValue());
         }
 
         private long getTimestamp() {
