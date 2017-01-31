@@ -60,8 +60,6 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     private static final long CASSANDRA_TIMESTAMP = 0L;
     private static final String ROW_AND_COLUMN_NAME = "ts";
-    private static final Pattern TIMESTAMP_FORMAT_PATTERN = Pattern.compile(
-            "^-(?<TimestampBoundStoreId>\\d+)_(?<timestamp>\\d+)$");
 
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
             NameMetadataDescription.create(ImmutableList.of(
@@ -257,6 +255,9 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private static final class IdAndTimestamp {
+        private static final Pattern TIMESTAMP_FORMAT_PATTERN = Pattern.compile(
+                "^-(?<TimestampBoundStoreId>\\d+)_(?<timestamp>\\d+)$");
+
         private final Optional<Long> id;
         private final long timestamp;
 
