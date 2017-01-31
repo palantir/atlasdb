@@ -53,6 +53,8 @@ public final class PaxosSynchronizer {
                 learnerToSynchronize.learn(paxosValue.getRound(), paxosValue);
                 log.info("Started up and learned the most recent value: {}.", paxosValue);
             }
+        } else {
+            log.info("Started up, and no one I talked to knows anything yet.");
         }
     }
 
