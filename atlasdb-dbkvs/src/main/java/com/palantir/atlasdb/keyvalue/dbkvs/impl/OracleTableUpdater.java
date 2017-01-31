@@ -70,8 +70,9 @@ public class OracleTableUpdater {
                 cell.getColumnName(),
                 ts
         };
-        String sqlString = "/* SELECT (" + tableRef + ") */"
-                + " SELECT val from " + tableRef + ""
+        String tableName = tableNameGetter.get(tableRef);
+        String sqlString = "/* SELECT (" + tableName + ") */"
+                + " SELECT val from " + tableName + ""
                 + " WHERE row_name = ?"
                 + " AND col_name = ?"
                 + " AND ts = ?";
