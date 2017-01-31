@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,18 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.Value;
-
-public interface DbWriteTable {
-    void put(Collection<Map.Entry<Cell, byte[]>> data, long ts);
-    void put(Collection<Map.Entry<Cell, Value>> data);
-    void putSentinels(Iterable<Cell> cells);
-    void update(Cell cell, long ts, byte[] oldValue, byte[] newValue);
-    void delete(List<Entry<Cell, Long>> partition);
+public interface TableNameGetter {
+    String get(TableReference tableReference);
 }

@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleTableUpdater;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
@@ -178,9 +179,13 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     @Override
-    public void update(Cell row, long ts, byte[] oldValue, byte[] newValue) {
-        throw new UnsupportedOperationException(
-                "Update is not supported for Oracle tables with table style 'overflow'.");
+    public void update(Cell cell, long ts, byte[] oldValue, byte[] newValue) {
+        if (oldValue.length > OVERFLOW_THRESHOLD || newValue.length > OVERFLOW_THRESHOLD) {
+            throw new UnsupportedOperationException(
+                    String.format("Update is not supported for values longer than %s bytes!", OVERFLOW_THRESHOLD));
+        }
+
+        new OracleTableUpdater(conns, tableRef, this::getShortTableName).update(cell, ts, oldValue, newValue);
     }
 
     @Override
@@ -240,8 +245,12 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private String getShortTableName() {
+        return getShortTableName(tableRef);
+    }
+
+    private String getShortTableName(TableReference tableReference) {
         try {
-            return oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
+            return oracleTableNameGetter.getInternalShortTableName(conns, tableReference);
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }
