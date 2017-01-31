@@ -34,7 +34,7 @@ import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosValue;
 
 public final class PaxosSynchronizer {
-    private static final Logger log = LoggerFactory.getLogger(PaxosTimestampBoundStore.class);
+    private static final Logger log = LoggerFactory.getLogger(PaxosSynchronizer.class);
     private static final boolean ONLY_LOG_ON_QUORUM_FAILURE = true;
 
     private PaxosSynchronizer() {
