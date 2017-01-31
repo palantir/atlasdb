@@ -46,12 +46,12 @@ public final class PaxosSynchronizer {
         Optional<PaxosValue> mostRecentValue = getMostRecentLearnedValue(paxosLearners);
         if (mostRecentValue.isPresent()) {
             PaxosValue paxosValue = mostRecentValue.get();
-            learnerToSynchronize.learn(paxosValue.getRound(), paxosValue);
             if (paxosValue.equals(learnerToSynchronize.getGreatestLearnedValue())) {
                 log.info("Started up and found that our value {} is already the most recent.", paxosValue);
             } else {
                 log.info("Started up and learned the most recent value: {}.", paxosValue);
             }
+            learnerToSynchronize.learn(paxosValue.getRound(), paxosValue);
         }
     }
 
