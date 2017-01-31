@@ -54,20 +54,34 @@ public final class PaxosQuorumChecker {
      * @param executor runs the requests
      * @return a list responses
      */
-    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(ImmutableList<SERVICE> remotes,
-                                                                                                  final Function<SERVICE, RESPONSE> request,
-                                                                                                  int quorumSize,
-                                                                                                  Executor executor,
-                                                                                                  long remoteRequestTimeoutInSec) {
+    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(
+            ImmutableList<SERVICE> remotes,
+            final Function<SERVICE, RESPONSE> request,
+            int quorumSize,
+            Executor executor,
+            long remoteRequestTimeoutInSec) {
         return collectQuorumResponses(remotes, request, quorumSize, executor, remoteRequestTimeoutInSec, false);
     }
 
-    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(ImmutableList<SERVICE> remotes,
-                                                                                                  final Function<SERVICE, RESPONSE> request,
-                                                                                                  int quorumSize,
-                                                                                                  Executor executor,
-                                                                                                  long remoteRequestTimeoutInSec,
-                                                                                                  boolean onlyLogOnQuorumFailure) {
+    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(
+            ImmutableList<SERVICE> remotes,
+            final Function<SERVICE, RESPONSE> request,
+            int quorumSize,
+            Executor executor,
+            long remoteRequestTimeoutInSec,
+            boolean onlyLogOnQuorumFailure) {
+        return collectQuorumResponses(
+                remotes, request, quorumSize, executor, remoteRequestTimeoutInSec, onlyLogOnQuorumFailure, true);
+    }
+
+    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(
+            ImmutableList<SERVICE> remotes,
+            final Function<SERVICE, RESPONSE> request,
+            int quorumSize,
+            Executor executor,
+            long remoteRequestTimeoutInSec,
+            boolean onlyLogOnQuorumFailure,
+            boolean shortcircuitIfQuorumImpossible) {
         CompletionService<RESPONSE> responseCompletionService = new ExecutorCompletionService<RESPONSE>(executor);
 
         // kick off all the requests
@@ -93,7 +107,7 @@ public final class PaxosQuorumChecker {
             while (acksRecieved < quorumSize) {
                 try {
                     // check if quorum is impossible (nack quorum failure)
-                    if (nacksRecieved > remotes.size() - quorumSize) {
+                    if (shortcircuitIfQuorumImpossible && nacksRecieved > remotes.size() - quorumSize) {
                         break;
                     }
 

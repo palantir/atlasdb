@@ -36,6 +36,7 @@ import com.palantir.paxos.PaxosValue;
 public final class PaxosSynchronizer {
     private static final Logger log = LoggerFactory.getLogger(PaxosSynchronizer.class);
     private static final boolean ONLY_LOG_ON_QUORUM_FAILURE = true;
+    private static final boolean DO_NOT_SHORTCIRCUIT = false;
 
     private PaxosSynchronizer() {
         // utility
@@ -63,7 +64,8 @@ public final class PaxosSynchronizer {
                 paxosLearners.size(),
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
-                ONLY_LOG_ON_QUORUM_FAILURE);
+                ONLY_LOG_ON_QUORUM_FAILURE,
+                DO_NOT_SHORTCIRCUIT);
         return responses.stream()
                 .filter(response -> response.paxosValue() != null)
                 .map(PaxosValueResponse::paxosValue)
