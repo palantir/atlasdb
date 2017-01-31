@@ -60,7 +60,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final long CASSANDRA_TIMESTAMP = 0L;
     private static final String ROW_AND_COLUMN_NAME = "ts";
     private static final Pattern TIMESTAMP_FORMAT_PATTERN = Pattern.compile(
-            "^(?<TimestampBoundStoreId>\\d+)_(?<timestamp>\\d+)$");
+            "^-(?<TimestampBoundStoreId>\\d+)_(?<timestamp>\\d+)$");
 
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
             NameMetadataDescription.create(ImmutableList.of(
@@ -90,7 +90,10 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                 "Creating CassandraTimestampBoundStore object on thread {}. This should only happen once.",
                 Thread.currentThread().getName());
         this.clientPool = Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
-        this.id = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE);
+        /*
+         * id is negative to prevent the corner case documented for IdAndTimestamp below
+         */
+        this.id = ThreadLocalRandom.current().nextLong(Long.MIN_VALUE, -1);
     }
 
     @Override
@@ -194,15 +197,15 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     ImmutableList.of(makeColumnWithNewFormat(getId(), newVal)),
                     ConsistencyLevel.SERIAL,
                     ConsistencyLevel.EACH_QUORUM);
+            return result;
         } catch (Exception e) {
             log.error("[CAS] Error trying to set from {} to {}", oldVal, newVal, e);
             DebugLogger.logger.error("[CAS] Error trying to set from {} to {}", oldVal, newVal, e);
             throw Throwables.throwUncheckedException(e);
         }
-        return result;
     }
 
-    private Column makeColumnWithNewFormat(Long idToUse, Long ts) {
+    private Column makeColumnWithNewFormat(long idToUse, Long ts) {
         if (ts == null) {
             return null;
         }
@@ -222,8 +225,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private boolean sameIdOrExpectedLimit(IdAndTimestamp currentIdAndTimestamp) {
-        return currentIdAndTimestamp.getTimestamp() == currentLimit
-                || (currentIdAndTimestamp.hasId() && currentIdAndTimestamp.getId() == getId());
+        return (currentIdAndTimestamp.hasId() && currentIdAndTimestamp.getId() == getId())
+                || currentIdAndTimestamp.getTimestamp() == currentLimit;
     }
 
     private Column getExpectedColumn(IdAndTimestamp currentIdAndTimestamp) {
@@ -257,6 +260,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         private final long timestamp;
 
         /*
+         * The bug below was fixed by making ids negative:
+         *
          * Very much of an edge case, but there is theoretically a risk of a wrong interpretation, if the byte
          * representation of a long in the old format incidentally happens to match a string with one underscore
          * somewhere in it. For example,

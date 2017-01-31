@@ -34,6 +34,7 @@ import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
+    public static final long CONFLICTING_BOUND = 3557616313682636848L;
     private static final long CASSANDRA_TIMESTAMP = 0L;
     private static final String ROW_AND_COLUMN_NAME = "ts";
     private static final Cell TIMESTAMP_BOUND_CELL =
@@ -110,6 +111,12 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
         assertBoundInDbIsEqualTo(SECOND_OFFSET);
     }
 
+    @Test
+    public void checkFixForConversionCornerCase() {
+        setTimestampTableValueTo(PtBytes.toBytes(CONFLICTING_BOUND));
+        assertBoundInDbIsEqualTo(CONFLICTING_BOUND);
+    }
+
     @After
     public void cleanUp() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
@@ -139,9 +146,9 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
     private void insertTimestampWithIdChanged(long value, boolean changeId) {
         long id = ((CassandraTimestampBoundStore) store).getId();
         if (changeId) {
-            id = id % 2 + 1;
+            id = id % 2 - 1;
         }
-        setTimestampTableValueTo(PtBytes.toBytes(Long.toString(id) + "_" + Long.toString(value)));
+        setTimestampTableValueTo(PtBytes.toBytes(id + "_" + value));
     }
 
     private void setTimestampTableValueTo(byte[] data) {
