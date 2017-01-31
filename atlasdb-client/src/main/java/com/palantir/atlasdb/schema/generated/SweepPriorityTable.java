@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class SweepPriorityTable implements
         AtlasDbMutablePersistentTable<SweepPriorityTable.SweepPriorityRow,
                                          SweepPriorityTable.SweepPriorityNamedColumnValue<?>,
@@ -1273,5 +1274,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "URN0DNH5wLcp9bwsNvieGQ==";
+    static String __CLASS_HASH = "2HFf2/0ZpwH6FqoyKkQa2A==";
 }
