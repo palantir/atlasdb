@@ -188,7 +188,8 @@ public final class OracleDdlTable implements DbDdlTable {
             throw new IllegalStateException(
                     String.format(
                         "Truncate called on a table (%s) that did not exist",
-                        oracleTableNameGetter.getPrefixedTableName(tableRef)));
+                        oracleTableNameGetter.getPrefixedTableName(tableRef)),
+                    e);
         }
         truncateOverflowTableIfItExists();
     }
@@ -206,7 +207,8 @@ public final class OracleDdlTable implements DbDdlTable {
                                 "Truncate called on a table (%s) that was supposed to have an overflow table (%s),"
                                 + " but that overflow table appears to not exist",
                                 oracleTableNameGetter.getPrefixedTableName(tableRef),
-                                oracleTableNameGetter.getPrefixedOverflowTableName(tableRef)));
+                                oracleTableNameGetter.getPrefixedOverflowTableName(tableRef)),
+                        e);
             }
         }
     }

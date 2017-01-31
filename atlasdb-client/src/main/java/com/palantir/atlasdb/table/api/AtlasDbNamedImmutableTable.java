@@ -18,7 +18,6 @@ package com.palantir.atlasdb.table.api;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 
 /*
@@ -26,8 +25,6 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
  */
 public interface AtlasDbNamedImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
-    Optional<ROW_RESULT> getRow(ROW row);
-    Optional<ROW_RESULT> getRow(ROW row, ColumnSelection columnSelection);
     List<ROW_RESULT> getRows(Iterable<ROW> rows);
     List<ROW_RESULT> getRows(Iterable<ROW> rows, ColumnSelection columnSelection);
     List<ROW_RESULT> getAsyncRows(Iterable<ROW> rows, ExecutorService exec);

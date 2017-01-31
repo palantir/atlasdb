@@ -16,7 +16,8 @@
 package com.palantir.atlasdb.jepsen;
 
 public final class JepsenConstants {
-    public static final String NEMESIS_PROCESS = "nemesis";
+    public static final int NEMESIS_PROCESS = -1;
+    public static final String NEMESIS_PROCESS_NAME = "nemesis";
 
     public static final String START_FUNCTION = "start";
     public static final String STOP_FUNCTION = "stop";

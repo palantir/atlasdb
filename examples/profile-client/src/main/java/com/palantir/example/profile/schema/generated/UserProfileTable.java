@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
@@ -20,7 +21,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -1009,17 +1009,15 @@ public final class UserProfileTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<UserProfileRowResult> getRow(UserProfileRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<UserProfileRowResult> getRow(UserProfileRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
-            return Optional.absent();
+            return Optional.empty();
         } else {
             return Optional.of(UserProfileRowResult.of(rowResult));
         }
@@ -3388,5 +3386,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "BAWiFRjPo3iiz4ifhWSE8g==";
+    static String __CLASS_HASH = "twWonBYvnCo3eLx7bSPHnw==";
 }

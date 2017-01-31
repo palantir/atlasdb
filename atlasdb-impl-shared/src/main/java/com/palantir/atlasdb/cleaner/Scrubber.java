@@ -198,22 +198,18 @@ public final class Scrubber {
                         log.debug("Sleeping {} millis until next execution of scrub task", sleepDuration);
                         Thread.sleep(sleepDuration);
                     } catch (InterruptedException e) {
-                        if (service.isShutdown()) {
-                            break;
-                        } else {
-                            log.error("Interrupted unexpectedly during background scrub task,"
-                                    + " but continuing anyway", e);
-                        }
+                        break;
                     } catch (Throwable t) { // (authorized)
+                        if (Thread.interrupted()) {
+                            break;
+                        }
                         log.error("Encountered the following error during background scrub task,"
                                 + " but continuing anyway", t);
                         numberOfAttempts++;
                         try {
                             Thread.sleep(RETRY_SLEEP_INTERVAL_IN_MILLIS);
                         } catch (InterruptedException e) {
-                            log.error("Interrupted while waiting to retry, but continuing anyway.", e);
-                            // Restore interrupt
-                            Thread.currentThread().interrupt();
+                            break;
                         }
                     }
                 }

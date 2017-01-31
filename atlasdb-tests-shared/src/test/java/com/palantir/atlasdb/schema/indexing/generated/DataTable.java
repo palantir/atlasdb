@@ -610,12 +610,10 @@ public final class DataTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<DataRowResult> getRow(DataRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<DataRowResult> getRow(DataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -3638,5 +3636,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6v6D3OWztYAGUBd3y4QSBw==";
+    static String __CLASS_HASH = "UfX2BLcIzo66QOV+PDQVSg==";
 }

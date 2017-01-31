@@ -285,29 +285,28 @@ public class StreamTest extends AtlasDbTestCase {
         stream.close();
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void readFromStreamWhenTransactionOpenThrowsException() throws IOException {
-        readFromGivenStreamWhenTransactionOpenThrowsException(defaultStore);
+    @Test()
+    public void readFromStreamWhenTransactionOpen() throws IOException {
+        readFromGivenStreamWhenTransactionOpen(defaultStore);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void readFromCompressedStreamWhenTransactionOpenThrowsException() throws IOException {
-        readFromGivenStreamWhenTransactionOpenThrowsException(compressedStore);
+    @Test()
+    public void readFromCompressedStreamWhenTransactionOpen() throws IOException {
+        readFromGivenStreamWhenTransactionOpen(compressedStore);
     }
 
-    private void readFromGivenStreamWhenTransactionOpenThrowsException(PersistentStreamStore store) {
+    private void readFromGivenStreamWhenTransactionOpen(PersistentStreamStore store) throws IOException {
         byte[] reference = PtBytes.toBytes("ref");
+        byte[] data = getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3);
 
         final long id = storeStream(store,
-                getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3),
+                data,
                 reference);
 
         txManager.runTaskThrowOnConflict(t -> {
-            InputStream stream = store.loadStream(t, id);
-            try {
-                stream.read();
-            } catch (IOException e) {
-                throw Throwables.propagate(e);
+            // use the stream (read from it) inside the same transaction
+            try (InputStream stream = store.loadStream(t, id)) {
+                assertStreamHasBytes(stream, data);
             }
             return null;
         });

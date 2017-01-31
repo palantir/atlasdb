@@ -1,0 +1,11 @@
+clients:
+  - test
+  - test2
+
+cluster:
+  localServer: localhost:8080
+  servers:
+    - localhost:8080
+
+algorithm:
+  type: paxos

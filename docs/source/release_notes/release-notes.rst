@@ -42,13 +42,60 @@ develop
     *    - Type
          - Change
 
-    *    - |fixed|
-         - Make fetch size bounded from above in ``DbKvs.getRowsColumnRange()``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1478>`__)
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.30.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed| |devbreak|
+         - Fixed schema generation with Java 8 optionals.
+           To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.
+
+           Additionally, this fix requires all AtlasDB clients to regenerate their schema, even if they do not use the Java 8 optionals.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
 
     *    - |fixed|
-         - Prevent deadlocks during parallel reads from DB KVS.
+         - Prevent deadlocks in an edge case where we perform parallel reads with a small connection pool on DB KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
+
+    *    - |new|
+         - Added support for benchmarking custom Key Value Stores.
+           In the future this will enable performance regression testing for Oracle.
+
+           See our :ref:`performance writing <performance-writing>` documentation for details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1459>`__)
+
+    *    - |improved|
+         - Don't retry interrupted remote calls.
+
+           This should have the effect of shutting down faster in situations where we receive a ``InterruptedException``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1488>`__)
+
+    *    - |improved|
+         - Added request and exception rates metrics in CassandraClientPool. This will provide access to 1-, 5-, and 15-minute moving averages.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1497>`__)
+
+    *    - |improved|
+         - More informative logging around retrying of transactions.
+           If a transaction succeeds after being retried, we log the success (at the INFO level).
+           If a transaction failed, but will be retried, we now also log the number of failures so far (at INFO).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1376>`__)
+
+    *    - |improved|
+         - Updated our dependency on ``gradle-java-distribution`` from 1.2.0 to 1.3.0.
+           See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1500>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -148,6 +195,12 @@ v0.28.0
            Previously, a validation check was omitted for ``getRowsColumnRange``, ``getRowsIgnoringLocalWrites``, and ``getIgnoringLocalWrites``, which in very rare cases could have resulted in deleted values being returned by a long-running read transaction.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1421>`__)
 
+    *    - |userbreak|
+         - Users must not create a client named ``leader``. AtlasDB Timelock Server will fail to start if this is found.
+           Previously, using ``leader`` would have silently failed, since the JAXRS 3.7.2 algorithm does not include backtracking over
+           root resource classes (so either leader election or timestamp requests would have failed).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1442>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -214,7 +267,8 @@ v0.27.1
 
     *    - |improved|
          - ``StreamStore.loadStream`` now actually streams data if it does not fit in memory.
-           This means that getting the first byte of the stream now has constant-time performance, rather than linear in terms of stream length as it was previously.
+           This means that getting the first byte of the stream now has constant-time performance, rather than
+           linear in terms of stream length as it was previously.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1341>`__)
 
     *    - |improved|

@@ -1027,12 +1027,10 @@ public final class SweepProgressTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<SweepProgressRowResult> getRow(SweepProgressRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<SweepProgressRowResult> getRow(SweepProgressRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -1275,5 +1273,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/I2gV/xLpiGWuzDf+9UF1g==";
+    static String __CLASS_HASH = "D+ku3UNbkHgU75aRsw008A==";
 }
