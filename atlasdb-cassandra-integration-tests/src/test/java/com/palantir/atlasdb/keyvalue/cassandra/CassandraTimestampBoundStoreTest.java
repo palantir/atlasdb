@@ -146,7 +146,7 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
     private void insertTimestampWithIdChanged(long value, boolean changeId) {
         long id = ((CassandraTimestampBoundStore) store).getId();
         if (changeId) {
-            id = id % 2 - 1;
+            id = (id == -1L) ? -2L : -1L;
         }
         setTimestampTableValueTo(PtBytes.toBytes(id + "_" + value));
     }
