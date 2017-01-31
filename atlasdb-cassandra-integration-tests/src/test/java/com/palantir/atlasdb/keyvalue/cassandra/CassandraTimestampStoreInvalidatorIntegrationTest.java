@@ -46,7 +46,6 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
     public static final Containers CONTAINERS = new Containers(CassandraTimestampStoreInvalidatorIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private static final long ZERO = 0L;
     private static final long ONE_MILLION = 1000000L;
     private static final int POOL_SIZE = 16;
     private static final int TIMEOUT_SECONDS = 5;
@@ -63,6 +62,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
     public void setUp() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         timestampBoundStore = CassandraTimestampBoundStore.create(kv);
+        timestampBoundStore.getUpperLimit();
         executorService = Executors.newFixedThreadPool(POOL_SIZE);
     }
 
@@ -80,6 +80,8 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     @Test
     public void canInvalidateTimestampTableIfItAlreadyExistsWithoutData() {
+        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        CassandraTimestampBoundStore.create(kv);
         invalidateAndThenCheckCannotReadBound();
     }
 
@@ -93,6 +95,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
     public void invalidateIsIdempotent() {
         invalidator.invalidateTimestampStore();
         invalidateAndThenCheckCannotReadBound();
+        revalidateAndThenCheckCanReadBound(CassandraTimestampBoundStore.INITIAL_VALUE);
     }
 
     @Test
@@ -102,17 +105,12 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
         revalidateAndThenCheckCanReadBound(ONE_MILLION);
     }
 
-    private void takeOutOneMillionTimestamps() {
-        timestampBoundStore.getUpperLimit();
-        timestampBoundStore.storeUpperLimit(ONE_MILLION);
-    }
-
     @Test
     public void cannotGoBackInTimeWithRevalidation() {
         invalidateAndThenCheckCannotReadBound();
-        revalidateAndThenCheckCanReadBound(ZERO);
+        revalidateAndThenCheckCanReadBound(CassandraTimestampBoundStore.INITIAL_VALUE);
         takeOutOneMillionTimestamps();
-        revalidateAndThenCheckCanReadBound(ONE_MILLION); // in particular, not ZERO
+        revalidateAndThenCheckCanReadBound(ONE_MILLION); // in particular, not INITIAL_BOUND
     }
 
     @Test
@@ -127,6 +125,10 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
         takeOutOneMillionTimestamps();
         invalidateAndThenCheckCannotReadBound();
         executeInParallelOnExecutorService(() -> revalidateAndThenCheckCanReadBound(ONE_MILLION));
+    }
+
+    private void takeOutOneMillionTimestamps() {
+        timestampBoundStore.storeUpperLimit(ONE_MILLION);
     }
 
     private void invalidateAndThenCheckCannotReadBound() {

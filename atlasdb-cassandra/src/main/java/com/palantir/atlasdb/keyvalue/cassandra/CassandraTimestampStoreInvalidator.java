@@ -28,8 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class CassandraTimestampStoreInvalidator implements TimestampStoreInvalidator {
-    private static final long DEFAULT_TIMESTAMP_BOUND = 0L;
-
     private final CassandraKeyValueService rawCassandraKvs;
     private final CassandraTimestampCqlExecutor cassandraTimestampCqlExecutor;
 
@@ -77,7 +75,7 @@ public class CassandraTimestampStoreInvalidator implements TimestampStoreInvalid
                 AtlasDbConstants.TIMESTAMP_TABLE,
                 ImmutableMap.of(timestampCell, Long.MAX_VALUE));
         if (result.isEmpty()) {
-            return Optional.of(DEFAULT_TIMESTAMP_BOUND);
+            return Optional.of(CassandraTimestampBoundStore.INITIAL_VALUE);
         }
 
         Value value = Iterables.getOnlyElement(result.values());
