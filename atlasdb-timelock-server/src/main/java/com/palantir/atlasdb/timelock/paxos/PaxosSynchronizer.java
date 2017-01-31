@@ -24,6 +24,8 @@ import java.util.concurrent.Executors;
 import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.paxos.PaxosLearner;
@@ -32,7 +34,8 @@ import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosValue;
 
 public final class PaxosSynchronizer {
-    public static final boolean ONLY_LOG_ON_QUORUM_FAILURE = true;
+    private static final Logger log = LoggerFactory.getLogger(PaxosTimestampBoundStore.class);
+    private static final boolean ONLY_LOG_ON_QUORUM_FAILURE = true;
 
     private PaxosSynchronizer() {
         // utility
@@ -44,6 +47,11 @@ public final class PaxosSynchronizer {
         if (mostRecentValue.isPresent()) {
             PaxosValue paxosValue = mostRecentValue.get();
             learnerToSynchronize.learn(paxosValue.getRound(), paxosValue);
+            if (paxosValue.equals(learnerToSynchronize.getGreatestLearnedValue())) {
+                log.info("Started up and found that our value {} is already the most recent.", paxosValue);
+            } else {
+                log.info("Started up and learned the most recent value: {}.", paxosValue);
+            }
         }
     }
 
