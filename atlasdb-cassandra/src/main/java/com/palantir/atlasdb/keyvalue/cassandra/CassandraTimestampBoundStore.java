@@ -225,7 +225,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         return currentIdAndTimestamp.getTimestamp() == currentLimit
                 || (currentIdAndTimestamp.hasId() && currentIdAndTimestamp.getId() == getId());
     }
-    
+
     private Column getExpectedColumn(IdAndTimestamp currentIdAndTimestamp) {
         if (currentIdAndTimestamp.hasId()) {
             return makeColumnWithNewFormat(currentIdAndTimestamp.getId(), currentIdAndTimestamp.getTimestamp());
