@@ -1,11 +1,15 @@
+numClients: 5
+numThreads: 8
+queriesPerSecond:
+  - 2000
+  - 1000
+  - 500
 clients:
-  - test
-  - test2
-
-cluster:
-  localServer: localhost:8080
-  servers:
-    - localhost:8080
-
-algorithm:
-  type: paxos
+  - https://url-1:8421/test
+  - https://url-2:8421/test
+  - https://url-3:8421/test
+sslConfiguration:
+  keyStoreKeyAlias: keystore-alias
+  keyStorePassword:
+  keyStorePath: /var/security/keystore.jks
+  trustStorePath: /var/security/truststore.jks

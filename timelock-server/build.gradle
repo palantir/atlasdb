@@ -43,6 +43,6 @@ dependencies {
 
 distribution {
     serviceName "timelock-server"
-    mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
+    mainClass 'com.palantir.atlasdb.timelock.TimelockTester'
     args 'server', 'var/conf/timelock.yml'
 }
