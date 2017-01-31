@@ -42,30 +42,55 @@ develop
     *    - Type
          - Change
 
-    *    - |fixed|
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.30.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed| |devbreak|
          - Fixed schema generation with Java 8 optionals.
            To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
 
-    *    - |devbreak|
-         - The above fix requires all projects to regenerate their schemas, even if not using Java 8 optionals.
+           Additionally, this fix requires all AtlasDB clients to regenerate their schema, even if they do not use the Java 8 optionals.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
 
     *    - |fixed|
-         - Make fetch size bounded from above in ``DbKvs.getRowsColumnRange()``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1478>`__)
-
-    *    - |fixed|
-         - Prevent deadlocks during parallel reads from DB KVS.
+         - Prevent deadlocks in an edge case where we perform parallel reads with a small connection pool on DB KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
 
-    *    - |improved|
-         - Added support for benchmarking custom Key Value Stores; see `documentation <http://palantir.github.io/atlasdb/html/performance/writing.html>`__.
+    *    - |new|
+         - Added support for benchmarking custom Key Value Stores.
+           In the future this will enable performance regression testing for Oracle.
+
+           See our :ref:`performance writing <performance-writing>` documentation for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1459>`__)
 
-    *    - |fixed|
-         - Don't retry interrupted remote calls, shut down the scrubber immediately when interrupted.
+    *    - |improved|
+         - Don't retry interrupted remote calls.
+
+           This should have the effect of shutting down faster in situations where we receive a ``InterruptedException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1488>`__)
+
+    *    - |improved|
+         - Added request and exception rates metrics in CassandraClientPool. This will provide access to 1-, 5-, and 15-minute moving averages.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1497>`__)
+
+    *    - |improved|
+         - More informative logging around retrying of transactions.
+           If a transaction succeeds after being retried, we log the success (at the INFO level).
+           If a transaction failed, but will be retried, we now also log the number of failures so far (at INFO).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1376>`__)
 
     *    - |improved|
          - Updated our dependency on ``gradle-java-distribution`` from 1.2.0 to 1.3.0.
@@ -242,7 +267,8 @@ v0.27.1
 
     *    - |improved|
          - ``StreamStore.loadStream`` now actually streams data if it does not fit in memory.
-           This means that getting the first byte of the stream now has constant-time performance, rather than linear in terms of stream length as it was previously.
+           This means that getting the first byte of the stream now has constant-time performance, rather than
+           linear in terms of stream length as it was previously.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1341>`__)
 
     *    - |improved|

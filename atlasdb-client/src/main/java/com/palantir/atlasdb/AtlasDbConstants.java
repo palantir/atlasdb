@@ -28,6 +28,8 @@ public class AtlasDbConstants {
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub");
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
+    public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
+            "_persisted_locks");
 
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace("atlasdb_metadata");
@@ -56,7 +58,8 @@ public class AtlasDbConstants {
             PUNCH_TABLE,
             SCRUB_TABLE,
             NAMESPACE_TABLE,
-            PARTITION_MAP_TABLE);
+            PARTITION_MAP_TABLE,
+            PERSISTED_LOCKS_TABLE);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.

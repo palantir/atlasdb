@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -46,6 +47,7 @@ public abstract class AbstractLockAwareTransactionManager
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
         int failureCount = 0;
+        UUID runId = UUID.randomUUID();
         while (true) {
             checkOpen();
             LockRequest lockRequest = lockSupplier.get();
@@ -57,10 +59,10 @@ public abstract class AbstractLockAwareTransactionManager
                 if (response == null) {
                     RuntimeException ex = new LockAcquisitionException(
                             "Failed to lock using the provided lock request: " + lockRequest);
-                    log.warn("Could not lock successfully", ex);
+                    log.warn("[{}] Could not lock successfully", runId, ex);
                     failureCount++;
                     if (shouldStopRetrying(failureCount)) {
-                        log.warn("Failing after {} tries", failureCount, ex);
+                        log.warn("[{}] Failing after {} tries", runId, failureCount, ex);
                         throw ex;
                     }
                     sleepForBackoff(failureCount);
@@ -71,13 +73,17 @@ public abstract class AbstractLockAwareTransactionManager
 
             try {
                 if (lockToken == null) {
-                    return runTaskWithLocksThrowOnConflict(lockTokens, task);
+                    T result = runTaskWithLocksThrowOnConflict(lockTokens, task);
+                    logSuccess(runId, failureCount);
+                    return result;
                 } else {
-                    return runTaskWithLocksThrowOnConflict(IterableUtils.append(lockTokens, lockToken), task);
+                    T result = runTaskWithLocksThrowOnConflict(IterableUtils.append(lockTokens, lockToken), task);
+                    logSuccess(runId, failureCount);
+                    return result;
                 }
             } catch (TransactionFailedException e) {
                 if (!e.canTransactionBeRetried()) {
-                    log.warn("Non-retriable exception while processing transaction.", e);
+                    log.warn("[{}] Non-retriable exception while processing transaction.", runId, e);
                     throw e;
                 }
                 if (e instanceof TransactionLockTimeoutException) {
@@ -85,12 +91,12 @@ public abstract class AbstractLockAwareTransactionManager
                 }
                 failureCount++;
                 if (shouldStopRetrying(failureCount)) {
-                    log.warn("Failing after {} tries", failureCount, e);
+                    log.warn("[{}] Failing after {} tries", runId, failureCount, e);
                     throw e;
                 }
-                log.info("retrying transaction", e);
+                log.info("[{}] Retrying transaction", runId, e);
             } catch (RuntimeException e) {
-                log.warn("RuntimeException while processing transaction.", e);
+                log.warn("[{}] RuntimeException while processing transaction.", runId, e);
                 throw e;
             } finally {
                 if (lockToken != null) {
@@ -111,6 +117,16 @@ public abstract class AbstractLockAwareTransactionManager
         return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task);
     }
 
+    @Override
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
+        checkOpen();
+        return runTaskWithLocksThrowOnConflict(ImmutableList.of(), LockAwareTransactionTasks.asLockAware(task));
+    }
+
+    private void logSuccess(UUID runId, int failureCount) {
+        log.info("[{}] Successfully completed transaction after {} retries.", runId, failureCount);
+    }
+
     private void refreshAfterLockTimeout(Iterable<HeldLocksToken> lockTokens, TransactionLockTimeoutException ex) {
         Set<LockRefreshToken> toRequest = StreamSupport.stream(lockTokens.spliterator(), false)
                 .map(HeldLocksToken::getLockRefreshToken)
@@ -125,11 +141,5 @@ public abstract class AbstractLockAwareTransactionManager
                     + failedTokens,
                     ex);
         }
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
-        checkOpen();
-        return runTaskWithLocksThrowOnConflict(ImmutableList.of(), LockAwareTransactionTasks.asLockAware(task));
     }
 }

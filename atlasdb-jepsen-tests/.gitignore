@@ -2,6 +2,6 @@
 /.lein-repl-history
 /.nrepl-port
 /resources/atlasdb/atlasdb-jepsen-tests-all.jar
-/resources/atlasdb/atlasdb-timelock-server.tgz
+/resources/atlasdb/timelock-server.tgz
 /store
 /target/
