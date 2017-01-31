@@ -36,7 +36,7 @@ import com.palantir.timestamp.TimestampBoundStore;
 public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
     private static final long CASSANDRA_TIMESTAMP = 0L;
     private static final String ROW_AND_COLUMN_NAME = "ts";
-    private static final Cell TIMESTAMP_BOUND_CELL = 
+    private static final Cell TIMESTAMP_BOUND_CELL =
             Cell.create(PtBytes.toBytes(ROW_AND_COLUMN_NAME), PtBytes.toBytes(ROW_AND_COLUMN_NAME));
     private static final long OFFSET = 100;
     private static final long SECOND_OFFSET = OFFSET + 1;
@@ -148,5 +148,4 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
         kv.truncateTable(AtlasDbConstants.TIMESTAMP_TABLE);
         kv.put(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TIMESTAMP_BOUND_CELL, data), CASSANDRA_TIMESTAMP);
     }
-    
 }
