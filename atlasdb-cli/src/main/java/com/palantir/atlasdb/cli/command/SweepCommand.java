@@ -98,11 +98,16 @@ public class SweepCommand extends SingleBackendCommand {
         Map<TableReference, Optional<byte[]>> tableToStartRow = Maps.newHashMap();
 
         if ((table != null)) {
-            Optional<byte[]> startRow = Optional.of(new byte[0]);
-            if (row != null) {
-                startRow = Optional.of(decodeStartRow(row));
+            TableReference tableToSweep = TableReference.createUnsafe(table);
+            if (services.getKeyValueService().getAllTableNames().contains(tableToSweep)) {
+                Optional<byte[]> startRow = Optional.of(new byte[0]);
+                if (row != null) {
+                    startRow = Optional.of(decodeStartRow(row));
+                }
+                tableToStartRow.put(tableToSweep, startRow);
+            } else {
+                printer.info("The table passed in to sweep {} does not exist", tableToSweep);
             }
-            tableToStartRow.put(TableReference.createUnsafe(table), startRow);
         } else if (namespace != null) {
             Set<TableReference> tablesInNamespace = services.getKeyValueService().getAllTableNames()
                     .stream()
