@@ -18,6 +18,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.UUID;
+
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -62,15 +64,31 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
     }
 
     @Test
-    public void canGetNewFormat() {
+    public void canGetNewFormatOnStartup() {
         insertTimestampWithCorrectId(OFFSET);
         assertBoundInDbIsEqualTo(OFFSET);
     }
 
     @Test
-    public void canGetOldFormat() {
+    public void getNewFormatThrowsAfterStore() {
+        store.getUpperLimit();
+        store.storeUpperLimit(SECOND_OFFSET);
+        insertTimestampWithFakeId(OFFSET);
+        assertThatThrownBy(() -> store.getUpperLimit()).isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
+    }
+
+    @Test
+    public void canGetOldFormatOnStartup() {
         insertTimestampOld(OFFSET);
         assertBoundInDbIsEqualTo(OFFSET);
+    }
+
+    @Test
+    public void getOldFormatThrowsAfterStore() {
+        store.getUpperLimit();
+        store.storeUpperLimit(SECOND_OFFSET);
+        insertTimestampOld(OFFSET);
+        assertThatThrownBy(() -> store.getUpperLimit()).isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
     }
 
     @Test
@@ -96,7 +114,7 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
     }
 
     @Test
-    public void storeWithRightTimestampNoIdSucceeds() {
+    public void storeWithRightTimestampNoIdSucceedsFirstTime() {
         insertTimestampOld(OFFSET);
         assertThat(store.getUpperLimit()).isEqualTo(OFFSET);
         store.storeUpperLimit(SECOND_OFFSET);
@@ -104,17 +122,41 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
     }
 
     @Test
-    public void storeWithRightTimestampWrongIdSucceeds() {
-        insertTimestampWithFakeId(OFFSET);
+    public void storeWithRightTimestampNoIdFailsSecondTime() {
+        insertTimestampOld(OFFSET);
         store.getUpperLimit();
+        store.storeUpperLimit(SECOND_OFFSET);
+        insertTimestampOld(OFFSET);
+        assertThatStoreUpperLimitThrows(SECOND_OFFSET);
+    }
+
+    @Test
+    public void storeWithRightTimestampWrongIdSucceedsFirstTime() {
+        insertTimestampWithFakeId(OFFSET);
+        assertThat(store.getUpperLimit()).isEqualTo(OFFSET);
         store.storeUpperLimit(SECOND_OFFSET);
         assertBoundInDbIsEqualTo(SECOND_OFFSET);
     }
 
     @Test
-    public void checkFixForConversionCornerCase() {
-        setTimestampTableValueTo(PtBytes.toBytes(CONFLICTING_BOUND));
-        assertBoundInDbIsEqualTo(CONFLICTING_BOUND);
+    public void storeWithRightTimestampWrongIdFailsSecondTime() {
+        insertTimestampWithFakeId(OFFSET);
+        store.getUpperLimit();
+        store.storeUpperLimit(SECOND_OFFSET);
+        insertTimestampWithFakeId(OFFSET);
+        assertThatStoreUpperLimitThrows(SECOND_OFFSET);
+    }
+
+    @Test
+    public void valueBelowEightBytesThrows() {
+        setTimestampTableValueTo(PtBytes.toBytes("1"));
+        assertThatThrownBy(() -> store.getUpperLimit()).isExactlyInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void invalidValueAboveEightBytesThrows() {
+        setTimestampTableValueTo(PtBytes.toBytes("123456789"));
+        assertThatThrownBy(() -> store.getUpperLimit()).isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @After
@@ -144,9 +186,9 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
     }
 
     private void insertTimestampWithIdChanged(long value, boolean changeId) {
-        long id = ((CassandraTimestampBoundStore) store).getId();
+        UUID id = ((CassandraTimestampBoundStore) store).getId();
         if (changeId) {
-            id = (id == -1L) ? -2L : -1L;
+            id = new UUID(id.getMostSignificantBits(), id.getLeastSignificantBits() ^ 1);
         }
         setTimestampTableValueTo(PtBytes.toBytes(id + "_" + value));
     }
