@@ -15,14 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.PalantirSqlConnection;
 
 public class UpdateExecutor {
@@ -47,8 +43,8 @@ public class UpdateExecutor {
                 ts,
                 oldValue
         };
-        String prefixedTableName = prefixedTableNames.get(tableRef);
 
+        String prefixedTableName = prefixedTableNames.get(tableRef);
         String sqlString = "/* UPDATE (" + prefixedTableName + ") */"
                 + " UPDATE " + prefixedTableName + ""
                 + " SET row_name = ?, col_name = ?, ts = ?, val = ?"
@@ -60,31 +56,7 @@ public class UpdateExecutor {
                 args);
         if (updated == 0) {
             // right now we don't know what's actually in the db :-(
-            byte[] actualValue = getActualValue(cell, ts);
-            throw new CheckAndSetException(cell, tableRef, oldValue, ImmutableList.of(actualValue));
-        }
-    }
-
-    private byte[] getActualValue(Cell cell, long ts) {
-        String prefixedTableName = prefixedTableNames.get(tableRef);
-        Object[] args = new Object[] {
-                cell.getRowName(),
-                cell.getColumnName(),
-                ts
-        };
-        String sqlString = "/* SELECT (" + prefixedTableName + ") */"
-                + " SELECT val from " + prefixedTableName + ""
-                + " WHERE row_name = ?"
-                + " AND col_name = ?"
-                + " AND ts = ?";
-        AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(sqlString, args);
-        if (results.size() < 1) {
-            return PtBytes.EMPTY_BYTE_ARRAY;
-        } else {
-            //noinspection deprecation
-            return MoreObjects.firstNonNull(
-                    Iterables.getOnlyElement(results.rows()).getBytes("val"),
-                    PtBytes.EMPTY_BYTE_ARRAY);
+            throw new CheckAndSetException(cell, tableRef, oldValue, ImmutableList.of());
         }
     }
 }
