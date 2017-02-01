@@ -120,7 +120,7 @@ public class TestSweepCommand {
             String stdout = sweep(runner, ts5);
 
             Assert.assertFalse(stdout.contains("Swept from"));
-            Assert.assertTrue(stdout.contains(String.format("The table passed in to sweep %s does not exist", NON_EXISTING_TABLE)));
+            Assert.assertTrue(stdout.contains(String.format("The table %s passed in to sweep does not exist", NON_EXISTING_TABLE)));
         }
     }
 

@@ -95,37 +95,37 @@ public class SweepCommand extends SingleBackendCommand {
             return 1;
         }
 
-        Map<TableReference, Optional<byte[]>> tableToStartRow = Maps.newHashMap();
+        Map<TableReference, byte[]> tableToStartRow = Maps.newHashMap();
 
         if ((table != null)) {
             TableReference tableToSweep = TableReference.createUnsafe(table);
-            if (services.getKeyValueService().getAllTableNames().contains(tableToSweep)) {
-                Optional<byte[]> startRow = Optional.of(new byte[0]);
-                if (row != null) {
-                    startRow = Optional.of(decodeStartRow(row));
-                }
-                tableToStartRow.put(tableToSweep, startRow);
-            } else {
-                printer.info("The table passed in to sweep {} does not exist", tableToSweep);
+            if (!services.getKeyValueService().getAllTableNames().contains(tableToSweep)) {
+                printer.info("The table {} passed in to sweep does not exist", tableToSweep);
+                return 1;
             }
+            byte[] startRow = new byte[0];
+            if (row != null) {
+                startRow = decodeStartRow(row);
+            }
+            tableToStartRow.put(tableToSweep, startRow);
         } else if (namespace != null) {
             Set<TableReference> tablesInNamespace = services.getKeyValueService().getAllTableNames()
                     .stream()
                     .filter(tableRef -> tableRef.getNamespace().getName().equals(namespace))
                     .collect(Collectors.toSet());
             for (TableReference table : tablesInNamespace) {
-                tableToStartRow.put(table, Optional.of(new byte[0]));
+                tableToStartRow.put(table, new byte[0]);
             }
         } else if (sweepAllTables) {
             tableToStartRow.putAll(
                     Maps.asMap(
                             Sets.difference(services.getKeyValueService().getAllTableNames(), AtlasDbConstants.hiddenTables),
-                            Functions.constant(Optional.of(new byte[0]))));
+                            Functions.constant(new byte[0])));
         }
 
-        for (Map.Entry<TableReference, Optional<byte[]>> entry : tableToStartRow.entrySet()) {
+        for (Map.Entry<TableReference, byte[]> entry : tableToStartRow.entrySet()) {
             final TableReference table = entry.getKey();
-            Optional<byte[]> startRow = entry.getValue();
+            Optional<byte[]> startRow = Optional.of(entry.getValue());
 
             final AtomicLong cellsExamined = new AtomicLong();
             final AtomicLong cellsDeleted = new AtomicLong();
