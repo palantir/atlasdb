@@ -37,6 +37,7 @@ public class AtlasDbConstants {
     public static final String ORACLE_NAME_MAPPING_TABLE = "atlasdb_table_names";
     public static final String ORACLE_NAME_MAPPING_PK_CONSTRAINT = "pk_" + ORACLE_NAME_MAPPING_TABLE;
     public static final String ORACLE_OVERFLOW_SEQUENCE = "overflow_seq";
+    public static final int ORACLE_OVERFLOW_THRESHOLD = 2000;
 
     public static final String NAMESPACE_PREFIX = "_n_";
     public static final String NAMESPACE_SHORT_COLUMN_NAME = "s";

@@ -28,6 +28,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -45,8 +46,6 @@ import com.palantir.nexus.db.sql.SqlConnection;
 
 public final class OracleOverflowWriteTable implements DbWriteTable {
     private static final Logger log = LoggerFactory.getLogger(OracleOverflowWriteTable.class);
-
-    static final int OVERFLOW_THRESHOLD = 2000;
 
     private final OracleDdlConfig config;
     private final ConnectionSupplier conns;
@@ -83,7 +82,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         for (Entry<Cell, byte[]> entry : data) {
             Cell cell = entry.getKey();
             byte[] val = entry.getValue();
-            if (val.length <= OVERFLOW_THRESHOLD) {
+            if (val.length <= AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD) {
                 args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, val, null });
             } else {
                 long overflowId = config.overflowIds().orElse(overflowSequenceSupplier).get();
@@ -101,7 +100,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         for (Entry<Cell, Value> entry : data) {
             Cell cell = entry.getKey();
             Value val = entry.getValue();
-            if (val.getContents().length <= OVERFLOW_THRESHOLD) {
+            if (val.getContents().length <= AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD) {
                 args.add(new Object[] {
                         cell.getRowName(), cell.getColumnName(), val.getTimestamp(), val.getContents(), null
                 });
@@ -180,9 +179,11 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
 
     @Override
     public void update(Cell cell, long ts, byte[] oldValue, byte[] newValue) {
-        if (oldValue.length > OVERFLOW_THRESHOLD || newValue.length > OVERFLOW_THRESHOLD) {
+        if (oldValue.length > AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD
+                || newValue.length > AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD) {
             throw new UnsupportedOperationException(
-                    String.format("Update is not supported for values longer than %s bytes!", OVERFLOW_THRESHOLD));
+                    String.format("Update is not supported for values longer than the overflow threshold of %s bytes!",
+                            AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD));
         }
 
         new OracleTableUpdater(conns, tableRef, this::getShortTableName).update(cell, ts, oldValue, newValue);
