@@ -90,7 +90,10 @@ public class CassandraTimestampCqlExecutor {
     private String constructCqlBatchInsertCommand(Map<byte[], byte[]> rowsToValues) {
         String insertions = rowsToValues.entrySet()
                 .stream()
-                .map(entry -> constructCqlInsertCommandForTimestampTable(entry.getKey(), entry.getValue()))
+                .map(entry -> constructCqlInsertCommandForTimestampTable(
+                        ROW_AND_COLUMN_NAME_BYTES,
+                        entry.getKey(),
+                        entry.getValue()))
                 .collect(Collectors.joining());
         return "BEGIN BATCH\n"
                 + insertions
@@ -98,15 +101,13 @@ public class CassandraTimestampCqlExecutor {
     }
 
     @SuppressFBWarnings("VA_FORMAT_STRING_USES_NEWLINE")
-    private String constructCqlInsertCommandForTimestampTable(byte[] rowAndColumnName, byte[] value) {
-        String hexName = encodeCassandraHexValue(rowAndColumnName);
-        String hexValue = encodeCassandraHexValue(value);
+    private String constructCqlInsertCommandForTimestampTable(byte[] rowName, byte[] columnName, byte[] value) {
         return String.format(
                 "INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, -1, %s);\n",
                 wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
-                hexName,
-                hexName,
-                hexValue);
+                encodeCassandraHexValue(rowName),
+                encodeCassandraHexValue(columnName),
+                encodeCassandraHexValue(value));
     }
 
     private String wrapInQuotes(String tableName) {

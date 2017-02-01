@@ -70,7 +70,8 @@ public class CassandraTimestampStoreInvalidator implements TimestampStoreInvalid
     }
 
     private Optional<Long> getBoundFromKvs(byte[] timestampCellName) {
-        Cell timestampCell = Cell.create(timestampCellName, timestampCellName);
+        Cell timestampCell = Cell.create(
+                CassandraTimestampCqlExecutor.ROW_AND_COLUMN_NAME_BYTES, timestampCellName);
         Map<Cell, Value> result = rawCassandraKvs.get(
                 AtlasDbConstants.TIMESTAMP_TABLE,
                 ImmutableMap.of(timestampCell, Long.MAX_VALUE));
