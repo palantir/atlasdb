@@ -23,6 +23,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -110,27 +111,6 @@ public class PersistentLockService {
         String message = LockStore.LOCK_OPEN.equals(actualEntry)
                 ? "The lock has already been released"
                 : String.format("Another lock has been taken out: %s", actualEntry);
-        return getConflictResponse(message);
-    }
-
-    private Response getConflictResponse(final String message) {
-        Response.StatusType statusType = new Response.StatusType() {
-            @Override
-            public int getStatusCode() {
-                return Response.Status.CONFLICT.getStatusCode();
-            }
-
-            @Override
-            public Response.Status.Family getFamily() {
-                return Response.Status.Family.CLIENT_ERROR;
-            }
-
-            @Override
-            public String getReasonPhrase() {
-                return message;
-            }
-        };
-
-        return Response.status(statusType).build();
+        return Response.status(Response.Status.CONFLICT).entity(Entity.text(message)).build();
     }
 }
