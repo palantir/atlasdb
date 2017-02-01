@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -26,9 +27,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.squareup.okhttp.CipherSuite;
 import com.squareup.okhttp.ConnectionPool;
 import com.squareup.okhttp.ConnectionSpec;
+import com.squareup.okhttp.Interceptor;
+import com.squareup.okhttp.Response;
 import com.squareup.okhttp.TlsVersion;
 
 import feign.Client;
@@ -44,7 +48,6 @@ import feign.jaxrs.JAXRSContract;
 import feign.okhttp.OkHttpClient;
 
 public final class AtlasDbHttpClients {
-
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 1000;
@@ -88,6 +91,9 @@ public final class AtlasDbHttpClients {
                             CipherSuite.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
                     .build(),
             ConnectionSpec.CLEARTEXT);
+
+    @VisibleForTesting
+    static final String USER_AGENT_HEADER = "User-Agent";
 
     private AtlasDbHttpClients() {
         // Utility class
@@ -180,6 +186,19 @@ public final class AtlasDbHttpClients {
         client.setConnectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES);
         client.setConnectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS));
         client.setSslSocketFactory(sslSocketFactory.orNull());
+        client.interceptors().add(new UserAgentAddingInterceptor());
         return new OkHttpClient(client);
+    }
+
+    @VisibleForTesting
+    static class UserAgentAddingInterceptor implements Interceptor {
+        @Override
+        public Response intercept(Chain chain) throws IOException {
+            com.squareup.okhttp.Request requestWithUserAgent = chain.request()
+                    .newBuilder()
+                    .addHeader(USER_AGENT_HEADER, AtlasDbConstants.CLIENT_USER_AGENT)
+                    .build();
+            return chain.proceed(requestWithUserAgent);
+        }
     }
 }
