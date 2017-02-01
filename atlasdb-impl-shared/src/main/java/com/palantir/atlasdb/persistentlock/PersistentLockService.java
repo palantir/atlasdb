@@ -84,8 +84,16 @@ public class PersistentLockService {
     @Produces(MediaType.APPLICATION_JSON)
     public Response releaseLock(LockEntry lockEntry) {
         Preconditions.checkNotNull(lockEntry, "Please provide a LockEntry to release.");
-        lockStore.releaseLock(lockEntry);
-        return Response.ok().build();
+
+        try {
+            lockStore.releaseLock(lockEntry);
+            return Response.ok().build();
+        } catch (CheckAndSetException e) {
+            log.error("Failed to release the persistent lock. This means that somebody already cleared this lock. "
+                    + "You should investigate this, as this means your operation didn't necessarily hold the lock when "
+                    + "it should have done.", e);
+            throw e;
+        }
     }
 
 }
