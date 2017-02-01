@@ -42,8 +42,12 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved| |userbreak|
+         - AtlasDB HTTP clients will now have a user agent of ``palantir/atlasdb`` as opposed to
+           ``okhttp/2.5.0``. This should make associating request logs with AtlasDB much easier. However, user
+           workflows relying on associating requests with a user agent of ``okhttp/2.5.0`` with AtlasDB will no longer
+           work.
+           (Pull Request)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
