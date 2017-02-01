@@ -11,16 +11,20 @@ For certain pieces of common functionality AtlasDB offers command line
 scripts. These scripts can be used to help automate common maintance
 tasks as well as help resolve problems encountered during operation.
 
+Download The CLI
+================
+
+The CLI now comes prebuild as an SLS distribution to be used with any AtlasDB back product.  You can find the versions `here <https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/>`__ for download.
+You can use the CLI by unpacking the tar ball and running the executable in ``service/bin/atlasdb-cli``.
+
 Compiling The CLI
 =================
 
-Right now, the best way to get the CLI is by cloning the atlasdb source code and running:
-
 .. code:: bash
 
-     $ ./gradlew atlasdb-cli:distZip
+     $ ./gradlew atlasdb-cli-distribution:distTar
 
-This will create a zip file in ``atlasdb-cli/build/distributions``, which you can unzip on the machine where your AtlasDB server is installed.
+This will create a tar file in ``atlasdb-cli-distribution/build/distributions``, which you can untar on the machine where your AtlasDB client is installed.
 
 Built-In Commands
 =================

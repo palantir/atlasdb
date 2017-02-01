@@ -161,13 +161,17 @@
 scripts. These scripts can be used to help automate common maintance
 tasks as well as help resolve problems encountered during operation.</p>
 </div>
+<div class="section" id="download-the-cli">
+<h2>Download The CLI<a class="headerlink" href="#download-the-cli" title="Permalink to this headline">¶</a></h2>
+<p>The CLI now comes prebuild as an SLS distribution to be used with any AtlasDB back product.  You can find the versions <a class="reference external" href="https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/">here</a> for download.
+You can use the CLI by unpacking the tar ball and running the executable in <code class="docutils literal"><span class="pre">service/bin/atlasdb-cli</span></code>.</p>
+</div>
 <div class="section" id="compiling-the-cli">
 <h2>Compiling The CLI<a class="headerlink" href="#compiling-the-cli" title="Permalink to this headline">¶</a></h2>
-<p>Right now, the best way to get the CLI is by cloning the atlasdb source code and running:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./gradlew atlasdb-cli:distZip
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./gradlew atlasdb-cli-distribution:distTar
 </pre></div>
 </div>
-<p>This will create a zip file in <code class="docutils literal"><span class="pre">atlasdb-cli/build/distributions</span></code>, which you can unzip on the machine where your AtlasDB server is installed.</p>
+<p>This will create a tar file in <code class="docutils literal"><span class="pre">atlasdb-cli-distribution/build/distributions</span></code>, which you can untar on the machine where your AtlasDB client is installed.</p>
 </div>
 <div class="section" id="built-in-commands">
 <h2>Built-In Commands<a class="headerlink" href="#built-in-commands" title="Permalink to this headline">¶</a></h2>
