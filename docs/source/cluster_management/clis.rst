@@ -24,7 +24,7 @@ Compiling The CLI
 
      $ ./gradlew atlasdb-cli-distribution:distTar
 
-This will create a tar file in ``atlasdb-cli-distribution/build/distributions``, which you can unzip on the machine where your AtlasDB server is installed.
+This will create a tar file in ``atlasdb-cli-distribution/build/distributions``, which you can untar on the machine where your AtlasDB client is installed.
 
 Built-In Commands
 =================
