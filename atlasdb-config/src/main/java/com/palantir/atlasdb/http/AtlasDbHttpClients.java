@@ -190,8 +190,7 @@ public final class AtlasDbHttpClients {
         return new OkHttpClient(client);
     }
 
-    @VisibleForTesting
-    static class UserAgentAddingInterceptor implements Interceptor {
+    private static class UserAgentAddingInterceptor implements Interceptor {
         @Override
         public Response intercept(Chain chain) throws IOException {
             com.squareup.okhttp.Request requestWithUserAgent = chain.request()
