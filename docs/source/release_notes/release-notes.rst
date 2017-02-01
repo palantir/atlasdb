@@ -47,7 +47,7 @@ develop
            ``okhttp/2.5.0``. This should make associating request logs with AtlasDB much easier. However, user
            workflows relying on associating requests with a user agent of ``okhttp/2.5.0`` with AtlasDB will no longer
            work.
-           (Pull Request)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1535>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
