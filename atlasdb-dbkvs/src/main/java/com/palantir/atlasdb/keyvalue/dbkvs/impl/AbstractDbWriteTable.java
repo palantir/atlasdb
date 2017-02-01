@@ -147,6 +147,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
         int updated = ((PalantirSqlConnection) conns.get()).updateCountRowsUnregisteredQuery(sqlString,
                 args);
         if (updated == 0) {
+            // right now we don't know what's actually in the db :-(
             byte[] actualValue = getActualValue(cell, ts);
             throw new CheckAndSetException(cell, tableRef, oldValue, ImmutableList.of(actualValue));
         }
