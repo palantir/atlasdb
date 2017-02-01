@@ -15,12 +15,14 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -34,6 +36,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class CellsSweeper {
     private static final Logger log = LoggerFactory.getLogger(CellsSweeper.class);
+    private static final Duration SWEEP_PERSISTENT_LOCK_RETRY_PERIOD = Duration.ofSeconds(30);
 
     private final TransactionManager txManager;
     private final KeyValueService keyValueService;
@@ -74,8 +77,7 @@ public class CellsSweeper {
             follower.run(txManager, tableRef, cellTsPairsToSweep.keySet(), Transaction.TransactionType.HARD_DELETE);
         }
 
-        LockEntry lockEntry = persistentLockService.acquireLock("Sweep");
-        log.info("Successfully acquired persistent lock for sweep: {}", lockEntry);
+        LockEntry lockEntry = acquirePersistentLockWithRetry();
 
         try {
             if (!sentinelsToAdd.isEmpty()) {
@@ -87,6 +89,27 @@ public class CellsSweeper {
             keyValueService.delete(tableRef, cellTsPairsToSweep);
         } finally {
             releasePersistentLock(lockEntry);
+        }
+    }
+
+    private LockEntry acquirePersistentLockWithRetry() {
+        while (true) {
+            try {
+                LockEntry lockEntry = persistentLockService.acquireLock("Sweep");
+                log.info("Successfully acquired persistent lock for sweep: {}", lockEntry);
+                return lockEntry;
+            } catch (CheckAndSetException e) {
+                log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
+                waitForRetry(SWEEP_PERSISTENT_LOCK_RETRY_PERIOD);
+            }
+        }
+    }
+
+    private void waitForRetry(Duration duration) {
+        try {
+            Thread.sleep(duration.toMillis());
+        } catch (InterruptedException e) {
+            throw Throwables.propagate(e);
         }
     }
 

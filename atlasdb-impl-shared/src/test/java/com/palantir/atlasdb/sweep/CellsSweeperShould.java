@@ -40,6 +40,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -121,6 +122,18 @@ public class CellsSweeperShould {
 
         ordering.verify(mockPls, times(1)).acquireLock("Sweep");
         ordering.verify(mockKvs, atLeastOnce()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
+        ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
+    }
+
+    @Test
+    public void retryWhenAcquiringTheDeletionLock() {
+        when(mockPls.acquireLock(anyString())).thenThrow(mock(CheckAndSetException.class)).thenReturn(mockEntry);
+
+        cellsSweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
+
+        InOrder ordering = inOrder(mockPls, mockKvs);
+
+        ordering.verify(mockPls, times(2)).acquireLock("Sweep");
         ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
     }
 
