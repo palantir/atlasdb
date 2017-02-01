@@ -84,33 +84,8 @@ public class PersistentLockService {
     @Produces(MediaType.APPLICATION_JSON)
     public Response releaseLock(LockEntry lockEntry) {
         Preconditions.checkNotNull(lockEntry, "Please provide a LockEntry to release.");
-        try {
-            lockStore.releaseLock(lockEntry);
-            return Response.ok().build();
-        } catch (CheckAndSetException e) {
-            LockEntry actualEntry = extractStoredLockEntry(e);
-            return createReleaseErrorResponse(actualEntry);
-        }
+        lockStore.releaseLock(lockEntry);
+        return Response.ok().build();
     }
 
-    private LockEntry extractStoredLockEntry(CheckAndSetException ex) {
-        // Want a slightly different response if the lock was already open
-        List<byte[]> actualValues = ex.getActualValues();
-        if (actualValues == null || actualValues.size() != 1) {
-            // Rethrow - something odd happened in the db, and here we _do_ want the log message/stack trace.
-            throw ex;
-        }
-
-        byte[] rowName = ex.getKey().getRowName();
-        byte[] actualValue = Iterables.getOnlyElement(actualValues);
-        return LockEntry.fromRowAndValue(rowName, actualValue);
-    }
-
-    private Response createReleaseErrorResponse(LockEntry actualEntry) {
-        log.error("persistent-lock/release failed. Stored LockEntry: {}", actualEntry);
-        String message = LockStore.LOCK_OPEN.equals(actualEntry)
-                ? "The lock has already been released"
-                : String.format("Another lock has been taken out: %s", actualEntry);
-        return Response.status(Response.Status.CONFLICT).entity(Entity.text(message)).build();
-    }
 }
