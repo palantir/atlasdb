@@ -46,6 +46,7 @@ import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
+import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
@@ -202,6 +203,7 @@ public final class TransactionManagers {
     private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
         PersistentLockService pls = PersistentLockService.create(kvs);
         env.register(pls);
+        env.register(new CheckAndSetExceptionMapper());
         return pls;
     }
 
