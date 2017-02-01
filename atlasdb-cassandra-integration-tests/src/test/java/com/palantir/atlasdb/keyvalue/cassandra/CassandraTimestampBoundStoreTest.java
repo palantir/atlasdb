@@ -36,7 +36,6 @@ import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
-    public static final long CONFLICTING_BOUND = 3557616313682636848L;
     private static final long CASSANDRA_TIMESTAMP = 0L;
     private static final String ROW_AND_COLUMN_NAME = "ts";
     private static final Cell TIMESTAMP_BOUND_CELL =
@@ -190,7 +189,7 @@ public class CassandraTimestampBoundStoreTest extends AbstractDbTimestampBoundSt
         if (changeId) {
             id = new UUID(id.getMostSignificantBits(), id.getLeastSignificantBits() ^ 1);
         }
-        setTimestampTableValueTo(PtBytes.toBytes(id + "_" + value));
+        setTimestampTableValueTo(TimestampBoundStoreEntry.getByteValueForIdAndBound(id, value));
     }
 
     private void setTimestampTableValueTo(byte[] data) {

@@ -16,11 +16,9 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
-import java.util.Optional;
 import java.util.UUID;
 
 import javax.annotation.concurrent.GuardedBy;
-import javax.validation.constraints.NotNull;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -29,13 +27,13 @@ import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -73,7 +71,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     @GuardedBy("this")
     private long currentLimit = -1;
-    private boolean hasStoredBound = false;
+    private boolean startingUp = true;
 
     private final UUID id;
     private final CassandraClientPool clientPool;
@@ -91,52 +89,48 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         this.id = UUID.randomUUID();
     }
 
+    @VisibleForTesting
+    UUID getId() {
+        return id;
+    }
+
     @Override
     public synchronized long getUpperLimit() {
         DebugLogger.logger.debug("[GET] Getting upper limit");
-        return clientPool.runWithRetry(new FunctionCheckedException<Client, Long, RuntimeException>() {
-            @Override
-            public Long apply(Client client) {
-                ByteBuffer rowName = getRowName();
-                ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
-                columnPath.setColumn(getColumnName());
-                ColumnOrSuperColumn result;
-                try {
-                    result = client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
-                } catch (NotFoundException e) {
-                    result = null;
-                } catch (Exception e) {
-                    throw Throwables.throwUncheckedException(e);
-                }
-                if (result == null) {
-                    DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
-                    cas(client, makeColumnWithId(getId(), null), null, INITIAL_VALUE);
-                    return INITIAL_VALUE;
-                }
-                Column column = result.getColumn();
-                IdAndTimestamp idAndTimestamp = new IdAndTimestamp(column);
-                if (hasStoredBound) {
-                    if (!idAndTimestamp.hasId() || !idAndTimestamp.getId().equals(getId())) {
-                        throw new MultipleRunningTimestampServiceError("Detected a concurrent running timestamp "
-                                + "service");
-                    }
-                }
-                currentLimit = idAndTimestamp.getTimestamp();
-                DebugLogger.logger.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
-                return currentLimit;
+        return clientPool.runWithRetry(client -> {
+            ByteBuffer rowName = getRowName();
+            ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
+            columnPath.setColumn(getColumnName());
+            ColumnOrSuperColumn result;
+            try {
+                result = client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
+            } catch (NotFoundException e) {
+                result = null;
+            } catch (TException e) {
+                throw Throwables.throwUncheckedException(e);
             }
+            if (result == null) {
+                DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
+                cas(client, makeColumnForIdAndBound(null, null), null, INITIAL_VALUE);
+                return INITIAL_VALUE;
+            }
+            TimestampBoundStoreEntry timestampBoundStoreEntry =
+                    TimestampBoundStoreEntry.createFromColumn(result.getColumn());
+            if (!startingUp && !id.equals(timestampBoundStoreEntry.getId())) {
+                throwGettingMultipleRunningTimestampServiceError(timestampBoundStoreEntry);
+            }
+            currentLimit = timestampBoundStoreEntry.getTimestamp();
+            DebugLogger.logger.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
+            return currentLimit;
         });
     }
 
     @Override
     public synchronized void storeUpperLimit(final long limit) {
         DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
-        clientPool.runWithRetry(new FunctionCheckedException<Client, Void, RuntimeException>() {
-            @Override
-            public Void apply(Client client) {
-                cas(client, makeColumnWithId(getId(), currentLimit), currentLimit, limit);
-                return null;
-            }
+        clientPool.runWithRetry((FunctionCheckedException<Client, Void, RuntimeException>) client -> {
+            cas(client, makeColumnForIdAndBound(id, currentLimit), currentLimit, limit);
+            return null;
         });
     }
 
@@ -145,14 +139,12 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         if (result.isSuccess()) {
             DebugLogger.logger.info("[CAS] Setting cached limit to {}.", newVal);
             currentLimit = newVal;
-            hasStoredBound = true;
+            startingUp = false;
         } else {
             if (result.getCurrent_values().isEmpty()) {
-                log.error("[CAS] Error trying to set timestamp limit to {}: there is no limit stored in DB.", newVal);
-                throw new MultipleRunningTimestampServiceError("Error trying to set timestamp limit: there is no "
-                        + "limit stored in DB.");
+                addProcessInfoAndThrow(new TimestampBoundStoreEntry(id, currentLimit), "No limit in DB!");
             }
-            IdAndTimestamp currentIdAndTimestamp = new IdAndTimestamp(result);
+            TimestampBoundStoreEntry timestampBoundStoreEntry = TimestampBoundStoreEntry.createFromCasResult(result);
             /*
              * For the cas to succeed, the existing entry in the DB must be this.id_this.currentLimit. If that is not
              * the case, we still want to succeed if:
@@ -161,32 +153,13 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
              *   2. limit in the DB equals the expected limit, but there is no id/id does not match and this store has
              *   not stored a bound yet -- this is the case when we startup.
              */
-            if (sameIdOrStartUp(currentIdAndTimestamp)) {
-                Column expectedColumn = getExpectedColumn(currentIdAndTimestamp);
-                cas(client, expectedColumn, currentIdAndTimestamp.getTimestamp(), newVal);
+            if (sameIdOrStartUp(timestampBoundStoreEntry)) {
+                Column expectedColumn = makeColumn(timestampBoundStoreEntry.getByteValue());
+                cas(client, expectedColumn, timestampBoundStoreEntry.getTimestamp(), newVal);
             } else {
-                throwMultipleRunningTimestampServiceError(oldVal, newVal, currentIdAndTimestamp);
+                throwStoringMultipleRunningTimestampServiceError(oldVal, newVal, timestampBoundStoreEntry);
             }
         }
-    }
-
-    private void throwMultipleRunningTimestampServiceError(Long oldVal, long newVal,
-            IdAndTimestamp currentIdAndTimestamp) {
-        String msg = "Unable to CAS from {} to {}."
-                + " Timestamp limit changed underneath us (limit in memory: {}, stored in DB: {}). This may"
-                + " indicate that another timestamp service is running against this cassandra keyspace."
-                + " This is likely caused by multiple copies of a service running without a configured set of"
-                + " leaders or a CLI being run with an embedded timestamp service against an already running"
-                + " service. This process's ID: {}, ID in DB: {}";
-        String idInDb = currentIdAndTimestamp.hasId() ? currentIdAndTimestamp.getId().toString() : "not available.";
-        String fullMessage = String.format(replaceBracesWithStringFormatSpecifier(msg), oldVal, newVal,
-                currentLimit, currentIdAndTimestamp.getTimestamp(), this.getId(), idInDb);
-
-        MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(fullMessage);
-        log.error(fullMessage, err);
-        DebugLogger.logger.error(fullMessage, err);
-        DebugLogger.logger.error("Thread dump: {}", ThreadDumps.programmaticThreadDump());
-        throw err;
     }
 
     private CASResult updateTimestampInDb(Client client, Column oldColumn, Long oldVal, long newVal) {
@@ -197,7 +170,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     getRowName(),
                     AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
                     oldVal == null ? ImmutableList.of() : ImmutableList.of(oldColumn),
-                    ImmutableList.of(makeColumnWithId(getId(), newVal)),
+                    ImmutableList.of(makeColumnForIdAndBound(id, newVal)),
                     ConsistencyLevel.SERIAL,
                     ConsistencyLevel.EACH_QUORUM);
             return result;
@@ -208,35 +181,21 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         }
     }
 
-    private Column makeColumnWithId(@NotNull UUID idToUse, Long ts) {
-        if (ts == null) {
-            return null;
-        }
-        return makeColumn(PtBytes.toBytes(idToUse + "_" + ts));
+    private boolean sameIdOrStartUp(TimestampBoundStoreEntry timestampBoundStoreEntry) {
+        return id.equals(timestampBoundStoreEntry.getId())
+                || (startingUp && timestampBoundStoreEntry.getTimestamp() == currentLimit);
     }
 
-    private Column makeColumnWithoutId(long ts) {
-        return makeColumn(PtBytes.toBytes(ts));
+    private Column makeColumnForIdAndBound(UUID idToUse, Long ts) {
+        return makeColumn(TimestampBoundStoreEntry.getByteValueForIdAndBound(idToUse, ts));
     }
 
-    private Column makeColumn(byte[] value) {
+    private Column makeColumn(byte[] values) {
         Column col = new Column();
         col.setName(getColumnName());
-        col.setValue(value);
+        col.setValue(values);
         col.setTimestamp(CASSANDRA_TIMESTAMP);
         return col;
-    }
-
-    private boolean sameIdOrStartUp(IdAndTimestamp currentIdAndTimestamp) {
-        return (currentIdAndTimestamp.hasId() && currentIdAndTimestamp.getId().equals(getId()))
-                || (!hasStoredBound && currentIdAndTimestamp.getTimestamp() == currentLimit);
-    }
-
-    private Column getExpectedColumn(IdAndTimestamp currentIdAndTimestamp) {
-        if (currentIdAndTimestamp.hasId()) {
-            return makeColumnWithId(currentIdAndTimestamp.getId(), currentIdAndTimestamp.getTimestamp());
-        }
-        return makeColumnWithoutId(currentIdAndTimestamp.getTimestamp());
     }
 
     private static byte[] getColumnName() {
@@ -249,49 +208,37 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         return ByteBuffer.wrap(PtBytes.toBytes(ROW_AND_COLUMN_NAME));
     }
 
+    private void throwGettingMultipleRunningTimestampServiceError(TimestampBoundStoreEntry timestampBoundStoreEntry) {
+        String msg = "Detected a concurrent running timestamp service running against this cassandra keyspace.";
+        addProcessInfoAndThrow(timestampBoundStoreEntry, msg);
+    }
+
+    private void throwStoringMultipleRunningTimestampServiceError(Long oldVal, long newVal,
+            TimestampBoundStoreEntry timestampBoundStoreEntry) {
+        String msg = "Unable to CAS from {} to {}."
+                + " Timestamp limit changed underneath us (limit in memory: {}, stored in DB: {}). This may"
+                + " indicate that another timestamp service is running against this cassandra keyspace."
+                + " This is likely caused by multiple copies of a service running without a configured set of"
+                + " leaders or a CLI being run with an embedded timestamp service against an already running"
+                + " service.";
+        String formattedMsg = String.format(replaceBracesWithStringFormatSpecifier(msg), oldVal, newVal,
+                currentLimit, timestampBoundStoreEntry.getTimestamp());
+        addProcessInfoAndThrow(timestampBoundStoreEntry, formattedMsg);
+    }
+
+    private void addProcessInfoAndThrow(TimestampBoundStoreEntry timestampBoundStoreEntry, String msg) {
+        String idInDb = timestampBoundStoreEntry.hasId() ? timestampBoundStoreEntry.getId().toString() : "none.";
+        String processInfo = " This process's ID: {}, ID in DB: {}";
+        String fullMessage = String.format(replaceBracesWithStringFormatSpecifier(msg + processInfo), id, idInDb);
+
+        MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(fullMessage);
+        log.error(fullMessage, err);
+        DebugLogger.logger.error(fullMessage, err);
+        DebugLogger.logger.error("Thread dump: {}", ThreadDumps.programmaticThreadDump());
+        throw err;
+    }
+
     private String replaceBracesWithStringFormatSpecifier(String msg) {
         return msg.replaceAll("\\{\\}", "%s");
-    }
-
-    @VisibleForTesting
-    UUID getId() {
-        return id;
-    }
-
-    private static final class IdAndTimestamp {
-        private final Optional<UUID> id;
-        private final long timestamp;
-
-        private IdAndTimestamp(byte[] values) {
-            if (values.length > 8) {
-                String stringValue = PtBytes.toString(values);
-                String[] entries = stringValue.split("_");
-                this.id = Optional.of(UUID.fromString(entries[0]));
-                this.timestamp = Long.parseLong(entries[1]);
-            } else {
-                this.id = Optional.empty();
-                this.timestamp = PtBytes.toLong(values);
-            }
-        }
-
-        private IdAndTimestamp(Column column) {
-            this(column.getValue());
-        }
-
-        private IdAndTimestamp(CASResult result) {
-            this(Iterables.getOnlyElement(result.getCurrent_values()).getValue());
-        }
-
-        private long getTimestamp() {
-            return timestamp;
-        }
-
-        private boolean hasId() {
-            return id.isPresent();
-        }
-
-        private UUID getId() {
-            return id.get();
-        }
     }
 }
