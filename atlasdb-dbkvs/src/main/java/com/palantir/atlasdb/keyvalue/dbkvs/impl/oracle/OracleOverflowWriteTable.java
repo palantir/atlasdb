@@ -37,8 +37,9 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleTableUpdater;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.OraclePrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.UpdateExecutor;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
@@ -51,6 +52,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     private final ConnectionSupplier conns;
     private final OverflowSequenceSupplier overflowSequenceSupplier;
     private final OracleTableNameGetter oracleTableNameGetter;
+    private final OraclePrefixedTableNames oraclePrefixedTableNames;
     private final TableReference tableRef;
 
     private OracleOverflowWriteTable(
@@ -63,6 +65,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         this.conns = conns;
         this.overflowSequenceSupplier = sequenceSupplier;
         this.oracleTableNameGetter = oracleTableNameGetter;
+        this.oraclePrefixedTableNames = new OraclePrefixedTableNames(config, conns, oracleTableNameGetter);
         this.tableRef = tableRef;
     }
 
@@ -186,7 +189,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                             AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD));
         }
 
-        new OracleTableUpdater(conns, tableRef, this::getShortTableName).update(cell, ts, oldValue, newValue);
+        new UpdateExecutor(conns, tableRef, oraclePrefixedTableNames).update(cell, ts, oldValue, newValue);
     }
 
     @Override
@@ -246,12 +249,8 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private String getShortTableName() {
-        return getShortTableName(tableRef);
-    }
-
-    private String getShortTableName(TableReference tableReference) {
         try {
-            return oracleTableNameGetter.getInternalShortTableName(conns, tableReference);
+            return oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }

@@ -120,7 +120,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
 
     @Override
     public void update(Cell cell, long ts, byte[] oldValue, byte[] newValue) {
-        new OracleTableUpdater(conns, tableRef, prefixedTableNames::get).update(cell, ts, oldValue, newValue);
+        new UpdateExecutor(conns, tableRef, prefixedTableNames).update(cell, ts, oldValue, newValue);
     }
 
     @Override

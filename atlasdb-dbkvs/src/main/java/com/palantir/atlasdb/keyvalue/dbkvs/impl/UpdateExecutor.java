@@ -25,15 +25,15 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.PalantirSqlConnection;
 
-public class OracleTableUpdater {
+public class UpdateExecutor {
     private final ConnectionSupplier conns;
     private final TableReference tableRef;
-    private final TableNameGetter tableNameGetter;
+    private final PrefixedTableNames prefixedTableNames;
 
-    public OracleTableUpdater(ConnectionSupplier conns, TableReference tableRef, TableNameGetter tableNameGetter) {
+    public UpdateExecutor(ConnectionSupplier conns, TableReference tableRef, PrefixedTableNames prefixedTableNames) {
         this.conns = conns;
         this.tableRef = tableRef;
-        this.tableNameGetter = tableNameGetter;
+        this.prefixedTableNames = prefixedTableNames;
     }
 
     public void update(Cell cell, long ts, byte[] oldValue, byte[] newValue) {
@@ -48,7 +48,7 @@ public class OracleTableUpdater {
                 oldValue
         };
 
-        String tableName = tableNameGetter.get(tableRef);
+        String tableName = prefixedTableNames.get(tableRef);
         String sqlString = "/* UPDATE (" + tableName + ") */"
                 + " UPDATE " + tableName + ""
                 + " SET row_name = ?, col_name = ?, ts = ?, val = ?"
@@ -59,18 +59,18 @@ public class OracleTableUpdater {
         int updated = ((PalantirSqlConnection) conns.get()).updateCountRowsUnregisteredQuery(sqlString,
                 args);
         if (updated == 0) {
-            byte[] actualValue = getActualValue(cell, ts);
+            byte[] actualValue = getActualValue(tableName, cell, ts);
             throw new CheckAndSetException(cell, tableRef, oldValue, ImmutableList.of(actualValue));
         }
     }
 
-    private byte[] getActualValue(Cell cell, long ts) {
+    private byte[] getActualValue(String tableName, Cell cell, long ts) {
         Object[] args = new Object[] {
                 cell.getRowName(),
                 cell.getColumnName(),
                 ts
         };
-        String tableName = tableNameGetter.get(tableRef);
+
         String sqlString = "/* SELECT (" + tableName + ") */"
                 + " SELECT val from " + tableName + ""
                 + " WHERE row_name = ?"
