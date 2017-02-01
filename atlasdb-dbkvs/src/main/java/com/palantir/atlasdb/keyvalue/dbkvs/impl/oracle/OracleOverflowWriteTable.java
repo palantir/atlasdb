@@ -133,7 +133,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             }
         }
         try {
-            String shortTableName = getShortTableName();
+            String shortTableName = oraclePrefixedTableNames.get(tableRef);
             conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + shortTableName + ") */"
                     + " INSERT INTO " + shortTableName + " (row_name, col_name, ts, val, overflow) "
                     + " VALUES (?, ?, ?, ?, ?) ",
@@ -158,7 +158,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             }
             while (true) {
                 try {
-                    String shortTableName = getShortTableName();
+                    String shortTableName = oraclePrefixedTableNames.get(tableRef);
                     conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + shortTableName + ") */"
                             + " INSERT INTO " + shortTableName
                             + "   (row_name, col_name, ts, val, overflow)"
@@ -216,17 +216,18 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                         OverflowMigrationState.class, config.overflowMigrationState().name());
         }
         SqlConnection conn = conns.get();
+        String shortTableName = oraclePrefixedTableNames.get(tableRef);
         try {
             log.info("Got connection for delete on table {}: {}, autocommit={}",
-                    getShortTableName(),
+                    shortTableName,
                     conn.getUnderlyingConnection(),
                     conn.getUnderlyingConnection().getAutoCommit());
         } catch (PalantirSqlException | SQLException e) {
             //
         }
-        conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + getShortTableName() + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + getShortTableName() + ") */ "
-                + " FROM " + getShortTableName() + " m "
+        conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + shortTableName + ") */ "
+                + " DELETE /*+ INDEX(m pk_" + shortTableName + ") */ "
+                + " FROM " + shortTableName + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
                 + "  AND m.ts = ?",
@@ -234,7 +235,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private void deleteOverflow(String overflowTable, List<Object[]> args) {
-        String shortTableName = getShortTableName();
+        String shortTableName = oraclePrefixedTableNames.get(tableRef);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
                 + " DELETE /*+ INDEX(m pk_" + overflowTable + ") */ "
                 + "   FROM " + overflowTable + " m "
@@ -246,14 +247,6 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 + "                    AND i.ts = ? "
                 + "                    AND i.overflow IS NOT NULL)",
                 args);
-    }
-
-    private String getShortTableName() {
-        try {
-            return oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
-        } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
-        }
     }
 
     private String getShortOverflowTableName() {
