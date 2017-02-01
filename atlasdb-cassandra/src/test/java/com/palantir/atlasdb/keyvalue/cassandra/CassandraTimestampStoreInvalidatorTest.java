@@ -54,13 +54,13 @@ public class CassandraTimestampStoreInvalidatorTest {
         Map<Cell, Long> queries = (Map<Cell, Long>) invocation.getArguments()[1];
         Cell cell = queries.keySet().iterator().next();
 
-        byte[] bytesToReturn = isTimestampRow(cell) ? PtBytes.toBytes(BACKUP_VALUE) : PtBytes.toBytes(RESTORE_VALUE);
+        byte[] bytesToReturn = isTimestampColumn(cell) ? PtBytes.toBytes(BACKUP_VALUE) : PtBytes.toBytes(RESTORE_VALUE);
         Value valueToReturn = Value.create(bytesToReturn, CASSANDRA_TIMESTAMP);
         return ImmutableMap.of(cell, valueToReturn);
     }
 
-    private boolean isTimestampRow(Cell cell) {
-        return Arrays.equals(cell.getRowName(), CassandraTimestampCqlExecutor.ROW_AND_COLUMN_NAME_BYTES);
+    private boolean isTimestampColumn(Cell cell) {
+        return Arrays.equals(cell.getColumnName(), CassandraTimestampCqlExecutor.ROW_AND_COLUMN_NAME_BYTES);
     }
 
     @Test
