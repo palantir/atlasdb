@@ -1,11 +1,5 @@
 {
     "compileClasspath": {
-        "cglib:cglib-nodep": {
-            "locked": "3.1",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
-        },
         "ch.qos.logback:logback-classic": {
             "locked": "1.1.3",
             "transitive": [
@@ -158,9 +152,6 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
-        },
-        "com.jayway.awaitility:awaitility": {
-            "locked": "1.6.5"
         },
         "com.netflix.feign:feign-core": {
             "locked": "8.6.1",
@@ -393,25 +384,6 @@
         },
         "org.clojure:clojure": {
             "locked": "1.8.0"
-        },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
-            "transitive": [
-                "com.jayway.awaitility:awaitility",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
-        },
-        "org.objenesis:objenesis": {
-            "locked": "2.2",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
@@ -435,12 +407,6 @@
         }
     },
     "runtime": {
-        "cglib:cglib-nodep": {
-            "locked": "3.1",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
-        },
         "ch.qos.logback:logback-classic": {
             "locked": "1.1.3",
             "transitive": [
@@ -593,9 +559,6 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
-        },
-        "com.jayway.awaitility:awaitility": {
-            "locked": "1.6.5"
         },
         "com.netflix.feign:feign-core": {
             "locked": "8.6.1",
@@ -828,25 +791,6 @@
         },
         "org.clojure:clojure": {
             "locked": "1.8.0"
-        },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
-            "transitive": [
-                "com.jayway.awaitility:awaitility",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
-        },
-        "org.objenesis:objenesis": {
-            "locked": "2.2",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",

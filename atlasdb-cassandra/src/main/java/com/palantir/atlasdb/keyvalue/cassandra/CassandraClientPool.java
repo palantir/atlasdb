@@ -33,7 +33,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -46,7 +46,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Counter;
+import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -107,7 +107,7 @@ public class CassandraClientPool {
     final ScheduledThreadPoolExecutor refreshDaemon;
 
     private final MetricsManager metricsManager = new MetricsManager();
-    private final RequestMetrics aggregateMetrics = new RequestMetrics();
+    private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
@@ -145,27 +145,37 @@ public class CassandraClientPool {
         }
     }
 
-    private static class RequestMetrics {
-        private final Counter totalRequests = new Counter();
-        private final Counter totalRequestExceptions = new Counter();
-        private final Counter totalRequestConnectionExceptions = new Counter();
+    private class RequestMetrics {
+        private final Meter totalRequests;
+        private final Meter totalRequestExceptions;
+        private final Meter totalRequestConnectionExceptions;
 
-        Counter getTotalRequests() {
-            return totalRequests;
+        RequestMetrics(String metricPrefix) {
+            totalRequests = metricsManager.registerMeter(
+                    CassandraClientPool.class, metricPrefix, "requests");
+            totalRequestExceptions = metricsManager.registerMeter(
+                    CassandraClientPool.class, metricPrefix, "requestExceptions");
+            totalRequestConnectionExceptions = metricsManager.registerMeter(
+                    CassandraClientPool.class, metricPrefix, "requestConnectionExceptions");
         }
 
-        Counter getTotalRequestExceptions() {
-            return totalRequestExceptions;
+        void markRequest() {
+            totalRequests.mark();
         }
 
-        Counter getTotalRequestConnectionExceptions() {
-            return totalRequestConnectionExceptions;
+        void markRequestException() {
+            totalRequestExceptions.mark();
+        }
+
+        void markRequestConnectionException() {
+            totalRequestConnectionExceptions.mark();
         }
 
         // Approximate
         double getExceptionProportion() {
             return ((double) totalRequestExceptions.getCount()) / ((double) totalRequests.getCount());
         }
+
         // Approximate
         double getConnectionExceptionProportion() {
             return ((double) totalRequestConnectionExceptions.getCount()) / ((double) totalRequests.getCount());
@@ -287,7 +297,7 @@ public class CassandraClientPool {
     }
 
     private void registerMetricsForHost(InetSocketAddress server) {
-        RequestMetrics requestMetrics = new RequestMetrics();
+        RequestMetrics requestMetrics = new RequestMetrics(server.getHostString());
         metricsManager.registerMetric(
                 CassandraClientPool.class,
                 server.getHostString(), "requestFailureProportion",
@@ -629,24 +639,24 @@ public class CassandraClientPool {
     }
 
     private void recordRequestOnHost(CassandraClientPoolingContainer hostPool) {
-        incrementMetric(hostPool, RequestMetrics::getTotalRequests);
+        updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequest);
     }
 
     private void recordExceptionOnHost(CassandraClientPoolingContainer hostPool) {
-        incrementMetric(hostPool, RequestMetrics::getTotalRequestExceptions);
+        updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequestException);
     }
 
     private void recordConnectionExceptionOnHost(CassandraClientPoolingContainer hostPool) {
-        incrementMetric(hostPool, RequestMetrics::getTotalRequestConnectionExceptions);
+        updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequestConnectionException);
     }
 
-    private void incrementMetric(
+    private void updateMetricOnAggregateAndHost(
             CassandraClientPoolingContainer hostPool,
-            Function<RequestMetrics, Counter> getMetric) {
-        getMetric.apply(aggregateMetrics).inc();
+            Consumer<RequestMetrics> metricsConsumer) {
+        metricsConsumer.accept(aggregateMetrics);
         RequestMetrics requestMetricsForHost = metricsByHost.get(hostPool.getHost());
         if (requestMetricsForHost != null) {
-            getMetric.apply(requestMetricsForHost).inc();
+            metricsConsumer.accept(requestMetricsForHost);
         }
     }
 
