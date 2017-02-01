@@ -145,6 +145,15 @@ public abstract class AtlasDbConfig {
     }
 
     /**
+     * The number of milliseconds to wait between retries when the background sweeper can't delete data, due to the
+     * persistent lock being taken.
+     */
+    @Value.Default
+    public long getSweepPersistentLockPauseMillis() {
+        return AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS;
+    }
+
+    /**
      * The number of rows to process per batch by the background
      * sweeper.
      */

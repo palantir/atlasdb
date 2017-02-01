@@ -69,7 +69,7 @@ public class CellsSweeperShould {
     private final PersistentLockService mockPls = mock(PersistentLockService.class);
     private final LockEntry mockEntry = mock(LockEntry.class);
 
-    private final CellsSweeper cellsSweeper = new CellsSweeper(null, mockKvs, mockPls, ImmutableList.of(mockFollower));
+    private final CellsSweeper sweeper = new CellsSweeper(null, mockKvs, mockPls, 1, ImmutableList.of(mockFollower));
 
     @Before
     public void setUp() {
@@ -78,21 +78,21 @@ public class CellsSweeperShould {
 
     @Test
     public void ensureCellSweepDeletesCells() {
-        cellsSweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
+        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
 
         verify(mockKvs).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
     }
 
     @Test
     public void ensureSentinelsAreAddedToKvs() {
-        cellsSweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
+        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
         verify(mockKvs).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
     }
 
     @Test
     public void ensureFollowersRunAgainstCellsToSweep() {
-        cellsSweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
+        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
 
         verify(mockFollower)
                 .run(any(), any(), eq(SINGLE_CELL_TS_PAIR.keySet()), eq(Transaction.TransactionType.HARD_DELETE));
@@ -100,14 +100,14 @@ public class CellsSweeperShould {
 
     @Test
     public void sentinelsArentAddedIfNoCellsToSweep() {
-        cellsSweeper.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), SINGLE_CELL_SET);
+        sweeper.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), SINGLE_CELL_SET);
 
         verify(mockKvs, never()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
     }
 
     @Test
     public void ensureNoActionTakenIfNoCellsToSweep() {
-        cellsSweeper.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), ImmutableSet.of());
+        sweeper.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), ImmutableSet.of());
 
         verify(mockKvs, never()).delete(any(), any());
         verify(mockKvs, never()).addGarbageCollectionSentinelValues(any(), any());
@@ -116,7 +116,7 @@ public class CellsSweeperShould {
 
     @Test
     public void acquireTheDeletionLockBeforeDeletingOrAddingSentinels() {
-        cellsSweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
+        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
         InOrder ordering = inOrder(mockPls, mockKvs);
 
@@ -129,7 +129,7 @@ public class CellsSweeperShould {
     public void retryWhenAcquiringTheDeletionLock() {
         when(mockPls.acquireLock(anyString())).thenThrow(mock(CheckAndSetException.class)).thenReturn(mockEntry);
 
-        cellsSweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
+        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
         InOrder ordering = inOrder(mockPls, mockKvs);
 
@@ -139,7 +139,7 @@ public class CellsSweeperShould {
 
     @Test
     public void releaseTheDeletionLockAfterDeleteAndAddingSentinels() {
-        cellsSweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
+        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
         InOrder ordering = inOrder(mockPls, mockKvs);
 
@@ -153,7 +153,7 @@ public class CellsSweeperShould {
         doThrow(Exception.class).when(mockKvs).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
 
         try {
-            cellsSweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
+            sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
         } catch (Exception e) {
             // expected
         }

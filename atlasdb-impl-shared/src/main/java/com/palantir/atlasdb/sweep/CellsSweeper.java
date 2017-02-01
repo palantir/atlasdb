@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Set;
 
@@ -24,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -36,21 +36,23 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class CellsSweeper {
     private static final Logger log = LoggerFactory.getLogger(CellsSweeper.class);
-    private static final Duration SWEEP_PERSISTENT_LOCK_RETRY_PERIOD = Duration.ofSeconds(30);
 
     private final TransactionManager txManager;
     private final KeyValueService keyValueService;
     private final PersistentLockService persistentLockService;
+    private final long persistentLockRetryWaitMillis;
     private final Collection<Follower> followers;
 
     public CellsSweeper(
             TransactionManager txManager,
             KeyValueService keyValueService,
             PersistentLockService persistentLockService,
+            long persistentLockRetryWaitMillis,
             Collection<Follower> followers) {
         this.txManager = txManager;
         this.keyValueService = keyValueService;
         this.persistentLockService = persistentLockService;
+        this.persistentLockRetryWaitMillis = persistentLockRetryWaitMillis;
         this.followers = followers;
     }
 
@@ -62,6 +64,7 @@ public class CellsSweeper {
         this.keyValueService = keyValueService;
         this.followers = followers;
 
+        this.persistentLockRetryWaitMillis = AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS;
         this.persistentLockService = PersistentLockService.create(keyValueService);
     }
 
@@ -100,14 +103,14 @@ public class CellsSweeper {
                 return lockEntry;
             } catch (CheckAndSetException e) {
                 log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
-                waitForRetry(SWEEP_PERSISTENT_LOCK_RETRY_PERIOD);
+                waitForRetry();
             }
         }
     }
 
-    private void waitForRetry(Duration duration) {
+    private void waitForRetry() {
         try {
-            Thread.sleep(duration.toMillis());
+            Thread.sleep(persistentLockRetryWaitMillis);
         } catch (InterruptedException e) {
             throw Throwables.propagate(e);
         }

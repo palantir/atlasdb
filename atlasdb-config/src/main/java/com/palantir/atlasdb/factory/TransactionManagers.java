@@ -178,13 +178,19 @@ public final class TransactionManagers {
                 cleaner,
                 allowHiddenTableAccess);
 
+        CellsSweeper cellsSweeper = new CellsSweeper(
+                transactionManager,
+                kvs,
+                persistentLockService,
+                config.getSweepPersistentLockPauseMillis(),
+                ImmutableList.of(follower));
         SweepTaskRunner sweepRunner = new SweepTaskRunnerImpl(
                 kvs,
                 getUnreadableTsSupplier(transactionManager),
                 getImmutableTsSupplier(transactionManager),
                 transactionService,
                 sweepStrategyManager,
-                new CellsSweeper(transactionManager, kvs, persistentLockService, ImmutableList.of(follower)));
+                cellsSweeper);
         BackgroundSweeper backgroundSweeper = new BackgroundSweeperImpl(
                 transactionManager,
                 kvs,
