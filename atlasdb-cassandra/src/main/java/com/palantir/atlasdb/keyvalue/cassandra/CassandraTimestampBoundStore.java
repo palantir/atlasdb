@@ -153,7 +153,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
              *   2. limit in the DB equals the expected limit, but there is no id/id does not match and this store has
              *   not stored a bound yet -- this is the case when we startup.
              */
-            if (sameIdOrStartUp(timestampBoundStoreEntry)) {
+            if (sameIdOrConsistentStartUp(timestampBoundStoreEntry)) {
                 Column expectedColumn = makeColumn(timestampBoundStoreEntry.getByteValue());
                 cas(client, expectedColumn, timestampBoundStoreEntry.getTimestamp(), newVal);
             } else {
@@ -181,7 +181,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         }
     }
 
-    private boolean sameIdOrStartUp(TimestampBoundStoreEntry timestampBoundStoreEntry) {
+    private boolean sameIdOrConsistentStartUp(TimestampBoundStoreEntry timestampBoundStoreEntry) {
         return id.equals(timestampBoundStoreEntry.getId())
                 || (startingUp && timestampBoundStoreEntry.getTimestamp() == currentLimit);
     }
