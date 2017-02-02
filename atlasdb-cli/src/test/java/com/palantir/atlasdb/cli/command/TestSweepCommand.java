@@ -53,6 +53,7 @@ public class TestSweepCommand {
     private static final Namespace NS2 = Namespace.create("diff");
     private static final TableReference TABLE_ONE = TableReference.create(NS1, "one");
     private static final TableReference TABLE_TWO = TableReference.create(NS1, "two");
+    private static final TableReference NON_EXISTING_TABLE = TableReference.create(NS1, "non-existing");
     private static final TableReference TABLE_THREE = TableReference.create(NS2, "one");
     private static final String COL = "c";
     private static final String SWEEP_COMMAND = SweepCommand.class.getAnnotation(Command.class).name();
@@ -107,6 +108,19 @@ public class TestSweepCommand {
             Assert.assertEquals("taz", get(kvs, TABLE_TWO, "foo", ts5));
             Assert.assertEquals("tar", get(kvs, TABLE_TWO, "foo", mid(ts3, ts4)));
             Assert.assertEquals(ImmutableSet.of(ts2, ts4), getAllTs(kvs, TABLE_TWO, "foo"));
+        }
+    }
+
+    @Test
+    public void testSweepNonExistingTable() throws Exception {
+        try (SingleBackendCliTestRunner runner = makeRunner(SWEEP_COMMAND, "-t", NON_EXISTING_TABLE.getQualifiedName())) {
+            TestAtlasDbServices services = runner.connect(moduleFactory);
+
+            long ts5 = services.getTimestampService().getFreshTimestamp();
+            String stdout = sweep(runner, ts5);
+
+            Assert.assertFalse(stdout.contains("Swept from"));
+            Assert.assertTrue(stdout.contains(String.format("The table %s passed in to sweep does not exist", NON_EXISTING_TABLE)));
         }
     }
 
