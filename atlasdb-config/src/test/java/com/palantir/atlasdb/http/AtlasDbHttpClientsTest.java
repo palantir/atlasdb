@@ -92,7 +92,7 @@ public class AtlasDbHttpClientsTest {
         client.getTestNumber();
 
         String defaultUserAgent
-                = String.format("%s-atlasdb (%s)", UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
+                = String.format(UserAgents.USER_AGENT_FORMAT, UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
         availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
                 .withHeader(AtlasDbHttpClients.USER_AGENT_HEADER, WireMock.equalTo(defaultUserAgent)));
     }

@@ -27,7 +27,10 @@ import org.junit.Test;
 public class UserAgentsTest {
     private static final String PACKAGE_VERSION = "1.2";
     private static final String PACKAGE_TITLE = "package";
-    private static final String PACKAGE_USER_AGENT = String.format("%s-atlasdb (%s)", PACKAGE_TITLE, PACKAGE_VERSION);
+    private static final String PACKAGE_USER_AGENT
+            = String.format(UserAgents.USER_AGENT_FORMAT, PACKAGE_TITLE, PACKAGE_VERSION);
+    private static final String DEFAULT_USER_AGENT
+            = String.format(UserAgents.USER_AGENT_FORMAT, UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
 
     @Test
     public void userAgentIncludesAtlasDb() {
@@ -49,14 +52,14 @@ public class UserAgentsTest {
         when(classPackage.getImplementationTitle()).thenReturn(null);
         when(classPackage.getImplementationVersion()).thenReturn(null);
 
-        assertThat(UserAgents.fromPackage(classPackage), is("unknown-atlasdb (unknown)"));
+        assertThat(UserAgents.fromPackage(classPackage), is(DEFAULT_USER_AGENT));
     }
 
     @Test
     public void canGetUserAgentDataFromClass() {
         Class<BlockingDeque> clazz = BlockingDeque.class;
 
-        String expectedUserAgent = String.format("%s-atlasdb (%s)",
+        String expectedUserAgent = String.format(UserAgents.USER_AGENT_FORMAT,
                 clazz.getPackage().getImplementationTitle(),
                 clazz.getPackage().getImplementationVersion());
         assertThat(UserAgents.fromClass(clazz), is(expectedUserAgent));

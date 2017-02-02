@@ -20,15 +20,17 @@ import java.util.Optional;
 import com.google.common.annotations.VisibleForTesting;
 
 public final class UserAgents {
+    private static final String ATLASDB_CLIENT = "atlasdb";
+
     public static final String DEFAULT_VALUE = "unknown";
-    public static final String ATLASDB_CLIENT = "atlasdb";
+    public static final String USER_AGENT_FORMAT = "%s-" + ATLASDB_CLIENT + " (%s)";
 
     private UserAgents() {
         // utility class
     }
 
     public static String getUserAgent(String userAgent, String version) {
-        return String.format("%s-%s (%s)", userAgent, ATLASDB_CLIENT, version);
+        return String.format(USER_AGENT_FORMAT, userAgent, version);
     }
 
     /**
