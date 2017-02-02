@@ -77,7 +77,7 @@ public class FetchTimestamp extends AbstractTimestampCommand {
             printer.info("Wall clock datetime of {} timestamp is: {}", name, stringTime);
         }
 
-        printer.info("Timestamp command completed succesfully.");
+        printer.info("Timestamp command completed successfully.");
         return 0;
     }
 }

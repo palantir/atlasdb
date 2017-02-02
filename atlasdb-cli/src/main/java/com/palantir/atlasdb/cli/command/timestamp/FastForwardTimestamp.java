@@ -51,7 +51,7 @@ public class FastForwardTimestamp extends AbstractTimestampCommand {
         PersistentTimestampService pts = (PersistentTimestampService) ts;
 
         pts.fastForwardTimestamp(timestamp);
-        printer.info("Timestamp succesfully fast-forwarded to {}", timestamp);
+        printer.info("Timestamp successfully fast-forwarded to {}", timestamp);
         return 0;
     }
 }

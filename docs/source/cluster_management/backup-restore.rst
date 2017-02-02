@@ -22,7 +22,7 @@ A large part of taking a point in time backup of atlas is taking a backup of you
 Taking a Backup
 ===============
 
-First we need to define what the logical point in time of our backup is going to be.  We will call this the backup timestamp.  Any transactions that occur after the backup timestamp will not be valid or included in our "logical" backup of atlas, even if they complete succesfully before the rest of the backup completes.  To get the backup timestamp simply fetch a fresh timestamp using the CLI:
+First we need to define what the logical point in time of our backup is going to be.  We will call this the backup timestamp.  Any transactions that occur after the backup timestamp will not be valid or included in our "logical" backup of atlas, even if they complete successfully before the rest of the backup completes.  To get the backup timestamp simply fetch a fresh timestamp using the CLI:
 
 .. code:: bash
 
