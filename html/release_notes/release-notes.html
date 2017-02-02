@@ -169,8 +169,16 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&nbsp;</td>
-<td>&nbsp;</td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Fast forwarding a persistent timestamp service to <code class="docutils literal"><span class="pre">Long.MIN_VALUE</span></code> will now throw an exception; previously
+it would be a no-op. This is especially relevant for safety of remote requests; if a user does not
+supply the <code class="docutils literal"><span class="pre">currentTimestamp</span></code> query parameter, we would previously treat this as a fast-forward to zero
+and silently accept the request (returning 204) even though this is highly unlikely to be the user&#8217;s
+intention, while we now fail loudly (returning a 400).</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Better support Oracle 12c batch responses
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1540">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
