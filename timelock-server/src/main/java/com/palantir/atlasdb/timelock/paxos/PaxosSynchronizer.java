@@ -35,7 +35,6 @@ import com.palantir.paxos.PaxosValue;
 
 public final class PaxosSynchronizer {
     private static final Logger log = LoggerFactory.getLogger(PaxosSynchronizer.class);
-    private static final boolean ONLY_LOG_ON_QUORUM_FAILURE = true;
 
     private PaxosSynchronizer() {
         // utility
@@ -46,24 +45,24 @@ public final class PaxosSynchronizer {
         Optional<PaxosValue> mostRecentValue = getMostRecentLearnedValue(paxosLearners);
         if (mostRecentValue.isPresent()) {
             PaxosValue paxosValue = mostRecentValue.get();
-            learnerToSynchronize.learn(paxosValue.getRound(), paxosValue);
             if (paxosValue.equals(learnerToSynchronize.getGreatestLearnedValue())) {
                 log.info("Started up and found that our value {} is already the most recent.", paxosValue);
             } else {
+                learnerToSynchronize.learn(paxosValue.getRound(), paxosValue);
                 log.info("Started up and learned the most recent value: {}.", paxosValue);
             }
+        } else {
+            log.info("Started up, and no one I talked to knows anything yet.");
         }
     }
 
     private static Optional<PaxosValue> getMostRecentLearnedValue(List<PaxosLearner> paxosLearners) {
         ExecutorService executor = Executors.newCachedThreadPool();
-        List<PaxosValueResponse> responses = PaxosQuorumChecker.collectQuorumResponses(
+        List<PaxosValueResponse> responses = PaxosQuorumChecker.collectAsManyResponsesAsPossible(
                 ImmutableList.copyOf(paxosLearners),
                 learner -> ImmutablePaxosValueResponse.of(learner.getGreatestLearnedValue()),
-                paxosLearners.size(),
                 executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
-                ONLY_LOG_ON_QUORUM_FAILURE);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
         return responses.stream()
                 .filter(response -> response.paxosValue() != null)
                 .map(PaxosValueResponse::paxosValue)
