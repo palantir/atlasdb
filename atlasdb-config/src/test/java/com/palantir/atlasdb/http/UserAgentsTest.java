@@ -15,13 +15,13 @@
  */
 package com.palantir.atlasdb.http;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.BlockingDeque;
 
+import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
 public class UserAgentsTest {
@@ -34,7 +34,7 @@ public class UserAgentsTest {
 
     @Test
     public void userAgentIncludesAtlasDb() {
-        assertThat(UserAgents.getUserAgent(PACKAGE_TITLE, PACKAGE_VERSION), is(PACKAGE_USER_AGENT));
+        MatcherAssert.assertThat(UserAgents.getUserAgent(PACKAGE_TITLE, PACKAGE_VERSION), is(PACKAGE_USER_AGENT));
     }
 
     @Test
@@ -43,7 +43,7 @@ public class UserAgentsTest {
         when(classPackage.getImplementationVersion()).thenReturn(PACKAGE_VERSION);
         when(classPackage.getImplementationTitle()).thenReturn(PACKAGE_TITLE);
 
-        assertThat(UserAgents.fromPackage(classPackage), is(PACKAGE_USER_AGENT));
+        MatcherAssert.assertThat(UserAgents.fromPackage(classPackage), is(PACKAGE_USER_AGENT));
     }
 
     @Test
@@ -52,7 +52,7 @@ public class UserAgentsTest {
         when(classPackage.getImplementationTitle()).thenReturn(null);
         when(classPackage.getImplementationVersion()).thenReturn(null);
 
-        assertThat(UserAgents.fromPackage(classPackage), is(DEFAULT_USER_AGENT));
+        MatcherAssert.assertThat(UserAgents.fromPackage(classPackage), is(DEFAULT_USER_AGENT));
     }
 
     @Test
@@ -62,6 +62,6 @@ public class UserAgentsTest {
         String expectedUserAgent = String.format(UserAgents.USER_AGENT_FORMAT,
                 clazz.getPackage().getImplementationTitle(),
                 clazz.getPackage().getImplementationVersion());
-        assertThat(UserAgents.fromClass(clazz), is(expectedUserAgent));
+        MatcherAssert.assertThat(UserAgents.fromClass(clazz), is(expectedUserAgent));
     }
 }
