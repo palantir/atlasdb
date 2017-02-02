@@ -31,6 +31,7 @@ import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -147,6 +148,13 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     }
 
     @Test
+    public void backwardsCompatibilityWhenReadingBoundFromDb() {
+        long limit = store.getUpperLimit();
+        store.storeUpperLimit(limit + OFFSET);
+        assertThat(getBoundFromDb()).isEqualTo(limit + OFFSET);
+    }
+
+    @Test
     public void valueBelowEightBytesThrows() {
         setTimestampTableValueTo(PtBytes.toBytes("1"));
         assertThatGetUpperLimitThrows(IllegalArgumentException.class);
@@ -205,5 +213,11 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     private void setTimestampTableValueTo(byte[] data) {
         kv.truncateTable(AtlasDbConstants.TIMESTAMP_TABLE);
         kv.put(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TIMESTAMP_BOUND_CELL, data), CASSANDRA_TIMESTAMP);
+    }
+
+    private long getBoundFromDb() {
+        Value value = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TIMESTAMP_BOUND_CELL, Long.MAX_VALUE))
+                .get(TIMESTAMP_BOUND_CELL);
+        return TimestampBoundStoreEntry.createFromBytes(value.getContents()).getTimestamp();
     }
 }
