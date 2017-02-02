@@ -19,8 +19,8 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
@@ -59,9 +59,9 @@ public class PersistentLockService {
      *   essential that you retain a reference to this lock, as you will need it in order to release the lock.
      */
     @GET
-    @Path("acquire/{reason}")
+    @Path("acquire")
     @Produces(MediaType.APPLICATION_JSON)
-    public LockEntry acquireLock(@PathParam("reason") String reason) {
+    public LockEntry acquireLock(@QueryParam("reason") String reason) {
         Preconditions.checkNotNull(reason, "Please provide a reason for acquiring the lock.");
         return lockStore.acquireLock(reason);
     }
