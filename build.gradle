@@ -74,15 +74,6 @@ allprojects {
             failOnVersionConflict()
         }
     }
-
-    jar {
-        manifest {
-            attributes(
-                    "Implementation-Title"   : project.name,
-                    "Implementation-Version" : project.version,
-                    "Implementation-Vendor"  : "Palantir Technologies, Inc.")
-        }
-    }
 }
 
 subprojects {
