@@ -869,8 +869,7 @@ public abstract class BasicSQL {
                     return false;
                 }
                 for (int numInsertedForRow : inserted) {
-                    if (numInsertedForRow != 1 &&
-                            numInsertedForRow != Statement.SUCCESS_NO_INFO) {
+                    if (numInsertedForRow == Statement.EXECUTE_FAILED) {
                         assert DBType.getTypeFromConnection(c) != DBType.ORACLE : "numInsertedForRow: " + numInsertedForRow; //$NON-NLS-1$
                         return false;
                     }

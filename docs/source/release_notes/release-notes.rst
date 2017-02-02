@@ -49,6 +49,10 @@ develop
            and silently accept the request (returning 204) even though this is highly unlikely to be the user's
            intention, while we now fail loudly (returning a 400).
 
+    *    - |fixed|
+         - Better support Oracle 12c batch responses
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1540>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
