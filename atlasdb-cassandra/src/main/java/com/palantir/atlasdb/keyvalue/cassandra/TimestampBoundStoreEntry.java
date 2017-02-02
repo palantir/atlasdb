@@ -42,8 +42,8 @@ final class TimestampBoundStoreEntry {
 
     static TimestampBoundStoreEntry createFromBytes(byte[] values) {
         if (values.length == sizeWithIdInBytes) {
-            return new TimestampBoundStoreEntry((UUID) ValueType.UUID.convertToJava(values, 0),
-                    PtBytes.toLong(values, sizeOfIdInBytes));
+            return new TimestampBoundStoreEntry((UUID) ValueType.UUID.convertToJava(values, sizeWithoutIdInBytes),
+                    PtBytes.toLong(values));
         } else if (values.length == sizeWithoutIdInBytes) {
             return new TimestampBoundStoreEntry(null, PtBytes.toLong(values));
         }
@@ -70,7 +70,7 @@ final class TimestampBoundStoreEntry {
         if (!hasId()) {
             return PtBytes.toBytes(timestamp);
         }
-        return ArrayUtils.addAll(ValueType.UUID.convertFromJava(id), PtBytes.toBytes(timestamp));
+        return ArrayUtils.addAll(PtBytes.toBytes(timestamp), ValueType.UUID.convertFromJava(id));
     }
 
     long getTimestamp() {
