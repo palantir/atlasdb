@@ -104,7 +104,6 @@ public final class PaxosQuorumChecker {
      * @param executor runs the requests
      * @return a list of responses
      */
-
     private static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectResponses(
             ImmutableList<SERVICE> remotes,
             final Function<SERVICE, RESPONSE> request,
