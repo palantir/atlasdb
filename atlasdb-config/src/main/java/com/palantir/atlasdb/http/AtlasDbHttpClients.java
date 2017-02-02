@@ -190,7 +190,7 @@ public final class AtlasDbHttpClients {
         return new OkHttpClient(client);
     }
 
-    private static class UserAgentAddingInterceptor implements Interceptor {
+    private static final class UserAgentAddingInterceptor implements Interceptor {
         private final Class<?> clazz;
 
         private UserAgentAddingInterceptor(Class<?> clazz) {
