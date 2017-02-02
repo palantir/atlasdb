@@ -67,6 +67,9 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
 
     @Override
     public void fastForwardTimestamp(long currentTimestamp) {
+        Preconditions.checkArgument(currentTimestamp != TimestampManagementService.SENTINEL_TIMESTAMP,
+                "Cannot fast forward to the sentinel timestamp %s. If you accessed this timestamp service remotely"
+                        + " this is likely due to specifying an incorrect query parameter.", currentTimestamp);
         availableTimestamps.fastForwardTo(currentTimestamp);
     }
 
