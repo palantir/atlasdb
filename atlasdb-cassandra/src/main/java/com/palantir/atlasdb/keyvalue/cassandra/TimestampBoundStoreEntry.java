@@ -24,10 +24,16 @@ import org.apache.commons.lang3.ArrayUtils;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.common.annotation.Immutable;
 
+@Immutable
 final class TimestampBoundStoreEntry {
     private final UUID id;
     private final long timestamp;
+
+    private static final int sizeOfIdInBytes = ValueType.UUID.sizeOf(null);
+    private static final int sizeWithoutIdInBytes = Long.BYTES;
+    private static final int sizeWithIdInBytes = sizeOfIdInBytes + sizeWithoutIdInBytes;
 
     TimestampBoundStoreEntry(UUID uuid, long timestamp) {
         this.id = uuid;
@@ -35,12 +41,14 @@ final class TimestampBoundStoreEntry {
     }
 
     static TimestampBoundStoreEntry createFromBytes(byte[] values) {
-        if (values.length > 8) {
+        if (values.length == sizeWithIdInBytes) {
             return new TimestampBoundStoreEntry((UUID) ValueType.UUID.convertToJava(values, 0),
-                    PtBytes.toLong(values, ValueType.UUID.sizeOf(null)));
-        } else {
+                    PtBytes.toLong(values, sizeOfIdInBytes));
+        } else if (values.length == sizeWithoutIdInBytes) {
             return new TimestampBoundStoreEntry(null, PtBytes.toLong(values));
         }
+        throw new IllegalArgumentException("Unsupported format: required " + sizeWithIdInBytes + " or "
+                + sizeWithoutIdInBytes + " bytes, but has " + values.length + "!");
     }
 
     static TimestampBoundStoreEntry createFromColumn(Column column) {
