@@ -25,16 +25,16 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ValueType;
 
-public final class TimestampBoundStoreEntry {
+final class TimestampBoundStoreEntry {
     private final UUID id;
     private final long timestamp;
 
-    protected TimestampBoundStoreEntry(UUID uuid, long timestamp) {
+    TimestampBoundStoreEntry(UUID uuid, long timestamp) {
         this.id = uuid;
         this.timestamp = timestamp;
     }
 
-    protected static TimestampBoundStoreEntry createFromBytes(byte[] values) {
+    static TimestampBoundStoreEntry createFromBytes(byte[] values) {
         if (values.length > 8) {
             return new TimestampBoundStoreEntry((UUID) ValueType.UUID.convertToJava(values, 0),
                     PtBytes.toLong(values, ValueType.UUID.sizeOf(null)));
@@ -43,37 +43,37 @@ public final class TimestampBoundStoreEntry {
         }
     }
 
-    protected static TimestampBoundStoreEntry createFromColumn(Column column) {
+    static TimestampBoundStoreEntry createFromColumn(Column column) {
         return createFromBytes(column.getValue());
     }
 
-    protected static TimestampBoundStoreEntry createFromCasResult(CASResult result) {
+    static TimestampBoundStoreEntry createFromCasResult(CASResult result) {
         return createFromColumn(Iterables.getOnlyElement(result.getCurrent_values()));
     }
 
-    protected static byte[] getByteValueForIdAndBound(UUID id, Long ts) {
+    static byte[] getByteValueForIdAndBound(UUID id, Long ts) {
         if (ts == null) {
             return null;
         }
         return (new TimestampBoundStoreEntry(id, ts)).getByteValue();
     }
 
-    protected byte[] getByteValue() {
+    byte[] getByteValue() {
         if (!hasId()) {
             return PtBytes.toBytes(timestamp);
         }
         return ArrayUtils.addAll(ValueType.UUID.convertFromJava(id), PtBytes.toBytes(timestamp));
     }
 
-    protected long getTimestamp() {
+    long getTimestamp() {
         return timestamp;
     }
 
-    protected boolean hasId() {
+    boolean hasId() {
         return id != null;
     }
 
-    protected UUID getId() {
+    UUID getId() {
         return id;
     }
 }
