@@ -27,7 +27,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.squareup.okhttp.CipherSuite;
 import com.squareup.okhttp.ConnectionPool;
 import com.squareup.okhttp.ConnectionSpec;
@@ -109,7 +108,7 @@ public final class AtlasDbHttpClients {
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
-                .client(newOkHttpClient(sslSocketFactory))
+                .client(newOkHttpClient(sslSocketFactory, type))
                 .target(type, uri);
     }
 
@@ -152,7 +151,7 @@ public final class AtlasDbHttpClients {
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris,
             Request.Options feignOptions, int maxBackoffMillis, Class<T> type) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
-        Client client = failoverFeignTarget.wrapClient(newOkHttpClient(sslSocketFactory));
+        Client client = failoverFeignTarget.wrapClient(newOkHttpClient(sslSocketFactory, type));
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
@@ -178,24 +177,31 @@ public final class AtlasDbHttpClients {
 
     /**
      * Returns a feign {@link Client} wrapping a {@link com.squareup.okhttp.OkHttpClient} client with optionally
-     * specified {@link SSLSocketFactory}.
+     * specified {@link SSLSocketFactory}. The class parameter is used to identify the user agent to be provided
+     * on HTTP requests.
      */
-    private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory) {
+    private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory, Class<?> clazz) {
         com.squareup.okhttp.OkHttpClient client = new com.squareup.okhttp.OkHttpClient();
 
         client.setConnectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES);
         client.setConnectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS));
         client.setSslSocketFactory(sslSocketFactory.orNull());
-        client.interceptors().add(new UserAgentAddingInterceptor());
+        client.interceptors().add(new UserAgentAddingInterceptor(clazz));
         return new OkHttpClient(client);
     }
 
     private static class UserAgentAddingInterceptor implements Interceptor {
+        private final Class<?> clazz;
+
+        private UserAgentAddingInterceptor(Class<?> clazz) {
+            this.clazz = clazz;
+        }
+
         @Override
         public Response intercept(Chain chain) throws IOException {
             com.squareup.okhttp.Request requestWithUserAgent = chain.request()
                     .newBuilder()
-                    .addHeader(USER_AGENT_HEADER, AtlasDbConstants.CLIENT_USER_AGENT)
+                    .addHeader(USER_AGENT_HEADER, UserAgents.fromClass(clazz))
                     .build();
             return chain.proceed(requestWithUserAgent);
         }

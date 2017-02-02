@@ -15,14 +15,14 @@
  */
 package com.palantir.atlasdb.http;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 import java.util.Set;
 
@@ -42,7 +42,6 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.AtlasDbConstants;
 
 
 public class AtlasDbHttpClientsTest {
@@ -92,9 +91,11 @@ public class AtlasDbHttpClientsTest {
                 AtlasDbHttpClients.createProxy(NO_SSL, getUriForPort(AVAILABLE_PORT), TestResource.class);
         client.getTestNumber();
 
+        String defaultUserAgent
+                = String.format("%s-atlasdb (%s)", UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
         availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
                 .withHeader(AtlasDbHttpClients.USER_AGENT_HEADER,
-                        WireMock.equalTo(AtlasDbConstants.CLIENT_USER_AGENT)));
+                        WireMock.equalTo(defaultUserAgent)));
     }
 
     private static String getUriForPort(int port) {
