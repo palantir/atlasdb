@@ -33,7 +33,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 /**
@@ -43,6 +45,8 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 public abstract class RegeneratingTable<T> {
 
     private static final int BATCH_SIZE = 250;
+    public static final int SWEEP_DUPLICATES = 10;
+    private static final int SWEEP_BATCH_SIZE = 10;
 
     protected Random random = new Random(Tables.RANDOM_SEED);
 
@@ -61,15 +65,23 @@ public abstract class RegeneratingTable<T> {
         return Tables.TABLE_REF;
     }
 
+    public SweepTaskRunner getSweepTaskRunner() {
+        return services.getSweepTaskRunner();
+    }
+
     @Setup(Level.Trial)
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         this.services = conn.connect();
+        setupTable();
+        setupTableData();
+    }
+
+    protected void setupTable() {
         Benchmarks.createTable(services.getKeyValueService(),
                 getTableRef(),
                 Tables.ROW_COMPONENT,
                 Tables.COLUMN_NAME);
-        setupTableData();
     }
 
     @TearDown(Level.Invocation)
@@ -126,7 +138,7 @@ public abstract class RegeneratingTable<T> {
         @Override
         public void setupTableData() {
             getKvs().truncateTable(getTableRef());
-            Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, BATCH_SIZE);
+            Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, 1);
             getTransactionManager().runTaskThrowOnConflict(txn -> {
                 txn.put(getTableRef(), batch);
                 return null;
@@ -141,7 +153,7 @@ public abstract class RegeneratingTable<T> {
     }
 
     @State(Scope.Benchmark)
-    public static class TransactionBatchRegeneratingTable extends RegeneratingTable {
+    public static class TransactionBatchRegeneratingTable extends RegeneratingTable<Set<Cell>> {
         private Set<Cell> cells;
 
         @Override
@@ -161,4 +173,59 @@ public abstract class RegeneratingTable<T> {
         }
     }
 
+    @State(Scope.Benchmark)
+    public static class SweepRegeneratingTable extends RegeneratingTable<Set<Cell>> {
+
+        @Override
+        public void setupTableData() {
+            getKvs().truncateTable(getTableRef());
+            populateTable(1, 1, SWEEP_DUPLICATES);
+        }
+
+        protected void populateTable(int numberOfBatches, int batchSize, int numberOfDuplicates) {
+            for (int i = 0; i < numberOfBatches; i++) {
+                Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, batchSize);
+                for (int j = 0; j < numberOfDuplicates; j++) {
+                    getTransactionManager().runTaskThrowOnConflict(txn -> {
+                        txn.put(getTableRef(), batch);
+                        return null;
+                    });
+                }
+            }
+        }
+
+        @Override
+        public Set<Cell> getTableCells() {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+
+        @Override
+        protected void setupTable() {
+            Benchmarks.createTable(getKvs(),
+                    getTableRef(),
+                    Tables.ROW_COMPONENT,
+                    Tables.COLUMN_NAME,
+                    TableMetadataPersistence.SweepStrategy.THOROUGH);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class SweepBatchUniformMultipleRegeneratingTable extends SweepRegeneratingTable {
+
+        @Override
+        public void setupTableData() {
+            getKvs().truncateTable(getTableRef());
+            populateTable(1, SWEEP_BATCH_SIZE, SWEEP_DUPLICATES);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class SweepBatchNonUniformMultipleSeparateRegeneratingTable extends SweepRegeneratingTable {
+
+        @Override
+        public void setupTableData() {
+            getKvs().truncateTable(getTableRef());
+            populateTable(SWEEP_BATCH_SIZE, 1, SWEEP_DUPLICATES);
+        }
+    }
 }

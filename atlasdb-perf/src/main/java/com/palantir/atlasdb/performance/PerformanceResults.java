@@ -54,16 +54,12 @@ public class PerformanceResults {
         try (BufferedWriter fout = openFileWriter(file)) {
             long date = System.currentTimeMillis();
             List<ImmutablePerformanceResult> newResults = results.stream().map(rs -> {
-                String[] benchmarkParts = rs.getParams().getBenchmark().split("\\.");
-                String benchmarkSuite = benchmarkParts[benchmarkParts.length - 2];
-                String benchmarkName = benchmarkParts[benchmarkParts.length - 1];
                 DockerizedDatabaseUri uri =
                         DockerizedDatabaseUri.fromUriString(rs.getParams().getParam(BenchmarkParam.URI.getKey()));
+                String benchmark = getBenchmarkStr(rs.getParams().getBenchmark(), uri);
                 return ImmutablePerformanceResult.builder()
                         .date(date)
-                        .suite(benchmarkSuite)
-                        .benchmark(benchmarkName)
-                        .backend(uri.getKeyValueServiceType().toString())
+                        .benchmark(benchmark)
                         .samples(rs.getPrimaryResult().getStatistics().getN())
                         .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
                         .mean(rs.getPrimaryResult().getStatistics().getMean())
@@ -76,6 +72,13 @@ public class PerformanceResults {
             }).collect(Collectors.toList());
             new ObjectMapper().writeValue(fout, newResults);
         }
+    }
+
+    private String getBenchmarkStr(String benchmark, DockerizedDatabaseUri uri) {
+        String[] benchmarkParts = benchmark.split("\\.");
+        String benchmarkSuite = benchmarkParts[benchmarkParts.length - 2];
+        String benchmarkName = benchmarkParts[benchmarkParts.length - 1];
+        return benchmarkSuite + "#" + benchmarkName + "-" + uri.getKeyValueServiceInstrumentation().toString();
     }
 
     private BufferedWriter openFileWriter(File file) throws FileNotFoundException {
@@ -106,9 +109,7 @@ public class PerformanceResults {
     @Value.Immutable
     abstract static class PerformanceResult {
         public abstract long date();
-        public abstract String suite();
         public abstract String benchmark();
-        public abstract String backend();
         public abstract long samples();
         public abstract double std();
         public abstract double mean();
