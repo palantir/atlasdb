@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public final class Tables {
 
-    static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("performance.table");
+    static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("p.tab");
 
     static final String ROW_COMPONENT = "key";
     public static final ByteBuffer ROW_BYTES = ByteBuffer.wrap(ROW_COMPONENT.getBytes(StandardCharsets.UTF_8));
