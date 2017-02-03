@@ -63,7 +63,7 @@ public class PerformanceResults {
                         .date(date)
                         .suite(benchmarkSuite)
                         .benchmark(benchmarkName)
-                        .backend(uri.getKeyValueServiceType().toString())
+                        .backend(uri.getKeyValueServiceInstrumentation().toString())
                         .samples(rs.getPrimaryResult().getStatistics().getN())
                         .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
                         .mean(rs.getPrimaryResult().getStatistics().getMean())
@@ -76,6 +76,13 @@ public class PerformanceResults {
             }).collect(Collectors.toList());
             new ObjectMapper().writeValue(fout, newResults);
         }
+    }
+
+    private String getBenchmarkStr(String benchmark, DockerizedDatabaseUri uri) {
+        String[] benchmarkParts = benchmark.split("\\.");
+        String benchmarkSuite = benchmarkParts[benchmarkParts.length - 2];
+        String benchmarkName = benchmarkParts[benchmarkParts.length - 1];
+        return benchmarkSuite + "#" + benchmarkName + "-" + uri.getKeyValueServiceInstrumentation().toString();
     }
 
     private BufferedWriter openFileWriter(File file) throws FileNotFoundException {

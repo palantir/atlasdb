@@ -1,0 +1,1448 @@
+{
+    "compileClasspath": {
+        "cglib:cglib-nodep": {
+            "locked": "3.1",
+            "transitive": [
+                "com.jayway.awaitility:awaitility"
+            ]
+        },
+        "ch.qos.logback:logback-classic": {
+            "locked": "1.1.3",
+            "transitive": [
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "ch.qos.logback:logback-core": {
+            "locked": "1.1.3",
+            "transitive": [
+                "ch.qos.logback:logback-classic"
+            ]
+        },
+        "com.codahale.metrics:metrics-core": {
+            "locked": "3.0.2",
+            "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
+            ]
+        },
+        "com.datastax.cassandra:cassandra-driver-core": {
+            "locked": "2.2.0-rc3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "com.fasterxml.jackson.core:jackson-annotations": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.datatype:jackson-datatype-joda",
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-api",
+                "io.dropwizard:dropwizard-jackson",
+                "io.dropwizard:dropwizard-util"
+            ]
+        },
+        "com.fasterxml.jackson.core:jackson-core": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
+                "com.fasterxml.jackson.datatype:jackson-datatype-joda",
+                "com.fasterxml.jackson.module:jackson-module-afterburner",
+                "com.palantir.atlasdb:atlasdb-client",
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.core:jackson-databind": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
+                "com.fasterxml.jackson.datatype:jackson-datatype-joda",
+                "com.fasterxml.jackson.module:jackson-module-afterburner",
+                "com.netflix.feign:feign-jackson",
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.config.crypto:encrypted-config-value",
+                "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting:ssl-config",
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.config.crypto:encrypted-config-value-module"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jdk7": {
+            "locked": "2.6.7",
+            "transitive": [
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
+            "locked": "2.6.7",
+            "transitive": [
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.module:jackson-module-afterburner": {
+            "locked": "2.6.7",
+            "transitive": [
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.github.zafarkhaja:java-semver": {
+            "locked": "0.9.0",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "com.google.code.findbugs:annotations": {
+            "locked": "2.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-client-protobufs",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-dagger",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:atlasdb-lock-api",
+                "com.palantir.atlasdb:atlasdb-service",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-api",
+                "com.palantir.atlasdb:commons-db",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-proxy",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:leader-election-api-protobufs",
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-impl",
+                "io.airlift:airline",
+                "org.reflections:reflections"
+            ]
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "1.3.9",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "io.dropwizard:dropwizard-util"
+            ]
+        },
+        "com.google.dagger:dagger": {
+            "locked": "2.0.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-dagger"
+            ]
+        },
+        "com.google.guava:guava": {
+            "locked": "18.0",
+            "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.config.crypto:encrypted-config-value",
+                "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.docker.compose:docker-compose-rule",
+                "com.palantir.remoting:ssl-config",
+                "io.airlift:airline",
+                "io.dropwizard:dropwizard-jackson",
+                "io.dropwizard:dropwizard-util",
+                "org.reflections:reflections"
+            ]
+        },
+        "com.google.protobuf:protobuf-java": {
+            "locked": "2.6.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-client-protobufs",
+                "com.palantir.atlasdb:leader-election-api-protobufs",
+                "com.palantir.atlasdb:leader-election-impl"
+            ]
+        },
+        "com.googlecode.json-simple:json-simple": {
+            "locked": "1.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "com.googlecode.protobuf-java-format:protobuf-java-format": {
+            "locked": "1.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "com.jayway.awaitility:awaitility": {
+            "locked": "1.6.5",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "com.mchange:c3p0": {
+            "locked": "0.9.5.1",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "com.mchange:mchange-commons-java": {
+            "locked": "0.2.10",
+            "transitive": [
+                "com.mchange:c3p0"
+            ]
+        },
+        "com.netflix.feign:feign-core": {
+            "locked": "8.6.1",
+            "transitive": [
+                "com.netflix.feign:feign-jackson",
+                "com.netflix.feign:feign-jaxrs",
+                "com.netflix.feign:feign-okhttp"
+            ]
+        },
+        "com.netflix.feign:feign-jackson": {
+            "locked": "8.6.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.netflix.feign:feign-jaxrs": {
+            "locked": "8.6.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.netflix.feign:feign-okhttp": {
+            "locked": "8.10.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-lock-api"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-cassandra": {
+            "project": true
+        },
+        "com.palantir.atlasdb:atlasdb-client": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-client-protobufs": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-commons": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:commons-api",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-config": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-service"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-dagger": {
+            "project": true
+        },
+        "com.palantir.atlasdb:atlasdb-dbkvs": {
+            "project": true
+        },
+        "com.palantir.atlasdb:atlasdb-dbkvs-hikari": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-impl-shared": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-lock-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-service": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-dagger"
+            ]
+        },
+        "com.palantir.atlasdb:commons-annotations": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-api"
+            ]
+        },
+        "com.palantir.atlasdb:commons-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "com.palantir.atlasdb:commons-db": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-proxy": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "com.palantir.atlasdb:leader-election-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-impl"
+            ]
+        },
+        "com.palantir.atlasdb:leader-election-api-protobufs": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "com.palantir.atlasdb:leader-election-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-service"
+            ]
+        },
+        "com.palantir.atlasdb:lock-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-lock-api",
+                "com.palantir.atlasdb:lock-impl"
+            ]
+        },
+        "com.palantir.atlasdb:lock-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:atlasdb-service"
+            ]
+        },
+        "com.palantir.atlasdb:timestamp-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:timestamp-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.config.crypto:encrypted-config-value": {
+            "locked": "1.0.0",
+            "transitive": [
+                "com.palantir.config.crypto:encrypted-config-value-module"
+            ]
+        },
+        "com.palantir.config.crypto:encrypted-config-value-module": {
+            "locked": "1.0.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.palantir.docker.compose:docker-compose-rule": {
+            "locked": "0.28.1",
+            "requested": "0.28.1"
+        },
+        "com.palantir.patches.sourceforge:trove3": {
+            "locked": "3.0.3-p5",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:lock-impl"
+            ]
+        },
+        "com.palantir.remoting:ssl-config": {
+            "locked": "0.13.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.5.0",
+            "transitive": [
+                "com.netflix.feign:feign-okhttp"
+            ]
+        },
+        "com.squareup.okio:okio": {
+            "locked": "1.6.0",
+            "transitive": [
+                "com.squareup.okhttp:okhttp"
+            ]
+        },
+        "com.zaxxer:HikariCP": {
+            "locked": "2.4.7",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "commons-codec:commons-codec": {
+            "locked": "1.10",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
+        "commons-dbutils:commons-dbutils": {
+            "locked": "1.3",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "commons-io:commons-io": {
+            "locked": "2.1",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db",
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:leader-election-impl"
+            ]
+        },
+        "io.airlift:airline": {
+            "locked": "0.7",
+            "requested": "0.7"
+        },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "io.dropwizard:dropwizard-jackson": {
+            "locked": "0.9.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "io.dropwizard:dropwizard-util": {
+            "locked": "0.9.3",
+            "transitive": [
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "io.netty:netty-buffer": {
+            "locked": "4.0.27.Final",
+            "transitive": [
+                "io.netty:netty-handler",
+                "io.netty:netty-transport"
+            ]
+        },
+        "io.netty:netty-codec": {
+            "locked": "4.0.27.Final",
+            "transitive": [
+                "io.netty:netty-handler"
+            ]
+        },
+        "io.netty:netty-common": {
+            "locked": "4.0.27.Final",
+            "transitive": [
+                "io.netty:netty-buffer"
+            ]
+        },
+        "io.netty:netty-handler": {
+            "locked": "4.0.27.Final",
+            "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core"
+            ]
+        },
+        "io.netty:netty-transport": {
+            "locked": "4.0.27.Final",
+            "transitive": [
+                "io.netty:netty-codec",
+                "io.netty:netty-handler"
+            ]
+        },
+        "javax.inject:javax.inject": {
+            "locked": "1",
+            "transitive": [
+                "com.google.dagger:dagger",
+                "com.palantir.atlasdb:atlasdb-service",
+                "io.airlift:airline"
+            ]
+        },
+        "javax.validation:validation-api": {
+            "locked": "1.1.0.Final",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "javax.ws.rs:javax.ws.rs-api": {
+            "locked": "2.0.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-api"
+            ]
+        },
+        "joda-time:joda-time": {
+            "locked": "2.7",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db",
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.docker.compose:docker-compose-rule",
+                "io.dropwizard:dropwizard-util"
+            ]
+        },
+        "junit:junit": {
+            "locked": "4.12",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "log4j:log4j": {
+            "locked": "1.2.17",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "net.jpountz.lz4:lz4": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "net.sf.jopt-simple:jopt-simple": {
+            "locked": "4.6",
+            "transitive": [
+                "org.openjdk.jmh:jmh-core"
+            ]
+        },
+        "org.apache.cassandra:cassandra-thrift": {
+            "locked": "2.2.8",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "org.apache.commons:commons-lang3": {
+            "locked": "3.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:commons-db",
+                "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.docker.compose:docker-compose-rule",
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "org.openjdk.jmh:jmh-core"
+            ]
+        },
+        "org.apache.commons:commons-pool2": {
+            "locked": "2.4.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "org.apache.httpcomponents:httpclient": {
+            "locked": "4.2.5",
+            "transitive": [
+                "org.apache.thrift:libthrift"
+            ]
+        },
+        "org.apache.httpcomponents:httpcore": {
+            "locked": "4.2.4",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient",
+                "org.apache.thrift:libthrift"
+            ]
+        },
+        "org.apache.thrift:libthrift": {
+            "locked": "0.9.2",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.hamcrest:hamcrest-core": {
+            "locked": "1.3",
+            "transitive": [
+                "com.jayway.awaitility:awaitility",
+                "com.palantir.atlasdb:timestamp-impl",
+                "junit:junit",
+                "org.hamcrest:hamcrest-library"
+            ]
+        },
+        "org.hamcrest:hamcrest-library": {
+            "locked": "1.3",
+            "transitive": [
+                "com.jayway.awaitility:awaitility",
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "org.javassist:javassist": {
+            "locked": "3.18.2-GA",
+            "transitive": [
+                "org.reflections:reflections"
+            ]
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.2",
+            "transitive": [
+                "com.jayway.awaitility:awaitility"
+            ]
+        },
+        "org.openjdk.jmh:jmh-core": {
+            "locked": "1.13",
+            "requested": "1.13"
+        },
+        "org.postgresql:postgresql": {
+            "locked": "9.4.1209",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "org.reflections:reflections": {
+            "locked": "0.9.10",
+            "requested": "0.9.10"
+        },
+        "org.slf4j:jcl-over-slf4j": {
+            "locked": "1.7.5",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.slf4j:log4j-over-slf4j": {
+            "locked": "1.7.5",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.slf4j:slf4j-api": {
+            "locked": "1.7.5",
+            "transitive": [
+                "ch.qos.logback:logback-classic",
+                "com.codahale.metrics:metrics-core",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-proxy",
+                "com.palantir.docker.compose:docker-compose-rule",
+                "com.zaxxer:HikariCP",
+                "io.dropwizard.metrics:metrics-core",
+                "io.dropwizard:dropwizard-jackson",
+                "org.apache.cassandra:cassandra-thrift",
+                "org.apache.thrift:libthrift",
+                "org.slf4j:jcl-over-slf4j",
+                "org.slf4j:log4j-over-slf4j"
+            ]
+        },
+        "org.xerial.snappy:snappy-java": {
+            "locked": "1.1.1.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "org.yaml:snakeyaml": {
+            "locked": "1.12",
+            "transitive": [
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+            ]
+        }
+    },
+    "runtime": {
+        "cglib:cglib-nodep": {
+            "locked": "3.1",
+            "transitive": [
+                "com.jayway.awaitility:awaitility"
+            ]
+        },
+        "ch.qos.logback:logback-classic": {
+            "locked": "1.1.3",
+            "transitive": [
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "ch.qos.logback:logback-core": {
+            "locked": "1.1.3",
+            "transitive": [
+                "ch.qos.logback:logback-classic"
+            ]
+        },
+        "com.codahale.metrics:metrics-core": {
+            "locked": "3.0.2",
+            "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
+            ]
+        },
+        "com.datastax.cassandra:cassandra-driver-core": {
+            "locked": "2.2.0-rc3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "com.fasterxml.jackson.core:jackson-annotations": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.datatype:jackson-datatype-joda",
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-api",
+                "io.dropwizard:dropwizard-jackson",
+                "io.dropwizard:dropwizard-util"
+            ]
+        },
+        "com.fasterxml.jackson.core:jackson-core": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
+                "com.fasterxml.jackson.datatype:jackson-datatype-joda",
+                "com.fasterxml.jackson.module:jackson-module-afterburner",
+                "com.palantir.atlasdb:atlasdb-client",
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.core:jackson-databind": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
+                "com.fasterxml.jackson.datatype:jackson-datatype-joda",
+                "com.fasterxml.jackson.module:jackson-module-afterburner",
+                "com.netflix.feign:feign-jackson",
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.config.crypto:encrypted-config-value",
+                "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting:ssl-config",
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.config.crypto:encrypted-config-value-module"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jdk7": {
+            "locked": "2.6.7",
+            "transitive": [
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
+            "locked": "2.6.7",
+            "transitive": [
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.module:jackson-module-afterburner": {
+            "locked": "2.6.7",
+            "transitive": [
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.github.zafarkhaja:java-semver": {
+            "locked": "0.9.0",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "com.google.code.findbugs:annotations": {
+            "locked": "2.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-client-protobufs",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-dagger",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:atlasdb-lock-api",
+                "com.palantir.atlasdb:atlasdb-service",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-api",
+                "com.palantir.atlasdb:commons-db",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-proxy",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:leader-election-api-protobufs",
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-impl",
+                "io.airlift:airline",
+                "org.reflections:reflections"
+            ]
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "1.3.9",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "io.dropwizard:dropwizard-util"
+            ]
+        },
+        "com.google.dagger:dagger": {
+            "locked": "2.0.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-dagger"
+            ]
+        },
+        "com.google.guava:guava": {
+            "locked": "18.0",
+            "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.config.crypto:encrypted-config-value",
+                "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.docker.compose:docker-compose-rule",
+                "com.palantir.remoting:ssl-config",
+                "io.airlift:airline",
+                "io.dropwizard:dropwizard-jackson",
+                "io.dropwizard:dropwizard-util",
+                "org.reflections:reflections"
+            ]
+        },
+        "com.google.protobuf:protobuf-java": {
+            "locked": "2.6.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-client-protobufs",
+                "com.palantir.atlasdb:leader-election-api-protobufs",
+                "com.palantir.atlasdb:leader-election-impl"
+            ]
+        },
+        "com.googlecode.json-simple:json-simple": {
+            "locked": "1.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "com.googlecode.protobuf-java-format:protobuf-java-format": {
+            "locked": "1.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "com.jayway.awaitility:awaitility": {
+            "locked": "1.6.5",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "com.mchange:c3p0": {
+            "locked": "0.9.5.1",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "com.mchange:mchange-commons-java": {
+            "locked": "0.2.10",
+            "transitive": [
+                "com.mchange:c3p0"
+            ]
+        },
+        "com.netflix.feign:feign-core": {
+            "locked": "8.6.1",
+            "transitive": [
+                "com.netflix.feign:feign-jackson",
+                "com.netflix.feign:feign-jaxrs",
+                "com.netflix.feign:feign-okhttp"
+            ]
+        },
+        "com.netflix.feign:feign-jackson": {
+            "locked": "8.6.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.netflix.feign:feign-jaxrs": {
+            "locked": "8.6.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.netflix.feign:feign-okhttp": {
+            "locked": "8.10.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-lock-api"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-cassandra": {
+            "project": true
+        },
+        "com.palantir.atlasdb:atlasdb-client": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-client-protobufs": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-commons": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:commons-api",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-config": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-service"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-dagger": {
+            "project": true
+        },
+        "com.palantir.atlasdb:atlasdb-dbkvs": {
+            "project": true
+        },
+        "com.palantir.atlasdb:atlasdb-dbkvs-hikari": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-impl-shared": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-lock-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-service": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-dagger"
+            ]
+        },
+        "com.palantir.atlasdb:commons-annotations": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-api"
+            ]
+        },
+        "com.palantir.atlasdb:commons-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "com.palantir.atlasdb:commons-db": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-proxy": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "com.palantir.atlasdb:leader-election-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-impl"
+            ]
+        },
+        "com.palantir.atlasdb:leader-election-api-protobufs": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "com.palantir.atlasdb:leader-election-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-service"
+            ]
+        },
+        "com.palantir.atlasdb:lock-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-lock-api",
+                "com.palantir.atlasdb:lock-impl"
+            ]
+        },
+        "com.palantir.atlasdb:lock-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:atlasdb-service"
+            ]
+        },
+        "com.palantir.atlasdb:timestamp-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:timestamp-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.config.crypto:encrypted-config-value": {
+            "locked": "1.0.0",
+            "transitive": [
+                "com.palantir.config.crypto:encrypted-config-value-module"
+            ]
+        },
+        "com.palantir.config.crypto:encrypted-config-value-module": {
+            "locked": "1.0.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.palantir.docker.compose:docker-compose-rule": {
+            "locked": "0.28.1",
+            "requested": "0.28.1"
+        },
+        "com.palantir.patches.sourceforge:trove3": {
+            "locked": "3.0.3-p5",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:lock-impl"
+            ]
+        },
+        "com.palantir.remoting:ssl-config": {
+            "locked": "0.13.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.5.0",
+            "transitive": [
+                "com.netflix.feign:feign-okhttp"
+            ]
+        },
+        "com.squareup.okio:okio": {
+            "locked": "1.6.0",
+            "transitive": [
+                "com.squareup.okhttp:okhttp"
+            ]
+        },
+        "com.zaxxer:HikariCP": {
+            "locked": "2.4.7",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "commons-codec:commons-codec": {
+            "locked": "1.10",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
+        "commons-dbutils:commons-dbutils": {
+            "locked": "1.3",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "commons-io:commons-io": {
+            "locked": "2.1",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db",
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:leader-election-impl"
+            ]
+        },
+        "io.airlift:airline": {
+            "locked": "0.7",
+            "requested": "0.7"
+        },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "io.dropwizard:dropwizard-jackson": {
+            "locked": "0.9.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "io.dropwizard:dropwizard-util": {
+            "locked": "0.9.3",
+            "transitive": [
+                "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "io.netty:netty-buffer": {
+            "locked": "4.0.27.Final",
+            "transitive": [
+                "io.netty:netty-handler",
+                "io.netty:netty-transport"
+            ]
+        },
+        "io.netty:netty-codec": {
+            "locked": "4.0.27.Final",
+            "transitive": [
+                "io.netty:netty-handler"
+            ]
+        },
+        "io.netty:netty-common": {
+            "locked": "4.0.27.Final",
+            "transitive": [
+                "io.netty:netty-buffer"
+            ]
+        },
+        "io.netty:netty-handler": {
+            "locked": "4.0.27.Final",
+            "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core"
+            ]
+        },
+        "io.netty:netty-transport": {
+            "locked": "4.0.27.Final",
+            "transitive": [
+                "io.netty:netty-codec",
+                "io.netty:netty-handler"
+            ]
+        },
+        "javax.inject:javax.inject": {
+            "locked": "1",
+            "transitive": [
+                "com.google.dagger:dagger",
+                "com.palantir.atlasdb:atlasdb-service",
+                "io.airlift:airline"
+            ]
+        },
+        "javax.validation:validation-api": {
+            "locked": "1.1.0.Final",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "javax.ws.rs:javax.ws.rs-api": {
+            "locked": "2.0.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-api"
+            ]
+        },
+        "joda-time:joda-time": {
+            "locked": "2.7",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db",
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.docker.compose:docker-compose-rule",
+                "io.dropwizard:dropwizard-util"
+            ]
+        },
+        "junit:junit": {
+            "locked": "4.12",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "log4j:log4j": {
+            "locked": "1.2.17",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "net.jpountz.lz4:lz4": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "net.sf.jopt-simple:jopt-simple": {
+            "locked": "4.6",
+            "transitive": [
+                "org.openjdk.jmh:jmh-core"
+            ]
+        },
+        "org.apache.cassandra:cassandra-thrift": {
+            "locked": "2.2.8",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "org.apache.commons:commons-lang3": {
+            "locked": "3.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:commons-db",
+                "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.docker.compose:docker-compose-rule",
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "org.openjdk.jmh:jmh-core"
+            ]
+        },
+        "org.apache.commons:commons-pool2": {
+            "locked": "2.4.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "org.apache.httpcomponents:httpclient": {
+            "locked": "4.2.5",
+            "transitive": [
+                "org.apache.thrift:libthrift"
+            ]
+        },
+        "org.apache.httpcomponents:httpcore": {
+            "locked": "4.2.4",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient",
+                "org.apache.thrift:libthrift"
+            ]
+        },
+        "org.apache.thrift:libthrift": {
+            "locked": "0.9.2",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.hamcrest:hamcrest-core": {
+            "locked": "1.3",
+            "transitive": [
+                "com.jayway.awaitility:awaitility",
+                "com.palantir.atlasdb:timestamp-impl",
+                "junit:junit",
+                "org.hamcrest:hamcrest-library"
+            ]
+        },
+        "org.hamcrest:hamcrest-library": {
+            "locked": "1.3",
+            "transitive": [
+                "com.jayway.awaitility:awaitility",
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "org.javassist:javassist": {
+            "locked": "3.18.2-GA",
+            "transitive": [
+                "org.reflections:reflections"
+            ]
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.2",
+            "transitive": [
+                "com.jayway.awaitility:awaitility"
+            ]
+        },
+        "org.openjdk.jmh:jmh-core": {
+            "locked": "1.13",
+            "requested": "1.13"
+        },
+        "org.postgresql:postgresql": {
+            "locked": "9.4.1209",
+            "transitive": [
+                "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "org.reflections:reflections": {
+            "locked": "0.9.10",
+            "requested": "0.9.10"
+        },
+        "org.slf4j:jcl-over-slf4j": {
+            "locked": "1.7.5",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.slf4j:log4j-over-slf4j": {
+            "locked": "1.7.5",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.slf4j:slf4j-api": {
+            "locked": "1.7.5",
+            "transitive": [
+                "ch.qos.logback:logback-classic",
+                "com.codahale.metrics:metrics-core",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-proxy",
+                "com.palantir.docker.compose:docker-compose-rule",
+                "com.zaxxer:HikariCP",
+                "io.dropwizard.metrics:metrics-core",
+                "io.dropwizard:dropwizard-jackson",
+                "org.apache.cassandra:cassandra-thrift",
+                "org.apache.thrift:libthrift",
+                "org.slf4j:jcl-over-slf4j",
+                "org.slf4j:log4j-over-slf4j"
+            ]
+        },
+        "org.xerial.snappy:snappy-java": {
+            "locked": "1.1.1.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "org.yaml:snakeyaml": {
+            "locked": "1.12",
+            "transitive": [
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+            ]
+        }
+    }
+}

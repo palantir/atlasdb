@@ -1005,6 +1005,10 @@ public class DbKvs extends AbstractKeyValueService {
         });
     }
 
+    public String getTablePrefix() {
+        return config.tablePrefix();
+    }
+
     private <T> T run(Function<SqlConnection, T> runner) {
         SqlConnection conn = connections.get();
         try {

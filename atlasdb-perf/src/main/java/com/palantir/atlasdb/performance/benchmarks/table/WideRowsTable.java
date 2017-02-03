@@ -15,16 +15,17 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
-import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
 import com.google.common.collect.Sets;
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -37,12 +38,14 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
  * State class for creating a single Atlas table with one wide row.
  */
 @State(Scope.Benchmark)
-public class EmptyTables {
-
-    private Random random = new Random(Tables.RANDOM_SEED);
+public class WideRowsTable {
+    public static final int NUM_ROWS = 10000;
+    public static final int NUM_COLS_PER_ROW = 20;
 
     private AtlasDbServicesConnector connector;
     private AtlasDbServices services;
+
+    private TableReference tableRef;
 
     public TransactionManager getTransactionManager() {
         return services.getTransactionManager();
@@ -52,43 +55,50 @@ public class EmptyTables {
         return services.getKeyValueService();
     }
 
-    public TableReference getFirstTableRef() {
-        return TableReference.createFromFullyQualifiedName("p.t1");
+    public TableReference getTableRef() {
+        return Tables.TABLE_REF;
     }
 
-    public TableReference getSecondTableRef() {
-        return TableReference.createFromFullyQualifiedName("p.t2");
-    }
-
-    @Setup(Level.Trial)
-    public void setup(AtlasDbServicesConnector conn) {
+    @Setup public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
-        this.services = conn.connect();
-        Benchmarks.createTable(services.getKeyValueService(),
-                getFirstTableRef(),
+        services = conn.connect();
+        tableRef = Benchmarks.createTableWithDynamicColumns(
+                services.getKeyValueService(),
+                getTableRef(),
                 Tables.ROW_COMPONENT,
-                Tables.COLUMN_NAME);
-        Benchmarks.createTable(services.getKeyValueService(),
-                getSecondTableRef(),
-                Tables.ROW_COMPONENT,
-                Tables.COLUMN_NAME);
-        makeTableEmpty();
+                Tables.COLUMN_COMPONENT);
+        storeData();
     }
 
-    @TearDown(Level.Invocation)
-    public void makeTableEmpty() {
-        this.services.getKeyValueService().truncateTables(Sets.newHashSet(getFirstTableRef(), getSecondTableRef()));
-    }
-
-    @TearDown(Level.Trial)
+    @TearDown
     public void cleanup() throws Exception {
-        this.services.getKeyValueService().dropTables(Sets.newHashSet(
-                getFirstTableRef(), getSecondTableRef()));
-        this.connector.close();
+        services.getKeyValueService().dropTables(Sets.newHashSet(tableRef));
+        connector.close();
     }
 
-    public Map<Cell, byte[]> generateBatchToInsert(int size) {
-        return Tables.generateRandomBatch(random, size);
+    private void storeData() {
+        services.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            Map<Cell, byte[]> values = new HashMap<>(NUM_ROWS * NUM_COLS_PER_ROW);
+            for (int i = 0; i < NUM_ROWS; i++) {
+                for (int j = 0; j < NUM_COLS_PER_ROW; j++) {
+                    values.put(cell(i, j), Ints.toByteArray(i * NUM_COLS_PER_ROW + j));
+                }
+            }
+            txn.put(this.tableRef, values);
+            return null;
+        });
+    }
+
+    private static Cell cell(int rowIndex, int colIndex) {
+        return Cell.create(getRow(rowIndex), getColumn(colIndex));
+    }
+
+    public static byte[] getRow(int rowIndex) {
+        return ("row_" + rowIndex).getBytes(StandardCharsets.UTF_8);
+    }
+
+    public static byte[] getColumn(int colIndex) {
+        return ("col_" + colIndex).getBytes(StandardCharsets.UTF_8);
     }
 
 }
