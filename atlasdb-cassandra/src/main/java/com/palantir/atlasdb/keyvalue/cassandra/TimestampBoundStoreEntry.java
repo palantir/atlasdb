@@ -20,20 +20,20 @@ import java.util.UUID;
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Column;
 import org.apache.commons.lang3.ArrayUtils;
+import org.immutables.value.Value;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.common.annotation.Immutable;
 
-@Immutable
+@Value.Immutable
 final class TimestampBoundStoreEntry {
     private final UUID id;
     private final long timestamp;
 
-    private static final int sizeOfIdInBytes = ValueType.UUID.sizeOf(null);
-    private static final int sizeWithoutIdInBytes = Long.BYTES;
-    private static final int sizeWithIdInBytes = sizeOfIdInBytes + sizeWithoutIdInBytes;
+    private static final int SIZE_OF_ID_IN_BYTES = ValueType.UUID.sizeOf(null);
+    private static final int SIZE_WITHOUT_ID_IN_BYTES = Long.BYTES;
+    private static final int SIZE_WITH_ID_IN_BYTES = SIZE_OF_ID_IN_BYTES + SIZE_WITHOUT_ID_IN_BYTES;
 
     TimestampBoundStoreEntry(UUID uuid, long timestamp) {
         this.id = uuid;
@@ -41,14 +41,14 @@ final class TimestampBoundStoreEntry {
     }
 
     static TimestampBoundStoreEntry createFromBytes(byte[] values) {
-        if (values.length == sizeWithIdInBytes) {
-            return new TimestampBoundStoreEntry((UUID) ValueType.UUID.convertToJava(values, sizeWithoutIdInBytes),
+        if (values.length == SIZE_WITH_ID_IN_BYTES) {
+            return new TimestampBoundStoreEntry((UUID) ValueType.UUID.convertToJava(values, SIZE_WITHOUT_ID_IN_BYTES),
                     PtBytes.toLong(values));
-        } else if (values.length == sizeWithoutIdInBytes) {
+        } else if (values.length == SIZE_WITHOUT_ID_IN_BYTES) {
             return new TimestampBoundStoreEntry(null, PtBytes.toLong(values));
         }
-        throw new IllegalArgumentException("Unsupported format: required " + sizeWithIdInBytes + " or "
-                + sizeWithoutIdInBytes + " bytes, but has " + values.length + "!");
+        throw new IllegalArgumentException("Unsupported format: required " + SIZE_WITH_ID_IN_BYTES + " or "
+                + SIZE_WITHOUT_ID_IN_BYTES + " bytes, but has " + values.length + "!");
     }
 
     static TimestampBoundStoreEntry createFromColumn(Column column) {
