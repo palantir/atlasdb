@@ -1,10 +1,9 @@
-numClients: 5
-numThreads: 8
+numClients: 3
 queriesPerSecond:
   - 2000
   - 1000
   - 500
-clients:
+paths:
   - https://url-1:8421/test
   - https://url-2:8421/test
   - https://url-3:8421/test

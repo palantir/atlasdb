@@ -32,21 +32,14 @@ import com.palantir.remoting.ssl.SslConfiguration;
 public abstract class TesterConfiguration {
 
     @Value.Default
-    public int initialDelay() {
-        return 50_000;
-    }
-
-    @Value.Default
     public int numClients() {
         return 1;
     }
 
-    public abstract int numThreads();
-
     //queriesPerSecond for each client
     public abstract List<Integer> queriesPerSecond();
 
-    public abstract Set<String> clients();
+    public abstract Set<String> paths();
 
     public abstract SslConfiguration sslConfiguration();
 
