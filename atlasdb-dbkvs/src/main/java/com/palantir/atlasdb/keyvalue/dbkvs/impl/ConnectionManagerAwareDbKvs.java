@@ -104,4 +104,7 @@ public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
         return connManager;
     }
 
+    public String getTablePrefix() {
+        return kvs.getTablePrefix();
+    }
 }
