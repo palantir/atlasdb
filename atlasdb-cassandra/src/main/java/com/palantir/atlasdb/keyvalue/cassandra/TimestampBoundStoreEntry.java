@@ -27,25 +27,27 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ValueType;
 
 @Value.Immutable
-final class TimestampBoundStoreEntry {
-    private final UUID id;
-    private final long timestamp;
+abstract class TimestampBoundStoreEntry {
+    abstract UUID id();
+    abstract long timestamp();
 
     private static final int SIZE_OF_ID_IN_BYTES = ValueType.UUID.sizeOf(null);
     private static final int SIZE_WITHOUT_ID_IN_BYTES = Long.BYTES;
     private static final int SIZE_WITH_ID_IN_BYTES = SIZE_OF_ID_IN_BYTES + SIZE_WITHOUT_ID_IN_BYTES;
 
-    TimestampBoundStoreEntry(UUID uuid, long timestamp) {
-        this.id = uuid;
-        this.timestamp = timestamp;
+    static TimestampBoundStoreEntry create(UUID id, long timestamp) {
+        return ImmutableTimestampBoundStoreEntry.builder()
+                .id(id)
+                .timestamp(timestamp)
+                .build();
     }
 
     static TimestampBoundStoreEntry createFromBytes(byte[] values) {
         if (values.length == SIZE_WITH_ID_IN_BYTES) {
-            return new TimestampBoundStoreEntry((UUID) ValueType.UUID.convertToJava(values, SIZE_WITHOUT_ID_IN_BYTES),
+            return create((UUID) ValueType.UUID.convertToJava(values, SIZE_WITHOUT_ID_IN_BYTES),
                     PtBytes.toLong(values));
         } else if (values.length == SIZE_WITHOUT_ID_IN_BYTES) {
-            return new TimestampBoundStoreEntry(null, PtBytes.toLong(values));
+            return create(null, PtBytes.toLong(values));
         }
         throw new IllegalArgumentException("Unsupported format: required " + SIZE_WITH_ID_IN_BYTES + " or "
                 + SIZE_WITHOUT_ID_IN_BYTES + " bytes, but has " + values.length + "!");
@@ -63,26 +65,26 @@ final class TimestampBoundStoreEntry {
         if (ts == null) {
             return null;
         }
-        return (new TimestampBoundStoreEntry(id, ts)).getByteValue();
+        return (create(id, ts)).getByteValue();
     }
 
     byte[] getByteValue() {
         if (!hasId()) {
-            return PtBytes.toBytes(timestamp);
+            return PtBytes.toBytes(timestamp());
         }
-        return ArrayUtils.addAll(PtBytes.toBytes(timestamp), ValueType.UUID.convertFromJava(id));
+        return ArrayUtils.addAll(PtBytes.toBytes(timestamp()), ValueType.UUID.convertFromJava(id()));
     }
 
     long getTimestamp() {
-        return timestamp;
+        return timestamp();
     }
 
     boolean hasId() {
-        return id != null;
+        return id() != null;
     }
 
     UUID getId() {
-        return id;
+        return id();
     }
 }
 

@@ -142,7 +142,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             startingUp = false;
         } else {
             if (result.getCurrent_values().isEmpty()) {
-                addProcessInfoAndThrow(new TimestampBoundStoreEntry(id, currentLimit), "No limit in DB!");
+                addProcessInfoAndThrow(TimestampBoundStoreEntry.create(id, currentLimit), "No limit in DB!");
             }
             TimestampBoundStoreEntry timestampBoundStoreEntry = TimestampBoundStoreEntry.createFromCasResult(result);
             /*
