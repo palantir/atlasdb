@@ -116,15 +116,15 @@ public class KvsGetRangeBenchmarks {
 
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 120, timeUnit = TimeUnit.SECONDS)
     public Object getMultiRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getMultiRangeInner(table);
     }
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 120, timeUnit = TimeUnit.SECONDS)
     public Object getMultiRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getMultiRangeInner(table);
     }

@@ -259,7 +259,6 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private String getPrimaryKeyConstraintName(String tableName) {
-        String primaryKeyConstraintPrefix = "pk_";
-        return primaryKeyConstraintPrefix + tableName.substring(primaryKeyConstraintPrefix.length());
+        return "pk_" + tableName;
     }
 }
