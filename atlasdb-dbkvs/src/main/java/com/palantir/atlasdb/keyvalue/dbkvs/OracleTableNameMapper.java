@@ -27,7 +27,7 @@ public class OracleTableNameMapper {
     public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
     public static final int SUFFIX_NUMBER_LENGTH = 6;
     public static final int MAX_NAMESPACE_LENGTH = 2;
-    private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - SUFFIX_NUMBER_LENGTH;
+    private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - SUFFIX_NUMBER_LENGTH - 3;
 
     public String getShortPrefixedTableName(
             ConnectionSupplier connectionSupplier,
