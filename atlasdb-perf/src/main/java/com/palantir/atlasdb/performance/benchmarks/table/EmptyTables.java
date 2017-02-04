@@ -53,11 +53,11 @@ public class EmptyTables {
     }
 
     public TableReference getFirstTableRef() {
-        return TableReference.createFromFullyQualifiedName("p.t1");
+        return TableReference.createFromFullyQualifiedName("performance.table1");
     }
 
     public TableReference getSecondTableRef() {
-        return TableReference.createFromFullyQualifiedName("p.t2");
+        return TableReference.createFromFullyQualifiedName("performance.table2");
     }
 
     @Setup(Level.Trial)
