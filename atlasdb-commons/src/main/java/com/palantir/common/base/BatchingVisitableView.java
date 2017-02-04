@@ -60,7 +60,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     @Override
     public <K extends Exception> boolean batchAccept(
             int batchSize,
-            AbortingVisitor<? super List<T>, K> visitor) throws K {
+            AbortingVisitor<? super List<? extends T>, K> visitor) throws K {
         return delegate().batchAccept(batchSize, visitor);
     }
 
@@ -117,15 +117,15 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
      * requesting a batch of size 1.
      * A good example of this is in <code>BatchingVisitablesTest#testHintPageSize()</code>
      */
-    public <U> BatchingVisitableView<U> transformBatch(Function<? super List<T>, ? extends List<U>> fn) {
+    public <U> BatchingVisitableView<U> transformBatch(Function<? super List<? extends T>, ? extends List<U>> fn) {
         Preconditions.checkNotNull(fn, "Cannot transform using a null function");
         return BatchingVisitables.transformBatch(delegate(), fn);
     }
 
     public void forEach(int batchSize, final Visitor<T> visitor) {
-        delegate().batchAccept(batchSize, new AbortingVisitor<List<T>, RuntimeException>() {
+        delegate().batchAccept(batchSize, new AbortingVisitor<List<? extends T>, RuntimeException>() {
             @Override
-            public boolean visit(List<T> batch) throws RuntimeException {
+            public boolean visit(List<? extends T> batch) throws RuntimeException {
                 for (T item : batch) {
                     visitor.visit(item);
                 }
@@ -229,9 +229,9 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
         final ImmutableList.Builder<T> builder = ImmutableList.builder();
         delegate().batchAccept(
                 BatchingVisitables.KEEP_ALL_BATCH_SIZE,
-                new AbortingVisitor<List<T>, RuntimeException>() {
+                new AbortingVisitor<List<? extends T>, RuntimeException>() {
                     @Override
-                    public boolean visit(List<T> items) {
+                    public boolean visit(List<? extends T> items) {
                         builder.addAll(items);
                         return true;
                     }
@@ -248,9 +248,9 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
         final ImmutableSet.Builder<T> builder = ImmutableSet.builder();
         delegate().batchAccept(
                 BatchingVisitables.KEEP_ALL_BATCH_SIZE,
-                new AbortingVisitor<List<T>, RuntimeException>() {
+                new AbortingVisitor<List<? extends T>, RuntimeException>() {
                     @Override
-                    public boolean visit(List<T> items) {
+                    public boolean visit(List<? extends T> items) {
                         builder.addAll(items);
                         return true;
                     }
@@ -268,9 +268,9 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
         Preconditions.checkNotNull(collection, "Cannot copy the visitable into a null collection");
         delegate().batchAccept(
                 BatchingVisitables.KEEP_ALL_BATCH_SIZE,
-                new AbortingVisitor<List<T>, RuntimeException>() {
+                new AbortingVisitor<List<? extends T>, RuntimeException>() {
                     @Override
-                    public boolean visit(List<T> items) {
+                    public boolean visit(List<? extends T> items) {
                         collection.addAll(items);
                         return true;
                     }
@@ -285,9 +285,9 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
         Preconditions.checkNotNull(predicate, "Cannot check against a null predicate");
         return !delegate().batchAccept(
                 BatchingVisitables.DEFAULT_BATCH_SIZE,
-                new AbortingVisitor<List<T>, RuntimeException>() {
+                new AbortingVisitor<List<? extends T>, RuntimeException>() {
                     @Override
-                    public boolean visit(List<T> items) {
+                    public boolean visit(List<? extends T> items) {
                         for (T t : items) {
                             if (predicate.apply(t)) {
                                 return false;
@@ -306,9 +306,9 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
         Preconditions.checkNotNull(predicate, "Cannot check against a null predicate");
         return delegate().batchAccept(
                 BatchingVisitables.DEFAULT_BATCH_SIZE,
-                new AbortingVisitor<List<T>, RuntimeException>() {
+                new AbortingVisitor<List<? extends T>, RuntimeException>() {
                     @Override
-                    public boolean visit(List<T> items) {
+                    public boolean visit(List<? extends T> items) {
                         for (T t : items) {
                             if (!predicate.apply(t)) {
                                 return false;

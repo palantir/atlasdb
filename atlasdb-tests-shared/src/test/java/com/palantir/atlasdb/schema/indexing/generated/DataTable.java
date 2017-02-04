@@ -1517,9 +1517,9 @@ public final class DataTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<Index1IdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends Index1IdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<Index1IdxRowResult> rowResults) {
+                public boolean visit(List<? extends Index1IdxRowResult> rowResults) {
                     Multimap<Index1IdxRow, Index1IdxColumn> toRemove = HashMultimap.create();
                     for (Index1IdxRowResult rowResult : rowResults) {
                         for (Index1IdxColumnValue columnValue : rowResult.getColumnValues()) {
@@ -2192,9 +2192,9 @@ public final class DataTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<Index2IdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends Index2IdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<Index2IdxRowResult> rowResults) {
+                public boolean visit(List<? extends Index2IdxRowResult> rowResults) {
                     Multimap<Index2IdxRow, Index2IdxColumn> toRemove = HashMultimap.create();
                     for (Index2IdxRowResult rowResult : rowResults) {
                         for (Index2IdxColumnValue columnValue : rowResult.getColumnValues()) {
@@ -2845,9 +2845,9 @@ public final class DataTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<Index3IdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends Index3IdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<Index3IdxRowResult> rowResults) {
+                public boolean visit(List<? extends Index3IdxRowResult> rowResults) {
                     Multimap<Index3IdxRow, Index3IdxColumn> toRemove = HashMultimap.create();
                     for (Index3IdxRowResult rowResult : rowResults) {
                         for (Index3IdxColumnValue columnValue : rowResult.getColumnValues()) {
@@ -3520,9 +3520,9 @@ public final class DataTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<Index4IdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends Index4IdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<Index4IdxRowResult> rowResults) {
+                public boolean visit(List<? extends Index4IdxRowResult> rowResults) {
                     Multimap<Index4IdxRow, Index4IdxColumn> toRemove = HashMultimap.create();
                     for (Index4IdxRowResult rowResult : rowResults) {
                         for (Index4IdxColumnValue columnValue : rowResult.getColumnValues()) {
@@ -3636,5 +3636,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "UfX2BLcIzo66QOV+PDQVSg==";
+    static String __CLASS_HASH = "HnfMRutCyVsBK7QAtC/+jA==";
 }

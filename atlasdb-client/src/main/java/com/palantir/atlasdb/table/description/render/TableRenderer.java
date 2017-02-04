@@ -996,9 +996,9 @@ public class TableRenderer {
 
         private void renderDynamicDeleteRanges() {
             line("public void deleteRanges(Iterable<RangeRequest> ranges) {"); {
-                line("BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<", RowResult, ">, RuntimeException>() {"); {
+                line("BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends ", RowResult, ">, RuntimeException>() {"); {
                     line("@Override");
-                    line("public boolean visit(List<", RowResult, "> rowResults) {"); {
+                    line("public boolean visit(List<? extends ", RowResult, "> rowResults) {"); {
                         line("Multimap<", Row, ", ", Column, "> toRemove = HashMultimap.create();");
                         line("for (", RowResult, " rowResult : rowResults) {"); {
                             line("for (", ColumnValue, " columnValue : rowResult.getColumnValues()) {"); {
@@ -1016,9 +1016,9 @@ public class TableRenderer {
             line("public void deleteRanges(Iterable<RangeRequest> ranges) {"); {
                 line("BatchingVisitables.concat(getRanges(ranges))");
                 line("                  .transform(", RowResult, ".getRowNameFun())");
-                line("                  .batchAccept(1000, new AbortingVisitor<List<", Row, ">, RuntimeException>() {"); {
+                line("                  .batchAccept(1000, new AbortingVisitor<List<? extends ", Row, ">, RuntimeException>() {"); {
                     line("@Override");
-                    line("public boolean visit(List<", Row, "> rows) {"); {
+                    line("public boolean visit(List<? extends ", Row, "> rows) {"); {
                         line("delete(rows);");
                         line("return true;");
                     } line("}");

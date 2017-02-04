@@ -53,6 +53,10 @@ develop
          - Better support Oracle 12c batch responses
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1540>`__)
 
+    *    - |devbreak| |fixed|
+         - Devs should regenerate their Schemas when upgrading to get rid of some type problems that are no longer
+           accepted in newer Java compilers.
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
