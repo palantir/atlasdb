@@ -35,13 +35,13 @@ public class PersistentLockServiceTest {
     public void setUp() {
         KeyValueService kvs = new InMemoryKeyValueService(false);
         lockStore = spy(LockStore.create(kvs));
-        service = new PersistentLockService(lockStore);
+        service = new StandardPersistentLockService(lockStore);
     }
 
     @Test
     public void canCreatePersistentLockService() {
         KeyValueService kvs = new InMemoryKeyValueService(false);
-        PersistentLockService pls = PersistentLockService.create(kvs);
+        PersistentLockService pls = StandardPersistentLockService.create(kvs);
         assertNotNull(pls);
     }
 
