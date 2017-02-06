@@ -17,6 +17,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.UUID;
 
+import javax.annotation.Nullable;
+
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Column;
 import org.apache.commons.lang3.ArrayUtils;
@@ -28,7 +30,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 
 @Value.Immutable
 abstract class TimestampBoundStoreEntry {
-    abstract UUID id();
+    @Nullable abstract UUID id();
     abstract long timestamp();
 
     private static final int SIZE_OF_ID_IN_BYTES = ValueType.UUID.sizeOf(null);
