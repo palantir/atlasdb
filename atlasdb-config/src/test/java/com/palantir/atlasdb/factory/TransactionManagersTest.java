@@ -26,11 +26,14 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -77,6 +80,12 @@ public class TransactionManagersTest {
     private AtlasDbConfig config;
     private TransactionManagers.Environment environment;
 
+    @ClassRule
+    public static TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Rule
+    public WireMockRule availableServer = new WireMockRule(AVAILABLE_PORT);
+
     @Before
     public void setup() {
         availableServer.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("1")));
@@ -92,9 +101,6 @@ public class TransactionManagersTest {
 
         environment = mock(TransactionManagers.Environment.class);
     }
-
-    @Rule
-    public WireMockRule availableServer = new WireMockRule(AVAILABLE_PORT);
 
     @Test
     public void userAgentsPresentOnRequestsToTimelockServer() {
@@ -112,10 +118,12 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void userAgentsPresentOnRequestsWithLeaderBlockConfigured() {
+    public void userAgentsPresentOnRequestsWithLeaderBlockConfigured() throws IOException {
         when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
                 .localServer(getUriForPort(AVAILABLE_PORT))
                 .addLeaders(getUriForPort(AVAILABLE_PORT))
+                .acceptorLogDir(temporaryFolder.newFolder())
+                .learnerLogDir(temporaryFolder.newFolder())
                 .quorumSize(1)
                 .build()));
 
