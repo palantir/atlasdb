@@ -85,7 +85,7 @@ public class OracleTableNameMapperTest {
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-                "Cannot create any more tables with name starting with a_te__ThisIsAVeryLongTab");
+                "Cannot create any more tables with name starting with a_te__ThisIsAVeryLongT");
         oracleTableNameMapper.getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
     }
 
@@ -104,6 +104,6 @@ public class OracleTableNameMapperTest {
     }
 
     private String getTableNameWithNumber(int tableNum) {
-        return String.format("a_te__ThisIsAVeryLongTabl_%04d", tableNum);
+        return String.format("a_te__ThisIsAVeryLongT_%04d", tableNum);
     }
 }

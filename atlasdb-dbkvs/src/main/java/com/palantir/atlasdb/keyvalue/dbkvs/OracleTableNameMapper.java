@@ -25,9 +25,11 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleTableNameMapper {
     public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
+    private static final int PRIMARY_KEY_PREFIX_LENGTH = "pk_".length();
     public static final int SUFFIX_NUMBER_LENGTH = 5;
     public static final int MAX_NAMESPACE_LENGTH = 2;
-    private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - SUFFIX_NUMBER_LENGTH;
+    private static final int NAMESPACED_TABLE_NAME_LENGTH =
+            ORACLE_MAX_TABLE_NAME_LENGTH - (SUFFIX_NUMBER_LENGTH + PRIMARY_KEY_PREFIX_LENGTH);
 
     public String getShortPrefixedTableName(
             ConnectionSupplier connectionSupplier,
@@ -39,7 +41,7 @@ public class OracleTableNameMapper {
         TableReference shortenedNamespaceTableRef = truncateNamespace(tableRef);
 
         String prefixedTableName = tablePrefix + DbKvs.internalTableName(shortenedNamespaceTableRef);
-        String truncatedTableName = truncate(prefixedTableName, PREFIXED_TABLE_NAME_LENGTH);
+        String truncatedTableName = truncate(prefixedTableName, NAMESPACED_TABLE_NAME_LENGTH);
 
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
         return truncatedTableName + getTableNumberSuffix(connectionSupplier, fullTableName, truncatedTableName);
