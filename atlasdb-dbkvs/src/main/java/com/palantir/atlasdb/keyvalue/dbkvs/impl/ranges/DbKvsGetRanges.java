@@ -44,8 +44,10 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.PrefixedTableNames;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OraclePrimaryKeyConstraintNames;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.common.collect.IterableView;
@@ -205,7 +207,7 @@ public class DbKvsGetRanges {
             String query = String.format(
                     SIMPLE_ROW_SELECT_TEMPLATE,
                     DbKvs.internalTableName(tableRef),
-                    getPrefixedTableName(tableRef),
+                    getPrimaryKeyConstraintName(tableRef),
                     getPrefixedTableName(tableRef),
                     extraWhere,
                     order);
@@ -312,7 +314,7 @@ public class DbKvsGetRanges {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE,
                 DbKvs.internalTableName(tableRef),
-                getPrefixedTableName(tableRef),
+                getPrimaryKeyConstraintName(tableRef),
                 getPrefixedTableName(tableRef),
                 extraWhere,
                 order);
@@ -325,10 +327,17 @@ public class DbKvsGetRanges {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_ORACLE_TEMPLATE,
                 DbKvs.internalTableName(tableRef),
-                getPrefixedTableName(tableRef),
+                getPrimaryKeyConstraintName(tableRef),
                 minMax,
                 getPrefixedTableName(tableRef),
                 extraWhere);
+    }
+
+    private String getPrimaryKeyConstraintName(TableReference tableRef) {
+        if (config.type().equals(OracleDdlConfig.TYPE)) {
+            return OraclePrimaryKeyConstraintNames.get(getPrefixedTableName(tableRef));
+        }
+        return "pk_" + getPrefixedTableName(tableRef);
     }
 
     private String getPrefixedTableName(TableReference tableRef) {
@@ -337,7 +346,7 @@ public class DbKvsGetRanges {
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =
             " /* SIMPLE_ROW_SELECT_TEMPLATE (%s) */ "
-            + " SELECT /*+ INDEX(t pk_%s) */ "
+            + " SELECT /*+ INDEX(t %s) */ "
             + "   DISTINCT row_name, ? as batch_num "
             + " FROM %s t "
             + " WHERE %s "
@@ -345,7 +354,7 @@ public class DbKvsGetRanges {
 
     private static final String SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE =
             " /* SIMPLE_ROW_SELECT_ONE_TEMPLATE_PSQL (%s) */ "
-            + " SELECT /*+ INDEX(t pk_%s) */ "
+            + " SELECT /*+ INDEX(t %s) */ "
             + "   DISTINCT row_name, ? as batch_num "
             + " FROM %s t "
             + " WHERE %s "
@@ -353,7 +362,7 @@ public class DbKvsGetRanges {
 
     private static final String SIMPLE_ROW_SELECT_ONE_ORACLE_TEMPLATE =
             " /* SIMPLE_ROW_SELECT_ONE_TEMPLATE_ORA (%s) */ "
-            + " SELECT /*+ INDEX(t pk_%s) */ "
+            + " SELECT /*+ INDEX(t %s) */ "
             + "   %s(row_name) as row_name, ? as batch_num "
             + " FROM %s t "
             + " WHERE %s";
