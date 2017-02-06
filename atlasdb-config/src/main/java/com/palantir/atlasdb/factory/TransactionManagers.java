@@ -252,7 +252,8 @@ public final class TransactionManagers {
                 .build();
     }
 
-    private static LockAndTimestampServices createRawServices(
+    @VisibleForTesting
+    static LockAndTimestampServices createRawServices(
             AtlasDbConfig config,
             Environment env,
             Supplier<RemoteLockService> lock,
@@ -362,7 +363,7 @@ public final class TransactionManagers {
         return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent);
     }
 
-    private static class ServiceCreator<T> implements Function<ServerListConfig, T> {
+    private static final class ServiceCreator<T> implements Function<ServerListConfig, T> {
         private final Class<T> serviceClass;
         private final String userAgent;
 
