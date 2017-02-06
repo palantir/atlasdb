@@ -46,6 +46,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -130,7 +131,10 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     public synchronized void storeUpperLimit(final long limit) {
         DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
         clientPool.runWithRetry((FunctionCheckedException<Client, Void, RuntimeException>) client -> {
-            if (startingUp && currentLimit == -1) {
+            if (currentLimit > limit) {
+                throw new PalantirRuntimeException("Cannot set timestamp bound value from " + currentLimit + " to "
+                        + limit + "; the bounds must be increasing!");
+            } else if (startingUp && currentLimit == -1) {
                 cas(client, makeColumnForIdAndBound(null, null), null, limit);
             } else {
                 cas(client, makeColumnForIdAndBound(id, currentLimit), currentLimit, limit);
@@ -148,7 +152,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         } else {
             TimestampBoundStoreEntry timestampBoundStoreEntry = TimestampBoundStoreEntry.createFromCasResult(result);
             if (result.getCurrent_values().isEmpty()) {
-                DebugLogger.logger.info("[CAS] The DB is empty!");
+                DebugLogger.logger.info("[CAS] There is no timestamp bound stored in the DB!");
                 addProcessInfoAndThrow(timestampBoundStoreEntry, "No limit in DB!");
             }
             /*
@@ -160,8 +164,16 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
              *   not stored a bound yet -- this is the case when we startup.
              */
             if (sameIdOrConsistentStartUp(timestampBoundStoreEntry)) {
-                Column expectedColumn = makeColumn(timestampBoundStoreEntry.getByteValue());
-                cas(client, expectedColumn, timestampBoundStoreEntry.timestamp(), newVal);
+                if (timestampBoundStoreEntry.timestamp() <= newVal) {
+                    Column expectedColumn = makeColumn(timestampBoundStoreEntry.getByteValue());
+                    cas(client, expectedColumn, timestampBoundStoreEntry.timestamp(), newVal);
+                } else {
+                    DebugLogger.logger.info("[PUT] Tried to overwrite bound {} in DB previously "
+                            + "set by this timestamp service with a lower bound {}. The value expected to be found in "
+                            + "the DB was {}. Updating the cached limit to {}.", timestampBoundStoreEntry.timestamp(),
+                            newVal, currentLimit, timestampBoundStoreEntry.timestamp());
+                    currentLimit = timestampBoundStoreEntry.timestamp();
+                }
             } else {
                 throwStoringMultipleRunningTimestampServiceError(oldVal, newVal, timestampBoundStoreEntry);
             }
