@@ -177,6 +177,10 @@ and silently accept the request (returning 204) even though this is highly unlik
 intention, while we now fail loudly (returning a 400).</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Oracle query now uses the right hints when generating the query plan. This will improve performance for OracleKVS.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1540">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Better support Oracle 12c batch responses
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1540">Pull Request</a>)</td>
 </tr>
