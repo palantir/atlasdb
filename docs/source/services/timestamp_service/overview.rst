@@ -22,7 +22,7 @@ see will necessarily be monotonically increasing. The following sequence of even
 7. Node A becomes functional again
 8. Node A hands out timestamp X and its client receives it
 
-However, this sequence of events is not allowed:
+However, we guarantee the following sequence of events will not happen:
 
 1. Node A is the Leader
 2. Node A receives request for timestamp
