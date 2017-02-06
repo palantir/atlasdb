@@ -73,7 +73,13 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     }
 
     @Test
-    public void storeWithNonEmptyTableOnStartupThrows() {
+    public void storeWithNonEmptyTableNoIdOnStartupThrows() {
+        insertTimestampOld(OFFSET);
+        assertThatStoreUpperLimitThrows(SECOND_OFFSET);
+    }
+
+    @Test
+    public void storeWithNonEmptyTableWrongIdOnStartupThrows() {
         insertTimestampWithFakeId(OFFSET);
         assertThatStoreUpperLimitThrows(SECOND_OFFSET);
     }
