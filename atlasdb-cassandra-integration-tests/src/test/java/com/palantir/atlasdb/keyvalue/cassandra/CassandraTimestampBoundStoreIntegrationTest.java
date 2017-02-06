@@ -278,6 +278,6 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     private long getBoundFromDb() {
         Value value = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TIMESTAMP_BOUND_CELL, Long.MAX_VALUE))
                 .get(TIMESTAMP_BOUND_CELL);
-        return TimestampBoundStoreEntry.createFromBytes(value.getContents()).getTimestamp();
+        return TimestampBoundStoreEntry.createFromBytes(value.getContents()).timestamp();
     }
 }

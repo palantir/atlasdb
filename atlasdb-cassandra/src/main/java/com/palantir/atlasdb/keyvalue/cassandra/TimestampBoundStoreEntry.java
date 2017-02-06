@@ -79,19 +79,11 @@ abstract class TimestampBoundStoreEntry {
         return ArrayUtils.addAll(PtBytes.toBytes(timestamp()), ValueType.UUID.convertFromJava(id()));
     }
 
-    long getTimestamp() {
-        return timestamp();
-    }
-
     String getTimestampAsString() {
         if (timestamp() == null) {
             return "none";
         }
         return Long.toString(timestamp());
-    }
-
-    UUID getId() {
-        return id();
     }
 
     String getIdAsString() {
