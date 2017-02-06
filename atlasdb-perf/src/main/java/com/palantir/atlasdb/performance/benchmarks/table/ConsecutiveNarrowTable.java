@@ -94,7 +94,7 @@ public abstract class ConsecutiveNarrowTable {
     public static class CleanNarrowTable extends ConsecutiveNarrowTable {
         @Override
         public TableReference getTableRef() {
-            return TableReference.createFromFullyQualifiedName("performance.persistent_table_clean");
+            return TableReference.createFromFullyQualifiedName("perf.p_t_clean");
         }
 
         @Override
@@ -107,7 +107,7 @@ public abstract class ConsecutiveNarrowTable {
     public static class DirtyNarrowTable extends ConsecutiveNarrowTable {
         @Override
         public TableReference getTableRef() {
-            return TableReference.createFromFullyQualifiedName("performance.persistent_table_dirty");
+            return TableReference.createFromFullyQualifiedName("perf.p_t_dirty");
         }
 
         @Override
