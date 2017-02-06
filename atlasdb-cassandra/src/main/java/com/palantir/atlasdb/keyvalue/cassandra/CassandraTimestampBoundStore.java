@@ -87,6 +87,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                 Thread.currentThread().getName());
         this.clientPool = Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
         this.id = UUID.randomUUID();
+        DebugLogger.logger.info("The ID of this store is {}.", id);
     }
 
     @VisibleForTesting
@@ -142,7 +143,12 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             startingUp = false;
         } else {
             if (result.getCurrent_values().isEmpty()) {
-                addProcessInfoAndThrow(TimestampBoundStoreEntry.create(id, currentLimit), "No limit in DB!");
+                DebugLogger.logger.info("[CAS] The DB is empty!");
+                if (startingUp) {
+                    cas(client, makeColumnForIdAndBound(null, null), null, newVal);
+                } else {
+                    addProcessInfoAndThrow(TimestampBoundStoreEntry.create(id, currentLimit), "No limit in DB!");
+                }
             }
             TimestampBoundStoreEntry timestampBoundStoreEntry = TimestampBoundStoreEntry.createFromCasResult(result);
             /*
