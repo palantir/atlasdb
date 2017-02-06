@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -197,17 +198,18 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                         OverflowMigrationState.class, config.overflowMigrationState().name());
         }
         SqlConnection conn = conns.get();
+        String shortTableName = getShortTableName();
         try {
             log.info("Got connection for delete on table {}: {}, autocommit={}",
-                    getShortTableName(),
+                    shortTableName,
                     conn.getUnderlyingConnection(),
                     conn.getUnderlyingConnection().getAutoCommit());
         } catch (PalantirSqlException | SQLException e) {
             //
         }
-        conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + getShortTableName() + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + getShortTableName() + ") */ "
-                + " FROM " + getShortTableName() + " m "
+        conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + shortTableName + ") */ "
+                + " DELETE /*+ INDEX(m " + getPrimaryKeyConstraintName(shortTableName) + ") */ "
+                + " FROM " + shortTableName + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
                 + "  AND m.ts = ?",
@@ -217,9 +219,9 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     private void deleteOverflow(String overflowTable, List<Object[]> args) {
         String shortTableName = getShortTableName();
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + overflowTable + ") */ "
+                + " DELETE /*+ INDEX(m " + getPrimaryKeyConstraintName(overflowTable) + ") */ "
                 + "   FROM " + overflowTable + " m "
-                + "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + shortTableName + ") */ "
+                + "  WHERE m.id IN (SELECT /*+ INDEX(i " + getPrimaryKeyConstraintName(shortTableName) + ") */ "
                 + "                        i.overflow "
                 + "                   FROM " + shortTableName + " i "
                 + "                  WHERE i.row_name = ? "
@@ -243,5 +245,13 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    private String getPrimaryKeyConstraintName(String tableName) {
+        return truncateToMaxOracleLength("pk_" + tableName);
+    }
+
+    private String truncateToMaxOracleLength(String constraintName) {
+        return constraintName.substring(0, Math.max(OracleTableNameMapper.MAX_NAMESPACE_LENGTH, constraintName.length()));
     }
 }
