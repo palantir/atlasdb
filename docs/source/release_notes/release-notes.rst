@@ -50,6 +50,10 @@ develop
            intention, while we now fail loudly (returning a 400).
 
     *    - |fixed|
+         - Oracle query now uses the right hints when generating the query plan. This will improve performance for OracleKVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1540>`__)
+
+    *    - |fixed|
          - Better support Oracle 12c batch responses
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1540>`__)
 

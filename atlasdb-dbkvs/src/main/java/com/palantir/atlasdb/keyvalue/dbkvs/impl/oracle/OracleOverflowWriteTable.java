@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OraclePrefixedTableNames;
@@ -259,11 +258,6 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private String getPrimaryKeyConstraintName(String tableName) {
-        return truncateToMaxOracleLength("pk_" + tableName);
-    }
-
-    private String truncateToMaxOracleLength(String constraintName) {
-        return constraintName
-                .substring(0, Math.min(OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH, constraintName.length()));
+        return OraclePrimaryKeyConstraintNames.get(tableName);
     }
 }

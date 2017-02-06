@@ -21,7 +21,6 @@ import java.util.List;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValue;
@@ -72,7 +71,7 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
         String query = " /* SELECT_OVERFLOW */ "
                 + " SELECT"
                 + "   /*+ USE_NL(t o) LEADING(t o) INDEX(o "
-                + getPrimaryKeyConstraintName(config.singleOverflowTable()) + ") */ "
+                + OraclePrimaryKeyConstraintNames.get(config.singleOverflowTable()) + ") */ "
                 + "   o.id, o.val "
                 + " FROM " + config.singleOverflowTable() + " o, "
                 + "   TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
@@ -83,21 +82,13 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
     private FullQuery getNewOverflowQuery(ArrayHandler arg) {
         String query = " /* SELECT_OVERFLOW (" + overflowTableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t o) LEADING(t o) INDEX(o " + getPrimaryKeyConstraintName(overflowTableName) + ") */ "
+                + "   /*+ USE_NL(t o) LEADING(t o) INDEX(o "
+                + OraclePrimaryKeyConstraintNames.get(overflowTableName) + ") */ "
                 + "   o.id, o.val "
                 + " FROM " + overflowTableName + " o,"
                 + "   TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE t.max_ts = o.id ";
         return new FullQuery(query).withArg(arg);
-    }
-
-    private String getPrimaryKeyConstraintName(String name) {
-        return truncateToMaxOracleLength("pk_" + name);
-    }
-
-    private String truncateToMaxOracleLength(String constraintName) {
-        return constraintName
-                .substring(0, Math.min(OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH, constraintName.length()));
     }
 
     private String structArrayPrefix() {

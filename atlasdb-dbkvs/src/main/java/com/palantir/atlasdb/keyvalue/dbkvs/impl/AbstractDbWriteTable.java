@@ -29,7 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OraclePrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
@@ -144,16 +144,9 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
     }
 
     private String getPrimaryKeyConstraintName(String tableName) {
-        String pkConstraintName = "pk_" + tableName;
         if (config.type().equals(OracleDdlConfig.TYPE)) {
-            return truncateToMaxOracleLength(pkConstraintName);
+            return OraclePrimaryKeyConstraintNames.get(tableName);
         }
-        return pkConstraintName;
+        return "pk_" + tableName;
     }
-
-    private String truncateToMaxOracleLength(String constraintName) {
-        return constraintName
-                .substring(0, Math.min(OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH, constraintName.length()));
-    }
-
 }

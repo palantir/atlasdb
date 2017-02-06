@@ -29,7 +29,6 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.AbstractDbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
@@ -453,12 +452,7 @@ public abstract class OracleQueryFactory extends AbstractDbQueryFactory {
     }
 
     private String getPrimaryKeyConstraintName() {
-        return truncateToMaxOracleLength("pk_" + tableName);
-    }
-
-    private String truncateToMaxOracleLength(String constraintName) {
-        return constraintName
-                .substring(0, Math.min(OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH, constraintName.length()));
+        return OraclePrimaryKeyConstraintNames.get(tableName);
     }
 
     private String structArrayPrefix() {
