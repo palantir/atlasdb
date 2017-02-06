@@ -145,13 +145,6 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
                 + "  AND m.ts = ?",
                 args);
     }
-    
-    private String getPrimaryKeyConstraintName(String tableName) {
-        if (config.type().equals(OracleDdlConfig.TYPE)) {
-            return OraclePrimaryKeyConstraintNames.get(tableName);
-        }
-        return "pk_" + tableName;
-    }
 
     @Override
     public void delete(RangeRequest range) {
@@ -186,5 +179,12 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
 
         // execute the query
         conns.get().updateUnregisteredQuery(query.toString(), args.toArray());
+    }
+
+    private String getPrimaryKeyConstraintName(String tableName) {
+        if (config.type().equals(OracleDdlConfig.TYPE)) {
+            return OraclePrimaryKeyConstraintNames.get(tableName);
+        }
+        return "pk_" + tableName;
     }
 }

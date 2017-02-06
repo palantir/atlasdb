@@ -212,6 +212,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 ImmutableSet.of(Cell.create(
                         tableRef.getQualifiedName().getBytes(StandardCharsets.UTF_8),
                         "m".getBytes(StandardCharsets.UTF_8))),
-                Long.MAX_VALUE).size();
+                AtlasDbConstants.MAX_TS).size();
     }
 }
