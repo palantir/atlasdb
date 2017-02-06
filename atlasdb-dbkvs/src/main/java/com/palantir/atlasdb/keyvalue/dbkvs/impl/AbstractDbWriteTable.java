@@ -28,6 +28,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
@@ -133,11 +135,25 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
 
         String prefixedTableName = prefixedTableNames.get(tableRef);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + prefixedTableName + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + prefixedTableName + ") */ "
+                + " DELETE /*+ INDEX(m " + getPrimaryKeyConstraintName(prefixedTableName) + ") */ "
                 + " FROM " + prefixedTableName + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
                 + "  AND m.ts = ?",
                 args);
     }
+
+    private String getPrimaryKeyConstraintName(String tableName) {
+        String pkConstraintName = "pk_" + tableName;
+        if (config.type().equals(OracleDdlConfig.TYPE)) {
+            return truncateToMaxOracleLength(pkConstraintName);
+        }
+        return pkConstraintName;
+    }
+
+    private String truncateToMaxOracleLength(String constraintName) {
+        return constraintName
+                .substring(0, Math.max(OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH, constraintName.length()));
+    }
+
 }
