@@ -220,8 +220,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             RangeRequest rangeRequest,
             long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getRange({}, {}, ts {})",
-                tableRef, rangeRequest, timestamp)) {
+        try (CloseableTrace trace = startLocalTrace("getRange({}, ts {})",
+                tableRef, timestamp)) {
             return delegate().getRange(tableRef, rangeRequest, timestamp);
         }
     }
@@ -231,8 +231,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             RangeRequest rangeRequest,
             long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getRangeOfTimestamps({}, {}, ts {})",
-                tableRef, rangeRequest, timestamp)) {
+        try (CloseableTrace trace = startLocalTrace("getRangeOfTimestamps({}, ts {})",
+                tableRef, timestamp)) {
             return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
         }
     }
@@ -243,8 +243,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             ColumnSelection columnSelection,
             long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getRows({}, {} rows, {}, ts {})",
-                tableRef, Iterables.size(rows), columnSelection, timestamp)) {
+        try (CloseableTrace trace = startLocalTrace("getRows({}, {} rows, ts {})",
+                tableRef, Iterables.size(rows), timestamp)) {
             return delegate().getRows(tableRef, rows, columnSelection, timestamp);
         }
     }
@@ -255,8 +255,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             BatchColumnRangeSelection columnRangeSelection,
             long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getRowsColumnRange({}, {} rows, {}, ts {})",
-                tableRef, Iterables.size(rows), columnRangeSelection, timestamp)) {
+        try (CloseableTrace trace = startLocalTrace("getRowsColumnRange({}, {} rows, ts {})",
+                tableRef, Iterables.size(rows), timestamp)) {
             return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
         }
     }
@@ -268,8 +268,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             int cellBatchHint,
             long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getRowsColumnRange({}, {} rows, {}, {} hint, ts {})",
-                tableRef, Iterables.size(rows), columnRangeSelection, cellBatchHint, timestamp)) {
+        try (CloseableTrace trace = startLocalTrace("getRowsColumnRange({}, {} rows, {} hint, ts {})",
+                tableRef, Iterables.size(rows), cellBatchHint, timestamp)) {
             return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
         }
     }

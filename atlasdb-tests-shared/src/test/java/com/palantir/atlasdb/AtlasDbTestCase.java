@@ -16,6 +16,7 @@
 package com.palantir.atlasdb;
 
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -113,11 +114,11 @@ public class AtlasDbTestCase {
     }
 
     protected KeyValueService getBaseKeyValueService() {
-        return TracingKeyValueService.create(
-                NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(
-                        new InMemoryKeyValueService(false,
-                                Tracers.wrap(PTExecutors.newSingleThreadExecutor(
-                                        PTExecutors.newNamedThreadFactory(true))))));
+        ExecutorService executor = Tracers.wrap(PTExecutors.newSingleThreadExecutor(
+                PTExecutors.newNamedThreadFactory(true)));
+        InMemoryKeyValueService inMemoryKvs = new InMemoryKeyValueService(false, executor);
+        KeyValueService namespacedKvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(inMemoryKvs);
+        return TracingKeyValueService.create(namespacedKvs);
     }
 
     @After

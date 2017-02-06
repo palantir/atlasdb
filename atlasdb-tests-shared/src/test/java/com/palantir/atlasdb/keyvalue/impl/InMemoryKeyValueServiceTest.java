@@ -17,8 +17,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
-//BaseTest is not a valid superclass for fast tests, because it starts an embedded postgres process
-//which makes it slow, but also makes it hard to clean up after in the context of FastTests
 public class InMemoryKeyValueServiceTest extends AbstractKeyValueServiceTest {
 
     @Override

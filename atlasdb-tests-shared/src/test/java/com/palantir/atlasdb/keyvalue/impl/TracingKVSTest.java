@@ -15,10 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -28,13 +26,12 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.tracing.TestSpanObserver;
 import com.palantir.remoting1.tracing.Span;
 import com.palantir.remoting1.tracing.SpanObserver;
 import com.palantir.remoting1.tracing.SpanType;
 import com.palantir.remoting1.tracing.Tracer;
 
-//BaseTest is not a valid superclass for fast tests, because it starts an embedded postgres process
-//which makes it slow, but also makes it hard to clean up after in the context of FastTests
 public class TracingKVSTest extends AbstractKeyValueServiceTest {
     private static final Logger log = LoggerFactory.getLogger(TracingKVSTest.class);
 
@@ -83,22 +80,4 @@ public class TracingKVSTest extends AbstractKeyValueServiceTest {
         }
     }
 
-
-    private static class TestSpanObserver implements SpanObserver {
-        final List<Span> spans = new ArrayList<>();
-
-        @Override
-        public void consume(Span span) {
-            log.warn("{}", span);
-            spans.add(span);
-        }
-
-        List<Span> spans() {
-            return spans;
-        }
-
-        void clear() {
-            spans.clear();
-        }
-    }
 }
