@@ -117,10 +117,10 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             }
             TimestampBoundStoreEntry timestampBoundStoreEntry =
                     TimestampBoundStoreEntry.createFromColumn(result.getColumn());
-            if (!startingUp && !id.equals(timestampBoundStoreEntry.getId())) {
+            if (!startingUp && !id.equals(timestampBoundStoreEntry.id())) {
                 throwGettingMultipleRunningTimestampServiceError(timestampBoundStoreEntry);
             }
-            currentLimit = timestampBoundStoreEntry.getTimestamp();
+            currentLimit = timestampBoundStoreEntry.timestamp();
             DebugLogger.logger.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
             return currentLimit;
         });
@@ -161,7 +161,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
              */
             if (sameIdOrConsistentStartUp(timestampBoundStoreEntry)) {
                 Column expectedColumn = makeColumn(timestampBoundStoreEntry.getByteValue());
-                cas(client, expectedColumn, timestampBoundStoreEntry.getTimestamp(), newVal);
+                cas(client, expectedColumn, timestampBoundStoreEntry.timestamp(), newVal);
             } else {
                 throwStoringMultipleRunningTimestampServiceError(oldVal, newVal, timestampBoundStoreEntry);
             }
@@ -188,8 +188,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private boolean sameIdOrConsistentStartUp(TimestampBoundStoreEntry timestampBoundStoreEntry) {
-        return id.equals(timestampBoundStoreEntry.getId())
-                || (startingUp && timestampBoundStoreEntry.getTimestamp() == currentLimit);
+        return id.equals(timestampBoundStoreEntry.id())
+                || (startingUp && timestampBoundStoreEntry.timestamp() == currentLimit);
     }
 
     private Column makeColumnForIdAndBound(UUID idToUse, Long ts) {
