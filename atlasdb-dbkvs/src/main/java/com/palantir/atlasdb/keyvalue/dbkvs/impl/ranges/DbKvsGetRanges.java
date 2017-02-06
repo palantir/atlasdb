@@ -337,7 +337,8 @@ public class DbKvsGetRanges {
     }
 
     private String truncateToMaxOracleLength(String constraintName) {
-        return constraintName.substring(0, Math.max(OracleTableNameMapper.MAX_NAMESPACE_LENGTH, constraintName.length()));
+        return constraintName
+                .substring(0, Math.max(OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH, constraintName.length()));
     }
 
     private String getPrefixedTableName(TableReference tableRef) {
