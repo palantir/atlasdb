@@ -30,4 +30,9 @@ public class OracleWriteTable extends AbstractDbWriteTable {
             TableReference tableRef) {
         super(config, conns, tableRef, new OraclePrefixedTableNames(config, conns, oracleTableNameGetter));
     }
+
+    @Override
+    protected String getPrimaryKeyConstraintName(String tableName) {
+        return OraclePrimaryKeyConstraintNames.get(tableName);
+    }
 }

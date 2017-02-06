@@ -28,8 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OraclePrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
@@ -143,10 +141,5 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
                 args);
     }
 
-    private String getPrimaryKeyConstraintName(String tableName) {
-        if (config.type().equals(OracleDdlConfig.TYPE)) {
-            return OraclePrimaryKeyConstraintNames.get(tableName);
-        }
-        return "pk_" + tableName;
-    }
+    protected abstract String getPrimaryKeyConstraintName(String tableName);
 }

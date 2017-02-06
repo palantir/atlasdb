@@ -29,4 +29,9 @@ public class PostgresWriteTable extends AbstractDbWriteTable {
             PrefixedTableNames prefixedTableNames) {
         super(config, conns, tableRef, prefixedTableNames);
     }
+
+    @Override
+    protected String getPrimaryKeyConstraintName(String tableName) {
+        return "pk_" + tableName;
+    }
 }
