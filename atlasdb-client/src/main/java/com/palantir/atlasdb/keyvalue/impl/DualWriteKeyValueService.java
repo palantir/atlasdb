@@ -105,6 +105,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        return delegate1.supportsCheckAndSet();
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         delegate1.checkAndSet(checkAndSetRequest);
     }

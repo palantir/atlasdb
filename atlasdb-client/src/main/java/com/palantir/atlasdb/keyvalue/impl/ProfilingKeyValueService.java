@@ -367,6 +367,11 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        return delegate.supportsCheckAndSet();
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest request) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();

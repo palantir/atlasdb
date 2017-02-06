@@ -113,6 +113,11 @@ public class ThrowingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        throw throwEx();
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         throw throwEx();
     }
