@@ -24,6 +24,7 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -71,12 +72,15 @@ public class LockEntryTest {
     }
 
     @Test
-    public void valueContainsLockIdAndReason() {
-        String lockAndReason = LOCK_ID + "_" + REASON;
-        byte[] expectedValue = asUtf8Bytes(lockAndReason);
+    public void valueIsSerialisedLockEntry() throws JsonProcessingException {
+        String serialisedLockEntry = MAPPER.writeValueAsString(LOCK_ENTRY);
+        byte[] expectedValue = asUtf8Bytes(serialisedLockEntry);
         byte[] value = LOCK_ENTRY.value();
 
-        assertArrayEquals(expectedValue, value);
+        String msg = String.format("Expected: %s%nActual: %s",
+                new String(expectedValue, StandardCharsets.UTF_8),
+                new String(value, StandardCharsets.UTF_8));
+        assertArrayEquals(msg, expectedValue, value);
     }
 
     @Test
@@ -92,6 +96,13 @@ public class LockEntryTest {
 
         LockEntry lockEntry = LockEntry.fromRowResult(onlyEntry);
         assertEquals(LOCK_ENTRY, lockEntry);
+    }
+
+    @Test
+    public void fromStoredValueProducesLockEntry() throws JsonProcessingException {
+        byte[] value = asUtf8Bytes(MAPPER.writeValueAsString(LOCK_ENTRY));
+        LockEntry actual = LockEntry.fromStoredValue(value);
+        assertEquals(LOCK_ENTRY, actual);
     }
 
     private static byte[] asUtf8Bytes(String lockAndReason) {

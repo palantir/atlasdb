@@ -44,9 +44,8 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
             throw ex;
         }
 
-        byte[] rowName = ex.getKey().getRowName();
         byte[] actualValue = Iterables.getOnlyElement(actualValues);
-        return LockEntry.fromRowAndValue(rowName, actualValue);
+        return LockEntry.fromStoredValue(actualValue);
     }
 
     private Response createReleaseErrorResponse(LockEntry actualEntry) {

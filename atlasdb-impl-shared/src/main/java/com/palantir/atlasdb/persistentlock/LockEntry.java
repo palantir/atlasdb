@@ -15,24 +15,28 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.SortedMap;
 
-import org.apache.commons.lang3.StringUtils;
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.common.base.Throwables;
 
 @JsonSerialize(as = ImmutableLockEntry.class)
 @JsonDeserialize(as = ImmutableLockEntry.class)
 @Value.Immutable
 public abstract class LockEntry {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     @VisibleForTesting
     static final String LOCK_COLUMN = "lock";
 
@@ -40,29 +44,21 @@ public abstract class LockEntry {
     public abstract String lockId();
     public abstract String reason();
 
-    public static LockEntry fromRowResult(RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
-        String rowName = asString(rowResult.getRowName());
-        String lockAndReason = valueOfColumnInRow(LOCK_COLUMN, rowResult);
-        return fromRowLockAndReason(rowName, lockAndReason);
+    static LockEntry fromRowResult(RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
+        return deserialize(valueOfColumnInRow(LOCK_COLUMN, rowResult));
     }
 
-    public static LockEntry fromRowAndValue(byte[] rowBytes, byte[] value) {
-        String rowName = asString(rowBytes);
-        String lockAndReason = asString(value);
-        return fromRowLockAndReason(rowName, lockAndReason);
+    static LockEntry fromStoredValue(byte[] value) {
+        return deserialize(asString(value));
     }
 
-    private static LockEntry fromRowLockAndReason(String rowName, String lockAndReason) {
-        String[] split = StringUtils.split(lockAndReason, '_');
-        Preconditions.checkState(split.length == 2, "The stored lock was in the wrong format; found %s", lockAndReason);
-        String lockId = split[0];
-        String reason = split[1];
-
-        return ImmutableLockEntry.builder()
-                .rowName(rowName)
-                .lockId(lockId)
-                .reason(reason)
-                .build();
+    private static LockEntry deserialize(String serializedEntry) {
+        try {
+            return MAPPER.readValue(serializedEntry, LockEntry.class);
+        } catch (IOException e) {
+            String msg = String.format("The stored lock entry could not be read; found %s", serializedEntry);
+            throw new IllegalStateException(msg, e);
+        }
     }
 
     public Cell cell() {
@@ -70,11 +66,11 @@ public abstract class LockEntry {
     }
 
     public byte[] value() {
-        return asUtf8Bytes(lockAndReason());
-    }
-
-    private String lockAndReason() {
-        return lockId() + "_" + reason();
+        try {
+            return asUtf8Bytes(MAPPER.writeValueAsString(this));
+        } catch (JsonProcessingException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
     }
 
     private static String valueOfColumnInRow(
