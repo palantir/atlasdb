@@ -29,7 +29,7 @@ public final class UserAgents {
         // utility class
     }
 
-    public static String getUserAgent(String userAgent, String version) {
+    public static String fromStrings(String userAgent, String version) {
         return String.format(USER_AGENT_FORMAT, userAgent, version);
     }
 
@@ -51,7 +51,6 @@ public final class UserAgents {
     static String fromPackage(Package classPackage) {
         String agent = Optional.ofNullable(classPackage.getImplementationTitle()).orElse(DEFAULT_VALUE);
         String version = Optional.ofNullable(classPackage.getImplementationVersion()).orElse(DEFAULT_VALUE);
-        return getUserAgent(agent, version);
+        return fromStrings(agent, version);
     }
-
 }

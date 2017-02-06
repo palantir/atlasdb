@@ -91,8 +91,7 @@ public class AtlasDbHttpClientsTest {
                 AtlasDbHttpClients.createProxy(NO_SSL, getUriForPort(AVAILABLE_PORT), TestResource.class);
         client.getTestNumber();
 
-        String defaultUserAgent
-                = String.format(UserAgents.USER_AGENT_FORMAT, UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
+        String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
         availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
                 .withHeader(AtlasDbHttpClients.USER_AGENT_HEADER, WireMock.equalTo(defaultUserAgent)));
     }

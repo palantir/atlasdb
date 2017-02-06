@@ -34,7 +34,7 @@ public class UserAgentsTest {
 
     @Test
     public void userAgentIncludesAtlasDb() {
-        MatcherAssert.assertThat(UserAgents.getUserAgent(PACKAGE_TITLE, PACKAGE_VERSION), is(PACKAGE_USER_AGENT));
+        MatcherAssert.assertThat(UserAgents.fromStrings(PACKAGE_TITLE, PACKAGE_VERSION), is(PACKAGE_USER_AGENT));
     }
 
     @Test
@@ -59,7 +59,7 @@ public class UserAgentsTest {
     public void canGetUserAgentDataFromClass() {
         Class<BlockingDeque> clazz = BlockingDeque.class;
 
-        String expectedUserAgent = String.format(UserAgents.USER_AGENT_FORMAT,
+        String expectedUserAgent = UserAgents.fromStrings(
                 clazz.getPackage().getImplementationTitle(),
                 clazz.getPackage().getImplementationVersion());
         MatcherAssert.assertThat(UserAgents.fromClass(clazz), is(expectedUserAgent));
