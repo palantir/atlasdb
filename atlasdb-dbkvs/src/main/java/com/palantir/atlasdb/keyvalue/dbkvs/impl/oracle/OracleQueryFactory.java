@@ -458,7 +458,7 @@ public abstract class OracleQueryFactory extends AbstractDbQueryFactory {
 
     private String truncateToMaxOracleLength(String constraintName) {
         return constraintName
-                .substring(0, Math.max(OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH, constraintName.length()));
+                .substring(0, Math.min(OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH, constraintName.length()));
     }
 
     private String structArrayPrefix() {
