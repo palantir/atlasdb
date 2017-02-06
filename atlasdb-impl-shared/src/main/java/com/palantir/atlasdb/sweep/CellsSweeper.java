@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.persistentlock.LockEntry;
+import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.persistentlock.StandardPersistentLockService;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -66,7 +67,17 @@ public class CellsSweeper {
         this.followers = followers;
 
         this.persistentLockRetryWaitMillis = AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS;
-        this.persistentLockService = StandardPersistentLockService.create(keyValueService);
+        this.persistentLockService = getPersistentLockService(keyValueService);
+    }
+
+    private static PersistentLockService getPersistentLockService(KeyValueService kvs) {
+        if (kvs.supportsCheckAndSet()) {
+            return StandardPersistentLockService.create(kvs);
+        } else {
+            log.warn("CellsSweeper is being set up without a persistent lock service. "
+                    + "It will not be safe to run backups while sweep is running.");
+            return new NoOpPersistentLockService();
+        }
     }
 
     public void sweepCells(
