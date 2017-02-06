@@ -31,13 +31,13 @@ import com.palantir.atlasdb.table.description.ValueType;
 @Value.Immutable
 abstract class TimestampBoundStoreEntry {
     @Nullable abstract UUID id();
-    abstract long timestamp();
+    @Nullable abstract Long timestamp();
 
     private static final int SIZE_OF_ID_IN_BYTES = ValueType.UUID.sizeOf(null);
     private static final int SIZE_WITHOUT_ID_IN_BYTES = Long.BYTES;
     private static final int SIZE_WITH_ID_IN_BYTES = SIZE_OF_ID_IN_BYTES + SIZE_WITHOUT_ID_IN_BYTES;
 
-    static TimestampBoundStoreEntry create(UUID id, long timestamp) {
+    private static TimestampBoundStoreEntry create(UUID id, Long timestamp) {
         return ImmutableTimestampBoundStoreEntry.builder()
                 .id(id)
                 .timestamp(timestamp)
@@ -60,18 +60,20 @@ abstract class TimestampBoundStoreEntry {
     }
 
     static TimestampBoundStoreEntry createFromCasResult(CASResult result) {
+        if (result.getCurrent_values().isEmpty()) {
+            return create(null, null);
+        }
         return createFromColumn(Iterables.getOnlyElement(result.getCurrent_values()));
     }
 
     static byte[] getByteValueForIdAndBound(UUID id, Long ts) {
-        if (ts == null) {
-            return null;
-        }
         return (create(id, ts)).getByteValue();
     }
 
     byte[] getByteValue() {
-        if (!hasId()) {
+        if (timestamp() == null) {
+            return null;
+        } else if (id() == null) {
             return PtBytes.toBytes(timestamp());
         }
         return ArrayUtils.addAll(PtBytes.toBytes(timestamp()), ValueType.UUID.convertFromJava(id()));
@@ -81,12 +83,22 @@ abstract class TimestampBoundStoreEntry {
         return timestamp();
     }
 
-    boolean hasId() {
-        return id() != null;
+    String getTimestampAsString() {
+        if (timestamp() == null) {
+            return "none";
+        }
+        return Long.toString(timestamp());
     }
 
     UUID getId() {
         return id();
+    }
+
+    String getIdAsString() {
+        if (id() == null) {
+            return "none";
+        }
+        return id().toString();
     }
 }
 
