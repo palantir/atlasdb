@@ -324,6 +324,12 @@ public final class TieredKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        // Can't guarantee that it does, and anyway this KVS is unused and is going away soon.
+        return false;
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         TableReference tableRef = checkAndSetRequest.table();
         if (isNotTiered(tableRef)) {

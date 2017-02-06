@@ -151,6 +151,11 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        return delegate().supportsCheckAndSet();
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest request) {
         delegate().checkAndSet(request);
     }

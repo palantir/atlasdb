@@ -169,6 +169,11 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        return delegate().supportsCheckAndSet();
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         delegate().checkAndSet(checkAndSetRequest);
     }

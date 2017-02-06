@@ -308,6 +308,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        return getDelegates().stream().allMatch(KeyValueService::supportsCheckAndSet);
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         getDelegate(checkAndSetRequest.table()).checkAndSet(checkAndSetRequest);
     }
