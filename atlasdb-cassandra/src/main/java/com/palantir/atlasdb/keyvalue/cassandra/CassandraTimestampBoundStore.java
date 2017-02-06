@@ -130,7 +130,11 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     public synchronized void storeUpperLimit(final long limit) {
         DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
         clientPool.runWithRetry((FunctionCheckedException<Client, Void, RuntimeException>) client -> {
-            cas(client, makeColumnForIdAndBound(id, currentLimit), currentLimit, limit);
+            if (startingUp && currentLimit == -1) {
+                cas(client, makeColumnForIdAndBound(null, null), null, limit);
+            } else {
+                cas(client, makeColumnForIdAndBound(id, currentLimit), currentLimit, limit);
+            }
             return null;
         });
     }
@@ -142,15 +146,11 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             currentLimit = newVal;
             startingUp = false;
         } else {
+            TimestampBoundStoreEntry timestampBoundStoreEntry = TimestampBoundStoreEntry.createFromCasResult(result);
             if (result.getCurrent_values().isEmpty()) {
                 DebugLogger.logger.info("[CAS] The DB is empty!");
-                if (startingUp) {
-                    cas(client, makeColumnForIdAndBound(null, null), null, newVal);
-                } else {
-                    addProcessInfoAndThrow(TimestampBoundStoreEntry.create(id, currentLimit), "No limit in DB!");
-                }
+                addProcessInfoAndThrow(timestampBoundStoreEntry, "No limit in DB!");
             }
-            TimestampBoundStoreEntry timestampBoundStoreEntry = TimestampBoundStoreEntry.createFromCasResult(result);
             /*
              * For the cas to succeed, the existing entry in the DB must be this.id_this.currentLimit. If that is not
              * the case, we still want to succeed if:
@@ -228,14 +228,14 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                 + " leaders or a CLI being run with an embedded timestamp service against an already running"
                 + " service.";
         String formattedMsg = String.format(replaceBracesWithStringFormatSpecifier(msg), oldVal, newVal,
-                currentLimit, timestampBoundStoreEntry.getTimestamp());
+                currentLimit, timestampBoundStoreEntry.getTimestampAsString());
         addProcessInfoAndThrow(timestampBoundStoreEntry, formattedMsg);
     }
 
     private void addProcessInfoAndThrow(TimestampBoundStoreEntry timestampBoundStoreEntry, String msg) {
-        String idInDb = timestampBoundStoreEntry.hasId() ? timestampBoundStoreEntry.getId().toString() : "none.";
-        String processInfo = " This process's ID: {}, ID in DB: {}";
-        String fullMessage = String.format(replaceBracesWithStringFormatSpecifier(msg + processInfo), id, idInDb);
+        String processInfo = " This process's ID: {}, ID in DB: {}.";
+        String fullMessage = String.format(replaceBracesWithStringFormatSpecifier(msg + processInfo),
+                id, timestampBoundStoreEntry.getIdAsString());
 
         MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(fullMessage);
         log.error(fullMessage, err);
