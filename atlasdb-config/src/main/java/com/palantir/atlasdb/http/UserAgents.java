@@ -22,8 +22,9 @@ import com.google.common.annotations.VisibleForTesting;
 public final class UserAgents {
     private static final String ATLASDB_CLIENT = "atlasdb";
 
-    public static final String DEFAULT_VALUE = "unknown";
     public static final String USER_AGENT_FORMAT = "%s-" + ATLASDB_CLIENT + " (%s)";
+    public static final String DEFAULT_VALUE = "unknown";
+    public static final String DEFAULT_USER_AGENT = fromStrings(DEFAULT_VALUE, DEFAULT_VALUE);
 
     private UserAgents() {
         // utility class

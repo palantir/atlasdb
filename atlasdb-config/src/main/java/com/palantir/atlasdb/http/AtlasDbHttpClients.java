@@ -133,13 +133,28 @@ public final class AtlasDbHttpClients {
      * Failover will continue to cycle through the supplied endpoint list indefinitely.
      */
     public static <T> T createProxyWithFailover(
-            Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Collection<String> endpointUris,
+            Class<T> type) {
+        return createProxyWithFailover(
+                sslSocketFactory,
+                endpointUris,
+                type,
+                UserAgents.DEFAULT_USER_AGENT);
+    }
+
+    public static <T> T createProxyWithFailover(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Collection<String> endpointUris,
+            Class<T> type,
+            String userAgent) {
         return createProxyWithFailover(
                 sslSocketFactory,
                 endpointUris,
                 DEFAULT_FEIGN_OPTIONS,
                 FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
-                type);
+                type,
+                userAgent);
     }
 
     /**
@@ -149,9 +164,9 @@ public final class AtlasDbHttpClients {
      */
     private static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris,
-            Request.Options feignOptions, int maxBackoffMillis, Class<T> type) {
+            Request.Options feignOptions, int maxBackoffMillis, Class<T> type, String userAgent) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
-        Client client = failoverFeignTarget.wrapClient(newOkHttpClient(sslSocketFactory, type));
+        Client client = failoverFeignTarget.wrapClient(newOkHttpClient(sslSocketFactory, userAgent));
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
@@ -172,7 +187,8 @@ public final class AtlasDbHttpClients {
                 endpointUris,
                 options,
                 QUICK_MAX_BACKOFF_MILLIS,
-                type);
+                type,
+                UserAgents.DEFAULT_USER_AGENT);
     }
 
     /**
@@ -180,28 +196,28 @@ public final class AtlasDbHttpClients {
      * specified {@link SSLSocketFactory}. The class parameter is used to identify the user agent to be provided
      * on HTTP requests.
      */
-    private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory, Class<?> clazz) {
+    private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory, String userAgent) {
         com.squareup.okhttp.OkHttpClient client = new com.squareup.okhttp.OkHttpClient();
 
         client.setConnectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES);
         client.setConnectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS));
         client.setSslSocketFactory(sslSocketFactory.orNull());
-        client.interceptors().add(new UserAgentAddingInterceptor(clazz));
+        client.interceptors().add(new UserAgentAddingInterceptor(userAgent));
         return new OkHttpClient(client);
     }
 
     private static final class UserAgentAddingInterceptor implements Interceptor {
-        private final Class<?> clazz;
+        private final String userAgent;
 
-        private UserAgentAddingInterceptor(Class<?> clazz) {
-            this.clazz = clazz;
+        private UserAgentAddingInterceptor(String userAgent) {
+            this.userAgent = userAgent;
         }
 
         @Override
         public Response intercept(Chain chain) throws IOException {
             com.squareup.okhttp.Request requestWithUserAgent = chain.request()
                     .newBuilder()
-                    .addHeader(USER_AGENT_HEADER, UserAgents.fromClass(clazz))
+                    .addHeader(USER_AGENT_HEADER, userAgent)
                     .build();
             return chain.proceed(requestWithUserAgent);
         }
