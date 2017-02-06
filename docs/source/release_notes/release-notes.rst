@@ -48,6 +48,17 @@ develop
            This fix also enables better detection of legitimate occurrences of ``MultipleRunningTimestampServicesError``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1515>`__)
 
+    *    - |devbreak| |improved|
+         - Fast forwarding a persistent timestamp service to ``Long.MIN_VALUE`` will now throw an exception; previously
+           it would be a no-op. This is especially relevant for safety of remote requests; if a user does not
+           supply the ``currentTimestamp`` query parameter, we would previously treat this as a fast-forward to zero
+           and silently accept the request (returning 204) even though this is highly unlikely to be the user's
+           intention, while we now fail loudly (returning a 400).
+
+    *    - |fixed|
+         - Better support Oracle 12c batch responses
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1540>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
