@@ -25,7 +25,7 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleTableNameMapper {
     public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
-    public static final int SUFFIX_NUMBER_LENGTH = 6;
+    public static final int SUFFIX_NUMBER_LENGTH = 5;
     public static final int MAX_NAMESPACE_LENGTH = 2;
     private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - SUFFIX_NUMBER_LENGTH;
 
@@ -63,19 +63,19 @@ public class OracleTableNameMapper {
             String fullTableName,
             String truncatedTableName) {
         int tableSuffixNumber = getNextTableNumber(connectionSupplier, truncatedTableName);
-        if (tableSuffixNumber >= 100_000) {
+        if (tableSuffixNumber >= 10_000) {
             throw new IllegalArgumentException(
                     "Cannot create any more tables with name starting with " + truncatedTableName
-                    + ". 100,000 tables might have already been created. Please rename the table." + fullTableName);
+                    + ". 10,000 tables might have already been created. Please rename the table." + fullTableName);
         }
-        return "_" + String.format("%05d", tableSuffixNumber);
+        return "_" + String.format("%04d", tableSuffixNumber);
     }
 
     private int getNextTableNumber(ConnectionSupplier connectionSupplier, String truncatedTableName) {
         AgnosticResultSet results = connectionSupplier.get().selectResultSetUnregisteredQuery(
                 "SELECT short_table_name "
                 + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                + " WHERE LOWER(short_table_name) LIKE LOWER(?||'\\______%') ESCAPE '\\'"
+                + " WHERE LOWER(short_table_name) LIKE LOWER(?||'\\_____%') ESCAPE '\\'"
                 + " ORDER BY short_table_name DESC", truncatedTableName);
         return getTableNumberFromTableNames(truncatedTableName, results);
     }

@@ -71,7 +71,7 @@ public class OracleTableNameMapperTest {
         TableReference tableRef = TableReference.create(Namespace.create("ns1"), "short");
         String shortPrefixedTableName = oracleTableNameMapper
                 .getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
-        assertThat(shortPrefixedTableName, is("a_ns__short_00000"));
+        assertThat(shortPrefixedTableName, is("a_ns__short_0000"));
     }
 
     @Test
@@ -79,7 +79,7 @@ public class OracleTableNameMapperTest {
         when(resultSet.size()).thenReturn(1);
 
         AgnosticResultRow row = mock(AgnosticResultRow.class);
-        when(row.getString(eq("short_table_name"))).thenReturn(getTableNameWithNumber(99999));
+        when(row.getString(eq("short_table_name"))).thenReturn(getTableNameWithNumber(9999));
         when(resultSet.get(eq(0))).thenReturn(row);
 
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
@@ -104,6 +104,6 @@ public class OracleTableNameMapperTest {
     }
 
     private String getTableNameWithNumber(int tableNum) {
-        return String.format("a_te__ThisIsAVeryLongTab_%05d", tableNum);
+        return String.format("a_te__ThisIsAVeryLongTabl_%04d", tableNum);
     }
 }
