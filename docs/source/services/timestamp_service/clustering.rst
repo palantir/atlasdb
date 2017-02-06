@@ -12,7 +12,8 @@ issues timestamps (other nodes will return a 503). The leader also writes an upp
 it has given out to a persistent store; in practice, we write this to a timestamp table in the key-value store.
 
 Note that the leader still needs to talk to a quorum of nodes before entertaining a timestamp request, to check
-that it is still the leader. However, this only requires one round trip as opposed to two for Paxos.
+that it is still the leader. This was a deliberate design decision to maintain safety in the face of clock drift.
+However, this only requires one round trip to a quorum of nodes, as opposed to two for Paxos.
 
 Safety
 ======

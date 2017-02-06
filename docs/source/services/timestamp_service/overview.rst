@@ -33,9 +33,9 @@ Users are allowed to make requests for contiguous blocks of timestamps using the
 This may be useful if one knows it is the only client and/or wishes to have bespoke complex concurrency semantics.
 
 The endpoint will return a contiguous block of timestamps; this is indicated by a lower and upper bound (inclusive
-on both ends). However, we do not guarantee that the size of the timestamp range will be equal to the number of
-timestamps requested for; the onus to check this is on the client. We do guarantee that the range returned will
-consist of at least 1 timestamp.
+on both ends). We guarantee that the range returned will consist of at least 1 timestamp, and will have *at most*
+as many timestamps as the number requested. However, we do not guarantee that the size of the timestamp range will be
+equal to the number of timestamps requested for; the onus to check this is on the client.
 
 Caching
 =======
