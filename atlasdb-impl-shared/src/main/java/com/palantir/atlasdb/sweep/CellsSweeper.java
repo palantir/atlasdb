@@ -80,15 +80,15 @@ public class CellsSweeper {
             follower.run(txManager, tableRef, cellTsPairsToSweep.keySet(), Transaction.TransactionType.HARD_DELETE);
         }
 
+        if (!sentinelsToAdd.isEmpty()) {
+            keyValueService.addGarbageCollectionSentinelValues(
+                    tableRef,
+                    sentinelsToAdd);
+        }
+
         LockEntry lockEntry = acquirePersistentLockWithRetry();
 
         try {
-            if (!sentinelsToAdd.isEmpty()) {
-                keyValueService.addGarbageCollectionSentinelValues(
-                        tableRef,
-                        sentinelsToAdd);
-            }
-
             keyValueService.delete(tableRef, cellTsPairsToSweep);
         } finally {
             releasePersistentLock(lockEntry);

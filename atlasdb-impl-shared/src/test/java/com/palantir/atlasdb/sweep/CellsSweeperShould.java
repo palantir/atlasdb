@@ -115,13 +115,13 @@ public class CellsSweeperShould {
     }
 
     @Test
-    public void acquireTheDeletionLockBeforeDeletingOrAddingSentinels() {
+    public void acquireTheDeletionLockBeforeDeletingButAfterAddingSentinels() {
         sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
         InOrder ordering = inOrder(mockPls, mockKvs);
 
-        ordering.verify(mockPls, times(1)).acquireLock("Sweep");
         ordering.verify(mockKvs, atLeastOnce()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
+        ordering.verify(mockPls, times(1)).acquireLock("Sweep");
         ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
     }
 
