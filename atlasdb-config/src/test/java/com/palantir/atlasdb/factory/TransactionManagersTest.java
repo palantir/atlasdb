@@ -53,6 +53,7 @@ public class TransactionManagersTest {
     private static final String SERVER_2 = "http://palantir.com:8080";
     private static final int AVAILABLE_PORT = 8080;
     private static final String USER_AGENT = "user-agent (3.14159265)";
+    private static final String USER_AGENT_HEADER = "User-Agent";
 
     private static final String TIMESTAMP_PATH = "/timestamp/fresh-timestamp";
     private static final MappingBuilder TIMESTAMP_MAPPING = post(urlEqualTo(TIMESTAMP_PATH));
@@ -147,9 +148,9 @@ public class TransactionManagersTest {
         lockAndTimestampServices.lock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(timestampPath))
-                .withHeader("User-Agent", WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
         availableServer.verify(postRequestedFor(urlMatching(lockPath))
-                .withHeader("User-Agent", WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
     }
 
     private static String getUriForPort(int port) {
