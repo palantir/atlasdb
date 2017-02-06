@@ -15,21 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import org.apache.commons.lang3.StringUtils;
+import com.palantir.atlasdb.AtlasDbConstants;
 
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
+public final class PrimaryKeyConstraintNames {
 
-public final class OraclePrimaryKeyConstraintNames {
-
-    private OraclePrimaryKeyConstraintNames() {
+    private PrimaryKeyConstraintNames() {
         //Utility class
     }
 
     public static String get(String name) {
-        return truncateToMaxOracleLength("pk_" + name);
-    }
-
-    private static String truncateToMaxOracleLength(String constraintName) {
-        return StringUtils.left(constraintName, OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH);
+        return AtlasDbConstants.ORACLE_PK_CONSTRAINT_PREFIX + name;
     }
 }

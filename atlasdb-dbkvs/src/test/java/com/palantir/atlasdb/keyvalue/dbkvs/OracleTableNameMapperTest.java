@@ -23,7 +23,6 @@ import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,7 +31,7 @@ import org.junit.rules.ExpectedException;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OraclePrimaryKeyConstraintNames;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
@@ -90,16 +89,9 @@ public class OracleTableNameMapperTest {
     }
 
     @Test
-    public void shouldGetRightPrimaryKeyConstraintForLongTableNames() {
-        String pkConstraintName = OraclePrimaryKeyConstraintNames.get(LONG_TABLE_NAME);
-        assertThat(pkConstraintName, is(StringUtils.left("pk_" + LONG_TABLE_NAME, 30)));
-        assertThat(pkConstraintName.length(), is(OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH));
-    }
-
-    @Test
-    public void shouldGetRightPrimaryKeyConstraintForShortTableNames() {
+    public void shouldGetRightPrimaryKeyConstraintForTableNamesWithinLimits() {
         String tableName = "table";
-        String pkConstraintName = OraclePrimaryKeyConstraintNames.get(tableName);
+        String pkConstraintName = PrimaryKeyConstraintNames.get(tableName);
         assertThat(pkConstraintName, is("pk_" + tableName));
     }
 
