@@ -20,10 +20,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.SortedMap;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.eclipse.jetty.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -41,6 +43,11 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
 
 import io.dropwizard.testing.ResourceHelpers;
 
@@ -211,6 +218,31 @@ public class PaxosTimeLockServerIntegrationTest {
         getTimestampService("acceptor").getFreshTimestamp();
     }
 
+    @Test
+    public void throwsOnFastForwardWithUnspecifiedParameter() throws IOException {
+        Response response = makeEmptyPostToUri(getFastForwardUriForClientOne());
+        assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
+    }
+
+    @Test
+    public void throwsOnFastForwardWithIncorrectParameter() throws IOException {
+        String uriWithParam = getFastForwardUriForClientOne() + "?newMinimum=1200";
+        Response response = makeEmptyPostToUri(uriWithParam);
+        assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
+    }
+
+    private static String getFastForwardUriForClientOne() {
+        return getRootUriForClient(CLIENT_1) + "/timestamp-management/fast-forward";
+    }
+
+    private static Response makeEmptyPostToUri(String uri) throws IOException {
+        OkHttpClient client = new OkHttpClient();
+        return client.newCall(new Request.Builder()
+                .url(uri)
+                .post(RequestBody.create(MediaType.parse("application/json"), ""))
+                .build()).execute();
+    }
+
     private static RemoteLockService getLockService(String client) {
         return getProxyForService(client, RemoteLockService.class);
     }
@@ -226,7 +258,11 @@ public class PaxosTimeLockServerIntegrationTest {
     private static <T> T getProxyForService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
                 NO_SSL,
-                String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client),
+                getRootUriForClient(client),
                 clazz);
+    }
+
+    private static String getRootUriForClient(String client) {
+        return String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
     }
 }
