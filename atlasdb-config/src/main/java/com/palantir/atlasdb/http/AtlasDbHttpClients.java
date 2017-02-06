@@ -25,6 +25,7 @@ import javax.net.ssl.SSLSocketFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.squareup.okhttp.CipherSuite;
@@ -108,7 +109,7 @@ public final class AtlasDbHttpClients {
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
-                .client(newOkHttpClient(sslSocketFactory, type))
+                .client(newOkHttpClient(sslSocketFactory))
                 .target(type, uri);
     }
 
@@ -193,9 +194,12 @@ public final class AtlasDbHttpClients {
 
     /**
      * Returns a feign {@link Client} wrapping a {@link com.squareup.okhttp.OkHttpClient} client with optionally
-     * specified {@link SSLSocketFactory}. The class parameter is used to identify the user agent to be provided
-     * on HTTP requests.
+     * specified {@link SSLSocketFactory}.
      */
+    private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory) {
+        return newOkHttpClient(sslSocketFactory, UserAgents.DEFAULT_USER_AGENT);
+    }
+
     private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory, String userAgent) {
         com.squareup.okhttp.OkHttpClient client = new com.squareup.okhttp.OkHttpClient();
 
@@ -210,6 +214,7 @@ public final class AtlasDbHttpClients {
         private final String userAgent;
 
         private UserAgentAddingInterceptor(String userAgent) {
+            Preconditions.checkNotNull(userAgent, "User Agent should never be null.");
             this.userAgent = userAgent;
         }
 
