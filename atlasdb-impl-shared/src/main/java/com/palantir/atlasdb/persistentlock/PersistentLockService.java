@@ -23,34 +23,14 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 /**
  * Provides endpoints for acquiring and releasing the Deletion Lock. This is intended to be used by backups and sweep,
  * to ensure that only one of these operations is deleting data at once.
  */
 @Path("/persistent-lock")
-public class PersistentLockService {
-    private static final Logger log = LoggerFactory.getLogger(PersistentLockService.class);
-
-    private final LockStore lockStore;
-
-    @VisibleForTesting
-    PersistentLockService(LockStore lockStore) {
-        this.lockStore = lockStore;
-    }
-
-    public static PersistentLockService create(KeyValueService kvs) {
-        LockStore lockStore = LockStore.create(kvs);
-        return new PersistentLockService(lockStore);
-    }
-
+public interface PersistentLockService {
     /**
      * Attempt to acquire the lock.
      * Call this method before performing any destructive operations.
@@ -61,10 +41,7 @@ public class PersistentLockService {
     @GET
     @Path("acquire")
     @Produces(MediaType.APPLICATION_JSON)
-    public LockEntry acquireLock(@QueryParam("reason") String reason) {
-        Preconditions.checkNotNull(reason, "Please provide a reason for acquiring the lock.");
-        return lockStore.acquireLock(reason);
-    }
+    LockEntry acquireLock(@QueryParam("reason") String reason);
 
     /**
      * Release a lock that you have previously acquired.
@@ -77,18 +54,5 @@ public class PersistentLockService {
     @Path("release")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String releaseLock(LockEntry lockEntry) throws CheckAndSetException {
-        Preconditions.checkNotNull(lockEntry, "Please provide a LockEntry to release.");
-
-        try {
-            lockStore.releaseLock(lockEntry);
-            return "The lock was released successfully.\n";
-        } catch (CheckAndSetException e) {
-            log.error("Failed to release the persistent lock. This means that somebody already cleared this lock. "
-                    + "You should investigate this, as this means your operation didn't necessarily hold the lock when "
-                    + "it should have done.", e);
-            throw e;
-        }
-    }
-
+    String releaseLock(LockEntry lockEntry) throws CheckAndSetException;
 }

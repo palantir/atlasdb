@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
+import com.palantir.atlasdb.persistentlock.StandardPersistentLockService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
@@ -65,7 +66,7 @@ public class CellsSweeper {
         this.followers = followers;
 
         this.persistentLockRetryWaitMillis = AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS;
-        this.persistentLockService = PersistentLockService.create(keyValueService);
+        this.persistentLockService = StandardPersistentLockService.create(keyValueService);
     }
 
     public void sweepCells(
