@@ -238,7 +238,7 @@ public final class TransactionManagers {
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
-        return createLockAndTimestampServices(config, env, lock ,time, UserAgents.DEFAULT_USER_AGENT);
+        return createLockAndTimestampServices(config, env, lock, time, UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static LockAndTimestampServices createLockAndTimestampServices(
