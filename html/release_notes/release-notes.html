@@ -184,9 +184,15 @@ intention, while we now fail loudly (returning a 400).
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Oracle query now uses the right hints when generating the query plan. This will improve performance for OracleKVS.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1540">Pull Request</a>)</td>
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1549">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>Oracle table names can now have a maximum length of 27 characters instead of the previous limit of 30. This is to
+ensure consistency in naming the primary key constraint which adds a prefix of <code class="docutils literal"><span class="pre">pk_</span></code> to the table name. This will
+break any installation of Oracle with the <code class="docutils literal"><span class="pre">useTableMapping</span></code> flag set to <code class="docutils literal"><span class="pre">true</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1552">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Better support Oracle 12c batch responses
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1540">Pull Request</a>)</td>
 </tr>
