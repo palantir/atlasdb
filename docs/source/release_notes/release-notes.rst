@@ -51,7 +51,13 @@ develop
 
     *    - |fixed|
          - Oracle query now uses the right hints when generating the query plan. This will improve performance for OracleKVS.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1540>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1549>`__)
+
+    *    - |breaking|
+         - Oracle table names can now have a maximum length of 27 characters instead of the previous limit of 30. This is to
+           ensure consistency in naming the primary key constraint which adds a prefix of ``pk_`` to the table name. This will
+           break any installation of Oracle with the ``useTableMapping`` flag set to ``true``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1552>`__)
 
     *    - |fixed|
          - Better support Oracle 12c batch responses
