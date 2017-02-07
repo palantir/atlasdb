@@ -1,3 +1,5 @@
+.. _timestamp-service:
+
 =================
 Timestamp Service
 =================
