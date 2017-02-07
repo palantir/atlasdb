@@ -74,7 +74,7 @@ public class OracleTableNameMapperTest {
     }
 
     @Test
-    public void shouldThrowIfTable99999Exists() {
+    public void shouldThrowIfTable9999Exists() {
         when(resultSet.size()).thenReturn(1);
 
         AgnosticResultRow row = mock(AgnosticResultRow.class);

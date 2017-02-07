@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.google.common.base.Preconditions;
+import com.google.common.math.IntMath;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -25,11 +26,12 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleTableNameMapper {
     public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
-    private static final int PRIMARY_KEY_PREFIX_LENGTH = "pk_".length();
-    public static final int SUFFIX_NUMBER_LENGTH = 5;
+    private static final int PRIMARY_KEY_PREFIX_LENGTH = AtlasDbConstants.ORACLE_PK_CONSTRAINT_PREFIX.length();
+    public static final int SUFFIX_NUMBER_LENGTH = 4;
     public static final int MAX_NAMESPACE_LENGTH = 2;
+    private static final int ONE_UNDERSCORE = 1;
     private static final int NAMESPACED_TABLE_NAME_LENGTH =
-            ORACLE_MAX_TABLE_NAME_LENGTH - (SUFFIX_NUMBER_LENGTH + PRIMARY_KEY_PREFIX_LENGTH);
+            ORACLE_MAX_TABLE_NAME_LENGTH - (PRIMARY_KEY_PREFIX_LENGTH + ONE_UNDERSCORE + SUFFIX_NUMBER_LENGTH);
 
     public String getShortPrefixedTableName(
             ConnectionSupplier connectionSupplier,
@@ -44,7 +46,7 @@ public class OracleTableNameMapper {
         String truncatedTableName = truncate(prefixedTableName, NAMESPACED_TABLE_NAME_LENGTH);
 
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
-        return truncatedTableName + getTableNumberSuffix(connectionSupplier, fullTableName, truncatedTableName);
+        return truncatedTableName + "_" + getTableNumber(connectionSupplier, fullTableName, truncatedTableName);
     }
 
     private TableReference truncateNamespace(TableReference tableRef) {
@@ -60,17 +62,22 @@ public class OracleTableNameMapper {
         return name.substring(0, Math.min(name.length(), length));
     }
 
-    private String getTableNumberSuffix(
+    private String getTableNumber(
             ConnectionSupplier connectionSupplier,
             String fullTableName,
             String truncatedTableName) {
         int tableSuffixNumber = getNextTableNumber(connectionSupplier, truncatedTableName);
-        if (tableSuffixNumber >= 10_000) {
+        long maxTablesWithSamePrefix = IntMath.checkedPow(10, SUFFIX_NUMBER_LENGTH);
+        if (tableSuffixNumber >= maxTablesWithSamePrefix) {
             throw new IllegalArgumentException(
-                    "Cannot create any more tables with name starting with " + truncatedTableName
-                    + ". 10,000 tables might have already been created. Please rename the table." + fullTableName);
+                    String.format("Cannot create any more tables with name starting with %s. "
+                            + "%d tables might have already been created. "
+                            + "Please rename the table %s.",
+                            truncatedTableName,
+                            maxTablesWithSamePrefix,
+                            fullTableName));
         }
-        return "_" + String.format("%04d", tableSuffixNumber);
+        return String.format("%04d", tableSuffixNumber);
     }
 
     private int getNextTableNumber(ConnectionSupplier connectionSupplier, String truncatedTableName) {
