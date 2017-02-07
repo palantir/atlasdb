@@ -80,7 +80,7 @@ public class OracleTableInitializer implements DbTableInitializer {
                                 + "value      LONG RAW NULL,"
                                 + "CONSTRAINT %s PRIMARY KEY (table_name)"
                                 + ")",
-                        PrimaryKeyConstraintNames.get(metadataTableName), metadataTableName),
+                        metadataTableName, PrimaryKeyConstraintNames.get(metadataTableName)),
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
 
         executeIgnoringError(

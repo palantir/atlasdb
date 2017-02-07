@@ -54,7 +54,7 @@ public class PostgresTableInitializer implements DbTableInitializer {
                         + "  value      BYTEA NULL,"
                         + "  CONSTRAINT %s PRIMARY KEY (table_name) "
                         + ")",
-                        PrimaryKeyConstraintNames.get(metadataTableName), metadataTableName),
+                        metadataTableName, PrimaryKeyConstraintNames.get(metadataTableName)),
                 "already exists");
 
         executeIgnoringError(

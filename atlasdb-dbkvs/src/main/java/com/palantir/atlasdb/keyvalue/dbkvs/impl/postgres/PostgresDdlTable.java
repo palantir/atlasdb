@@ -63,7 +63,7 @@ public class PostgresDdlTable implements DbDdlTable {
                         + "  ts         INT8 NOT NULL,"
                         + "  val        BYTEA,"
                         + "  CONSTRAINT %s PRIMARY KEY (row_name, col_name, ts) ",
-                        PrimaryKeyConstraintNames.get(prefixedTableName()), prefixedTableName())
+                        prefixedTableName(), PrimaryKeyConstraintNames.get(prefixedTableName()))
                 + ")",
                 "already exists");
 
