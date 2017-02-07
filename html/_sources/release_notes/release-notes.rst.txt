@@ -48,6 +48,7 @@ develop
            supply the ``currentTimestamp`` query parameter, we would previously treat this as a fast-forward to zero
            and silently accept the request (returning 204) even though this is highly unlikely to be the user's
            intention, while we now fail loudly (returning a 400).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1538>`__)
 
     *    - |fixed|
          - Oracle query now uses the right hints when generating the query plan. This will improve performance for OracleKVS.
