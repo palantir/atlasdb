@@ -97,6 +97,6 @@ public class OracleTableNameMapperTest {
     }
 
     private String getTableNameWithNumber(int tableNum) {
-        return String.format("a_te__ThisIsAVeryLongT_%04d", tableNum);
+        return String.format("a_te__ThisIsAVeryLongT_%0" + OracleTableNameMapper.SUFFIX_NUMBER_LENGTH + "d", tableNum);
     }
 }

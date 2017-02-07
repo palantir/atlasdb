@@ -25,13 +25,11 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleTableNameMapper {
-    public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
-    private static final int PRIMARY_KEY_PREFIX_LENGTH = AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX.length();
     public static final int SUFFIX_NUMBER_LENGTH = 4;
     public static final int MAX_NAMESPACE_LENGTH = 2;
     private static final int ONE_UNDERSCORE = 1;
-    private static final int NAMESPACED_TABLE_NAME_LENGTH =
-            ORACLE_MAX_TABLE_NAME_LENGTH - (PRIMARY_KEY_PREFIX_LENGTH + ONE_UNDERSCORE + SUFFIX_NUMBER_LENGTH);
+    private static final int NAMESPACED_TABLE_NAME_LENGTH = AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT
+            - (ONE_UNDERSCORE + SUFFIX_NUMBER_LENGTH);
 
     public String getShortPrefixedTableName(
             ConnectionSupplier connectionSupplier,
@@ -77,7 +75,7 @@ public class OracleTableNameMapper {
                             maxTablesWithSamePrefix,
                             fullTableName));
         }
-        return String.format("%04d", tableSuffixNumber);
+        return String.format("%0" + SUFFIX_NUMBER_LENGTH + "d", tableSuffixNumber);
     }
 
     private int getNextTableNumber(ConnectionSupplier connectionSupplier, String truncatedTableName) {
