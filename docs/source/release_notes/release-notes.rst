@@ -42,6 +42,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed| |improved|
+         - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `ticket <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
+
+           This fix also enables better detection of legitimate occurrences of ``MultipleRunningTimestampServicesError``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1515>`__)
+
     *    - |devbreak| |improved|
          - Fast forwarding a persistent timestamp service to ``Long.MIN_VALUE`` will now throw an exception; previously
            it would be a no-op. This is especially relevant for safety of remote requests; if a user does not
