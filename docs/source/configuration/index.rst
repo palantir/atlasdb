@@ -72,7 +72,7 @@ Example Configuration
         sslConfiguration:
           trustStorePath: var/security/truststore.jks
 
-      enableSweep: true
+      enableSweep: false
       sweepBatchSize: 1000
 
 
