@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Overview &mdash; OSS AtlasDB develop documentation</title>
+  <title>Service Management &mdash; OSS AtlasDB develop documentation</title>
   
 
   
@@ -38,9 +38,9 @@
               href="../../genindex.html"/>
         <link rel="search" title="Search" href="../../search.html"/>
     <link rel="top" title="OSS AtlasDB develop documentation" href="../../index.html"/>
-        <link rel="up" title="Lock Service" href="index.html"/>
-        <link rel="next" title="Installation" href="installation.html"/>
-        <link rel="prev" title="Lock Service" href="index.html"/> 
+        <link rel="up" title="Timestamp Service" href="index.html"/>
+        <link rel="next" title="External Timelock Service" href="../timelock_service/index.html"/>
+        <link rel="prev" title="Clusters" href="clustering.html"/> 
 
   
   <script src="../../_static/js/modernizr.min.js"></script>
@@ -97,13 +97,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../../cluster_management/index.html">Cluster Management</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">Services</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../key_value_services/index.html">Key Value Services</a></li>
-<li class="toctree-l2 current"><a class="reference internal" href="index.html">Lock Service</a><ul class="current">
-<li class="toctree-l3 current"><a class="current reference internal" href="#">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="leader_election.html">Palantir Leader Election</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lock_service/index.html">Lock Service</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Timestamp Service</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="clustering.html">Clusters</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Service Management</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../timestamp_service/index.html">Timestamp Service</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../timelock_service/index.html">External Timelock Service</a></li>
 </ul>
 </li>
@@ -143,13 +143,13 @@
       
           <li><a href="../index.html">Services</a> &raquo;</li>
       
-          <li><a href="index.html">Lock Service</a> &raquo;</li>
+          <li><a href="index.html">Timestamp Service</a> &raquo;</li>
       
-    <li>Overview</li>
+    <li>Service Management</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/lock_service/overview.rst" class="fa fa-github"> Edit on GitHub</a>
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/timestamp_service/management.rst" class="fa fa-github"> Edit on GitHub</a>
           
         
       </li>
@@ -159,28 +159,24 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="overview">
-<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="the-lock-service">
-<h2>The Lock Service<a class="headerlink" href="#the-lock-service" title="Permalink to this headline">¶</a></h2>
-<p>The lock service helps prevent data corruption in the database by enabling clients to avoid modifying the same data at the same time.</p>
-<p>The lock service listens for lock requests.
-A lock request is what we call a client asking for permission to modify data in the database.
-The lock service will receive the lock request from the client, and will consider whether it should approve the request.</p>
-<p>The lock service determines whether to approve a request by checking an internal hash table of granted lock requests.
-If the resource to be locked is already in the hash table, the lock service will not approve the request.
-When the resource becomes available, the lock service will approve the request, and send a lock token to the client.</p>
-<p>The lock token is essentially an indicator that the client should proceed with its transaction.
-However, the lock token is not actually a mutex; it is just a token.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Lock clients are expected to abide by these locks as per the <a class="reference internal" href="../../transactions/transaction_protocol.html#transaction-protocol"><span class="std std-ref">Transaction Protocol</span></a>.</p>
+  <div class="section" id="service-management">
+<h1>Service Management<a class="headerlink" href="#service-management" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="fast-forward">
+<h2>Fast Forward<a class="headerlink" href="#fast-forward" title="Permalink to this headline">¶</a></h2>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">In general, caution should be used when using Fast Forward, especially with user input data (since fast forwarding
+to <code class="docutils literal"><span class="pre">Long.MAX_VALUE</span></code> will cause the AtlasDB cluster to become corrupted and require complex manual recovery).</p>
 </div>
-</div>
-<div class="section" id="the-lock-client">
-<h2>The Lock Client<a class="headerlink" href="#the-lock-client" title="Permalink to this headline">¶</a></h2>
-<p>A lock client runs on any service that wishes to use the lock service to coordinate activity on the database.
-The lock client uses tokens from the lock service to determine whether it is safe to proceed with transactions.</p>
+<p>There may be instances where we need to fast forward the Timestamp Service - that is, ensure that all timestamps
+given out by the Timestamp Service are after a certain timestamp. Examples include restoring an AtlasDB cluster
+from a backup, or migrating an existing cluster from embedded timestamp services to external Timelock services.</p>
+<p>More precisely, the guarantee we offer is that after a fast forward to timestamp TS has returned, future requests sent
+to the Timestamp Service will return a timestamp greater than TS.</p>
+<p>Typically, fast forwards are carried out through the AtlasDB <a class="reference internal" href="../../cluster_management/clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a>, or through the <code class="docutils literal"><span class="pre">fast-forward</span></code> endpoint
+on the Timelock Server. Fast forward operates by updating the last known issued timestamp to the maximum of that and
+TS.</p>
+<p>Note that fast forward is idempotent, since we use maximums. Also, fast forwarding to the past is a no-op.</p>
 </div>
 </div>
 
@@ -191,10 +187,10 @@ The lock client uses tokens from the lock service to determine whether it is saf
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="installation.html" class="btn btn-neutral float-right" title="Installation" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../timelock_service/index.html" class="btn btn-neutral float-right" title="External Timelock Service" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="index.html" class="btn btn-neutral" title="Lock Service" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="clustering.html" class="btn btn-neutral" title="Clusters" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

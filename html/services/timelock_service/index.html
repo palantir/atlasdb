@@ -40,7 +40,7 @@
     <link rel="top" title="OSS AtlasDB develop documentation" href="../../index.html"/>
         <link rel="up" title="Services" href="../index.html"/>
         <link rel="next" title="Timelock Server Installation" href="installation.html"/>
-        <link rel="prev" title="Palantir Leader Election" href="../lock_service/leader_election.html"/> 
+        <link rel="prev" title="Service Management" href="../timestamp_service/management.html"/> 
 
   
   <script src="../../_static/js/modernizr.min.js"></script>
@@ -98,6 +98,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">Services</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../key_value_services/index.html">Key Value Services</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../lock_service/index.html">Lock Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timestamp_service/index.html">Timestamp Service</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">External Timelock Service</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="installation.html">Timelock Server Installation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="migration.html">Migration to External Timelock Services</a></li>
@@ -169,9 +170,9 @@ CORRUPTION</strong>! Please contact the AtlasDB team if you wish to try this fea
 <li class="toctree-l1"><a class="reference internal" href="migration.html">Migration to External Timelock Services</a></li>
 </ul>
 </div>
-<p>The AtlasDB Timelock Service is an external implementation of the Timestamp and Lock services. Running an external
-Timelock Service (as opposed to running timestamp and lock services embedded within one&#8217;s clients) provides several
-benefits:</p>
+<p>The AtlasDB Timelock Service is an external implementation of the <a class="reference internal" href="../timestamp_service/index.html#timestamp-service"><span class="std std-ref">Timestamp</span></a> and
+<a class="reference internal" href="../lock_service/index.html#lock-service"><span class="std std-ref">Lock</span></a> services. Running an external Timelock Service (as opposed to running timestamp and lock
+services embedded within one&#8217;s clients) provides several benefits:</p>
 <ul class="simple">
 <li>Additional reliability; we have subjected our new implementation to Jepsen testing, and do not rely on the
 consistency of the user&#8217;s key-value services.</li>
@@ -197,7 +198,7 @@ exists.</li>
         <a href="installation.html" class="btn btn-neutral float-right" title="Timelock Server Installation" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="../lock_service/leader_election.html" class="btn btn-neutral" title="Palantir Leader Election" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="../timestamp_service/management.html" class="btn btn-neutral" title="Service Management" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

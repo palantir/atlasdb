@@ -103,6 +103,7 @@
 <li class="toctree-l3"><a class="reference internal" href="leader_election.html">Palantir Leader Election</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../timestamp_service/index.html">Timestamp Service</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../timelock_service/index.html">External Timelock Service</a></li>
 </ul>
 </li>
@@ -157,9 +158,9 @@
            <div itemprop="articleBody">
             
   <div class="section" id="lock-service">
-<h1>Lock Service<a class="headerlink" href="#lock-service" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Lock Service<a class="headerlink" href="#lock-service" title="Permalink to this headline">¶</a></h1>
 <p>The AtlasDB Lock Service exposes an API to lock clients for acquiring read and read/write locks on data in AtlasDB.
-The Lock Service also supports clustering. When multiple lock services are clustered, they will collaborate to elect a leader
+The Lock Service also supports clustering. When a Lock service is clustered, the nodes will collaborate to elect a leader
 via the Paxos algorithm.</p>
 <p>A description of Paxos can be found on <a class="reference external" href="https://en.wikipedia.org/wiki/Paxos_(computer_science)">Wikipedia</a></p>
 <div class="toctree-wrapper compound">
