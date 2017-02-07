@@ -26,7 +26,7 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleTableNameMapper {
     public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
-    private static final int PRIMARY_KEY_PREFIX_LENGTH = AtlasDbConstants.ORACLE_PK_CONSTRAINT_PREFIX.length();
+    private static final int PRIMARY_KEY_PREFIX_LENGTH = AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX.length();
     public static final int SUFFIX_NUMBER_LENGTH = 4;
     public static final int MAX_NAMESPACE_LENGTH = 2;
     private static final int ONE_UNDERSCORE = 1;

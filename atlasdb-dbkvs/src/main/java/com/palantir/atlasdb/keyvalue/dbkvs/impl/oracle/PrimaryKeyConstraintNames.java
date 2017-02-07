@@ -24,6 +24,6 @@ public final class PrimaryKeyConstraintNames {
     }
 
     public static String get(String name) {
-        return AtlasDbConstants.ORACLE_PK_CONSTRAINT_PREFIX + name;
+        return AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX + name;
     }
 }

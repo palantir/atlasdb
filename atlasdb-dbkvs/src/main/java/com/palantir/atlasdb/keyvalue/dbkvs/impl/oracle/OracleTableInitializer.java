@@ -78,9 +78,9 @@ public class OracleTableInitializer implements DbTableInitializer {
                                 + "table_name varchar(2000) NOT NULL,"
                                 + "table_size NUMBER(38) NOT NULL,"
                                 + "value      LONG RAW NULL,"
-                                + "CONSTRAINT pk_%s PRIMARY KEY (table_name)"
+                                + "CONSTRAINT %s PRIMARY KEY (table_name)"
                                 + ")",
-                        metadataTableName, metadataTableName),
+                        PrimaryKeyConstraintNames.get(metadataTableName), metadataTableName),
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
 
         executeIgnoringError(
