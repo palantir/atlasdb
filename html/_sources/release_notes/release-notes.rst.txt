@@ -42,6 +42,11 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - Removed the unused `TieredKeyValueService` which offered the ability to spread tables across multiple KVSs that
+           exist in a stacked hierarchy (primary & secondary).  If you require this KVS please file a ticket to have it reinstated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1553>`__)
+
     *    - |devbreak| |improved|
          - Fast forwarding a persistent timestamp service to ``Long.MIN_VALUE`` will now throw an exception; previously
            it would be a no-op. This is especially relevant for safety of remote requests; if a user does not
