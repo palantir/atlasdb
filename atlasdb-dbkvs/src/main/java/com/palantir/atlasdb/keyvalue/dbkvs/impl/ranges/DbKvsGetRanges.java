@@ -313,7 +313,6 @@ public class DbKvsGetRanges {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE,
                 DbKvs.internalTableName(tableRef),
-                getPrimaryKeyConstraintName(tableRef),
                 getPrefixedTableName(tableRef),
                 extraWhere,
                 order);
@@ -350,7 +349,7 @@ public class DbKvsGetRanges {
 
     private static final String SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE =
             " /* SIMPLE_ROW_SELECT_ONE_TEMPLATE_PSQL (%s) */ "
-            + " SELECT /*+ INDEX(t %s) */ "
+            + " SELECT"
             + "   DISTINCT row_name, ? as batch_num "
             + " FROM %s t "
             + " WHERE %s "
