@@ -54,6 +54,7 @@ public class CassandraTimestampStore {
     /**
      * Gets the upper timestamp limit from the database if it exists.
      * @return Timestamp limit stored in the KVS, if present
+     * @throws IllegalStateException if the timestamp limit has been invalidated
      */
     public synchronized Optional<Long> getUpperLimit() {
         return cassandraKeyValueService.clientPool.runWithRetry(client -> {
@@ -71,6 +72,12 @@ public class CassandraTimestampStore {
         });
     }
 
+    /**
+     * Stores an upper timestamp limit in the database in an atomic way.
+     * @param expected Expected current value of the timestamp bound (or null if there is no bound)
+     * @param target Upper timestamp limit we want to store in the database
+     * @throws ConcurrentModificationException if the expected value does not match the bound in the database
+     */
     public synchronized void storeTimestampBound(Long expected, long target) {
         cassandraKeyValueService.clientPool.runWithRetry(client -> {
             ByteBuffer queryBuffer = CassandraTimestampUtils.constructCheckAndSetCqlQuery(expected, target);
@@ -85,12 +92,18 @@ public class CassandraTimestampStore {
     }
 
     /**
-     * Stores a backup of the existing timestamp.
+     * Writes a backup of the existing timestamp to the database. After this backup, this timestamp service can
+     * no longer be used until a restore.
+     * @throws IllegalStateException if the timestamp has already been backed up
      */
     public synchronized void backupExistingTimestamp() {
         throw new UnsupportedOperationException("TODO implement me");
     }
 
+    /**
+     * Restores a backup of an existing timestamp.
+     * @throws IllegalStateException if there was no backup
+     */
     public synchronized void restoreFromBackup() {
         throw new UnsupportedOperationException("TODO implement me");
     }

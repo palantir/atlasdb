@@ -71,6 +71,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
         try {
             cassandraTimestampStore.storeTimestampBound(currentLimit, limit);
+            currentLimit = limit;
         } catch (ConcurrentModificationException e) {
             throw new MultipleRunningTimestampServiceError(
                     "CAS unsuccessful; this may indicate that another timestamp service is running against this"

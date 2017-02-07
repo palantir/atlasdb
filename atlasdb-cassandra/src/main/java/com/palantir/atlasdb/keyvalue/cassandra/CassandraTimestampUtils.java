@@ -68,10 +68,12 @@ public final class CassandraTimestampUtils {
 
     public static ByteBuffer constructSelectTimestampBoundQuery() {
         String selectQuery = String.format(
-                "SELECT value FROM %s WHERE key=%s AND column1=%s;",
+                "SELECT %s FROM %s WHERE key=%s AND column1=%s AND column2=%s;",
+                VALUE_COLUMN,
                 wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
                 ROW_AND_COLUMN_NAME_HEX_STRING,
-                ROW_AND_COLUMN_NAME_HEX_STRING);
+                ROW_AND_COLUMN_NAME_HEX_STRING,
+                CASSANDRA_TIMESTAMP);
         return ByteBuffer.wrap(PtBytes.toBytes(selectQuery));
     }
 
@@ -90,6 +92,9 @@ public final class CassandraTimestampUtils {
 
     public static long getLongValue(CqlResult cqlResult) {
         Column valueColumn = getNamedColumn(cqlResult, VALUE_COLUMN);
+        if (Arrays.equals(INVALIDATED_VALUE, valueColumn.getValue())) {
+            throw new IllegalStateException("Couldn't extract a long from the invalidated value!");
+        }
         return PtBytes.toLong(valueColumn.getValue());
     }
 
