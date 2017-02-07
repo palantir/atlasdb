@@ -23,36 +23,12 @@ import javax.annotation.concurrent.GuardedBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBoundStore.class);
-
-    private static final long CASSANDRA_TIMESTAMP = 0L;
-    private static final String ROW_AND_COLUMN_NAME = "ts";
-
-    public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(
-                    new NameComponentDescription("timestamp_name", ValueType.STRING))),
-            new ColumnMetadataDescription(ImmutableList.of(
-                new NamedColumnDescription(
-                        ROW_AND_COLUMN_NAME,
-                        "current_max_ts",
-                        ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
-            ConflictHandler.IGNORE_ALL);
-
     private static final long INITIAL_VALUE = 10000L;
 
     @GuardedBy("this")
@@ -61,15 +37,16 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private final CassandraTimestampStore cassandraTimestampStore;
 
     public static TimestampBoundStore create(CassandraKeyValueService kvs) {
-        kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
-        return new CassandraTimestampBoundStore(kvs);
+        CassandraTimestampStore cassandraTimestampStore = new CassandraTimestampStore(kvs);
+        cassandraTimestampStore.createTimestampTable();
+        return new CassandraTimestampBoundStore(cassandraTimestampStore);
     }
 
-    private CassandraTimestampBoundStore(CassandraKeyValueService kvs) {
+    private CassandraTimestampBoundStore(CassandraTimestampStore cassandraTimestampStore) {
         DebugLogger.logger.info(
                 "Creating CassandraTimestampBoundStore object on thread {}. This should only happen once.",
                 Thread.currentThread().getName());
-        this.cassandraTimestampStore = new CassandraTimestampStore(kvs);
+        this.cassandraTimestampStore = cassandraTimestampStore;
     }
 
     @Override
