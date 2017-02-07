@@ -237,6 +237,14 @@ public final class TransactionManagers {
             AtlasDbConfig config,
             Environment env,
             Supplier<RemoteLockService> lock,
+            Supplier<TimestampService> time) {
+        return createLockAndTimestampServices(config, env, lock ,time, UserAgents.DEFAULT_USER_AGENT);
+    }
+
+    public static LockAndTimestampServices createLockAndTimestampServices(
+            AtlasDbConfig config,
+            Environment env,
+            Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =

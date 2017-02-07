@@ -81,7 +81,7 @@ public class TransactionManagersTest {
     private TransactionManagers.Environment environment;
 
     @ClassRule
-    public static TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(AVAILABLE_PORT);
