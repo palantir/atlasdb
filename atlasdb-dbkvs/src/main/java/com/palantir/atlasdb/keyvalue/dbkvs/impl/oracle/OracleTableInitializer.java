@@ -55,7 +55,7 @@ public class OracleTableInitializer implements DbTableInitializer {
                 String.format(
                         "CREATE TABLE %s ("
                                 + "table_name varchar(2000) NOT NULL,"
-                                + "short_table_name varchar(30) NOT NULL,"
+                                + "short_table_name varchar(27) NOT NULL,"
                                 + "CONSTRAINT %s PRIMARY KEY (table_name),"
                                 + "CONSTRAINT unique_%s UNIQUE (short_table_name)"
                                 + ")",
