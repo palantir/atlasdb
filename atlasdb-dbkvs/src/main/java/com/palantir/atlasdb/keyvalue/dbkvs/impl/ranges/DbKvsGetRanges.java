@@ -26,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
@@ -43,11 +42,9 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.PrefixedTableNames;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OraclePrimaryKeyConstraintNames;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.common.collect.IterableView;
@@ -71,19 +68,16 @@ public class DbKvsGetRanges {
     private static final byte[] LARGEST_NAME = Cells.createLargestCellForRow(new byte[] {0}).getColumnName();
 
     private final DbKvs kvs;
-    private final DdlConfig config;
     private final DBType dbType;
     private final Supplier<SqlConnection> connectionSupplier;
     private PrefixedTableNames prefixedTableNames;
 
     public DbKvsGetRanges(
             DbKvs kvs,
-            DdlConfig config,
             DBType dbType,
             Supplier<SqlConnection> connectionSupplier,
             PrefixedTableNames prefixedTableNames) {
         this.kvs = kvs;
-        this.config = config;
         this.dbType = dbType;
         this.connectionSupplier = connectionSupplier;
         this.prefixedTableNames = prefixedTableNames;
@@ -288,12 +282,9 @@ public class DbKvsGetRanges {
     private IterableView<RowResult<Value>> filterColumnSelection(
             IterableView<RowResult<Value>> rows,
             RangeRequest request) {
-        return rows.transform(RowResults.<Value>createFilterColumns(new Predicate<byte[]>() {
-            @Override
-            public boolean apply(byte[] col) {
-                return request.containsColumn(col);
-            }
-        })).filter(Predicates.not(RowResults.<Value>createIsEmptyPredicate()));
+        return rows
+                .transform(RowResults.createFilterColumns(request::containsColumn))
+                .filter(Predicates.not(RowResults.createIsEmptyPredicate()));
     }
 
     private static void closeSql(SqlConnection conn) {
@@ -314,7 +305,6 @@ public class DbKvsGetRanges {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE,
                 DbKvs.internalTableName(tableRef),
-                getPrimaryKeyConstraintName(tableRef),
                 getPrefixedTableName(tableRef),
                 extraWhere,
                 order);
@@ -334,10 +324,7 @@ public class DbKvsGetRanges {
     }
 
     private String getPrimaryKeyConstraintName(TableReference tableRef) {
-        if (config.type().equals(OracleDdlConfig.TYPE)) {
-            return OraclePrimaryKeyConstraintNames.get(getPrefixedTableName(tableRef));
-        }
-        return "pk_" + getPrefixedTableName(tableRef);
+        return PrimaryKeyConstraintNames.get(getPrefixedTableName(tableRef));
     }
 
     private String getPrefixedTableName(TableReference tableRef) {
@@ -354,7 +341,7 @@ public class DbKvsGetRanges {
 
     private static final String SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE =
             " /* SIMPLE_ROW_SELECT_ONE_TEMPLATE_PSQL (%s) */ "
-            + " SELECT /*+ INDEX(t %s) */ "
+            + " SELECT"
             + "   DISTINCT row_name, ? as batch_num "
             + " FROM %s t "
             + " WHERE %s "

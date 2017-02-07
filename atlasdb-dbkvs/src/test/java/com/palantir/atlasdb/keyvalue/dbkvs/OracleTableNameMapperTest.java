@@ -23,16 +23,16 @@ import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OraclePrimaryKeyConstraintNames;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
@@ -71,39 +71,32 @@ public class OracleTableNameMapperTest {
         TableReference tableRef = TableReference.create(Namespace.create("ns1"), "short");
         String shortPrefixedTableName = oracleTableNameMapper
                 .getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
-        assertThat(shortPrefixedTableName, is("a_ns__short_00000"));
+        assertThat(shortPrefixedTableName, is("a_ns__short_0000"));
     }
 
     @Test
-    public void shouldThrowIfTable99999Exists() {
+    public void shouldThrowIfTable9999Exists() {
         when(resultSet.size()).thenReturn(1);
 
         AgnosticResultRow row = mock(AgnosticResultRow.class);
-        when(row.getString(eq("short_table_name"))).thenReturn(getTableNameWithNumber(99999));
+        when(row.getString(eq("short_table_name"))).thenReturn(getTableNameWithNumber(9999));
         when(resultSet.get(eq(0))).thenReturn(row);
 
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-                "Cannot create any more tables with name starting with a_te__ThisIsAVeryLongTab");
+                "Cannot create any more tables with name starting with a_te__ThisIsAVeryLongT");
         oracleTableNameMapper.getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
     }
 
     @Test
-    public void shouldGetRightPrimaryKeyConstraintForLongTableNames() {
-        String pkConstraintName = OraclePrimaryKeyConstraintNames.get(LONG_TABLE_NAME);
-        assertThat(pkConstraintName, is(StringUtils.left("pk_" + LONG_TABLE_NAME, 30)));
-        assertThat(pkConstraintName.length(), is(OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH));
-    }
-
-    @Test
-    public void shouldGetRightPrimaryKeyConstraintForShortTableNames() {
+    public void shouldGetRightPrimaryKeyConstraintForTableNamesWithinLimits() {
         String tableName = "table";
-        String pkConstraintName = OraclePrimaryKeyConstraintNames.get(tableName);
-        assertThat(pkConstraintName, is("pk_" + tableName));
+        String pkConstraintName = PrimaryKeyConstraintNames.get(tableName);
+        assertThat(pkConstraintName, is(AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX + tableName));
     }
 
     private String getTableNameWithNumber(int tableNum) {
-        return String.format("a_te__ThisIsAVeryLongTab_%05d", tableNum);
+        return String.format("a_te__ThisIsAVeryLongT_%0" + OracleTableNameMapper.SUFFIX_NUMBER_LENGTH + "d", tableNum);
     }
 }

@@ -34,8 +34,13 @@ public class AtlasDbConstants {
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace("atlasdb_metadata");
 
+    public static final String PRIMARY_KEY_CONSTRAINT_PREFIX = "pk_";
+
+    private static final int ORACLE_NAME_LENGTH_LIMIT = 30;
+    public static final int ATLASDB_ORACLE_TABLE_NAME_LIMIT = AtlasDbConstants.ORACLE_NAME_LENGTH_LIMIT - PRIMARY_KEY_CONSTRAINT_PREFIX.length();
     public static final String ORACLE_NAME_MAPPING_TABLE = "atlasdb_table_names";
-    public static final String ORACLE_NAME_MAPPING_PK_CONSTRAINT = "pk_" + ORACLE_NAME_MAPPING_TABLE;
+    public static final String ORACLE_NAME_MAPPING_PK_CONSTRAINT = PRIMARY_KEY_CONSTRAINT_PREFIX
+            + ORACLE_NAME_MAPPING_TABLE;
     public static final String ORACLE_OVERFLOW_SEQUENCE = "overflow_seq";
     public static final int ORACLE_OVERFLOW_THRESHOLD = 2000;
 
