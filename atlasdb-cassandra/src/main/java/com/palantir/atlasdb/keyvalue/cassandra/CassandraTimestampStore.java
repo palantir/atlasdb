@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -49,10 +50,12 @@ import com.palantir.timestamp.DebugLogger;
 import com.palantir.util.debug.ThreadDumps;
 
 public class CassandraTimestampStore {
-    private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBoundStore.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraTimestampStore.class);
 
-    private static final long CASSANDRA_TIMESTAMP = 0L;
+    private static final long CASSANDRA_TIMESTAMP = -1;
+
     private static final String ROW_AND_COLUMN_NAME = "ts";
+    public static final String ROW_AND_COLUMN_NAME_HEX_STRING = encodeCassandraHexString(ROW_AND_COLUMN_NAME);
     private static final String BACKUP_COLUMN_NAME = "oldTs";
     private static final byte[] INVALIDATED_VALUE = new byte[1];
 
@@ -85,23 +88,19 @@ public class CassandraTimestampStore {
 
     /**
      * Gets the upper timestamp limit from the database if it exists.
-     * @return Timestamp limit stored in the KVS
+     * @return Timestamp limit stored in the KVS, if present
      */
     public synchronized Optional<Long> getUpperLimit() {
         return cassandraKeyValueService.clientPool.runWithRetry(client -> {
-            String selectQuery = String.format(
-                    "SELECT value FROM %s WHERE key=%s AND column1=%s;",
-                    wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
-                    encodeCassandraHexString(ROW_AND_COLUMN_NAME),
-                    encodeCassandraHexString(ROW_AND_COLUMN_NAME));
-            ByteBuffer queryBuffer = ByteBuffer.wrap(PtBytes.toBytes(selectQuery));
+            ByteBuffer queryBuffer = constructSelectTimestampBoundQuery();
             try {
                 CqlResult result = client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.QUORUM);
                 List<CqlRow> cqlRows = result.getRows();
                 if (cqlRows.isEmpty()) {
                     return Optional.empty();
                 }
-                return Optional.of(PtBytes.toLong(Iterables.getOnlyElement(getColumnsFromOnlyRow(cqlRows)).getValue()));
+                Column valueColumn = getNamedColumn(result, "value");
+                return Optional.of(PtBytes.toLong(valueColumn.getValue()));
             } catch (TException e) {
                 throw Throwables.rewrapAndThrowUncheckedException(e);
             }
@@ -110,30 +109,10 @@ public class CassandraTimestampStore {
 
     public synchronized void storeTimestampBound(Long expected, long target) {
         cassandraKeyValueService.clientPool.runWithRetry(client -> {
-            String updateQuery;
-            if (expected == null) {
-                updateQuery = String.format(
-                        "INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, -1, %s) IF NOT EXISTS;",
-                        wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
-                        encodeCassandraHexString(ROW_AND_COLUMN_NAME),
-                        encodeCassandraHexString(ROW_AND_COLUMN_NAME),
-                        encodeCassandraHexBytes(PtBytes.toBytes(target)));
-            } else {
-                updateQuery = String.format(
-                        "UPDATE %s SET value=%s WHERE key=%s AND column1=%s AND column2=-1 IF value=%s;",
-                        wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
-                        encodeCassandraHexBytes(PtBytes.toBytes(target)),
-                        encodeCassandraHexString(ROW_AND_COLUMN_NAME),
-                        encodeCassandraHexString(ROW_AND_COLUMN_NAME),
-                        encodeCassandraHexBytes(PtBytes.toBytes(expected)));
-            }
-            ByteBuffer queryBuffer = ByteBuffer.wrap(PtBytes.toBytes(updateQuery));
+            ByteBuffer queryBuffer = constructCheckAndSetCqlQuery(expected, target);
             try {
                 CqlResult result = client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.QUORUM);
-                Column appliedColumn = getColumnsFromOnlyRow(result.getRows()).get(0);
-                if (!Arrays.equals(appliedColumn.getValue(), SUCCESSFUL_OPERATION)) {
-                    throw constructConcurrentTimestampStoreException(expected, target, result);
-                }
+                checkOperationWasApplied(expected, target, result);
                 return null;
             } catch (TException e) {
                 throw Throwables.rewrapAndThrowUncheckedException(e);
@@ -141,16 +120,29 @@ public class CassandraTimestampStore {
         });
     }
 
+    /**
+     * Stores a backup of the existing timestamp.
+     */
+    public synchronized void backupExistingTimestamp() {
+        throw new UnsupportedOperationException("TODO implement me");
+    }
+
+    public synchronized void restoreFromBackup() {
+        throw new UnsupportedOperationException("TODO implement me");
+    }
+
+    private void checkOperationWasApplied(Long expected, long target, CqlResult result) {
+        Column appliedColumn = getNamedColumn(result, "[applied]");
+        if (!Arrays.equals(appliedColumn.getValue(), SUCCESSFUL_OPERATION)) {
+            throw constructConcurrentTimestampStoreException(expected, target, result);
+        }
+    }
+
     private ConcurrentModificationException constructConcurrentTimestampStoreException(
             Long expected,
             long target,
             CqlResult result) {
-        Column valueColumn;
-        if (expected == null) {
-            valueColumn = getColumnsFromOnlyRow(result.getRows()).get(4);
-        } else {
-            valueColumn = getColumnsFromOnlyRow(result.getRows()).get(1);
-        }
+        Column valueColumn = getNamedColumn(result, "value");
         long actual = PtBytes.toLong(valueColumn.getValue());
 
         String msg = "Unable to CAS from {} to {}."
@@ -166,15 +158,50 @@ public class CassandraTimestampStore {
         throw except;
     }
 
-    /**
-     * Stores a backup of the existing timestamp.
-     */
-    public synchronized void backupExistingTimestamp() {
-        throw new UnsupportedOperationException("TODO implement me");
+    private static Column getNamedColumn(CqlResult cqlResult, String columnName) {
+        List<Column> columns = getColumnsFromOnlyRow(cqlResult.getRows());
+        return Iterables.getOnlyElement(
+                columns.stream()
+                .filter(column -> columnName.equals(PtBytes.toString(column.getName())))
+                .collect(Collectors.toList()));
     }
 
-    public synchronized void restoreFromBackup() {
-        throw new UnsupportedOperationException("TODO implement me");
+    private ByteBuffer constructSelectTimestampBoundQuery() {
+        String selectQuery = String.format(
+                "SELECT value FROM %s WHERE key=%s AND column1=%s;",
+                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
+                ROW_AND_COLUMN_NAME_HEX_STRING,
+                ROW_AND_COLUMN_NAME_HEX_STRING);
+        return ByteBuffer.wrap(PtBytes.toBytes(selectQuery));
+    }
+
+    private ByteBuffer constructCheckAndSetCqlQuery(Long expected, long target) {
+        String updateQuery = (expected == null)
+                ? constructInsertIfNotExistsQuery(target)
+                : constructUpdateIfEqualQuery(expected, target);
+
+        return ByteBuffer.wrap(PtBytes.toBytes(updateQuery));
+    }
+
+    private String constructUpdateIfEqualQuery(Long expected, long target) {
+        return String.format(
+                "UPDATE %s SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;",
+                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
+                encodeCassandraHexBytes(PtBytes.toBytes(target)),
+                ROW_AND_COLUMN_NAME_HEX_STRING,
+                ROW_AND_COLUMN_NAME_HEX_STRING,
+                CASSANDRA_TIMESTAMP,
+                encodeCassandraHexBytes(PtBytes.toBytes(expected)));
+    }
+
+    private String constructInsertIfNotExistsQuery(long target) {
+        return String.format(
+                "INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, %s, %s) IF NOT EXISTS;",
+                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
+                ROW_AND_COLUMN_NAME_HEX_STRING,
+                ROW_AND_COLUMN_NAME_HEX_STRING,
+                CASSANDRA_TIMESTAMP,
+                encodeCassandraHexBytes(PtBytes.toBytes(target)));
     }
 
     private static String wrapInQuotes(String tableName) {
