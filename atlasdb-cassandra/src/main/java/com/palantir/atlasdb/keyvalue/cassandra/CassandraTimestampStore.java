@@ -94,7 +94,13 @@ public class CassandraTimestampStore {
     /**
      * Writes a backup of the existing timestamp to the database. After this backup, this timestamp service can
      * no longer be used until a restore.
-     * @throws IllegalStateException if the timestamp has already been backed up
+     *
+     * This may be implemented as follows:
+     *  - Read the value of the backup timestamp. If this is readable, skip (already backed up).
+     *  - Read the value of the timestamp (TS). If this is unreadable, fail.
+     *  - Do a conditional logged batch:
+     *    - CAS the main timestamp, expecting TS, to the INVALIDATED_VALUE
+     *    - Put unless exists the value of TS to the backup timestamp.
      */
     public synchronized void backupExistingTimestamp() {
         throw new UnsupportedOperationException("TODO implement me");
@@ -102,7 +108,13 @@ public class CassandraTimestampStore {
 
     /**
      * Restores a backup of an existing timestamp.
-     * @throws IllegalStateException if there was no backup
+     *
+     * This may be implemented following the inverse of the backup process:
+     *  - Read the value of the timestamp. If this is readable, skip.
+     *  - Read the value of the backup (BT). If this is unreadable, fail.
+     *  - Do a conditional logged batch:
+     *    - Conditionally delete the backup if it matches BT
+     *    - CAS the main timestamp, expecting INVALIDATED_VALUE, to BT.
      */
     public synchronized void restoreFromBackup() {
         throw new UnsupportedOperationException("TODO implement me");
