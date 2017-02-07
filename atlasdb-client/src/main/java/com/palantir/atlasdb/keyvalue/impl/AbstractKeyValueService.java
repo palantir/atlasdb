@@ -277,7 +277,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
-        try (ClosableIterator<RowResult<Set<Long>>> iterator = getRangeOfTimestamps(tableRef, range, Long.MAX_VALUE)) {
+        try (ClosableIterator<RowResult<Set<Long>>> iterator = getRangeOfTimestamps(tableRef, range, AtlasDbConstants.MAX_TS)) {
             while (iterator.hasNext()) {
                 RowResult<Set<Long>> rowResult = iterator.next();
                 Multimap<Cell, Long> cellsToDelete = HashMultimap.create();
