@@ -18,13 +18,16 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.xml.bind.DatatypeConverter;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -37,6 +40,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.util.Pair;
 
 public final class CassandraTimestampUtils {
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
@@ -51,80 +55,101 @@ public final class CassandraTimestampUtils {
 
     private static final long CASSANDRA_TIMESTAMP = -1;
 
-    private static final String ROW_AND_COLUMN_NAME = "ts";
+    public static final String ROW_AND_COLUMN_NAME = "ts";
     private static final String ROW_AND_COLUMN_NAME_HEX_STRING = encodeCassandraHexString(ROW_AND_COLUMN_NAME);
 
     private static final String APPLIED_COLUMN = "[applied]";
+    private static final String COLUMN_NAME_COLUMN = "column1";
     private static final String VALUE_COLUMN = "value";
 
     private static final byte[] SUCCESSFUL_OPERATION = {1};
 
-    private static final String BACKUP_COLUMN_NAME = "oldTs";
+    public static final String BACKUP_COLUMN_NAME = "oldTs";
     private static final byte[] INVALIDATED_VALUE = new byte[1];
 
     private CassandraTimestampUtils() {
         // utility class
     }
 
-    public static ByteBuffer constructSelectTimestampBoundQuery() {
-        String selectQuery = String.format(
-                "SELECT %s FROM %s WHERE key=%s AND column1=%s AND column2=%s;",
+    public static ByteBuffer constructSelectFromTimestampTableQuery() {
+        return toByteBuffer(String.format(
+                "SELECT %s, %s FROM %s WHERE key=%s;",
+                COLUMN_NAME_COLUMN,
                 VALUE_COLUMN,
                 wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
-                ROW_AND_COLUMN_NAME_HEX_STRING,
-                ROW_AND_COLUMN_NAME_HEX_STRING,
-                CASSANDRA_TIMESTAMP);
-        return ByteBuffer.wrap(PtBytes.toBytes(selectQuery));
+                ROW_AND_COLUMN_NAME_HEX_STRING));
     }
 
-    public static ByteBuffer constructCheckAndSetCqlQuery(Long expected, long target) {
-        String updateQuery = (expected == null)
-                ? constructInsertIfNotExistsQuery(target)
-                : constructUpdateIfEqualQuery(expected, target);
+    public static ByteBuffer constructCheckAndSetMultipleQuery(Map<String, Pair<byte[], byte[]>> checkAndSetRequest) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("BEGIN UNLOGGED BATCH\n"); // Safe, because all updates are on the same partition key
 
-        return ByteBuffer.wrap(PtBytes.toBytes(updateQuery));
+        // Safe, because ordering does not apply in batches
+        checkAndSetRequest.entrySet().forEach(entry -> {
+            String columnName = entry.getKey();
+            byte[] expected = entry.getValue().getLhSide();
+            byte[] target = entry.getValue().getRhSide();
+            builder.append(constructCheckAndSetQuery(columnName, expected, target));
+        });
+        builder.append("APPLY BATCH;");
+        return toByteBuffer(builder.toString());
+    }
+
+    private static String constructCheckAndSetQuery(String columnName, byte[] expected, byte[] target) {
+        if (expected == null) {
+            Preconditions.checkArgument(target != null, "[CAS] At least one of expected and target must be provided!");
+            return constructInsertIfNotExistsQuery(columnName, target);
+        }
+        if (target == null) {
+            // delete
+            throw new UnsupportedOperationException("TODO implement delete");
+        }
+        return constructUpdateIfEqualQuery(columnName, expected, target);
     }
 
     public static boolean wasOperationApplied(CqlResult cqlResult) {
-        Column appliedColumn = getNamedColumn(cqlResult, APPLIED_COLUMN);
+        Column appliedColumn = getNamedColumn(getColumnsFromOnlyRow(cqlResult), APPLIED_COLUMN);
         return Arrays.equals(appliedColumn.getValue(), SUCCESSFUL_OPERATION);
     }
 
-    public static long getLongValue(CqlResult cqlResult) {
-        Column valueColumn = getNamedColumn(cqlResult, VALUE_COLUMN);
-        if (Arrays.equals(INVALIDATED_VALUE, valueColumn.getValue())) {
-            throw new IllegalStateException("Couldn't extract a long from the invalidated value!");
-        }
-        return PtBytes.toLong(valueColumn.getValue());
+    public static long getLongValueFromApplicationResult(CqlResult result) {
+        return PtBytes.toLong(getNamedColumn(getColumnsFromOnlyRow(result), VALUE_COLUMN).getValue());
     }
 
-    private static Column getNamedColumn(CqlResult cqlResult, String columnName) {
-        List<Column> columns = getColumnsFromOnlyRow(cqlResult);
-        return Iterables.getOnlyElement(
-                columns.stream()
-                        .filter(column -> columnName.equals(PtBytes.toString(column.getName())))
-                        .collect(Collectors.toList()));
+    public static Map<String, Long> getLongValuesFromSelectionResult(CqlResult result) {
+        return result.getRows().stream()
+                .map(CqlRow::getColumns)
+                .collect(Collectors.toMap(
+                        cols -> PtBytes.toString(getNamedColumn(cols, COLUMN_NAME_COLUMN).getValue()),
+                        cols -> PtBytes.toLong(getNamedColumn(cols, VALUE_COLUMN).getValue())));
     }
 
-    private static String constructUpdateIfEqualQuery(Long expected, long target) {
+    private static String constructUpdateIfEqualQuery(String columnName, byte[] expected, byte[] target) {
         return String.format(
                 "UPDATE %s SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;",
                 wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
-                encodeCassandraHexBytes(PtBytes.toBytes(target)),
+                encodeCassandraHexBytes(target),
                 ROW_AND_COLUMN_NAME_HEX_STRING,
-                ROW_AND_COLUMN_NAME_HEX_STRING,
+                encodeCassandraHexString(columnName),
                 CASSANDRA_TIMESTAMP,
-                encodeCassandraHexBytes(PtBytes.toBytes(expected)));
+                encodeCassandraHexBytes(expected));
     }
 
-    private static String constructInsertIfNotExistsQuery(long target) {
+    private static String constructInsertIfNotExistsQuery(String columnName, byte[] target) {
         return String.format(
                 "INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, %s, %s) IF NOT EXISTS;",
                 wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
                 ROW_AND_COLUMN_NAME_HEX_STRING,
-                ROW_AND_COLUMN_NAME_HEX_STRING,
+                encodeCassandraHexString(columnName),
                 CASSANDRA_TIMESTAMP,
-                encodeCassandraHexBytes(PtBytes.toBytes(target)));
+                encodeCassandraHexBytes(target));
+    }
+
+    private static Column getNamedColumn(List<Column> columns, String columnName) {
+        return Iterables.getOnlyElement(
+                columns.stream()
+                        .filter(column -> columnName.equals(PtBytes.toString(column.getName())))
+                        .collect(Collectors.toList()));
     }
 
     private static String wrapInQuotes(String tableName) {
@@ -141,5 +166,9 @@ public final class CassandraTimestampUtils {
 
     private static List<Column> getColumnsFromOnlyRow(CqlResult cqlResult) {
         return Iterables.getOnlyElement(cqlResult.getRows()).getColumns();
+    }
+
+    private static ByteBuffer toByteBuffer(String string) {
+        return ByteBuffer.wrap(PtBytes.toBytes(string));
     }
 }

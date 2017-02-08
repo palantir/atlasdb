@@ -17,20 +17,22 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
 import java.util.ConcurrentModificationException;
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.base.Throwables;
 import com.palantir.timestamp.DebugLogger;
+import com.palantir.util.Pair;
 import com.palantir.util.debug.ThreadDumps;
 
 public class CassandraTimestampStore {
@@ -58,14 +60,14 @@ public class CassandraTimestampStore {
      */
     public synchronized Optional<Long> getUpperLimit() {
         return cassandraKeyValueService.clientPool.runWithRetry(client -> {
-            ByteBuffer queryBuffer = CassandraTimestampUtils.constructSelectTimestampBoundQuery();
+            ByteBuffer queryBuffer = CassandraTimestampUtils.constructSelectFromTimestampTableQuery();
             try {
                 CqlResult result = client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.QUORUM);
-                List<CqlRow> cqlRows = result.getRows();
-                if (cqlRows.isEmpty()) {
-                    return Optional.<Long>empty();
+                Map<String, Long> columnarResults = CassandraTimestampUtils.getLongValuesFromSelectionResult(result);
+                if (columnarResults.containsKey(CassandraTimestampUtils.ROW_AND_COLUMN_NAME)) {
+                    return Optional.of(columnarResults.get(CassandraTimestampUtils.ROW_AND_COLUMN_NAME));
                 }
-                return Optional.of(CassandraTimestampUtils.getLongValue(result));
+                return Optional.empty();
             } catch (TException e) {
                 throw Throwables.rewrapAndThrowUncheckedException(e);
             }
@@ -80,7 +82,12 @@ public class CassandraTimestampStore {
      */
     public synchronized void storeTimestampBound(Long expected, long target) {
         cassandraKeyValueService.clientPool.runWithRetry(client -> {
-            ByteBuffer queryBuffer = CassandraTimestampUtils.constructCheckAndSetCqlQuery(expected, target);
+            byte[] expectedBytes = getNullableByteArray(expected);
+            byte[] targetBytes = PtBytes.toBytes(target);
+            ByteBuffer queryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
+                    ImmutableMap.of(
+                            CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
+                            Pair.create(expectedBytes, targetBytes)));
             try {
                 CqlResult result = client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.QUORUM);
                 checkOperationWasApplied(expected, target, result);
@@ -130,7 +137,7 @@ public class CassandraTimestampStore {
             Long expected,
             long target,
             CqlResult result) {
-        long actual = CassandraTimestampUtils.getLongValue(result);
+        long actual = CassandraTimestampUtils.getLongValueFromApplicationResult(result);
 
         String msg = "Unable to CAS from {} to {}."
                 + " Timestamp limit changed underneath us (limit in memory: {}, stored in DB: {}).";
@@ -147,5 +154,9 @@ public class CassandraTimestampStore {
 
     private static String replaceBracesWithStringFormatSpecifier(String msg) {
         return msg.replaceAll("\\{\\}", "%s");
+    }
+
+    private static byte[] getNullableByteArray(Long expected) {
+        return expected == null ? null : PtBytes.toBytes(expected);
     }
 }
