@@ -19,6 +19,8 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.xml.bind.DatatypeConverter;
@@ -27,7 +29,6 @@ import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -97,13 +98,11 @@ public final class CassandraTimestampUtils {
     }
 
     private static String constructCheckAndSetQuery(String columnName, byte[] expected, byte[] target) {
-        if (expected == null) {
-            Preconditions.checkArgument(target != null, "[CAS] At least one of expected and target must be provided!");
-            return constructInsertIfNotExistsQuery(columnName, target);
-        }
         if (target == null) {
-            // We treat this as a no op for now, which satisfies our purposes.
             return "";
+        }
+        if (expected == null) {
+            return constructInsertIfNotExistsQuery(columnName, target);
         }
         return constructUpdateIfEqualQuery(columnName, expected, target);
     }
@@ -113,8 +112,13 @@ public final class CassandraTimestampUtils {
         return Arrays.equals(appliedColumn.getValue(), SUCCESSFUL_OPERATION);
     }
 
-    public static long getLongValueFromApplicationResult(CqlResult result) {
-        return PtBytes.toLong(getNamedColumn(getColumnsFromOnlyRow(result), VALUE_COLUMN).getValue());
+    public static Optional<Long> getLongValueFromApplicationResult(CqlResult result) {
+        try {
+            Column valueColumn = getNamedColumn(getColumnsFromOnlyRow(result), VALUE_COLUMN);
+            return Optional.of(PtBytes.toLong(valueColumn.getValue()));
+        } catch (NoSuchElementException e) {
+            return Optional.empty();
+        }
     }
 
     public static Map<String, byte[]> getValuesFromSelectionResult(CqlResult result) {

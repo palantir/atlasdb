@@ -52,23 +52,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     @Override
     public synchronized long getUpperLimit() {
         DebugLogger.logger.debug("[GET] Getting upper limit");
-        currentLimit = getBoundToStore();
-        DebugLogger.logger.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
+        currentLimit = getBoundFromStore();
         return currentLimit;
-    }
-
-    private long getBoundToStore() {
-        Optional<Long> currentBound = cassandraTimestampStore.getUpperLimit();
-        if (!currentBound.isPresent()) {
-            DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
-            try {
-                cassandraTimestampStore.storeTimestampBound(Optional.empty(), INITIAL_VALUE);
-            } catch (ConcurrentModificationException e) {
-                throw constructMultipleServiceError(e);
-            }
-            return INITIAL_VALUE;
-        }
-        return currentBound.get();
     }
 
     @Override
@@ -80,6 +65,22 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         } catch (ConcurrentModificationException e) {
             throw constructMultipleServiceError(e);
         }
+    }
+
+    private long getBoundFromStore() {
+        Optional<Long> currentBound = cassandraTimestampStore.getUpperLimit();
+        if (!currentBound.isPresent()) {
+            DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
+            try {
+                cassandraTimestampStore.storeTimestampBound(Optional.empty(), INITIAL_VALUE);
+            } catch (ConcurrentModificationException e) {
+                throw constructMultipleServiceError(e);
+            }
+            return INITIAL_VALUE;
+        } else {
+            DebugLogger.logger.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
+        }
+        return currentBound.get();
     }
 
     private MultipleRunningTimestampServiceError constructMultipleServiceError(ConcurrentModificationException ex) {

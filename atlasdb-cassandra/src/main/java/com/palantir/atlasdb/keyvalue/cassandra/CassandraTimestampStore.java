@@ -31,6 +31,7 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -71,6 +72,8 @@ public class CassandraTimestampStore {
             if (boundData.bound() == null) {
                 return Optional.empty();
             }
+            Preconditions.checkState(boundData.bound().length == Long.BYTES,
+                    "The timestamp bound cannot be read.");
             return Optional.of(PtBytes.toLong(boundData.bound()));
         });
     }
@@ -108,7 +111,7 @@ public class CassandraTimestampStore {
      *
      * @return value of the timestamp that was backed up, if applicable
      */
-    public synchronized Optional<Long> backupExistingTimestamp() {
+    public synchronized long backupExistingTimestamp(long defaultValue) {
         return cassandraKeyValueService.clientPool.runWithRetry(client -> {
             BoundData boundData = getCurrentBoundData(client);
             byte[] currentBound = boundData.bound();
@@ -117,19 +120,20 @@ public class CassandraTimestampStore {
             if (isReadableLong(currentBackupBound)) {
                 // Backup bound has been updated!
                 Preconditions.checkState(!isReadableLong(currentBound),
-                        "We had both backup and active bounds readable! This is unexpected; please contact support!");
+                        "We had both backup and active bounds readable! This is unexpected; please contact support.");
                 log.info("[BACKUP] Didn't backup, because there is already a backup bound.");
-                return Optional.<Long>empty();
+                return PtBytes.toLong(currentBackupBound);
             }
 
+            byte[] backupValue = MoreObjects.firstNonNull(currentBound, PtBytes.toBytes(defaultValue));
             ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
                     ImmutableMap.of(
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
                             Pair.create(currentBound, CassandraTimestampUtils.INVALIDATED_VALUE),
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
-                            Pair.create(currentBackupBound, currentBound)));
+                            Pair.create(currentBackupBound, backupValue)));
             executeQueryUnchecked(client, casQueryBuffer);
-            return Optional.ofNullable(PtBytes.toLong(currentBound));
+            return PtBytes.toLong(backupValue);
         });
     }
 
@@ -155,7 +159,7 @@ public class CassandraTimestampStore {
 
             if (isReadableLong(currentBound)) {
                 Preconditions.checkState(currentBackupBound == null || !isReadableLong(currentBackupBound),
-                        "We had both backup and active bounds readable! This is unexpected; please contact support!");
+                        "We had both backup and active bounds readable! This is unexpected; please contact support.");
                 log.info("[RESTORE] Didn't restore from backup, because the current timestamp is already readable.");
                 return null;
             }
@@ -181,16 +185,15 @@ public class CassandraTimestampStore {
             Optional<Long> expected,
             long target,
             CqlResult result) {
-        long actual = CassandraTimestampUtils.getLongValueFromApplicationResult(result);
-        String expectedValueString = expected.isPresent() ? expected.get().toString() : "null";
+        Optional<Long> actual = CassandraTimestampUtils.getLongValueFromApplicationResult(result);
 
         String msg = "Unable to CAS from {} to {}."
                 + " Timestamp limit changed underneath us (limit in memory: {}, stored in DB: {}).";
         ConcurrentModificationException except = new ConcurrentModificationException(
                 String.format(replaceBracesWithStringFormatSpecifier(msg),
-                        expectedValueString,
+                        expected,
                         target,
-                        expectedValueString,
+                        expected,
                         actual));
         log.error(msg, expected, target, expected, actual);
         DebugLogger.logger.error("Thread dump: {}", ThreadDumps.programmaticThreadDump());
