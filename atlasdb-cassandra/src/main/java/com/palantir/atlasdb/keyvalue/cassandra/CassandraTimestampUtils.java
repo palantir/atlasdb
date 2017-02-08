@@ -27,6 +27,7 @@ import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -63,11 +64,13 @@ public final class CassandraTimestampUtils {
 
     private static final String ROW_AND_COLUMN_NAME_HEX_STRING = encodeCassandraHexString(ROW_AND_COLUMN_NAME);
 
-    private static final String APPLIED_COLUMN = "[applied]";
+    @VisibleForTesting
+    static final String APPLIED_COLUMN = "[applied]";
     private static final String COLUMN_NAME_COLUMN = "column1";
     private static final String VALUE_COLUMN = "value";
 
-    private static final byte[] SUCCESSFUL_OPERATION = {1};
+    @VisibleForTesting
+    static final byte[] SUCCESSFUL_OPERATION = {1};
 
     private CassandraTimestampUtils() {
         // utility class
