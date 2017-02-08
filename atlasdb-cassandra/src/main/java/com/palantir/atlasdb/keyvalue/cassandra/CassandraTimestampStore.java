@@ -67,7 +67,7 @@ public class CassandraTimestampStore {
      * @throws IllegalStateException if the timestamp limit has been invalidated
      */
     public synchronized Optional<Long> getUpperLimit() {
-        return cassandraKeyValueService.clientPool.runWithRetry(client -> {
+        return clientPool().runWithRetry(client -> {
             BoundData boundData = getCurrentBoundData(client);
             if (boundData.bound() == null) {
                 return Optional.empty();
@@ -85,7 +85,7 @@ public class CassandraTimestampStore {
      * @throws ConcurrentModificationException if the expected value does not match the bound in the database
      */
     public synchronized void storeTimestampBound(Optional<Long> expected, long target) {
-        cassandraKeyValueService.clientPool.runWithRetry(client -> {
+        clientPool().runWithRetry(client -> {
             byte[] expectedBytes = expected.map(PtBytes::toBytes).orElse(null);
             byte[] targetBytes = PtBytes.toBytes(target);
             ByteBuffer queryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
@@ -112,7 +112,7 @@ public class CassandraTimestampStore {
      * @return value of the timestamp that was backed up, if applicable
      */
     public synchronized long backupExistingTimestamp(long defaultValue) {
-        return cassandraKeyValueService.clientPool.runWithRetry(client -> {
+        return clientPool().runWithRetry(client -> {
             BoundData boundData = getCurrentBoundData(client);
             byte[] currentBound = boundData.bound();
             byte[] currentBackupBound = boundData.backupBound();
@@ -129,7 +129,7 @@ public class CassandraTimestampStore {
             ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
                     ImmutableMap.of(
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
-                            Pair.create(currentBound, CassandraTimestampUtils.INVALIDATED_VALUE),
+                            Pair.create(currentBound, CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray()),
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                             Pair.create(currentBackupBound, backupValue)));
             executeQueryUnchecked(client, casQueryBuffer);
@@ -148,7 +148,7 @@ public class CassandraTimestampStore {
      *    - CAS the main timestamp, expecting INVALIDATED_VALUE, to BT.
      */
     public synchronized void restoreFromBackup() {
-        cassandraKeyValueService.clientPool.runWithRetry(client -> {
+        clientPool().runWithRetry(client -> {
             BoundData boundData = getCurrentBoundData(client);
             byte[] currentBound = boundData.bound();
             byte[] currentBackupBound = boundData.backupBound();
@@ -164,7 +164,7 @@ public class CassandraTimestampStore {
             ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
                     ImmutableMap.of(
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
-                            Pair.create(CassandraTimestampUtils.INVALIDATED_VALUE, currentBackupBound),
+                            Pair.create(CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray(), currentBackupBound),
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                             Pair.create(currentBackupBound, PtBytes.EMPTY_BYTE_ARRAY)));
             executeQueryUnchecked(client, casQueryBuffer);
@@ -176,6 +176,10 @@ public class CassandraTimestampStore {
         if (!CassandraTimestampUtils.wasOperationApplied(result)) {
             throw constructConcurrentTimestampStoreException(expected, target, result);
         }
+    }
+
+    private CassandraClientPool clientPool() {
+        return cassandraKeyValueService.clientPool;
     }
 
     private static ConcurrentModificationException constructConcurrentTimestampStoreException(

@@ -23,8 +23,6 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import javax.xml.bind.DatatypeConverter;
-
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
@@ -32,6 +30,8 @@ import org.apache.cassandra.thrift.CqlRow;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.io.BaseEncoding;
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -67,8 +67,7 @@ public final class CassandraTimestampUtils {
     private static final byte[] SUCCESSFUL_OPERATION = {1};
 
     public static final String BACKUP_COLUMN_NAME = "oldTs";
-
-    static final byte[] INVALIDATED_VALUE = new byte[1];
+    public static final ByteString INVALIDATED_VALUE = ByteString.copyFrom(new byte[1]);
 
     private CassandraTimestampUtils() {
         // utility class
@@ -174,7 +173,7 @@ public final class CassandraTimestampUtils {
     }
 
     private static String encodeCassandraHexBytes(byte[] bytes) {
-        return "0x" + DatatypeConverter.printHexBinary(bytes);
+        return "0x" + BaseEncoding.base16().upperCase().encode(bytes);
     }
 
     private static List<Column> getColumnsFromOnlyRow(CqlResult cqlResult) {
