@@ -59,28 +59,26 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     @Override
     public synchronized void storeUpperLimit(final long limit) {
         DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
-        try {
-            cassandraTimestampStore.storeTimestampBound(Optional.of(currentLimit), limit);
-            currentLimit = limit;
-        } catch (ConcurrentModificationException e) {
-            throw constructMultipleServiceError(e);
-        }
+        attemptToStoreTimestampBound(Optional.of(currentLimit), limit);
     }
 
     private long getBoundFromStore() {
         Optional<Long> currentBound = cassandraTimestampStore.getUpperLimit();
-        if (!currentBound.isPresent()) {
-            DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
-            try {
-                cassandraTimestampStore.storeTimestampBound(Optional.empty(), INITIAL_VALUE);
-            } catch (ConcurrentModificationException e) {
-                throw constructMultipleServiceError(e);
-            }
-            return INITIAL_VALUE;
-        } else {
+        if (currentBound.isPresent()) {
             DebugLogger.logger.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
+            return currentBound.get();
         }
-        return currentBound.get();
+        DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
+        return attemptToStoreTimestampBound(Optional.empty(), INITIAL_VALUE);
+    }
+
+    private long attemptToStoreTimestampBound(Optional<Long> expected, long target) {
+        try {
+            cassandraTimestampStore.storeTimestampBound(expected, target);
+            return target;
+        } catch (ConcurrentModificationException e) {
+            throw constructMultipleServiceError(e);
+        }
     }
 
     private MultipleRunningTimestampServiceError constructMultipleServiceError(ConcurrentModificationException ex) {

@@ -55,9 +55,12 @@ public final class CassandraTimestampUtils {
                             ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
             ConflictHandler.IGNORE_ALL);
 
+    public static final String ROW_AND_COLUMN_NAME = "ts";
+    public static final String BACKUP_COLUMN_NAME = "oldTs";
+    public static final ByteString INVALIDATED_VALUE = ByteString.copyFrom(new byte[1]);
+
     private static final long CASSANDRA_TIMESTAMP = -1;
 
-    public static final String ROW_AND_COLUMN_NAME = "ts";
     private static final String ROW_AND_COLUMN_NAME_HEX_STRING = encodeCassandraHexString(ROW_AND_COLUMN_NAME);
 
     private static final String APPLIED_COLUMN = "[applied]";
@@ -65,9 +68,6 @@ public final class CassandraTimestampUtils {
     private static final String VALUE_COLUMN = "value";
 
     private static final byte[] SUCCESSFUL_OPERATION = {1};
-
-    public static final String BACKUP_COLUMN_NAME = "oldTs";
-    public static final ByteString INVALIDATED_VALUE = ByteString.copyFrom(new byte[1]);
 
     private CassandraTimestampUtils() {
         // utility class
@@ -97,6 +97,51 @@ public final class CassandraTimestampUtils {
         return toByteBuffer(builder.toString());
     }
 
+    public static boolean wasOperationApplied(CqlResult cqlResult) {
+        byte[] applied = getNamedColumnValue(getColumnsFromOnlyRow(cqlResult), APPLIED_COLUMN);
+        return Arrays.equals(applied, SUCCESSFUL_OPERATION);
+    }
+
+    public static Optional<Long> getLongValueFromApplicationResult(CqlResult result) {
+        try {
+            byte[] timestampData = getNamedColumnValue(getColumnsFromOnlyRow(result), VALUE_COLUMN);
+            Preconditions.checkState(
+                    isValidTimestampData(timestampData),
+                    "Byte array returned cannot be deserialized as a long.");
+            return Optional.of(PtBytes.toLong(timestampData));
+        } catch (NoSuchElementException e) {
+            return Optional.empty();
+        }
+    }
+
+    public static Map<String, byte[]> getValuesFromSelectionResult(CqlResult result) {
+        return result.getRows().stream()
+                .map(CqlRow::getColumns)
+                .collect(Collectors.toMap(
+                        cols -> PtBytes.toString(getNamedColumnValue(cols, COLUMN_NAME_COLUMN)),
+                        cols -> getNamedColumnValue(cols, VALUE_COLUMN)));
+    }
+
+    public static boolean isValidTimestampData(byte[] data) {
+        return data != null && data.length == Long.BYTES;
+    }
+
+    private static String encodeCassandraHexString(String string) {
+        return encodeCassandraHexBytes(PtBytes.toBytes(string));
+    }
+
+    private static String encodeCassandraHexBytes(byte[] bytes) {
+        return "0x" + BaseEncoding.base16().upperCase().encode(bytes);
+    }
+
+    private static ByteBuffer toByteBuffer(String string) {
+        return ByteBuffer.wrap(PtBytes.toBytes(string));
+    }
+
+    private static String wrapInQuotes(String tableName) {
+        return "\"" + tableName + "\"";
+    }
+
     private static String constructCheckAndSetQuery(String columnName, byte[] expected, byte[] target) {
         if (target == null) {
             return "";
@@ -107,44 +152,19 @@ public final class CassandraTimestampUtils {
         return constructUpdateIfEqualQuery(columnName, expected, target);
     }
 
-    public static boolean wasOperationApplied(CqlResult cqlResult) {
-        Column appliedColumn = getNamedColumn(getColumnsFromOnlyRow(cqlResult), APPLIED_COLUMN);
-        return Arrays.equals(appliedColumn.getValue(), SUCCESSFUL_OPERATION);
+    private static List<Column> getColumnsFromOnlyRow(CqlResult cqlResult) {
+        return Iterables.getOnlyElement(cqlResult.getRows()).getColumns();
     }
 
-    public static Optional<Long> getLongValueFromApplicationResult(CqlResult result) {
-        try {
-            Column valueColumn = getNamedColumn(getColumnsFromOnlyRow(result), VALUE_COLUMN);
-            Preconditions.checkState(
-                    isValidTimestampData(valueColumn.getValue()),
-                    "Byte array returned cannot be deserialized as a long.");
-            return Optional.of(PtBytes.toLong(valueColumn.getValue()));
-        } catch (NoSuchElementException e) {
-            return Optional.empty();
-        }
+    private static Column getNamedColumn(List<Column> columns, String columnName) {
+        return Iterables.getOnlyElement(
+                columns.stream()
+                        .filter(column -> columnName.equals(PtBytes.toString(column.getName())))
+                        .collect(Collectors.toList()));
     }
 
-    public static Map<String, byte[]> getValuesFromSelectionResult(CqlResult result) {
-        return result.getRows().stream()
-                .map(CqlRow::getColumns)
-                .collect(Collectors.toMap(
-                        cols -> PtBytes.toString(getNamedColumn(cols, COLUMN_NAME_COLUMN).getValue()),
-                        cols -> getNamedColumn(cols, VALUE_COLUMN).getValue()));
-    }
-
-    public static boolean isValidTimestampData(byte[] data) {
-        return data != null && data.length == Long.BYTES;
-    }
-
-    private static String constructUpdateIfEqualQuery(String columnName, byte[] expected, byte[] target) {
-        return String.format(
-                "UPDATE %s SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;",
-                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
-                encodeCassandraHexBytes(target),
-                ROW_AND_COLUMN_NAME_HEX_STRING,
-                encodeCassandraHexString(columnName),
-                CASSANDRA_TIMESTAMP,
-                encodeCassandraHexBytes(expected));
+    private static byte[] getNamedColumnValue(List<Column> columns, String columnName) {
+        return getNamedColumn(columns, columnName).getValue();
     }
 
     private static String constructInsertIfNotExistsQuery(String columnName, byte[] target) {
@@ -157,30 +177,14 @@ public final class CassandraTimestampUtils {
                 encodeCassandraHexBytes(target));
     }
 
-    private static Column getNamedColumn(List<Column> columns, String columnName) {
-        return Iterables.getOnlyElement(
-                columns.stream()
-                        .filter(column -> columnName.equals(PtBytes.toString(column.getName())))
-                        .collect(Collectors.toList()));
-    }
-
-    private static String wrapInQuotes(String tableName) {
-        return "\"" + tableName + "\"";
-    }
-
-    private static String encodeCassandraHexString(String string) {
-        return encodeCassandraHexBytes(PtBytes.toBytes(string));
-    }
-
-    private static String encodeCassandraHexBytes(byte[] bytes) {
-        return "0x" + BaseEncoding.base16().upperCase().encode(bytes);
-    }
-
-    private static List<Column> getColumnsFromOnlyRow(CqlResult cqlResult) {
-        return Iterables.getOnlyElement(cqlResult.getRows()).getColumns();
-    }
-
-    private static ByteBuffer toByteBuffer(String string) {
-        return ByteBuffer.wrap(PtBytes.toBytes(string));
+    private static String constructUpdateIfEqualQuery(String columnName, byte[] expected, byte[] target) {
+        return String.format(
+                "UPDATE %s SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;",
+                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
+                encodeCassandraHexBytes(target),
+                ROW_AND_COLUMN_NAME_HEX_STRING,
+                encodeCassandraHexString(columnName),
+                CASSANDRA_TIMESTAMP,
+                encodeCassandraHexBytes(expected));
     }
 }

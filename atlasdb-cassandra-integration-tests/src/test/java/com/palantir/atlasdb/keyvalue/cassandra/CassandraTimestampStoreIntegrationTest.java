@@ -164,12 +164,11 @@ public class CassandraTimestampStoreIntegrationTest {
 
     @Test
     public void canRestoreWithoutBackupWithoutData() {
-        store.restoreFromBackup();
-        assertThat(store.getUpperLimit()).isEqualTo(Optional.empty());
+        assertThatThrownBy(store::restoreFromBackup).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
-    public void canRestoreWithoutBackupWithData() {
+    public void ignoresInvalidBackupIfDataAvailable() {
         store.storeTimestampBound(Optional.empty(), TIMESTAMP_1);
         store.restoreFromBackup();
         assertThat(store.getUpperLimit()).isEqualTo(Optional.of(TIMESTAMP_1));

@@ -99,16 +99,11 @@ public class CassandraTimestampStore {
     }
 
     /**
-     * Writes a backup of the existing timestamp to the database. After this backup, this timestamp service can
-     * no longer be used until a restore.
+     * Writes a backup of the existing timestamp to the database, if none exists. After this backup, this timestamp
+     * service can no longer be used until a restore. Note that the value returned is the value that was backed up;
+     * multiple calls to this method are safe, and will return the backed up value.
      *
-     * This may be implemented as follows:
-     *  - Read the value of the backup timestamp. If this is readable, skip (already backed up).
-     *  - Read the value of the timestamp (TS). If this is unreadable, fail.
-     *  - Do a conditional unlogged batch (safe since the row key is the same)
-     *    - CAS the main timestamp, expecting TS, to the INVALIDATED_VALUE
-     *    - Put unless exists the value of TS to the backup timestamp.
-     *
+     * @param defaultValue value to backup if the timestamp table is empty
      * @return value of the timestamp that was backed up, if applicable
      */
     public synchronized long backupExistingTimestamp(long defaultValue) {
@@ -125,6 +120,8 @@ public class CassandraTimestampStore {
                 return PtBytes.toLong(currentBackupBound);
             }
 
+            Preconditions.checkState(currentBound == null || CassandraTimestampUtils.isValidTimestampData(currentBound),
+                    "The timestamp is unreadable, though the backup is also unreadable! Please contact support.");
             byte[] backupValue = MoreObjects.firstNonNull(currentBound, PtBytes.toBytes(defaultValue));
             ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
                     ImmutableMap.of(
@@ -138,14 +135,8 @@ public class CassandraTimestampStore {
     }
 
     /**
-     * Restores a backup of an existing timestamp.
-     *
-     * This may be implemented following the inverse of the backup process:
-     *  - Read the value of the timestamp. If this is readable, skip.
-     *  - Read the value of the backup (BT). If this is unreadable, fail.
-     *  - Do a conditional unlogged batch (safe since the row key is the same)
-     *    - CAS the backup timestamp, from BT, to the empty byte array (deletion marker).
-     *    - CAS the main timestamp, expecting INVALIDATED_VALUE, to BT.
+     * Restores a backup of an existing timestamp, if possible. Note that this method will throw if the timestamp
+     * backup is unreadable, *and* the current bound is also unreadable.
      */
     public synchronized void restoreFromBackup() {
         clientPool().runWithRetry(client -> {
@@ -161,6 +152,8 @@ public class CassandraTimestampStore {
                 return null;
             }
 
+            Preconditions.checkState(CassandraTimestampUtils.isValidTimestampData(currentBackupBound),
+                    "The timestamp backup is unreadable, so we cannot restore our backup. Please contact support.");
             ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
                     ImmutableMap.of(
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
@@ -186,11 +179,11 @@ public class CassandraTimestampStore {
         return cassandraKeyValueService.queryRunner;
     }
 
-    private CqlResult executeQueryUnchecked(Cassandra.Client client, ByteBuffer queryBuffer) {
+    private CqlResult executeQueryUnchecked(Cassandra.Client client, ByteBuffer query) {
         try {
             return queryRunner().run(client,
                     AtlasDbConstants.TIMESTAMP_TABLE,
-                    () -> client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.QUORUM));
+                    () -> client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM));
         } catch (TException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
