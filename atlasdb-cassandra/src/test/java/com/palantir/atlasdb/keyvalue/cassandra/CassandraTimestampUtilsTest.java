@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -32,6 +33,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.util.Pair;
 
 public class CassandraTimestampUtilsTest {
     private static final long LONG_VALUE = 500L;
@@ -105,7 +107,35 @@ public class CassandraTimestampUtilsTest {
                 .isEqualTo(ImmutableMap.of(COLUMN_NAME_1, VALUE_1, COLUMN_NAME_2, VALUE_2));
     }
 
-    private List<Column> buildKeyValueColumnList(byte[] key, byte[] columnName, byte[] value) {
+    @Test
+    public void canGetSelectQuery() {
+        String query = queryBufferToString(CassandraTimestampUtils.constructSelectFromTimestampTableQuery());
+        assertThat(query).isEqualTo("SELECT column1, value FROM \"_timestamp\" WHERE key=0x7473;");
+    }
+
+    @Test
+    public void checkAndSetIsInsertIfNotExistsIfExpectedIsNull() {
+        String query = queryBufferToString(CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
+                ImmutableMap.of(COLUMN_NAME_1, Pair.create(null, VALUE_1))));
+        assertThat(query).contains("INSERT").contains("IF NOT EXISTS;");
+    }
+
+    @Test
+    public void checkAndSetIsUpdateIfEqualIfExpectedIsNotNull() {
+        String query = queryBufferToString(CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
+                ImmutableMap.of(COLUMN_NAME_1, Pair.create(VALUE_1, VALUE_2))));
+        assertThat(query).contains("UPDATE").contains("IF " + CassandraTimestampUtils.VALUE_COLUMN + "=");
+    }
+
+    @Test
+    public void checkAndSetGeneratesBatchedStatements() {
+        String query = queryBufferToString(CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
+                ImmutableMap.of(COLUMN_NAME_1, Pair.create(VALUE_1, VALUE_2),
+                        COLUMN_NAME_2, Pair.create(VALUE_2, VALUE_1))));
+        assertThat(query).contains("BEGIN UNLOGGED BATCH").contains("APPLY BATCH;");
+    }
+
+    private static List<Column> buildKeyValueColumnList(byte[] key, byte[] columnName, byte[] value) {
         return ImmutableList.<Column>builder()
                 .add(createColumn("key", key))
                 .add(createColumn(CassandraTimestampUtils.COLUMN_NAME_COLUMN, columnName))
@@ -141,5 +171,9 @@ public class CassandraTimestampUtilsTest {
         column.setName(PtBytes.toBytes(name));
         column.setValue(value);
         return column;
+    }
+
+    private static String queryBufferToString(ByteBuffer query) {
+        return PtBytes.toString(query.array());
     }
 }

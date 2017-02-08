@@ -146,9 +146,7 @@ public final class CassandraTimestampUtils {
     }
 
     private static String constructCheckAndSetQuery(String columnName, byte[] expected, byte[] target) {
-        if (target == null) {
-            return "";
-        }
+        Preconditions.checkState(target != null, "Should not CAS to a null target!");
         if (expected == null) {
             return constructInsertIfNotExistsQuery(columnName, target);
         }
