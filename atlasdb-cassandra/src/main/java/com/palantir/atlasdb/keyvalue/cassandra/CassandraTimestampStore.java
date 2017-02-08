@@ -182,6 +182,31 @@ public class CassandraTimestampStore {
         return cassandraKeyValueService.clientPool;
     }
 
+    private TracingQueryRunner queryRunner() {
+        return cassandraKeyValueService.queryRunner;
+    }
+
+    private CqlResult executeQueryUnchecked(Cassandra.Client client, ByteBuffer queryBuffer) {
+        try {
+            return queryRunner().run(client,
+                    AtlasDbConstants.TIMESTAMP_TABLE,
+                    () -> client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.QUORUM));
+        } catch (TException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    private BoundData getCurrentBoundData(Cassandra.Client client) {
+        ByteBuffer selectQuery = CassandraTimestampUtils.constructSelectFromTimestampTableQuery();
+        CqlResult existingData = executeQueryUnchecked(client, selectQuery);
+        Map<String, byte[]> columnarResults = CassandraTimestampUtils.getValuesFromSelectionResult(existingData);
+
+        return ImmutableBoundData.builder()
+                .bound(columnarResults.get(CassandraTimestampUtils.ROW_AND_COLUMN_NAME))
+                .backupBound(columnarResults.get(CassandraTimestampUtils.BACKUP_COLUMN_NAME))
+                .build();
+    }
+
     private static ConcurrentModificationException constructConcurrentTimestampStoreException(
             Optional<Long> expected,
             long target,
@@ -203,25 +228,6 @@ public class CassandraTimestampStore {
 
     private static String replaceBracesWithStringFormatSpecifier(String msg) {
         return msg.replaceAll("\\{\\}", "%s");
-    }
-
-    private static CqlResult executeQueryUnchecked(Cassandra.Client client, ByteBuffer queryBuffer) {
-        try {
-            return client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.QUORUM);
-        } catch (TException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
-    }
-
-    private static BoundData getCurrentBoundData(Cassandra.Client client) {
-        ByteBuffer selectQuery = CassandraTimestampUtils.constructSelectFromTimestampTableQuery();
-        CqlResult existingData = executeQueryUnchecked(client, selectQuery);
-        Map<String, byte[]> columnarResults = CassandraTimestampUtils.getValuesFromSelectionResult(existingData);
-
-        return ImmutableBoundData.builder()
-                .bound(columnarResults.get(CassandraTimestampUtils.ROW_AND_COLUMN_NAME))
-                .backupBound(columnarResults.get(CassandraTimestampUtils.BACKUP_COLUMN_NAME))
-                .build();
     }
 
     @Value.Immutable

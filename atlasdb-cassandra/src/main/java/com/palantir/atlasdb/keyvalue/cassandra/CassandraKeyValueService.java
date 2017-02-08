@@ -157,7 +157,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
-    private final TracingQueryRunner queryRunner;
+    protected final TracingQueryRunner queryRunner;
     private final CassandraTables cassandraTables;
 
     public static CassandraKeyValueService create(
