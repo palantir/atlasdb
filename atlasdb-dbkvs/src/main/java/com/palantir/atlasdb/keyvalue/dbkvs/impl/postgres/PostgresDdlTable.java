@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
@@ -61,8 +62,8 @@ public class PostgresDdlTable implements DbDdlTable {
                         + "  col_name   BYTEA NOT NULL,"
                         + "  ts         INT8 NOT NULL,"
                         + "  val        BYTEA,"
-                        + "  CONSTRAINT pk_%s PRIMARY KEY (row_name, col_name, ts) ",
-                        prefixedTableName(), prefixedTableName())
+                        + "  CONSTRAINT %s PRIMARY KEY (row_name, col_name, ts) ",
+                        prefixedTableName(), PrimaryKeyConstraintNames.get(prefixedTableName()))
                 + ")",
                 "already exists");
 

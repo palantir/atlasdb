@@ -19,12 +19,9 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Column;
 import org.apache.commons.lang3.ArrayUtils;
 import org.immutables.value.Value;
 
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ValueType;
 
@@ -37,7 +34,7 @@ abstract class TimestampBoundStoreEntry {
     private static final int SIZE_WITHOUT_ID_IN_BYTES = Long.BYTES;
     private static final int SIZE_WITH_ID_IN_BYTES = SIZE_OF_ID_IN_BYTES + SIZE_WITHOUT_ID_IN_BYTES;
 
-    private static TimestampBoundStoreEntry create(Long timestamp, UUID id) {
+    static TimestampBoundStoreEntry create(Long timestamp, UUID id) {
         return ImmutableTimestampBoundStoreEntry.builder()
                 .id(id)
                 .timestamp(timestamp)
@@ -45,6 +42,9 @@ abstract class TimestampBoundStoreEntry {
     }
 
     static TimestampBoundStoreEntry createFromBytes(byte[] values) {
+        if (values == null) {
+            return create(null, null);
+        }
         if (values.length == SIZE_WITH_ID_IN_BYTES) {
             return create(PtBytes.toLong(values),
                     (UUID) ValueType.UUID.convertToJava(values, SIZE_WITHOUT_ID_IN_BYTES));
@@ -53,20 +53,6 @@ abstract class TimestampBoundStoreEntry {
         }
         throw new IllegalArgumentException("Unsupported format: required " + SIZE_WITH_ID_IN_BYTES + " or "
                 + SIZE_WITHOUT_ID_IN_BYTES + " bytes, but has " + values.length + "!");
-    }
-
-    static TimestampBoundStoreEntry createFromColumn(Column column) {
-        if (column.getValue() == null) {
-            return create(null, null);
-        }
-        return createFromBytes(column.getValue());
-    }
-
-    static TimestampBoundStoreEntry createFromCasResult(CASResult result) {
-        if (result.getCurrent_values().isEmpty()) {
-            return create(null, null);
-        }
-        return createFromColumn(Iterables.getOnlyElement(result.getCurrent_values()));
     }
 
     static byte[] getByteValueForIdAndBound(UUID id, Long ts) {

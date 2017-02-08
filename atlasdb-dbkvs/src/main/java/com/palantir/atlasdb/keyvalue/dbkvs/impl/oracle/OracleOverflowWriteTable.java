@@ -226,7 +226,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             //
         }
         conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + shortTableName + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + shortTableName + ") */ "
+                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(shortTableName) + ") */ "
                 + " FROM " + shortTableName + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
@@ -237,9 +237,9 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     private void deleteOverflow(String overflowTable, List<Object[]> args) {
         String shortTableName = oraclePrefixedTableNames.get(tableRef);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + overflowTable + ") */ "
+                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ "
                 + "   FROM " + overflowTable + " m "
-                + "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + shortTableName + ") */ "
+                + "  WHERE m.id IN (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName) + ") */ "
                 + "                        i.overflow "
                 + "                   FROM " + shortTableName + " i "
                 + "                  WHERE i.row_name = ? "

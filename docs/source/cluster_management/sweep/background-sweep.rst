@@ -22,7 +22,7 @@ The Background Sweep Job determines which table to sweep by estimating which wou
 Configuration
 -------------
 
-The background sweeper can be enabled by setting the ``enableSweep`` property in the :ref:`AtlasDB configuration <atlas_config>` to true.
+The background sweeper can be enabled by setting the ``enableSweep`` property in the :ref:`AtlasDB configuration <atlas-config>` to true.
 For other configuration options, see :ref:`Tunable Sweep Configuration Options<sweep_tunable_parameters>`.
 
 Additional logging for Background Sweep
