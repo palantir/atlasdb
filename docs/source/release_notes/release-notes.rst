@@ -69,6 +69,10 @@ develop
          - Better support Oracle 12c batch responses
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1540>`__)
 
+    *    - |improved|
+         - Improved heap usage during heavy DBKVS querying
+           (Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
