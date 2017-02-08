@@ -37,7 +37,7 @@ abstract class TimestampBoundStoreEntry {
     private static final int SIZE_WITHOUT_ID_IN_BYTES = Long.BYTES;
     private static final int SIZE_WITH_ID_IN_BYTES = SIZE_OF_ID_IN_BYTES + SIZE_WITHOUT_ID_IN_BYTES;
 
-    private static TimestampBoundStoreEntry create(UUID id, Long timestamp) {
+    private static TimestampBoundStoreEntry create(Long timestamp, UUID id) {
         return ImmutableTimestampBoundStoreEntry.builder()
                 .id(id)
                 .timestamp(timestamp)
@@ -46,16 +46,19 @@ abstract class TimestampBoundStoreEntry {
 
     static TimestampBoundStoreEntry createFromBytes(byte[] values) {
         if (values.length == SIZE_WITH_ID_IN_BYTES) {
-            return create((UUID) ValueType.UUID.convertToJava(values, SIZE_WITHOUT_ID_IN_BYTES),
-                    PtBytes.toLong(values));
+            return create(PtBytes.toLong(values),
+                    (UUID) ValueType.UUID.convertToJava(values, SIZE_WITHOUT_ID_IN_BYTES));
         } else if (values.length == SIZE_WITHOUT_ID_IN_BYTES) {
-            return create(null, PtBytes.toLong(values));
+            return create(PtBytes.toLong(values), null);
         }
         throw new IllegalArgumentException("Unsupported format: required " + SIZE_WITH_ID_IN_BYTES + " or "
                 + SIZE_WITHOUT_ID_IN_BYTES + " bytes, but has " + values.length + "!");
     }
 
     static TimestampBoundStoreEntry createFromColumn(Column column) {
+        if (column.getValue() == null) {
+            return create(null, null);
+        }
         return createFromBytes(column.getValue());
     }
 
@@ -67,7 +70,7 @@ abstract class TimestampBoundStoreEntry {
     }
 
     static byte[] getByteValueForIdAndBound(UUID id, Long ts) {
-        return (create(id, ts)).getByteValue();
+        return (create(ts, id)).getByteValue();
     }
 
     byte[] getByteValue() {

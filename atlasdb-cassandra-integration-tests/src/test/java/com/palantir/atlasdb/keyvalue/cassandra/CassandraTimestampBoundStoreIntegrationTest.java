@@ -42,8 +42,8 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     private static final String ROW_AND_COLUMN_NAME = "ts";
     private static final Cell TIMESTAMP_BOUND_CELL =
             Cell.create(PtBytes.toBytes(ROW_AND_COLUMN_NAME), PtBytes.toBytes(ROW_AND_COLUMN_NAME));
-    private static final long OFFSET = 100;
-    private static final long SECOND_OFFSET = OFFSET + 1;
+    private static final long OFFSET = 100000;
+    private static final long GREATER_OFFSET = OFFSET + 1;
 
 
     @ClassRule
@@ -60,133 +60,135 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     }
 
     @Test
-    public void storeWithEmptyTableOnStartupSucceeds() {
-        store.storeUpperLimit(OFFSET);
-        assertStoreReturnsBoundEqualTo(OFFSET);
-    }
-
-    @Test
-    public void storeWithEmptyTableThrowsAfterStore() {
-        store.storeUpperLimit(OFFSET);
-        kv.truncateTable(AtlasDbConstants.TIMESTAMP_TABLE);
-        assertThatStoreUpperLimitThrows(SECOND_OFFSET, MultipleRunningTimestampServiceError.class);
-    }
-
-    @Test
-    public void storeWithNonEmptyTableNoIdOnStartupThrows() {
-        insertTimestampOld(OFFSET);
-        assertThatStoreUpperLimitThrows(SECOND_OFFSET, MultipleRunningTimestampServiceError.class);
-    }
-
-    @Test
-    public void storeWithNonEmptyTableWrongIdOnStartupThrows() {
-        insertTimestampWithFakeId(OFFSET);
-        assertThatStoreUpperLimitThrows(SECOND_OFFSET, MultipleRunningTimestampServiceError.class);
-    }
-
-    @Test
-    public void storeLowerTimestampWithExpectedTimestampInDbThrows() {
-        long limit = store.getUpperLimit();
-        assertThatStoreUpperLimitThrows(limit - 1, PalantirRuntimeException.class);
-    }
-
-    @Test
-    public void storeLowerTimestampWithUnexpectedTimestampInDbCorrectIdSuppressed() {
-        long limit = store.getUpperLimit();
-        insertTimestampWithCorrectId(limit + OFFSET);
-        store.storeUpperLimit(limit + OFFSET - 1);
-        assertStoreReturnsBoundEqualTo(limit + OFFSET);
-    }
-
-    @Test
-    public void getOrStoreWithNoTableThrows() {
+    public void storeWithNoTableOnStartupThrows() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
-        assertThatGetUpperLimitThrows(PalantirRuntimeException.class);
         assertThatStoreUpperLimitThrows(OFFSET, PalantirRuntimeException.class);
     }
 
     @Test
-    public void getNewFormatOnStartupSucceeds() {
-        insertTimestampWithCorrectId(OFFSET);
-        assertStoreReturnsBoundEqualTo(OFFSET);
+    public void storeWithEmptyTableOnStartupThrows() {
+        assertThatStoreUpperLimitThrows(OFFSET, MultipleRunningTimestampServiceError.class);
     }
 
     @Test
-    public void getNewFormatAfterStoreThrows() {
-        long limit = store.getUpperLimit();
-        store.storeUpperLimit(limit + OFFSET);
-        insertTimestampWithFakeId(limit + SECOND_OFFSET);
-        assertThatGetUpperLimitThrows(MultipleRunningTimestampServiceError.class);
-    }
-
-    @Test
-    public void getOldFormatOnStartupSucceeds() {
+    public void storeWithNoIdOnStartupThrows() {
         insertTimestampOld(OFFSET);
-        assertStoreReturnsBoundEqualTo(OFFSET);
+        assertThatStoreUpperLimitThrows(GREATER_OFFSET, MultipleRunningTimestampServiceError.class);
     }
 
     @Test
-    public void getOldFormatAfterStoreThrows() {
-        long limit = store.getUpperLimit();
-        store.storeUpperLimit(limit + OFFSET);
-        insertTimestampOld(limit + SECOND_OFFSET);
+    public void storeWithWrongIdOnStartupThrows() {
+        insertTimestampWithFakeId(OFFSET);
+        assertThatStoreUpperLimitThrows(GREATER_OFFSET, MultipleRunningTimestampServiceError.class);
+    }
+
+    @Test
+    public void getWithNoTableOnStartupThrows() {
+        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        assertThatGetUpperLimitThrows(PalantirRuntimeException.class);
+    }
+
+    @Test
+    public void canMigrateFromEmptyTable() {
+        store.getUpperLimit();
+        assertThat(getIdFromDb()).isEqualTo(getStoreId(store));
+    }
+
+    @Test
+    public void canMigrateFromNoId() {
+        insertTimestampOld(OFFSET);
+        store.getUpperLimit();
+        assertThat(getBoundFromDb()).isEqualTo(OFFSET);
+        assertThat(getIdFromDb()).isEqualTo(getStoreId(store));
+    }
+
+    @Test
+    public void canMigrateFromWrongId() {
+        insertTimestampWithFakeId(OFFSET);
+        store.getUpperLimit();
+        assertThat(getBoundFromDb()).isEqualTo(OFFSET);
+        assertThat(getIdFromDb()).isEqualTo(getStoreId(store));
+    }
+
+    @Test
+    public void getWithEmptyTableAfterMigrationThrows() {
+        store.getUpperLimit();
+        kv.truncateTable(AtlasDbConstants.TIMESTAMP_TABLE);
         assertThatGetUpperLimitThrows(MultipleRunningTimestampServiceError.class);
     }
 
     @Test
-    public void storeWithWrongTimestampCorrectIdSucceeds() {
+    public void getWithNoIdAfterMigrationThrows() {
+        insertTimestampOld(OFFSET);
+        store.getUpperLimit();
+        insertTimestampOld(OFFSET);
+        assertThatGetUpperLimitThrows(MultipleRunningTimestampServiceError.class);
+    }
+
+    @Test
+    public void getWithWrongIdAfterMigrationThrows() {
+        insertTimestampWithFakeId(OFFSET);
+        store.getUpperLimit();
+        insertTimestampWithFakeId(OFFSET);
+        assertThatGetUpperLimitThrows(MultipleRunningTimestampServiceError.class);
+    }
+
+    @Test
+    public void getWithSmallerThanExpectedTimestampThrows() {
+        long limit = store.getUpperLimit();
+        insertTimestampWithCorrectId(limit - 1);
+        assertThatGetUpperLimitThrows(IllegalStateException.class);
+    }
+
+    @Test
+    public void getWithGreaterThanExpectedTimestampSucceeds() {
         long limit = store.getUpperLimit();
         insertTimestampWithCorrectId(limit + OFFSET);
-        store.storeUpperLimit(limit + SECOND_OFFSET);
-        assertStoreReturnsBoundEqualTo(limit + SECOND_OFFSET);
+        assertThat(store.getUpperLimit()).isEqualTo(limit + OFFSET);
     }
 
     @Test
-    public void storeWithWrongTimestampNoIdThrows() {
+    public void storeWithEmptyTableAfterMigrationThrows() {
         long limit = store.getUpperLimit();
-        insertTimestampOld(limit + OFFSET);
-        assertThatStoreUpperLimitThrows(limit + SECOND_OFFSET, MultipleRunningTimestampServiceError.class);
+        kv.truncateTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        assertThatStoreUpperLimitThrows(limit + OFFSET, MultipleRunningTimestampServiceError.class);
     }
 
     @Test
-    public void storeWithWrongTimestampWrongIdThrows() {
+    public void storeWithNoIdAfterMigrationThrows() {
+        insertTimestampOld(OFFSET);
         long limit = store.getUpperLimit();
-        insertTimestampWithFakeId(limit + OFFSET);
-        assertThatStoreUpperLimitThrows(limit + SECOND_OFFSET, MultipleRunningTimestampServiceError.class);
-    }
-
-    @Test
-    public void storeWithRightTimestampNoIdSucceedsFirstTime() {
         insertTimestampOld(OFFSET);
-        assertThat(store.getUpperLimit()).isEqualTo(OFFSET);
-        store.storeUpperLimit(SECOND_OFFSET);
-        assertStoreReturnsBoundEqualTo(SECOND_OFFSET);
+        assertThatStoreUpperLimitThrows(limit + OFFSET, MultipleRunningTimestampServiceError.class);
     }
 
     @Test
-    public void storeWithRightTimestampNoIdSecondTimeThrows() {
-        insertTimestampOld(OFFSET);
-        store.getUpperLimit();
-        store.storeUpperLimit(SECOND_OFFSET);
-        insertTimestampOld(OFFSET);
-        assertThatStoreUpperLimitThrows(SECOND_OFFSET, MultipleRunningTimestampServiceError.class);
+    public void storeWithWrongIdAfterMigrationThrows() {
+        insertTimestampWithFakeId(OFFSET);
+        long limit = store.getUpperLimit();
+        insertTimestampWithFakeId(OFFSET);
+        assertThatStoreUpperLimitThrows(limit + OFFSET, MultipleRunningTimestampServiceError.class);
     }
 
     @Test
-    public void storeWithRightTimestampWrongIdFirstTimeSucceeds() {
-        insertTimestampWithFakeId(OFFSET);
-        assertThat(store.getUpperLimit()).isEqualTo(OFFSET);
-        store.storeUpperLimit(SECOND_OFFSET);
-        assertStoreReturnsBoundEqualTo(SECOND_OFFSET);
+    public void storeSmallerThanExpectedTimestampThrows() {
+        long limit = store.getUpperLimit();
+        assertThatStoreUpperLimitThrows(limit - 1, IllegalArgumentException.class);
     }
 
     @Test
-    public void storeWithRightTimestampWrongIdSecondTimeThrows() {
-        insertTimestampWithFakeId(OFFSET);
-        store.getUpperLimit();
-        store.storeUpperLimit(SECOND_OFFSET);
-        insertTimestampWithFakeId(OFFSET);
-        assertThatStoreUpperLimitThrows(SECOND_OFFSET, MultipleRunningTimestampServiceError.class);
+    public void storeLowerTimestampThanUnexpectedInDbThrows() {
+        long limit = store.getUpperLimit();
+        insertTimestampWithCorrectId(limit + GREATER_OFFSET);
+        assertThatStoreUpperLimitThrows(limit + OFFSET, IllegalStateException.class);
+    }
+
+    @Test
+    public void storeGreaterTimestampThanUnexpectedInDbSucceeds() {
+        long limit = store.getUpperLimit();
+        insertTimestampWithCorrectId(limit + OFFSET);
+        store.storeUpperLimit(limit + GREATER_OFFSET);
+        assertGetReturnsBoundEqualTo(limit + GREATER_OFFSET);
     }
 
     @Test
@@ -218,31 +220,31 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     public void testBounds() {
         long limit = store.getUpperLimit();
         store.storeUpperLimit(limit + 10);
-        assertStoreReturnsBoundEqualTo(limit + 10);
+        assertGetReturnsBoundEqualTo(limit + 10);
         store.storeUpperLimit(limit + 20);
-        assertStoreReturnsBoundEqualTo(limit + 20);
+        assertGetReturnsBoundEqualTo(limit + 20);
         store.storeUpperLimit(limit + 30);
-        assertStoreReturnsBoundEqualTo(limit + 30);
+        assertGetReturnsBoundEqualTo(limit + 30);
     }
 
     @Test
-    public void testMultipleThrows() {
+    public void testOnlyOneTimestampBoundStoreCanBeActive() {
         TimestampBoundStore ts2 = CassandraTimestampBoundStore.create(kv);
-        long limit = store.getUpperLimit();
+        long limit = ts2.getUpperLimit();
 
-        assertThat(ts2.getUpperLimit()).isEqualTo(limit);
+        assertGetReturnsBoundEqualTo(limit);
         store.storeUpperLimit(limit + 10);
-        assertStoreReturnsBoundEqualTo(limit + 10);
-        assertThat(ts2.getUpperLimit()).isEqualTo(limit + 10);
+        assertGetReturnsBoundEqualTo(limit + 10);
+        assertThatThrownBy(() -> ts2.getUpperLimit()).isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
 
         store.storeUpperLimit(limit + 20);
         assertThatThrownBy(() -> ts2.storeUpperLimit(limit + 20))
                 .isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
-        assertStoreReturnsBoundEqualTo(limit + 20);
-        assertThat(ts2.getUpperLimit()).isEqualTo(limit + 20);
+        assertGetReturnsBoundEqualTo(limit + 20);
+        assertThatThrownBy(() -> ts2.getUpperLimit()).isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
 
         store.storeUpperLimit(limit + 30);
-        assertStoreReturnsBoundEqualTo(limit + 30);
+        assertGetReturnsBoundEqualTo(limit + 30);
 
         assertThatThrownBy(() -> ts2.storeUpperLimit(limit + 40))
                 .isExactlyInstanceOf(MultipleRunningTimestampServiceError.class);
@@ -254,7 +256,7 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
         kv.close();
     }
 
-    private void assertStoreReturnsBoundEqualTo(long limit) {
+    private void assertGetReturnsBoundEqualTo(long limit) {
         assertThat(store.getUpperLimit()).isEqualTo(limit);
     }
 
@@ -279,7 +281,7 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     }
 
     private void insertTimestampWithIdChanged(long value, boolean changeId) {
-        UUID id = ((CassandraTimestampBoundStore) store).getId();
+        UUID id = getStoreId(store);
         if (changeId) {
             id = new UUID(id.getMostSignificantBits(), id.getLeastSignificantBits() ^ 1);
         }
@@ -295,5 +297,15 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
         Value value = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TIMESTAMP_BOUND_CELL, Long.MAX_VALUE))
                 .get(TIMESTAMP_BOUND_CELL);
         return TimestampBoundStoreEntry.createFromBytes(value.getContents()).timestamp();
+    }
+
+    private UUID getIdFromDb() {
+        Value value = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TIMESTAMP_BOUND_CELL, Long.MAX_VALUE))
+                .get(TIMESTAMP_BOUND_CELL);
+        return TimestampBoundStoreEntry.createFromBytes(value.getContents()).id();
+    }
+
+    private UUID getStoreId(TimestampBoundStore store) {
+        return ((CassandraTimestampBoundStore) store).getId();
     }
 }
