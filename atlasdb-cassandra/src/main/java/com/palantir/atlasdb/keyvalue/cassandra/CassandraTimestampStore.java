@@ -35,6 +35,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.Throwables;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.util.Pair;
@@ -52,6 +53,7 @@ public class CassandraTimestampStore {
     /**
      * Creates the timestamp table. Note that this operation is idempotent.
      */
+    @Idempotent
     public void createTimestampTable() {
         cassandraKeyValueService.createTable(
                 AtlasDbConstants.TIMESTAMP_TABLE,
@@ -79,9 +81,9 @@ public class CassandraTimestampStore {
      * @param target Upper timestamp limit we want to store in the database
      * @throws ConcurrentModificationException if the expected value does not match the bound in the database
      */
-    public synchronized void storeTimestampBound(Long expected, long target) {
+    public synchronized void storeTimestampBound(Optional<Long> expected, long target) {
         cassandraKeyValueService.clientPool.runWithRetry(client -> {
-            byte[] expectedBytes = getNullableByteArray(expected);
+            byte[] expectedBytes = expected.map(PtBytes::toBytes).orElse(null);
             byte[] targetBytes = PtBytes.toBytes(target);
             ByteBuffer queryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
                     ImmutableMap.of(
@@ -100,7 +102,7 @@ public class CassandraTimestampStore {
      * This may be implemented as follows:
      *  - Read the value of the backup timestamp. If this is readable, skip (already backed up).
      *  - Read the value of the timestamp (TS). If this is unreadable, fail.
-     *  - Do a conditional logged batch:
+     *  - Do a conditional unlogged batch (safe since the row key is the same)
      *    - CAS the main timestamp, expecting TS, to the INVALIDATED_VALUE
      *    - Put unless exists the value of TS to the backup timestamp.
      *
@@ -141,8 +143,8 @@ public class CassandraTimestampStore {
      * This may be implemented following the inverse of the backup process:
      *  - Read the value of the timestamp. If this is readable, skip.
      *  - Read the value of the backup (BT). If this is unreadable, fail.
-     *  - Do a conditional logged batch:
-     *    - Conditionally delete the backup if it matches BT
+     *  - Do a conditional unlogged batch (safe since the row key is the same)
+     *    - CAS the backup timestamp, from BT, to the empty byte array (deletion marker).
      *    - CAS the main timestamp, expecting INVALIDATED_VALUE, to BT.
      */
     public synchronized void restoreFromBackup() {
@@ -163,31 +165,32 @@ public class CassandraTimestampStore {
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
                             Pair.create(CassandraTimestampUtils.INVALIDATED_VALUE, currentBackupBound),
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
-                            Pair.create(currentBackupBound, CassandraTimestampUtils.INVALIDATED_VALUE)));
+                            Pair.create(currentBackupBound, PtBytes.EMPTY_BYTE_ARRAY)));
             executeQueryUnchecked(client, casQueryBuffer);
             return null;
         });
     }
 
-    private void checkOperationWasApplied(Long expected, long target, CqlResult result) {
+    private void checkOperationWasApplied(Optional<Long> expected, long target, CqlResult result) {
         if (!CassandraTimestampUtils.wasOperationApplied(result)) {
             throw constructConcurrentTimestampStoreException(expected, target, result);
         }
     }
 
     private static ConcurrentModificationException constructConcurrentTimestampStoreException(
-            Long expected,
+            Optional<Long> expected,
             long target,
             CqlResult result) {
         long actual = CassandraTimestampUtils.getLongValueFromApplicationResult(result);
+        String expectedValueString = expected.isPresent() ? expected.get().toString() : "null";
 
         String msg = "Unable to CAS from {} to {}."
                 + " Timestamp limit changed underneath us (limit in memory: {}, stored in DB: {}).";
         ConcurrentModificationException except = new ConcurrentModificationException(
                 String.format(replaceBracesWithStringFormatSpecifier(msg),
-                        expected,
+                        expectedValueString,
                         target,
-                        expected,
+                        expectedValueString,
                         actual));
         log.error(msg, expected, target, expected, actual);
         DebugLogger.logger.error("Thread dump: {}", ThreadDumps.programmaticThreadDump());
@@ -196,10 +199,6 @@ public class CassandraTimestampStore {
 
     private static String replaceBracesWithStringFormatSpecifier(String msg) {
         return msg.replaceAll("\\{\\}", "%s");
-    }
-
-    private static byte[] getNullableByteArray(Long expected) {
-        return expected == null ? null : PtBytes.toBytes(expected);
     }
 
     private static CqlResult executeQueryUnchecked(Cassandra.Client client, ByteBuffer queryBuffer) {

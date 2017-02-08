@@ -52,32 +52,41 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     @Override
     public synchronized long getUpperLimit() {
         DebugLogger.logger.debug("[GET] Getting upper limit");
-        Optional<Long> currentBound = cassandraTimestampStore.getUpperLimit();
-        long boundToStore;
-        if (!currentBound.isPresent()) {
-            DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
-            cassandraTimestampStore.storeTimestampBound(null, INITIAL_VALUE);
-            boundToStore = INITIAL_VALUE;
-        } else {
-            boundToStore = currentBound.get();
-        }
-        currentLimit = boundToStore;
+        currentLimit = getBoundToStore();
         DebugLogger.logger.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
         return currentLimit;
+    }
+
+    private long getBoundToStore() {
+        Optional<Long> currentBound = cassandraTimestampStore.getUpperLimit();
+        if (!currentBound.isPresent()) {
+            DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
+            try {
+                cassandraTimestampStore.storeTimestampBound(Optional.empty(), INITIAL_VALUE);
+            } catch (ConcurrentModificationException e) {
+                throw constructMultipleServiceError(e);
+            }
+            return INITIAL_VALUE;
+        }
+        return currentBound.get();
     }
 
     @Override
     public synchronized void storeUpperLimit(final long limit) {
         DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
         try {
-            cassandraTimestampStore.storeTimestampBound(currentLimit, limit);
+            cassandraTimestampStore.storeTimestampBound(Optional.of(currentLimit), limit);
             currentLimit = limit;
         } catch (ConcurrentModificationException e) {
-            throw new MultipleRunningTimestampServiceError(
-                    "CAS unsuccessful; this may indicate that another timestamp service is running against this"
-                            + " cassandra keyspace, possibly caused by multiple copies of a service running without"
-                            + " a configured set of leaders, or a CLI being run with an embedded timestamp service"
-                            + " against an already running service.", e);
+            throw constructMultipleServiceError(e);
         }
+    }
+
+    private MultipleRunningTimestampServiceError constructMultipleServiceError(ConcurrentModificationException e) {
+        throw new MultipleRunningTimestampServiceError(
+                "CAS unsuccessful; this may indicate that another timestamp service is running against this"
+                        + " cassandra keyspace, possibly caused by multiple copies of a service running without"
+                        + " a configured set of leaders, or a CLI being run with an embedded timestamp service"
+                        + " against an already running service.", e);
     }
 }
