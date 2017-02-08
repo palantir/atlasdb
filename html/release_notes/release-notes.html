@@ -169,37 +169,58 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-31-0">
+<h2>v0.31.0<a class="headerlink" href="#v0-31-0" title="Permalink to this headline">¶</a></h2>
+<p>8 Feb 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Improved performance by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
-Replaced <code class="docutils literal"><span class="pre">mapToFullTableNames()</span></code> with <code class="docutils literal"><span class="pre">generateMapToFullTableNames()</span></code> in
-<code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.TableMappingService</span></code>.
+Replaced <code class="docutils literal"><span class="pre">mapToFullTableNames()</span></code> with <code class="docutils literal"><span class="pre">generateMapToFullTableNames()</span></code> in <code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.TableMappingService</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1486">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>Removed the unused <cite>TieredKeyValueService</cite> which offered the ability to spread tables across multiple KVSs that
-exist in a stacked hierarchy (primary &amp; secondary).  If you require this KVS please file a ticket to have it reinstated.
+<td>Removed the unused <code class="docutils literal"><span class="pre">TieredKeyValueService</span></code> which offered the ability to spread tables across multiple KVSs that exist in a stacked hierarchy (primary &amp; secondary).
+If you require this KVS please file a ticket to have it reinstated.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1553">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Fast forwarding a persistent timestamp service to <code class="docutils literal"><span class="pre">Long.MIN_VALUE</span></code> will now throw an exception; previously
-it would be a no-op. This is especially relevant for safety of remote requests; if a user does not
-supply the <code class="docutils literal"><span class="pre">currentTimestamp</span></code> query parameter, we would previously treat this as a fast-forward to zero
-and silently accept the request (returning 204) even though this is highly unlikely to be the user&#8217;s
-intention, while we now fail loudly (returning a 400).
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1538">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><p class="first">Fast forwarding a persistent timestamp service to <code class="docutils literal"><span class="pre">Long.MIN_VALUE</span></code> will now throw an exception, whereas previously it would be a no-op.
+Calling the <code class="docutils literal"><span class="pre">fast-forward</span></code> endpoint without specifying the fast-forward timestamp parameter will now default to submitting <code class="docutils literal"><span class="pre">Long.MIN_VALUE</span></code>, and thus return a HTTP 400 response.</p>
+<p class="last">We are introducing this break to prevent accidental corruption by forgetting to submit the fast-forward timestamp.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1538">Pull Request</a>)</p>
+</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Oracle query now uses the right hints when generating the query plan. This will improve performance for OracleKVS.
+<td>Oracle queries now use the correct hints when generating the query plan.
+This will improve performance for Oracle on DB KVS.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1549">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
-<td>Oracle table names can now have a maximum length of 27 characters instead of the previous limit of 30. This is to
-ensure consistency in naming the primary key constraint which adds a prefix of <code class="docutils literal"><span class="pre">pk_</span></code> to the table name. This will
-break any installation of Oracle with the <code class="docutils literal"><span class="pre">useTableMapping</span></code> flag set to <code class="docutils literal"><span class="pre">true</span></code>.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1552">Pull Request</a>)</td>
+<td><p class="first">Oracle table names can now have a maximum length of 27 characters instead of the previous limit of 30.
+This is to ensure consistency in naming the primary key constraint which adds a prefix of <code class="docutils literal"><span class="pre">pk_</span></code> to the table name.
+This will break any installation of Oracle with the <code class="docutils literal"><span class="pre">useTableMapping</span></code> flag set to <code class="docutils literal"><span class="pre">true</span></code>.</p>
+<p class="last">Since Oracle support is still in beta, we are not providing an automatic migration path from older versions of AtlasDB.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1552">Pull Request</a>)</p>
+</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Better support Oracle 12c batch responses
+<td>Support for Oracle 12c batch responses.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1540">Pull Request</a>)</td>
 </tr>
 </tbody>
@@ -207,6 +228,7 @@ break any installation of Oracle with the <code class="docutils literal"><span c
 </div>
 <div class="section" id="v0-30-0">
 <h2>v0.30.0<a class="headerlink" href="#v0-30-0" title="Permalink to this headline">¶</a></h2>
+<p>27 Jan 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -262,6 +284,7 @@ See gradle-java-distribution <a class="reference external" href="https://github.
 </div>
 <div class="section" id="v0-29-0">
 <h2>v0.29.0<a class="headerlink" href="#v0-29-0" title="Permalink to this headline">¶</a></h2>
+<p>17 Jan 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -304,6 +327,7 @@ This is supported for Cassandra, Postgres, and Oracle, but in the latter case su
 </div>
 <div class="section" id="v0-28-0">
 <h2>v0.28.0<a class="headerlink" href="#v0-28-0" title="Permalink to this headline">¶</a></h2>
+<p>13 Jan 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -372,6 +396,7 @@ root resource classes (so either leader election or timestamp requests would hav
 </div>
 <div class="section" id="v0-27-2">
 <h2>v0.27.2<a class="headerlink" href="#v0-27-2" title="Permalink to this headline">¶</a></h2>
+<p>10 Jan 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -395,6 +420,7 @@ or when the block size was many times smaller (7KB for the default in-memory thr
 </div>
 <div class="section" id="v0-27-1">
 <h2>v0.27.1<a class="headerlink" href="#v0-27-1" title="Permalink to this headline">¶</a></h2>
+<p>6 Jan 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -419,8 +445,9 @@ on remaining servers when a failover occurs.
 </tbody>
 </table>
 </div>
-<div class="section" id="id1">
-<h2>0.27.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="v0-27-0">
+<h2>v0.27.0<a class="headerlink" href="#v0-27-0" title="Permalink to this headline">¶</a></h2>
+<p>6 Jan 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -488,6 +515,7 @@ See gradle-java-distribution <a class="reference external" href="https://github.
 </div>
 <div class="section" id="v0-26-0">
 <h2>v0.26.0<a class="headerlink" href="#v0-26-0" title="Permalink to this headline">¶</a></h2>
+<p>5 Dec 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -540,6 +568,7 @@ The full file path of the <code class="docutils literal"><span class="pre">atlas
 </div>
 <div class="section" id="v0-25-0">
 <h2>v0.25.0<a class="headerlink" href="#v0-25-0" title="Permalink to this headline">¶</a></h2>
+<p>25 Nov 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -610,6 +639,7 @@ its load balancer responds with &#8220;503: Service Unavailable&#8221;, the requ
 </div>
 <div class="section" id="v0-24-0">
 <h2>v0.24.0<a class="headerlink" href="#v0-24-0" title="Permalink to this headline">¶</a></h2>
+<p>15 Nov 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -677,6 +707,7 @@ To use Java8 optionals, supply <code class="docutils literal"><span class="pre">
 </div>
 <div class="section" id="v0-23-0">
 <h2>v0.23.0<a class="headerlink" href="#v0-23-0" title="Permalink to this headline">¶</a></h2>
+<p>8 Nov 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -748,6 +779,7 @@ Previously, this would independently select hosts randomly, meaning that we migh
 </div>
 <div class="section" id="v0-22-0">
 <h2>v0.22.0<a class="headerlink" href="#v0-22-0" title="Permalink to this headline">¶</a></h2>
+<p>28 Oct 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -782,6 +814,7 @@ This resulted in locks that appeared to be refreshed properly, but then would my
 </div>
 <div class="section" id="v0-21-1">
 <h2>v0.21.1<a class="headerlink" href="#v0-21-1" title="Permalink to this headline">¶</a></h2>
+<p>24 Oct 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -808,6 +841,7 @@ This is relevant if you use multiple namespaces when performing schema migration
 </div>
 <div class="section" id="v0-21-0">
 <h2>v0.21.0<a class="headerlink" href="#v0-21-0" title="Permalink to this headline">¶</a></h2>
+<p>21 Oct 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -834,6 +868,7 @@ For information on how to configure Sweep batching, see the <a class="reference 
 </div>
 <div class="section" id="v0-20-0">
 <h2>v0.20.0<a class="headerlink" href="#v0-20-0" title="Permalink to this headline">¶</a></h2>
+<p>19 Oct 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -891,6 +926,7 @@ This is due to Oracle&#8217;s restriction of not allowing table names with a lea
 </div>
 <div class="section" id="v0-19-0">
 <h2>v0.19.0<a class="headerlink" href="#v0-19-0" title="Permalink to this headline">¶</a></h2>
+<p>11 Oct 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -957,6 +993,7 @@ This will ensure we handle delayed heartbeats in high load situations (eg. on ci
 </div>
 <div class="section" id="v0-18-0">
 <h2>v0.18.0<a class="headerlink" href="#v0-18-0" title="Permalink to this headline">¶</a></h2>
+<p>3 Oct 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -989,6 +1026,7 @@ See the <a class="reference internal" href="../configuration/key_value_service_c
 </div>
 <div class="section" id="v0-17-0">
 <h2>v0.17.0<a class="headerlink" href="#v0-17-0" title="Permalink to this headline">¶</a></h2>
+<p>28 Sept 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1016,6 +1054,7 @@ For more information on using <code class="docutils literal"><span class="pre">h
 </div>
 <div class="section" id="v0-16-0">
 <h2>v0.16.0<a class="headerlink" href="#v0-16-0" title="Permalink to this headline">¶</a></h2>
+<p>26 Sept 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1047,6 +1086,7 @@ If you are using the regular implementation of Sweep (i.e. you do not specify <c
 </div>
 <div class="section" id="v0-15-0">
 <h2>v0.15.0<a class="headerlink" href="#v0-15-0" title="Permalink to this headline">¶</a></h2>
+<p>14 Sept 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1104,6 +1144,7 @@ Previously an error message would direct users to manually truncate this table w
 </div>
 <div class="section" id="v0-14-0">
 <h2>v0.14.0<a class="headerlink" href="#v0-14-0" title="Permalink to this headline">¶</a></h2>
+<p>8 Sept 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1145,6 +1186,7 @@ We plan on shading Dagger in the next release of AtlasDB, but products can force
 </div>
 <div class="section" id="v0-13-0">
 <h2>v0.13.0<a class="headerlink" href="#v0-13-0" title="Permalink to this headline">¶</a></h2>
+<p>30 Aug 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1190,6 +1232,7 @@ This reduces the likelihood of clients losing the schema mutation lock and havin
 </div>
 <div class="section" id="v0-12-0">
 <h2>v0.12.0<a class="headerlink" href="#v0-12-0" title="Permalink to this headline">¶</a></h2>
+<p>22 Aug 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1228,6 +1271,7 @@ See <a class="reference internal" href="../configuration/logging.html#logging-co
 </div>
 <div class="section" id="v0-11-4">
 <h2>v0.11.4<a class="headerlink" href="#v0-11-4" title="Permalink to this headline">¶</a></h2>
+<p>29 Jul 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1249,6 +1293,7 @@ This is a critical bug fix that ensures we actually use our implementation from 
 </div>
 <div class="section" id="v0-11-2">
 <h2>v0.11.2<a class="headerlink" href="#v0-11-2" title="Permalink to this headline">¶</a></h2>
+<p>29 Jul 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1273,6 +1318,7 @@ See <a class="reference internal" href="../configuration/key_value_service_confi
 </div>
 <div class="section" id="v0-11-1">
 <h2>v0.11.1<a class="headerlink" href="#v0-11-1" title="Permalink to this headline">¶</a></h2>
+<p>28 Jul 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1299,6 +1345,7 @@ To benefit from this improvement you will need to re-generate your schemas.
 </div>
 <div class="section" id="v0-11-0">
 <h2>v0.11.0<a class="headerlink" href="#v0-11-0" title="Permalink to this headline">¶</a></h2>
+<p>27 Jul 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1354,6 +1401,7 @@ See the <a class="reference external" href="https://palantir.github.io/atlasdb/h
 </div>
 <div class="section" id="v0-10-0">
 <h2>v0.10.0<a class="headerlink" href="#v0-10-0" title="Permalink to this headline">¶</a></h2>
+<p>13 Jul 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1392,6 +1440,7 @@ This should result in less connection churn and therefore lower latency.
 </div>
 <div class="section" id="v0-9-0">
 <h2>v0.9.0<a class="headerlink" href="#v0-9-0" title="Permalink to this headline">¶</a></h2>
+<p>11 Jul 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1444,6 +1493,7 @@ You will need to regenerate your schema code in order to see this fix.
 </div>
 <div class="section" id="v0-8-0">
 <h2>v0.8.0<a class="headerlink" href="#v0-8-0" title="Permalink to this headline">¶</a></h2>
+<p>5 Jul 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1464,6 +1514,7 @@ You will need to regenerate your schema code in order to see this fix.
 </div>
 <div class="section" id="v0-7-0">
 <h2>v0.7.0<a class="headerlink" href="#v0-7-0" title="Permalink to this headline">¶</a></h2>
+<p>4 Jul 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1498,6 +1549,7 @@ However, this is very dependent on the particular scenario AtlasDB is being used
 </div>
 <div class="section" id="v0-6-0">
 <h2>v0.6.0<a class="headerlink" href="#v0-6-0" title="Permalink to this headline">¶</a></h2>
+<p>26 May 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1527,6 +1579,7 @@ The error has been downgraded to INFO and made less scary.</td>
 </div>
 <div class="section" id="v0-5-0">
 <h2>v0.5.0<a class="headerlink" href="#v0-5-0" title="Permalink to this headline">¶</a></h2>
+<p>16 May 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -1546,6 +1599,7 @@ The error has been downgraded to INFO and made less scary.</td>
 </div>
 <div class="section" id="v0-4-1">
 <h2>v0.4.1<a class="headerlink" href="#v0-4-1" title="Permalink to this headline">¶</a></h2>
+<p>17 May 2016</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
