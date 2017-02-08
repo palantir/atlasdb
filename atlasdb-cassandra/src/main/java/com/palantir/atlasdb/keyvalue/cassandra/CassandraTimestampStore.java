@@ -70,7 +70,7 @@ public class CassandraTimestampStore {
         return clientPool().runWithRetry(client -> {
             BoundData boundData = getCurrentBoundData(client);
             if (boundData.bound() == null) {
-                return Optional.empty();
+                return Optional.<Long>empty();
             }
             Preconditions.checkState(CassandraTimestampUtils.isValidTimestampData(boundData.bound()),
                     "The timestamp bound cannot be read.");
