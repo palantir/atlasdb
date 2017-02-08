@@ -58,7 +58,7 @@ public final class CassandraTimestampUtils {
 
     public static final String ROW_AND_COLUMN_NAME = "ts";
     public static final String BACKUP_COLUMN_NAME = "oldTs";
-    public static final ByteString INVALIDATED_VALUE = ByteString.copyFrom(new byte[1]);
+    public static final ByteString INVALIDATED_VALUE = ByteString.copyFrom(new byte[] {0});
 
     private static final long CASSANDRA_TIMESTAMP = -1;
 

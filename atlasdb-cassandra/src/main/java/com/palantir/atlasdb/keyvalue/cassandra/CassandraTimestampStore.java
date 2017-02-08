@@ -176,7 +176,7 @@ public class CassandraTimestampStore {
     }
 
     private TracingQueryRunner queryRunner() {
-        return cassandraKeyValueService.queryRunner;
+        return cassandraKeyValueService.getTracingQueryRunner();
     }
 
     private CqlResult executeQueryUnchecked(Cassandra.Client client, ByteBuffer query) {
