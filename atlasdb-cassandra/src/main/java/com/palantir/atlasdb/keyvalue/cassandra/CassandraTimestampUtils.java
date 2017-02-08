@@ -29,6 +29,7 @@ import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -115,6 +116,9 @@ public final class CassandraTimestampUtils {
     public static Optional<Long> getLongValueFromApplicationResult(CqlResult result) {
         try {
             Column valueColumn = getNamedColumn(getColumnsFromOnlyRow(result), VALUE_COLUMN);
+            Preconditions.checkState(
+                    isValidTimestampData(valueColumn.getValue()),
+                    "Byte array returned cannot be deserialized as a long.");
             return Optional.of(PtBytes.toLong(valueColumn.getValue()));
         } catch (NoSuchElementException e) {
             return Optional.empty();
@@ -127,6 +131,10 @@ public final class CassandraTimestampUtils {
                 .collect(Collectors.toMap(
                         cols -> PtBytes.toString(getNamedColumn(cols, COLUMN_NAME_COLUMN).getValue()),
                         cols -> getNamedColumn(cols, VALUE_COLUMN).getValue()));
+    }
+
+    public static boolean isValidTimestampData(byte[] data) {
+        return data != null && data.length == Long.BYTES;
     }
 
     private static String constructUpdateIfEqualQuery(String columnName, byte[] expected, byte[] target) {

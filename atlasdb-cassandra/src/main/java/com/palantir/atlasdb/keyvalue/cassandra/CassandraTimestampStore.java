@@ -72,7 +72,7 @@ public class CassandraTimestampStore {
             if (boundData.bound() == null) {
                 return Optional.empty();
             }
-            Preconditions.checkState(boundData.bound().length == Long.BYTES,
+            Preconditions.checkState(CassandraTimestampUtils.isValidTimestampData(boundData.bound()),
                     "The timestamp bound cannot be read.");
             return Optional.of(PtBytes.toLong(boundData.bound()));
         });
@@ -117,9 +117,9 @@ public class CassandraTimestampStore {
             byte[] currentBound = boundData.bound();
             byte[] currentBackupBound = boundData.backupBound();
 
-            if (isReadableLong(currentBackupBound)) {
+            if (CassandraTimestampUtils.isValidTimestampData(currentBackupBound)) {
                 // Backup bound has been updated!
-                Preconditions.checkState(!isReadableLong(currentBound),
+                Preconditions.checkState(!CassandraTimestampUtils.isValidTimestampData(currentBound),
                         "We had both backup and active bounds readable! This is unexpected; please contact support.");
                 log.info("[BACKUP] Didn't backup, because there is already a backup bound.");
                 return PtBytes.toLong(currentBackupBound);
@@ -135,10 +135,6 @@ public class CassandraTimestampStore {
             executeQueryUnchecked(client, casQueryBuffer);
             return PtBytes.toLong(backupValue);
         });
-    }
-
-    private static boolean isReadableLong(byte[] currentBackupBound) {
-        return currentBackupBound != null && currentBackupBound.length == Long.BYTES;
     }
 
     /**
@@ -157,8 +153,9 @@ public class CassandraTimestampStore {
             byte[] currentBound = boundData.bound();
             byte[] currentBackupBound = boundData.backupBound();
 
-            if (isReadableLong(currentBound)) {
-                Preconditions.checkState(currentBackupBound == null || !isReadableLong(currentBackupBound),
+            if (CassandraTimestampUtils.isValidTimestampData(currentBound)) {
+                Preconditions.checkState(currentBackupBound == null ||
+                                !CassandraTimestampUtils.isValidTimestampData(currentBackupBound),
                         "We had both backup and active bounds readable! This is unexpected; please contact support.");
                 log.info("[RESTORE] Didn't restore from backup, because the current timestamp is already readable.");
                 return null;
