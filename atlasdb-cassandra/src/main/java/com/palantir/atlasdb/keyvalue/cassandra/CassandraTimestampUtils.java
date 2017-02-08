@@ -66,8 +66,8 @@ public final class CassandraTimestampUtils {
 
     @VisibleForTesting
     static final String APPLIED_COLUMN = "[applied]";
-    private static final String COLUMN_NAME_COLUMN = "column1";
-    private static final String VALUE_COLUMN = "value";
+    static final String COLUMN_NAME_COLUMN = "column1";
+    static final String VALUE_COLUMN = "value";
 
     @VisibleForTesting
     static final byte[] SUCCESSFUL_OPERATION = {1};
