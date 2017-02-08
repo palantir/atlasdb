@@ -87,6 +87,11 @@ public class PersistentTimestampServiceMockingTest {
         assertThat(timestampService.getFreshTimestamp(), is(TIMESTAMP));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectFastForwardToTheSentinelValue() {
+        timestampService.fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP);
+    }
+
     private void waitForExecutorToFinish() throws InterruptedException {
         executor.shutdown();
         executor.awaitTermination(10, SECONDS);

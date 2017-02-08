@@ -65,11 +65,11 @@ Step 3: Fast-Forwarding the Timelock Server
 
 The Timelock Server exposes an administrative interface, which features a ``fast-forward`` endpoint. Note that this is
 not typically exposed to AtlasDB clients. One can use it to advance the timestamp on the Timelock Server to ``TS``, as
-follows:
+follows (where ``test`` is the namespace you want your client to use).
 
    .. code:: bash
 
-      curl -XPOST localhost:8080/test/timestamp-admin/fast-forward?newMinimum=TS
+      curl -XPOST localhost:8080/test/timestamp-management/fast-forward?currentTimestamp=TS
 
 .. danger::
 
@@ -103,11 +103,12 @@ The steps for invalidating the old AtlasDB timestamp will vary, depending on you
         ALTER TABLE atlasdb_timestamp RENAME last_allocated TO LEGACY_last_allocated;
 
 - If using Cassandra, one method of invalidating the table is to overwrite the timestamp bound record with the
-  empty byte array (consider using ``cqlsh`` to do this).
+  empty byte array (consider using ``cqlsh`` to do this). This table is stored in the same keyspace that your
+  AtlasDB client uses for its key-value service.
 
      .. code:: bash
 
-        SELECT * FROM atlasdb."timestamp";
+        SELECT * FROM atlasdb."_timestamp";
         <note the value returned by this - call this K>
         INSERT INTO atlasdb."_timestamp" (key, column1, column2, value) VALUES (0x7472, 0x7472, -1, K);
         INSERT INTO atlasdb."_timestamp" (key, column1, column2, value) VALUES (0x7473, 0x7473, -1, 0x);

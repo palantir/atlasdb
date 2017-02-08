@@ -107,7 +107,7 @@ public class CassandraClientPool {
     final ScheduledThreadPoolExecutor refreshDaemon;
 
     private final MetricsManager metricsManager = new MetricsManager();
-    private final RequestMetrics aggregateMetrics = new RequestMetrics();
+    private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
@@ -149,15 +149,6 @@ public class CassandraClientPool {
         private final Meter totalRequests;
         private final Meter totalRequestExceptions;
         private final Meter totalRequestConnectionExceptions;
-
-        RequestMetrics() {
-            totalRequests = metricsManager.registerMeter(
-                    CassandraClientPool.class, "requests");
-            totalRequestExceptions = metricsManager.registerMeter(
-                    CassandraClientPool.class, "requestExceptions");
-            totalRequestConnectionExceptions = metricsManager.registerMeter(
-                    CassandraClientPool.class, "requestConnectionExceptions");
-        }
 
         RequestMetrics(String metricPrefix) {
             totalRequests = metricsManager.registerMeter(

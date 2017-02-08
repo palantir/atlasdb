@@ -464,7 +464,7 @@ public class DbKvs extends AbstractKeyValueService {
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             long timestamp) {
-        return new DbKvsGetRanges(this, config, dbTables.getDbType(), connections, prefixedTableNames)
+        return new DbKvsGetRanges(this, dbTables.getDbType(), connections, prefixedTableNames)
                 .getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 

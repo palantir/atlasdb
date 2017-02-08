@@ -45,7 +45,7 @@ Tunable Configuration Options
 -----------------------------
 
 The following optional parameters can be tuned to optimize Sweep performance for a specific AtlasDB instance.
-You may set them as part of your :ref:`AtlasDB configuration <atlas_config>`, or as a CLI option if you are running sweep using the CLI.
+You may set them as part of your :ref:`AtlasDB configuration <atlas-config>`, or as a CLI option if you are running sweep using the CLI.
 
 .. csv-table::
    :header: "AtlasDB Config", "CLI Option", "Default", "Description"
