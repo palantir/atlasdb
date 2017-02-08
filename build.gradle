@@ -73,6 +73,8 @@ allprojects {
         resolutionStrategy {
             failOnVersionConflict()
         }
+        
+        exclude group: "org.mortbay.jetty:servlet-api"
     }
 }
 

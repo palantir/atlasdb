@@ -32,9 +32,16 @@ import com.google.common.net.HostAndPort;
 @Value.Immutable
 public abstract class ClusterConfiguration {
     public abstract String localServer();
+    public abstract String localWebsocketTimestampServer();
+    public abstract String localWebsocketPaxosServer();
+    public abstract String websocketTimestampClient();
+    public abstract PaxosTransport paxosTransport();
 
     @Size(min = 1)
     public abstract Set<String> servers();
+
+    @Size(min = 1)
+    public abstract Set<String> websocketPaxosServers();
 
     @Value.Check
     protected void check() {

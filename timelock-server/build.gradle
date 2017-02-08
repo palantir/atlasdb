@@ -30,6 +30,9 @@ dependencies {
     compile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
 
     processor group: 'org.immutables', name: 'value'
+    processor 'com.google.auto.service:auto-service:1.0-rc2'
+
+    compile "org.java-websocket:Java-WebSocket:1.3.0"
 
     testCompile project(":atlasdb-config")
     testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")

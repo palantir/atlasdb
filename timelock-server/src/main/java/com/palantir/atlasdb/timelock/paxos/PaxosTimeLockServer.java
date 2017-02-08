@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -27,27 +28,37 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.factory.ImmutableLocalPaxosServices;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
+import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.config.ClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
+import com.palantir.atlasdb.timelock.config.PaxosTransport;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
+import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.PersistentTimestampService;
@@ -92,13 +103,9 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         Set<String> paxosSubresourceUris = PaxosTimeLockUriUtils.getLeaderPaxosUris(remoteServers);
 
-        Leaders.LocalPaxosServices localPaxosServices = Leaders.createLocalServices(
-                leaderConfig,
-                ImmutableRemotePaxosServerSpec.builder()
-                        .remoteLeaderUris(remoteServers)
-                        .remoteAcceptorUris(paxosSubresourceUris)
-                        .remoteLearnerUris(paxosSubresourceUris)
-                        .build());
+        Leaders.LocalPaxosServices localPaxosServices =
+                createLocalServices(configuration, leaderConfig, paxosSubresourceUris);
+
         leaderElectionService = localPaxosServices.leaderElectionService();
 
         environment.jersey().register(leaderElectionService);
@@ -106,6 +113,86 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 localPaxosServices.ourAcceptor(),
                 localPaxosServices.ourLearner()));
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
+    }
+
+    private Leaders.LocalPaxosServices createLocalServices(TimeLockServerConfiguration configuration,
+            LeaderConfig leaderConfig, Set<String> paxosSubresourceUris) {
+        if (configuration.cluster().paxosTransport() == PaxosTransport.WEBSOCKET) {
+            return createLocalServicesWithWebsockets(
+                    leaderConfig,
+                    configuration.cluster(),
+                    ImmutableRemotePaxosServerSpec.builder()
+                            .remoteLeaderUris(remoteServers)
+                            .remoteAcceptorUris(paxosSubresourceUris)
+                            .remoteLearnerUris(paxosSubresourceUris)
+                            .build());
+        } else {
+            return Leaders.createLocalServices(
+                    leaderConfig,
+                    ImmutableRemotePaxosServerSpec.builder()
+                            .remoteLeaderUris(remoteServers)
+                            .remoteAcceptorUris(paxosSubresourceUris)
+                            .remoteLearnerUris(paxosSubresourceUris)
+                            .build());
+        }
+    }
+
+    private LocalPaxosServices createLocalServicesWithWebsockets(LeaderConfig config, ClusterConfiguration clusterConfig, ImmutableRemotePaxosServerSpec remotePaxosServerSpec) {
+        PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath());
+        PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath());
+
+        Optional<SSLSocketFactory> sslSocketFactory =
+                TransactionManagers.createSslSocketFactory(config.sslConfiguration());
+
+        Set<String> remoteWebsocketServerUris = Sets.newHashSet(clusterConfig.websocketPaxosServers());
+        remoteWebsocketServerUris.remove(clusterConfig.localWebsocketPaxosServer());
+
+        Collection<PaxosWebsocketClient> clients = Collections2.transform(
+                remoteWebsocketServerUris,
+                uri -> new PaxosWebsocketClient(uri));
+
+        List<PaxosLearner> learners = Lists.newArrayList();
+        learners.add(ourLearner);
+        learners.addAll(clients);
+
+        List<PaxosAcceptor> acceptors = Lists.newArrayList();
+        acceptors.add(ourAcceptor);
+        acceptors.addAll(clients);
+
+        PaxosWebsocketServer websocketPaxosServer = new PaxosWebsocketServer(clusterConfig.localWebsocketPaxosServer(),
+                ourLearner,
+                ourAcceptor);
+
+        clients.forEach(client -> environment.lifecycle().manage(client));
+        environment.lifecycle().manage(websocketPaxosServer);
+
+        Map<PingableLeader, HostAndPort> otherLeaders = Leaders.generatePingables(
+                remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory);
+
+        ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                .setNameFormat("atlas-leaders-%d")
+                .setDaemon(true)
+                .build());
+
+        PaxosProposer proposer = Leaders.createPaxosProposer(ourLearner, acceptors, learners, config.quorumSize(), executor);
+
+        PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
+                proposer,
+                ourLearner,
+                otherLeaders,
+                ImmutableList.copyOf(acceptors),
+                ImmutableList.copyOf(learners),
+                executor,
+                config.pingRateMs(),
+                config.randomWaitBeforeProposingLeadershipMs(),
+                config.leaderPingResponseWaitMs());
+
+        return ImmutableLocalPaxosServices.builder()
+                .ourAcceptor(ourAcceptor)
+                .ourLearner(ourLearner)
+                .leaderElectionService(leader)
+                .pingableLeader(leader)
+                .build();
     }
 
     private void registerHealthCheck(TimeLockServerConfiguration configuration) {
