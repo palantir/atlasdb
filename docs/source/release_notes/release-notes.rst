@@ -60,6 +60,11 @@ v0.31.0
     *    - Type
          - Change
 
+    *    - |improved| |devbreak|
+         - Improved performance by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
+           Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.          
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
+
     *    - |devbreak|
          - Removed the unused ``TieredKeyValueService`` which offered the ability to spread tables across multiple KVSs that exist in a stacked hierarchy (primary & secondary).
            If you require this KVS please file a ticket to have it reinstated.
