@@ -65,7 +65,8 @@ public final class CassandraTimestampUtils {
     private static final byte[] SUCCESSFUL_OPERATION = {1};
 
     public static final String BACKUP_COLUMN_NAME = "oldTs";
-    public static final byte[] INVALIDATED_VALUE = new byte[1];
+
+    static final byte[] INVALIDATED_VALUE = new byte[1];
 
     private CassandraTimestampUtils() {
         // utility class
