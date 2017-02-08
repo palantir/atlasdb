@@ -60,6 +60,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     public synchronized void storeUpperLimit(final long limit) {
         DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
         attemptToStoreTimestampBound(Optional.of(currentLimit), limit);
+        currentLimit = limit;
     }
 
     private long getBoundFromStore() {
