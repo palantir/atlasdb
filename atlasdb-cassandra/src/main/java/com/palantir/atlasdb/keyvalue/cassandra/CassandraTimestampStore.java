@@ -154,8 +154,8 @@ public class CassandraTimestampStore {
             byte[] currentBackupBound = boundData.backupBound();
 
             if (CassandraTimestampUtils.isValidTimestampData(currentBound)) {
-                Preconditions.checkState(currentBackupBound == null ||
-                                !CassandraTimestampUtils.isValidTimestampData(currentBackupBound),
+                Preconditions.checkState(currentBackupBound == null
+                                || !CassandraTimestampUtils.isValidTimestampData(currentBackupBound),
                         "We had both backup and active bounds readable! This is unexpected; please contact support.");
                 log.info("[RESTORE] Didn't restore from backup, because the current timestamp is already readable.");
                 return null;
