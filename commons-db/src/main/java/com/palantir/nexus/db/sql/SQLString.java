@@ -42,6 +42,7 @@ import com.palantir.nexus.db.SqlClause;
 
 public class SQLString extends BasicSQLString {
     private static final Pattern ALL_WORD_CHARS_REGEX = Pattern.compile("^[a-zA-Z_0-9\\.\\-]*$"); //$NON-NLS-1$
+    private static final String UNREGISTERED_SQL_COMMENT = "/* UnregisteredSQLString */";
 
     /**
      * Callers changing the value of cachedUnregistered and
@@ -200,7 +201,7 @@ public class SQLString extends BasicSQLString {
      */
     static FinalSQLString getUnregisteredQuery(String sql) {
         assert !isValidKey(sql) : "Unregistered Queries should not look like keys"; //$NON-NLS-1$
-        FinalSQLString cached = cachedUnregistered.get(StringUtils.deleteWhitespace(canonicalizeString(sql)));
+        FinalSQLString cached = cachedUnregistered.get(canonicalizeString(sql));
         if(null != cached) {
             callbackOnUse.noteUse((SQLString) cached.delegate);
             return cached;
@@ -251,22 +252,49 @@ public class SQLString extends BasicSQLString {
     /**
      * Cleans up whitespace, any trailing semicolon, and prefixed comments that a string is
      * unregistered, in order to come up with a canonical representation of this sql string.
-     * @param s
-     * @return
      */
-    public static String canonicalizeString(String s) {
-        String trim = s.trim();
-        if(!trim.isEmpty() && trim.charAt(trim.length() - 1) == ';') {
-            trim = trim.substring(0, trim.length() - 1);
-        }
-        String prefix = "/* UnregisteredSQLString */"; //$NON-NLS-1$
-        if (trim.startsWith(prefix)) {
-            trim = trim.substring(prefix.length()).trim();
-        }
-        String [] sp = trim.split("\\s+"); //$NON-NLS-1$
-        return StringUtils.join(sp, " "); //$NON-NLS-1$
+    public static String canonicalizeString(String sql) {
+        return canonicalizeString(sql, false);
     }
 
+    static String canonicalizeStringAndRemoveWhitespaceEntirely(String sql) {
+        return canonicalizeString(sql, true);
+    }
+
+    private static String canonicalizeString(String original, boolean removeAllWhitespaceEntirely) {
+        StringBuilder cleanedString = new StringBuilder(original);
+        int originalIdx = 0;
+        int cleanedIdx = 0;
+        int firstUnregisteredIdx = cleanedString.indexOf(UNREGISTERED_SQL_COMMENT);
+
+        while (originalIdx < original.length()) {
+            char originalChar = original.charAt(originalIdx);
+            if (originalIdx == firstUnregisteredIdx) {
+                originalIdx += UNREGISTERED_SQL_COMMENT.length();
+                firstUnregisteredIdx = original.indexOf(UNREGISTERED_SQL_COMMENT, originalIdx);
+            } else if (originalChar == ' ' && (cleanedIdx == 0 || cleanedString.charAt(cleanedIdx - 1) == ' ')
+                    || (originalChar == ' ' && removeAllWhitespaceEntirely)) {
+                ++originalIdx;
+            } else {
+                cleanedString.setCharAt(cleanedIdx, originalChar);
+                ++cleanedIdx;
+                ++originalIdx;
+            }
+        }
+
+        if (cleanedString.charAt(cleanedIdx - 1) == ' ') {
+            --cleanedIdx;
+        }
+
+        if (cleanedString.charAt(cleanedIdx - 1) == ';') {
+            --cleanedIdx;
+            if (cleanedString.charAt(cleanedIdx - 1) == ' ') {
+                --cleanedIdx;
+            }
+        }
+
+        return cleanedString.substring(0, cleanedIdx);
+    }
 
     static class NullSQLString extends SQLString {
         final String key;
