@@ -65,7 +65,7 @@ public final class CassandraTimestampUtils {
     private static final byte[] SUCCESSFUL_OPERATION = {1};
 
     public static final String BACKUP_COLUMN_NAME = "oldTs";
-    private static final byte[] INVALIDATED_VALUE = new byte[1];
+    public static final byte[] INVALIDATED_VALUE = new byte[1];
 
     private CassandraTimestampUtils() {
         // utility class
@@ -101,8 +101,8 @@ public final class CassandraTimestampUtils {
             return constructInsertIfNotExistsQuery(columnName, target);
         }
         if (target == null) {
-            // delete
-            throw new UnsupportedOperationException("TODO implement delete");
+            // We treat this as a no op for now, which satisfies our purposes.
+            return "";
         }
         return constructUpdateIfEqualQuery(columnName, expected, target);
     }
@@ -116,12 +116,12 @@ public final class CassandraTimestampUtils {
         return PtBytes.toLong(getNamedColumn(getColumnsFromOnlyRow(result), VALUE_COLUMN).getValue());
     }
 
-    public static Map<String, Long> getLongValuesFromSelectionResult(CqlResult result) {
+    public static Map<String, byte[]> getValuesFromSelectionResult(CqlResult result) {
         return result.getRows().stream()
                 .map(CqlRow::getColumns)
                 .collect(Collectors.toMap(
                         cols -> PtBytes.toString(getNamedColumn(cols, COLUMN_NAME_COLUMN).getValue()),
-                        cols -> PtBytes.toLong(getNamedColumn(cols, VALUE_COLUMN).getValue())));
+                        cols -> getNamedColumn(cols, VALUE_COLUMN).getValue()));
     }
 
     private static String constructUpdateIfEqualQuery(String columnName, byte[] expected, byte[] target) {

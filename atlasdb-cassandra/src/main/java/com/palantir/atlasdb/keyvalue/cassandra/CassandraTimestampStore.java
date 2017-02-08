@@ -20,13 +20,18 @@ import java.util.ConcurrentModificationException;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.thrift.TException;
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -60,17 +65,11 @@ public class CassandraTimestampStore {
      */
     public synchronized Optional<Long> getUpperLimit() {
         return cassandraKeyValueService.clientPool.runWithRetry(client -> {
-            ByteBuffer queryBuffer = CassandraTimestampUtils.constructSelectFromTimestampTableQuery();
-            try {
-                CqlResult result = client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.QUORUM);
-                Map<String, Long> columnarResults = CassandraTimestampUtils.getLongValuesFromSelectionResult(result);
-                if (columnarResults.containsKey(CassandraTimestampUtils.ROW_AND_COLUMN_NAME)) {
-                    return Optional.of(columnarResults.get(CassandraTimestampUtils.ROW_AND_COLUMN_NAME));
-                }
+            BoundData boundData = getCurrentBoundData(client);
+            if (boundData.bound() == null) {
                 return Optional.empty();
-            } catch (TException e) {
-                throw Throwables.rewrapAndThrowUncheckedException(e);
             }
+            return Optional.of(PtBytes.toLong(boundData.bound()));
         });
     }
 
@@ -88,13 +87,9 @@ public class CassandraTimestampStore {
                     ImmutableMap.of(
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
                             Pair.create(expectedBytes, targetBytes)));
-            try {
-                CqlResult result = client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.QUORUM);
-                checkOperationWasApplied(expected, target, result);
-                return null;
-            } catch (TException e) {
-                throw Throwables.rewrapAndThrowUncheckedException(e);
-            }
+            CqlResult result = executeQueryUnchecked(client, queryBuffer);
+            checkOperationWasApplied(expected, target, result);
+            return null;
         });
     }
 
@@ -108,9 +103,36 @@ public class CassandraTimestampStore {
      *  - Do a conditional logged batch:
      *    - CAS the main timestamp, expecting TS, to the INVALIDATED_VALUE
      *    - Put unless exists the value of TS to the backup timestamp.
+     *
+     * @return value of the timestamp that was backed up, if applicable
      */
-    public synchronized void backupExistingTimestamp() {
-        throw new UnsupportedOperationException("TODO implement me");
+    public synchronized Optional<Long> backupExistingTimestamp() {
+        return cassandraKeyValueService.clientPool.runWithRetry(client -> {
+            BoundData boundData = getCurrentBoundData(client);
+            byte[] currentBound = boundData.bound();
+            byte[] currentBackupBound = boundData.backupBound();
+
+            if (isReadableLong(currentBackupBound)) {
+                // Backup bound has been updated!
+                Preconditions.checkState(!isReadableLong(currentBound),
+                        "We had both backup and active bounds readable! This is unexpected; please contact support!");
+                log.info("[BACKUP] Didn't backup, because there is already a backup bound.");
+                return Optional.<Long>empty();
+            }
+
+            ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
+                    ImmutableMap.of(
+                            CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
+                            Pair.create(currentBound, CassandraTimestampUtils.INVALIDATED_VALUE),
+                            CassandraTimestampUtils.BACKUP_COLUMN_NAME,
+                            Pair.create(currentBackupBound, currentBound)));
+            executeQueryUnchecked(client, casQueryBuffer);
+            return Optional.ofNullable(PtBytes.toLong(currentBound));
+        });
+    }
+
+    private static boolean isReadableLong(byte[] currentBackupBound) {
+        return currentBackupBound != null && currentBackupBound.length == Long.BYTES;
     }
 
     /**
@@ -124,7 +146,27 @@ public class CassandraTimestampStore {
      *    - CAS the main timestamp, expecting INVALIDATED_VALUE, to BT.
      */
     public synchronized void restoreFromBackup() {
-        throw new UnsupportedOperationException("TODO implement me");
+        cassandraKeyValueService.clientPool.runWithRetry(client -> {
+            BoundData boundData = getCurrentBoundData(client);
+            byte[] currentBound = boundData.bound();
+            byte[] currentBackupBound = boundData.backupBound();
+
+            if (isReadableLong(currentBound)) {
+                Preconditions.checkState(currentBackupBound == null || !isReadableLong(currentBackupBound),
+                        "We had both backup and active bounds readable! This is unexpected; please contact support!");
+                log.info("[RESTORE] Didn't restore from backup, because the current timestamp is already readable.");
+                return null;
+            }
+
+            ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
+                    ImmutableMap.of(
+                            CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
+                            Pair.create(CassandraTimestampUtils.INVALIDATED_VALUE, currentBackupBound),
+                            CassandraTimestampUtils.BACKUP_COLUMN_NAME,
+                            Pair.create(currentBackupBound, CassandraTimestampUtils.INVALIDATED_VALUE)));
+            executeQueryUnchecked(client, casQueryBuffer);
+            return null;
+        });
     }
 
     private void checkOperationWasApplied(Long expected, long target, CqlResult result) {
@@ -158,5 +200,33 @@ public class CassandraTimestampStore {
 
     private static byte[] getNullableByteArray(Long expected) {
         return expected == null ? null : PtBytes.toBytes(expected);
+    }
+
+    private static CqlResult executeQueryUnchecked(Cassandra.Client client, ByteBuffer queryBuffer) {
+        try {
+            return client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.QUORUM);
+        } catch (TException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    private static BoundData getCurrentBoundData(Cassandra.Client client) {
+        ByteBuffer selectQuery = CassandraTimestampUtils.constructSelectFromTimestampTableQuery();
+        CqlResult existingData = executeQueryUnchecked(client, selectQuery);
+        Map<String, byte[]> columnarResults = CassandraTimestampUtils.getValuesFromSelectionResult(existingData);
+
+        return ImmutableBoundData.builder()
+                .bound(columnarResults.get(CassandraTimestampUtils.ROW_AND_COLUMN_NAME))
+                .backupBound(columnarResults.get(CassandraTimestampUtils.BACKUP_COLUMN_NAME))
+                .build();
+    }
+
+    @Value.Immutable
+    interface BoundData {
+        @Nullable
+        byte[] bound();
+
+        @Nullable
+        byte[] backupBound();
     }
 }
