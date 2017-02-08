@@ -169,12 +169,18 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Improved performance by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
+Replaced <code class="docutils literal"><span class="pre">mapToFullTableNames()</span></code> with <code class="docutils literal"><span class="pre">generateMapToFullTableNames()</span></code> in
+<code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.TableMappingService</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1486">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Removed the unused <cite>TieredKeyValueService</cite> which offered the ability to spread tables across multiple KVSs that
 exist in a stacked hierarchy (primary &amp; secondary).  If you require this KVS please file a ticket to have it reinstated.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1553">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Fast forwarding a persistent timestamp service to <code class="docutils literal"><span class="pre">Long.MIN_VALUE</span></code> will now throw an exception; previously
 it would be a no-op. This is especially relevant for safety of remote requests; if a user does not
 supply the <code class="docutils literal"><span class="pre">currentTimestamp</span></code> query parameter, we would previously treat this as a fast-forward to zero
@@ -182,17 +188,17 @@ and silently accept the request (returning 204) even though this is highly unlik
 intention, while we now fail loudly (returning a 400).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1538">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Oracle query now uses the right hints when generating the query plan. This will improve performance for OracleKVS.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1549">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>Oracle table names can now have a maximum length of 27 characters instead of the previous limit of 30. This is to
 ensure consistency in naming the primary key constraint which adds a prefix of <code class="docutils literal"><span class="pre">pk_</span></code> to the table name. This will
 break any installation of Oracle with the <code class="docutils literal"><span class="pre">useTableMapping</span></code> flag set to <code class="docutils literal"><span class="pre">true</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1552">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Better support Oracle 12c batch responses
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1540">Pull Request</a>)</td>
 </tr>
