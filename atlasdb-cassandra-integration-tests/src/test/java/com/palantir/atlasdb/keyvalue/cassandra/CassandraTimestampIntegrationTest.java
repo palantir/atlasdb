@@ -60,7 +60,7 @@ public class CassandraTimestampIntegrationTest {
     }
 
     @Test
-    public void resilientToMultipleStoresBeforeGet() {
+    public void resilientToMultipleStoreUpperLimitBeforeGet() {
         TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv);
         long limit = ts.getUpperLimit();
         ts.storeUpperLimit(limit + 10);

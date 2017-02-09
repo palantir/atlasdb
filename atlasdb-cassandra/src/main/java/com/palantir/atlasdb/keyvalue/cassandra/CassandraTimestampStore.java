@@ -38,9 +38,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.Throwables;
-import com.palantir.timestamp.DebugLogger;
 import com.palantir.util.Pair;
-import com.palantir.util.debug.ThreadDumps;
 
 public class CassandraTimestampStore {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampStore.class);
@@ -84,8 +82,8 @@ public class CassandraTimestampStore {
      * @param target Upper timestamp limit we want to store in the database
      * @throws ConcurrentModificationException if the expected value does not match the bound in the database
      */
-    public synchronized void storeTimestampBound(Optional<Long> expected, long target) {
-        clientPool().runWithRetry(client -> {
+    public synchronized StoreTimestampResult storeTimestampBound(Optional<Long> expected, long target) {
+        return clientPool().runWithRetry(client -> {
             byte[] expectedBytes = expected.map(PtBytes::toBytes).orElse(null);
             byte[] targetBytes = PtBytes.toBytes(target);
             ByteBuffer queryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
@@ -93,8 +91,8 @@ public class CassandraTimestampStore {
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
                             Pair.create(expectedBytes, targetBytes)));
             CqlResult result = executeQueryUnchecked(client, queryBuffer);
-            checkOperationWasApplied(expected, target, result);
-            return null;
+
+            return getStoreTimestampResult(expected, result);
         });
     }
 
@@ -165,12 +163,6 @@ public class CassandraTimestampStore {
         });
     }
 
-    private void checkOperationWasApplied(Optional<Long> expected, long target, CqlResult result) {
-        if (!CassandraTimestampUtils.wasOperationApplied(result)) {
-            throw constructConcurrentTimestampStoreException(expected, target, result);
-        }
-    }
-
     private CassandraClientPool clientPool() {
         return cassandraKeyValueService.clientPool;
     }
@@ -200,27 +192,15 @@ public class CassandraTimestampStore {
                 .build();
     }
 
-    private static ConcurrentModificationException constructConcurrentTimestampStoreException(
-            Optional<Long> expected,
-            long target,
-            CqlResult result) {
-        Optional<Long> actual = CassandraTimestampUtils.getLongValueFromApplicationResult(result);
-
-        String msg = "Unable to CAS from {} to {}."
-                + " Timestamp limit changed underneath us (limit in memory: {}, stored in DB: {}).";
-        ConcurrentModificationException except = new ConcurrentModificationException(
-                String.format(replaceBracesWithStringFormatSpecifier(msg),
-                        expected,
-                        target,
-                        expected,
-                        actual));
-        log.error(msg, expected, target, expected, actual);
-        DebugLogger.logger.error("Thread dump: {}", ThreadDumps.programmaticThreadDump());
-        throw except;
-    }
-
-    private static String replaceBracesWithStringFormatSpecifier(String msg) {
-        return msg.replaceAll("\\{\\}", "%s");
+    private static ImmutableStoreTimestampResult getStoreTimestampResult(Optional<Long> expected, CqlResult result) {
+        boolean applied = CassandraTimestampUtils.wasOperationApplied(result);
+        ImmutableStoreTimestampResult.Builder resultBuilder = ImmutableStoreTimestampResult.builder()
+                .successful(applied)
+                .expected(expected);
+        if (!applied) {
+            resultBuilder.actual(CassandraTimestampUtils.getLongValueFromApplicationResult(result));
+        }
+        return resultBuilder.build();
     }
 
     @Value.Immutable
@@ -230,5 +210,12 @@ public class CassandraTimestampStore {
 
         @Nullable
         byte[] backupBound();
+    }
+
+    @Value.Immutable
+    interface StoreTimestampResult {
+        boolean successful();
+        Optional<Long> expected();
+        Optional<Long> actual();
     }
 }

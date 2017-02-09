@@ -15,17 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.ConcurrentModificationException;
 import java.util.Optional;
 
 import javax.annotation.concurrent.GuardedBy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
+import com.palantir.util.debug.ThreadDumps;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBoundStore.class);
@@ -74,19 +75,28 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private long attemptToStoreTimestampBound(Optional<Long> expected, long target) {
-        try {
-            cassandraTimestampStore.storeTimestampBound(expected, target);
+        CassandraTimestampStore.StoreTimestampResult result =
+                cassandraTimestampStore.storeTimestampBound(expected, target);
+        if (result.successful()) {
             return target;
-        } catch (ConcurrentModificationException e) {
-            throw constructMultipleServiceError(e);
         }
+        throw constructMultipleServiceError(result, target);
     }
 
-    private MultipleRunningTimestampServiceError constructMultipleServiceError(ConcurrentModificationException ex) {
-        throw new MultipleRunningTimestampServiceError(
-                "CAS unsuccessful; this may indicate that another timestamp service is running against this"
-                        + " cassandra keyspace, possibly caused by multiple copies of a service running without"
-                        + " a configured set of leaders, or a CLI being run with an embedded timestamp service"
-                        + " against an already running service.", ex);
+    private MultipleRunningTimestampServiceError constructMultipleServiceError(
+            CassandraTimestampStore.StoreTimestampResult result, long target) {
+        Optional<Long> expected = result.expected();
+        Optional<Long> actual = result.actual();
+
+        String msg = "Unable to CAS from {} to {}."
+                + " Timestamp limit changed underneath us (limit in memory: {}, stored in DB: {})."
+                + " This may indicate that another timestamp service is running against this cassandra keyspace,"
+                + " possibly caused by multiple copies of a service running without a configured set of leaders,"
+                + " or a CLI being run with an embedded timestamp service against an already runnign service.";
+        log.error(msg, expected, target, expected, actual);
+        DebugLogger.logger.error("Thread dump: {}", ThreadDumps.programmaticThreadDump());
+
+        return new MultipleRunningTimestampServiceError(
+                MessageFormatter.arrayFormat(msg, new Object[] {expected, target, expected, actual}).getMessage());
     }
 }

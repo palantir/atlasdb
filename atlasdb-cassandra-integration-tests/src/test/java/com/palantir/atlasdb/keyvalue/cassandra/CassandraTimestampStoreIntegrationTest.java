@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -100,16 +99,17 @@ public class CassandraTimestampStoreIntegrationTest {
     }
 
     @Test
-    public void throwsIfStoringBoundWithExpectationWhenThereIsNone() {
-        assertThatThrownBy(() -> store.storeTimestampBound(Optional.of(TIMESTAMP_1), TIMESTAMP_2))
-                .isInstanceOf(ConcurrentModificationException.class);
+    public void doesNotSucceedIfStoringBoundWithExpectationWhenThereIsNone() {
+        assertThat(store.storeTimestampBound(Optional.of(TIMESTAMP_1), TIMESTAMP_2).successful()).isFalse();
+        assertThat(store.getUpperLimit()).isEqualTo(Optional.empty());
     }
 
     @Test
-    public void throwsIfStoringBoundWithIncorrectExpectation() {
+    public void doesNotSucceedIfStoringBoundWithIncorrectExpectation() {
         store.storeTimestampBound(Optional.empty(), TIMESTAMP_1);
-        assertThatThrownBy(() -> store.storeTimestampBound(Optional.of(TIMESTAMP_2), TIMESTAMP_3))
-                .isInstanceOf(ConcurrentModificationException.class);
+
+        assertThat(store.storeTimestampBound(Optional.of(TIMESTAMP_2), TIMESTAMP_3).successful()).isFalse();
+        assertThat(store.getUpperLimit()).isEqualTo(Optional.of(TIMESTAMP_1));
     }
 
     @Test
@@ -163,7 +163,7 @@ public class CassandraTimestampStoreIntegrationTest {
     }
 
     @Test
-    public void canRestoreWithoutBackupWithoutData() {
+    public void throwsIfRestoringFromUnavailableBackup() {
         assertThatThrownBy(store::restoreFromBackup).isInstanceOf(IllegalStateException.class);
     }
 
