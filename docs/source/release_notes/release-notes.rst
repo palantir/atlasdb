@@ -83,6 +83,9 @@ develop
          - Reduced logging noise from large Cassandra gets and puts by removing ERROR messages and only providing stacktraces at DEBUG.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1590>`__)
 
+    *    - |fixed|
+         - Fixed multiple connection pool deadlocks in DbKvs
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
