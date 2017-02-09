@@ -151,7 +151,8 @@ public final class CassandraTimestampUtils {
         return casResult.getRows().stream()
                     .filter(row -> {
                         String columnName = getColumnNameFromRow(row);
-                        return casMap.containsKey(columnName);})
+                        return casMap.containsKey(columnName);
+                    })
                     .collect(Collectors.toMap(
                             CassandraTimestampUtils::getColumnNameFromRow,
                             row -> getNamedColumnValue(row.getColumns(), VALUE_COLUMN)));
