@@ -93,6 +93,37 @@ public class CassandraTimestampBackupRunner {
         });
     }
 
+    /**
+     * Restores a backup of an existing timestamp, if possible. Note that this method will throw if the timestamp
+     * backup is unreadable, *and* the current bound is also unreadable.
+     */
+    public synchronized void restoreFromBackup() {
+        clientPool().runWithRetry(client -> {
+            BoundData boundData = getCurrentBoundData(client);
+            byte[] currentBound = boundData.bound();
+            byte[] currentBackupBound = boundData.backupBound();
+
+            if (CassandraTimestampUtils.isValidTimestampData(currentBound)) {
+                Preconditions.checkState(currentBackupBound == null
+                                || !CassandraTimestampUtils.isValidTimestampData(currentBackupBound),
+                        "We had both backup and active bounds readable! This is unexpected; please contact support.");
+                log.info("[RESTORE] Didn't restore from backup, because the current timestamp is already readable.");
+                return null;
+            }
+
+            Preconditions.checkState(CassandraTimestampUtils.isValidTimestampData(currentBackupBound),
+                    "The timestamp backup is unreadable, so we cannot restore our backup. Please contact support.");
+            ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
+                    ImmutableMap.of(
+                            CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
+                            Pair.create(CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray(), currentBackupBound),
+                            CassandraTimestampUtils.BACKUP_COLUMN_NAME,
+                            Pair.create(currentBackupBound, PtBytes.EMPTY_BYTE_ARRAY)));
+            executeQueryUnchecked(client, casQueryBuffer);
+            return null;
+        });
+    }
+
     private CqlResult executeQueryUnchecked(Cassandra.Client client, ByteBuffer query) {
         try {
             return queryRunner().run(client,
