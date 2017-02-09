@@ -60,6 +60,10 @@ develop
          - Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1578>`__)
 
+    *    - |fixed|
+         - Fixed multiple connection pool deadlocks in DbKvs
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

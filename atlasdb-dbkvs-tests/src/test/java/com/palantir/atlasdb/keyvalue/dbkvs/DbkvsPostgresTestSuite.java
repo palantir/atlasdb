@@ -79,6 +79,7 @@ public final class DbkvsPostgresTestSuite {
                 .dbPassword(ImmutableMaskedValue.of("palantir"))
                 .host(postgresAddress.getHostName())
                 .port(postgresAddress.getPort())
+                .maxConnections(1)
                 .build();
 
         return ImmutableDbKeyValueServiceConfig.builder()
