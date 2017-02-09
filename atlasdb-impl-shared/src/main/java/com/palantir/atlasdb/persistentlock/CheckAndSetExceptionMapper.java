@@ -52,7 +52,7 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
         log.info("Request failed. Stored LockEntry: {}", actualEntry);
         String message = LockStore.LOCK_OPEN.equals(actualEntry)
                 ? "The lock has already been released"
-                : String.format("Another lock has been taken out: %s", actualEntry);
+                : String.format("The lock has already been taken out; reason: %s", actualEntry.reason());
         return Response.status(Response.Status.CONFLICT).entity(Entity.text(message)).build();
     }
 }
