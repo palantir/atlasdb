@@ -43,7 +43,7 @@ public final class TableValueStyleCache {
             return valueStyleByTableRef.get(tableRef, () -> {
                 SqlConnection conn = null;
                 try {
-                    conn = connectionSupplier.getNewUnsharedConnection();
+                    conn = connectionSupplier.get();
                     AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
                             String.format(
                                     "SELECT table_size FROM %s WHERE table_name = ?",

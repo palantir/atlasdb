@@ -51,7 +51,7 @@ class OracleTableNameUnmapper {
             return unmappingCache.get(fullTableName, () -> {
                 SqlConnection conn = null;
                 try {
-                    conn = connectionSupplier.getNewUnsharedConnection();
+                    conn = connectionSupplier.get();
                     AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
                             "SELECT short_table_name "
                                     + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE

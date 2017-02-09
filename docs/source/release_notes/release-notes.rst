@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Fixed connection pool deadlocks on Oracle-backed DbKvs
+         - (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
+
     *    -
          -
 
