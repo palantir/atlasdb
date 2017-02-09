@@ -56,7 +56,6 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
         kv.close();
     }
 
-
     @Test
     public void canBackupTimestampTableIfItDoesNotExist() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
