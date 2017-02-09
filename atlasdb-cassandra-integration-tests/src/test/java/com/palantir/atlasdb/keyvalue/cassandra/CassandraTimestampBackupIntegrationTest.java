@@ -34,10 +34,13 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.common.base.Throwables;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -48,7 +51,7 @@ public class CassandraTimestampBackupIntegrationTest {
     private static final long TIMESTAMP_3 = TIMESTAMP_2 + 1000;
 
     private static final long TIMEOUT_SECONDS = 5L;
-    private static final int POOL_SIZE = 16;
+    private static final int POOL_SIZE = 32;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
@@ -125,6 +128,19 @@ public class CassandraTimestampBackupIntegrationTest {
 
     @Test
     public void throwsIfRestoringFromUnavailableBackup() {
+        assertThatThrownBy(backupRunner::restoreFromBackup).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void throwsIfBothBoundsReadable() {
+        backupRunner.backupExistingTimestamp(TIMESTAMP_1);
+        byte[] rowAndColumnNameBytes = PtBytes.toBytes(CassandraTimestampUtils.ROW_AND_COLUMN_NAME);
+        kv.put(
+                AtlasDbConstants.TIMESTAMP_TABLE,
+                ImmutableMap.of(Cell.create(rowAndColumnNameBytes, rowAndColumnNameBytes), PtBytes.toBytes(0L)),
+                Long.MAX_VALUE - 1);
+        assertThatThrownBy(() -> backupRunner.backupExistingTimestamp(TIMESTAMP_1))
+                .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(backupRunner::restoreFromBackup).isInstanceOf(IllegalStateException.class);
     }
 
