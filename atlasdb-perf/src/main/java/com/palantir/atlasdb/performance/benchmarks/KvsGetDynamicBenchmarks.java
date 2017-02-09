@@ -48,8 +48,8 @@ import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 public class KvsGetDynamicBenchmarks {
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 180, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsExplicitly(WideRowTable table) {
         Map<Cell, Value> result = table.getKvs().get(table.getTableRef(), table.getAllCellsAtMaxTimestamp());
         Preconditions.checkState(result.size() == WideRowTable.NUM_COLS,
@@ -58,8 +58,8 @@ public class KvsGetDynamicBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 6, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 60, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsImplicitly(WideRowTable table) throws UnsupportedEncodingException {
         Map<Cell, Value> result = table.getKvs().getRows(
                 table.getTableRef(),

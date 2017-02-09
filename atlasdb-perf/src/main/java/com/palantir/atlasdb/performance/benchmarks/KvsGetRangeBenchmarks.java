@@ -108,8 +108,8 @@ public class KvsGetRangeBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 120, timeUnit = TimeUnit.SECONDS)
     public Object getSingleLargeRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
     }
@@ -123,8 +123,8 @@ public class KvsGetRangeBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 60, timeUnit = TimeUnit.SECONDS)
     public Object getMultiRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getMultiRangeInner(table);
     }
