@@ -130,13 +130,13 @@ public final class TransactionManagers {
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
 
-        LockAndTimestampServices lts = createLockAndTimestampServices(
+        LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
                 env,
                 () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService);
 
-        KeyValueService kvs = getKeyValueService(atlasFactory, lts);
+        KeyValueService kvs = getKeyValueService(atlasFactory, lockAndTimestampServices);
 
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 
@@ -156,8 +156,8 @@ public final class TransactionManagers {
 
         Cleaner cleaner = new DefaultCleanerBuilder(
                 kvs,
-                lts.lock(),
-                lts.time(),
+                lockAndTimestampServices.lock(),
+                lockAndTimestampServices.time(),
                 LOCK_CLIENT,
                 ImmutableList.of(follower),
                 transactionService)
@@ -170,9 +170,9 @@ public final class TransactionManagers {
                 .buildCleaner();
 
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
-                lts.time(),
+                lockAndTimestampServices.time(),
                 LOCK_CLIENT,
-                lts.lock(),
+                lockAndTimestampServices.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
@@ -184,7 +184,7 @@ public final class TransactionManagers {
                 transactionManager,
                 kvs,
                 persistentLockService,
-                config.getSweepPersistentLockPauseMillis(),
+                config.getSweepPersistentLockWaitMillis(),
                 ImmutableList.of(follower));
         SweepTaskRunner sweepRunner = new SweepTaskRunnerImpl(
                 kvs,
@@ -220,12 +220,12 @@ public final class TransactionManagers {
     }
 
     private static KeyValueService getKeyValueService(ServiceDiscoveringAtlasSupplier atlasFactory,
-            LockAndTimestampServices lts) {
+            LockAndTimestampServices lockAndTimestampServices) {
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
         kvs = ProfilingKeyValueService.create(kvs);
-        kvs = SweepStatsKeyValueService.create(kvs, lts.time());
+        kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
 
         TransactionTables.createTables(kvs);
         return kvs;

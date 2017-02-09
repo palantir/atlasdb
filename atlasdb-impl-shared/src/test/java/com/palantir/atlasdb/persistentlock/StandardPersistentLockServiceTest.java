@@ -27,7 +27,9 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
-public class PersistentLockServiceTest {
+public class StandardPersistentLockServiceTest {
+    private static final String TEST_REASON = "for-test";
+
     private PersistentLockService service;
     private LockStore lockStore;
 
@@ -47,13 +49,13 @@ public class PersistentLockServiceTest {
 
     @Test
     public void canAcquireLock() throws CheckAndSetException {
-        service.acquireLock("for-test");
-        verify(lockStore, times(1)).acquireLock("for-test");
+        service.acquireLock(TEST_REASON);
+        verify(lockStore, times(1)).acquireLock(TEST_REASON);
     }
 
     @Test
     public void canReleaseLock() {
-        LockEntry entry = lockStore.acquireLock("reason");
+        LockEntry entry = lockStore.acquireLock(TEST_REASON);
         service.releaseLock(entry);
 
         verify(lockStore, times(1)).releaseLock(entry);

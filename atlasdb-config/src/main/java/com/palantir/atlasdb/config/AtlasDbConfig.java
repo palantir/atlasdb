@@ -149,7 +149,7 @@ public abstract class AtlasDbConfig {
      * persistent lock being taken.
      */
     @Value.Default
-    public long getSweepPersistentLockPauseMillis() {
+    public long getSweepPersistentLockWaitMillis() {
         return AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS;
     }
 
