@@ -22,7 +22,7 @@ import org.junit.Test;
 public class TimestampStoreInvalidatorTest {
     @Test
     public void revalidateTimestampStoreThrowsByDefault() {
-        TimestampStoreInvalidator nopInvalidator = () -> {};
-        assertThatThrownBy(nopInvalidator::revalidateTimestampStore).isInstanceOf(UnsupportedOperationException.class);
+        TimestampStoreInvalidator nopInvalidator = () -> 0;
+        assertThatThrownBy(nopInvalidator::revalidateFromBackup).isInstanceOf(UnsupportedOperationException.class);
     }
 }
