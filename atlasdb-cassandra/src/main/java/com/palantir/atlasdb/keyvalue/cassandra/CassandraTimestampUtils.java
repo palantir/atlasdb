@@ -16,10 +16,18 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
+
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.io.BaseEncoding;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -52,6 +60,11 @@ public final class CassandraTimestampUtils {
     private static final long CASSANDRA_TIMESTAMP = -1;
     private static final String ROW_AND_COLUMN_NAME_HEX_STRING = encodeCassandraHexString(ROW_AND_COLUMN_NAME);
 
+    @VisibleForTesting
+    static final String APPLIED_COLUMN = "[applied]";
+    static final String COLUMN_NAME_COLUMN = "column1";
+    static final String VALUE_COLUMN = "value";
+
     private CassandraTimestampUtils() {
         // utility class
     }
@@ -73,6 +86,34 @@ public final class CassandraTimestampUtils {
 
     public static boolean isValidTimestampData(byte[] data) {
         return data != null && data.length == Long.BYTES;
+    }
+
+    public static ByteBuffer constructSelectFromTimestampTableQuery() {
+        return toByteBuffer(String.format(
+                "SELECT %s, %s FROM %s WHERE key=%s;",
+                COLUMN_NAME_COLUMN,
+                VALUE_COLUMN,
+                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
+                ROW_AND_COLUMN_NAME_HEX_STRING));
+    }
+
+    public static Map<String, byte[]> getValuesFromSelectionResult(CqlResult result) {
+        return result.getRows().stream()
+                .map(CqlRow::getColumns)
+                .collect(Collectors.toMap(
+                        cols -> PtBytes.toString(getNamedColumnValue(cols, COLUMN_NAME_COLUMN)),
+                        cols -> getNamedColumnValue(cols, VALUE_COLUMN)));
+    }
+
+    private static byte[] getNamedColumnValue(List<Column> columns, String columnName) {
+        return getNamedColumn(columns, columnName).getValue();
+    }
+
+    private static Column getNamedColumn(List<Column> columns, String columnName) {
+        return Iterables.getOnlyElement(
+                columns.stream()
+                        .filter(column -> columnName.equals(PtBytes.toString(column.getName())))
+                        .collect(Collectors.toList()));
     }
 
     private static String constructCheckAndSetQuery(String columnName, byte[] expected, byte[] target) {

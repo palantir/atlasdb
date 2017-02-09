@@ -16,9 +16,15 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Compression;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlResult;
+import org.apache.thrift.TException;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +35,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.annotation.Idempotent;
+import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 
 public class CassandraTimestampBackupRunner {
@@ -60,7 +67,7 @@ public class CassandraTimestampBackupRunner {
      */
     public synchronized long backupExistingTimestamp(long defaultValue) {
         return clientPool().runWithRetry(client -> {
-            BoundData boundData = null; // TODO - getCurrentBoundData(client);
+            BoundData boundData = getCurrentBoundData(client);
             byte[] currentBound = boundData.bound();
             byte[] currentBackupBound = boundData.backupBound();
 
@@ -81,9 +88,30 @@ public class CassandraTimestampBackupRunner {
                             Pair.create(currentBound, CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray()),
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                             Pair.create(currentBackupBound, backupValue)));
-//            executeQueryUnchecked(client, casQueryBuffer);
+            executeQueryUnchecked(client, casQueryBuffer);
             return PtBytes.toLong(backupValue);
         });
+    }
+
+    private CqlResult executeQueryUnchecked(Cassandra.Client client, ByteBuffer query) {
+        try {
+            return queryRunner().run(client,
+                    AtlasDbConstants.TIMESTAMP_TABLE,
+                    () -> client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM));
+        } catch (TException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    private BoundData getCurrentBoundData(Cassandra.Client client) {
+        ByteBuffer selectQuery = CassandraTimestampUtils.constructSelectFromTimestampTableQuery();
+        CqlResult existingData = executeQueryUnchecked(client, selectQuery);
+        Map<String, byte[]> columnarResults = CassandraTimestampUtils.getValuesFromSelectionResult(existingData);
+
+        return ImmutableBoundData.builder()
+                .bound(columnarResults.get(CassandraTimestampUtils.ROW_AND_COLUMN_NAME))
+                .backupBound(columnarResults.get(CassandraTimestampUtils.BACKUP_COLUMN_NAME))
+                .build();
     }
 
     private CassandraClientPool clientPool() {
