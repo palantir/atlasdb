@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
-import java.util.ConcurrentModificationException;
 import java.util.Map;
 import java.util.Optional;
 
@@ -80,7 +79,7 @@ public class CassandraTimestampStore {
      * Stores an upper timestamp limit in the database in an atomic way.
      * @param expected Expected current value of the timestamp bound (or null if there is no bound)
      * @param target Upper timestamp limit we want to store in the database
-     * @throws ConcurrentModificationException if the expected value does not match the bound in the database
+     * @return StoreTimestampResult indicating if the operation was successful, and the actual and expected bounds
      */
     public synchronized StoreTimestampResult storeTimestampBound(Optional<Long> expected, long target) {
         return clientPool().runWithRetry(client -> {
