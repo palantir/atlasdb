@@ -299,6 +299,8 @@ public final class TransactionManagers {
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
         } else if (config.timelock().isPresent()) {
+            // Do migration if necessary
+            // Then create the raw services
             return createNamespacedRawRemoteServices(config.timelock().get(), userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time);

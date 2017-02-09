@@ -19,6 +19,7 @@ import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public interface AtlasDbFactory {
     String getType();
@@ -27,4 +28,10 @@ public interface AtlasDbFactory {
 
     TimestampService createTimestampService(KeyValueService rawKvs);
 
+    default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
+        return () -> {
+            throw new UnsupportedOperationException("AtlasDB doesn't support automated migration for KVS type: "
+                    + getType());
+        };
+    }
 }
