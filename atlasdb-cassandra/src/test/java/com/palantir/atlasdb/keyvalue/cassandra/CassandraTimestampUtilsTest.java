@@ -33,8 +33,6 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.util.Pair;
 
 public class CassandraTimestampUtilsTest {
-    private static final long LONG_VALUE = 500L;
-
     private static final byte[] KEY_1 = {120};
     private static final String COLUMN_NAME_1 = "foo";
     private static final byte[] COLUMN_BYTES_1 = PtBytes.toBytes(COLUMN_NAME_1);
