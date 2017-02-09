@@ -21,12 +21,12 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.common.annotation.Idempotent;
 
-public class CassandraTimestampStore {
-    private static final Logger log = LoggerFactory.getLogger(CassandraTimestampStore.class);
+public class CassandraTimestampBackupRunner {
+    private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBackupRunner.class);
 
     private final CassandraKeyValueService cassandraKeyValueService;
 
-    public CassandraTimestampStore(CassandraKeyValueService cassandraKeyValueService) {
+    public CassandraTimestampBackupRunner(CassandraKeyValueService cassandraKeyValueService) {
         this.cassandraKeyValueService = cassandraKeyValueService;
     }
 
