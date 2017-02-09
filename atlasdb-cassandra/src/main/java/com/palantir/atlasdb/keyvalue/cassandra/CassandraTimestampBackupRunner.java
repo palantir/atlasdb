@@ -84,14 +84,18 @@ public class CassandraTimestampBackupRunner {
             Preconditions.checkState(currentBound == null || CassandraTimestampUtils.isValidTimestampData(currentBound),
                     "The timestamp is unreadable, though the backup is also unreadable! Please contact support.");
             byte[] backupValue = MoreObjects.firstNonNull(currentBound, PtBytes.toBytes(defaultValue));
-            ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
+            Map<String, Pair<byte[], byte[]>> casMap =
                     ImmutableMap.of(
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
                             Pair.create(currentBound, CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray()),
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
-                            Pair.create(currentBackupBound, backupValue)));
-            executeQueryUnchecked(client, casQueryBuffer);
-            log.info("[BACKUP] Backed up the value {}", backupValue);
+                            Pair.create(currentBackupBound, backupValue));
+
+            ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(casMap);
+
+            CqlResult casResult = executeQueryUnchecked(client, casQueryBuffer);
+            CassandraTimestampUtils.verifyCompatible(casResult, casMap);
+            log.info("[BACKUP] Backed up the value {}", currentBackupBound);
             return PtBytes.toLong(backupValue);
         });
     }
@@ -118,14 +122,16 @@ public class CassandraTimestampBackupRunner {
 
             Preconditions.checkState(CassandraTimestampUtils.isValidTimestampData(currentBackupBound),
                     "The timestamp backup is unreadable, so we cannot restore our backup. Please contact support.");
-            ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
-                    ImmutableMap.of(
-                            CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
-                            Pair.create(CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray(), currentBackupBound),
-                            CassandraTimestampUtils.BACKUP_COLUMN_NAME,
-                            Pair.create(currentBackupBound, PtBytes.EMPTY_BYTE_ARRAY)));
+            Map<String, Pair<byte[], byte[]>> casMap = ImmutableMap.of(
+                    CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
+                    Pair.create(CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray(), currentBackupBound),
+                    CassandraTimestampUtils.BACKUP_COLUMN_NAME,
+                    Pair.create(currentBackupBound, PtBytes.EMPTY_BYTE_ARRAY));
+            ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(casMap);
+
+            CqlResult casResult = executeQueryUnchecked(client, casQueryBuffer);
+            CassandraTimestampUtils.verifyCompatible(casResult, casMap);
             log.info("[RESTORE] Restored the value {}", currentBackupBound);
-            executeQueryUnchecked(client, casQueryBuffer);
             return null;
         });
     }

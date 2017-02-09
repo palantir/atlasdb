@@ -16,13 +16,16 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
+import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -60,6 +63,7 @@ public final class CassandraTimestampUtils {
 
     private static final long CASSANDRA_TIMESTAMP = -1;
     private static final String ROW_AND_COLUMN_NAME_HEX_STRING = encodeCassandraHexString(ROW_AND_COLUMN_NAME);
+    private static final ByteString CQL_SUCCESS = ByteString.copyFrom(new byte[] {1});
 
     @VisibleForTesting
     static final String APPLIED_COLUMN = "[applied]";
@@ -104,6 +108,71 @@ public final class CassandraTimestampUtils {
                 .collect(Collectors.toMap(
                         cols -> PtBytes.toString(getNamedColumnValue(cols, COLUMN_NAME_COLUMN)),
                         cols -> getNamedColumnValue(cols, VALUE_COLUMN)));
+    }
+
+    /**
+     * This method checks that a result from a Cassandra lightweight transaction is either
+     *
+     *  (a) a successful application of proposed changes, or
+     *  (b) an unsuccessful application, but the state of the world in Cassandra as indicated by the casResult
+     *      matches the casMap.
+     *
+     * Otherwise, it throws an IllegalStateException.
+     *
+     * @param casResult the CAS result to verify
+     * @param casMap the intended state of the world
+     * @throws IllegalStateException if the transaction was not successful, and the state of the world does not match
+     *         the intended state, as indicated in the casMap
+     */
+    public static void verifyCompatible(CqlResult casResult, Map<String, Pair<byte[], byte[]>> casMap) {
+        if (!isSuccessfullyApplied(casResult)) {
+            Set<Incongruency> incongruencies = getIncongruencies(casResult, casMap);
+            if (!incongruencies.isEmpty()) {
+                throw new IllegalStateException("[BACKUP/RESTORE] Observed incongruent state of the world; the"
+                        + " following incongruencies were observed: " + incongruencies);
+            }
+        }
+    }
+
+    private static Set<Incongruency> getIncongruencies(CqlResult casResult, Map<String, Pair<byte[], byte[]>> casMap) {
+        Map<String, byte[]> relevantCassandraState = getRelevantCassandraState(casResult, casMap);
+        return casMap.entrySet().stream()
+                .filter(entry ->
+                        !Arrays.equals(relevantCassandraState.get(entry.getKey()), entry.getValue().getRhSide()))
+                .map(entry -> createIncongruency(relevantCassandraState, entry.getKey(), entry.getValue().getRhSide()))
+                .collect(Collectors.toSet());
+    }
+
+    private static Map<String, byte[]> getRelevantCassandraState(
+            CqlResult casResult,
+            Map<String, Pair<byte[], byte[]>> casMap) {
+        return casResult.getRows().stream()
+                    .filter(row -> {
+                        String columnName = getColumnNameFromRow(row);
+                        return casMap.containsKey(columnName);})
+                    .collect(Collectors.toMap(
+                            CassandraTimestampUtils::getColumnNameFromRow,
+                            row -> getNamedColumnValue(row.getColumns(), VALUE_COLUMN)));
+    }
+
+    private static String getColumnNameFromRow(CqlRow row) {
+        return PtBytes.toString(getNamedColumnValue(row.getColumns(), COLUMN_NAME_COLUMN));
+    }
+
+    private static ImmutableIncongruency createIncongruency(
+            Map<String, byte[]> relevantCassandraState,
+            String columnName,
+            byte[] desiredValue) {
+        return ImmutableIncongruency.builder()
+                .columnName(columnName)
+                .desiredState(desiredValue)
+                .actualState(relevantCassandraState.get(columnName))
+                .build();
+    }
+
+    private static boolean isSuccessfullyApplied(CqlResult casResult) {
+        Column appliedColumn = getNamedColumn(casResult.getRows().get(0).getColumns(), APPLIED_COLUMN);
+        return Arrays.equals(appliedColumn.getValue(), CQL_SUCCESS.toByteArray());
     }
 
     private static byte[] getNamedColumnValue(List<Column> columns, String columnName) {
@@ -160,5 +229,12 @@ public final class CassandraTimestampUtils {
 
     private static String wrapInQuotes(String tableName) {
         return "\"" + tableName + "\"";
+    }
+
+    @Value.Immutable
+    interface Incongruency {
+        String columnName();
+        byte[] desiredState();
+        byte[] actualState();
     }
 }
