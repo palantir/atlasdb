@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -87,7 +88,7 @@ public class CassandraTimestampBackupIntegrationTest {
     @Test
     public void cannotReadAfterBackup() {
         backupRunner.backupExistingTimestamp(TIMESTAMP_1);
-        assertTimestampNotReadable();
+        assertBoundNotReadable();
     }
 
     @Test
@@ -95,15 +96,108 @@ public class CassandraTimestampBackupIntegrationTest {
         assertThat(backupRunner.backupExistingTimestamp(TIMESTAMP_1)).isEqualTo(TIMESTAMP_1);
         assertThat(backupRunner.backupExistingTimestamp(TIMESTAMP_2)).isEqualTo(TIMESTAMP_1);
         assertThat(backupRunner.backupExistingTimestamp(TIMESTAMP_3)).isEqualTo(TIMESTAMP_1);
+        assertBoundNotReadable();
     }
 
     @Test
     public void resilientToMultipleConcurrentBackups() {
         executeInParallelOnExecutorService(() -> backupRunner.backupExistingTimestamp(TIMESTAMP_1));
-        assertTimestampNotReadable();
+        assertBoundNotReadable();
+        backupRunner.restoreFromBackup();
+        assertBoundEquals(TIMESTAMP_1);
     }
 
-    private void assertTimestampNotReadable() {
+    @Test
+    public void backsUpDefaultValueIfNoBoundExists() {
+        backupRunner.backupExistingTimestamp(TIMESTAMP_1);
+        backupRunner.restoreFromBackup();
+        assertBoundEquals(TIMESTAMP_1);
+    }
+
+    @Test
+    public void backsUpKnownBoundIfExists() {
+        timestampBoundStore.getUpperLimit();
+        timestampBoundStore.storeUpperLimit(TIMESTAMP_1);
+        backupRunner.backupExistingTimestamp(TIMESTAMP_2);
+        backupRunner.restoreFromBackup();
+        assertBoundEquals(TIMESTAMP_1);
+    }
+
+    @Test
+    public void throwsIfRestoringFromUnavailableBackup() {
+        assertThatThrownBy(backupRunner::restoreFromBackup).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void ignoresInvalidBackupIfDataAvailable() {
+        timestampBoundStore.getUpperLimit();
+        timestampBoundStore.storeUpperLimit(TIMESTAMP_3);
+        backupRunner.restoreFromBackup();
+        assertBoundEquals(TIMESTAMP_3);
+    }
+
+    @Test
+    public void canBackupAndRestoreMultipleTimes() {
+        timestampBoundStore.getUpperLimit();
+        timestampBoundStore.storeUpperLimit(TIMESTAMP_1);
+        backupRunner.backupExistingTimestamp(TIMESTAMP_3);
+        assertBoundNotReadable();
+        backupRunner.restoreFromBackup();
+        assertBoundEquals(TIMESTAMP_1);
+
+        timestampBoundStore.getUpperLimit();
+        timestampBoundStore.storeUpperLimit(TIMESTAMP_2);
+        backupRunner.backupExistingTimestamp(TIMESTAMP_3);
+        assertBoundNotReadable();
+        backupRunner.restoreFromBackup();
+        assertBoundEquals(TIMESTAMP_2);
+    }
+
+    @Test
+    public void canRestoreTwice() {
+        backupRunner.backupExistingTimestamp(TIMESTAMP_1);
+        backupRunner.restoreFromBackup();
+        backupRunner.restoreFromBackup();
+        assertBoundEquals(TIMESTAMP_1);
+    }
+
+    @Test
+    public void multipleRestoresDoNotMakeUsGoBackInTime() {
+        backupRunner.backupExistingTimestamp(TIMESTAMP_1);
+        backupRunner.restoreFromBackup();
+        timestampBoundStore.getUpperLimit();
+        timestampBoundStore.storeUpperLimit(TIMESTAMP_2);
+        backupRunner.restoreFromBackup();
+        assertBoundEquals(TIMESTAMP_2); // in particular, not TIMESTAMP_1
+    }
+
+    @Test
+    public void resilientToMultipleConcurrentRestores() {
+        backupRunner.backupExistingTimestamp(TIMESTAMP_1);
+        executeInParallelOnExecutorService(backupRunner::restoreFromBackup);
+        assertBoundEquals(TIMESTAMP_1);
+    }
+
+    @Test
+    public void resilientToMultipleConcurrentBackupsAndRestores() {
+        timestampBoundStore.getUpperLimit();
+        timestampBoundStore.storeUpperLimit(TIMESTAMP_3);
+        executeInParallelOnExecutorService(() -> {
+            if (ThreadLocalRandom.current().nextBoolean()) {
+                backupRunner.backupExistingTimestamp(TIMESTAMP_1);
+            } else {
+                backupRunner.restoreFromBackup();
+            }
+        });
+        backupRunner.restoreFromBackup();
+        assertThat(timestampBoundStore.getUpperLimit()).isEqualTo(TIMESTAMP_3);
+    }
+
+    private void assertBoundEquals(long timestampBound) {
+        assertThat(timestampBoundStore.getUpperLimit()).isEqualTo(timestampBound);
+    }
+
+    private void assertBoundNotReadable() {
         assertThatThrownBy(timestampBoundStore::getUpperLimit).isInstanceOf(IllegalArgumentException.class);
     }
 
