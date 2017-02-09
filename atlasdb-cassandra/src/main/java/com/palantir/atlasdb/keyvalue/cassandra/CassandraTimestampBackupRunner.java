@@ -62,6 +62,8 @@ public class CassandraTimestampBackupRunner {
      * service can no longer be used until a restore. Note that the value returned is the value that was backed up;
      * multiple calls to this method are safe, and will return the backed up value.
      *
+     * This method assumes that the timestamp table exists.
+     *
      * @param defaultValue value to backup if the timestamp table is empty
      * @return value of the timestamp that was backed up, if applicable
      */
@@ -96,6 +98,8 @@ public class CassandraTimestampBackupRunner {
     /**
      * Restores a backup of an existing timestamp, if possible. Note that this method will throw if the timestamp
      * backup is unreadable, *and* the current bound is also unreadable.
+     *
+     * This method assumes that the timestamp table exists.
      */
     public synchronized void restoreFromBackup() {
         clientPool().runWithRetry(client -> {
