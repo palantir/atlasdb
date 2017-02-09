@@ -2158,6 +2158,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
+    public TracingQueryRunner getTracingQueryRunner() {
+        return queryRunner;
+    }
+
     /**
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      */
