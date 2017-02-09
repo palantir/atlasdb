@@ -66,6 +66,10 @@ develop
            please file a ticket on the AtlasDB github page.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1582>`__)
 
+    *    - |fixed|
+         - Fixed multiple connection pool deadlocks in DbKvs
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
