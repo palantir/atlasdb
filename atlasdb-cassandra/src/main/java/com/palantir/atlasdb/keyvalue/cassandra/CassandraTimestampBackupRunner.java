@@ -91,6 +91,7 @@ public class CassandraTimestampBackupRunner {
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                             Pair.create(currentBackupBound, backupValue)));
             executeQueryUnchecked(client, casQueryBuffer);
+            log.info("[BACKUP] Backed up the value {}", backupValue);
             return PtBytes.toLong(backupValue);
         });
     }
@@ -123,6 +124,7 @@ public class CassandraTimestampBackupRunner {
                             Pair.create(CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray(), currentBackupBound),
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                             Pair.create(currentBackupBound, PtBytes.EMPTY_BYTE_ARRAY)));
+            log.info("[RESTORE] Restored the value {}", currentBackupBound);
             executeQueryUnchecked(client, casQueryBuffer);
             return null;
         });
