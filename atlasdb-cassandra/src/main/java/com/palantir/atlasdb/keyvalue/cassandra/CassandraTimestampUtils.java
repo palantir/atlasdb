@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
@@ -159,7 +161,7 @@ public final class CassandraTimestampUtils {
         return PtBytes.toString(getNamedColumnValue(row.getColumns(), COLUMN_NAME_COLUMN));
     }
 
-    private static ImmutableIncongruency createIncongruency(
+    private static Incongruency createIncongruency(
             Map<String, byte[]> relevantCassandraState,
             String columnName,
             byte[] desiredValue) {
@@ -235,6 +237,7 @@ public final class CassandraTimestampUtils {
     interface Incongruency {
         String columnName();
         byte[] desiredState();
+        @Nullable
         byte[] actualState();
     }
 }
