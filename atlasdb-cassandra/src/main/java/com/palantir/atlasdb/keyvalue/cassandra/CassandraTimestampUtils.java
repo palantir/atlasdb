@@ -15,7 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.nio.ByteBuffer;
+import java.util.Map;
+
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.BaseEncoding;
+import com.google.protobuf.ByteString;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -24,6 +32,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.util.Pair;
 
 public final class CassandraTimestampUtils {
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
@@ -37,8 +46,77 @@ public final class CassandraTimestampUtils {
             ConflictHandler.IGNORE_ALL);
 
     public static final String ROW_AND_COLUMN_NAME = "ts";
+    public static final String BACKUP_COLUMN_NAME = "oldTs";
+    public static final ByteString INVALIDATED_VALUE = ByteString.copyFrom(new byte[] {0});
+
+    private static final long CASSANDRA_TIMESTAMP = -1;
+    private static final String ROW_AND_COLUMN_NAME_HEX_STRING = encodeCassandraHexString(ROW_AND_COLUMN_NAME);
 
     private CassandraTimestampUtils() {
         // utility class
+    }
+
+    public static ByteBuffer constructCheckAndSetMultipleQuery(Map<String, Pair<byte[], byte[]>> checkAndSetRequest) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("BEGIN UNLOGGED BATCH\n"); // Safe, because all updates are on the same partition key
+
+        // Safe, because ordering does not apply in batches
+        checkAndSetRequest.entrySet().forEach(entry -> {
+            String columnName = entry.getKey();
+            byte[] expected = entry.getValue().getLhSide();
+            byte[] target = entry.getValue().getRhSide();
+            builder.append(constructCheckAndSetQuery(columnName, expected, target));
+        });
+        builder.append("APPLY BATCH;");
+        return toByteBuffer(builder.toString());
+    }
+
+    public static boolean isValidTimestampData(byte[] data) {
+        return data != null && data.length == Long.BYTES;
+    }
+
+    private static String constructCheckAndSetQuery(String columnName, byte[] expected, byte[] target) {
+        Preconditions.checkState(target != null, "Should not CAS to a null target!");
+        if (expected == null) {
+            return constructInsertIfNotExistsQuery(columnName, target);
+        }
+        return constructUpdateIfEqualQuery(columnName, expected, target);
+    }
+
+    private static String constructInsertIfNotExistsQuery(String columnName, byte[] target) {
+        return String.format(
+                "INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, %s, %s) IF NOT EXISTS;",
+                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
+                ROW_AND_COLUMN_NAME_HEX_STRING,
+                encodeCassandraHexString(columnName),
+                CASSANDRA_TIMESTAMP,
+                encodeCassandraHexBytes(target));
+    }
+
+    private static String constructUpdateIfEqualQuery(String columnName, byte[] expected, byte[] target) {
+        return String.format(
+                "UPDATE %s SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;",
+                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
+                encodeCassandraHexBytes(target),
+                ROW_AND_COLUMN_NAME_HEX_STRING,
+                encodeCassandraHexString(columnName),
+                CASSANDRA_TIMESTAMP,
+                encodeCassandraHexBytes(expected));
+    }
+
+    private static String encodeCassandraHexString(String string) {
+        return encodeCassandraHexBytes(PtBytes.toBytes(string));
+    }
+
+    private static String encodeCassandraHexBytes(byte[] bytes) {
+        return "0x" + BaseEncoding.base16().upperCase().encode(bytes);
+    }
+
+    private static ByteBuffer toByteBuffer(String string) {
+        return ByteBuffer.wrap(PtBytes.toBytes(string));
+    }
+
+    private static String wrapInQuotes(String tableName) {
+        return "\"" + tableName + "\"";
     }
 }
