@@ -23,6 +23,6 @@ public class TimestampStoreInvalidatorTest {
     @Test
     public void revalidateTimestampStoreThrowsByDefault() {
         TimestampStoreInvalidator nopInvalidator = () -> {};
-        assertThatThrownBy(nopInvalidator::revalidateTimestampStore).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(nopInvalidator::revalidateFromBackup).isInstanceOf(UnsupportedOperationException.class);
     }
 }

@@ -30,7 +30,6 @@ import com.palantir.util.debug.ThreadDumps;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBoundStore.class);
-    private static final long INITIAL_VALUE = 10000L;
 
     @GuardedBy("this")
     private long currentLimit = -1;
@@ -70,8 +69,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             DebugLogger.logger.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
             return currentBound.get();
         }
-        DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
-        return attemptToStoreTimestampBound(Optional.empty(), INITIAL_VALUE);
+        DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", CassandraTimestampUtils.INITIAL_VALUE);
+        return attemptToStoreTimestampBound(Optional.empty(), CassandraTimestampUtils.INITIAL_VALUE);
     }
 
     private long attemptToStoreTimestampBound(Optional<Long> expected, long target) {
