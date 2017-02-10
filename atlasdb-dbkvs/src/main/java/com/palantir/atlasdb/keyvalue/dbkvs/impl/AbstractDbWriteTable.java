@@ -41,7 +41,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
     protected final TableReference tableRef;
     private final PrefixedTableNames prefixedTableNames;
 
-    public AbstractDbWriteTable(
+    protected AbstractDbWriteTable(
             DdlConfig config,
             ConnectionSupplier conns,
             TableReference tableRef,
