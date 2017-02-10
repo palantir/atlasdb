@@ -20,6 +20,7 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.common.annotation.Idempotent;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -45,6 +46,20 @@ public class TimelockMigrator {
         return new TimelockMigrator(invalidator, remoteTimestampManagementService);
     }
 
+    /**
+     * Migration works as follows:
+     * 1. Ping the destination Timelock Server. If this fails, throw.
+     * 2. Backup and invalidate the Timestamp Bound, returning TS.
+     *    At this point, the database should contain an invalidated timestamp bound, plus a backup bound of TS.
+     * 3. Fast-forward the destination to TS.
+     *
+     * The purpose of step 1 is largely to handle cases where users accidentally mis-configure their AtlasDB clients to
+     * attempt to talk to Timelock; we want to ensure there's a legitimate Timelock Server present before doing the
+     * invalidation. In the event of a failure between steps 2 and 3, rerunning this method is safe, because
+     * backupAndInvalidate()'s contract is that it returns the timestamp bound that was backed up, if the current bound
+     * is unreadable.
+     */
+    @Idempotent
     public void migrate() {
         try {
             destination.ping();
