@@ -42,6 +42,11 @@ public class TimelockMigrator {
     }
 
     public void migrate() {
+        try {
+            destination.ping();
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not contact the Timelock Server.", e);
+        }
         long currentTimestamp = source.backupAndInvalidate();
         destination.fastForwardTimestamp(currentTimestamp);
     }

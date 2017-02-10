@@ -17,11 +17,14 @@ package com.palantir.atlasdb.factory.startup;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -32,6 +35,7 @@ import org.junit.Test;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -45,10 +49,14 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TimelockMigratorTest {
     private static final int PORT = 8080;
-    private static final String TEST_ENDPOINT = "/testClient/timestamp-management/fast-forward?currentTimestamp=42";
-    private static final MappingBuilder ENDPOINT_MAPPING = post(urlEqualTo(TEST_ENDPOINT));
 
     private static final long BACKUP_TIMESTAMP = 42;
+    private static final String TEST_ENDPOINT = "/testClient/timestamp-management/fast-forward?currentTimestamp="
+            + BACKUP_TIMESTAMP;
+    private static final String PING_ENDPOINT = "/testClient/timestamp-management/ping";
+    private static final MappingBuilder TEST_MAPPING = post(urlEqualTo(TEST_ENDPOINT));
+    private static final MappingBuilder PING_MAPPING = get(urlEqualTo(PING_ENDPOINT));
+
     private static final KeyValueServiceConfig KVS_CONFIG = mock(KeyValueServiceConfig.class);
     private static final ServerListConfig DEFAULT_SERVER_LIST = ImmutableServerListConfig.builder()
             .addServers("http://" + WireMockConfiguration.DEFAULT_BIND_ADDRESS + ":" + PORT)
@@ -70,6 +78,8 @@ public class TimelockMigratorTest {
     @Before
     public void setUp() {
         when(invalidator.backupAndInvalidate()).thenReturn(BACKUP_TIMESTAMP);
+
+        wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse().withStatus(200).withBody("\"pong\"")));
     }
 
     @Test
@@ -93,13 +103,23 @@ public class TimelockMigratorTest {
 
     @Test
     public void propagatesBackupTimestampToFastForwardOnRemoteService() {
-        wireMockRule.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(204)));
+        wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
 
         TimelockMigrator migrator = TimelockMigrator.create(CANONICAL_TIMELOCK_CONFIG, invalidator);
         migrator.migrate();
 
+        wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
         verify(invalidator, times(1)).backupAndInvalidate();
         wireMockRule.verify(postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
+    }
+
+    @Test
+    public void invalidationDoesNotProceedIfTimelockPingUnsuccessful() {
+        wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse().withFault(Fault.MALFORMED_RESPONSE_CHUNK)));
+
+        TimelockMigrator migrator = TimelockMigrator.create(CANONICAL_TIMELOCK_CONFIG, invalidator);
+        assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
+        verify(invalidator, never()).backupAndInvalidate();
     }
 
     @Test
