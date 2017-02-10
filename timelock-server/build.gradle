@@ -28,6 +28,7 @@ dependencies {
     compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
     compile group: 'io.dropwizard', name: 'dropwizard-core'
     compile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
+    compile group: 'org.eclipse.jetty', name: 'jetty-alpn-server'
 
     processor group: 'org.immutables', name: 'value'
 
