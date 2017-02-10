@@ -17,6 +17,8 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -26,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.tracing.TestSpanObserver;
 import com.palantir.remoting1.tracing.Span;
 import com.palantir.remoting1.tracing.SpanObserver;
 import com.palantir.remoting1.tracing.SpanType;
@@ -77,6 +78,20 @@ public class TracingKVSTest extends AbstractKeyValueServiceTest {
             }
         } finally {
             super.tearDown();
+        }
+    }
+
+    private static class TestSpanObserver implements SpanObserver {
+        private final List<Span> spans = new ArrayList<>();
+
+        @Override
+        public void consume(Span span) {
+            log.warn("{}", span);
+            spans.add(span);
+        }
+
+        List<Span> spans() {
+            return Collections.unmodifiableList(spans);
         }
     }
 
