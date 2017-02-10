@@ -136,6 +136,11 @@ public final class CassandraTimestampUtils {
         }
     }
 
+    private static boolean isSuccessfullyApplied(CqlResult casResult) {
+        byte[] appliedValue = getNamedColumnValue(casResult.getRows().get(0).getColumns(), APPLIED_COLUMN);
+        return Arrays.equals(appliedValue, CQL_SUCCESS.toByteArray());
+    }
+
     private static Set<Incongruency> getIncongruencies(CqlResult casResult, Map<String, Pair<byte[], byte[]>> casMap) {
         Map<String, byte[]> relevantCassandraState = getRelevantCassandraState(casResult, casMap);
         return casMap.entrySet().stream()
@@ -171,11 +176,6 @@ public final class CassandraTimestampUtils {
                 .desiredState(desiredValue)
                 .actualState(relevantCassandraState.get(columnName))
                 .build();
-    }
-
-    private static boolean isSuccessfullyApplied(CqlResult casResult) {
-        Column appliedColumn = getNamedColumn(casResult.getRows().get(0).getColumns(), APPLIED_COLUMN);
-        return Arrays.equals(appliedColumn.getValue(), CQL_SUCCESS.toByteArray());
     }
 
     private static byte[] getNamedColumnValue(List<Column> columns, String columnName) {

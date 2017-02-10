@@ -136,17 +136,9 @@ public class CassandraTimestampBackupRunner {
         });
     }
 
-    private CqlResult executeQueryUnchecked(Cassandra.Client client, ByteBuffer query) {
-        try {
-            return queryRunner().run(client,
-                    AtlasDbConstants.TIMESTAMP_TABLE,
-                    () -> client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM));
-        } catch (TException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
-    }
-
     private BoundData getCurrentBoundData(Cassandra.Client client) {
+        checkTimestampTableExists();
+
         ByteBuffer selectQuery = CassandraTimestampUtils.constructSelectFromTimestampTableQuery();
         CqlResult existingData = executeQueryUnchecked(client, selectQuery);
         Map<String, byte[]> columnarResults = CassandraTimestampUtils.getValuesFromSelectionResult(existingData);
@@ -155,6 +147,23 @@ public class CassandraTimestampBackupRunner {
                 .bound(columnarResults.get(CassandraTimestampUtils.ROW_AND_COLUMN_NAME))
                 .backupBound(columnarResults.get(CassandraTimestampUtils.BACKUP_COLUMN_NAME))
                 .build();
+    }
+
+    private void checkTimestampTableExists() {
+        CassandraTables cassandraTables = cassandraKeyValueService.getCassandraTables();
+        Preconditions.checkState(
+                cassandraTables.getExisting().contains(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
+                "[BACKUP/RESTORE] Tried to get bound data when the timestamp table didn't exist!");
+    }
+
+    private CqlResult executeQueryUnchecked(Cassandra.Client client, ByteBuffer query) {
+        try {
+            return queryRunner().run(client,
+                    AtlasDbConstants.TIMESTAMP_TABLE,
+                    () -> client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM));
+        } catch (TException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
     }
 
     private CassandraClientPool clientPool() {
