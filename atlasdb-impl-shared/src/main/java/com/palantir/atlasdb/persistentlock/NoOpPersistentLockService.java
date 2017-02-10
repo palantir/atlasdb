@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import javax.ws.rs.QueryParam;
-
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 
 // This class is needed because some KVSs do not support checkAndSet, upon which StandardPersistentLockService relies.
 public class NoOpPersistentLockService implements PersistentLockService {
 
     @Override
-    public LockEntry acquireLock(@QueryParam("reason") String reason) {
+    public LockEntry acquireLock(String reason) {
         return null;
     }
 

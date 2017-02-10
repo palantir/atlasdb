@@ -49,7 +49,7 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
     }
 
     private Response createReleaseErrorResponse(LockEntry actualEntry) {
-        log.info("Request failed. Stored LockEntry: {}", actualEntry);
+        log.info("Request failed. Stored persistent lock: {}", actualEntry);
         String message = LockStore.LOCK_OPEN.equals(actualEntry)
                 ? "The lock has already been released"
                 : String.format("The lock has already been taken out; reason: %s", actualEntry.reason());
