@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -145,7 +144,7 @@ public class LockStore {
         private List<String> getActualValues(CheckAndSetException ex) {
             if (ex.getActualValues() != null) {
                 return ex.getActualValues().stream()
-                        .map(v -> new String(v, StandardCharsets.UTF_8))
+                        .map(v -> LockEntry.fromStoredValue(v).toString())
                         .collect(Collectors.toList());
             } else {
                 return ImmutableList.of();
