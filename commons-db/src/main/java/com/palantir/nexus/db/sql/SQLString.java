@@ -29,7 +29,6 @@ import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 
 import com.google.common.collect.ImmutableMap;
@@ -201,8 +200,8 @@ public class SQLString extends BasicSQLString {
      */
     static FinalSQLString getUnregisteredQuery(String sql) {
         assert !isValidKey(sql) : "Unregistered Queries should not look like keys"; //$NON-NLS-1$
-        FinalSQLString cached = cachedUnregistered.get(canonicalizeString(sql));
-        if(null != cached) {
+        FinalSQLString cached = cachedUnregistered.get(canonicalizeStringAndRemoveWhitespaceEntirely(sql));
+        if (null != cached) {
             callbackOnUse.noteUse((SQLString) cached.delegate);
             return cached;
         }
