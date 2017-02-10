@@ -37,7 +37,7 @@ public class AtlasDbConfigTest {
     private static final ServerListConfig DEFAULT_SERVER_LIST = ImmutableServerListConfig.builder()
             .addServers("server")
             .build();
-    public static final TimeLockClientConfig TIMELOCK_CONFIG = ImmutableTimeLockClientConfig.builder()
+    private static final TimeLockClientConfig TIMELOCK_CONFIG = ImmutableTimeLockClientConfig.builder()
             .client("testClient")
             .serversList(DEFAULT_SERVER_LIST)
             .build();
