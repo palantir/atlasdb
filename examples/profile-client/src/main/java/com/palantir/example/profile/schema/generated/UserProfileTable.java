@@ -3386,5 +3386,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "gw55a2h5Qud/CxGW9RGGWA==";
+    static String __CLASS_HASH = "XAWQ7jzaJOs0v1rHKKvroQ==";
 }

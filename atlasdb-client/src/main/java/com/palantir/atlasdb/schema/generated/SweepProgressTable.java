@@ -1273,5 +1273,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "D+ku3UNbkHgU75aRsw008A==";
+    static String __CLASS_HASH = "V3qBerbzC3jrbSvCI/vomA==";
 }

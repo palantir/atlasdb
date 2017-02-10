@@ -31,8 +31,8 @@ public class GenericTestSchema implements AtlasSchema {
                 Namespace.DEFAULT_NAMESPACE);
 
         // use for testing rangeScanAllowed code
-        schema.addTableDefinition("tableA", new TableDefinition() {{
-            javaTableName("TableA");
+        schema.addTableDefinition("rangeScanTest", new TableDefinition() {{
+            javaTableName("RangeScanTest");
 
             rowName();
             rowComponent("component1", ValueType.STRING);
@@ -43,8 +43,8 @@ public class GenericTestSchema implements AtlasSchema {
             rangeScanAllowed();
         }});
 
-        schema.addTableDefinition("tableB", new TableDefinition() {{
-            javaTableName("TableB");
+        schema.addTableDefinition("genericRangeScanTest", new TableDefinition() {{
+            javaTableName("GenericRangeScanTest");
 
             rowName();
             rowComponent("component1", ValueType.SHA256HASH);

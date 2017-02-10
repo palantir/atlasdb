@@ -87,32 +87,32 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-public final class TableATable implements
-        AtlasDbMutablePersistentTable<TableATable.TableARow,
-                                         TableATable.TableANamedColumnValue<?>,
-                                         TableATable.TableARowResult>,
-        AtlasDbNamedMutableTable<TableATable.TableARow,
-                                    TableATable.TableANamedColumnValue<?>,
-                                    TableATable.TableARowResult> {
+public final class RangeScanTestTable implements
+        AtlasDbMutablePersistentTable<RangeScanTestTable.RangeScanTestRow,
+                                         RangeScanTestTable.RangeScanTestNamedColumnValue<?>,
+                                         RangeScanTestTable.RangeScanTestRowResult>,
+        AtlasDbNamedMutableTable<RangeScanTestTable.RangeScanTestRow,
+                                    RangeScanTestTable.RangeScanTestNamedColumnValue<?>,
+                                    RangeScanTestTable.RangeScanTestRowResult> {
     private final Transaction t;
-    private final List<TableATrigger> triggers;
-    private final static String rawTableName = "tableA";
+    private final List<RangeScanTestTrigger> triggers;
+    private final static String rawTableName = "rangeScanTest";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(TableANamedColumn.values());
+    private final static ColumnSelection allColumns = getColumnSelection(RangeScanTestNamedColumn.values());
 
-    static TableATable of(Transaction t, Namespace namespace) {
-        return new TableATable(t, namespace, ImmutableList.<TableATrigger>of());
+    static RangeScanTestTable of(Transaction t, Namespace namespace) {
+        return new RangeScanTestTable(t, namespace, ImmutableList.<RangeScanTestTrigger>of());
     }
 
-    static TableATable of(Transaction t, Namespace namespace, TableATrigger trigger, TableATrigger... triggers) {
-        return new TableATable(t, namespace, ImmutableList.<TableATrigger>builder().add(trigger).add(triggers).build());
+    static RangeScanTestTable of(Transaction t, Namespace namespace, RangeScanTestTrigger trigger, RangeScanTestTrigger... triggers) {
+        return new RangeScanTestTable(t, namespace, ImmutableList.<RangeScanTestTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static TableATable of(Transaction t, Namespace namespace, List<TableATrigger> triggers) {
-        return new TableATable(t, namespace, triggers);
+    static RangeScanTestTable of(Transaction t, Namespace namespace, List<RangeScanTestTrigger> triggers) {
+        return new RangeScanTestTable(t, namespace, triggers);
     }
 
-    private TableATable(Transaction t, Namespace namespace, List<TableATrigger> triggers) {
+    private RangeScanTestTable(Transaction t, Namespace namespace, List<RangeScanTestTrigger> triggers) {
         this.t = t;
         this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
@@ -136,19 +136,19 @@ public final class TableATable implements
 
     /**
      * <pre>
-     * TableARow {
+     * RangeScanTestRow {
      *   {@literal String component1};
      * }
      * </pre>
      */
-    public static final class TableARow implements Persistable, Comparable<TableARow> {
+    public static final class RangeScanTestRow implements Persistable, Comparable<RangeScanTestRow> {
         private final String component1;
 
-        public static TableARow of(String component1) {
-            return new TableARow(component1);
+        public static RangeScanTestRow of(String component1) {
+            return new RangeScanTestRow(component1);
         }
 
-        private TableARow(String component1) {
+        private RangeScanTestRow(String component1) {
             this.component1 = component1;
         }
 
@@ -156,20 +156,20 @@ public final class TableATable implements
             return component1;
         }
 
-        public static Function<TableARow, String> getComponent1Fun() {
-            return new Function<TableARow, String>() {
+        public static Function<RangeScanTestRow, String> getComponent1Fun() {
+            return new Function<RangeScanTestRow, String>() {
                 @Override
-                public String apply(TableARow row) {
+                public String apply(RangeScanTestRow row) {
                     return row.component1;
                 }
             };
         }
 
-        public static Function<String, TableARow> fromComponent1Fun() {
-            return new Function<String, TableARow>() {
+        public static Function<String, RangeScanTestRow> fromComponent1Fun() {
+            return new Function<String, RangeScanTestRow>() {
                 @Override
-                public TableARow apply(String row) {
-                    return TableARow.of(row);
+                public RangeScanTestRow apply(String row) {
+                    return RangeScanTestRow.of(row);
                 }
             };
         }
@@ -180,13 +180,13 @@ public final class TableATable implements
             return EncodingUtils.add(component1Bytes);
         }
 
-        public static final Hydrator<TableARow> BYTES_HYDRATOR = new Hydrator<TableARow>() {
+        public static final Hydrator<RangeScanTestRow> BYTES_HYDRATOR = new Hydrator<RangeScanTestRow>() {
             @Override
-            public TableARow hydrateFromBytes(byte[] __input) {
+            public RangeScanTestRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 String component1 = PtBytes.toString(__input, __index, __input.length-__index);
                 __index += 0;
-                return new TableARow(component1);
+                return new RangeScanTestRow(component1);
             }
         };
 
@@ -208,7 +208,7 @@ public final class TableATable implements
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            TableARow other = (TableARow) obj;
+            RangeScanTestRow other = (RangeScanTestRow) obj;
             return Objects.equal(component1, other.component1);
         }
 
@@ -218,14 +218,14 @@ public final class TableATable implements
         }
 
         @Override
-        public int compareTo(TableARow o) {
+        public int compareTo(RangeScanTestRow o) {
             return ComparisonChain.start()
                 .compare(this.component1, o.component1)
                 .result();
         }
     }
 
-    public interface TableANamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
+    public interface RangeScanTestNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
      * <pre>
@@ -234,7 +234,7 @@ public final class TableATable implements
      * }
      * </pre>
      */
-    public static final class Column1 implements TableANamedColumnValue<Long> {
+    public static final class Column1 implements RangeScanTestNamedColumnValue<Long> {
         private final Long value;
 
         public static Column1 of(Long value) {
@@ -287,40 +287,40 @@ public final class TableATable implements
         }
     }
 
-    public interface TableATrigger {
-        public void putTableA(Multimap<TableARow, ? extends TableANamedColumnValue<?>> newRows);
+    public interface RangeScanTestTrigger {
+        public void putRangeScanTest(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> newRows);
     }
 
-    public static final class TableARowResult implements TypedRowResult {
+    public static final class RangeScanTestRowResult implements TypedRowResult {
         private final RowResult<byte[]> row;
 
-        public static TableARowResult of(RowResult<byte[]> row) {
-            return new TableARowResult(row);
+        public static RangeScanTestRowResult of(RowResult<byte[]> row) {
+            return new RangeScanTestRowResult(row);
         }
 
-        private TableARowResult(RowResult<byte[]> row) {
+        private RangeScanTestRowResult(RowResult<byte[]> row) {
             this.row = row;
         }
 
         @Override
-        public TableARow getRowName() {
-            return TableARow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
+        public RangeScanTestRow getRowName() {
+            return RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
         }
 
-        public static Function<TableARowResult, TableARow> getRowNameFun() {
-            return new Function<TableARowResult, TableARow>() {
+        public static Function<RangeScanTestRowResult, RangeScanTestRow> getRowNameFun() {
+            return new Function<RangeScanTestRowResult, RangeScanTestRow>() {
                 @Override
-                public TableARow apply(TableARowResult rowResult) {
+                public RangeScanTestRow apply(RangeScanTestRowResult rowResult) {
                     return rowResult.getRowName();
                 }
             };
         }
 
-        public static Function<RowResult<byte[]>, TableARowResult> fromRawRowResultFun() {
-            return new Function<RowResult<byte[]>, TableARowResult>() {
+        public static Function<RowResult<byte[]>, RangeScanTestRowResult> fromRawRowResultFun() {
+            return new Function<RowResult<byte[]>, RangeScanTestRowResult>() {
                 @Override
-                public TableARowResult apply(RowResult<byte[]> rowResult) {
-                    return new TableARowResult(rowResult);
+                public RangeScanTestRowResult apply(RowResult<byte[]> rowResult) {
+                    return new RangeScanTestRowResult(rowResult);
                 }
             };
         }
@@ -338,10 +338,10 @@ public final class TableATable implements
             return value.getValue();
         }
 
-        public static Function<TableARowResult, Long> getColumn1Fun() {
-            return new Function<TableARowResult, Long>() {
+        public static Function<RangeScanTestRowResult, Long> getColumn1Fun() {
+            return new Function<RangeScanTestRowResult, Long>() {
                 @Override
-                public Long apply(TableARowResult rowResult) {
+                public Long apply(RangeScanTestRowResult rowResult) {
                     return rowResult.getColumn1();
                 }
             };
@@ -356,7 +356,7 @@ public final class TableATable implements
         }
     }
 
-    public enum TableANamedColumn {
+    public enum RangeScanTestNamedColumn {
         COLUMN1 {
             @Override
             public byte[] getShortName() {
@@ -366,36 +366,36 @@ public final class TableATable implements
 
         public abstract byte[] getShortName();
 
-        public static Function<TableANamedColumn, byte[]> toShortName() {
-            return new Function<TableANamedColumn, byte[]>() {
+        public static Function<RangeScanTestNamedColumn, byte[]> toShortName() {
+            return new Function<RangeScanTestNamedColumn, byte[]>() {
                 @Override
-                public byte[] apply(TableANamedColumn namedColumn) {
+                public byte[] apply(RangeScanTestNamedColumn namedColumn) {
                     return namedColumn.getShortName();
                 }
             };
         }
     }
 
-    public static ColumnSelection getColumnSelection(Collection<TableANamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, TableANamedColumn.toShortName()));
+    public static ColumnSelection getColumnSelection(Collection<RangeScanTestNamedColumn> cols) {
+        return ColumnSelection.create(Collections2.transform(cols, RangeScanTestNamedColumn.toShortName()));
     }
 
-    public static ColumnSelection getColumnSelection(TableANamedColumn... cols) {
+    public static ColumnSelection getColumnSelection(RangeScanTestNamedColumn... cols) {
         return getColumnSelection(Arrays.asList(cols));
     }
 
-    private static final Map<String, Hydrator<? extends TableANamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends TableANamedColumnValue<?>>>builder()
+    private static final Map<String, Hydrator<? extends RangeScanTestNamedColumnValue<?>>> shortNameToHydrator =
+            ImmutableMap.<String, Hydrator<? extends RangeScanTestNamedColumnValue<?>>>builder()
                 .put("c", Column1.BYTES_HYDRATOR)
                 .build();
 
-    public Map<TableARow, Long> getColumn1s(Collection<TableARow> rows) {
-        Map<Cell, TableARow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (TableARow row : rows) {
+    public Map<RangeScanTestRow, Long> getColumn1s(Collection<RangeScanTestRow> rows) {
+        Map<Cell, RangeScanTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+        for (RangeScanTestRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<TableARow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<RangeScanTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = Column1.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
@@ -403,44 +403,44 @@ public final class TableATable implements
         return ret;
     }
 
-    public void putColumn1(TableARow row, Long value) {
+    public void putColumn1(RangeScanTestRow row, Long value) {
         put(ImmutableMultimap.of(row, Column1.of(value)));
     }
 
-    public void putColumn1(Map<TableARow, Long> map) {
-        Map<TableARow, TableANamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<TableARow, Long> e : map.entrySet()) {
+    public void putColumn1(Map<RangeScanTestRow, Long> map) {
+        Map<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<RangeScanTestRow, Long> e : map.entrySet()) {
             toPut.put(e.getKey(), Column1.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn1UnlessExists(TableARow row, Long value) {
+    public void putColumn1UnlessExists(RangeScanTestRow row, Long value) {
         putUnlessExists(ImmutableMultimap.of(row, Column1.of(value)));
     }
 
-    public void putColumn1UnlessExists(Map<TableARow, Long> map) {
-        Map<TableARow, TableANamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<TableARow, Long> e : map.entrySet()) {
+    public void putColumn1UnlessExists(Map<RangeScanTestRow, Long> map) {
+        Map<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<RangeScanTestRow, Long> e : map.entrySet()) {
             toPut.put(e.getKey(), Column1.of(e.getValue()));
         }
         putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
-    public void put(Multimap<TableARow, ? extends TableANamedColumnValue<?>> rows) {
+    public void put(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
         t.put(tableRef, ColumnValues.toCellValues(rows));
-        for (TableATrigger trigger : triggers) {
-            trigger.putTableA(rows);
+        for (RangeScanTestTrigger trigger : triggers) {
+            trigger.putRangeScanTest(rows);
         }
     }
 
     @Override
-    public void putUnlessExists(Multimap<TableARow, ? extends TableANamedColumnValue<?>> rows) {
-        Multimap<TableARow, TableANamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<TableARow, TableANamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<TableARow, ? extends TableANamedColumnValue<?>> entry : rows.entries()) {
+    public void putUnlessExists(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> rows) {
+        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
             }
@@ -448,69 +448,69 @@ public final class TableATable implements
         put(toPut);
     }
 
-    public void deleteColumn1(TableARow row) {
+    public void deleteColumn1(RangeScanTestRow row) {
         deleteColumn1(ImmutableSet.of(row));
     }
 
-    public void deleteColumn1(Iterable<TableARow> rows) {
+    public void deleteColumn1(Iterable<RangeScanTestRow> rows) {
         byte[] col = PtBytes.toCachedBytes("c");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
     @Override
-    public void delete(TableARow row) {
+    public void delete(RangeScanTestRow row) {
         delete(ImmutableSet.of(row));
     }
 
     @Override
-    public void delete(Iterable<? extends TableARow> rows) {
+    public void delete(Iterable<? extends RangeScanTestRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c")));
         t.delete(tableRef, cells);
     }
 
-    public Optional<TableARowResult> getRow(TableARow row) {
+    public Optional<RangeScanTestRowResult> getRow(RangeScanTestRow row) {
         return getRow(row, allColumns);
     }
 
-    public Optional<TableARowResult> getRow(TableARow row, ColumnSelection columns) {
+    public Optional<RangeScanTestRowResult> getRow(RangeScanTestRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
-            return Optional.of(TableARowResult.of(rowResult));
+            return Optional.of(RangeScanTestRowResult.of(rowResult));
         }
     }
 
     @Override
-    public List<TableARowResult> getRows(Iterable<TableARow> rows) {
+    public List<RangeScanTestRowResult> getRows(Iterable<RangeScanTestRow> rows) {
         return getRows(rows, allColumns);
     }
 
     @Override
-    public List<TableARowResult> getRows(Iterable<TableARow> rows, ColumnSelection columns) {
+    public List<RangeScanTestRowResult> getRows(Iterable<RangeScanTestRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        List<TableARowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
+        List<RangeScanTestRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
-            rowResults.add(TableARowResult.of(row));
+            rowResults.add(RangeScanTestRowResult.of(row));
         }
         return rowResults;
     }
 
     @Override
-    public List<TableARowResult> getAsyncRows(Iterable<TableARow> rows, ExecutorService exec) {
+    public List<RangeScanTestRowResult> getAsyncRows(Iterable<RangeScanTestRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
-    public List<TableARowResult> getAsyncRows(final Iterable<TableARow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<TableARowResult>> c =
-                new Callable<List<TableARowResult>>() {
+    public List<RangeScanTestRowResult> getAsyncRows(final Iterable<RangeScanTestRow> rows, final ColumnSelection columns, ExecutorService exec) {
+        Callable<List<RangeScanTestRowResult>> c =
+                new Callable<List<RangeScanTestRowResult>>() {
             @Override
-            public List<TableARowResult> call() {
+            public List<RangeScanTestRowResult> call() {
                 return getRows(rows, columns);
             }
         };
@@ -518,18 +518,18 @@ public final class TableATable implements
     }
 
     @Override
-    public List<TableANamedColumnValue<?>> getRowColumns(TableARow row) {
+    public List<RangeScanTestNamedColumnValue<?>> getRowColumns(RangeScanTestRow row) {
         return getRowColumns(row, allColumns);
     }
 
     @Override
-    public List<TableANamedColumnValue<?>> getRowColumns(TableARow row, ColumnSelection columns) {
+    public List<RangeScanTestNamedColumnValue<?>> getRowColumns(RangeScanTestRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<TableANamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<RangeScanTestNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -538,41 +538,41 @@ public final class TableATable implements
     }
 
     @Override
-    public Multimap<TableARow, TableANamedColumnValue<?>> getRowsMultimap(Iterable<? extends TableARow> rows) {
+    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimap(Iterable<? extends RangeScanTestRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
-    public Multimap<TableARow, TableANamedColumnValue<?>> getRowsMultimap(Iterable<TableARow> rows, ColumnSelection columns) {
+    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimap(Iterable<RangeScanTestRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
     @Override
-    public Multimap<TableARow, TableANamedColumnValue<?>> getAsyncRowsMultimap(Iterable<TableARow> rows, ExecutorService exec) {
+    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<RangeScanTestRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
-    public Multimap<TableARow, TableANamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<TableARow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<TableARow, TableANamedColumnValue<?>>> c =
-                new Callable<Multimap<TableARow, TableANamedColumnValue<?>>>() {
+    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<RangeScanTestRow> rows, final ColumnSelection columns, ExecutorService exec) {
+        Callable<Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>>> c =
+                new Callable<Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>>>() {
             @Override
-            public Multimap<TableARow, TableANamedColumnValue<?>> call() {
+            public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> call() {
                 return getRowsMultimapInternal(rows, columns);
             }
         };
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<TableARow, TableANamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends TableARow> rows, ColumnSelection columns) {
+    private Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends RangeScanTestRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<TableARow, TableANamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<TableARow, TableANamedColumnValue<?>> rowMap = HashMultimap.create();
+    private static Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
-            TableARow row = TableARow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+            RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
                 rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -581,12 +581,12 @@ public final class TableATable implements
     }
 
     @Override
-    public Map<TableARow, BatchingVisitable<TableANamedColumnValue<?>>> getRowsColumnRange(Iterable<TableARow> rows, BatchColumnRangeSelection columnRangeSelection) {
+    public Map<RangeScanTestRow, BatchingVisitable<RangeScanTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<RangeScanTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<TableARow, BatchingVisitable<TableANamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        Map<RangeScanTestRow, BatchingVisitable<RangeScanTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-            TableARow row = TableARow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<TableANamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<RangeScanTestNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -595,37 +595,37 @@ public final class TableATable implements
     }
 
     @Override
-    public Iterator<Map.Entry<TableARow, TableANamedColumnValue<?>>> getRowsColumnRange(Iterable<TableARow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+    public Iterator<Map.Entry<RangeScanTestRow, RangeScanTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<RangeScanTestRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
         return Iterators.transform(results, e -> {
-            TableARow row = TableARow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            TableANamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            RangeScanTestNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
             return Maps.immutableEntry(row, colValue);
         });
     }
 
-    public BatchingVisitableView<TableARowResult> getRange(RangeRequest range) {
+    public BatchingVisitableView<RangeScanTestRowResult> getRange(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             range = range.getBuilder().retainColumns(allColumns).build();
         }
-        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, TableARowResult>() {
+        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, RangeScanTestRowResult>() {
             @Override
-            public TableARowResult apply(RowResult<byte[]> input) {
-                return TableARowResult.of(input);
+            public RangeScanTestRowResult apply(RowResult<byte[]> input) {
+                return RangeScanTestRowResult.of(input);
             }
         });
     }
 
-    public IterableView<BatchingVisitable<TableARowResult>> getRanges(Iterable<RangeRequest> ranges) {
+    public IterableView<BatchingVisitable<RangeScanTestRowResult>> getRanges(Iterable<RangeRequest> ranges) {
         Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
         return IterableView.of(rangeResults).transform(
-                new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<TableARowResult>>() {
+                new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<RangeScanTestRowResult>>() {
             @Override
-            public BatchingVisitable<TableARowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
-                return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, TableARowResult>() {
+            public BatchingVisitable<RangeScanTestRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
+                return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, RangeScanTestRowResult>() {
                     @Override
-                    public TableARowResult apply(RowResult<byte[]> row) {
-                        return TableARowResult.of(row);
+                    public RangeScanTestRowResult apply(RowResult<byte[]> row) {
+                        return RangeScanTestRowResult.of(row);
                     }
                 });
             }
@@ -638,10 +638,10 @@ public final class TableATable implements
 
     public void deleteRanges(Iterable<RangeRequest> ranges) {
         BatchingVisitables.concat(getRanges(ranges))
-                          .transform(TableARowResult.getRowNameFun())
-                          .batchAccept(1000, new AbortingVisitor<List<? extends TableARow>, RuntimeException>() {
+                          .transform(RangeScanTestRowResult.getRowNameFun())
+                          .batchAccept(1000, new AbortingVisitor<List<? extends RangeScanTestRow>, RuntimeException>() {
             @Override
-            public boolean visit(List<? extends TableARow> rows) {
+            public boolean visit(List<? extends RangeScanTestRow> rows) {
                 delete(rows);
                 return true;
             }
@@ -747,5 +747,5 @@ public final class TableATable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "wG86qhmr/JfjLsM4x9piyg==";
+    static String __CLASS_HASH = "BTMX0u5VM+o9jfSqcqyWnA==";
 }

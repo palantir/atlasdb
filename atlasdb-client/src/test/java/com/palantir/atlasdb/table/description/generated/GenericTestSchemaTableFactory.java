@@ -38,28 +38,28 @@ public final class GenericTestSchemaTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
-    public TableATable getTableATable(Transaction t, TableATable.TableATrigger... triggers) {
-        return TableATable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    public GenericRangeScanTestTable getGenericRangeScanTestTable(Transaction t, GenericRangeScanTestTable.GenericRangeScanTestTrigger... triggers) {
+        return GenericRangeScanTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public TableBTable getTableBTable(Transaction t, TableBTable.TableBTrigger... triggers) {
-        return TableBTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    public RangeScanTestTable getRangeScanTestTable(Transaction t, RangeScanTestTable.RangeScanTestTrigger... triggers) {
+        return RangeScanTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
     public interface SharedTriggers extends
-            TableATable.TableATrigger,
-            TableBTable.TableBTrigger {
+            GenericRangeScanTestTable.GenericRangeScanTestTrigger,
+            RangeScanTestTable.RangeScanTestTrigger {
         /* empty */
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putTableA(Multimap<TableATable.TableARow, ? extends TableATable.TableANamedColumnValue<?>> newRows) {
+        public void putGenericRangeScanTest(Multimap<GenericRangeScanTestTable.GenericRangeScanTestRow, ? extends GenericRangeScanTestTable.GenericRangeScanTestColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putTableB(Multimap<TableBTable.TableBRow, ? extends TableBTable.TableBColumnValue> newRows) {
+        public void putRangeScanTest(Multimap<RangeScanTestTable.RangeScanTestRow, ? extends RangeScanTestTable.RangeScanTestNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

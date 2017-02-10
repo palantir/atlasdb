@@ -717,5 +717,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vRzK/r2VXST+puDjpkcKPA==";
+    static String __CLASS_HASH = "/9n4pYFQN4hnqMn44C51mw==";
 }

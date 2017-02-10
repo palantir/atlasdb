@@ -10,6 +10,7 @@ repositories {
 
 schemas = [
     'com.palantir.atlasdb.schema.SweepSchema',
+    'com.palantir.atlasdb.table.description.GenericTestSchema'
 ]
 
 libsDirName = file('build/artifacts')

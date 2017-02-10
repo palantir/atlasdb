@@ -729,5 +729,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lp86MkgeeTISottbieOOIA==";
+    static String __CLASS_HASH = "oSZ1LSj2T/7UdMo6PTUscw==";
 }
