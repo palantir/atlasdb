@@ -76,6 +76,34 @@ public class CassandraTimestampUtilsTest {
     }
 
     @Test
+    public void longConvertedToBytesIsValidTimestampData() {
+        assertThat(CassandraTimestampUtils.isValidTimestampData(PtBytes.toBytes(1234567L))).isTrue();
+        assertThat(CassandraTimestampUtils.isValidTimestampData(new byte[Long.BYTES])).isTrue();
+    }
+
+    @Test
+    public void invalidatedValueIsNotValidTimestampData() {
+        assertThat(CassandraTimestampUtils.isValidTimestampData(
+                CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray()))
+                .isFalse();
+    }
+
+    @Test
+    public void emptyByteArrayIsNotValidTimestampData() {
+        assertThat(CassandraTimestampUtils.isValidTimestampData(EMPTY_BYTE_ARRAY)).isFalse();
+    }
+
+    @Test
+    public void nullIsNotValidTimestampData() {
+        assertThat(CassandraTimestampUtils.isValidTimestampData(null)).isFalse();
+    }
+
+    @Test
+    public void largeByteArrayIsNotValidTimestampData() {
+        assertThat(CassandraTimestampUtils.isValidTimestampData(new byte[100 * Long.BYTES])).isFalse();
+    }
+
+    @Test
     public void checkAndSetIsInsertIfNotExistsIfExpectedIsNull() {
         String query = queryBufferToString(CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
                 ImmutableMap.of(COLUMN_NAME_1, Pair.create(null, VALUE_1))));
