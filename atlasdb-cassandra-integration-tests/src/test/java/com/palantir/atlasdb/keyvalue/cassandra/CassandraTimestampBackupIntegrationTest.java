@@ -77,7 +77,7 @@ public class CassandraTimestampBackupIntegrationTest {
 
     @Test
     public void canBackupWithDefaultValue() {
-        assertThat(backupRunner.backupExistingTimestamp(CassandraTimestampUtils.INITIAL_VALUE))
+        assertThat(backupRunner.backupExistingTimestamp())
                 .isEqualTo(CassandraTimestampUtils.INITIAL_VALUE);
     }
 
@@ -85,43 +85,43 @@ public class CassandraTimestampBackupIntegrationTest {
     public void canBackupAlreadyStoredBound() {
         timestampBoundStore.getUpperLimit();
         timestampBoundStore.storeUpperLimit(TIMESTAMP_1);
-        assertThat(backupRunner.backupExistingTimestamp(TIMESTAMP_2)).isEqualTo(TIMESTAMP_1);
+        assertThat(backupRunner.backupExistingTimestamp()).isEqualTo(TIMESTAMP_1);
     }
 
     @Test
     public void cannotReadAfterBackup() {
-        backupRunner.backupExistingTimestamp(TIMESTAMP_1);
+        backupRunner.backupExistingTimestamp();
         assertBoundNotReadable();
     }
 
     @Test
     public void canBackupMultipleTimes() {
-        assertThat(backupRunner.backupExistingTimestamp(TIMESTAMP_1)).isEqualTo(TIMESTAMP_1);
-        assertThat(backupRunner.backupExistingTimestamp(TIMESTAMP_2)).isEqualTo(TIMESTAMP_1);
-        assertThat(backupRunner.backupExistingTimestamp(TIMESTAMP_3)).isEqualTo(TIMESTAMP_1);
+        assertThat(backupRunner.backupExistingTimestamp()).isEqualTo(INITIAL_VALUE);
+        assertThat(backupRunner.backupExistingTimestamp()).isEqualTo(INITIAL_VALUE);
+        assertThat(backupRunner.backupExistingTimestamp()).isEqualTo(INITIAL_VALUE);
         assertBoundNotReadable();
     }
 
     @Test
     public void resilientToMultipleConcurrentBackups() {
-        executeInParallelOnExecutorService(() -> backupRunner.backupExistingTimestamp(TIMESTAMP_1));
+        executeInParallelOnExecutorService(backupRunner::backupExistingTimestamp);
         assertBoundNotReadable();
         backupRunner.restoreFromBackup();
-        assertBoundEquals(TIMESTAMP_1);
+        assertBoundEquals(INITIAL_VALUE);
     }
 
     @Test
     public void backsUpDefaultValueIfNoBoundExists() {
-        backupRunner.backupExistingTimestamp(TIMESTAMP_1);
+        backupRunner.backupExistingTimestamp();
         backupRunner.restoreFromBackup();
-        assertBoundEquals(TIMESTAMP_1);
+        assertBoundEquals(INITIAL_VALUE);
     }
 
     @Test
     public void backsUpKnownBoundIfExists() {
         timestampBoundStore.getUpperLimit();
         timestampBoundStore.storeUpperLimit(TIMESTAMP_1);
-        backupRunner.backupExistingTimestamp(TIMESTAMP_2);
+        backupRunner.backupExistingTimestamp();
         backupRunner.restoreFromBackup();
         assertBoundEquals(TIMESTAMP_1);
     }
@@ -133,14 +133,13 @@ public class CassandraTimestampBackupIntegrationTest {
 
     @Test
     public void throwsIfBothBoundsReadable() {
-        backupRunner.backupExistingTimestamp(TIMESTAMP_1);
-        byte[] rowAndColumnNameBytes = PtBytes.toBytes(CassandraTimestampUtils.ROW_AND_COLUMN_NAME);
-        kv.put(
-                AtlasDbConstants.TIMESTAMP_TABLE,
-                ImmutableMap.of(Cell.create(rowAndColumnNameBytes, rowAndColumnNameBytes), PtBytes.toBytes(0L)),
-                Long.MAX_VALUE - 1);
-        assertThatThrownBy(() -> backupRunner.backupExistingTimestamp(TIMESTAMP_1))
-                .isInstanceOf(IllegalStateException.class);
+        setupTwoReadableBoundsInKv();
+        assertThatThrownBy(backupRunner::backupExistingTimestamp).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void restoreThrowsIfBothBoundsReadable() {
+        setupTwoReadableBoundsInKv();
         assertThatThrownBy(backupRunner::restoreFromBackup).isInstanceOf(IllegalStateException.class);
     }
 
@@ -156,14 +155,14 @@ public class CassandraTimestampBackupIntegrationTest {
     public void canBackupAndRestoreMultipleTimes() {
         timestampBoundStore.getUpperLimit();
         timestampBoundStore.storeUpperLimit(TIMESTAMP_1);
-        backupRunner.backupExistingTimestamp(TIMESTAMP_3);
+        backupRunner.backupExistingTimestamp();
         assertBoundNotReadable();
         backupRunner.restoreFromBackup();
         assertBoundEquals(TIMESTAMP_1);
 
         timestampBoundStore.getUpperLimit();
         timestampBoundStore.storeUpperLimit(TIMESTAMP_2);
-        backupRunner.backupExistingTimestamp(TIMESTAMP_3);
+        backupRunner.backupExistingTimestamp();
         assertBoundNotReadable();
         backupRunner.restoreFromBackup();
         assertBoundEquals(TIMESTAMP_2);
@@ -171,15 +170,15 @@ public class CassandraTimestampBackupIntegrationTest {
 
     @Test
     public void canRestoreTwice() {
-        backupRunner.backupExistingTimestamp(TIMESTAMP_1);
+        backupRunner.backupExistingTimestamp();
         backupRunner.restoreFromBackup();
         backupRunner.restoreFromBackup();
-        assertBoundEquals(TIMESTAMP_1);
+        assertBoundEquals(INITIAL_VALUE);
     }
 
     @Test
     public void multipleRestoresDoNotMakeUsGoBackInTime() {
-        backupRunner.backupExistingTimestamp(TIMESTAMP_1);
+        backupRunner.backupExistingTimestamp();
         backupRunner.restoreFromBackup();
         timestampBoundStore.getUpperLimit();
         timestampBoundStore.storeUpperLimit(TIMESTAMP_2);
@@ -189,9 +188,9 @@ public class CassandraTimestampBackupIntegrationTest {
 
     @Test
     public void resilientToMultipleConcurrentRestores() {
-        backupRunner.backupExistingTimestamp(TIMESTAMP_1);
+        backupRunner.backupExistingTimestamp();
         executeInParallelOnExecutorService(backupRunner::restoreFromBackup);
-        assertBoundEquals(TIMESTAMP_1);
+        assertBoundEquals(INITIAL_VALUE);
     }
 
     @Test
@@ -200,7 +199,7 @@ public class CassandraTimestampBackupIntegrationTest {
         timestampBoundStore.storeUpperLimit(TIMESTAMP_3);
         executeInParallelOnExecutorService(() -> {
             if (ThreadLocalRandom.current().nextBoolean()) {
-                backupRunner.backupExistingTimestamp(TIMESTAMP_1);
+                backupRunner.backupExistingTimestamp();
             } else {
                 backupRunner.restoreFromBackup();
             }
@@ -215,6 +214,15 @@ public class CassandraTimestampBackupIntegrationTest {
 
     private void assertBoundNotReadable() {
         assertThatThrownBy(timestampBoundStore::getUpperLimit).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private void setupTwoReadableBoundsInKv() {
+        backupRunner.backupExistingTimestamp();
+        byte[] rowAndColumnNameBytes = PtBytes.toBytes(CassandraTimestampUtils.ROW_AND_COLUMN_NAME);
+        kv.put(
+                AtlasDbConstants.TIMESTAMP_TABLE,
+                ImmutableMap.of(Cell.create(rowAndColumnNameBytes, rowAndColumnNameBytes), PtBytes.toBytes(0L)),
+                Long.MAX_VALUE - 1);
     }
 
     private void executeInParallelOnExecutorService(Runnable runnable) {

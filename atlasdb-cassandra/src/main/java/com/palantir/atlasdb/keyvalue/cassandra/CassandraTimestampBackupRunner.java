@@ -64,10 +64,9 @@ public class CassandraTimestampBackupRunner {
      *
      * This method assumes that the timestamp table exists.
      *
-     * @param defaultValue value to backup if the timestamp table is empty
      * @return value of the timestamp that was backed up, if applicable
      */
-    public synchronized long backupExistingTimestamp(long defaultValue) {
+    public synchronized long backupExistingTimestamp() {
         return clientPool().runWithRetry(client -> {
             BoundData boundData = getCurrentBoundData(client);
             byte[] currentBound = boundData.bound();
@@ -83,7 +82,8 @@ public class CassandraTimestampBackupRunner {
 
             Preconditions.checkState(currentBound == null || CassandraTimestampUtils.isValidTimestampData(currentBound),
                     "The timestamp is unreadable, though the backup is also unreadable! Please contact support.");
-            byte[] backupValue = MoreObjects.firstNonNull(currentBound, PtBytes.toBytes(defaultValue));
+            byte[] backupValue = MoreObjects.firstNonNull(currentBound,
+                    PtBytes.toBytes(CassandraTimestampUtils.INITIAL_VALUE));
             Map<String, Pair<byte[], byte[]>> casMap =
                     ImmutableMap.of(
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
