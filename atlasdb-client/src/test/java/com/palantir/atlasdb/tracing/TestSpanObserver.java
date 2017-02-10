@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.impl;
+package com.palantir.atlasdb.tracing;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-public class InMemoryKeyValueServiceTest extends AbstractKeyValueServiceTest {
+import com.palantir.remoting1.tracing.Span;
+import com.palantir.remoting1.tracing.SpanObserver;
+
+public class TestSpanObserver implements SpanObserver {
+    private final List<Span> spans = new ArrayList<>();
 
     @Override
-    protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false);
+    public void consume(Span span) {
+        spans.add(span);
+    }
+
+    public List<Span> spans() {
+        return Collections.unmodifiableList(spans);
     }
 }
