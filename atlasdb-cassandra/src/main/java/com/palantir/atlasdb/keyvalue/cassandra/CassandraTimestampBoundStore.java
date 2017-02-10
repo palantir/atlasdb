@@ -65,7 +65,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                         ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
             ConflictHandler.IGNORE_ALL);
 
-    private static final long INITIAL_VALUE = 10000L;
+    public static final long INITIAL_VALUE = 10000L;
 
     @GuardedBy("this")
     private long currentLimit = -1;
