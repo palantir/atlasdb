@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.schema.stream.generated;
+package com.palantir.atlasdb.table.description.generated;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -87,32 +87,32 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-public final class KeyValueTable implements
-        AtlasDbMutablePersistentTable<KeyValueTable.KeyValueRow,
-                                         KeyValueTable.KeyValueNamedColumnValue<?>,
-                                         KeyValueTable.KeyValueRowResult>,
-        AtlasDbNamedMutableTable<KeyValueTable.KeyValueRow,
-                                    KeyValueTable.KeyValueNamedColumnValue<?>,
-                                    KeyValueTable.KeyValueRowResult> {
+public final class RangeScanTestTable implements
+        AtlasDbMutablePersistentTable<RangeScanTestTable.RangeScanTestRow,
+                                         RangeScanTestTable.RangeScanTestNamedColumnValue<?>,
+                                         RangeScanTestTable.RangeScanTestRowResult>,
+        AtlasDbNamedMutableTable<RangeScanTestTable.RangeScanTestRow,
+                                    RangeScanTestTable.RangeScanTestNamedColumnValue<?>,
+                                    RangeScanTestTable.RangeScanTestRowResult> {
     private final Transaction t;
-    private final List<KeyValueTrigger> triggers;
-    private final static String rawTableName = "lookup";
+    private final List<RangeScanTestTrigger> triggers;
+    private final static String rawTableName = "rangeScanTest";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(KeyValueNamedColumn.values());
+    private final static ColumnSelection allColumns = getColumnSelection(RangeScanTestNamedColumn.values());
 
-    static KeyValueTable of(Transaction t, Namespace namespace) {
-        return new KeyValueTable(t, namespace, ImmutableList.<KeyValueTrigger>of());
+    static RangeScanTestTable of(Transaction t, Namespace namespace) {
+        return new RangeScanTestTable(t, namespace, ImmutableList.<RangeScanTestTrigger>of());
     }
 
-    static KeyValueTable of(Transaction t, Namespace namespace, KeyValueTrigger trigger, KeyValueTrigger... triggers) {
-        return new KeyValueTable(t, namespace, ImmutableList.<KeyValueTrigger>builder().add(trigger).add(triggers).build());
+    static RangeScanTestTable of(Transaction t, Namespace namespace, RangeScanTestTrigger trigger, RangeScanTestTrigger... triggers) {
+        return new RangeScanTestTable(t, namespace, ImmutableList.<RangeScanTestTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static KeyValueTable of(Transaction t, Namespace namespace, List<KeyValueTrigger> triggers) {
-        return new KeyValueTable(t, namespace, triggers);
+    static RangeScanTestTable of(Transaction t, Namespace namespace, List<RangeScanTestTrigger> triggers) {
+        return new RangeScanTestTable(t, namespace, triggers);
     }
 
-    private KeyValueTable(Transaction t, Namespace namespace, List<KeyValueTrigger> triggers) {
+    private RangeScanTestTable(Transaction t, Namespace namespace, List<RangeScanTestTrigger> triggers) {
         this.t = t;
         this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
@@ -136,64 +136,64 @@ public final class KeyValueTable implements
 
     /**
      * <pre>
-     * KeyValueRow {
-     *   {@literal String key};
+     * RangeScanTestRow {
+     *   {@literal String component1};
      * }
      * </pre>
      */
-    public static final class KeyValueRow implements Persistable, Comparable<KeyValueRow> {
-        private final String key;
+    public static final class RangeScanTestRow implements Persistable, Comparable<RangeScanTestRow> {
+        private final String component1;
 
-        public static KeyValueRow of(String key) {
-            return new KeyValueRow(key);
+        public static RangeScanTestRow of(String component1) {
+            return new RangeScanTestRow(component1);
         }
 
-        private KeyValueRow(String key) {
-            this.key = key;
+        private RangeScanTestRow(String component1) {
+            this.component1 = component1;
         }
 
-        public String getKey() {
-            return key;
+        public String getComponent1() {
+            return component1;
         }
 
-        public static Function<KeyValueRow, String> getKeyFun() {
-            return new Function<KeyValueRow, String>() {
+        public static Function<RangeScanTestRow, String> getComponent1Fun() {
+            return new Function<RangeScanTestRow, String>() {
                 @Override
-                public String apply(KeyValueRow row) {
-                    return row.key;
+                public String apply(RangeScanTestRow row) {
+                    return row.component1;
                 }
             };
         }
 
-        public static Function<String, KeyValueRow> fromKeyFun() {
-            return new Function<String, KeyValueRow>() {
+        public static Function<String, RangeScanTestRow> fromComponent1Fun() {
+            return new Function<String, RangeScanTestRow>() {
                 @Override
-                public KeyValueRow apply(String row) {
-                    return KeyValueRow.of(row);
+                public RangeScanTestRow apply(String row) {
+                    return RangeScanTestRow.of(row);
                 }
             };
         }
 
         @Override
         public byte[] persistToBytes() {
-            byte[] keyBytes = PtBytes.toBytes(key);
-            return EncodingUtils.add(keyBytes);
+            byte[] component1Bytes = PtBytes.toBytes(component1);
+            return EncodingUtils.add(component1Bytes);
         }
 
-        public static final Hydrator<KeyValueRow> BYTES_HYDRATOR = new Hydrator<KeyValueRow>() {
+        public static final Hydrator<RangeScanTestRow> BYTES_HYDRATOR = new Hydrator<RangeScanTestRow>() {
             @Override
-            public KeyValueRow hydrateFromBytes(byte[] __input) {
+            public RangeScanTestRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                String key = PtBytes.toString(__input, __index, __input.length-__index);
+                String component1 = PtBytes.toString(__input, __index, __input.length-__index);
                 __index += 0;
-                return new KeyValueRow(key);
+                return new RangeScanTestRow(component1);
             }
         };
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("key", key)
+                .add("component1", component1)
                 .toString();
         }
 
@@ -208,24 +208,24 @@ public final class KeyValueTable implements
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            KeyValueRow other = (KeyValueRow) obj;
-            return Objects.equal(key, other.key);
+            RangeScanTestRow other = (RangeScanTestRow) obj;
+            return Objects.equal(component1, other.component1);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(key);
+            return Objects.hashCode(component1);
         }
 
         @Override
-        public int compareTo(KeyValueRow o) {
+        public int compareTo(RangeScanTestRow o) {
             return ComparisonChain.start()
-                .compare(this.key, o.key)
+                .compare(this.component1, o.component1)
                 .result();
         }
     }
 
-    public interface KeyValueNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
+    public interface RangeScanTestNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
      * <pre>
@@ -234,25 +234,25 @@ public final class KeyValueTable implements
      * }
      * </pre>
      */
-    public static final class StreamId implements KeyValueNamedColumnValue<Long> {
+    public static final class Column1 implements RangeScanTestNamedColumnValue<Long> {
         private final Long value;
 
-        public static StreamId of(Long value) {
-            return new StreamId(value);
+        public static Column1 of(Long value) {
+            return new Column1(value);
         }
 
-        private StreamId(Long value) {
+        private Column1(Long value) {
             this.value = value;
         }
 
         @Override
         public String getColumnName() {
-            return "streamId";
+            return "column1";
         }
 
         @Override
         public String getShortColumnName() {
-            return "s";
+            return "c";
         }
 
         @Override
@@ -268,12 +268,12 @@ public final class KeyValueTable implements
 
         @Override
         public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("s");
+            return PtBytes.toCachedBytes("c");
         }
 
-        public static final Hydrator<StreamId> BYTES_HYDRATOR = new Hydrator<StreamId>() {
+        public static final Hydrator<Column1> BYTES_HYDRATOR = new Hydrator<Column1>() {
             @Override
-            public StreamId hydrateFromBytes(byte[] bytes) {
+            public Column1 hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
                 return of(EncodingUtils.decodeUnsignedVarLong(bytes, 0));
             }
@@ -287,62 +287,62 @@ public final class KeyValueTable implements
         }
     }
 
-    public interface KeyValueTrigger {
-        public void putKeyValue(Multimap<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> newRows);
+    public interface RangeScanTestTrigger {
+        public void putRangeScanTest(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> newRows);
     }
 
-    public static final class KeyValueRowResult implements TypedRowResult {
+    public static final class RangeScanTestRowResult implements TypedRowResult {
         private final RowResult<byte[]> row;
 
-        public static KeyValueRowResult of(RowResult<byte[]> row) {
-            return new KeyValueRowResult(row);
+        public static RangeScanTestRowResult of(RowResult<byte[]> row) {
+            return new RangeScanTestRowResult(row);
         }
 
-        private KeyValueRowResult(RowResult<byte[]> row) {
+        private RangeScanTestRowResult(RowResult<byte[]> row) {
             this.row = row;
         }
 
         @Override
-        public KeyValueRow getRowName() {
-            return KeyValueRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
+        public RangeScanTestRow getRowName() {
+            return RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
         }
 
-        public static Function<KeyValueRowResult, KeyValueRow> getRowNameFun() {
-            return new Function<KeyValueRowResult, KeyValueRow>() {
+        public static Function<RangeScanTestRowResult, RangeScanTestRow> getRowNameFun() {
+            return new Function<RangeScanTestRowResult, RangeScanTestRow>() {
                 @Override
-                public KeyValueRow apply(KeyValueRowResult rowResult) {
+                public RangeScanTestRow apply(RangeScanTestRowResult rowResult) {
                     return rowResult.getRowName();
                 }
             };
         }
 
-        public static Function<RowResult<byte[]>, KeyValueRowResult> fromRawRowResultFun() {
-            return new Function<RowResult<byte[]>, KeyValueRowResult>() {
+        public static Function<RowResult<byte[]>, RangeScanTestRowResult> fromRawRowResultFun() {
+            return new Function<RowResult<byte[]>, RangeScanTestRowResult>() {
                 @Override
-                public KeyValueRowResult apply(RowResult<byte[]> rowResult) {
-                    return new KeyValueRowResult(rowResult);
+                public RangeScanTestRowResult apply(RowResult<byte[]> rowResult) {
+                    return new RangeScanTestRowResult(rowResult);
                 }
             };
         }
 
-        public boolean hasStreamId() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("s"));
+        public boolean hasColumn1() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("c"));
         }
 
-        public Long getStreamId() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("s"));
+        public Long getColumn1() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c"));
             if (bytes == null) {
                 return null;
             }
-            StreamId value = StreamId.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            Column1 value = Column1.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public static Function<KeyValueRowResult, Long> getStreamIdFun() {
-            return new Function<KeyValueRowResult, Long>() {
+        public static Function<RangeScanTestRowResult, Long> getColumn1Fun() {
+            return new Function<RangeScanTestRowResult, Long>() {
                 @Override
-                public Long apply(KeyValueRowResult rowResult) {
-                    return rowResult.getStreamId();
+                public Long apply(RangeScanTestRowResult rowResult) {
+                    return rowResult.getColumn1();
                 }
             };
         }
@@ -351,96 +351,96 @@ public final class KeyValueTable implements
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("RowName", getRowName())
-                .add("StreamId", getStreamId())
+                .add("Column1", getColumn1())
                 .toString();
         }
     }
 
-    public enum KeyValueNamedColumn {
-        STREAM_ID {
+    public enum RangeScanTestNamedColumn {
+        COLUMN1 {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("s");
+                return PtBytes.toCachedBytes("c");
             }
         };
 
         public abstract byte[] getShortName();
 
-        public static Function<KeyValueNamedColumn, byte[]> toShortName() {
-            return new Function<KeyValueNamedColumn, byte[]>() {
+        public static Function<RangeScanTestNamedColumn, byte[]> toShortName() {
+            return new Function<RangeScanTestNamedColumn, byte[]>() {
                 @Override
-                public byte[] apply(KeyValueNamedColumn namedColumn) {
+                public byte[] apply(RangeScanTestNamedColumn namedColumn) {
                     return namedColumn.getShortName();
                 }
             };
         }
     }
 
-    public static ColumnSelection getColumnSelection(Collection<KeyValueNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, KeyValueNamedColumn.toShortName()));
+    public static ColumnSelection getColumnSelection(Collection<RangeScanTestNamedColumn> cols) {
+        return ColumnSelection.create(Collections2.transform(cols, RangeScanTestNamedColumn.toShortName()));
     }
 
-    public static ColumnSelection getColumnSelection(KeyValueNamedColumn... cols) {
+    public static ColumnSelection getColumnSelection(RangeScanTestNamedColumn... cols) {
         return getColumnSelection(Arrays.asList(cols));
     }
 
-    private static final Map<String, Hydrator<? extends KeyValueNamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends KeyValueNamedColumnValue<?>>>builder()
-                .put("s", StreamId.BYTES_HYDRATOR)
+    private static final Map<String, Hydrator<? extends RangeScanTestNamedColumnValue<?>>> shortNameToHydrator =
+            ImmutableMap.<String, Hydrator<? extends RangeScanTestNamedColumnValue<?>>>builder()
+                .put("c", Column1.BYTES_HYDRATOR)
                 .build();
 
-    public Map<KeyValueRow, Long> getStreamIds(Collection<KeyValueRow> rows) {
-        Map<Cell, KeyValueRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (KeyValueRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("s")), row);
+    public Map<RangeScanTestRow, Long> getColumn1s(Collection<RangeScanTestRow> rows) {
+        Map<Cell, RangeScanTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+        for (RangeScanTestRow row : rows) {
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<KeyValueRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<RangeScanTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Long val = StreamId.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            Long val = Column1.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public void putStreamId(KeyValueRow row, Long value) {
-        put(ImmutableMultimap.of(row, StreamId.of(value)));
+    public void putColumn1(RangeScanTestRow row, Long value) {
+        put(ImmutableMultimap.of(row, Column1.of(value)));
     }
 
-    public void putStreamId(Map<KeyValueRow, Long> map) {
-        Map<KeyValueRow, KeyValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<KeyValueRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), StreamId.of(e.getValue()));
+    public void putColumn1(Map<RangeScanTestRow, Long> map) {
+        Map<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<RangeScanTestRow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), Column1.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putStreamIdUnlessExists(KeyValueRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, StreamId.of(value)));
+    public void putColumn1UnlessExists(RangeScanTestRow row, Long value) {
+        putUnlessExists(ImmutableMultimap.of(row, Column1.of(value)));
     }
 
-    public void putStreamIdUnlessExists(Map<KeyValueRow, Long> map) {
-        Map<KeyValueRow, KeyValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<KeyValueRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), StreamId.of(e.getValue()));
+    public void putColumn1UnlessExists(Map<RangeScanTestRow, Long> map) {
+        Map<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<RangeScanTestRow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), Column1.of(e.getValue()));
         }
         putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
-    public void put(Multimap<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> rows) {
+    public void put(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
         t.put(tableRef, ColumnValues.toCellValues(rows));
-        for (KeyValueTrigger trigger : triggers) {
-            trigger.putKeyValue(rows);
+        for (RangeScanTestTrigger trigger : triggers) {
+            trigger.putRangeScanTest(rows);
         }
     }
 
     @Override
-    public void putUnlessExists(Multimap<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> rows) {
-        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> entry : rows.entries()) {
+    public void putUnlessExists(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> rows) {
+        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
             }
@@ -448,69 +448,69 @@ public final class KeyValueTable implements
         put(toPut);
     }
 
-    public void deleteStreamId(KeyValueRow row) {
-        deleteStreamId(ImmutableSet.of(row));
+    public void deleteColumn1(RangeScanTestRow row) {
+        deleteColumn1(ImmutableSet.of(row));
     }
 
-    public void deleteStreamId(Iterable<KeyValueRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("s");
+    public void deleteColumn1(Iterable<RangeScanTestRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("c");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
     @Override
-    public void delete(KeyValueRow row) {
+    public void delete(RangeScanTestRow row) {
         delete(ImmutableSet.of(row));
     }
 
     @Override
-    public void delete(Iterable<? extends KeyValueRow> rows) {
+    public void delete(Iterable<? extends RangeScanTestRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("s")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c")));
         t.delete(tableRef, cells);
     }
 
-    public Optional<KeyValueRowResult> getRow(KeyValueRow row) {
+    public Optional<RangeScanTestRowResult> getRow(RangeScanTestRow row) {
         return getRow(row, allColumns);
     }
 
-    public Optional<KeyValueRowResult> getRow(KeyValueRow row, ColumnSelection columns) {
+    public Optional<RangeScanTestRowResult> getRow(RangeScanTestRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
-            return Optional.of(KeyValueRowResult.of(rowResult));
+            return Optional.of(RangeScanTestRowResult.of(rowResult));
         }
     }
 
     @Override
-    public List<KeyValueRowResult> getRows(Iterable<KeyValueRow> rows) {
+    public List<RangeScanTestRowResult> getRows(Iterable<RangeScanTestRow> rows) {
         return getRows(rows, allColumns);
     }
 
     @Override
-    public List<KeyValueRowResult> getRows(Iterable<KeyValueRow> rows, ColumnSelection columns) {
+    public List<RangeScanTestRowResult> getRows(Iterable<RangeScanTestRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        List<KeyValueRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
+        List<RangeScanTestRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
-            rowResults.add(KeyValueRowResult.of(row));
+            rowResults.add(RangeScanTestRowResult.of(row));
         }
         return rowResults;
     }
 
     @Override
-    public List<KeyValueRowResult> getAsyncRows(Iterable<KeyValueRow> rows, ExecutorService exec) {
+    public List<RangeScanTestRowResult> getAsyncRows(Iterable<RangeScanTestRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
-    public List<KeyValueRowResult> getAsyncRows(final Iterable<KeyValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<KeyValueRowResult>> c =
-                new Callable<List<KeyValueRowResult>>() {
+    public List<RangeScanTestRowResult> getAsyncRows(final Iterable<RangeScanTestRow> rows, final ColumnSelection columns, ExecutorService exec) {
+        Callable<List<RangeScanTestRowResult>> c =
+                new Callable<List<RangeScanTestRowResult>>() {
             @Override
-            public List<KeyValueRowResult> call() {
+            public List<RangeScanTestRowResult> call() {
                 return getRows(rows, columns);
             }
         };
@@ -518,18 +518,18 @@ public final class KeyValueTable implements
     }
 
     @Override
-    public List<KeyValueNamedColumnValue<?>> getRowColumns(KeyValueRow row) {
+    public List<RangeScanTestNamedColumnValue<?>> getRowColumns(RangeScanTestRow row) {
         return getRowColumns(row, allColumns);
     }
 
     @Override
-    public List<KeyValueNamedColumnValue<?>> getRowColumns(KeyValueRow row, ColumnSelection columns) {
+    public List<RangeScanTestNamedColumnValue<?>> getRowColumns(RangeScanTestRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<KeyValueNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<RangeScanTestNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -538,41 +538,41 @@ public final class KeyValueTable implements
     }
 
     @Override
-    public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getRowsMultimap(Iterable<? extends KeyValueRow> rows) {
+    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimap(Iterable<? extends RangeScanTestRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
-    public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getRowsMultimap(Iterable<KeyValueRow> rows, ColumnSelection columns) {
+    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimap(Iterable<RangeScanTestRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
     @Override
-    public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<KeyValueRow> rows, ExecutorService exec) {
+    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<RangeScanTestRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
-    public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<KeyValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<KeyValueRow, KeyValueNamedColumnValue<?>>> c =
-                new Callable<Multimap<KeyValueRow, KeyValueNamedColumnValue<?>>>() {
+    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<RangeScanTestRow> rows, final ColumnSelection columns, ExecutorService exec) {
+        Callable<Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>>> c =
+                new Callable<Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>>>() {
             @Override
-            public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> call() {
+            public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> call() {
                 return getRowsMultimapInternal(rows, columns);
             }
         };
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends KeyValueRow> rows, ColumnSelection columns) {
+    private Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends RangeScanTestRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> rowMap = HashMultimap.create();
+    private static Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
-            KeyValueRow row = KeyValueRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+            RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
                 rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -581,12 +581,12 @@ public final class KeyValueTable implements
     }
 
     @Override
-    public Map<KeyValueRow, BatchingVisitable<KeyValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<KeyValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+    public Map<RangeScanTestRow, BatchingVisitable<RangeScanTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<RangeScanTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<KeyValueRow, BatchingVisitable<KeyValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        Map<RangeScanTestRow, BatchingVisitable<RangeScanTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-            KeyValueRow row = KeyValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<KeyValueNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<RangeScanTestNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -595,25 +595,55 @@ public final class KeyValueTable implements
     }
 
     @Override
-    public Iterator<Map.Entry<KeyValueRow, KeyValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<KeyValueRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+    public Iterator<Map.Entry<RangeScanTestRow, RangeScanTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<RangeScanTestRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
         return Iterators.transform(results, e -> {
-            KeyValueRow row = KeyValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            KeyValueNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            RangeScanTestNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
             return Maps.immutableEntry(row, colValue);
         });
     }
 
-    public BatchingVisitableView<KeyValueRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+    public BatchingVisitableView<RangeScanTestRowResult> getRange(RangeRequest range) {
+        if (range.getColumnNames().isEmpty()) {
+            range = range.getBuilder().retainColumns(allColumns).build();
+        }
+        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, RangeScanTestRowResult>() {
+            @Override
+            public RangeScanTestRowResult apply(RowResult<byte[]> input) {
+                return RangeScanTestRowResult.of(input);
+            }
+        });
     }
 
-    public BatchingVisitableView<KeyValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
-                new Function<RowResult<byte[]>, KeyValueRowResult>() {
+    public IterableView<BatchingVisitable<RangeScanTestRowResult>> getRanges(Iterable<RangeRequest> ranges) {
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+        return IterableView.of(rangeResults).transform(
+                new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<RangeScanTestRowResult>>() {
             @Override
-            public KeyValueRowResult apply(RowResult<byte[]> input) {
-                return KeyValueRowResult.of(input);
+            public BatchingVisitable<RangeScanTestRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
+                return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, RangeScanTestRowResult>() {
+                    @Override
+                    public RangeScanTestRowResult apply(RowResult<byte[]> row) {
+                        return RangeScanTestRowResult.of(row);
+                    }
+                });
+            }
+        });
+    }
+
+    public void deleteRange(RangeRequest range) {
+        deleteRanges(ImmutableSet.of(range));
+    }
+
+    public void deleteRanges(Iterable<RangeRequest> ranges) {
+        BatchingVisitables.concat(getRanges(ranges))
+                          .transform(RangeScanTestRowResult.getRowNameFun())
+                          .batchAccept(1000, new AbortingVisitor<List<? extends RangeScanTestRow>, RuntimeException>() {
+            @Override
+            public boolean visit(List<? extends RangeScanTestRow> rows) {
+                delete(rows);
+                return true;
             }
         });
     }
@@ -717,5 +747,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "aXUGXbyY3eB7JKmTH2kNfg==";
+    static String __CLASS_HASH = "BTMX0u5VM+o9jfSqcqyWnA==";
 }

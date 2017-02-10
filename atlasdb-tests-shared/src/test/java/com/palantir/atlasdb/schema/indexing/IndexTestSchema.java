@@ -33,7 +33,7 @@ public class IndexTestSchema implements AtlasSchema {
 
     private static Schema generateSchema() {
         Schema schema = new Schema("IndexTest",
-                IndexTest.class.getPackage().getName() + ".generated",
+                IndexTestSchema.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE);
 
         schema.addTableDefinition("data", new TableDefinition() {{
