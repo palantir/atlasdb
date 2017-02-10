@@ -97,6 +97,7 @@ v0.31.0
     *    - |devbreak| |fixed|
          - Devs should regenerate their Schemas when upgrading to get rid of some type problems that are no longer
            accepted in newer Java compilers.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1545>`__) and (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1571>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
