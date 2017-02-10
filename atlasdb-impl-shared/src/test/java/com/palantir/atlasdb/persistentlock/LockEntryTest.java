@@ -49,8 +49,8 @@ public class LockEntryTest {
     private static final byte[] LOCK_BYTES = asUtf8Bytes(LockEntry.LOCK_COLUMN);
 
     private static final LockEntry LOCK_ENTRY = ImmutableLockEntry.builder()
-            .rowName("row")
-            .lockId(LOCK_ID)
+            .lockName("row")
+            .instanceId(LOCK_ID)
             .reason(REASON)
             .build();
     private static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("lockEntryTestTable");
@@ -59,8 +59,8 @@ public class LockEntryTest {
     public void testSerialisation() throws IOException {
         LockEntry deserialisedLockEntry = MAPPER.readValue(MAPPER.writeValueAsString(LOCK_ENTRY), LockEntry.class);
 
-        assertEquals(LOCK_ENTRY.rowName(), deserialisedLockEntry.rowName());
-        assertEquals(LOCK_ENTRY.lockId(), deserialisedLockEntry.lockId());
+        assertEquals(LOCK_ENTRY.lockName(), deserialisedLockEntry.lockName());
+        assertEquals(LOCK_ENTRY.instanceId(), deserialisedLockEntry.instanceId());
         assertEquals(LOCK_ENTRY.reason(), deserialisedLockEntry.reason());
     }
 

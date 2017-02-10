@@ -104,7 +104,7 @@ public class LockStoreTest {
 
     @Test(expected = CheckAndSetException.class)
     public void cannotReleaseLockWhenLockIsOpen() throws Exception {
-        LockEntry otherLockEntry = ImmutableLockEntry.builder().rowName("name").lockId("42").reason("other").build();
+        LockEntry otherLockEntry = ImmutableLockEntry.builder().lockName("name").instanceId("42").reason("bar").build();
         lockStore.releaseLock(otherLockEntry);
     }
 
@@ -112,7 +112,7 @@ public class LockStoreTest {
     public void canNotReleaseNonExistentLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 
-        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("42").reason("other").build();
+        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).instanceId("42").reason("bar").build();
         lockStore.releaseLock(otherLockEntry);
     }
 
@@ -128,7 +128,7 @@ public class LockStoreTest {
     public void canNotReacquireAfterReleasingDifferentLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 
-        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("42").reason("other").build();
+        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).instanceId("42").reason("bar").build();
         try {
             lockStore.releaseLock(otherLockEntry);
         } catch (CheckAndSetException e) {

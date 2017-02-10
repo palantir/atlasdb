@@ -57,12 +57,12 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 public class LockStore {
     private static final Logger log = LoggerFactory.getLogger(LockStore.class);
 
-    private static final String ROW_NAME = "DeletionLock";
+    private static final String DELETION_LOCK_NAME = "DeletionLock";
     private final KeyValueService keyValueService;
 
     public static final LockEntry LOCK_OPEN = ImmutableLockEntry.builder()
-            .rowName(ROW_NAME)
-            .lockId("-1")
+            .lockName(DELETION_LOCK_NAME)
+            .instanceId("-1")
             .reason("Available")
             .build();
 
@@ -113,7 +113,11 @@ public class LockStore {
 
     private LockEntry generateUniqueLockEntry(String reason) {
         String randomLockId = UUID.randomUUID().toString();
-        return ImmutableLockEntry.builder().rowName(ROW_NAME).lockId(randomLockId).reason(reason).build();
+        return ImmutableLockEntry.builder()
+                .lockName(DELETION_LOCK_NAME)
+                .instanceId(randomLockId)
+                .reason(reason)
+                .build();
     }
 
     static class LockStorePopulator {

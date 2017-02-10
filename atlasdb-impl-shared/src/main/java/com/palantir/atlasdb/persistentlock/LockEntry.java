@@ -40,8 +40,8 @@ public abstract class LockEntry {
     @VisibleForTesting
     static final String LOCK_COLUMN = "lock";
 
-    public abstract String rowName();
-    public abstract String lockId();
+    public abstract String lockName();
+    public abstract String instanceId();
     public abstract String reason();
 
     static LockEntry fromRowResult(RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
@@ -62,7 +62,7 @@ public abstract class LockEntry {
     }
 
     public Cell cell() {
-        return Cell.create(asUtf8Bytes(rowName()), asUtf8Bytes(LOCK_COLUMN));
+        return Cell.create(asUtf8Bytes(lockName()), asUtf8Bytes(LOCK_COLUMN));
     }
 
     public byte[] value() {
