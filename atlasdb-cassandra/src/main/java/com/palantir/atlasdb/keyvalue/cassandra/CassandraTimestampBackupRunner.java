@@ -72,68 +72,73 @@ public class CassandraTimestampBackupRunner {
             byte[] currentBound = boundData.bound();
             byte[] currentBackupBound = boundData.backupBound();
 
-            if (CassandraTimestampUtils.isValidTimestampData(currentBackupBound)) {
-                // Backup bound has been updated!
-                Preconditions.checkState(!CassandraTimestampUtils.isValidTimestampData(currentBound),
-                        "We had both backup and active bounds readable! This is unexpected; please contact support.");
-                log.info("[BACKUP] Didn't backup, because there is already a backup bound.");
+            BoundReadability boundReadability = checkReadability(boundData);
+            if (boundReadability == BoundReadability.BACKUP) {
+                log.info("[BACKUP] Didn't backup, because there is already a valid backup.");
                 return PtBytes.toLong(currentBackupBound);
             }
 
-            Preconditions.checkState(currentBound == null || CassandraTimestampUtils.isValidTimestampData(currentBound),
-                    "The timestamp is unreadable, though the backup is also unreadable! Please contact support.");
             byte[] backupValue = MoreObjects.firstNonNull(currentBound,
                     PtBytes.toBytes(CassandraTimestampUtils.INITIAL_VALUE));
+
             Map<String, Pair<byte[], byte[]>> casMap =
                     ImmutableMap.of(
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
                             Pair.create(currentBound, CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray()),
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                             Pair.create(currentBackupBound, backupValue));
-
-            ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(casMap);
-
-            CqlResult casResult = executeQueryUnchecked(client, casQueryBuffer);
-            CassandraTimestampUtils.verifyCompatible(casResult, casMap);
+            executeAndVerifyCas(client, casMap);
             log.info("[BACKUP] Backed up the value {}", currentBackupBound);
             return PtBytes.toLong(backupValue);
         });
     }
 
     /**
-     * Restores a backup of an existing timestamp, if possible. Note that this method will throw if the timestamp
-     * backup is unreadable, *and* the current bound is also unreadable.
+     * Restores a backup of an existing timestamp, if possible.
      *
      * This method assumes that the timestamp table exists.
      */
     public synchronized void restoreFromBackup() {
         clientPool().runWithRetry(client -> {
             BoundData boundData = getCurrentBoundData(client);
-            byte[] currentBound = boundData.bound();
             byte[] currentBackupBound = boundData.backupBound();
 
-            if (CassandraTimestampUtils.isValidTimestampData(currentBound)) {
-                Preconditions.checkState(currentBackupBound == null
-                                || !CassandraTimestampUtils.isValidTimestampData(currentBackupBound),
-                        "We had both backup and active bounds readable! This is unexpected; please contact support.");
-                log.info("[RESTORE] Didn't restore from backup, because the current timestamp is already readable.");
+            BoundReadability boundReadability = checkReadability(boundData);
+            if (boundReadability == BoundReadability.BOUND) {
+                log.info("[RESTORE] Didn't restore, because the current bound is readable.");
                 return null;
             }
 
-            Preconditions.checkState(CassandraTimestampUtils.isValidTimestampData(currentBackupBound),
-                    "The timestamp backup is unreadable, so we cannot restore our backup. Please contact support.");
             Map<String, Pair<byte[], byte[]>> casMap = ImmutableMap.of(
                     CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
                     Pair.create(CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray(), currentBackupBound),
                     CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                     Pair.create(currentBackupBound, PtBytes.EMPTY_BYTE_ARRAY));
-            ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(casMap);
-
-            CqlResult casResult = executeQueryUnchecked(client, casQueryBuffer);
-            CassandraTimestampUtils.verifyCompatible(casResult, casMap);
+            executeAndVerifyCas(client, casMap);
             log.info("[RESTORE] Restored the value {}", currentBackupBound);
             return null;
         });
+    }
+
+    private BoundReadability checkReadability(BoundData boundData) {
+        BoundReadability boundReadability = getReadability(boundData);
+
+        Preconditions.checkState(boundReadability != BoundReadability.BOTH,
+                "We had both backup and active bounds readable! This is unexpected. Please contact support.");
+        Preconditions.checkState(boundReadability != BoundReadability.NEITHER,
+                "We had an unreadable active bound with no backup! This is unexpected. Please contact support.");
+        return boundReadability;
+    }
+
+    private BoundReadability getReadability(BoundData boundData) {
+        boolean boundReadable = boundData.bound() == null
+                || CassandraTimestampUtils.isValidTimestampData(boundData.bound());
+        boolean backupBoundReadable = CassandraTimestampUtils.isValidTimestampData(boundData.backupBound());
+
+        if (boundReadable) {
+            return backupBoundReadable ? BoundReadability.BOTH : BoundReadability.BOUND;
+        }
+        return backupBoundReadable ? BoundReadability.BACKUP : BoundReadability.NEITHER;
     }
 
     private BoundData getCurrentBoundData(Cassandra.Client client) {
@@ -154,6 +159,13 @@ public class CassandraTimestampBackupRunner {
         Preconditions.checkState(
                 cassandraTables.getExisting().contains(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
                 "[BACKUP/RESTORE] Tried to get bound data when the timestamp table didn't exist!");
+    }
+
+    private void executeAndVerifyCas(Cassandra.Client client, Map<String, Pair<byte[], byte[]>> casMap) {
+        ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(casMap);
+
+        CqlResult casResult = executeQueryUnchecked(client, casQueryBuffer);
+        CassandraTimestampUtils.verifyCompatible(casResult, casMap);
     }
 
     private CqlResult executeQueryUnchecked(Cassandra.Client client, ByteBuffer query) {
@@ -181,5 +193,12 @@ public class CassandraTimestampBackupRunner {
 
         @Nullable
         byte[] backupBound();
+    }
+
+    private enum BoundReadability {
+        BOUND,
+        BACKUP,
+        BOTH,
+        NEITHER
     }
 }

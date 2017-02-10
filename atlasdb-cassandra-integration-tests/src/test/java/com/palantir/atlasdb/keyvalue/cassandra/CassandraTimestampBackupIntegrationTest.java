@@ -127,12 +127,13 @@ public class CassandraTimestampBackupIntegrationTest {
     }
 
     @Test
-    public void throwsIfRestoringFromUnavailableBackup() {
-        assertThatThrownBy(backupRunner::restoreFromBackup).isInstanceOf(IllegalStateException.class);
+    public void restoreDoesNothingIfTimestampIsReadable() {
+        backupRunner.restoreFromBackup();
+        assertBoundEquals(INITIAL_VALUE);
     }
 
     @Test
-    public void throwsIfBothBoundsReadable() {
+    public void backupThrowsIfBothBoundsReadable() {
         setupTwoReadableBoundsInKv();
         assertThatThrownBy(backupRunner::backupExistingTimestamp).isInstanceOf(IllegalStateException.class);
     }
