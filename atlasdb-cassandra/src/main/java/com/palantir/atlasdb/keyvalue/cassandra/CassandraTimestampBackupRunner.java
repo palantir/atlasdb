@@ -124,9 +124,10 @@ public class CassandraTimestampBackupRunner {
         BoundReadability boundReadability = getReadability(boundData);
 
         Preconditions.checkState(boundReadability != BoundReadability.BOTH,
-                "We had both backup and active bounds readable! This is unexpected. Please contact support.");
+                "We had both backup and active timestamp bounds readable! This is unexpected. Please contact support.");
         Preconditions.checkState(boundReadability != BoundReadability.NEITHER,
-                "We had an unreadable active bound with no backup! This is unexpected. Please contact support.");
+                "We had an unreadable active timestamp bound with no backup! This is unexpected. Please contact "
+                        + "support.");
         return boundReadability;
     }
 
@@ -158,7 +159,7 @@ public class CassandraTimestampBackupRunner {
         CassandraTables cassandraTables = cassandraKeyValueService.getCassandraTables();
         Preconditions.checkState(
                 cassandraTables.getExisting().contains(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
-                "[BACKUP/RESTORE] Tried to get bound data when the timestamp table didn't exist!");
+                "[BACKUP/RESTORE] Tried to get timestamp bound data when the timestamp table didn't exist!");
     }
 
     private void executeAndVerifyCas(Cassandra.Client client, Map<String, Pair<byte[], byte[]>> casMap) {
