@@ -18,6 +18,7 @@ package com.palantir.atlasdb.persistentlock;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.SortedMap;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
@@ -41,7 +42,7 @@ public abstract class LockEntry {
     static final String LOCK_COLUMN = "lock";
 
     public abstract String lockName();
-    public abstract String instanceId();
+    public abstract UUID instanceId();
     public abstract String reason();
 
     static LockEntry fromRowResult(RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {

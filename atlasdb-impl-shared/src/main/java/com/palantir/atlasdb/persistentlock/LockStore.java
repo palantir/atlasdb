@@ -62,7 +62,7 @@ public class LockStore {
 
     public static final LockEntry LOCK_OPEN = ImmutableLockEntry.builder()
             .lockName(DELETION_LOCK_NAME)
-            .instanceId("-1")
+            .instanceId(UUID.fromString("0-0-0-0-0"))
             .reason("Available")
             .build();
 
@@ -112,7 +112,7 @@ public class LockStore {
     }
 
     private LockEntry generateUniqueLockEntry(String reason) {
-        String randomLockId = UUID.randomUUID().toString();
+        UUID randomLockId = UUID.randomUUID();
         return ImmutableLockEntry.builder()
                 .lockName(DELETION_LOCK_NAME)
                 .instanceId(randomLockId)

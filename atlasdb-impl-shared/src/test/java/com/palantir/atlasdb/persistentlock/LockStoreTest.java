@@ -26,6 +26,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -37,6 +38,8 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 public class LockStoreTest {
     private static final String REASON = "reason";
+    private static final UUID OTHER_ID = UUID.fromString("4-8-15-16-23"/*-42*/);
+    private static final String OTHER_REASON = "bar";
 
     private InMemoryKeyValueService kvs;
     private LockStore lockStore;
@@ -104,7 +107,11 @@ public class LockStoreTest {
 
     @Test(expected = CheckAndSetException.class)
     public void cannotReleaseLockWhenLockIsOpen() throws Exception {
-        LockEntry otherLockEntry = ImmutableLockEntry.builder().lockName("name").instanceId("42").reason("bar").build();
+        LockEntry otherLockEntry = ImmutableLockEntry.builder()
+                .lockName("name")
+                .instanceId(OTHER_ID)
+                .reason(OTHER_REASON)
+                .build();
         lockStore.releaseLock(otherLockEntry);
     }
 
@@ -112,7 +119,11 @@ public class LockStoreTest {
     public void canNotReleaseNonExistentLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 
-        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).instanceId("42").reason("bar").build();
+        LockEntry otherLockEntry = ImmutableLockEntry.builder()
+                .from(lockEntry)
+                .instanceId(OTHER_ID)
+                .reason(OTHER_REASON)
+                .build();
         lockStore.releaseLock(otherLockEntry);
     }
 
@@ -128,7 +139,11 @@ public class LockStoreTest {
     public void canNotReacquireAfterReleasingDifferentLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 
-        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).instanceId("42").reason("bar").build();
+        LockEntry otherLockEntry = ImmutableLockEntry.builder()
+                .from(lockEntry)
+                .instanceId(OTHER_ID)
+                .reason(OTHER_REASON)
+                .build();
         try {
             lockStore.releaseLock(otherLockEntry);
         } catch (CheckAndSetException e) {

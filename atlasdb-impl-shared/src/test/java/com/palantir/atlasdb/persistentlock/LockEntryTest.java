@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.UUID;
 
 import org.junit.Test;
 
@@ -42,7 +43,7 @@ public class LockEntryTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final String ROW = "row";
-    private static final String LOCK_ID = "12345";
+    private static final UUID LOCK_ID = UUID.fromString("1-1-2-3-5");
     private static final String REASON = "test";
 
     private static final byte[] ROW_BYTES = asUtf8Bytes(ROW);
