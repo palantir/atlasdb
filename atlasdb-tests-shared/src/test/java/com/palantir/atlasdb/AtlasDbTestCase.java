@@ -16,6 +16,7 @@
 package com.palantir.atlasdb;
 
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -27,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
@@ -43,6 +45,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.remoting1.tracing.Tracers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -111,8 +114,11 @@ public class AtlasDbTestCase {
     }
 
     protected KeyValueService getBaseKeyValueService() {
-        return NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(
-                new InMemoryKeyValueService(false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true))));
+        ExecutorService executor = Tracers.wrap(PTExecutors.newSingleThreadExecutor(
+                PTExecutors.newNamedThreadFactory(true)));
+        InMemoryKeyValueService inMemoryKvs = new InMemoryKeyValueService(false, executor);
+        KeyValueService namespacedKvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(inMemoryKvs);
+        return TracingKeyValueService.create(namespacedKvs);
     }
 
     @After

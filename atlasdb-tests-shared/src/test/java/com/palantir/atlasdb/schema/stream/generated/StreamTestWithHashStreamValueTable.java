@@ -485,7 +485,7 @@ public final class StreamTestWithHashStreamValueTable implements
     }
 
     @Override
-    public void delete(Iterable<StreamTestWithHashStreamValueRow> rows) {
+    public void delete(Iterable<? extends StreamTestWithHashStreamValueRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
@@ -559,7 +559,7 @@ public final class StreamTestWithHashStreamValueTable implements
     }
 
     @Override
-    public Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestWithHashStreamValueRow> rows) {
+    public Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<? extends StreamTestWithHashStreamValueRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -585,7 +585,7 @@ public final class StreamTestWithHashStreamValueTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<StreamTestWithHashStreamValueRow> rows, ColumnSelection columns) {
+    private Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends StreamTestWithHashStreamValueRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -738,5 +738,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "f9j87h9bCmX57DOhXfUplw==";
+    static String __CLASS_HASH = "tmVPql4CwNB0pk5vnhG2hg==";
 }

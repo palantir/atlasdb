@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - Initial support for tracing Key Value Services integrating with `http-remoting tracing <https://github.com/palantir/http-remoting#tracing>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
+
     *    - |improved|
          - Improved heap usage during heavy DBKVS querying
            (Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
@@ -98,6 +102,7 @@ v0.31.0
     *    - |devbreak| |fixed|
          - Devs should regenerate their Schemas when upgrading to get rid of some type problems that are no longer
            accepted in newer Java compilers.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1545>`__) and (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1571>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
