@@ -17,7 +17,6 @@ package com.palantir.atlasdb.factory;
 
 import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -25,7 +24,6 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
@@ -36,10 +34,10 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.factory.startup.TimelockMigrator;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
@@ -78,6 +76,7 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public final class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
@@ -132,7 +131,8 @@ public final class TransactionManagers {
                 config,
                 env,
                 () -> LockServiceImpl.create(lockServerOptions),
-                atlasFactory::getTimestampService);
+                atlasFactory::getTimestampService,
+                atlasFactory::getTimestampStoreInvalidator);
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = ProfilingKeyValueService.create(kvs);
@@ -217,8 +217,19 @@ public final class TransactionManagers {
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
+        return createLockAndTimestampServices(config, env, lock, time, () -> {
+            throw new UnsupportedOperationException("Tried to migrate, but no invalidator was supplied!");
+        });
+    }
+
+    private static LockAndTimestampServices createLockAndTimestampServices(
+            AtlasDbConfig config,
+            Environment env,
+            Supplier<RemoteLockService> lock,
+            Supplier<TimestampService> time,
+            Supplier<TimestampStoreInvalidator> invalidator) {
         LockAndTimestampServices lockAndTimestampServices =
-                createRawServices(config, env, lock, time);
+                createRawServices(config, env, lock, time, invalidator);
         return withRefreshingLockService(lockAndTimestampServices);
     }
 
@@ -234,14 +245,14 @@ public final class TransactionManagers {
             AtlasDbConfig config,
             Environment env,
             Supplier<RemoteLockService> lock,
-            Supplier<TimestampService> time) {
+            Supplier<TimestampService> time,
+            Supplier<TimestampStoreInvalidator> invalidator) {
         if (config.leader().isPresent()) {
             return createRawLeaderServices(config.leader().get(), env, lock, time);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config);
         } else if (config.timelock().isPresent()) {
-            // Do migration if necessary
-            // Then create the raw services
+            TimelockMigrator.create(config, invalidator.get()).migrate();
             return createNamespacedRawRemoteServices(config.timelock().get());
         } else {
             return createRawEmbeddedServices(env, lock, time);
@@ -249,18 +260,8 @@ public final class TransactionManagers {
     }
 
     private static LockAndTimestampServices createNamespacedRawRemoteServices(TimeLockClientConfig config) {
-        ServerListConfig namespacedServerListConfig = getNamespacedServerListConfig(config);
+        ServerListConfig namespacedServerListConfig = config.toNamespacedServerList();
         return getLockAndTimestampServices(namespacedServerListConfig);
-    }
-
-    @VisibleForTesting
-    static ServerListConfig getNamespacedServerListConfig(TimeLockClientConfig config) {
-        return ImmutableServerListConfig.copyOf(config.serversList())
-                .withServers(config.serversList()
-                        .servers()
-                        .stream()
-                        .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + config.client())
-                        .collect(Collectors.toSet()));
     }
 
     private static LockAndTimestampServices getLockAndTimestampServices(ServerListConfig timelockServerListConfig) {
@@ -331,10 +332,10 @@ public final class TransactionManagers {
         return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass);
     }
 
-    private static class ServiceCreator<T> implements Function<ServerListConfig, T> {
+    public static class ServiceCreator<T> implements Function<ServerListConfig, T> {
         private Class<T> serviceClass;
 
-        ServiceCreator(Class<T> serviceClass) {
+        public ServiceCreator(Class<T> serviceClass) {
             this.serviceClass = serviceClass;
         }
 

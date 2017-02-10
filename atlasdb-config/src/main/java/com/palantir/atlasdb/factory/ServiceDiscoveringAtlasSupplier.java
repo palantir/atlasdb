@@ -86,6 +86,12 @@ public class ServiceDiscoveringAtlasSupplier {
         return timestampService.get();
     }
 
+    public synchronized TimestampStoreInvalidator getTimestampStoreInvalidator() {
+        log.info("[timestamp-store-invalidator] Getting timestamp store invalidator from thread {}.",
+                Thread.currentThread().getName());
+        return timestampStoreInvalidator.get();
+    }
+
     private void handleMultipleTimestampFetch() {
         try {
             String threadDumpFile = saveThreadDumps();

@@ -15,20 +15,11 @@
  */
 package com.palantir.atlasdb.factory.startup;
 
-import java.util.stream.Collectors;
-
-import javax.net.ssl.SSLSocketFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -46,10 +37,7 @@ public class TimelockMigrator {
                 "Timelock Migration should not be done without a timelock server configured!");
         TimeLockClientConfig timelockConfig = config.timelock().get();
 
-        // Create a proxy to the Timelock's Timestamp Management Service
         TimestampManagementService remoteTimestampManagementService = createRemoteManagementService(timelockConfig);
-
-        // Assemble the migrator from the management service and the invalidator
         return new TimelockMigrator(invalidator, remoteTimestampManagementService);
     }
 
@@ -59,33 +47,7 @@ public class TimelockMigrator {
     }
 
     private static TimestampManagementService createRemoteManagementService(TimeLockClientConfig timelockConfig) {
-        ServerListConfig serverListConfig = getNamespacedServerListConfig(timelockConfig);
-        return new ServiceCreator<>(TimestampManagementService.class).apply(serverListConfig);
-    }
-
-    // TODO Figure out where this guy should live.
-    private static class ServiceCreator<T> implements Function<ServerListConfig, T> {
-        private Class<T> serviceClass;
-
-        ServiceCreator(Class<T> serviceClass) {
-            this.serviceClass = serviceClass;
-        }
-
-        @Override
-        public T apply(ServerListConfig input) {
-            Optional<SSLSocketFactory> sslSocketFactory =
-                    TransactionManagers.createSslSocketFactory(input.sslConfiguration());
-            return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, input.servers(), serviceClass);
-        }
-    }
-
-    @VisibleForTesting
-    static ServerListConfig getNamespacedServerListConfig(TimeLockClientConfig config) {
-        return ImmutableServerListConfig.copyOf(config.serversList())
-                .withServers(config.serversList()
-                        .servers()
-                        .stream()
-                        .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + config.client())
-                        .collect(Collectors.toSet()));
+        ServerListConfig serverListConfig = timelockConfig.toNamespacedServerList();
+        return new TransactionManagers.ServiceCreator<>(TimestampManagementService.class).apply(serverListConfig);
     }
 }
