@@ -15,14 +15,18 @@
  */
 package com.palantir.atlasdb.config;
 
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.List;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.base.Optional;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 public class TimeLockClientConfigTest {
     private static final String CLIENT = "testClient";
@@ -31,11 +35,35 @@ public class TimeLockClientConfigTest {
 
     private static final TimeLockClientConfig MULTIPLE_SERVER_CONFIG
             = getTimelockConfigForServers(ImmutableList.of(SERVER_1, SERVER_2));
+    private static final SslConfiguration SSL_CONFIGURATION = mock(SslConfiguration.class);
+    private static final ImmutableServerListConfig SERVERS_LIST = ImmutableServerListConfig.builder()
+            .addServers(SERVER_1, SERVER_2)
+            .sslConfiguration(SSL_CONFIGURATION)
+            .build();
+    private static final TimeLockClientConfig CLIENT_CONFIG = ImmutableTimeLockClientConfig.builder()
+            .client(CLIENT)
+            .serversList(SERVERS_LIST)
+            .build();
 
     @Test
     public void canGetNamespacedConfigsFromTimelockBlock() {
         ServerListConfig namespacedConfig = MULTIPLE_SERVER_CONFIG.toNamespacedServerList();
         assertThat(namespacedConfig.servers(), hasItems(SERVER_1 + "/" + CLIENT, SERVER_2 + "/" + CLIENT));
+    }
+
+    @Test
+    public void preservesSslOnConversionToNamespacedServerListIfPresent() {
+        ServerListConfig namespacedConfig = CLIENT_CONFIG.toNamespacedServerList();
+        assertThat(namespacedConfig.sslConfiguration(), equalTo(Optional.of(SSL_CONFIGURATION)));
+    }
+
+    @Test
+    public void preservesAbsenceOfSslOnConversionToNamespacedServerListIfAbsent() {
+        TimeLockClientConfig config = ImmutableTimeLockClientConfig.copyOf(CLIENT_CONFIG)
+                .withServersList(
+                        ImmutableServerListConfig.copyOf(SERVERS_LIST)
+                        .withSslConfiguration(Optional.absent()));
+        assertThat(config.toNamespacedServerList().sslConfiguration(), equalTo(Optional.absent()));
     }
 
     private static TimeLockClientConfig getTimelockConfigForServers(List<String> servers) {
