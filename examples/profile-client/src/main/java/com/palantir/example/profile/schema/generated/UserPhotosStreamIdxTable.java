@@ -581,7 +581,7 @@ public final class UserPhotosStreamIdxTable implements
     }
 
     @Override
-    public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimap(Iterable<UserPhotosStreamIdxRow> rows) {
+    public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimap(Iterable<? extends UserPhotosStreamIdxRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -607,7 +607,7 @@ public final class UserPhotosStreamIdxTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimapInternal(Iterable<UserPhotosStreamIdxRow> rows, ColumnSelection columns) {
+    private Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimapInternal(Iterable<? extends UserPhotosStreamIdxRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }

@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.cas.generated;
+package com.palantir.atlasdb.table.description.generated;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -87,32 +87,32 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-public final class CheckAndSetTable implements
-        AtlasDbMutablePersistentTable<CheckAndSetTable.CheckAndSetRow,
-                                         CheckAndSetTable.CheckAndSetNamedColumnValue<?>,
-                                         CheckAndSetTable.CheckAndSetRowResult>,
-        AtlasDbNamedMutableTable<CheckAndSetTable.CheckAndSetRow,
-                                    CheckAndSetTable.CheckAndSetNamedColumnValue<?>,
-                                    CheckAndSetTable.CheckAndSetRowResult> {
+public final class TableATable implements
+        AtlasDbMutablePersistentTable<TableATable.TableARow,
+                                         TableATable.TableANamedColumnValue<?>,
+                                         TableATable.TableARowResult>,
+        AtlasDbNamedMutableTable<TableATable.TableARow,
+                                    TableATable.TableANamedColumnValue<?>,
+                                    TableATable.TableARowResult> {
     private final Transaction t;
-    private final List<CheckAndSetTrigger> triggers;
-    private final static String rawTableName = "check_and_set";
+    private final List<TableATrigger> triggers;
+    private final static String rawTableName = "tableA";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(CheckAndSetNamedColumn.values());
+    private final static ColumnSelection allColumns = getColumnSelection(TableANamedColumn.values());
 
-    static CheckAndSetTable of(Transaction t, Namespace namespace) {
-        return new CheckAndSetTable(t, namespace, ImmutableList.<CheckAndSetTrigger>of());
+    static TableATable of(Transaction t, Namespace namespace) {
+        return new TableATable(t, namespace, ImmutableList.<TableATrigger>of());
     }
 
-    static CheckAndSetTable of(Transaction t, Namespace namespace, CheckAndSetTrigger trigger, CheckAndSetTrigger... triggers) {
-        return new CheckAndSetTable(t, namespace, ImmutableList.<CheckAndSetTrigger>builder().add(trigger).add(triggers).build());
+    static TableATable of(Transaction t, Namespace namespace, TableATrigger trigger, TableATrigger... triggers) {
+        return new TableATable(t, namespace, ImmutableList.<TableATrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static CheckAndSetTable of(Transaction t, Namespace namespace, List<CheckAndSetTrigger> triggers) {
-        return new CheckAndSetTable(t, namespace, triggers);
+    static TableATable of(Transaction t, Namespace namespace, List<TableATrigger> triggers) {
+        return new TableATable(t, namespace, triggers);
     }
 
-    private CheckAndSetTable(Transaction t, Namespace namespace, List<CheckAndSetTrigger> triggers) {
+    private TableATable(Transaction t, Namespace namespace, List<TableATrigger> triggers) {
         this.t = t;
         this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
@@ -136,64 +136,64 @@ public final class CheckAndSetTable implements
 
     /**
      * <pre>
-     * CheckAndSetRow {
-     *   {@literal Long id};
+     * TableARow {
+     *   {@literal String component1};
      * }
      * </pre>
      */
-    public static final class CheckAndSetRow implements Persistable, Comparable<CheckAndSetRow> {
-        private final long id;
+    public static final class TableARow implements Persistable, Comparable<TableARow> {
+        private final String component1;
 
-        public static CheckAndSetRow of(long id) {
-            return new CheckAndSetRow(id);
+        public static TableARow of(String component1) {
+            return new TableARow(component1);
         }
 
-        private CheckAndSetRow(long id) {
-            this.id = id;
+        private TableARow(String component1) {
+            this.component1 = component1;
         }
 
-        public long getId() {
-            return id;
+        public String getComponent1() {
+            return component1;
         }
 
-        public static Function<CheckAndSetRow, Long> getIdFun() {
-            return new Function<CheckAndSetRow, Long>() {
+        public static Function<TableARow, String> getComponent1Fun() {
+            return new Function<TableARow, String>() {
                 @Override
-                public Long apply(CheckAndSetRow row) {
-                    return row.id;
+                public String apply(TableARow row) {
+                    return row.component1;
                 }
             };
         }
 
-        public static Function<Long, CheckAndSetRow> fromIdFun() {
-            return new Function<Long, CheckAndSetRow>() {
+        public static Function<String, TableARow> fromComponent1Fun() {
+            return new Function<String, TableARow>() {
                 @Override
-                public CheckAndSetRow apply(Long row) {
-                    return CheckAndSetRow.of(row);
+                public TableARow apply(String row) {
+                    return TableARow.of(row);
                 }
             };
         }
 
         @Override
         public byte[] persistToBytes() {
-            byte[] idBytes = PtBytes.toBytes(Long.MIN_VALUE ^ id);
-            return EncodingUtils.add(idBytes);
+            byte[] component1Bytes = PtBytes.toBytes(component1);
+            return EncodingUtils.add(component1Bytes);
         }
 
-        public static final Hydrator<CheckAndSetRow> BYTES_HYDRATOR = new Hydrator<CheckAndSetRow>() {
+        public static final Hydrator<TableARow> BYTES_HYDRATOR = new Hydrator<TableARow>() {
             @Override
-            public CheckAndSetRow hydrateFromBytes(byte[] __input) {
+            public TableARow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
-                return new CheckAndSetRow(id);
+                String component1 = PtBytes.toString(__input, __index, __input.length-__index);
+                __index += 0;
+                return new TableARow(component1);
             }
         };
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("id", id)
+                .add("component1", component1)
                 .toString();
         }
 
@@ -208,24 +208,24 @@ public final class CheckAndSetTable implements
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            CheckAndSetRow other = (CheckAndSetRow) obj;
-            return Objects.equal(id, other.id);
+            TableARow other = (TableARow) obj;
+            return Objects.equal(component1, other.component1);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(id);
+            return Objects.hashCode(component1);
         }
 
         @Override
-        public int compareTo(CheckAndSetRow o) {
+        public int compareTo(TableARow o) {
             return ComparisonChain.start()
-                .compare(this.id, o.id)
+                .compare(this.component1, o.component1)
                 .result();
         }
     }
 
-    public interface CheckAndSetNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
+    public interface TableANamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
      * <pre>
@@ -234,25 +234,25 @@ public final class CheckAndSetTable implements
      * }
      * </pre>
      */
-    public static final class Value implements CheckAndSetNamedColumnValue<Long> {
+    public static final class Column1 implements TableANamedColumnValue<Long> {
         private final Long value;
 
-        public static Value of(Long value) {
-            return new Value(value);
+        public static Column1 of(Long value) {
+            return new Column1(value);
         }
 
-        private Value(Long value) {
+        private Column1(Long value) {
             this.value = value;
         }
 
         @Override
         public String getColumnName() {
-            return "value";
+            return "column1";
         }
 
         @Override
         public String getShortColumnName() {
-            return "v";
+            return "c";
         }
 
         @Override
@@ -262,20 +262,20 @@ public final class CheckAndSetTable implements
 
         @Override
         public byte[] persistValue() {
-            byte[] bytes = PtBytes.toBytes(Long.MIN_VALUE ^ value);
+            byte[] bytes = EncodingUtils.encodeUnsignedVarLong(value);
             return CompressionUtils.compress(bytes, Compression.NONE);
         }
 
         @Override
         public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("v");
+            return PtBytes.toCachedBytes("c");
         }
 
-        public static final Hydrator<Value> BYTES_HYDRATOR = new Hydrator<Value>() {
+        public static final Hydrator<Column1> BYTES_HYDRATOR = new Hydrator<Column1>() {
             @Override
-            public Value hydrateFromBytes(byte[] bytes) {
+            public Column1 hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));
+                return of(EncodingUtils.decodeUnsignedVarLong(bytes, 0));
             }
         };
 
@@ -287,62 +287,62 @@ public final class CheckAndSetTable implements
         }
     }
 
-    public interface CheckAndSetTrigger {
-        public void putCheckAndSet(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> newRows);
+    public interface TableATrigger {
+        public void putTableA(Multimap<TableARow, ? extends TableANamedColumnValue<?>> newRows);
     }
 
-    public static final class CheckAndSetRowResult implements TypedRowResult {
+    public static final class TableARowResult implements TypedRowResult {
         private final RowResult<byte[]> row;
 
-        public static CheckAndSetRowResult of(RowResult<byte[]> row) {
-            return new CheckAndSetRowResult(row);
+        public static TableARowResult of(RowResult<byte[]> row) {
+            return new TableARowResult(row);
         }
 
-        private CheckAndSetRowResult(RowResult<byte[]> row) {
+        private TableARowResult(RowResult<byte[]> row) {
             this.row = row;
         }
 
         @Override
-        public CheckAndSetRow getRowName() {
-            return CheckAndSetRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
+        public TableARow getRowName() {
+            return TableARow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
         }
 
-        public static Function<CheckAndSetRowResult, CheckAndSetRow> getRowNameFun() {
-            return new Function<CheckAndSetRowResult, CheckAndSetRow>() {
+        public static Function<TableARowResult, TableARow> getRowNameFun() {
+            return new Function<TableARowResult, TableARow>() {
                 @Override
-                public CheckAndSetRow apply(CheckAndSetRowResult rowResult) {
+                public TableARow apply(TableARowResult rowResult) {
                     return rowResult.getRowName();
                 }
             };
         }
 
-        public static Function<RowResult<byte[]>, CheckAndSetRowResult> fromRawRowResultFun() {
-            return new Function<RowResult<byte[]>, CheckAndSetRowResult>() {
+        public static Function<RowResult<byte[]>, TableARowResult> fromRawRowResultFun() {
+            return new Function<RowResult<byte[]>, TableARowResult>() {
                 @Override
-                public CheckAndSetRowResult apply(RowResult<byte[]> rowResult) {
-                    return new CheckAndSetRowResult(rowResult);
+                public TableARowResult apply(RowResult<byte[]> rowResult) {
+                    return new TableARowResult(rowResult);
                 }
             };
         }
 
-        public boolean hasValue() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("v"));
+        public boolean hasColumn1() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("c"));
         }
 
-        public Long getValue() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("v"));
+        public Long getColumn1() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c"));
             if (bytes == null) {
                 return null;
             }
-            Value value = Value.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            Column1 value = Column1.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public static Function<CheckAndSetRowResult, Long> getValueFun() {
-            return new Function<CheckAndSetRowResult, Long>() {
+        public static Function<TableARowResult, Long> getColumn1Fun() {
+            return new Function<TableARowResult, Long>() {
                 @Override
-                public Long apply(CheckAndSetRowResult rowResult) {
-                    return rowResult.getValue();
+                public Long apply(TableARowResult rowResult) {
+                    return rowResult.getColumn1();
                 }
             };
         }
@@ -351,96 +351,96 @@ public final class CheckAndSetTable implements
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("RowName", getRowName())
-                .add("Value", getValue())
+                .add("Column1", getColumn1())
                 .toString();
         }
     }
 
-    public enum CheckAndSetNamedColumn {
-        VALUE {
+    public enum TableANamedColumn {
+        COLUMN1 {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("v");
+                return PtBytes.toCachedBytes("c");
             }
         };
 
         public abstract byte[] getShortName();
 
-        public static Function<CheckAndSetNamedColumn, byte[]> toShortName() {
-            return new Function<CheckAndSetNamedColumn, byte[]>() {
+        public static Function<TableANamedColumn, byte[]> toShortName() {
+            return new Function<TableANamedColumn, byte[]>() {
                 @Override
-                public byte[] apply(CheckAndSetNamedColumn namedColumn) {
+                public byte[] apply(TableANamedColumn namedColumn) {
                     return namedColumn.getShortName();
                 }
             };
         }
     }
 
-    public static ColumnSelection getColumnSelection(Collection<CheckAndSetNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, CheckAndSetNamedColumn.toShortName()));
+    public static ColumnSelection getColumnSelection(Collection<TableANamedColumn> cols) {
+        return ColumnSelection.create(Collections2.transform(cols, TableANamedColumn.toShortName()));
     }
 
-    public static ColumnSelection getColumnSelection(CheckAndSetNamedColumn... cols) {
+    public static ColumnSelection getColumnSelection(TableANamedColumn... cols) {
         return getColumnSelection(Arrays.asList(cols));
     }
 
-    private static final Map<String, Hydrator<? extends CheckAndSetNamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends CheckAndSetNamedColumnValue<?>>>builder()
-                .put("v", Value.BYTES_HYDRATOR)
+    private static final Map<String, Hydrator<? extends TableANamedColumnValue<?>>> shortNameToHydrator =
+            ImmutableMap.<String, Hydrator<? extends TableANamedColumnValue<?>>>builder()
+                .put("c", Column1.BYTES_HYDRATOR)
                 .build();
 
-    public Map<CheckAndSetRow, Long> getValues(Collection<CheckAndSetRow> rows) {
-        Map<Cell, CheckAndSetRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (CheckAndSetRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
+    public Map<TableARow, Long> getColumn1s(Collection<TableARow> rows) {
+        Map<Cell, TableARow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+        for (TableARow row : rows) {
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<CheckAndSetRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<TableARow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Long val = Value.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            Long val = Column1.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public void putValue(CheckAndSetRow row, Long value) {
-        put(ImmutableMultimap.of(row, Value.of(value)));
+    public void putColumn1(TableARow row, Long value) {
+        put(ImmutableMultimap.of(row, Column1.of(value)));
     }
 
-    public void putValue(Map<CheckAndSetRow, Long> map) {
-        Map<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<CheckAndSetRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
+    public void putColumn1(Map<TableARow, Long> map) {
+        Map<TableARow, TableANamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<TableARow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), Column1.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(CheckAndSetRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
+    public void putColumn1UnlessExists(TableARow row, Long value) {
+        putUnlessExists(ImmutableMultimap.of(row, Column1.of(value)));
     }
 
-    public void putValueUnlessExists(Map<CheckAndSetRow, Long> map) {
-        Map<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<CheckAndSetRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
+    public void putColumn1UnlessExists(Map<TableARow, Long> map) {
+        Map<TableARow, TableANamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<TableARow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), Column1.of(e.getValue()));
         }
         putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
-    public void put(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> rows) {
+    public void put(Multimap<TableARow, ? extends TableANamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
         t.put(tableRef, ColumnValues.toCellValues(rows));
-        for (CheckAndSetTrigger trigger : triggers) {
-            trigger.putCheckAndSet(rows);
+        for (TableATrigger trigger : triggers) {
+            trigger.putTableA(rows);
         }
     }
 
     @Override
-    public void putUnlessExists(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> rows) {
-        Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> entry : rows.entries()) {
+    public void putUnlessExists(Multimap<TableARow, ? extends TableANamedColumnValue<?>> rows) {
+        Multimap<TableARow, TableANamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<TableARow, TableANamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<TableARow, ? extends TableANamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
             }
@@ -448,69 +448,69 @@ public final class CheckAndSetTable implements
         put(toPut);
     }
 
-    public void deleteValue(CheckAndSetRow row) {
-        deleteValue(ImmutableSet.of(row));
+    public void deleteColumn1(TableARow row) {
+        deleteColumn1(ImmutableSet.of(row));
     }
 
-    public void deleteValue(Iterable<CheckAndSetRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("v");
+    public void deleteColumn1(Iterable<TableARow> rows) {
+        byte[] col = PtBytes.toCachedBytes("c");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
     @Override
-    public void delete(CheckAndSetRow row) {
+    public void delete(TableARow row) {
         delete(ImmutableSet.of(row));
     }
 
     @Override
-    public void delete(Iterable<? extends CheckAndSetRow> rows) {
+    public void delete(Iterable<? extends TableARow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c")));
         t.delete(tableRef, cells);
     }
 
-    public Optional<CheckAndSetRowResult> getRow(CheckAndSetRow row) {
+    public Optional<TableARowResult> getRow(TableARow row) {
         return getRow(row, allColumns);
     }
 
-    public Optional<CheckAndSetRowResult> getRow(CheckAndSetRow row, ColumnSelection columns) {
+    public Optional<TableARowResult> getRow(TableARow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
-            return Optional.of(CheckAndSetRowResult.of(rowResult));
+            return Optional.of(TableARowResult.of(rowResult));
         }
     }
 
     @Override
-    public List<CheckAndSetRowResult> getRows(Iterable<CheckAndSetRow> rows) {
+    public List<TableARowResult> getRows(Iterable<TableARow> rows) {
         return getRows(rows, allColumns);
     }
 
     @Override
-    public List<CheckAndSetRowResult> getRows(Iterable<CheckAndSetRow> rows, ColumnSelection columns) {
+    public List<TableARowResult> getRows(Iterable<TableARow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        List<CheckAndSetRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
+        List<TableARowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
-            rowResults.add(CheckAndSetRowResult.of(row));
+            rowResults.add(TableARowResult.of(row));
         }
         return rowResults;
     }
 
     @Override
-    public List<CheckAndSetRowResult> getAsyncRows(Iterable<CheckAndSetRow> rows, ExecutorService exec) {
+    public List<TableARowResult> getAsyncRows(Iterable<TableARow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
-    public List<CheckAndSetRowResult> getAsyncRows(final Iterable<CheckAndSetRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<CheckAndSetRowResult>> c =
-                new Callable<List<CheckAndSetRowResult>>() {
+    public List<TableARowResult> getAsyncRows(final Iterable<TableARow> rows, final ColumnSelection columns, ExecutorService exec) {
+        Callable<List<TableARowResult>> c =
+                new Callable<List<TableARowResult>>() {
             @Override
-            public List<CheckAndSetRowResult> call() {
+            public List<TableARowResult> call() {
                 return getRows(rows, columns);
             }
         };
@@ -518,18 +518,18 @@ public final class CheckAndSetTable implements
     }
 
     @Override
-    public List<CheckAndSetNamedColumnValue<?>> getRowColumns(CheckAndSetRow row) {
+    public List<TableANamedColumnValue<?>> getRowColumns(TableARow row) {
         return getRowColumns(row, allColumns);
     }
 
     @Override
-    public List<CheckAndSetNamedColumnValue<?>> getRowColumns(CheckAndSetRow row, ColumnSelection columns) {
+    public List<TableANamedColumnValue<?>> getRowColumns(TableARow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<CheckAndSetNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<TableANamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -538,41 +538,41 @@ public final class CheckAndSetTable implements
     }
 
     @Override
-    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimap(Iterable<? extends CheckAndSetRow> rows) {
+    public Multimap<TableARow, TableANamedColumnValue<?>> getRowsMultimap(Iterable<? extends TableARow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
-    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimap(Iterable<CheckAndSetRow> rows, ColumnSelection columns) {
+    public Multimap<TableARow, TableANamedColumnValue<?>> getRowsMultimap(Iterable<TableARow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
     @Override
-    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<CheckAndSetRow> rows, ExecutorService exec) {
+    public Multimap<TableARow, TableANamedColumnValue<?>> getAsyncRowsMultimap(Iterable<TableARow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
-    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<CheckAndSetRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>>> c =
-                new Callable<Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>>>() {
+    public Multimap<TableARow, TableANamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<TableARow> rows, final ColumnSelection columns, ExecutorService exec) {
+        Callable<Multimap<TableARow, TableANamedColumnValue<?>>> c =
+                new Callable<Multimap<TableARow, TableANamedColumnValue<?>>>() {
             @Override
-            public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> call() {
+            public Multimap<TableARow, TableANamedColumnValue<?>> call() {
                 return getRowsMultimapInternal(rows, columns);
             }
         };
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends CheckAndSetRow> rows, ColumnSelection columns) {
+    private Multimap<TableARow, TableANamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends TableARow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> rowMap = HashMultimap.create();
+    private static Multimap<TableARow, TableANamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+        Multimap<TableARow, TableANamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
-            CheckAndSetRow row = CheckAndSetRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+            TableARow row = TableARow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
                 rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -581,12 +581,12 @@ public final class CheckAndSetTable implements
     }
 
     @Override
-    public Map<CheckAndSetRow, BatchingVisitable<CheckAndSetNamedColumnValue<?>>> getRowsColumnRange(Iterable<CheckAndSetRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+    public Map<TableARow, BatchingVisitable<TableANamedColumnValue<?>>> getRowsColumnRange(Iterable<TableARow> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<CheckAndSetRow, BatchingVisitable<CheckAndSetNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        Map<TableARow, BatchingVisitable<TableANamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-            CheckAndSetRow row = CheckAndSetRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<CheckAndSetNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            TableARow row = TableARow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<TableANamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -595,25 +595,55 @@ public final class CheckAndSetTable implements
     }
 
     @Override
-    public Iterator<Map.Entry<CheckAndSetRow, CheckAndSetNamedColumnValue<?>>> getRowsColumnRange(Iterable<CheckAndSetRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+    public Iterator<Map.Entry<TableARow, TableANamedColumnValue<?>>> getRowsColumnRange(Iterable<TableARow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
         return Iterators.transform(results, e -> {
-            CheckAndSetRow row = CheckAndSetRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            CheckAndSetNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            TableARow row = TableARow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            TableANamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
             return Maps.immutableEntry(row, colValue);
         });
     }
 
-    public BatchingVisitableView<CheckAndSetRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+    public BatchingVisitableView<TableARowResult> getRange(RangeRequest range) {
+        if (range.getColumnNames().isEmpty()) {
+            range = range.getBuilder().retainColumns(allColumns).build();
+        }
+        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, TableARowResult>() {
+            @Override
+            public TableARowResult apply(RowResult<byte[]> input) {
+                return TableARowResult.of(input);
+            }
+        });
     }
 
-    public BatchingVisitableView<CheckAndSetRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
-                new Function<RowResult<byte[]>, CheckAndSetRowResult>() {
+    public IterableView<BatchingVisitable<TableARowResult>> getRanges(Iterable<RangeRequest> ranges) {
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+        return IterableView.of(rangeResults).transform(
+                new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<TableARowResult>>() {
             @Override
-            public CheckAndSetRowResult apply(RowResult<byte[]> input) {
-                return CheckAndSetRowResult.of(input);
+            public BatchingVisitable<TableARowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
+                return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, TableARowResult>() {
+                    @Override
+                    public TableARowResult apply(RowResult<byte[]> row) {
+                        return TableARowResult.of(row);
+                    }
+                });
+            }
+        });
+    }
+
+    public void deleteRange(RangeRequest range) {
+        deleteRanges(ImmutableSet.of(range));
+    }
+
+    public void deleteRanges(Iterable<RangeRequest> ranges) {
+        BatchingVisitables.concat(getRanges(ranges))
+                          .transform(TableARowResult.getRowNameFun())
+                          .batchAccept(1000, new AbortingVisitor<List<? extends TableARow>, RuntimeException>() {
+            @Override
+            public boolean visit(List<? extends TableARow> rows) {
+                delete(rows);
+                return true;
             }
         });
     }
@@ -717,5 +747,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vRzK/r2VXST+puDjpkcKPA==";
+    static String __CLASS_HASH = "wG86qhmr/JfjLsM4x9piyg==";
 }

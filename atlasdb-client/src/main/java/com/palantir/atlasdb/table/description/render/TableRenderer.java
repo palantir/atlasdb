@@ -936,7 +936,7 @@ public class TableRenderer {
             } line("}");
             line();
             line("@Override");
-            line("public void delete(Iterable<", Row, "> rows) {"); {
+            line("public void delete(Iterable<? extends ", Row, "> rows) {"); {
 
                 if (!cellReferencingIndices.isEmpty()) {
                     line("Multimap<", Row, ", ", ColumnValue, "> result = getRowsMultimap(rows);");
@@ -1132,7 +1132,7 @@ public class TableRenderer {
 
         private void renderGetRowsMultimap(boolean isDynamic) {
             line("@Override");
-            line("public Multimap<", Row, ", ", ColumnValue, "> getRowsMultimap(Iterable<", Row, "> rows) {"); {
+            line("public Multimap<", Row, ", ", ColumnValue, "> getRowsMultimap(Iterable<? extends ", Row, "> rows) {"); {
                 line("return getRowsMultimapInternal(rows, allColumns);");
             } line("}");
             line();
@@ -1158,7 +1158,7 @@ public class TableRenderer {
                 line("return AsyncProxy.create(exec.submit(c), Multimap.class);");
             } line("}");
             line();
-            line("private Multimap<", Row, ", ", ColumnValue, "> getRowsMultimapInternal(Iterable<", Row, "> rows, ColumnSelection columns) {"); {
+            line("private Multimap<", Row, ", ", ColumnValue, "> getRowsMultimapInternal(Iterable<? extends ", Row, "> rows, ColumnSelection columns) {"); {
                 line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);");
                 line("return getRowMapFromRowResults(results.values());");
             } line("}");
