@@ -72,7 +72,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     public static TimestampBoundStore create(CassandraKeyValueService kvs) {
         kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
-        return new CassandraTimestampBoundStore(kvs.clientPool);
+        return new CassandraTimestampBoundStore(kvs.getClientPool());
     }
 
     private CassandraTimestampBoundStore(CassandraClientPool clientPool) {

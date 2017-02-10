@@ -179,7 +179,7 @@ public class CassandraTimestampBackupRunner {
     }
 
     private CassandraClientPool clientPool() {
-        return cassandraKeyValueService.clientPool;
+        return cassandraKeyValueService.getClientPool();
     }
 
     private TracingQueryRunner queryRunner() {
