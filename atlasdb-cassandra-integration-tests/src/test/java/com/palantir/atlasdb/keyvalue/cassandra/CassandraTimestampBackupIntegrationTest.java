@@ -208,6 +208,18 @@ public class CassandraTimestampBackupIntegrationTest {
         assertThat(timestampBoundStore.getUpperLimit()).isEqualTo(TIMESTAMP_3);
     }
 
+    @Test
+    public void backupThrowsIfTimestampTableDoesNotExist() {
+        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        assertThatThrownBy(backupRunner::backupExistingTimestamp).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void restoreThrowsIfTimestampTableDoesNotExist() {
+        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        assertThatThrownBy(backupRunner::restoreFromBackup).isInstanceOf(IllegalStateException.class);
+    }
+
     private void assertBoundEquals(long timestampBound) {
         assertThat(timestampBoundStore.getUpperLimit()).isEqualTo(timestampBound);
     }

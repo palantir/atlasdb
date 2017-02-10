@@ -2162,6 +2162,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return queryRunner;
     }
 
+    public CassandraTables getCassandraTables() {
+        return cassandraTables;
+    }
+
     /**
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      */
