@@ -28,6 +28,8 @@ import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -48,6 +50,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.util.Pair;
 
 public final class CassandraTimestampUtils {
+    private static final Logger log = LoggerFactory.getLogger(CassandraTimestampUtils.class);
+
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
             NameMetadataDescription.create(ImmutableList.of(
                     new NameComponentDescription("timestamp_name", ValueType.STRING))),
@@ -133,6 +137,12 @@ public final class CassandraTimestampUtils {
                 throw new IllegalStateException("[BACKUP/RESTORE] Observed incongruent state of the world; the"
                         + " following incongruencies were observed: " + incongruencies);
             }
+            /*
+             * If there are no incongruencies, then the state of the world is what we wanted it to be - possibly
+             * because we were upgrading and this call was made in parallel. Since the DB is in the desired state,
+             * we're continuing here.
+             */
+            log.debug("[BACKUP/RESTORE] CAS failed, but the DB state is as desired - continuing.");
         }
     }
 
