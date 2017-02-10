@@ -30,6 +30,8 @@ public class SQLStringTest {
                 "insert foo into bar ; ",
                 "insert foo into bar;",
                 "insert  foo into bar;   ",
+                "insert  foo into bar; ;;  ",
+                "insert  foo into bar;\n;;  ",
                 "/* UnregisteredSQLString */ insert foo into bar;",
                 "  /* UnregisteredSQLString */insert foo into bar",
                 "  /* UnregisteredSQLString */insert foo into bar ");
@@ -43,18 +45,27 @@ public class SQLStringTest {
         List<String> testBatch = ImmutableList.of(
                 "/* UnregisteredSQLString */ insert foo into bar; /* UnregisteredSQLString */insert foo into bar;",
                 "insert foo into bar; /* UnregisteredSQLString */ insert foo into bar");
-        String canconicalBatch = "insert foo into bar; insert foo into bar";
+        String canonicalBatch = "insert foo into bar; insert foo into bar";
 
-        testBatch.forEach(sql -> assertEquals(canconicalBatch, SQLString.canonicalizeString(sql)));
+        testBatch.forEach(sql -> assertEquals(canonicalBatch, SQLString.canonicalizeString(sql)));
     }
 
     @Test
-    public void testCanonicalizeStringNoSpaces() {
+    public void testCanonicalizeStringAndRemoveWhitespaceEntirely() {
         List<String> testBatch = ImmutableList.of(
                 "/* UnregisteredSQLString */ insert foo into bar; /* UnregisteredSQLString */insert foo into bar;",
                 "insert foo into bar; /* UnregisteredSQLString */ insert foo into bar");
-        String canconicalBatch = "insertfoointobar;insertfoointobar";
+        String canonicalBatch = "insertfoointobar;insertfoointobar";
 
-        testBatch.forEach(sql -> assertEquals(canconicalBatch, SQLString.canonicalizeStringAndRemoveWhitespaceEntirely(sql)));
+        testBatch.forEach(sql -> assertEquals(canonicalBatch, SQLString.canonicalizeStringAndRemoveWhitespaceEntirely(sql)));
+    }
+
+    @Test
+    public void testCanonicalizeBlanks() throws Exception {
+        List<String> testBatch = ImmutableList.of("",
+                " ",
+                " ;; ; ");
+        testBatch.forEach(sql -> assertEquals("", SQLString.canonicalizeString(sql)));
+
     }
 }

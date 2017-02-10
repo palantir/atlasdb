@@ -15,7 +15,6 @@
  */
 package com.palantir.nexus.db.sql;
 
-
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +30,7 @@ import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.commons.lang3.Validate;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.palantir.common.exception.PalantirRuntimeException;
@@ -240,12 +240,15 @@ public class SQLString extends BasicSQLString {
             registrationState = "UnregisteredSQLString"; //$NON-NLS-1$
         }
         String dbTypeString = ""; //$NON-NLS-1$
-        if(dbType != null)
-         {
+        if (dbType != null) {
             dbTypeString = " dbType: " + dbType; //$NON-NLS-1$
         }
-        String fromDBString = ""; //$NON-NLS-1$
-        return "/* " + registrationState + dbTypeString + fromDBString + " */ "; //$NON-NLS-1$ //$NON-NLS-2$
+        return "/* " + registrationState + dbTypeString + " */ "; //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    @VisibleForTesting
+    static String canonicalizeStringAndRemoveWhitespaceEntirely(String sql) {
+        return canonicalizeString(sql, true);
     }
 
     /**
@@ -254,10 +257,6 @@ public class SQLString extends BasicSQLString {
      */
     public static String canonicalizeString(String sql) {
         return canonicalizeString(sql, false);
-    }
-
-    static String canonicalizeStringAndRemoveWhitespaceEntirely(String sql) {
-        return canonicalizeString(sql, true);
     }
 
     private static String canonicalizeString(String original, boolean removeAllWhitespaceEntirely) {
@@ -271,8 +270,10 @@ public class SQLString extends BasicSQLString {
             if (originalIdx == firstUnregisteredIdx) {
                 originalIdx += UNREGISTERED_SQL_COMMENT.length();
                 firstUnregisteredIdx = original.indexOf(UNREGISTERED_SQL_COMMENT, originalIdx);
-            } else if (originalChar == ' ' && (cleanedIdx == 0 || cleanedString.charAt(cleanedIdx - 1) == ' ')
-                    || (originalChar == ' ' && removeAllWhitespaceEntirely)) {
+            } else if ((Character.isWhitespace(originalChar))
+                    && ((cleanedIdx == 0)
+                    || (Character.isWhitespace(cleanedString.charAt(cleanedIdx - 1)))
+                    || removeAllWhitespaceEntirely)) {
                 ++originalIdx;
             } else {
                 cleanedString.setCharAt(cleanedIdx, originalChar);
@@ -281,13 +282,13 @@ public class SQLString extends BasicSQLString {
             }
         }
 
-        if (cleanedString.charAt(cleanedIdx - 1) == ' ') {
+        while (cleanedIdx > 0 && Character.isWhitespace(cleanedString.charAt(cleanedIdx - 1))) {
             --cleanedIdx;
         }
 
-        if (cleanedString.charAt(cleanedIdx - 1) == ';') {
+        while (cleanedIdx > 0 && cleanedString.charAt(cleanedIdx - 1) == ';') {
             --cleanedIdx;
-            if (cleanedString.charAt(cleanedIdx - 1) == ' ') {
+            if (cleanedIdx > 0 && Character.isWhitespace(cleanedString.charAt(cleanedIdx - 1))) {
                 --cleanedIdx;
             }
         }
