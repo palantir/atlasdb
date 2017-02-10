@@ -126,6 +126,13 @@ public class CassandraTimestampUtilsTest {
     }
 
     @Test
+    public void checkAndSetThrowsIfTryingToSetToNull() {
+        assertThatThrownBy(() -> CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
+                ImmutableMap.of(COLUMN_NAME_1, Pair.create(VALUE_1, null))))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
     public void appliedResultIsCompatible() {
         CqlResult mockResult = createMockCqlResult(
                 ImmutableList.of(createMockCqlRow(buildAppliedColumnList())));
