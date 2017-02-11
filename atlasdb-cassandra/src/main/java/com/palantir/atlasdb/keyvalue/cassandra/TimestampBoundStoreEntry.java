@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.Optional;
 import java.util.UUID;
-
-import javax.annotation.Nullable;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Column;
@@ -30,17 +29,19 @@ import com.palantir.atlasdb.table.description.ValueType;
 
 @Value.Immutable
 abstract class TimestampBoundStoreEntry {
-    @Nullable abstract UUID id();
-    @Nullable abstract Long timestamp();
+    abstract Optional<UUID> id();
+    abstract Optional<Long> timestamp();
 
     private static final int SIZE_OF_ID_IN_BYTES = ValueType.UUID.sizeOf(null);
     private static final int SIZE_WITHOUT_ID_IN_BYTES = Long.BYTES;
     private static final int SIZE_WITH_ID_IN_BYTES = SIZE_OF_ID_IN_BYTES + SIZE_WITHOUT_ID_IN_BYTES;
+    private static final long INITIAL_VALUE = 10000L;
 
-    private static TimestampBoundStoreEntry create(Long timestamp, UUID id) {
+
+    static TimestampBoundStoreEntry create(Long timestamp, UUID id) {
         return ImmutableTimestampBoundStoreEntry.builder()
-                .id(id)
-                .timestamp(timestamp)
+                .id(Optional.ofNullable(id))
+                .timestamp(Optional.ofNullable(timestamp))
                 .build();
     }
 
@@ -55,18 +56,12 @@ abstract class TimestampBoundStoreEntry {
                 + SIZE_WITHOUT_ID_IN_BYTES + " bytes, but has " + values.length + "!");
     }
 
-    static TimestampBoundStoreEntry createFromColumn(Column column) {
-        if (column.getValue() == null) {
-            return create(null, null);
-        }
-        return createFromBytes(column.getValue());
+    static TimestampBoundStoreEntry createFromColumn(Optional<Column> column) {
+        return column.map(Column::getValue).map(TimestampBoundStoreEntry::createFromBytes).orElse(create(null, null));
     }
 
     static TimestampBoundStoreEntry createFromCasResult(CASResult result) {
-        if (result.getCurrent_values().isEmpty()) {
-            return create(null, null);
-        }
-        return createFromColumn(Iterables.getOnlyElement(result.getCurrent_values()));
+        return createFromColumn(Optional.ofNullable(Iterables.getOnlyElement(result.getCurrent_values(), null)));
     }
 
     static byte[] getByteValueForIdAndBound(UUID id, Long ts) {
@@ -74,26 +69,24 @@ abstract class TimestampBoundStoreEntry {
     }
 
     byte[] getByteValue() {
-        if (timestamp() == null) {
-            return null;
-        } else if (id() == null) {
-            return PtBytes.toBytes(timestamp());
-        }
-        return ArrayUtils.addAll(PtBytes.toBytes(timestamp()), ValueType.UUID.convertFromJava(id()));
+        return ArrayUtils.addAll(timestamp().map(PtBytes::toBytes).orElse(null),
+                id().map(ValueType.UUID::convertFromJava).orElse(null));
+    }
+
+    boolean idMatches(UUID otherId) {
+        return id().map(otherId::equals).orElse(false);
+    }
+
+    long getTimestamp() {
+        return timestamp().orElseGet(() -> INITIAL_VALUE);
     }
 
     String getTimestampAsString() {
-        if (timestamp() == null) {
-            return "none";
-        }
-        return Long.toString(timestamp());
+        return timestamp().map(ts -> Long.toString(ts)).orElse("none");
     }
 
     String getIdAsString() {
-        if (id() == null) {
-            return "none";
-        }
-        return id().toString();
+        return id().map(UUID::toString).orElse("none");
     }
 }
 
