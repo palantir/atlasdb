@@ -42,17 +42,11 @@ develop
     *    - Type
          - Change
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     *    - |fixed| |improved|
          - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `ticket <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
 
            This fix also enables better detection of legitimate occurrences of ``MultipleRunningTimestampServicesError``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1515>`__)
-=======
-=======
-    *    -
-         -
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -74,12 +68,10 @@ v0.31.0
            Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.          
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
 
->>>>>>> develop
     *    - |devbreak|
          - Removed the unused ``TieredKeyValueService`` which offered the ability to spread tables across multiple KVSs that exist in a stacked hierarchy (primary & secondary).
            If you require this KVS please file a ticket to have it reinstated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1553>`__)
->>>>>>> origin/jkong/cass-ts-store
 
     *    - |devbreak|
          - Fast forwarding a persistent timestamp service to ``Long.MIN_VALUE`` will now throw an exception, whereas previously it would be a no-op.
