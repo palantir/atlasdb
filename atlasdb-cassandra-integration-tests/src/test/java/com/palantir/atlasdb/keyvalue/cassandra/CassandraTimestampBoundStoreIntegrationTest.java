@@ -137,7 +137,7 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     public void getWithSmallerThanExpectedTimestampThrows() {
         long limit = store.getUpperLimit();
         insertTimestampWithCorrectId(limit - 1);
-        assertThatGetUpperLimitThrows(IllegalStateException.class);
+        assertThatGetUpperLimitThrows(IllegalArgumentException.class);
     }
 
     @Test
@@ -180,7 +180,7 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     public void storeLowerTimestampThanUnexpectedInDbThrows() {
         long limit = store.getUpperLimit();
         insertTimestampWithCorrectId(limit + GREATER_OFFSET);
-        assertThatStoreUpperLimitThrows(limit + OFFSET, IllegalStateException.class);
+        assertThatStoreUpperLimitThrows(limit + OFFSET, IllegalArgumentException.class);
     }
 
     @Test
@@ -296,13 +296,13 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     private long getBoundFromDb() {
         Value value = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TIMESTAMP_BOUND_CELL, Long.MAX_VALUE))
                 .get(TIMESTAMP_BOUND_CELL);
-        return TimestampBoundStoreEntry.createFromBytes(value.getContents()).timestamp();
+        return TimestampBoundStoreEntry.createFromBytes(value.getContents()).timestamp().get();
     }
 
     private UUID getIdFromDb() {
         Value value = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TIMESTAMP_BOUND_CELL, Long.MAX_VALUE))
                 .get(TIMESTAMP_BOUND_CELL);
-        return TimestampBoundStoreEntry.createFromBytes(value.getContents()).id();
+        return TimestampBoundStoreEntry.createFromBytes(value.getContents()).id().get();
     }
 
     private UUID getStoreId(TimestampBoundStore store) {
