@@ -145,7 +145,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected final CassandraKeyValueServiceConfigManager configManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
-    protected final CassandraClientPool clientPool;
+    private final CassandraClientPool clientPool;
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
     private final HiddenTables hiddenTables;
