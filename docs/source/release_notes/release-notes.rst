@@ -42,6 +42,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed| |improved|
+         - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `ticket <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
+
+           This fix also enables better detection of legitimate occurrences of ``MultipleRunningTimestampServicesError``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1515>`__)
+
     *    - |new|
          - Initial support for tracing Key Value Services integrating with `http-remoting tracing <https://github.com/palantir/http-remoting#tracing>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
