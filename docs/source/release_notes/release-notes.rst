@@ -42,11 +42,18 @@ develop
     *    - Type
          - Change
 
+<<<<<<< HEAD
     *    - |fixed| |improved|
          - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `ticket <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
 
            This fix also enables better detection of legitimate occurrences of ``MultipleRunningTimestampServicesError``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1515>`__)
+=======
+    *    - |devbreak|
+         - Removed the unused `TieredKeyValueService` which offered the ability to spread tables across multiple KVSs that
+           exist in a stacked hierarchy (primary & secondary).  If you require this KVS please file a ticket to have it reinstated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1553>`__)
+>>>>>>> origin/jkong/cass-ts-store
 
     *    - |devbreak| |improved|
          - Fast forwarding a persistent timestamp service to ``Long.MIN_VALUE`` will now throw an exception; previously
@@ -54,6 +61,17 @@ develop
            supply the ``currentTimestamp`` query parameter, we would previously treat this as a fast-forward to zero
            and silently accept the request (returning 204) even though this is highly unlikely to be the user's
            intention, while we now fail loudly (returning a 400).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1538>`__)
+
+    *    - |fixed|
+         - Oracle query now uses the right hints when generating the query plan. This will improve performance for OracleKVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1549>`__)
+
+    *    - |userbreak|
+         - Oracle table names can now have a maximum length of 27 characters instead of the previous limit of 30. This is to
+           ensure consistency in naming the primary key constraint which adds a prefix of ``pk_`` to the table name. This will
+           break any installation of Oracle with the ``useTableMapping`` flag set to ``true``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1552>`__)
 
     *    - |fixed|
          - Better support Oracle 12c batch responses

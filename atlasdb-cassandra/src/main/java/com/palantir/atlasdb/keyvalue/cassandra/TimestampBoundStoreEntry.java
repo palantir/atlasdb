@@ -89,4 +89,3 @@ abstract class TimestampBoundStoreEntry {
         return id().map(UUID::toString).orElse("none");
     }
 }
-

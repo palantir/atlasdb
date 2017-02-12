@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
@@ -133,11 +134,12 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
 
         String prefixedTableName = prefixedTableNames.get(tableRef);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + prefixedTableName + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + prefixedTableName + ") */ "
+                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(prefixedTableName) + ") */ "
                 + " FROM " + prefixedTableName + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
                 + "  AND m.ts = ?",
                 args);
     }
+
 }
