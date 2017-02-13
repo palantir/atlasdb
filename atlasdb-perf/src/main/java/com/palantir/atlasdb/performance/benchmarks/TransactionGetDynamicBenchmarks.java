@@ -47,7 +47,7 @@ import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 public class TransactionGetDynamicBenchmarks {
 
     @Benchmark
-    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 25, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 180, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsExplicitly(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
