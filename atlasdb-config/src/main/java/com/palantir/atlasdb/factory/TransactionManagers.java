@@ -131,13 +131,21 @@ public final class TransactionManagers {
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
 
+        KeyValueService rawKvs = atlasFactory.getKeyValueService();
+
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
                 env,
                 () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService);
 
-        KeyValueService kvs = getAndInitializeKeyValueService(atlasFactory, lockAndTimestampServices);
+        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
+        kvs = ProfilingKeyValueService.create(kvs);
+        kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
+        kvs = TracingKeyValueService.create(kvs);
+        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
+
+        TransactionTables.createTables(kvs);
 
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 
@@ -218,19 +226,6 @@ public final class TransactionManagers {
         env.register(pls);
         env.register(new CheckAndSetExceptionMapper());
         return pls;
-    }
-
-    private static KeyValueService getAndInitializeKeyValueService(ServiceDiscoveringAtlasSupplier atlasFactory,
-            LockAndTimestampServices lockAndTimestampServices) {
-        KeyValueService rawKvs = atlasFactory.getKeyValueService();
-        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
-        kvs = ProfilingKeyValueService.create(kvs);
-        kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
-        kvs = TracingKeyValueService.create(kvs);
-        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
-
-        TransactionTables.createTables(kvs);
-        return kvs;
     }
 
     private static Supplier<Long> getImmutableTsSupplier(final TransactionManager txManager) {
