@@ -29,12 +29,13 @@ public class CassandraTimestampStoreInvalidator implements TimestampStoreInvalid
     @Idempotent
     public long backupAndInvalidate() {
         backupRunner.createTimestampTable();
-        return backupRunner.backupExistingTimestamp(CassandraTimestampUtils.INITIAL_VALUE);
+        return backupRunner.backupExistingTimestamp();
     }
 
     @Override
     @Idempotent
     public void revalidateFromBackup() {
+        backupRunner.createTimestampTable();
         backupRunner.restoreFromBackup();
     }
 }
