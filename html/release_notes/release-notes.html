@@ -170,12 +170,22 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Sweep now takes out a lock to ensure data is not corrupted during online backups.
+Users performing <a class="reference external" href="https://palantir.github.io/atlasdb/html/cluster_management/backup-restore.html">live backups</a> should grab this lock before performing a backup, and release the lock once the backup is complete.
+This enables the backup to safely run alongside either the <a class="reference external" href="https://palantir.github.io/atlasdb/html/cluster_management/sweep/background-sweep.html">background sweeper</a> or the <a class="reference external" href="https://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-cli.html">sweep CLI</a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1509">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Initial support for tracing Key Value Services integrating with <a class="reference external" href="https://github.com/palantir/http-remoting#tracing">http-remoting tracing</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1385">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Improved heap usage during heavy DBKVS querying
 (Pull Request &lt;<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1560">https://github.com/palantir/atlasdb/pull/1560</a>&gt;`__)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1578">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>

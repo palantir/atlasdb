@@ -159,6 +159,11 @@
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
 <p>Backup and restore for AtlasDB are non-trivial operations that are not satisfied by simply backing up and restoring the underyling key value store you are using to store your data in.  This page describes how to take advantage of built in AtlasDB utilities, namely the Atlas CLI, in order to perform a live consistent point in time backup and subsequent restore of that backup from total data loss.</p>
 </div>
+<div class="section" id="the-backup-lock">
+<h2>The Backup Lock<a class="headerlink" href="#the-backup-lock" title="Permalink to this headline">¶</a></h2>
+<p>When taking backups, the Backup Lock must be held, to guard against the danger of a background sweeper running concurrently with your backup and deleting data, thus making your backup inconsistent.
+The lock must be obtained prior to obtaining the backup timestamp, and released once you have finished backing up data.</p>
+</div>
 <div class="section" id="using-the-atlas-cli">
 <h2>Using the Atlas CLI<a class="headerlink" href="#using-the-atlas-cli" title="Permalink to this headline">¶</a></h2>
 <p>The set of tasks described in this page rely heavily on having a functioning Atlas CLI.  Please see <a class="reference internal" href="clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a> for information in how to deploy and use a functioning Atlas CLI utility.</p>
@@ -169,10 +174,23 @@
 </div>
 <div class="section" id="taking-a-backup">
 <h2>Taking a Backup<a class="headerlink" href="#taking-a-backup" title="Permalink to this headline">¶</a></h2>
-<p>First we need to define what the logical point in time of our backup is going to be.  We will call this the backup timestamp.  Any transactions that occur after the backup timestamp will not be valid or included in our &#8220;logical&#8221; backup of atlas, even if they complete succesfully before the rest of the backup completes.  To get the backup timestamp simply fetch a fresh timestamp using the CLI:</p>
+<div class="section" id="obtain-the-backup-lock">
+<h3>1. Obtain the Backup Lock<a class="headerlink" href="#obtain-the-backup-lock" title="Permalink to this headline">¶</a></h3>
+<p>Call the <code class="docutils literal"><span class="pre">persistent-lock/acquire-backup-lock</span></code> endpoint, supplying your reason as a string:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ curl -X GET --header &#39;Accept: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/acquire-backup-lock?reason=manual-backup&#39;
+</pre></div>
+</div>
+<p>If the request succeeds, you will receive a <code class="docutils literal"><span class="pre">LockEntry</span></code> back. It is essential that you save this lock somewhere, so that you can release it later in the process.</p>
+</div>
+<div class="section" id="obtain-a-backup-timestamp">
+<h3>2. Obtain a backup timestamp<a class="headerlink" href="#obtain-a-backup-timestamp" title="Permalink to this headline">¶</a></h3>
+<p>We need to define what the logical point in time of our backup is going to be.  We will call this the backup timestamp.  Any transactions that occur after the backup timestamp will not be valid or included in our &#8220;logical&#8221; backup of atlas, even if they complete succesfully before the rest of the backup completes.  To get the backup timestamp simply fetch a fresh timestamp using the CLI:</p>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/backup.timestamp
 </pre></div>
 </div>
+</div>
+<div class="section" id="back-up-the-underlying-kvs">
+<h3>3. Back up the underlying KVS<a class="headerlink" href="#back-up-the-underlying-kvs" title="Permalink to this headline">¶</a></h3>
 <p>Next, we back-up the underlying key value service we&#8217;re using.  For the purposes of this documention, we will assume you can backup your specific key value service.</p>
 <p>Common KVS layers:</p>
 <ul class="simple">
@@ -180,11 +198,23 @@
 <li>Postgres <a class="reference external" href="https://www.postgresql.org/docs/9.1/static/backup-dump.html">backup and restore</a>.</li>
 <li>If you are using RocksDB, you can simply compress the database files on disk with <code class="docutils literal"><span class="pre">tar</span> <span class="pre">-czf</span> <span class="pre">backup.tgz</span> <span class="pre">path/to/data</span></code>.</li>
 </ul>
+</div>
+<div class="section" id="obtain-the-fast-forward-timestamp">
+<h3>4. Obtain the fast-forward timestamp<a class="headerlink" href="#obtain-the-fast-forward-timestamp" title="Permalink to this headline">¶</a></h3>
 <p>Finally, we take the fast-forward timestamp.  Like the backup timestamp, the fast-forward timestamp is simply another fresh one that we fetch from atlas.  The purpose of this timestamp is to have a logical point in time for which we can guarantee that any reads or writes that took place during the backup process happened before this.  Fetching it is similar to that of the backup timestamp:</p>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/fast-forward.timestamp
 </pre></div>
 </div>
 <p>These two timestamp files and the entirety of your underlying storage&#8217;s backup are your entire atlasdb backup.</p>
+</div>
+<div class="section" id="release-the-backup-lock">
+<h3>5. Release the Backup Lock<a class="headerlink" href="#release-the-backup-lock" title="Permalink to this headline">¶</a></h3>
+<p>Call the <code class="docutils literal"><span class="pre">persistent-lock/release</span></code> endpoint, passing back the <code class="docutils literal"><span class="pre">LockEntry</span></code> that you received in step 1.
+For example (replace the serialised <code class="docutils literal"><span class="pre">LockEntry</span></code> with your own from step 1):</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ curl -X POST --header &#39;content-type: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/release&#39; -d &#39;{&quot;rowName&quot;:&quot;BackupLock&quot;,&quot;lockId&quot;:&quot;9dbae91b-a35c-4938-82fe-58fb31772738&quot;,&quot;reason&quot;:&quot;manual-backup&quot;}&#39;
+</pre></div>
+</div>
+</div>
 </div>
 <div class="section" id="restoring-from-a-backup">
 <h2>Restoring from a Backup<a class="headerlink" href="#restoring-from-a-backup" title="Permalink to this headline">¶</a></h2>
