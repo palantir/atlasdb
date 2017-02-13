@@ -128,6 +128,14 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTrace trace = startLocalTrace("deleteRange({})", tableRef)) {
+            delegate().deleteRange(tableRef, range);
+        }
+    }
+
+    @Override
     public void dropTable(TableReference tableRef) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("dropTable({})", tableRef)) {
