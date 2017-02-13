@@ -38,7 +38,7 @@ public class WhereClausesTest {
     @Test
     public void startOnly() {
         RangeRequest request = RangeRequest.builder().startRowInclusive(START).build();
-        WhereClauses whereClauses = WhereClauses.create(request);
+        WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?");
         assertEquals(whereClauses.getClauses(), expectedClauses);
@@ -49,7 +49,7 @@ public class WhereClausesTest {
     @Test
     public void endOnly() {
         RangeRequest request = RangeRequest.builder().endRowExclusive(END).build();
-        WhereClauses whereClauses = WhereClauses.create(request);
+        WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name < ?");
         assertEquals(whereClauses.getClauses(), expectedClauses);
@@ -60,7 +60,7 @@ public class WhereClausesTest {
     @Test
     public void whereClausesNoColumns() {
         RangeRequest request = RangeRequest.builder().startRowInclusive(START).endRowExclusive(END).build();
-        WhereClauses whereClauses = WhereClauses.create(request);
+        WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?", "i.row_name < ?");
         assertEquals(whereClauses.getClauses(), expectedClauses);
@@ -71,7 +71,7 @@ public class WhereClausesTest {
     @Test
     public void withReverseRange() {
         RangeRequest request = RangeRequest.reverseBuilder().startRowInclusive(END).endRowExclusive(START).build();
-        WhereClauses whereClauses = WhereClauses.create(request);
+        WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name <= ?", "i.row_name > ?");
         assertEquals(whereClauses.getClauses(), expectedClauses);
@@ -83,7 +83,7 @@ public class WhereClausesTest {
     public void whereClausesOneColumn() {
         RangeRequest request = RangeRequest.builder().startRowInclusive(START).endRowExclusive(END).retainColumns(
                 ColumnSelection.create(ImmutableList.of(COL1))).build();
-        WhereClauses whereClauses = WhereClauses.create(request);
+        WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?", "i.row_name < ?", "i.col_name IN (?)");
         assertEquals(whereClauses.getClauses(), expectedClauses);
@@ -95,7 +95,7 @@ public class WhereClausesTest {
     public void whereClausesMultiColumn() {
         RangeRequest request = RangeRequest.builder().startRowInclusive(START).endRowExclusive(END).retainColumns(
                 ColumnSelection.create(ImmutableList.of(COL1, COL2, COL3))).build();
-        WhereClauses whereClauses = WhereClauses.create(request);
+        WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?", "i.row_name < ?", "i.col_name IN (?,?,?)");
         assertEquals(whereClauses.getClauses(), expectedClauses);
@@ -107,13 +107,28 @@ public class WhereClausesTest {
     public void whereClausesWithExtraClause() {
         RangeRequest request = RangeRequest.builder().startRowInclusive(START).endRowExclusive(END).build();
         String extraClause = "i.foo = bar";
-        WhereClauses whereClauses = WhereClauses.create(request, extraClause);
+        WhereClauses whereClauses = WhereClauses.create("i", request, extraClause);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?", "i.row_name < ?", extraClause);
         assertEquals(whereClauses.getClauses(), expectedClauses);
 
         checkWhereArguments(whereClauses, ImmutableList.of(START, END));
 
+    }
+
+    @Test
+    public void usesDifferentTableIdentifier() {
+        RangeRequest request = RangeRequest.builder().startRowInclusive(START).endRowExclusive(END).retainColumns(
+                ColumnSelection.create(ImmutableList.of(COL1))).build();
+        WhereClauses whereClauses = WhereClauses.create("other", request);
+
+        List<String> expectedClauses = ImmutableList.of(
+                "other.row_name >= ?",
+                "other.row_name < ?",
+                "other.col_name IN (?)");
+        assertEquals(whereClauses.getClauses(), expectedClauses);
+
+        checkWhereArguments(whereClauses, ImmutableList.of(START, END, COL1));
     }
 
     private void checkWhereArguments(WhereClauses whereClauses, List<byte[]> expectedArgs) {

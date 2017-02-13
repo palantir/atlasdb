@@ -32,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.sql.BasicSQLUtils;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
 public abstract class AbstractDbWriteTable implements DbWriteTable {
@@ -152,28 +151,14 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
         query.append(" /* DELETE_RANGE (").append(prefixedTableName).append(") */ ");
         query.append(" DELETE FROM ").append(prefixedTableName).append(" m ");
 
-        // add where clauses to the query
-        byte[] start = range.getStartInclusive();
-        byte[] end = range.getEndExclusive();
-        Collection<byte[]> cols = range.getColumnNames();
-        List<Object> args = Lists.newArrayListWithCapacity(2 + cols.size());
-        List<String> whereClauses = Lists.newArrayListWithCapacity(3);
-        if (start.length > 0) {
-            whereClauses.add(range.isReverse() ? "m.row_name <= ?" : "m.row_name >= ?");
-            args.add(start);
-        }
-        if (end.length > 0) {
-            whereClauses.add(range.isReverse() ? "m.row_name > ?" : "m.row_name < ?");
-            args.add(end);
-        }
-        if (!cols.isEmpty()) {
-            whereClauses.add("m.col_name IN (" + BasicSQLUtils.nArguments(cols.size()) + ")");
-            args.addAll(cols);
-        }
+        WhereClauses whereClauses = WhereClauses.create("m", range);
 
-        if (!whereClauses.isEmpty()) {
+        List<Object> args = whereClauses.getArguments();
+        List<String> clauses = whereClauses.getClauses();
+
+        if (!clauses.isEmpty()) {
             query.append(" WHERE ");
-            Joiner.on(" AND ").appendTo(query, whereClauses);
+            Joiner.on(" AND ").appendTo(query, clauses);
         }
 
         // execute the query

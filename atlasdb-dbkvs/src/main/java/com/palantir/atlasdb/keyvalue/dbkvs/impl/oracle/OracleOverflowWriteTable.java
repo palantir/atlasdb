@@ -45,7 +45,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.UpdateExecutor;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.WhereClauses;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.sql.BasicSQLUtils;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.nexus.db.sql.SqlConnection;
 
@@ -266,27 +265,14 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         query.append(" FROM ").append(shortTableName).append(" m ");
 
         // add where clauses
-        byte[] start = range.getStartInclusive();
-        byte[] end = range.getEndExclusive();
-        Collection<byte[]> cols = range.getColumnNames();
-        List<Object> args = Lists.newArrayListWithCapacity(2 + cols.size());
-        List<String> whereClauses = Lists.newArrayListWithCapacity(3);
-        if (start.length > 0) {
-            whereClauses.add(range.isReverse() ? "m.row_name <= ?" : "m.row_name >= ?");
-            args.add(start);
-        }
-        if (end.length > 0) {
-            whereClauses.add(range.isReverse() ? "m.row_name > ?" : "m.row_name < ?");
-            args.add(end);
-        }
-        if (!cols.isEmpty()) {
-            whereClauses.add("m.col_name IN (" + BasicSQLUtils.nArguments(cols.size()) + ")");
-            args.addAll(cols);
-        }
+        WhereClauses whereClauses = WhereClauses.create("m", range);
 
-        if (!whereClauses.isEmpty()) {
+        List<Object> args = whereClauses.getArguments();
+        List<String> clauses = whereClauses.getClauses();
+
+        if (!clauses.isEmpty()) {
             query.append(" WHERE ");
-            Joiner.on(" AND ").appendTo(query, whereClauses);
+            Joiner.on(" AND ").appendTo(query, clauses);
         }
 
         conns.get().updateUnregisteredQuery(query.toString(), args.toArray());
@@ -320,7 +306,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         query.append("    FROM ").append(shortTableName).append(" i ");
 
         // add where clauses
-        WhereClauses whereClauses = WhereClauses.create(range, "i.overflow IS NOT NULL");
+        WhereClauses whereClauses = WhereClauses.create("i", range, "i.overflow IS NOT NULL");
 
         List<Object> args = whereClauses.getArguments();
         List<String> clauses = whereClauses.getClauses();

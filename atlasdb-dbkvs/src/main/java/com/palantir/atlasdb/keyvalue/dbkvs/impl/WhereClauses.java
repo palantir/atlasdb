@@ -31,7 +31,7 @@ public final class WhereClauses {
         this.arguments = arguments;
     }
 
-    public static WhereClauses create(RangeRequest request, String... clauses) {
+    public static WhereClauses create(String tableIdentifier, RangeRequest request, String... clauses) {
         List<String> extraWhereClauses = Lists.newArrayList(clauses);
 
         byte[] start = request.getStartInclusive();
@@ -42,15 +42,15 @@ public final class WhereClauses {
         List<String> whereClauses = Lists.newArrayListWithCapacity(3 + extraWhereClauses.size());
 
         if (start.length > 0) {
-            whereClauses.add(request.isReverse() ? "i.row_name <= ?" : "i.row_name >= ?");
+            whereClauses.add(tableIdentifier + (request.isReverse() ? ".row_name <= ?" : ".row_name >= ?"));
             args.add(start);
         }
         if (end.length > 0) {
-            whereClauses.add(request.isReverse() ? "i.row_name > ?" : "i.row_name < ?");
+            whereClauses.add(tableIdentifier + (request.isReverse() ? ".row_name > ?" : ".row_name < ?"));
             args.add(end);
         }
         if (!cols.isEmpty()) {
-            whereClauses.add("i.col_name IN (" + BasicSQLUtils.nArguments(cols.size()) + ")");
+            whereClauses.add(tableIdentifier + ".col_name IN (" + BasicSQLUtils.nArguments(cols.size()) + ")");
             args.addAll(cols);
         }
 
