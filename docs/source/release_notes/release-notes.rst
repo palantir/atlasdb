@@ -675,6 +675,11 @@ v0.22.0
 
            See :ref:`sweep tuning <sweep_tunable_parameters>` documentation for more information on sweep tuning parameters.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1093>`__)
+           
+    *    - |changed|
+         - Issued AtlasDB timestamps are now verbosely logged at INFO level.  It is recommended that they are redirected to a separate log file for debugging purposes.
+         
+           See :ref:`Debug Logging for Multiple Timestamp Services Error <configuration/logging#debug-logging-for-multiple-timestamp-services-error>`_ documentation for more information on redirecting logs to a separate file.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
