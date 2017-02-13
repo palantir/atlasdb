@@ -65,8 +65,6 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                         ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
             ConflictHandler.IGNORE_ALL);
 
-    private static final long INITIAL_VALUE = 10000L;
-
     @GuardedBy("this")
     private long currentLimit = -1;
 
@@ -74,7 +72,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     public static TimestampBoundStore create(CassandraKeyValueService kvs) {
         kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
-        return new CassandraTimestampBoundStore(kvs.clientPool);
+        return new CassandraTimestampBoundStore(kvs.getClientPool());
     }
 
     private CassandraTimestampBoundStore(CassandraClientPool clientPool) {
@@ -102,9 +100,10 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     throw Throwables.throwUncheckedException(e);
                 }
                 if (result == null) {
-                    DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
-                    cas(client, null, INITIAL_VALUE);
-                    return INITIAL_VALUE;
+                    DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}",
+                            CassandraTimestampUtils.INITIAL_VALUE);
+                    cas(client, null, CassandraTimestampUtils.INITIAL_VALUE);
+                    return CassandraTimestampUtils.INITIAL_VALUE;
                 }
                 Column column = result.getColumn();
                 currentLimit = PtBytes.toLong(column.getValue());

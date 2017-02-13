@@ -45,6 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -137,6 +138,8 @@ public final class TransactionManagers {
                 atlasFactory::getTimestampService);
 
         KeyValueService kvs = getKeyValueService(atlasFactory, lockAndTimestampServices);
+        kvs = TracingKeyValueService.create(kvs);
+        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 

@@ -48,6 +48,10 @@ develop
            This enables the backup to safely run alongside either the `background sweeper <https://palantir.github.io/atlasdb/html/cluster_management/sweep/background-sweep.html>`__ or the `sweep CLI <https://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-cli.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1509>`__)
 
+    *    - |new|
+         - Initial support for tracing Key Value Services integrating with `http-remoting tracing <https://github.com/palantir/http-remoting#tracing>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -96,6 +100,11 @@ v0.31.0
     *    - |fixed|
          - Support for Oracle 12c batch responses.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1540>`__)
+
+    *    - |devbreak| |fixed|
+         - Devs should regenerate their Schemas when upgrading to get rid of some type problems that are no longer
+           accepted in newer Java compilers.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1545>`__) and (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1571>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

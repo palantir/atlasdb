@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.table.description.Schema;
@@ -49,8 +50,9 @@ public class KeyValueServiceModule {
                                                          TimestampService tss,
                                                          ServicesConfig config) {
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
-        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
         kvs = ProfilingKeyValueService.create(kvs);
+        kvs = TracingKeyValueService.create(kvs);
+        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
         kvs = SweepStatsKeyValueService.create(kvs, tss);
         TransactionTables.createTables(kvs);
         ImmutableSet<Schema> schemas =
