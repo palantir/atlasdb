@@ -995,7 +995,7 @@ public final class UserProfileTable implements
     }
 
     @Override
-    public void delete(Iterable<? extends UserProfileRow> rows) {
+    public void delete(Iterable<UserProfileRow> rows) {
         Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result = getRowsMultimap(rows);
         deleteCookiesIdx(result);
         deleteCreatedIdx(result);
@@ -1076,7 +1076,7 @@ public final class UserProfileTable implements
     }
 
     @Override
-    public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimap(Iterable<? extends UserProfileRow> rows) {
+    public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimap(Iterable<UserProfileRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -1102,7 +1102,7 @@ public final class UserProfileTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends UserProfileRow> rows, ColumnSelection columns) {
+    private Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimapInternal(Iterable<UserProfileRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -1791,7 +1791,7 @@ public final class UserProfileTable implements
         }
 
         @Override
-        public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimap(Iterable<? extends CookiesIdxRow> rows) {
+        public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimap(Iterable<CookiesIdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -1817,7 +1817,7 @@ public final class UserProfileTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimapInternal(Iterable<? extends CookiesIdxRow> rows, ColumnSelection columns) {
+        private Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimapInternal(Iterable<CookiesIdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -1896,9 +1896,9 @@ public final class UserProfileTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends CookiesIdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<CookiesIdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<? extends CookiesIdxRowResult> rowResults) {
+                public boolean visit(List<CookiesIdxRowResult> rowResults) {
                     Multimap<CookiesIdxRow, CookiesIdxColumn> toRemove = HashMultimap.create();
                     for (CookiesIdxRowResult rowResult : rowResults) {
                         for (CookiesIdxColumnValue columnValue : rowResult.getColumnValues()) {
@@ -2478,7 +2478,7 @@ public final class UserProfileTable implements
         }
 
         @Override
-        public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimap(Iterable<? extends CreatedIdxRow> rows) {
+        public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimap(Iterable<CreatedIdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -2504,7 +2504,7 @@ public final class UserProfileTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimapInternal(Iterable<? extends CreatedIdxRow> rows, ColumnSelection columns) {
+        private Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimapInternal(Iterable<CreatedIdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -2583,9 +2583,9 @@ public final class UserProfileTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends CreatedIdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<CreatedIdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<? extends CreatedIdxRowResult> rowResults) {
+                public boolean visit(List<CreatedIdxRowResult> rowResults) {
                     Multimap<CreatedIdxRow, CreatedIdxColumn> toRemove = HashMultimap.create();
                     for (CreatedIdxRowResult rowResult : rowResults) {
                         for (CreatedIdxColumnValue columnValue : rowResult.getColumnValues()) {
@@ -3165,7 +3165,7 @@ public final class UserProfileTable implements
         }
 
         @Override
-        public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimap(Iterable<? extends UserBirthdaysIdxRow> rows) {
+        public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimap(Iterable<UserBirthdaysIdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -3191,7 +3191,7 @@ public final class UserProfileTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimapInternal(Iterable<? extends UserBirthdaysIdxRow> rows, ColumnSelection columns) {
+        private Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimapInternal(Iterable<UserBirthdaysIdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -3270,9 +3270,9 @@ public final class UserProfileTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends UserBirthdaysIdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<UserBirthdaysIdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<? extends UserBirthdaysIdxRowResult> rowResults) {
+                public boolean visit(List<UserBirthdaysIdxRowResult> rowResults) {
                     Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toRemove = HashMultimap.create();
                     for (UserBirthdaysIdxRowResult rowResult : rowResults) {
                         for (UserBirthdaysIdxColumnValue columnValue : rowResult.getColumnValues()) {

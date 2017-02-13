@@ -34,7 +34,7 @@ public interface AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends Co
     List<COLUMN_VALUE> getRowColumns(ROW row);
     List<COLUMN_VALUE> getRowColumns(ROW row,
                                      ColumnSelection columnSelection);
-    Multimap<ROW, COLUMN_VALUE> getRowsMultimap(Iterable<? extends ROW> rows);
+    Multimap<ROW, COLUMN_VALUE> getRowsMultimap(Iterable<ROW> rows);
     Multimap<ROW, COLUMN_VALUE> getRowsMultimap(Iterable<ROW> rows,
                                                 ColumnSelection columnSelection);
     Multimap<ROW, COLUMN_VALUE> getAsyncRowsMultimap(Iterable<ROW> rows,

@@ -160,7 +160,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
                 maxScrubTimestamp);
     }
 
-    private SortedMap<Long, Multimap<TableReference, Cell>> transformRows(List<? extends RowResult<Value>> input) {
+    private SortedMap<Long, Multimap<TableReference, Cell>> transformRows(List<RowResult<Value>> input) {
         SortedMap<Long, Multimap<TableReference, Cell>> scrubTimestampToTableNameToCell = Maps.newTreeMap();
         for (RowResult<Value> rowResult : input) {
             for (Map.Entry<Cell, Value> entry : rowResult.getCells()) {
