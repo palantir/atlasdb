@@ -54,7 +54,7 @@ public class LockEntryTest {
             .instanceId(LOCK_ID)
             .reason(REASON)
             .build();
-    private static final String jsonLockSerialization = "{\"lockName\":\"row\","
+    private static final String JSON_LOCK_SERIALIZATION = "{\"lockName\":\"row\","
                     + "\"instanceId\":\"00000001-0001-0002-0003-000000000005\","
                     + "\"reason\":\"test\"}";
     private static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("lockEntryTestTable");
@@ -111,12 +111,12 @@ public class LockEntryTest {
 
     @Test
     public void confirmJSONOnDiskBackCompatMaintainedDeserialization() {
-        assertEquals(LOCK_ENTRY, LockEntry.fromStoredValue(jsonLockSerialization.getBytes()));
+        assertEquals(LOCK_ENTRY, LockEntry.fromStoredValue(JSON_LOCK_SERIALIZATION.getBytes()));
     }
 
     @Test
     public void confirmJSONOnDiskBackCompatMaintainedSerialization() {
-        assertEquals(jsonLockSerialization, new String(LOCK_ENTRY.value(), StandardCharsets.UTF_8));
+        assertEquals(JSON_LOCK_SERIALIZATION, new String(LOCK_ENTRY.value(), StandardCharsets.UTF_8));
     }
 
     private static byte[] asUtf8Bytes(String lockAndReason) {
