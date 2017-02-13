@@ -291,7 +291,7 @@ public class SQLString extends BasicSQLString {
             }
         }
 
-        while (cleanedIdx > 0 && Character.isWhitespace(cleanedString.charAt(cleanedIdx - 1))) {
+        if (cleanedIdx > 0 && Character.isWhitespace(cleanedString.charAt(cleanedIdx - 1))) {
             --cleanedIdx;
         }
 
