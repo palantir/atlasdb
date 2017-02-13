@@ -30,7 +30,7 @@ public class StreamTestSchema implements AtlasSchema {
 
     private static Schema generateSchema() {
         Schema schema = new Schema("StreamTest",
-                StreamTestSchema.class.getPackage().getName() + ".generated",
+                StreamTest.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE);
 
         // stores a mapping from key to streamId

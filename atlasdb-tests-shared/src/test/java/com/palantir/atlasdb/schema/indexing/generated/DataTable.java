@@ -598,7 +598,7 @@ public final class DataTable implements
     }
 
     @Override
-    public void delete(Iterable<? extends DataRow> rows) {
+    public void delete(Iterable<DataRow> rows) {
         Multimap<DataRow, DataNamedColumnValue<?>> result = getRowsMultimap(rows);
         deleteIndex1Idx(result);
         deleteIndex2Idx(result);
@@ -677,7 +677,7 @@ public final class DataTable implements
     }
 
     @Override
-    public Multimap<DataRow, DataNamedColumnValue<?>> getRowsMultimap(Iterable<? extends DataRow> rows) {
+    public Multimap<DataRow, DataNamedColumnValue<?>> getRowsMultimap(Iterable<DataRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -703,7 +703,7 @@ public final class DataTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<DataRow, DataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends DataRow> rows, ColumnSelection columns) {
+    private Multimap<DataRow, DataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<DataRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -1412,7 +1412,7 @@ public final class DataTable implements
         }
 
         @Override
-        public Multimap<Index1IdxRow, Index1IdxColumnValue> getRowsMultimap(Iterable<? extends Index1IdxRow> rows) {
+        public Multimap<Index1IdxRow, Index1IdxColumnValue> getRowsMultimap(Iterable<Index1IdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -1438,7 +1438,7 @@ public final class DataTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<Index1IdxRow, Index1IdxColumnValue> getRowsMultimapInternal(Iterable<? extends Index1IdxRow> rows, ColumnSelection columns) {
+        private Multimap<Index1IdxRow, Index1IdxColumnValue> getRowsMultimapInternal(Iterable<Index1IdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -2087,7 +2087,7 @@ public final class DataTable implements
         }
 
         @Override
-        public Multimap<Index2IdxRow, Index2IdxColumnValue> getRowsMultimap(Iterable<? extends Index2IdxRow> rows) {
+        public Multimap<Index2IdxRow, Index2IdxColumnValue> getRowsMultimap(Iterable<Index2IdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -2113,7 +2113,7 @@ public final class DataTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<Index2IdxRow, Index2IdxColumnValue> getRowsMultimapInternal(Iterable<? extends Index2IdxRow> rows, ColumnSelection columns) {
+        private Multimap<Index2IdxRow, Index2IdxColumnValue> getRowsMultimapInternal(Iterable<Index2IdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -2740,7 +2740,7 @@ public final class DataTable implements
         }
 
         @Override
-        public Multimap<Index3IdxRow, Index3IdxColumnValue> getRowsMultimap(Iterable<? extends Index3IdxRow> rows) {
+        public Multimap<Index3IdxRow, Index3IdxColumnValue> getRowsMultimap(Iterable<Index3IdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -2766,7 +2766,7 @@ public final class DataTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<Index3IdxRow, Index3IdxColumnValue> getRowsMultimapInternal(Iterable<? extends Index3IdxRow> rows, ColumnSelection columns) {
+        private Multimap<Index3IdxRow, Index3IdxColumnValue> getRowsMultimapInternal(Iterable<Index3IdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -3415,7 +3415,7 @@ public final class DataTable implements
         }
 
         @Override
-        public Multimap<Index4IdxRow, Index4IdxColumnValue> getRowsMultimap(Iterable<? extends Index4IdxRow> rows) {
+        public Multimap<Index4IdxRow, Index4IdxColumnValue> getRowsMultimap(Iterable<Index4IdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -3441,7 +3441,7 @@ public final class DataTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<Index4IdxRow, Index4IdxColumnValue> getRowsMultimapInternal(Iterable<? extends Index4IdxRow> rows, ColumnSelection columns) {
+        private Multimap<Index4IdxRow, Index4IdxColumnValue> getRowsMultimapInternal(Iterable<Index4IdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -3636,5 +3636,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jBfeZXhBQBT0h0JTHK+04Q==";
+    static String __CLASS_HASH = "HnfMRutCyVsBK7QAtC/+jA==";
 }
