@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.Validate;
 
 import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
@@ -95,8 +96,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
 
     @Override
     public Map<TableReference, TableReference> generateMapToFullTableNames(Set<TableReference> tableRefs) {
-        Map<TableReference, TableReference> shortNameToFullTableName = Maps.newHashMapWithExpectedSize(
-                tableRefs.size());
+        ImmutableMap.Builder<TableReference, TableReference> shortNameToFullTableName = ImmutableMap.builder();
         Set<TableReference> tablesToReload = Sets.newHashSet();
         for (TableReference inputName : tableRefs) {
             if (inputName.isFullyQualifiedName()) {
@@ -119,7 +119,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
                 shortNameToFullTableName.put(tableRef, getFullTableName(tableRef));
             }
         }
-        return shortNameToFullTableName;
+        return shortNameToFullTableName.build();
     }
 
 }
