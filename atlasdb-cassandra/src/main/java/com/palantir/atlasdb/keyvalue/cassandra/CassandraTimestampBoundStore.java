@@ -42,11 +42,10 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final long CASSANDRA_TIMESTAMP = 0L;
-    private static final String ROW_AND_COLUMN_NAME = "ts";
-
     private static final byte[] ROW_TIMESTAMP_ARRAY = CassandraKeyValueServices.makeCompositeBuffer(
-            PtBytes.toBytes(ROW_AND_COLUMN_NAME), CASSANDRA_TIMESTAMP).array();
-    private static final ByteBuffer BYTE_BUFFER_ROW_NAME = ByteBuffer.wrap(PtBytes.toBytes(ROW_AND_COLUMN_NAME));
+            PtBytes.toBytes(CassandraTimestampUtils.ROW_AND_COLUMN_NAME), CASSANDRA_TIMESTAMP).array();
+    private static final ByteBuffer ROW_NAME_BYTE_BUFFER =
+            ByteBuffer.wrap(PtBytes.toBytes(CassandraTimestampUtils.ROW_AND_COLUMN_NAME));
 
     private final UUID id;
     private final CassandraClientPool clientPool;
@@ -82,10 +81,10 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
                     columnPath.setColumn(ROW_TIMESTAMP_ARRAY);
 
-                    Optional<Column> column = getColumnIfExists(client, BYTE_BUFFER_ROW_NAME, columnPath);
+                    Optional<Column> column = getColumnIfExists(client, ROW_NAME_BYTE_BUFFER, columnPath);
                     TimestampBoundStoreEntry entryInDb = TimestampBoundStoreEntry.createFromColumn(column);
                     entryInDb = migrateIfStartingUp(entryInDb);
-                    checkValidId(entryInDb);
+                    checkMatchingId(entryInDb);
                     setCurrentLimit("[GET]", entryInDb);
                     return currentLimit;
                 }
@@ -99,22 +98,21 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private Optional<Column> getColumnIfExists(Client client, ByteBuffer rowName, ColumnPath columnPath) {
-        Optional<Column> columnInDb;
         try {
-            columnInDb = Optional.of(client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM).getColumn());
+            return Optional.of(client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM).getColumn());
         } catch (NotFoundException e) {
-            columnInDb = Optional.empty();
+            return Optional.empty();
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
         }
-        return columnInDb;
     }
 
     private TimestampBoundStoreEntry migrateIfStartingUp(TimestampBoundStoreEntry entryInDb) {
         if (startingUp) {
             DebugLogger.logger.info("[GET] The service is starting up. Attempting to get timestamp bound from the DB "
                     + "and resetting it with this process's ID!");
-            TimestampBoundStoreEntry newEntry = TimestampBoundStoreEntry.create(entryInDb.getTimestamp(), id);
+            TimestampBoundStoreEntry newEntry = TimestampBoundStoreEntry.create(
+                    entryInDb.getTimestampOrInitialValue(), id);
             casWithRetry(entryInDb, newEntry);
             startingUp = false;
             return newEntry;
@@ -140,7 +138,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private void checkLimitNotDecreasing(TimestampBoundStoreEntry newEntry) {
-        if (currentLimit > newEntry.getTimestamp()) {
+        if (currentLimit > newEntry.getTimestampOrInitialValue()) {
             CassandraTimestampUtils.throwNewTimestampTooSmallException(currentLimit, newEntry);
         }
     }
@@ -152,7 +150,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                 newEntry.getTimestampAsString());
         try {
             result = client.cas(
-                    BYTE_BUFFER_ROW_NAME,
+                    ROW_NAME_BYTE_BUFFER,
                     AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
                     makeListOfColumnsFromEntry(entryInDb),
                     makeListOfColumnsFromEntry(newEntry),
@@ -160,14 +158,14 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     ConsistencyLevel.EACH_QUORUM);
             return result;
         } catch (Exception e) {
-            CassandraTimestampUtils.throwUpdateUncheckedException(entryInDb, newEntry, e);
-            return null;
+            CassandraTimestampUtils.logUpdateUncheckedException(entryInDb, newEntry);
+            throw Throwables.throwUncheckedException(e);
         }
     }
 
     private void setCurrentLimit(String type, TimestampBoundStoreEntry newEntry) {
         checkLimitNotDecreasing(newEntry);
-        currentLimit = newEntry.getTimestamp();
+        currentLimit = newEntry.getTimestampOrInitialValue();
         DebugLogger.logger.info("{} Setting cached timestamp limit to {}.", type, currentLimit);
     }
 
@@ -183,7 +181,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         }
     }
 
-    private void checkValidId(TimestampBoundStoreEntry entryInDb) {
+    private void checkMatchingId(TimestampBoundStoreEntry entryInDb) {
         if (!entryInDb.idMatches(id)) {
             CassandraTimestampUtils.throwGettingMultipleRunningTimestampServiceError(id, entryInDb);
         }

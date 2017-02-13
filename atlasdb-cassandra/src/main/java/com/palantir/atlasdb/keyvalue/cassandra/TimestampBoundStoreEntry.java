@@ -75,8 +75,8 @@ abstract class TimestampBoundStoreEntry {
         return id().map(otherId::equals).orElse(false);
     }
 
-    long getTimestamp() {
-        return timestamp().orElseGet(() -> CassandraTimestampUtils.INITIAL_VALUE);
+    long getTimestampOrInitialValue() {
+        return timestamp().orElse(CassandraTimestampUtils.INITIAL_VALUE);
     }
 
     String getTimestampAsString() {

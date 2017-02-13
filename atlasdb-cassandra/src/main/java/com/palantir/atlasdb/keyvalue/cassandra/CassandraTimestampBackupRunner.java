@@ -89,7 +89,7 @@ public class CassandraTimestampBackupRunner {
                             Pair.create(currentBackupBound, backupValue));
             executeAndVerifyCas(client, casMap);
             log.info("[BACKUP] Backed up the value {}", currentBackupBound);
-            return TimestampBoundStoreEntry.createFromBytes(backupValue).getTimestamp();
+            return TimestampBoundStoreEntry.createFromBytes(backupValue).getTimestampOrInitialValue();
         });
     }
 

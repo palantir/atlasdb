@@ -49,7 +49,6 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.common.base.Throwables;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.util.Pair;
@@ -255,7 +254,7 @@ public final class CassandraTimestampUtils {
         return "\"" + tableName + "\"";
     }
 
-    protected static void throwNewTimestampTooSmallException(long currentLimit, TimestampBoundStoreEntry entryInDb) {
+    public static void throwNewTimestampTooSmallException(long currentLimit, TimestampBoundStoreEntry entryInDb) {
         String message = "Cannot set cached timestamp bound value from {} to {}. The bounds must be increasing!";
         String formattedMessage = MessageFormatter.arrayFormat(message, new String[]{
                 Long.toString(currentLimit), entryInDb.getTimestampAsString()}).getMessage();
@@ -263,7 +262,7 @@ public final class CassandraTimestampUtils {
         throw new IllegalArgumentException(formattedMessage);
     }
 
-    protected static void throwGettingMultipleRunningTimestampServiceError(UUID id,
+    public static void throwGettingMultipleRunningTimestampServiceError(UUID id,
             TimestampBoundStoreEntry entryInDb) {
         String message = "Error getting the timestamp limit from the DB: the timestamp service ID {} in the DB"
                 + " does not match this service's ID: {}. This may indicate that another timestamp service is"
@@ -274,7 +273,7 @@ public final class CassandraTimestampUtils {
         throw new MultipleRunningTimestampServiceError(formattedMessage);
     }
 
-    protected static void throwStoringMultipleRunningTimestampServiceError(long currentLimit, UUID id,
+    public static void throwStoringMultipleRunningTimestampServiceError(long currentLimit, UUID id,
             TimestampBoundStoreEntry entryInDb, TimestampBoundStoreEntry desiredNewEntry) {
         String message = "Unable to CAS from {} to {}. Timestamp limit changed underneath us or another timestamp"
                 + " service ID detected. Limit in memory: {}, this service's ID: {}. Limit stored in DB: {},"
@@ -294,13 +293,12 @@ public final class CassandraTimestampUtils {
         throw new MultipleRunningTimestampServiceError(formattedMessage);
     }
 
-    protected static void throwUpdateUncheckedException(TimestampBoundStoreEntry entryInDb,
-            TimestampBoundStoreEntry desiredNewEntry, Exception exception) {
+    public static void logUpdateUncheckedException(TimestampBoundStoreEntry entryInDb,
+            TimestampBoundStoreEntry desiredNewEntry) {
         String message = "[CAS] Error trying to set from {} to {}";
         String formattedMessage = MessageFormatter.arrayFormat(message, new String[]{
                 entryInDb.getTimestampAsString(), desiredNewEntry.getTimestampAsString()}).getMessage();
         logMessage(formattedMessage);
-        throw Throwables.throwUncheckedException(exception);
     }
 
     private static void logMessage(String formattedMessage) {
