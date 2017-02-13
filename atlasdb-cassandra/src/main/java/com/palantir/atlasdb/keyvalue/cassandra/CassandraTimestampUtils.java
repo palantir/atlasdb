@@ -105,6 +105,7 @@ public final class CassandraTimestampUtils {
             TimestampBoundStoreEntry.createFromBytes(data);
             return true;
         } catch (Exception e) {
+            log.debug("Exception trying to create TimestampBoundStoreEntry", e);
             return false;
         }
     }

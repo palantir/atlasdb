@@ -78,10 +78,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     public synchronized long getUpperLimit() {
         DebugLogger.logger.debug("[GET] Getting upper limit");
         return clientPool.runWithRetry(client -> {
-                    ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
-                    columnPath.setColumn(ROW_TIMESTAMP_ARRAY);
-
-                    Optional<Column> column = getColumnIfExists(client, ROW_NAME_BYTE_BUFFER, columnPath);
+                    Optional<Column> column = getColumnIfExists(client, ROW_NAME_BYTE_BUFFER, getColumnPath());
                     TimestampBoundStoreEntry entryInDb = TimestampBoundStoreEntry.createFromColumn(column);
                     entryInDb = migrateIfStartingUp(entryInDb);
                     checkMatchingId(entryInDb);
@@ -97,6 +94,12 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         casWithRetry(TimestampBoundStoreEntry.create(currentLimit, id), TimestampBoundStoreEntry.create(limit, id));
     }
 
+    private ColumnPath getColumnPath() {
+        ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
+        columnPath.setColumn(ROW_TIMESTAMP_ARRAY);
+        return columnPath;
+    }
+
     private Optional<Column> getColumnIfExists(Client client, ByteBuffer rowName, ColumnPath columnPath) {
         try {
             return Optional.of(client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM).getColumn());
@@ -108,16 +111,15 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private TimestampBoundStoreEntry migrateIfStartingUp(TimestampBoundStoreEntry entryInDb) {
-        if (startingUp) {
-            DebugLogger.logger.info("[GET] The service is starting up. Attempting to get timestamp bound from the DB "
-                    + "and resetting it with this process's ID!");
-            TimestampBoundStoreEntry newEntry = TimestampBoundStoreEntry.create(
-                    entryInDb.getTimestampOrInitialValue(), id);
-            casWithRetry(entryInDb, newEntry);
-            startingUp = false;
-            return newEntry;
+        if (!startingUp) {
+            return entryInDb;
         }
-        return entryInDb;
+        DebugLogger.logger.info("[GET] The service is starting up. Attempting to get timestamp bound from the DB and"
+                + " resetting it with this process's ID.");
+        TimestampBoundStoreEntry newEntry = TimestampBoundStoreEntry.create(entryInDb.getTimestampOrInitialValue(), id);
+        casWithRetry(entryInDb, newEntry);
+        startingUp = false;
+        return newEntry;
     }
 
     private void casWithRetry(TimestampBoundStoreEntry entryInDb, TimestampBoundStoreEntry newEntry) {
