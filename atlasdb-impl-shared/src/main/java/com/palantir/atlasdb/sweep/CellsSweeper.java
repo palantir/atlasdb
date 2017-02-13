@@ -110,7 +110,7 @@ public class CellsSweeper {
     private LockEntry acquirePersistentLockWithRetry() {
         while (true) {
             try {
-                LockEntry lockEntry = persistentLockService.acquireLock("Sweep");
+                LockEntry lockEntry = persistentLockService.acquireBackupLock("Sweep");
                 log.info("Successfully acquired persistent lock for sweep: {}", lockEntry);
                 return lockEntry;
             } catch (CheckAndSetException e) {

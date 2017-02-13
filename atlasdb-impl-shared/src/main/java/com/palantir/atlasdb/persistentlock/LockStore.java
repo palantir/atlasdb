@@ -35,7 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
 /**
- * LockStore manages {@link LockEntry} objects, specifically for the "Deletion Lock" (to be taken out by backup and
+ * LockStore manages {@link LockEntry} objects, specifically for the "Backup Lock" (to be taken out by backup and
  * sweep).
  *
  * The PERSISTED_LOCKS_TABLE contains exactly one element, either LOCK_OPEN or (lock taken for some REASON), giving
@@ -43,8 +43,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
  *
  * "taken for SWEEP (uuid1)" <- - - - -> OPEN < - - - -> "taken for BACKUP (uuid2)"
  *
- * acquireLock(REASON) attempts to move the lock state from "OPEN" to "taken because REASON", returning a LockEntry
- * that holds a unique identifier for that occasion of taking the lock.
+ * acquireBackupLock(REASON) attempts to move the lock state from "OPEN" to "taken because REASON",
+ * returning a LockEntry that holds a unique identifier for that occasion of taking the lock.
  *
  * releaseLock(LockEntry) attempts to move the state from "taken because REASON" to "OPEN", but only succeeds if the
  * LockEntry currently stored matches the one passed in, ensuring that nobody released the lock when we weren't looking.
@@ -57,11 +57,11 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 public class LockStore {
     private static final Logger log = LoggerFactory.getLogger(LockStore.class);
 
-    private static final String DELETION_LOCK_NAME = "DeletionLock";
+    private static final String BACKUP_LOCK_NAME = "BackupLock";
     private final KeyValueService keyValueService;
 
     public static final LockEntry LOCK_OPEN = ImmutableLockEntry.builder()
-            .lockName(DELETION_LOCK_NAME)
+            .lockName(BACKUP_LOCK_NAME)
             .instanceId(UUID.fromString("0-0-0-0-0"))
             .reason("Available")
             .build();
@@ -79,8 +79,8 @@ public class LockStore {
         return lockStore;
     }
 
-    public LockEntry acquireLock(String reason) throws CheckAndSetException {
-        LockEntry lockEntry = generateUniqueLockEntry(reason);
+    public LockEntry acquireBackupLock(String reason) throws CheckAndSetException {
+        LockEntry lockEntry = generateUniqueBackupLockEntry(reason);
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
                 lockEntry.cell(),
                 LOCK_OPEN.value(),
@@ -111,10 +111,10 @@ public class LockStore {
         return results.stream().map(LockEntry::fromRowResult).collect(Collectors.toSet());
     }
 
-    private LockEntry generateUniqueLockEntry(String reason) {
+    private LockEntry generateUniqueBackupLockEntry(String reason) {
         UUID randomLockId = UUID.randomUUID();
         return ImmutableLockEntry.builder()
-                .lockName(DELETION_LOCK_NAME)
+                .lockName(BACKUP_LOCK_NAME)
                 .instanceId(randomLockId)
                 .reason(reason)
                 .build();

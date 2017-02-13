@@ -74,7 +74,7 @@ public class CellsSweeperShould {
 
     @Before
     public void setUp() {
-        when(mockPls.acquireLock(anyString())).thenReturn(mockEntry);
+        when(mockPls.acquireBackupLock(anyString())).thenReturn(mockEntry);
     }
 
     @Test
@@ -112,34 +112,34 @@ public class CellsSweeperShould {
 
         verify(mockKvs, never()).delete(any(), any());
         verify(mockKvs, never()).addGarbageCollectionSentinelValues(any(), any());
-        verify(mockPls, never()).acquireLock(any());
+        verify(mockPls, never()).acquireBackupLock(any());
     }
 
     @Test
-    public void acquireTheDeletionLockBeforeDeletingButAfterAddingSentinels() {
+    public void acquireTheBackupLockBeforeDeletingButAfterAddingSentinels() {
         sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
         InOrder ordering = inOrder(mockPls, mockKvs);
 
         ordering.verify(mockKvs, atLeastOnce()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
-        ordering.verify(mockPls, times(1)).acquireLock("Sweep");
+        ordering.verify(mockPls, times(1)).acquireBackupLock("Sweep");
         ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
     }
 
     @Test
-    public void retryWhenAcquiringTheDeletionLock() {
-        when(mockPls.acquireLock(anyString())).thenThrow(mock(CheckAndSetException.class)).thenReturn(mockEntry);
+    public void retryWhenAcquiringTheBackupLock() {
+        when(mockPls.acquireBackupLock(anyString())).thenThrow(mock(CheckAndSetException.class)).thenReturn(mockEntry);
 
         sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
         InOrder ordering = inOrder(mockPls, mockKvs);
 
-        ordering.verify(mockPls, times(2)).acquireLock("Sweep");
+        ordering.verify(mockPls, times(2)).acquireBackupLock("Sweep");
         ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
     }
 
     @Test
-    public void releaseTheDeletionLockAfterDeleteAndAddingSentinels() {
+    public void releaseTheBackupLockAfterDeleteAndAddingSentinels() {
         sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
         InOrder ordering = inOrder(mockPls, mockKvs);
@@ -150,7 +150,7 @@ public class CellsSweeperShould {
     }
 
     @Test
-    public void releaseTheDeletionLockIfDeleteFails() throws Exception {
+    public void releaseTheBackupLockIfDeleteFails() throws Exception {
         doThrow(Exception.class).when(mockKvs).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
 
         try {

@@ -49,13 +49,13 @@ public class KvsBackedPersistentLockServiceTest {
 
     @Test
     public void canAcquireLock() throws CheckAndSetException {
-        service.acquireLock(TEST_REASON);
-        verify(lockStore, times(1)).acquireLock(TEST_REASON);
+        service.acquireBackupLock(TEST_REASON);
+        verify(lockStore, times(1)).acquireBackupLock(TEST_REASON);
     }
 
     @Test
     public void canReleaseLock() {
-        LockEntry entry = lockStore.acquireLock(TEST_REASON);
+        LockEntry entry = lockStore.acquireBackupLock(TEST_REASON);
         service.releaseLock(entry);
 
         verify(lockStore, times(1)).releaseLock(entry);

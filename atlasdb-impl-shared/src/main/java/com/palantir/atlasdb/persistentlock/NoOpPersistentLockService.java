@@ -21,7 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 public class NoOpPersistentLockService implements PersistentLockService {
 
     @Override
-    public LockEntry acquireLock(String reason) {
+    public LockEntry acquireBackupLock(String reason) {
         return null;
     }
 

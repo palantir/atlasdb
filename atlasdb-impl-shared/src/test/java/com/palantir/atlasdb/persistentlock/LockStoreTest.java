@@ -72,29 +72,29 @@ public class LockStoreTest {
 
     @Test
     public void canAcquireLock() throws Exception {
-        LockEntry lockEntry = lockStore.acquireLock(REASON);
+        LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
 
         assertThat(lockStore.allLockEntries(), contains(lockEntry));
     }
 
     @Test(expected = CheckAndSetException.class)
     public void canNotAcquireLockTwice() throws Exception {
-        lockStore.acquireLock(REASON);
-        lockStore.acquireLock(REASON);
+        lockStore.acquireBackupLock(REASON);
+        lockStore.acquireBackupLock(REASON);
     }
 
     @Test(expected = CheckAndSetException.class)
     public void canNotAcquireLockTwiceForDifferentReasons() throws Exception {
-        lockStore.acquireLock(REASON);
-        lockStore.acquireLock("other-reason");
+        lockStore.acquireBackupLock(REASON);
+        lockStore.acquireBackupLock("other-reason");
     }
 
     @Test(expected = CheckAndSetException.class)
     public void canNotAcquireLockThatWasTakenOutByAnotherStore() throws Exception {
         LockStore otherLockStore = LockStore.create(kvs);
-        otherLockStore.acquireLock("grabbed by other store");
+        otherLockStore.acquireBackupLock("grabbed by other store");
 
-        lockStore.acquireLock(REASON);
+        lockStore.acquireBackupLock(REASON);
     }
 
     @Test
@@ -107,7 +107,7 @@ public class LockStoreTest {
 
     @Test
     public void releaseLockPopulatesStoreWithOpenValue() throws Exception {
-        LockEntry lockEntry = lockStore.acquireLock(REASON);
+        LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
         lockStore.releaseLock(lockEntry);
 
         assertThat(lockStore.allLockEntries(), contains(LockStore.LOCK_OPEN));
@@ -125,7 +125,7 @@ public class LockStoreTest {
 
     @Test(expected = CheckAndSetException.class)
     public void canNotReleaseNonExistentLock() throws Exception {
-        LockEntry lockEntry = lockStore.acquireLock(REASON);
+        LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
 
         LockEntry otherLockEntry = ImmutableLockEntry.builder()
                 .from(lockEntry)
@@ -137,15 +137,15 @@ public class LockStoreTest {
 
     @Test
     public void canReleaseLockAndReacquire() throws Exception {
-        LockEntry lockEntry = lockStore.acquireLock(REASON);
+        LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
         lockStore.releaseLock(lockEntry);
 
-        lockStore.acquireLock(REASON);
+        lockStore.acquireBackupLock(REASON);
     }
 
     @Test(expected = CheckAndSetException.class)
     public void canNotReacquireAfterReleasingDifferentLock() throws Exception {
-        LockEntry lockEntry = lockStore.acquireLock(REASON);
+        LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
 
         LockEntry otherLockEntry = ImmutableLockEntry.builder()
                 .from(lockEntry)
@@ -158,6 +158,6 @@ public class LockStoreTest {
             // expected
         }
 
-        lockStore.acquireLock(REASON);
+        lockStore.acquireBackupLock(REASON);
     }
 }

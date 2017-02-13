@@ -90,10 +90,10 @@ You should now be able to successfully start your services.
 
 .. _clearing-persistent-lock:
 
-Clearing the Persistent Lock
-============================
+Clearing the Backup Lock
+========================
 
-If the background sweeper or an automated backup process dies at the wrong point (i.e. while holding the lock), future sweep/backup processes will not complete, because the lock will have been taken.
+If the background sweeper or an automated backup process dies at the wrong point (i.e. while holding the backup lock), future sweep/backup processes will not complete, because the lock will have been taken.
 If this happens, then you should follow these remediation steps:
 
 .. warning::
@@ -106,11 +106,11 @@ If this happens, then you should follow these remediation steps:
 .. code-block:: bash
 
   INFO  [2017-02-01 16:40:34,333] com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper: Request failed.
-    Stored LockEntry: LockEntry{rowName=DeletionLock, lockId=1e3a8db1-a1a6-4aae-96bd-e3107b709c5e, reason=backup}
+    Stored LockEntry: LockEntry{rowName=BackupLock, lockId=1e3a8db1-a1a6-4aae-96bd-e3107b709c5e, reason=manual-backup}
 
 
 2. Curl the ``release`` endpoint. Note that the required formatting is slightly different (keys and values must be surrounded with ``"``).
 
 .. code-block:: bash
 
-   $ curl -X POST --header 'content-type: application/json' '<product-base-url>/persistent-lock/release' -d '{"rowName":"DeletionLock","lockId":"1e3a8db1-a1a6-4aae-96bd-e3107b709c5e","reason":"backup"}'
+   $ curl -X POST --header 'content-type: application/json' '<product-base-url>/persistent-lock/release' -d '{"rowName":"BackupLock","lockId":"1e3a8db1-a1a6-4aae-96bd-e3107b709c5e","reason":"manual-backup"}'
