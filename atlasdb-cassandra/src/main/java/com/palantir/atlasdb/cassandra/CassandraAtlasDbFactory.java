@@ -75,6 +75,6 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     public TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
         return new CassandraTimestampStoreInvalidator(
                 new CassandraTimestampBackupRunner(
-                        ((CassandraKeyValueService) rawKvs)));
+                        (CassandraKeyValueService) rawKvs));
     }
 }

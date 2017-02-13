@@ -36,7 +36,7 @@ public interface AtlasDbFactory {
     default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
         return () -> {
             Logger log = LoggerFactory.getLogger(AtlasDbFactory.class);
-            log.warn("AtlasDB doesn't yet support automated migration for KVS type: " + getType() + ".");
+            log.warn("AtlasDB doesn't yet support automated migration for KVS type {}.", getType());
             return NO_OP_FAST_FORWARD_TIMESTAMP;
         };
     }
