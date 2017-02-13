@@ -50,6 +50,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -59,6 +60,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -448,6 +450,27 @@ public class RocksDbKeyValueService implements KeyValueService {
             getDb().write(options, batch);
         } catch (RocksDBException e) {
             throw Throwables.propagate(e);
+        }
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        try (ClosableIterator<RowResult<Set<Long>>> iterator = getRangeOfTimestamps(tableRef, range, Long.MAX_VALUE)) {
+            while (iterator.hasNext()) {
+                RowResult<Set<Long>> rowResult = iterator.next();
+
+                Multimap<Cell, Long> cellsToDelete = Multimaps.newSetMultimap(Maps.<Cell, Collection<Long>>newHashMap(), new Supplier<Set<Long>>() {
+                    @Override
+                    public Set<Long> get() {
+                        return Sets.newHashSet();
+                    }
+                });
+                for (Entry<Cell, Set<Long>> entry : rowResult.getCells()) {
+                    cellsToDelete.putAll(entry.getKey(), entry.getValue());
+                }
+
+                delete(tableRef, cellsToDelete);
+            }
         }
     }
 

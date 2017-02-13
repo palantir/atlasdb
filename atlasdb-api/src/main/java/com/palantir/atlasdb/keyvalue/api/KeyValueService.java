@@ -353,6 +353,25 @@ public interface KeyValueService extends AutoCloseable {
     void delete(@QueryParam("tableRef") TableReference tableRef, Multimap<Cell, Long> keys);
 
     /**
+     * Deletes values in a range from the key-value store.
+     *
+     * Does not guarantee an atomic delete throughout the entire range.
+     *
+     * Currently does not allow a column selection to mean only delete certain columns in a range.
+     *
+     * Some systems may require more nodes to be up to ensure that a delete is successful. If this
+     * is the case then this method may throw if the delete can't be completed on all nodes.
+     *
+     * @param tableRef the name of the table to delete values from.
+     * @param range the range to delete
+     */
+    @POST
+    @Path("delete-range")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Idempotent
+    void deleteRange(@QueryParam("tableRef") TableReference tableRef, RangeRequest range);
+
+    /**
      * Truncate a table in the key-value store.
      * <p>
      * This is preferred to dropping and re-adding a table, as live schema changes can

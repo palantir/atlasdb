@@ -13,6 +13,7 @@ dependencies {
   compile project(':commons-api')
 
   testCompile project(':atlasdb-config')
+  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 

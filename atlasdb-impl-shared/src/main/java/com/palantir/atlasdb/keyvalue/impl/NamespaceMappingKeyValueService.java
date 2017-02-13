@@ -66,6 +66,11 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        delegate().deleteRange(tableRef, range);
+    }
+
+    @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
         return delegate().getAllTimestamps(tableRef, keys, timestamp);
     }
