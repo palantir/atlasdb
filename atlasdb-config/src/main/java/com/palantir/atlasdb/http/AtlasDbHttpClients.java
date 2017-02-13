@@ -73,19 +73,20 @@ public final class AtlasDbHttpClients {
                             // CipherSuite.TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256,
                             // CipherSuite.TLS_RSA_WITH_AES_256_GCM_SHA384,
                             // CipherSuite.TLS_RSA_WITH_AES_128_GCM_SHA256,
-                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
-                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-                            CipherSuite.TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384,
-                            CipherSuite.TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256,
-                            CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA256,
-                            CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA256,
-                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-                            CipherSuite.TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,
-                            CipherSuite.TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,
-                            CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA,
-                            CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA,
-                            CipherSuite.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
+                            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256)
+//                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+//                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+//                            CipherSuite.TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384,
+//                            CipherSuite.TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256,
+//                            CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA256,
+//                            CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA256,
+//                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+//                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+//                            CipherSuite.TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,
+//                            CipherSuite.TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,
+//                            CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA,
+//                            CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA,
+//                            CipherSuite.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
                     .build(),
             ConnectionSpec.CLEARTEXT);
 
