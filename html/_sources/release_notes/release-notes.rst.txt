@@ -62,7 +62,7 @@ v0.31.0
          - Change
 
     *    - |improved| |devbreak|
-         - Improved performance by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
+         - Improved Oracle performance on DBKVS by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
            Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.          
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
 
