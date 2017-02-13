@@ -100,7 +100,7 @@ public class LockStoreTest {
     @Test
     public void canViewLockAcquiredByAnotherLockStore() {
         LockStore otherLockStore = LockStore.create(kvs);
-        LockEntry otherLockEntry = otherLockStore.acquireLock("grabbed by other store");
+        LockEntry otherLockEntry = otherLockStore.acquireBackupLock("grabbed by other store");
 
         assertThat(lockStore.allLockEntries(), contains(otherLockEntry));
     }
