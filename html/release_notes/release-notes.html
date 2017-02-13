@@ -238,11 +238,6 @@ This will break any installation of Oracle with the <code class="docutils litera
 <td>Support for Oracle 12c batch responses.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1540">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
-<td>Devs should regenerate their Schemas when upgrading to get rid of some type problems that are no longer
-accepted in newer Java compilers.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1545">Pull Request 1</a>) and (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1571">Pull Request 2</a>)</td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -529,6 +524,12 @@ This may be useful for investigating pre-merge build failures.
 <td>Updated our dependency on <code class="docutils literal"><span class="pre">gradle-java-distribution</span></code> from 1.0.1 to 1.2.0.
 See gradle-java-distribution <a class="reference external" href="https://github.com/palantir/gradle-java-distribution/releases">release notes</a> for details.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1361">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Add KeyValueStore.deleteRange(); makes large swathes of row deletions faster,
+like transaction sweeping. Also can be used as a fallback option for people
+having issues with their backup solutions not allowing truncate() during a backup
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1391">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>

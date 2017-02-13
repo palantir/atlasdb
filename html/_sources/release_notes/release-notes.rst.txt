@@ -109,11 +109,6 @@ v0.31.0
          - Support for Oracle 12c batch responses.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1540>`__)
 
-    *    - |devbreak| |fixed|
-         - Devs should regenerate their Schemas when upgrading to get rid of some type problems that are no longer
-           accepted in newer Java compilers.
-           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1545>`__) and (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1571>`__)
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -388,6 +383,12 @@ v0.27.0
          - Updated our dependency on ``gradle-java-distribution`` from 1.0.1 to 1.2.0.
            See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
+
+    *     - |new|
+          - Add KeyValueStore.deleteRange(); makes large swathes of row deletions faster,
+            like transaction sweeping. Also can be used as a fallback option for people
+            having issues with their backup solutions not allowing truncate() during a backup
+            (`Pull Request <https://github.com/palantir/atlasdb/pull/1391>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
