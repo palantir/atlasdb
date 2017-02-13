@@ -98,6 +98,14 @@ public class LockStoreTest {
     }
 
     @Test
+    public void canViewLockAcquiredByAnotherLockStore() {
+        LockStore otherLockStore = LockStore.create(kvs);
+        LockEntry otherLockEntry = otherLockStore.acquireLock("grabbed by other store");
+
+        assertThat(lockStore.allLockEntries(), contains(otherLockEntry));
+    }
+
+    @Test
     public void releaseLockPopulatesStoreWithOpenValue() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
         lockStore.releaseLock(lockEntry);
