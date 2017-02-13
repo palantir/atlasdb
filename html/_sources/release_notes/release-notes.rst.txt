@@ -46,6 +46,10 @@ develop
          - Initial support for tracing Key Value Services integrating with `http-remoting tracing <https://github.com/palantir/http-remoting#tracing>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
 
+    *    - |improved|
+         - Improved heap usage during heavy DBKVS querying
+           (Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
