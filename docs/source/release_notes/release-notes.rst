@@ -46,6 +46,17 @@ develop
          - Initial support for tracing Key Value Services integrating with `http-remoting tracing <https://github.com/palantir/http-remoting#tracing>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
 
+    *    - |new|
+         - Upon startup of a Cassandra-backed AtlasDB client with a
+           :ref:`Timelock block <timelock-client-configuration>`, the client will attempt to connect to the Timelock
+           Server and automatically fast-forward the Timelock Server's timestamp bound to that of the embedded service.
+           The client will now also *invalidate* the embedded service's bound, backing this up in a separate row in the
+           timestamp table.
+
+           The AtlasDB team has so far only implemented automated migration for Cassandra. If using DBKVS or other
+           key-value services, it remains the user's responsibility to ensure that they have performed the migration
+           detailed in :ref:`Migration to External Timelock Services <timelock-migration>`.
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
