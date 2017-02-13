@@ -110,12 +110,12 @@ public class LockEntryTest {
     }
 
     @Test
-    public void confirmJSONOnDiskBackCompatMaintainedDeserialization() {
-        assertEquals(LOCK_ENTRY, LockEntry.fromStoredValue(JSON_LOCK_SERIALIZATION.getBytes()));
+    public void confirmJsonOnDiskBackCompatMaintainedDeserialization() {
+        assertEquals(LOCK_ENTRY, LockEntry.fromStoredValue(asUtf8Bytes(JSON_LOCK_SERIALIZATION)));
     }
 
     @Test
-    public void confirmJSONOnDiskBackCompatMaintainedSerialization() {
+    public void confirmJsonOnDiskBackCompatMaintainedSerialization() {
         assertEquals(JSON_LOCK_SERIALIZATION, new String(LOCK_ENTRY.value(), StandardCharsets.UTF_8));
     }
 
