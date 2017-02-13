@@ -45,7 +45,7 @@ public class BatchingVisitables {
     public static <T> BatchingVisitableView<T> emptyBatchingVisitable() {
         return BatchingVisitableView.of(new BatchingVisitable<T>() {
             @Override
-            public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<? extends T>, K> v)
+            public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> v)
                     throws K {
                 return true;
             }
@@ -55,7 +55,7 @@ public class BatchingVisitables {
     public static <T> BatchingVisitableView<T> singleton(final T t) {
         return BatchingVisitableView.of(new BatchingVisitable<T>() {
             @Override
-            public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<? extends T>, K> v)
+            public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> v)
                     throws K {
                 return v.visit(ImmutableList.of(t));
             }
@@ -99,9 +99,9 @@ public class BatchingVisitables {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
                     final ConsistentVisitor<T, K> v) throws K {
-                visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<? extends T>, K>() {
+                visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<T>, K>() {
                     @Override
-                    public boolean visit(List<? extends T> batch) throws K {
+                    public boolean visit(List<T> batch) throws K {
                         for (T t : batch) {
                             if (!condition.apply(t)) {
                                     return false;
@@ -144,9 +144,9 @@ public class BatchingVisitables {
     }
 
     public static <T> boolean isEqual(BatchingVisitable<T> v, final Iterator<T> it) {
-        boolean ret = v.batchAccept(DEFAULT_BATCH_SIZE, new AbortingVisitor<List<? extends T>, RuntimeException>() {
+        boolean ret = v.batchAccept(DEFAULT_BATCH_SIZE, new AbortingVisitor<List<T>, RuntimeException>() {
             @Override
-            public boolean visit(List<? extends T> batch) {
+            public boolean visit(List<T> batch) {
                 Iterator<T> toMatch = Iterators.limit(it, batch.size());
                 return Iterators.elementsEqual(toMatch, batch.iterator());
             }
@@ -265,34 +265,34 @@ public class BatchingVisitables {
 
     public static <T> BatchingVisitableView<T> filter(BatchingVisitable<T> visitable, final Predicate<? super T> pred) {
         Preconditions.checkNotNull(pred);
-        return transformBatch(visitable, new Function<List<? extends T>, List<T>>() {
+        return transformBatch(visitable, new Function<List<T>, List<T>>() {
             @Override
-            public List<T> apply(List<? extends T> input) {
+            public List<T> apply(List<T> input) {
                 return ImmutableList.copyOf(Iterables.filter(input, pred));
             }
         });
     }
 
     public static <F, T> BatchingVisitableView<T> transform(BatchingVisitable<F> visitable, final Function<? super F, ? extends T> f) {
-        return transformBatch(visitable, new Function<List<? extends F>, List<T>>() {
+        return transformBatch(visitable, new Function<List<F>, List<T>>() {
             @Override
-            public List<T> apply(List<? extends F> from) {
+            public List<T> apply(List<F> from) {
                 return Lists.transform(from, f);
             }
         });
     }
 
     public static <F, T> BatchingVisitableView<T> transformBatch(final BatchingVisitable<F> visitable,
-            final Function<? super List<? extends F>, ? extends List<T>> f) {
+            final Function<? super List<F>, ? extends List<T>> f) {
         Preconditions.checkNotNull(visitable);
         Preconditions.checkNotNull(f);
         return BatchingVisitableView.of(new AbstractBatchingVisitable<T>() {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
                                                                      final ConsistentVisitor<T, K> v) throws K {
-                visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<? extends F>, K>() {
+                visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<F>, K>() {
                     @Override
-                    public boolean visit(List<? extends F> batch) throws K {
+                    public boolean visit(List<F> batch) throws K {
                         return v.visit(f.apply(batch));
                     }
                 });
@@ -313,10 +313,10 @@ public class BatchingVisitables {
                 if (batchSizeHint > limit) {
                     batchSizeHint = (int)limit;
                 }
-                visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<? extends T>, K>() {
+                visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<T>, K>() {
                     long visited = 0;
                     @Override
-                    public boolean visit(List<? extends T> batch) throws K {
+                    public boolean visit(List<T> batch) throws K {
                         for (T item : batch) {
                             if (!v.visitOne(item)) {
                                 return false;
@@ -346,10 +346,10 @@ public class BatchingVisitables {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
                                                                         final ConsistentVisitor<T, K> v) throws K {
-                visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<? extends T>, K>() {
+                visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<T>, K>() {
                     long visited = 0;
                     @Override
-                    public boolean visit(List<? extends T> batch) throws K {
+                    public boolean visit(List<T> batch) throws K {
                         for (T item : batch) {
                             if (visited < toSkip) {
                                 visited++;
@@ -392,11 +392,11 @@ public class BatchingVisitables {
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
                                                                         final ConsistentVisitor<T, K> v)
                     throws K {
-                visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<? extends T>, K>() {
+                visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<T>, K>() {
                     boolean hasVisitedFirst = false;
                     Object lastVisited = null;
                     @Override
-                    public boolean visit(List<? extends T> batch) throws K {
+                    public boolean visit(List<T> batch) throws K {
                         for (T item : batch) {
 
                             Object itemKey = function.apply(item);
@@ -484,16 +484,16 @@ public class BatchingVisitables {
      *
      * @see BatchingVisitableView for more helper methods
      */
-    public static <T, S extends T> BatchingVisitable<T> wrap(final BatchingVisitable<? extends S> visitable) {
+    public static <T, S extends T> BatchingVisitable<T> wrap(final BatchingVisitable<S> visitable) {
         if (visitable == null) {
             return null;
         }
         return new BatchingVisitable<T>() {
             @Override
-            public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<? extends T>, K> v) throws K {
+            public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> v) throws K {
                 // This cast is safe because an abortingVisitor can consume more specific values
                 @SuppressWarnings("unchecked")
-                AbortingVisitor<? super List<? extends S>, K> specificVisitor = (AbortingVisitor<? super List<? extends S>, K>) v;
+                AbortingVisitor<? super List<S>, K> specificVisitor = (AbortingVisitor<? super List<S>, K>) v;
                 return visitable.batchAccept(batchSize, specificVisitor);
             }
         };

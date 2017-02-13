@@ -29,11 +29,11 @@ import com.google.common.collect.Lists;
  */
 public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<T> {
     @Override
-    final public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<? extends T>, K> v) throws K {
+    final public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> v) throws K {
         Preconditions.checkArgument(batchSize > 0);
         if (v instanceof ConsistentVisitor) {
             @SuppressWarnings("unchecked")
-            AbortingVisitor<List<? extends T>, K> v2 = (AbortingVisitor<List<? extends T>, K>) v;
+            AbortingVisitor<List<T>, K> v2 = (AbortingVisitor<List<T>, K>) v;
             ConsistentVisitor<T, K> consistentVisitor = (ConsistentVisitor<T, K>) v2;
             Preconditions.checkState(consistentVisitor.visitorAlwaysReturnedTrue,
                     "passed a visitor that has already said stop");
@@ -59,20 +59,20 @@ public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<
     protected abstract <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
                                                                          ConsistentVisitor<T, K> v) throws K;
 
-    protected final static class ConsistentVisitor<T, K extends Exception> implements AbortingVisitor<List<? extends T>, K> {
+    protected final static class ConsistentVisitor<T, K extends Exception> implements AbortingVisitor<List<T>, K> {
         final int batchSize;
-        final AbortingVisitor<? super List<? extends T>, K> v;
+        final AbortingVisitor<? super List<T>, K> v;
         List<T> buffer = Lists.newArrayList();
         boolean visitorAlwaysReturnedTrue = true;
 
-        private ConsistentVisitor(int batchSize, AbortingVisitor<? super List<? extends T>, K> av) {
+        private ConsistentVisitor(int batchSize, AbortingVisitor<? super List<T>, K> av) {
             Preconditions.checkArgument(batchSize > 0);
             this.batchSize = batchSize;
             this.v = Preconditions.checkNotNull(av);
         }
 
         static <T, K extends Exception> ConsistentVisitor<T, K> create(int batchSize,
-                AbortingVisitor<? super List<? extends T>, K> v) {
+                AbortingVisitor<? super List<T>, K> v) {
             return new ConsistentVisitor<T, K>(batchSize, v);
         }
 
@@ -81,7 +81,7 @@ public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<
         }
 
         @Override
-        public boolean visit(List<? extends T> list) throws K {
+        public boolean visit(List<T> list) throws K {
             if (!visitorAlwaysReturnedTrue) {
                 throw new IllegalStateException("Cannot keep visiting if visitor returns false.");
             }

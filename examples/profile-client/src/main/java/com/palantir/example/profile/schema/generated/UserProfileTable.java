@@ -1896,9 +1896,9 @@ public final class UserProfileTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends CookiesIdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<CookiesIdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<? extends CookiesIdxRowResult> rowResults) {
+                public boolean visit(List<CookiesIdxRowResult> rowResults) {
                     Multimap<CookiesIdxRow, CookiesIdxColumn> toRemove = HashMultimap.create();
                     for (CookiesIdxRowResult rowResult : rowResults) {
                         for (CookiesIdxColumnValue columnValue : rowResult.getColumnValues()) {
@@ -2583,9 +2583,9 @@ public final class UserProfileTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends CreatedIdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<CreatedIdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<? extends CreatedIdxRowResult> rowResults) {
+                public boolean visit(List<CreatedIdxRowResult> rowResults) {
                     Multimap<CreatedIdxRow, CreatedIdxColumn> toRemove = HashMultimap.create();
                     for (CreatedIdxRowResult rowResult : rowResults) {
                         for (CreatedIdxColumnValue columnValue : rowResult.getColumnValues()) {
@@ -3270,9 +3270,9 @@ public final class UserProfileTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends UserBirthdaysIdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<UserBirthdaysIdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<? extends UserBirthdaysIdxRowResult> rowResults) {
+                public boolean visit(List<UserBirthdaysIdxRowResult> rowResults) {
                     Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toRemove = HashMultimap.create();
                     for (UserBirthdaysIdxRowResult rowResult : rowResults) {
                         for (UserBirthdaysIdxColumnValue columnValue : rowResult.getColumnValues()) {

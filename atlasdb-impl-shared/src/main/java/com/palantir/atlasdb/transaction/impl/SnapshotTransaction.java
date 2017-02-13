@@ -760,7 +760,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableReference tableRef,
             RangeRequest range,
             int userRequestedSize,
-            AbortingVisitor<List<? extends RowResult<byte[]>>, K> visitor,
+            AbortingVisitor<List<RowResult<byte[]>>, K> visitor,
             int preFilterBatchSize) throws K {
         ClosableIterator<RowResult<byte[]>> postFilterIterator =
                 postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE);
