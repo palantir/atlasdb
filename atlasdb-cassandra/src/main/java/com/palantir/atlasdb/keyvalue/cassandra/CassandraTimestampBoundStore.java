@@ -78,8 +78,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     public synchronized long getUpperLimit() {
         DebugLogger.logger.debug("[GET] Getting upper limit");
         return clientPool.runWithRetry(client -> {
-                    Optional<Column> column = getColumnIfExists(client, ROW_NAME_BYTE_BUFFER, getColumnPath());
-                    TimestampBoundStoreEntry entryInDb = TimestampBoundStoreEntry.createFromColumn(column);
+                    TimestampBoundStoreEntry entryInDb = getStoredTimestamp(client);
                     entryInDb = migrateIfStartingUp(entryInDb);
                     checkMatchingId(entryInDb);
                     setCurrentLimit("[GET]", entryInDb);
@@ -94,10 +93,11 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         casWithRetry(TimestampBoundStoreEntry.create(currentLimit, id), TimestampBoundStoreEntry.create(limit, id));
     }
 
-    private ColumnPath getColumnPath() {
+    private TimestampBoundStoreEntry getStoredTimestamp(Client client) {
         ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
         columnPath.setColumn(ROW_TIMESTAMP_ARRAY);
-        return columnPath;
+        Optional<Column> column = getColumnIfExists(client, ROW_NAME_BYTE_BUFFER, columnPath);
+        return TimestampBoundStoreEntry.createFromColumn(column);
     }
 
     private Optional<Column> getColumnIfExists(Client client, ByteBuffer rowName, ColumnPath columnPath) {
@@ -114,6 +114,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         if (!startingUp) {
             return entryInDb;
         }
+
         DebugLogger.logger.info("[GET] The service is starting up. Attempting to get timestamp bound from the DB and"
                 + " resetting it with this process's ID.");
         TimestampBoundStoreEntry newEntry = TimestampBoundStoreEntry.create(entryInDb.getTimestampOrInitialValue(), id);
