@@ -141,9 +141,9 @@ public class RangeVisitor {
     private long visitInternal(Transaction tx, Visitor visitor, RangeRequest request, MutableRange range) {
         final AtomicLong numVisited = new AtomicLong();
         boolean isEmpty = tx.getRange(tableRef, request).batchAccept(range.getBatchSize(),
-                new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
+                new AbortingVisitor<List<? extends RowResult<byte[]>>, RuntimeException>() {
                     @Override
-                    public boolean visit(List<RowResult<byte[]>> batch) {
+                    public boolean visit(List<? extends RowResult<byte[]>> batch) {
                         visitor.visit(tx, batch);
                         if (batch.size() < range.getBatchSize()) {
                             range.setStartRow(null);
@@ -200,6 +200,6 @@ public class RangeVisitor {
     }
 
     public interface Visitor {
-        void visit(Transaction tx, List<RowResult<byte[]>> batch);
+        void visit(Transaction tx, List<? extends RowResult<byte[]>> batch);
     }
 }

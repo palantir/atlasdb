@@ -581,7 +581,7 @@ public final class StreamTestMaxMemStreamIdxTable implements
     }
 
     @Override
-    public Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> getRowsMultimap(Iterable<StreamTestMaxMemStreamIdxRow> rows) {
+    public Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> getRowsMultimap(Iterable<? extends StreamTestMaxMemStreamIdxRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -607,7 +607,7 @@ public final class StreamTestMaxMemStreamIdxTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> getRowsMultimapInternal(Iterable<StreamTestMaxMemStreamIdxRow> rows, ColumnSelection columns) {
+    private Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> getRowsMultimapInternal(Iterable<? extends StreamTestMaxMemStreamIdxRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -766,5 +766,5 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "HTDDCKZJoVbnP2nQipqeHA==";
+    static String __CLASS_HASH = "DRFE7mdvS/JcLQ1lv8uO1A==";
 }

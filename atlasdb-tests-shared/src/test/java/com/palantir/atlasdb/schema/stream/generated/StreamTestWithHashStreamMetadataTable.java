@@ -497,7 +497,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
     }
 
     @Override
-    public void delete(Iterable<StreamTestWithHashStreamMetadataRow> rows) {
+    public void delete(Iterable<? extends StreamTestWithHashStreamMetadataRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("md")));
@@ -571,7 +571,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
     }
 
     @Override
-    public Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestWithHashStreamMetadataRow> rows) {
+    public Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<? extends StreamTestWithHashStreamMetadataRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -597,7 +597,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<StreamTestWithHashStreamMetadataRow> rows, ColumnSelection columns) {
+    private Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends StreamTestWithHashStreamMetadataRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -750,5 +750,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "oplV0XBNSDiuh+BC+uOnmg==";
+    static String __CLASS_HASH = "ZW+JuxlGLHq+K4dOwHX+Mg==";
 }

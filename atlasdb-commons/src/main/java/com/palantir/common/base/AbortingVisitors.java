@@ -57,10 +57,10 @@ public class AbortingVisitors {
         };
     }
 
-    public static <T, K extends Exception> AbortingVisitor<Iterable<T>, K> batching(final AbortingVisitor<? super T, ? extends K> v) {
-        return new AbortingVisitor<Iterable<T>, K>() {
+    public static <T, K extends Exception> AbortingVisitor<Iterable<? extends T>, K> batching(final AbortingVisitor<? super T, ? extends K> v) {
+        return new AbortingVisitor<Iterable<? extends T>, K>() {
             @Override
-            public boolean visit(Iterable<T> item) throws K {
+            public boolean visit(Iterable<? extends T> item) throws K {
                 for (T t : item) {
                     if (!v.visit(t)) {
                         return false;

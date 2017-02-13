@@ -15,4 +15,5 @@ external timestamp and lock service. Please consult the relevant section of the 
 
    key_value_services/index
    lock_service/index
+   timestamp_service/index
    timelock_service/index

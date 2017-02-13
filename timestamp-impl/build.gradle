@@ -5,6 +5,7 @@ dependencies {
   compile(project(":timestamp-api"))
   compile(project(":atlasdb-commons"))
 
+  compile group: 'com.palantir.remoting1', name: 'tracing'
   compile group: 'org.hamcrest', name: 'hamcrest-core'
   compile group: 'org.hamcrest', name: 'hamcrest-library'
 

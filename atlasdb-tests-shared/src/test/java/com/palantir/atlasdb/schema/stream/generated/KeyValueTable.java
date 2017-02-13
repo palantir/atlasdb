@@ -464,7 +464,7 @@ public final class KeyValueTable implements
     }
 
     @Override
-    public void delete(Iterable<KeyValueRow> rows) {
+    public void delete(Iterable<? extends KeyValueRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("s")));
@@ -538,7 +538,7 @@ public final class KeyValueTable implements
     }
 
     @Override
-    public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getRowsMultimap(Iterable<KeyValueRow> rows) {
+    public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getRowsMultimap(Iterable<? extends KeyValueRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -564,7 +564,7 @@ public final class KeyValueTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<KeyValueRow> rows, ColumnSelection columns) {
+    private Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends KeyValueRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -717,5 +717,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "26REEPuBZ5/GeJc3UVRfug==";
+    static String __CLASS_HASH = "aXUGXbyY3eB7JKmTH2kNfg==";
 }

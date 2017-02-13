@@ -10,6 +10,7 @@ repositories {
 
 schemas = [
     'com.palantir.atlasdb.schema.SweepSchema',
+    'com.palantir.atlasdb.table.description.GenericTestSchema'
 ]
 
 libsDirName = file('build/artifacts')
@@ -32,6 +33,8 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
   compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
+  compile group: 'com.palantir.remoting1', name: 'tracing'
+
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock

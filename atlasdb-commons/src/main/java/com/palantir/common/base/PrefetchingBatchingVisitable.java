@@ -55,9 +55,9 @@ public class PrefetchingBatchingVisitable<T> implements BatchingVisitable<T> {
 
     @Override
     public <K extends Exception> boolean batchAccept(final int batchSize,
-                                                     AbortingVisitor<? super List<T>, K> v)
+                                                     AbortingVisitor<? super List<? extends T>, K> v)
             throws K {
-        final Queue<List<T>> queue = Queues.newArrayDeque();
+        final Queue<List<? extends T>> queue = Queues.newArrayDeque();
         final Lock lock = new ReentrantLock();
         final Condition itemAvailable = lock.newCondition();
         final Condition spaceAvailable = lock.newCondition();
@@ -73,9 +73,9 @@ public class PrefetchingBatchingVisitable<T> implements BatchingVisitable<T> {
             public void run() {
                 try {
                     fetchTime.start();
-                    delegate.batchAccept(batchSize, new AbortingVisitor<List<T>, InterruptedException>() {
+                    delegate.batchAccept(batchSize, new AbortingVisitor<List<? extends T>, InterruptedException>() {
                         @Override
-                        public boolean visit(List<T> item) throws InterruptedException {
+                        public boolean visit(List<? extends T> item) throws InterruptedException {
                             fetchTime.stop();
                             fetchBlockedTime.start();
                             lock.lock();
@@ -118,7 +118,7 @@ public class PrefetchingBatchingVisitable<T> implements BatchingVisitable<T> {
 
         try {
             while (true) {
-                List<T> batch;
+                List<? extends T> batch;
                 visitBlockedTime.start();
                 lock.lock();
                 try {

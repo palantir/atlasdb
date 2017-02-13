@@ -26,5 +26,5 @@ public interface BatchingVisitable<T> {
      *                  one which could be smaller, but will not be empty;
      * @return true if the visitor always returned true or was never called. false if the visitor ever returned false.
      */
-    <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> v) throws K;
+    <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<? extends T>, K> v) throws K;
 }

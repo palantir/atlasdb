@@ -123,6 +123,7 @@ public abstract class AbstractKeyValueServiceTest {
     public static void tearDownKvs() {
         if (keyValueService != null) {
             keyValueService.close();
+            keyValueService = null;
         }
     }
 

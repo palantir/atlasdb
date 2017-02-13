@@ -476,7 +476,7 @@ public final class StreamTestStreamValueTable implements
     }
 
     @Override
-    public void delete(Iterable<StreamTestStreamValueRow> rows) {
+    public void delete(Iterable<? extends StreamTestStreamValueRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
@@ -550,7 +550,7 @@ public final class StreamTestStreamValueTable implements
     }
 
     @Override
-    public Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestStreamValueRow> rows) {
+    public Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<? extends StreamTestStreamValueRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -576,7 +576,7 @@ public final class StreamTestStreamValueTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<StreamTestStreamValueRow> rows, ColumnSelection columns) {
+    private Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends StreamTestStreamValueRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -729,5 +729,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "bGruW2fk4ePTtlzh25i7mA==";
+    static String __CLASS_HASH = "HrEJOO9+OhGlsm0Phi30Iw==";
 }
