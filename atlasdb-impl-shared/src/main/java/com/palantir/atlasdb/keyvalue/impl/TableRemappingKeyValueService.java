@@ -348,6 +348,11 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        return delegate().supportsCheckAndSet();
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         try {
             CheckAndSetRequest request = ImmutableCheckAndSetRequest.builder()

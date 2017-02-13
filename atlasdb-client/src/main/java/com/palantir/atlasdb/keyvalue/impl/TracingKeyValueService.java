@@ -321,6 +321,11 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        return delegate().supportsCheckAndSet();
+    }
+
+    @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace(

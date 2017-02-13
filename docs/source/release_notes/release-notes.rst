@@ -43,6 +43,12 @@ develop
          - Change
 
     *    - |new|
+         - Sweep now takes out a lock to ensure data is not corrupted during online backups.
+           Users performing `live backups <https://palantir.github.io/atlasdb/html/cluster_management/backup-restore.html>`__ should grab this lock before performing a backup, and release the lock once the backup is complete.
+           This enables the backup to safely run alongside either the `background sweeper <https://palantir.github.io/atlasdb/html/cluster_management/sweep/background-sweep.html>`__ or the `sweep CLI <https://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-cli.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1509>`__)
+
+    *    - |new|
          - Initial support for tracing Key Value Services integrating with `http-remoting tracing <https://github.com/palantir/http-remoting#tracing>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
 

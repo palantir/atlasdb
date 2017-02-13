@@ -97,6 +97,11 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        return true;
+    }
+
+    @Override
     public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
         for (Entry<TableReference, byte[]> entry : tableRefToTableMetadata.entrySet()) {
             createTable(entry.getKey(), entry.getValue());
