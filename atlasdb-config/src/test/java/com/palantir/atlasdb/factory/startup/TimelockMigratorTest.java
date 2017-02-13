@@ -78,7 +78,10 @@ public class TimelockMigratorTest {
     public void setUp() {
         when(invalidator.backupAndInvalidate()).thenReturn(BACKUP_TIMESTAMP);
 
-        wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse().withStatus(200).withBody("\"pong\"")));
+        wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse()
+                .withStatus(200)
+                .withBody("pong")
+                .withHeader("Content-Type", "text/plain")));
     }
 
     @Test
