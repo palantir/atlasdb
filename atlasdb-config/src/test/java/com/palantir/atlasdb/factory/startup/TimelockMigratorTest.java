@@ -35,7 +35,6 @@ import org.junit.Test;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -115,7 +114,7 @@ public class TimelockMigratorTest {
 
     @Test
     public void invalidationDoesNotProceedIfTimelockPingUnsuccessful() {
-        wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse().withFault(Fault.MALFORMED_RESPONSE_CHUNK)));
+        wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse().withStatus(500)));
 
         TimelockMigrator migrator = TimelockMigrator.create(CANONICAL_TIMELOCK_CONFIG, invalidator);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);

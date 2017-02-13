@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.spi;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -22,6 +25,8 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public interface AtlasDbFactory {
+    long NO_OP_FAST_FORWARD_TIMESTAMP = Long.MIN_VALUE + 1; // Note: Long.MIN_VALUE itself is not allowed.
+
     String getType();
 
     KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig);
@@ -30,8 +35,9 @@ public interface AtlasDbFactory {
 
     default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
         return () -> {
-            throw new UnsupportedOperationException("AtlasDB doesn't support automated migration for KVS type: "
-                    + getType());
+            Logger log = LoggerFactory.getLogger(AtlasDbFactory.class);
+            log.warn("AtlasDB doesn't yet support automated migration for KVS type: " + getType() + ".");
+            return NO_OP_FAST_FORWARD_TIMESTAMP;
         };
     }
 }

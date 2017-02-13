@@ -52,7 +52,7 @@ public class TimelockMigrator {
      * The purpose of step 1 is largely to handle cases where users accidentally mis-configure their AtlasDB clients to
      * attempt to talk to Timelock; we want to ensure there's a legitimate Timelock Server present before doing the
      * invalidation. In the event of a failure between steps 2 and 3, rerunning this method is safe, because
-     * backupAndInvalidate()'s contract is that it returns the timestamp bound that was backed up, if the current bound
+     * backupAndInvalidate()'s contract is that it returns the timestamp bound that was backed up if the current bound
      * is unreadable.
      */
     @Idempotent
