@@ -23,19 +23,19 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
-public class StandardPersistentLockService implements PersistentLockService {
-    private static final Logger log = LoggerFactory.getLogger(StandardPersistentLockService.class);
+public class KvsBackedPersistentLockService implements PersistentLockService {
+    private static final Logger log = LoggerFactory.getLogger(KvsBackedPersistentLockService.class);
 
     private final LockStore lockStore;
 
     @VisibleForTesting
-    StandardPersistentLockService(LockStore lockStore) {
+    KvsBackedPersistentLockService(LockStore lockStore) {
         this.lockStore = lockStore;
     }
 
     public static PersistentLockService create(KeyValueService kvs) {
         LockStore lockStore = LockStore.create(kvs);
-        return new StandardPersistentLockService(lockStore);
+        return new KvsBackedPersistentLockService(lockStore);
     }
 
     @Override

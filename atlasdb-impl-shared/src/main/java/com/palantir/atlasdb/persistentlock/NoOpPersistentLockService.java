@@ -17,7 +17,7 @@ package com.palantir.atlasdb.persistentlock;
 
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 
-// This class is needed because some KVSs do not support checkAndSet, upon which StandardPersistentLockService relies.
+// This class is needed because some KVSs do not support checkAndSet, upon which KvsBackedPersistentLockService relies.
 public class NoOpPersistentLockService implements PersistentLockService {
 
     @Override

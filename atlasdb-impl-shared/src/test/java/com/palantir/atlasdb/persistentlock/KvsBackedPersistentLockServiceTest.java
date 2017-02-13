@@ -27,7 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
-public class StandardPersistentLockServiceTest {
+public class KvsBackedPersistentLockServiceTest {
     private static final String TEST_REASON = "for-test";
 
     private PersistentLockService service;
@@ -37,13 +37,13 @@ public class StandardPersistentLockServiceTest {
     public void setUp() {
         KeyValueService kvs = new InMemoryKeyValueService(false);
         lockStore = spy(LockStore.create(kvs));
-        service = new StandardPersistentLockService(lockStore);
+        service = new KvsBackedPersistentLockService(lockStore);
     }
 
     @Test
     public void canCreatePersistentLockService() {
         KeyValueService kvs = new InMemoryKeyValueService(false);
-        PersistentLockService pls = StandardPersistentLockService.create(kvs);
+        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs);
         assertNotNull(pls);
     }
 

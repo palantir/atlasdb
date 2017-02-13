@@ -50,7 +50,7 @@ import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueServic
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
-import com.palantir.atlasdb.persistentlock.StandardPersistentLockService;
+import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -137,9 +137,7 @@ public final class TransactionManagers {
                 () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService);
 
-        KeyValueService kvs = getKeyValueService(atlasFactory, lockAndTimestampServices);
-        kvs = TracingKeyValueService.create(kvs);
-        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
+        KeyValueService kvs = getAndInitializeKeyValueService(atlasFactory, lockAndTimestampServices);
 
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 
@@ -216,19 +214,20 @@ public final class TransactionManagers {
             return new NoOpPersistentLockService();
         }
 
-        PersistentLockService pls = StandardPersistentLockService.create(kvs);
+        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs);
         env.register(pls);
         env.register(new CheckAndSetExceptionMapper());
         return pls;
     }
 
-    private static KeyValueService getKeyValueService(ServiceDiscoveringAtlasSupplier atlasFactory,
+    private static KeyValueService getAndInitializeKeyValueService(ServiceDiscoveringAtlasSupplier atlasFactory,
             LockAndTimestampServices lockAndTimestampServices) {
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
-        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
         kvs = ProfilingKeyValueService.create(kvs);
         kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
+        kvs = TracingKeyValueService.create(kvs);
+        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
         TransactionTables.createTables(kvs);
         return kvs;

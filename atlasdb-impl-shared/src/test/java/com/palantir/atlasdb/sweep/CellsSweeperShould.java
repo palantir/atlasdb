@@ -44,9 +44,9 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
-import com.palantir.atlasdb.persistentlock.StandardPersistentLockService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class CellsSweeperShould {
@@ -67,7 +67,7 @@ public class CellsSweeperShould {
 
     private final KeyValueService mockKvs = mock(KeyValueService.class);
     private final Follower mockFollower = mock(Follower.class);
-    private final PersistentLockService mockPls = mock(StandardPersistentLockService.class);
+    private final PersistentLockService mockPls = mock(KvsBackedPersistentLockService.class);
     private final LockEntry mockEntry = mock(LockEntry.class);
 
     private final CellsSweeper sweeper = new CellsSweeper(null, mockKvs, mockPls, 1, ImmutableList.of(mockFollower));
