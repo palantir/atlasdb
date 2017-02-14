@@ -155,7 +155,7 @@ public final class Leaders {
             Optional<SSLSocketFactory> sslSocketFactory,
             Class<T> clazz) {
         return createProxyAndLocalList(localObject, remoteUris, sslSocketFactory, clazz, UserAgents.DEFAULT_USER_AGENT);
-   }
+    }
 
     public static <T> List<T> createProxyAndLocalList(
             T localObject,

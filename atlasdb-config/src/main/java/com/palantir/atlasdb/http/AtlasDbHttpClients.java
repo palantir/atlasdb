@@ -213,10 +213,6 @@ public final class AtlasDbHttpClients {
      * Returns a feign {@link Client} wrapping a {@link com.squareup.okhttp.OkHttpClient} client with optionally
      * specified {@link SSLSocketFactory}.
      */
-    private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory) {
-        return newOkHttpClient(sslSocketFactory, UserAgents.DEFAULT_USER_AGENT);
-    }
-
     private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory, String userAgent) {
         com.squareup.okhttp.OkHttpClient client = new com.squareup.okhttp.OkHttpClient();
 
