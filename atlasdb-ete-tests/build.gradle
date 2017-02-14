@@ -18,6 +18,8 @@ dependencies {
 
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 
+
+
     runtime project(':atlasdb-dbkvs')
 
     runtime project(':atlasdb-cassandra')

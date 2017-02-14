@@ -23,14 +23,7 @@ atlasdb:
   keyValueService:
     type: cassandra
     servers:
-      - n4:9160
+      - n1:9160
     ssl: false
     replicationFactor: 1
     keyspace: atlasete
-  leader:
-    quorumSize: 2
-    localServer: http://{{LOCAL_HOSTNAME}}:3828
-    leaders:
-      - http://n1:3828
-      - http://n2:3828
-      - http://n3:3828
