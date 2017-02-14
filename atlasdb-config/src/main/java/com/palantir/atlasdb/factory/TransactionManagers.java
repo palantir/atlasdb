@@ -138,7 +138,7 @@ public final class TransactionManagers {
                 UserAgents.fromClass(callingClass));
     }
 
-    public static SerializableTransactionManager create(
+    private static SerializableTransactionManager create(
             AtlasDbConfig config,
             Set<Schema> schemas,
             Environment env,
@@ -241,7 +241,8 @@ public final class TransactionManagers {
         return createLockAndTimestampServices(config, env, lock, time, UserAgents.DEFAULT_USER_AGENT);
     }
 
-    public static LockAndTimestampServices createLockAndTimestampServices(
+    @VisibleForTesting
+    static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
             Environment env,
             Supplier<RemoteLockService> lock,
