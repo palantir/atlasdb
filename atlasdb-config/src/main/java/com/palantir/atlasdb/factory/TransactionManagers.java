@@ -316,7 +316,7 @@ public final class TransactionManagers {
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
             String userAgent) {
-        LeaderElectionService leader = Leaders.create(env, leaderConfig);
+        LeaderElectionService leader = Leaders.create(env, leaderConfig, userAgent);
 
         env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
         env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));

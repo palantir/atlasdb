@@ -104,12 +104,20 @@ public final class AtlasDbHttpClients {
      * feign.Client.Default} HTTP client.
      */
     public static <T> T createProxy(Optional<SSLSocketFactory> sslSocketFactory, String uri, Class<T> type) {
+        return createProxy(sslSocketFactory, uri, type, UserAgents.DEFAULT_USER_AGENT);
+    }
+
+    public static <T> T createProxy(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            String uri,
+            Class<T> type,
+            String userAgent) {
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
-                .client(newOkHttpClient(sslSocketFactory))
+                .client(newOkHttpClient(sslSocketFactory, userAgent))
                 .target(type, uri);
     }
 
@@ -119,12 +127,21 @@ public final class AtlasDbHttpClients {
      */
     public static <T> List<T> createProxies(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
+        return createProxies(sslSocketFactory, endpointUris, type, UserAgents.DEFAULT_USER_AGENT);
+    }
+
+    public static <T> List<T> createProxies(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Collection<String> endpointUris,
+            Class<T> type,
+            String userAgent) {
         List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
         for (String uri : endpointUris) {
-            ret.add(createProxy(sslSocketFactory, uri, type));
+            ret.add(createProxy(sslSocketFactory, uri, type, userAgent));
         }
         return ret;
     }
+
 
     /**
      * Constructs an HTTP-invoking dynamic proxy for the specified type that will cycle through the list of supplied
