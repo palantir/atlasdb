@@ -60,6 +60,10 @@ develop
          - Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1578>`__)
 
+    *    - |changed|
+         - Updated http-remoting dependency from 1.0.3 to 1.1.0
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1589>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -77,7 +81,7 @@ v0.31.0
 
     *    - |improved| |devbreak|
          - Improved Oracle performance on DBKVS by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
-           Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.          
+           Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
 
     *    - |devbreak|
