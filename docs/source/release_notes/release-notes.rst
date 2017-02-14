@@ -60,6 +60,12 @@ develop
          - Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1578>`__)
 
+    *    - |devbreak|
+         - Modified the type signature of `BatchingVisitableView#of` to no long accept `final BatchingVisitable<? extends T> underlyingVisitable` and instead accept
+           `final BatchingVisitable<T> underlyingVisitable`.  We do not believe this typing is in use.  If you discover that is not the case and you cannot work around it,
+           please file a ticket on the AtlasDB github page.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1582>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
