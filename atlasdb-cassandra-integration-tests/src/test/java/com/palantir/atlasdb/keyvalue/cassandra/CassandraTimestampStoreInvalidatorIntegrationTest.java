@@ -17,18 +17,24 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
+import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -130,6 +136,37 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
         long limit = getBoundAfterTakingOutOneMillionTimestamps();
         CassandraTestTools.executeInParallelOnExecutorService(() ->
                 assertThat(CassandraTimestampStoreInvalidator.create(kv).backupAndInvalidate()).isEqualTo(limit));
+    }
+
+    /**
+     * Consistent results here mean that:
+     *   (1) all calls to backupAndInvalidate() return the same value V, and
+     *   (2) this value V is the maximum of all successfully stored timestamp bounds.
+     */
+    @Test
+    public void invalidationDuringTimestampIssuanceYieldsConsistentResults() {
+        Set<Long> backedUpValues = Sets.newConcurrentHashSet();
+        AtomicLong maxSuccessfulBound = new AtomicLong(CassandraTimestampUtils.INITIAL_VALUE);
+
+        CassandraTestTools.executeInParallelOnExecutorService(() -> {
+            CassandraTimestampStoreInvalidator storeInvalidator = CassandraTimestampStoreInvalidator.create(kv);
+            try {
+                if (ThreadLocalRandom.current().nextBoolean()) {
+                    backedUpValues.add(storeInvalidator.backupAndInvalidate());
+                } else {
+                    maxSuccessfulBound.accumulateAndGet(getBoundAfterTakingOutOneMillionTimestamps(), Math::max);
+                }
+            } catch (IllegalArgumentException | IllegalStateException | MultipleRunningTimestampServiceError error) {
+                // Can arise if trying to manipulate the timestamp bound during/after an invalidation. This is fine.
+            }
+        });
+
+        if (!backedUpValues.isEmpty()) {
+            invalidator.revalidateFromBackup();
+            assertThat(Iterables.getOnlyElement(backedUpValues)).isEqualTo(maxSuccessfulBound.get());
+            assertWeCanReadTimestamp(maxSuccessfulBound.get());
+        }
+        // 2^-32 chance that nothing got backed up; accept in this case.
     }
 
     private void assertWeCanReadInitialValue() {

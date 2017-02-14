@@ -177,8 +177,8 @@ public class CassandraTimestampBackupIntegrationTest {
     public void resilientToMultipleConcurrentRestores() {
         backupRunner.backupExistingTimestamp();
         CassandraTestTools.executeInParallelOnExecutorService(() -> {
-            CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
-            backupRunner.restoreFromBackup();
+            CassandraTimestampBackupRunner runner = new CassandraTimestampBackupRunner(kv);
+            runner.restoreFromBackup();
         });
         assertBoundEquals(INITIAL_VALUE);
     }
