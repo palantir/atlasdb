@@ -26,7 +26,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 @JsonTypeName(InMemoryAtlasDbConfig.TYPE)
 @AutoService(KeyValueServiceConfig.class)
 @Value.Immutable
-public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
+public abstract class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
     public static final String TYPE = "memory";
 
     @Override
