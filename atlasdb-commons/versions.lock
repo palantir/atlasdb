@@ -54,7 +54,7 @@
             "project": true
         },
         "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3"
+            "locked": "1.1.0"
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1"
@@ -129,7 +129,7 @@
             "project": true
         },
         "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3"
+            "locked": "1.1.0"
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1"
