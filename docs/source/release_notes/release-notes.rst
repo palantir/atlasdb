@@ -64,6 +64,12 @@ develop
          - Updated http-remoting dependency from 1.0.3 to 1.1.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1589>`__)
 
+    *    - |devbreak|
+         - Modified the type signature of `BatchingVisitableView#of` to no long accept `final BatchingVisitable<? extends T> underlyingVisitable` and instead accept
+           `final BatchingVisitable<T> underlyingVisitable`.  We do not believe this typing is in use.  If you discover that is not the case and you cannot work around it,
+           please file a ticket on the AtlasDB github page.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1582>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
