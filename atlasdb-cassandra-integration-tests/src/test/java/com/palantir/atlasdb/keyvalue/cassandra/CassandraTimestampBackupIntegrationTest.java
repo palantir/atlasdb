@@ -67,7 +67,7 @@ public class CassandraTimestampBackupIntegrationTest {
     @Before
     public void setUp() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
-        backupRunner.createTimestampTable();
+        backupRunner.ensureTimestampTableExists();
     }
 
     @After

@@ -51,7 +51,7 @@ public class CassandraTimestampBackupRunner {
      * Creates the timestamp table, if it doesn't already exist.
      */
     @Idempotent
-    public void createTimestampTable() {
+    public void ensureTimestampTableExists() {
         cassandraKeyValueService.createTable(
                 AtlasDbConstants.TIMESTAMP_TABLE,
                 CassandraTimestampUtils.TIMESTAMP_TABLE_METADATA.persistToBytes());

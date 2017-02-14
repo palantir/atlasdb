@@ -33,7 +33,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
     public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private static final long ONE_MILLION = 1000000;
+    private static final long ONE_MILLION = 1_000_000;
 
     private final CassandraKeyValueService kv = CassandraKeyValueService.create(
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
