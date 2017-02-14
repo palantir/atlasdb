@@ -187,6 +187,12 @@ This enables the backup to safely run alongside either the <a class="reference e
 <td>Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1578">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Modified the type signature of <cite>BatchingVisitableView#of</cite> to no long accept <cite>final BatchingVisitable&lt;? extends T&gt; underlyingVisitable</cite> and instead accept
+<cite>final BatchingVisitable&lt;T&gt; underlyingVisitable</cite>.  We do not believe this typing is in use.  If you discover that is not the case and you cannot work around it,
+please file a ticket on the AtlasDB github page.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1582">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
