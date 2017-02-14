@@ -18,22 +18,32 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.joda.time.Duration;
 
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.core.ConditionTimeoutException;
+import com.palantir.common.base.Throwables;
 
 /**
  * Utilities for ETE tests
  * Created by aloro on 12/04/2016.
  */
 public final class CassandraTestTools {
+    public static final int NUM_PARALLEL_TASKS = 32;
+
+    private static final long TIMEOUT_SECONDS = 5;
+
     private CassandraTestTools() {
         // Empty constructor for utility class
     }
@@ -73,5 +83,21 @@ public final class CassandraTestTools {
                 return false;
             }
         };
+    }
+
+    public static void executeInParallelOnExecutorService(Runnable runnable) {
+        ExecutorService executorService = Executors.newFixedThreadPool(NUM_PARALLEL_TASKS);
+        List<Future<?>> futures =
+                Stream.generate(() -> executorService.submit(runnable))
+                        .limit(NUM_PARALLEL_TASKS)
+                        .collect(Collectors.toList());
+        futures.forEach(future -> {
+            try {
+                future.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException exception) {
+                throw Throwables.rewrapAndThrowUncheckedException(exception);
+            }
+        });
+        executorService.shutdown();
     }
 }
