@@ -1122,8 +1122,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 long newVal = byteCount.addAndGet(toAdd);
                 if (newVal >= TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES
                         && newVal - toAdd < TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES) {
-                    log.warn("A single transaction has put quite a few bytes: {}", newVal, new RuntimeException(
-                            "This exception and stack trace are provided for debugging purposes."));
+                    log.warn("A single transaction has put quite a few bytes: {}. "
+                            + " Enable debug logging for more information", newVal);
+                    if (log.isDebugEnabled()) {
+                        log.debug("This exception and stack trace are provided for debugging purposes.",
+                                new RuntimeException());
+                    }
                 }
             }
         }
