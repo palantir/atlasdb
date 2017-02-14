@@ -18,8 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.After;
@@ -42,8 +40,6 @@ public class CassandraTimestampBackupIntegrationTest {
     private static final long TIMESTAMP_2 = TIMESTAMP_1 + 1000;
     private static final long TIMESTAMP_3 = TIMESTAMP_2 + 1000;
 
-    private static final int POOL_SIZE = CassandraTestTools.NUM_PARALLEL_TASKS;
-
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
             .with(new CassandraContainer());
@@ -51,7 +47,6 @@ public class CassandraTimestampBackupIntegrationTest {
     private final CassandraKeyValueService kv = CassandraKeyValueService.create(
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
             CassandraContainer.LEADER_CONFIG);
-    private final ExecutorService executorService = Executors.newFixedThreadPool(POOL_SIZE);
     private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
     private final CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
 
@@ -95,7 +90,7 @@ public class CassandraTimestampBackupIntegrationTest {
 
     @Test
     public void resilientToMultipleConcurrentBackups() {
-        CassandraTestTools.executeInParallelOnExecutorService(backupRunner::backupExistingTimestamp, executorService);
+        CassandraTestTools.executeInParallelOnExecutorService(backupRunner::backupExistingTimestamp);
         assertBoundNotReadable();
         backupRunner.restoreFromBackup();
         assertBoundEquals(INITIAL_VALUE);
@@ -181,21 +176,30 @@ public class CassandraTimestampBackupIntegrationTest {
     @Test
     public void resilientToMultipleConcurrentRestores() {
         backupRunner.backupExistingTimestamp();
-        CassandraTestTools.executeInParallelOnExecutorService(backupRunner::restoreFromBackup, executorService);
+        CassandraTestTools.executeInParallelOnExecutorService(() -> {
+            CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
+            backupRunner.restoreFromBackup();
+        });
         assertBoundEquals(INITIAL_VALUE);
     }
 
     @Test
-    public void resilientToMultipleConcurrentBackupsAndRestores() {
+    public void stateIsWellDefinedEvenUnderConcurrentBackupsAndRestores() {
         timestampBoundStore.getUpperLimit();
         timestampBoundStore.storeUpperLimit(TIMESTAMP_3);
         CassandraTestTools.executeInParallelOnExecutorService(() -> {
-            if (ThreadLocalRandom.current().nextBoolean()) {
-                backupRunner.backupExistingTimestamp();
-            } else {
-                backupRunner.restoreFromBackup();
+            CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
+            try {
+                if (ThreadLocalRandom.current().nextBoolean()) {
+                    backupRunner.backupExistingTimestamp();
+                } else {
+                    backupRunner.restoreFromBackup();
+                }
+            } catch (IllegalStateException exception) {
+                // This is possible under concurrent backup *and* restore.
+                // The point of this test is to ensure that the table is in a well defined state at the end.
             }
-        }, executorService);
+        });
         backupRunner.restoreFromBackup();
         assertThat(timestampBoundStore.getUpperLimit()).isEqualTo(TIMESTAMP_3);
     }

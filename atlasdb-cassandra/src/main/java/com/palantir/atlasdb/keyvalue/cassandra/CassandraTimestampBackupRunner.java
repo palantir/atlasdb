@@ -88,7 +88,7 @@ public class CassandraTimestampBackupRunner {
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                             Pair.create(currentBackupBound, backupValue));
             executeAndVerifyCas(client, casMap);
-            log.info("[BACKUP] Backed up the value {}", currentBackupBound);
+            log.info("[BACKUP] Backed up the value {}", currentBound);
             return PtBytes.toLong(backupValue);
         });
     }

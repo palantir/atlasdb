@@ -21,8 +21,12 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 public class CassandraTimestampStoreInvalidator implements TimestampStoreInvalidator {
     private final CassandraTimestampBackupRunner backupRunner;
 
-    public CassandraTimestampStoreInvalidator(CassandraTimestampBackupRunner backupRunner) {
+    private CassandraTimestampStoreInvalidator(CassandraTimestampBackupRunner backupRunner) {
         this.backupRunner = backupRunner;
+    }
+
+    public static CassandraTimestampStoreInvalidator create(CassandraKeyValueService keyValueService) {
+        return new CassandraTimestampStoreInvalidator(new CassandraTimestampBackupRunner(keyValueService));
     }
 
     @Override

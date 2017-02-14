@@ -17,6 +17,9 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -27,6 +30,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.timestamp.TimestampBoundStore;
+import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class CassandraTimestampStoreInvalidatorIntegrationTest {
     @ClassRule
@@ -38,8 +42,10 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
     private final CassandraKeyValueService kv = CassandraKeyValueService.create(
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
             CassandraContainer.LEADER_CONFIG);
-    private final CassandraTimestampStoreInvalidator invalidator = new CassandraTimestampStoreInvalidator(
-            new CassandraTimestampBackupRunner(kv));
+    private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);
+
+    private static final int POOL_SIZE = 32;
+    private final ExecutorService executorService = Executors.newFixedThreadPool(POOL_SIZE);
 
     @Before
     public void setUp() {
@@ -72,10 +78,8 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     @Test
     public void canBackupTimestampTableIfItExistsWithData() {
-        TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
-        long limit = timestampBoundStore.getUpperLimit();
-        timestampBoundStore.storeUpperLimit(limit + ONE_MILLION);
-        assertThat(invalidator.backupAndInvalidate()).isEqualTo(limit + ONE_MILLION);
+        long limit = getBoundAfterTakingOutOneMillionTimestamps();
+        assertThat(invalidator.backupAndInvalidate()).isEqualTo(limit);
     }
 
     @Test
@@ -90,28 +94,57 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     @Test
     public void restoringValidTimestampTableIsANoOp() {
-        checkThatWeCanReadInitialValue();
+        assertWeCanReadInitialValue();
         invalidator.revalidateFromBackup();
-        checkThatWeCanReadInitialValue();
+        assertWeCanReadInitialValue();
         invalidator.revalidateFromBackup();
-        checkThatWeCanReadInitialValue();
+        assertWeCanReadInitialValue();
     }
 
     @Test
     public void restoringTimestampTableIfItDoesNotExistIsANoOp() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         invalidator.revalidateFromBackup();
-        checkThatWeCanReadInitialValue();
+        assertWeCanReadInitialValue();
     }
 
     @Test
     public void restoringTimestampTableWithNoDataIsANoOp() {
         invalidator.revalidateFromBackup();
-        checkThatWeCanReadInitialValue();
+        assertWeCanReadInitialValue();
     }
 
-    private void checkThatWeCanReadInitialValue() {
+    @Test
+    public void differentInvalidatorsCanReadSameBackupBound() {
+        TimestampStoreInvalidator invalidator2 = CassandraTimestampStoreInvalidator.create(kv);
+        TimestampStoreInvalidator invalidator3 = CassandraTimestampStoreInvalidator.create(kv);
+        long limit = getBoundAfterTakingOutOneMillionTimestamps();
+
+        assertThat(invalidator.backupAndInvalidate()).isEqualTo(limit);
+        assertThat(invalidator2.backupAndInvalidate()).isEqualTo(limit);
+        assertThat(invalidator3.backupAndInvalidate()).isEqualTo(limit);
+    }
+
+    @Test
+    public void multipleInvalidatorsForSameKeyValueServiceAllReturnSameResults() {
+        long limit = getBoundAfterTakingOutOneMillionTimestamps();
+        CassandraTestTools.executeInParallelOnExecutorService(() ->
+                assertThat(CassandraTimestampStoreInvalidator.create(kv).backupAndInvalidate()).isEqualTo(limit));
+    }
+
+    private void assertWeCanReadInitialValue() {
+        assertWeCanReadTimestamp(CassandraTimestampUtils.INITIAL_VALUE);
+    }
+
+    private void assertWeCanReadTimestamp(long expectedTimestamp) {
         TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
-        assertThat(timestampBoundStore.getUpperLimit()).isEqualTo(CassandraTimestampUtils.INITIAL_VALUE);
+        assertThat(timestampBoundStore.getUpperLimit()).isEqualTo(expectedTimestamp);
+    }
+
+    private long getBoundAfterTakingOutOneMillionTimestamps() {
+        TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
+        long newLimit = timestampBoundStore.getUpperLimit() + ONE_MILLION;
+        timestampBoundStore.storeUpperLimit(newLimit);
+        return newLimit;
     }
 }
