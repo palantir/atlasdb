@@ -83,6 +83,11 @@ import com.google.common.base.Preconditions;
         return null;
     }
 
+    @Override
+    public SortedLockCollection<LockDescriptor> getLockDescriptors() {
+        return getLocks();
+    }
+
     /**
      * Returns the time (in milliseconds since the epoch) since this token was
      * created.
@@ -106,6 +111,7 @@ import com.google.common.base.Preconditions;
      * Returns the set of locks which were successfully acquired, as a mapping
      * from descriptor to lock mode.
      */
+    @Deprecated
     public SortedLockCollection<LockDescriptor> getLocks() {
         Preconditions.checkState(!lockMap.isEmpty());
         return lockMap;
