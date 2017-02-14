@@ -188,12 +188,12 @@ public class CassandraTimestampBackupIntegrationTest {
         timestampBoundStore.getUpperLimit();
         timestampBoundStore.storeUpperLimit(TIMESTAMP_3);
         CassandraTestTools.executeInParallelOnExecutorService(() -> {
-            CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
+            CassandraTimestampBackupRunner runner = new CassandraTimestampBackupRunner(kv);
             try {
                 if (ThreadLocalRandom.current().nextBoolean()) {
-                    backupRunner.backupExistingTimestamp();
+                    runner.backupExistingTimestamp();
                 } else {
-                    backupRunner.restoreFromBackup();
+                    runner.restoreFromBackup();
                 }
             } catch (IllegalStateException exception) {
                 // This is possible under concurrent backup *and* restore.
