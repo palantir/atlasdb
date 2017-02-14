@@ -150,7 +150,6 @@
             <!-- <property name="groups" value="/.*/"/> -->
             <property name="groups" value="java,javax,org,com"/>
             <property name="option" value="top"/>
-            <property name="sortStaticImportsAlphabetically" value="true"/>
         </module>
         <module name="Indentation"> <!-- Java Style Guide: Block indentation: +4 spaces -->
             <property name="arrayInitIndent" value="8"/>

@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
@@ -42,6 +43,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.Futures;
@@ -52,13 +54,17 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting1.tracing.Tracers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -78,8 +84,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     public AbstractKeyValueService(ExecutorService executor) {
         this.executor = executor;
         this.tracingPrefs = new TracingPrefsConfig();
-        this.scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory(getClass().getSimpleName() + "-tracing-prefs", true));
+        this.scheduledExecutor = Tracers.wrap(PTExecutors.newSingleThreadScheduledExecutor(
+                new NamedThreadFactory(getClass().getSimpleName() + "-tracing-prefs", true)));
         this.scheduledExecutor.scheduleWithFixedDelay(this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
     }
 
@@ -88,11 +94,16 @@ public abstract class AbstractKeyValueService implements KeyValueService {
      * @param poolSize fixed thread pool size
      * @return a new fixed size thread pool with a keep alive time of 1 minute.
      */
-    protected static ThreadPoolExecutor createFixedThreadPool(String threadNamePrefix, int poolSize) {
+    protected static ExecutorService createFixedThreadPool(String threadNamePrefix, int poolSize) {
         ThreadPoolExecutor executor = PTExecutors.newFixedThreadPool(poolSize,
                 new NamedThreadFactory(threadNamePrefix, false));
         executor.setKeepAliveTime(1, TimeUnit.MINUTES);
-        return executor;
+        return Tracers.wrap(executor);
+    }
+
+    @Override
+    public boolean supportsCheckAndSet() {
+        return true;
     }
 
     @Override
@@ -267,6 +278,19 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     public void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata) {
         for (Map.Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
             putMetadataForTable(entry.getKey(), entry.getValue());
+        }
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        try (ClosableIterator<RowResult<Set<Long>>> iterator = getRangeOfTimestamps(tableRef, range, AtlasDbConstants.MAX_TS)) {
+            while (iterator.hasNext()) {
+                RowResult<Set<Long>> rowResult = iterator.next();
+                Multimap<Cell, Long> cellsToDelete = HashMultimap.create();
+
+                rowResult.getCells().forEach(entry -> cellsToDelete.putAll(entry.getKey(), entry.getValue()));
+                delete(tableRef, cellsToDelete);
+            }
         }
     }
 

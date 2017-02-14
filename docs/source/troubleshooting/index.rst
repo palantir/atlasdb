@@ -87,3 +87,30 @@ If you prefer to clear the lock with the Cassandra Query Language (CQL), then yo
    cqlsh:myKeyspace>
 
 You should now be able to successfully start your services.
+
+.. _clearing-persistent-lock:
+
+Clearing the Backup Lock
+========================
+
+If the background sweeper or an automated backup process dies at the wrong point (i.e. while holding the backup lock), future sweep/backup processes will not complete, because the lock will have been taken.
+If this happens, then you should follow these remediation steps:
+
+.. warning::
+
+   This process should only be attempted if you are sure that the process has died, being aware that it may be running on another machine.
+   Releasing the lock of a running process would invalidate the consistency guarantees of any backups that are started while that process is still running!
+
+1. Find the currently-held lock, by examining the logs. Attempting to acquire a lock will cause the currently held lock to be logged:
+
+.. code-block:: bash
+
+  INFO  [2017-02-01 16:40:34,333] com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper: Request failed.
+    Stored LockEntry: LockEntry{rowName=BackupLock, lockId=1e3a8db1-a1a6-4aae-96bd-e3107b709c5e, reason=manual-backup}
+
+
+2. Curl the ``release`` endpoint. Note that the required formatting is slightly different (keys and values must be surrounded with ``"``).
+
+.. code-block:: bash
+
+   $ curl -X POST --header 'content-type: application/json' '<product-base-url>/persistent-lock/release' -d '{"rowName":"BackupLock","lockId":"1e3a8db1-a1a6-4aae-96bd-e3107b709c5e","reason":"manual-backup"}'

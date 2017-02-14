@@ -8,6 +8,7 @@ ideaSetModuleLevel(idea, targetCompatibility)
 dependencies {
     compile group: 'com.google.code.findbugs', name: 'jsr305'
     compile group: 'com.google.guava', name: 'guava'
+    compile group: 'com.palantir.remoting1', name: 'tracing'
     compile group: 'org.slf4j', name: 'slf4j-api'
     compile project(":commons-executors")
     compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'

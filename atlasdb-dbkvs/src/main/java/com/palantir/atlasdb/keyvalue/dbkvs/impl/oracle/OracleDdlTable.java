@@ -103,7 +103,7 @@ public final class OracleDdlTable implements DbDdlTable {
                 + "  ts         NUMBER(20) NOT NULL,"
                 + "  val        RAW(" + AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD + "), "
                 + (needsOverflow ? "overflow   NUMBER(38), " : "")
-                + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortTableName)
+                + "  CONSTRAINT " + PrimaryKeyConstraintNames.get(shortTableName)
                 + " PRIMARY KEY (row_name, col_name, ts) "
                 + ") organization index compress overflow",
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
@@ -116,7 +116,7 @@ public final class OracleDdlTable implements DbDdlTable {
                 "CREATE TABLE " + shortOverflowTableName + " ("
                 + "  id  NUMBER(38) NOT NULL, "
                 + "  val BLOB NOT NULL,"
-                + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortOverflowTableName) + " PRIMARY KEY (id)"
+                + "  CONSTRAINT " + PrimaryKeyConstraintNames.get(shortOverflowTableName) + " PRIMARY KEY (id)"
                 + ")",
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
         putTableNameMapping(oracleTableNameGetter.getPrefixedOverflowTableName(tableRef), shortOverflowTableName);
@@ -256,10 +256,5 @@ public final class OracleDdlTable implements DbDdlTable {
                 throw Throwables.propagate(e);
             }
         }
-    }
-
-    private String getPrimaryKeyConstraintName(String tableName) {
-        String primaryKeyConstraintPrefix = "pk_";
-        return primaryKeyConstraintPrefix + tableName.substring(primaryKeyConstraintPrefix.length());
     }
 }

@@ -13,11 +13,30 @@
         "com.fasterxml.jackson.core:jackson-core": {
             "locked": "2.6.7",
             "transitive": [
-                "com.fasterxml.jackson.core:jackson-databind"
+                "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.module:jackson-module-afterburner"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.6.7"
+            "locked": "2.6.7",
+            "transitive": [
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.module:jackson-module-afterburner",
+                "com.palantir.remoting1:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting1:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.module:jackson-module-afterburner": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting1:tracing"
+            ]
         },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3",
@@ -39,7 +58,9 @@
         "com.google.guava:guava": {
             "locked": "18.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting1:tracing"
             ]
         },
         "com.mchange:c3p0": {
@@ -85,6 +106,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "com.palantir.remoting1:tracing": {
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.zaxxer:HikariCP": {
@@ -153,6 +180,7 @@
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
+                "com.palantir.remoting1:tracing",
                 "com.zaxxer:HikariCP",
                 "io.dropwizard.metrics:metrics-core"
             ]
@@ -172,11 +200,30 @@
         "com.fasterxml.jackson.core:jackson-core": {
             "locked": "2.6.7",
             "transitive": [
-                "com.fasterxml.jackson.core:jackson-databind"
+                "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.module:jackson-module-afterburner"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.6.7"
+            "locked": "2.6.7",
+            "transitive": [
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.module:jackson-module-afterburner",
+                "com.palantir.remoting1:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting1:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.module:jackson-module-afterburner": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting1:tracing"
+            ]
         },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3",
@@ -198,7 +245,9 @@
         "com.google.guava:guava": {
             "locked": "18.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting1:tracing"
             ]
         },
         "com.mchange:c3p0": {
@@ -244,6 +293,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "com.palantir.remoting1:tracing": {
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.zaxxer:HikariCP": {
@@ -312,6 +367,7 @@
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
+                "com.palantir.remoting1:tracing",
                 "com.zaxxer:HikariCP",
                 "io.dropwizard.metrics:metrics-core"
             ]

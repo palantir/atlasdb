@@ -38,6 +38,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting1.tracing.Tracers;
 import com.palantir.util.Pair;
 
 @Ignore
@@ -48,7 +49,7 @@ public final class RocksDbKeyValuePerfTest {
     private static final int KEY_SIZE = 16;
     private static final int VALUE_SIZE = 100;
     private static final int BATCH_SIZE = 1000;
-    private final ExecutorService executor = PTExecutors.newCachedThreadPool();
+    private final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool());
 
     private RocksDbKeyValueService db = null;
 

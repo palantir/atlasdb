@@ -73,7 +73,7 @@ public class BatchingVisitables {
     private static <T> long countInternal(BatchingVisitable<T> visitable, int batchSize) {
         final long[] count = new long[1];
         visitable.batchAccept(batchSize,
-                AbortingVisitors.batching(
+                AbortingVisitors.<T, RuntimeException>batching(
                         new AbortingVisitor<T, RuntimeException>() {
                             @Override
                             public boolean visit(Object item) {
@@ -85,7 +85,7 @@ public class BatchingVisitables {
     }
 
     public static <T> boolean isEmpty(BatchingVisitable<T> v) {
-        return v.batchAccept(1, AbortingVisitors.batching(AbortingVisitors.<T>alwaysFalse()));
+        return v.batchAccept(1, AbortingVisitors.<T, RuntimeException>batching(AbortingVisitors.<T>alwaysFalse()));
     }
 
     /**
@@ -129,7 +129,7 @@ public class BatchingVisitables {
     @Nullable
     public static <T> T getFirst(BatchingVisitable<T> visitable, @Nullable T defaultElement) {
         final Mutable<T> ret = Mutables.newMutable(defaultElement);
-        visitable.batchAccept(1, AbortingVisitors.batching(new AbortingVisitor<T, RuntimeException>() {
+        visitable.batchAccept(1, AbortingVisitors.<T, RuntimeException>batching(new AbortingVisitor<T, RuntimeException>() {
             @Override
             public boolean visit(T item) {
                 ret.set(item);
@@ -183,7 +183,7 @@ public class BatchingVisitables {
         final Mutable<T> ret = Mutables.newMutable(defaultElement);
         v.batchAccept(
                 DEFAULT_BATCH_SIZE,
-                AbortingVisitors.batching(new AbortingVisitor<T, RuntimeException>() {
+                AbortingVisitors.<T, RuntimeException>batching(new AbortingVisitor<T, RuntimeException>() {
                     boolean hasSeenFirst = false;
                     @Override
                     public boolean visit(T item) throws RuntimeException {
@@ -226,7 +226,7 @@ public class BatchingVisitables {
         final Mutable<T> ret = Mutables.newMutable(defaultElement);
         v.batchAccept(
                 DEFAULT_BATCH_SIZE,
-                AbortingVisitors.batching(new AbortingVisitor<T, RuntimeException>() {
+                AbortingVisitors.<T, RuntimeException>batching(new AbortingVisitor<T, RuntimeException>() {
                     boolean hasSeenFirst = false;
                     @Override
                     public boolean visit(T item) throws RuntimeException {
@@ -253,7 +253,7 @@ public class BatchingVisitables {
     public static <T> T getLast(BatchingVisitable<T> visitable, @Nullable T defaultElement) {
         final Mutable<T> ret = Mutables.newMutable(defaultElement);
         visitable.batchAccept(DEFAULT_BATCH_SIZE,
-                AbortingVisitors.batching(new AbortingVisitor<T, RuntimeException>() {
+                AbortingVisitors.<T, RuntimeException>batching(new AbortingVisitor<T, RuntimeException>() {
             @Override
             public boolean visit(T item) {
                 ret.set(item);

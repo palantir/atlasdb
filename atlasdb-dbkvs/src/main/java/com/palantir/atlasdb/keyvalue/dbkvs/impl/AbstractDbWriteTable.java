@@ -20,14 +20,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
@@ -37,7 +40,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
     protected final TableReference tableRef;
     private final PrefixedTableNames prefixedTableNames;
 
-    public AbstractDbWriteTable(
+    protected AbstractDbWriteTable(
             DdlConfig config,
             ConnectionSupplier conns,
             TableReference tableRef,
@@ -133,11 +136,32 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
 
         String prefixedTableName = prefixedTableNames.get(tableRef);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + prefixedTableName + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + prefixedTableName + ") */ "
+                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(prefixedTableName) + ") */ "
                 + " FROM " + prefixedTableName + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
                 + "  AND m.ts = ?",
                 args);
+    }
+
+    @Override
+    public void delete(RangeRequest range) {
+        String prefixedTableName = prefixedTableNames.get(tableRef);
+        StringBuilder query = new StringBuilder();
+        query.append(" /* DELETE_RANGE (").append(prefixedTableName).append(") */ ");
+        query.append(" DELETE FROM ").append(prefixedTableName).append(" m ");
+
+        WhereClauses whereClauses = WhereClauses.create("m", range);
+
+        List<Object> args = whereClauses.getArguments();
+        List<String> clauses = whereClauses.getClauses();
+
+        if (!clauses.isEmpty()) {
+            query.append(" WHERE ");
+            Joiner.on(" AND ").appendTo(query, clauses);
+        }
+
+        // execute the query
+        conns.get().updateUnregisteredQuery(query.toString(), args.toArray());
     }
 }

@@ -46,7 +46,12 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
+import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
+import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
+import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
+import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -147,9 +152,10 @@ public final class TransactionManagers {
             String userAgent) {
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
+
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
-        LockAndTimestampServices lts = createLockAndTimestampServices(
+        LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
                 env,
                 () -> LockServiceImpl.create(lockServerOptions),
@@ -157,11 +163,14 @@ public final class TransactionManagers {
                 userAgent);
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
-        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
         kvs = ProfilingKeyValueService.create(kvs);
-        kvs = SweepStatsKeyValueService.create(kvs, lts.time());
+        kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
+        kvs = TracingKeyValueService.create(kvs);
+        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
         TransactionTables.createTables(kvs);
+
+        PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
@@ -179,8 +188,8 @@ public final class TransactionManagers {
 
         Cleaner cleaner = new DefaultCleanerBuilder(
                 kvs,
-                lts.lock(),
-                lts.time(),
+                lockAndTimestampServices.lock(),
+                lockAndTimestampServices.time(),
                 LOCK_CLIENT,
                 ImmutableList.of(follower),
                 transactionService)
@@ -193,9 +202,9 @@ public final class TransactionManagers {
                 .buildCleaner();
 
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
-                lts.time(),
+                lockAndTimestampServices.time(),
                 LOCK_CLIENT,
-                lts.lock(),
+                lockAndTimestampServices.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
@@ -203,13 +212,19 @@ public final class TransactionManagers {
                 cleaner,
                 allowHiddenTableAccess);
 
+        CellsSweeper cellsSweeper = new CellsSweeper(
+                transactionManager,
+                kvs,
+                persistentLockService,
+                config.getSweepPersistentLockWaitMillis(),
+                ImmutableList.of(follower));
         SweepTaskRunner sweepRunner = new SweepTaskRunnerImpl(
                 kvs,
                 getUnreadableTsSupplier(transactionManager),
                 getImmutableTsSupplier(transactionManager),
                 transactionService,
                 sweepStrategyManager,
-                new CellsSweeper(transactionManager, kvs, ImmutableList.of(follower)));
+                cellsSweeper);
         BackgroundSweeper backgroundSweeper = new BackgroundSweeperImpl(
                 transactionManager,
                 kvs,
@@ -223,6 +238,17 @@ public final class TransactionManagers {
         backgroundSweeper.runInBackground();
 
         return transactionManager;
+    }
+
+    private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
+        if (!kvs.supportsCheckAndSet()) {
+            return new NoOpPersistentLockService();
+        }
+
+        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs);
+        env.register(pls);
+        env.register(new CheckAndSetExceptionMapper());
+        return pls;
     }
 
     private static Supplier<Long> getImmutableTsSupplier(final TransactionManager txManager) {

@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -31,6 +32,7 @@ import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
@@ -40,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OraclePrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.UpdateExecutor;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.WhereClauses;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
@@ -226,7 +229,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             //
         }
         conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + shortTableName + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + shortTableName + ") */ "
+                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(shortTableName) + ") */ "
                 + " FROM " + shortTableName + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
@@ -234,12 +237,53 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 args);
     }
 
+    @Override
+    public void delete(RangeRequest range) {
+        String shortTableName = getShortTableName();
+
+        switch (config.overflowMigrationState()) {
+            case UNSTARTED:
+                deleteOverflowRange(config.singleOverflowTable(), shortTableName, range);
+                break;
+            case IN_PROGRESS:
+                deleteOverflowRange(config.singleOverflowTable(), shortTableName, range);
+                deleteOverflowRange(getShortOverflowTableName(), shortTableName, range);
+                break;
+            case FINISHING:
+            case FINISHED:
+                deleteOverflowRange(getShortOverflowTableName(), shortTableName, range);
+                break;
+            default:
+                throw new EnumConstantNotPresentException(
+                        OverflowMigrationState.class, config.overflowMigrationState().name());
+        }
+
+        // delete from main table
+        StringBuilder query = new StringBuilder();
+        query.append(" /* DELETE_RANGE (").append(shortTableName).append(") */ ");
+        query.append(" DELETE /*+ INDEX(m pk_").append(shortTableName).append(") */ ");
+        query.append(" FROM ").append(shortTableName).append(" m ");
+
+        // add where clauses
+        WhereClauses whereClauses = WhereClauses.create("m", range);
+
+        List<Object> args = whereClauses.getArguments();
+        List<String> clauses = whereClauses.getClauses();
+
+        if (!clauses.isEmpty()) {
+            query.append(" WHERE ");
+            Joiner.on(" AND ").appendTo(query, clauses);
+        }
+
+        conns.get().updateUnregisteredQuery(query.toString(), args.toArray());
+    }
+
     private void deleteOverflow(String overflowTable, List<Object[]> args) {
         String shortTableName = oraclePrefixedTableNames.get(tableRef);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + overflowTable + ") */ "
+                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ "
                 + "   FROM " + overflowTable + " m "
-                + "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + shortTableName + ") */ "
+                + "  WHERE m.id IN (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName) + ") */ "
                 + "                        i.overflow "
                 + "                   FROM " + shortTableName + " i "
                 + "                  WHERE i.row_name = ? "
@@ -247,6 +291,43 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 + "                    AND i.ts = ? "
                 + "                    AND i.overflow IS NOT NULL)",
                 args);
+    }
+
+    private void deleteOverflowRange(String overflowTable, String shortTableName, RangeRequest range) {
+        StringBuilder query = new StringBuilder();
+        query.append(" /* DELETE_RANGE_OVERFLOW (").append(overflowTable).append(") */ ");
+        query.append(" DELETE /*+ INDEX(m pk_").append(overflowTable).append(") */ ");
+        query.append("   FROM ").append(overflowTable).append(" m ");
+        query.append(" WHERE m.id IN (");
+
+        // subquery for finding rows in the short table
+        query.append("SELECT /*+ INDEX(i pk_").append(shortTableName).append(") */ ");
+        query.append("       i.overflow ");
+        query.append("    FROM ").append(shortTableName).append(" i ");
+
+        // add where clauses
+        WhereClauses whereClauses = WhereClauses.create("i", range, "i.overflow IS NOT NULL");
+
+        List<Object> args = whereClauses.getArguments();
+        List<String> clauses = whereClauses.getClauses();
+
+        if (!clauses.isEmpty()) {
+            query.append(" WHERE ");
+            Joiner.on(" AND ").appendTo(query, clauses);
+        }
+
+        query.append(")");
+
+        // execute the query
+        conns.get().updateUnregisteredQuery(query.toString(), args.toArray());
+    }
+
+    private String getShortTableName() {
+        try {
+            return oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
+        } catch (TableMappingNotFoundException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     private String getShortOverflowTableName() {

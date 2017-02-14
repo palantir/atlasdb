@@ -16,15 +16,23 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.InOrder;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -32,9 +40,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
+import com.palantir.atlasdb.persistentlock.LockEntry;
+import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class CellsSweeperShould {
@@ -55,26 +67,33 @@ public class CellsSweeperShould {
 
     private final KeyValueService mockKvs = mock(KeyValueService.class);
     private final Follower mockFollower = mock(Follower.class);
+    private final PersistentLockService mockPls = mock(KvsBackedPersistentLockService.class);
+    private final LockEntry mockEntry = mock(LockEntry.class);
 
-    private final CellsSweeper cellsSweeper = new CellsSweeper(null, mockKvs, ImmutableList.of(mockFollower));
+    private final CellsSweeper sweeper = new CellsSweeper(null, mockKvs, mockPls, 1, ImmutableList.of(mockFollower));
+
+    @Before
+    public void setUp() {
+        when(mockPls.acquireBackupLock(anyString())).thenReturn(mockEntry);
+    }
 
     @Test
     public void ensureCellSweepDeletesCells() {
-        cellsSweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
+        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
 
         verify(mockKvs).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
     }
 
     @Test
     public void ensureSentinelsAreAddedToKvs() {
-        cellsSweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
+        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
         verify(mockKvs).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
     }
 
     @Test
     public void ensureFollowersRunAgainstCellsToSweep() {
-        cellsSweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
+        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
 
         verify(mockFollower)
                 .run(any(), any(), eq(SINGLE_CELL_TS_PAIR.keySet()), eq(Transaction.TransactionType.HARD_DELETE));
@@ -82,16 +101,64 @@ public class CellsSweeperShould {
 
     @Test
     public void sentinelsArentAddedIfNoCellsToSweep() {
-        cellsSweeper.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), SINGLE_CELL_SET);
+        sweeper.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), SINGLE_CELL_SET);
 
         verify(mockKvs, never()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
     }
 
     @Test
     public void ensureNoActionTakenIfNoCellsToSweep() {
-        cellsSweeper.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), ImmutableSet.of());
+        sweeper.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), ImmutableSet.of());
 
         verify(mockKvs, never()).delete(any(), any());
         verify(mockKvs, never()).addGarbageCollectionSentinelValues(any(), any());
+        verify(mockPls, never()).acquireBackupLock(any());
+    }
+
+    @Test
+    public void acquireTheBackupLockBeforeDeletingButAfterAddingSentinels() {
+        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
+
+        InOrder ordering = inOrder(mockPls, mockKvs);
+
+        ordering.verify(mockKvs, atLeastOnce()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
+        ordering.verify(mockPls, times(1)).acquireBackupLock("Sweep");
+        ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
+    }
+
+    @Test
+    public void retryWhenAcquiringTheBackupLock() {
+        when(mockPls.acquireBackupLock(anyString())).thenThrow(mock(CheckAndSetException.class)).thenReturn(mockEntry);
+
+        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
+
+        InOrder ordering = inOrder(mockPls, mockKvs);
+
+        ordering.verify(mockPls, times(2)).acquireBackupLock("Sweep");
+        ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
+    }
+
+    @Test
+    public void releaseTheBackupLockAfterDeleteAndAddingSentinels() {
+        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
+
+        InOrder ordering = inOrder(mockPls, mockKvs);
+
+        ordering.verify(mockKvs, atLeastOnce()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
+        ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
+        ordering.verify(mockPls, times(1)).releaseLock(eq(mockEntry));
+    }
+
+    @Test
+    public void releaseTheBackupLockIfDeleteFails() throws Exception {
+        doThrow(Exception.class).when(mockKvs).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
+
+        try {
+            sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
+        } catch (Exception e) {
+            // expected
+        }
+
+        verify(mockPls, times(1)).releaseLock(eq(mockEntry));
     }
 }
