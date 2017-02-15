@@ -139,6 +139,9 @@ public class TransactionManagersTest {
                         environment,
                         LockServiceImpl::create,
                         InMemoryTimestampService::new,
+                        () -> {
+                            throw new IllegalStateException("I don't support invalidation at the moment");
+                        },
                         USER_AGENT);
         lockAndTimestampServices.time().getFreshTimestamp();
         lockAndTimestampServices.lock().currentTimeMillis();
