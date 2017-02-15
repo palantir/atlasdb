@@ -633,19 +633,6 @@
                 "com.palantir.atlasdb:atlasdb-console"
             ]
         },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl"
-            ]
-        },
         "org.jooq:jooq": {
             "locked": "3.6.4",
             "transitive": [

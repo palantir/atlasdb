@@ -36,8 +36,7 @@ public abstract class CellsAndTimestamps {
                 .build();
     }
 
-    public static CellsAndTimestamps fromCellAndTimestampsList(
-            List<? extends CellAndTimestamps> cellAndTimestampsList) {
+    public static CellsAndTimestamps fromCellAndTimestampsList(List<CellAndTimestamps> cellAndTimestampsList) {
         return ImmutableCellsAndTimestamps.builder()
                 .addAllCellAndTimestampsList(cellAndTimestampsList)
                 .build();

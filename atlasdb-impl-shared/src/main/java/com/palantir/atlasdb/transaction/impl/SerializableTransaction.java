@@ -151,14 +151,17 @@ public class SerializableTransaction extends SnapshotTransaction {
             @Override
             public <K extends Exception> boolean batchAccept(
                     int batchSize,
-                    AbortingVisitor<? super List<? extends Entry<Cell, byte[]>>, K> visitor)
+                    AbortingVisitor<? super List<Entry<Cell, byte[]>>, K> visitor)
                     throws K {
-                boolean hitEnd = visitable.batchAccept(batchSize, items -> {
-                    if (items.size() < batchSize) {
-                        reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
+                boolean hitEnd = visitable.batchAccept(batchSize, new AbortingVisitor<List<Entry<Cell, byte[]>>, K>() {
+                    @Override
+                    public boolean visit(List<Entry<Cell, byte[]>> items) throws K {
+                        if (items.size() < batchSize) {
+                            reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
+                        }
+                        markRowColumnRangeRead(tableRef, row, columnRangeSelection, items);
+                        return visitor.visit(items);
                     }
-                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, items);
-                    return visitor.visit(items);
                 });
                 if (hitEnd) {
                     reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
@@ -199,14 +202,17 @@ public class SerializableTransaction extends SnapshotTransaction {
             @Override
             public <K extends Exception> boolean batchAccept(
                     int batchSize,
-                    AbortingVisitor<? super List<? extends RowResult<byte[]>>, K> visitor)
+                    AbortingVisitor<? super List<RowResult<byte[]>>, K> visitor)
                     throws K {
-                boolean hitEnd = ret.batchAccept(batchSize, items -> {
-                    if (items.size() < batchSize) {
-                        reachedEndOfRange(tableRef, rangeRequest);
+                boolean hitEnd = ret.batchAccept(batchSize, new AbortingVisitor<List<RowResult<byte[]>>, K>() {
+                    @Override
+                    public boolean visit(List<RowResult<byte[]>> items) throws K {
+                        if (items.size() < batchSize) {
+                            reachedEndOfRange(tableRef, rangeRequest);
+                        }
+                        markRangeRead(tableRef, rangeRequest, items);
+                        return visitor.visit(items);
                     }
-                    markRangeRead(tableRef, rangeRequest, items);
-                    return visitor.visit(items);
                 });
                 if (hitEnd) {
                     reachedEndOfRange(tableRef, rangeRequest);
@@ -329,7 +335,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         cellsForTable.addAll(searched);
     }
 
-    private void markRangeRead(TableReference table, RangeRequest range, List<? extends RowResult<byte[]>> result) {
+    private void markRangeRead(TableReference table, RangeRequest range, List<RowResult<byte[]>> result) {
         if (!isSerializableTable(table)) {
             return;
         }
@@ -346,7 +352,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             TableReference table,
             byte[] row,
             BatchColumnRangeSelection range,
-            List<? extends Entry<Cell, byte[]>> result) {
+            List<Entry<Cell, byte[]>> result) {
         if (!isSerializableTable(table)) {
             return;
         }
@@ -653,7 +659,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private List<Entry<Cell, ByteBuffer>> filterWritesFromCells(
-            Iterable<? extends Entry<Cell, byte[]>> cells,
+            Iterable<Entry<Cell, byte[]>> cells,
             Map<Cell, byte[]> writes) {
         List<Entry<Cell, ByteBuffer>> cellsWithoutWrites = Lists.newArrayList();
         for (Entry<Cell, byte[]> cell : cells) {
@@ -667,7 +673,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private List<Entry<Cell, ByteBuffer>> filterWritesFromRows(
-            Iterable<? extends RowResult<byte[]>> rows,
+            Iterable<RowResult<byte[]>> rows,
             Map<Cell, byte[]> writes) {
         List<Entry<Cell, ByteBuffer>> rowsWithoutWrites = Lists.newArrayList();
         for (RowResult<byte[]> row : rows) {

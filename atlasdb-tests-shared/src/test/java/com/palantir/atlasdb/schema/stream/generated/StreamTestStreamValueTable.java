@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class StreamTestStreamValueTable implements
         AtlasDbMutablePersistentTable<StreamTestStreamValueTable.StreamTestStreamValueRow,
                                          StreamTestStreamValueTable.StreamTestStreamValueNamedColumnValue<?>,
@@ -476,7 +477,7 @@ public final class StreamTestStreamValueTable implements
     }
 
     @Override
-    public void delete(Iterable<? extends StreamTestStreamValueRow> rows) {
+    public void delete(Iterable<StreamTestStreamValueRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
@@ -550,7 +551,7 @@ public final class StreamTestStreamValueTable implements
     }
 
     @Override
-    public Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<? extends StreamTestStreamValueRow> rows) {
+    public Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestStreamValueRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -576,7 +577,7 @@ public final class StreamTestStreamValueTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends StreamTestStreamValueRow> rows, ColumnSelection columns) {
+    private Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<StreamTestStreamValueRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -729,5 +730,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "HrEJOO9+OhGlsm0Phi30Iw==";
+    static String __CLASS_HASH = "hRWcl65ve85eqBpsgA34uQ==";
 }

@@ -112,6 +112,15 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest rangeRequest) {
+        if (!rangeRequest.getColumnNames().isEmpty()) {
+            throw new UnsupportedOperationException(
+                    "We don't anticipate supporting deleting ranges with partial column selections.");
+        }
+        delegate.deleteRange(tableRef, rangeRequest);
+    }
+
+    @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         if (timestampByCell.isEmpty()) {
             return ImmutableMap.of();

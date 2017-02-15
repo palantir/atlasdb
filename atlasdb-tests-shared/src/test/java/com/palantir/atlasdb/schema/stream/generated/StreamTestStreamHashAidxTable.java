@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class StreamTestStreamHashAidxTable implements
         AtlasDbDynamicMutablePersistentTable<StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow,
                                                 StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumn,
@@ -581,7 +582,7 @@ public final class StreamTestStreamHashAidxTable implements
     }
 
     @Override
-    public Multimap<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue> getRowsMultimap(Iterable<? extends StreamTestStreamHashAidxRow> rows) {
+    public Multimap<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue> getRowsMultimap(Iterable<StreamTestStreamHashAidxRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -607,7 +608,7 @@ public final class StreamTestStreamHashAidxTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue> getRowsMultimapInternal(Iterable<? extends StreamTestStreamHashAidxRow> rows, ColumnSelection columns) {
+    private Multimap<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue> getRowsMultimapInternal(Iterable<StreamTestStreamHashAidxRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -766,5 +767,5 @@ public final class StreamTestStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "J8xGxb0ve3zm3HIfEyw0uQ==";
+    static String __CLASS_HASH = "XfjWxxqqd7VAbfflfAroWA==";
 }

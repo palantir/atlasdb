@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class GenericRangeScanTestTable implements
         AtlasDbDynamicMutablePersistentTable<GenericRangeScanTestTable.GenericRangeScanTestRow,
                                                 GenericRangeScanTestTable.GenericRangeScanTestColumn,
@@ -581,7 +582,7 @@ public final class GenericRangeScanTestTable implements
     }
 
     @Override
-    public Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> getRowsMultimap(Iterable<? extends GenericRangeScanTestRow> rows) {
+    public Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> getRowsMultimap(Iterable<GenericRangeScanTestRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -607,7 +608,7 @@ public final class GenericRangeScanTestTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> getRowsMultimapInternal(Iterable<? extends GenericRangeScanTestRow> rows, ColumnSelection columns) {
+    private Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> getRowsMultimapInternal(Iterable<GenericRangeScanTestRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -686,9 +687,9 @@ public final class GenericRangeScanTestTable implements
     }
 
     public void deleteRanges(Iterable<RangeRequest> ranges) {
-        BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends GenericRangeScanTestRowResult>, RuntimeException>() {
+        BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<GenericRangeScanTestRowResult>, RuntimeException>() {
             @Override
-            public boolean visit(List<? extends GenericRangeScanTestRowResult> rowResults) {
+            public boolean visit(List<GenericRangeScanTestRowResult> rowResults) {
                 Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toRemove = HashMultimap.create();
                 for (GenericRangeScanTestRowResult rowResult : rowResults) {
                     for (GenericRangeScanTestColumnValue columnValue : rowResult.getColumnValues()) {
@@ -800,5 +801,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "HC8jpHEu9OYxOfY9Q8v3Rw==";
+    static String __CLASS_HASH = "5j2By9LyGQuWYe21v8KcFA==";
 }

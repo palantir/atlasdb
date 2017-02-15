@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class StreamTestWithHashStreamHashAidxTable implements
         AtlasDbDynamicMutablePersistentTable<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow,
                                                 StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumn,
@@ -581,7 +582,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
     }
 
     @Override
-    public Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> getRowsMultimap(Iterable<? extends StreamTestWithHashStreamHashAidxRow> rows) {
+    public Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> getRowsMultimap(Iterable<StreamTestWithHashStreamHashAidxRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -607,7 +608,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> getRowsMultimapInternal(Iterable<? extends StreamTestWithHashStreamHashAidxRow> rows, ColumnSelection columns) {
+    private Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> getRowsMultimapInternal(Iterable<StreamTestWithHashStreamHashAidxRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -766,5 +767,5 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "gOEbCjFojJgKpfUZkTsqpA==";
+    static String __CLASS_HASH = "CssGEeV3/9ll9VVmcD2gSw==";
 }

@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class DataTable implements
         AtlasDbMutablePersistentTable<DataTable.DataRow,
                                          DataTable.DataNamedColumnValue<?>,
@@ -598,7 +599,7 @@ public final class DataTable implements
     }
 
     @Override
-    public void delete(Iterable<? extends DataRow> rows) {
+    public void delete(Iterable<DataRow> rows) {
         Multimap<DataRow, DataNamedColumnValue<?>> result = getRowsMultimap(rows);
         deleteIndex1Idx(result);
         deleteIndex2Idx(result);
@@ -677,7 +678,7 @@ public final class DataTable implements
     }
 
     @Override
-    public Multimap<DataRow, DataNamedColumnValue<?>> getRowsMultimap(Iterable<? extends DataRow> rows) {
+    public Multimap<DataRow, DataNamedColumnValue<?>> getRowsMultimap(Iterable<DataRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -703,7 +704,7 @@ public final class DataTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<DataRow, DataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends DataRow> rows, ColumnSelection columns) {
+    private Multimap<DataRow, DataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<DataRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -861,6 +862,7 @@ public final class DataTable implements
     }
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+    @SuppressWarnings("all")
     public static final class Index1IdxTable implements
             AtlasDbDynamicMutablePersistentTable<Index1IdxTable.Index1IdxRow,
                                                     Index1IdxTable.Index1IdxColumn,
@@ -1412,7 +1414,7 @@ public final class DataTable implements
         }
 
         @Override
-        public Multimap<Index1IdxRow, Index1IdxColumnValue> getRowsMultimap(Iterable<? extends Index1IdxRow> rows) {
+        public Multimap<Index1IdxRow, Index1IdxColumnValue> getRowsMultimap(Iterable<Index1IdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -1438,7 +1440,7 @@ public final class DataTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<Index1IdxRow, Index1IdxColumnValue> getRowsMultimapInternal(Iterable<? extends Index1IdxRow> rows, ColumnSelection columns) {
+        private Multimap<Index1IdxRow, Index1IdxColumnValue> getRowsMultimapInternal(Iterable<Index1IdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -1517,9 +1519,9 @@ public final class DataTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends Index1IdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<Index1IdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<? extends Index1IdxRowResult> rowResults) {
+                public boolean visit(List<Index1IdxRowResult> rowResults) {
                     Multimap<Index1IdxRow, Index1IdxColumn> toRemove = HashMultimap.create();
                     for (Index1IdxRowResult rowResult : rowResults) {
                         for (Index1IdxColumnValue columnValue : rowResult.getColumnValues()) {
@@ -1548,6 +1550,7 @@ public final class DataTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+    @SuppressWarnings("all")
     public static final class Index2IdxTable implements
             AtlasDbDynamicMutablePersistentTable<Index2IdxTable.Index2IdxRow,
                                                     Index2IdxTable.Index2IdxColumn,
@@ -2087,7 +2090,7 @@ public final class DataTable implements
         }
 
         @Override
-        public Multimap<Index2IdxRow, Index2IdxColumnValue> getRowsMultimap(Iterable<? extends Index2IdxRow> rows) {
+        public Multimap<Index2IdxRow, Index2IdxColumnValue> getRowsMultimap(Iterable<Index2IdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -2113,7 +2116,7 @@ public final class DataTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<Index2IdxRow, Index2IdxColumnValue> getRowsMultimapInternal(Iterable<? extends Index2IdxRow> rows, ColumnSelection columns) {
+        private Multimap<Index2IdxRow, Index2IdxColumnValue> getRowsMultimapInternal(Iterable<Index2IdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -2192,9 +2195,9 @@ public final class DataTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends Index2IdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<Index2IdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<? extends Index2IdxRowResult> rowResults) {
+                public boolean visit(List<Index2IdxRowResult> rowResults) {
                     Multimap<Index2IdxRow, Index2IdxColumn> toRemove = HashMultimap.create();
                     for (Index2IdxRowResult rowResult : rowResults) {
                         for (Index2IdxColumnValue columnValue : rowResult.getColumnValues()) {
@@ -2223,6 +2226,7 @@ public final class DataTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+    @SuppressWarnings("all")
     public static final class Index3IdxTable implements
             AtlasDbDynamicMutablePersistentTable<Index3IdxTable.Index3IdxRow,
                                                     Index3IdxTable.Index3IdxColumn,
@@ -2740,7 +2744,7 @@ public final class DataTable implements
         }
 
         @Override
-        public Multimap<Index3IdxRow, Index3IdxColumnValue> getRowsMultimap(Iterable<? extends Index3IdxRow> rows) {
+        public Multimap<Index3IdxRow, Index3IdxColumnValue> getRowsMultimap(Iterable<Index3IdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -2766,7 +2770,7 @@ public final class DataTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<Index3IdxRow, Index3IdxColumnValue> getRowsMultimapInternal(Iterable<? extends Index3IdxRow> rows, ColumnSelection columns) {
+        private Multimap<Index3IdxRow, Index3IdxColumnValue> getRowsMultimapInternal(Iterable<Index3IdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -2845,9 +2849,9 @@ public final class DataTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends Index3IdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<Index3IdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<? extends Index3IdxRowResult> rowResults) {
+                public boolean visit(List<Index3IdxRowResult> rowResults) {
                     Multimap<Index3IdxRow, Index3IdxColumn> toRemove = HashMultimap.create();
                     for (Index3IdxRowResult rowResult : rowResults) {
                         for (Index3IdxColumnValue columnValue : rowResult.getColumnValues()) {
@@ -2876,6 +2880,7 @@ public final class DataTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+    @SuppressWarnings("all")
     public static final class Index4IdxTable implements
             AtlasDbDynamicMutablePersistentTable<Index4IdxTable.Index4IdxRow,
                                                     Index4IdxTable.Index4IdxColumn,
@@ -3415,7 +3420,7 @@ public final class DataTable implements
         }
 
         @Override
-        public Multimap<Index4IdxRow, Index4IdxColumnValue> getRowsMultimap(Iterable<? extends Index4IdxRow> rows) {
+        public Multimap<Index4IdxRow, Index4IdxColumnValue> getRowsMultimap(Iterable<Index4IdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -3441,7 +3446,7 @@ public final class DataTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<Index4IdxRow, Index4IdxColumnValue> getRowsMultimapInternal(Iterable<? extends Index4IdxRow> rows, ColumnSelection columns) {
+        private Multimap<Index4IdxRow, Index4IdxColumnValue> getRowsMultimapInternal(Iterable<Index4IdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -3520,9 +3525,9 @@ public final class DataTable implements
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends Index4IdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<Index4IdxRowResult>, RuntimeException>() {
                 @Override
-                public boolean visit(List<? extends Index4IdxRowResult> rowResults) {
+                public boolean visit(List<Index4IdxRowResult> rowResults) {
                     Multimap<Index4IdxRow, Index4IdxColumn> toRemove = HashMultimap.create();
                     for (Index4IdxRowResult rowResult : rowResults) {
                         for (Index4IdxColumnValue columnValue : rowResult.getColumnValues()) {
@@ -3636,5 +3641,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jBfeZXhBQBT0h0JTHK+04Q==";
+    static String __CLASS_HASH = "UmlZ/CIu0X0svbBEwA0o9A==";
 }

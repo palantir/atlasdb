@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class CheckAndSetTable implements
         AtlasDbMutablePersistentTable<CheckAndSetTable.CheckAndSetRow,
                                          CheckAndSetTable.CheckAndSetNamedColumnValue<?>,
@@ -464,7 +465,7 @@ public final class CheckAndSetTable implements
     }
 
     @Override
-    public void delete(Iterable<? extends CheckAndSetRow> rows) {
+    public void delete(Iterable<CheckAndSetRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
@@ -538,7 +539,7 @@ public final class CheckAndSetTable implements
     }
 
     @Override
-    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimap(Iterable<? extends CheckAndSetRow> rows) {
+    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimap(Iterable<CheckAndSetRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -564,7 +565,7 @@ public final class CheckAndSetTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends CheckAndSetRow> rows, ColumnSelection columns) {
+    private Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimapInternal(Iterable<CheckAndSetRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -717,5 +718,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/9n4pYFQN4hnqMn44C51mw==";
+    static String __CLASS_HASH = "zUVONFcU1MVQQE0BKFnfxA==";
 }

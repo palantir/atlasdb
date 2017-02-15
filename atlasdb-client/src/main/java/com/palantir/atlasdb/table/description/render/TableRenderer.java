@@ -201,6 +201,7 @@ public class TableRenderer {
                 importRenderer.renderImports();
             }
             line("@Generated(\"",  TableRenderer.class.getName(), "\")");
+            line("@SuppressWarnings(\"all\")");
             line("public ", isNestedIndex ? "static " : "", "final class ", Table, " implements");
             if (isNamedSet(table)) {
                 if (isExpiring(table)) {
@@ -936,7 +937,7 @@ public class TableRenderer {
             } line("}");
             line();
             line("@Override");
-            line("public void delete(Iterable<? extends ", Row, "> rows) {"); {
+            line("public void delete(Iterable<", Row, "> rows) {"); {
 
                 if (!cellReferencingIndices.isEmpty()) {
                     line("Multimap<", Row, ", ", ColumnValue, "> result = getRowsMultimap(rows);");
@@ -996,9 +997,9 @@ public class TableRenderer {
 
         private void renderDynamicDeleteRanges() {
             line("public void deleteRanges(Iterable<RangeRequest> ranges) {"); {
-                line("BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<? extends ", RowResult, ">, RuntimeException>() {"); {
+                line("BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<", RowResult, ">, RuntimeException>() {"); {
                     line("@Override");
-                    line("public boolean visit(List<? extends ", RowResult, "> rowResults) {"); {
+                    line("public boolean visit(List<", RowResult, "> rowResults) {"); {
                         line("Multimap<", Row, ", ", Column, "> toRemove = HashMultimap.create();");
                         line("for (", RowResult, " rowResult : rowResults) {"); {
                             line("for (", ColumnValue, " columnValue : rowResult.getColumnValues()) {"); {
@@ -1016,9 +1017,9 @@ public class TableRenderer {
             line("public void deleteRanges(Iterable<RangeRequest> ranges) {"); {
                 line("BatchingVisitables.concat(getRanges(ranges))");
                 line("                  .transform(", RowResult, ".getRowNameFun())");
-                line("                  .batchAccept(1000, new AbortingVisitor<List<? extends ", Row, ">, RuntimeException>() {"); {
+                line("                  .batchAccept(1000, new AbortingVisitor<List<", Row, ">, RuntimeException>() {"); {
                     line("@Override");
-                    line("public boolean visit(List<? extends ", Row, "> rows) {"); {
+                    line("public boolean visit(List<", Row, "> rows) {"); {
                         line("delete(rows);");
                         line("return true;");
                     } line("}");
@@ -1132,7 +1133,7 @@ public class TableRenderer {
 
         private void renderGetRowsMultimap(boolean isDynamic) {
             line("@Override");
-            line("public Multimap<", Row, ", ", ColumnValue, "> getRowsMultimap(Iterable<? extends ", Row, "> rows) {"); {
+            line("public Multimap<", Row, ", ", ColumnValue, "> getRowsMultimap(Iterable<", Row, "> rows) {"); {
                 line("return getRowsMultimapInternal(rows, allColumns);");
             } line("}");
             line();
@@ -1158,7 +1159,7 @@ public class TableRenderer {
                 line("return AsyncProxy.create(exec.submit(c), Multimap.class);");
             } line("}");
             line();
-            line("private Multimap<", Row, ", ", ColumnValue, "> getRowsMultimapInternal(Iterable<? extends ", Row, "> rows, ColumnSelection columns) {"); {
+            line("private Multimap<", Row, ", ", ColumnValue, "> getRowsMultimapInternal(Iterable<", Row, "> rows, ColumnSelection columns) {"); {
                 line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);");
                 line("return getRowMapFromRowResults(results.values());");
             } line("}");

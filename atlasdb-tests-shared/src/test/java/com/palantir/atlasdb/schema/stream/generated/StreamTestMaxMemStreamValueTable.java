@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class StreamTestMaxMemStreamValueTable implements
         AtlasDbMutablePersistentTable<StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRow,
                                          StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueNamedColumnValue<?>,
@@ -476,7 +477,7 @@ public final class StreamTestMaxMemStreamValueTable implements
     }
 
     @Override
-    public void delete(Iterable<? extends StreamTestMaxMemStreamValueRow> rows) {
+    public void delete(Iterable<StreamTestMaxMemStreamValueRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
@@ -550,7 +551,7 @@ public final class StreamTestMaxMemStreamValueTable implements
     }
 
     @Override
-    public Multimap<StreamTestMaxMemStreamValueRow, StreamTestMaxMemStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<? extends StreamTestMaxMemStreamValueRow> rows) {
+    public Multimap<StreamTestMaxMemStreamValueRow, StreamTestMaxMemStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestMaxMemStreamValueRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -576,7 +577,7 @@ public final class StreamTestMaxMemStreamValueTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<StreamTestMaxMemStreamValueRow, StreamTestMaxMemStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends StreamTestMaxMemStreamValueRow> rows, ColumnSelection columns) {
+    private Multimap<StreamTestMaxMemStreamValueRow, StreamTestMaxMemStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<StreamTestMaxMemStreamValueRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -729,5 +730,5 @@ public final class StreamTestMaxMemStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "y8N3BFHR13illAZO+0P1Tw==";
+    static String __CLASS_HASH = "Xv1oaLd0aS5+6Yz7kafmNQ==";
 }

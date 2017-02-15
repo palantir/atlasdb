@@ -41,7 +41,7 @@ public class CassandraTimestampBackupIntegrationTest {
     private static final long TIMESTAMP_3 = TIMESTAMP_2 + 1000;
 
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
+    public static final Containers CONTAINERS = new Containers(CassandraTimestampBackupIntegrationTest.class)
             .with(new CassandraContainer());
 
     private final CassandraKeyValueService kv = CassandraKeyValueService.create(
