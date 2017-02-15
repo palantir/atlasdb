@@ -63,12 +63,13 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             ConnectionSupplier conns,
             OverflowSequenceSupplier sequenceSupplier,
             OracleTableNameGetter oracleTableNameGetter,
+            OraclePrefixedTableNames oraclePrefixedTableNames,
             TableReference tableRef) {
         this.config = config;
         this.conns = conns;
         this.overflowSequenceSupplier = sequenceSupplier;
         this.oracleTableNameGetter = oracleTableNameGetter;
-        this.oraclePrefixedTableNames = new OraclePrefixedTableNames(config, conns, oracleTableNameGetter);
+        this.oraclePrefixedTableNames = oraclePrefixedTableNames;
         this.tableRef = tableRef;
     }
 
@@ -76,9 +77,11 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             OracleDdlConfig config,
             ConnectionSupplier conns,
             OracleTableNameGetter oracleTableNameGetter,
+            OraclePrefixedTableNames oraclePrefixedTableNames,
             TableReference tableRef) {
         OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(conns, config.tablePrefix());
-        return new OracleOverflowWriteTable(config, conns, sequenceSupplier, oracleTableNameGetter, tableRef);
+        return new OracleOverflowWriteTable(
+                config, conns, sequenceSupplier, oracleTableNameGetter, oraclePrefixedTableNames, tableRef);
     }
 
     @Override
@@ -136,7 +139,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             }
         }
         try {
-            String shortTableName = oraclePrefixedTableNames.get(tableRef);
+            String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
             conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + shortTableName + ") */"
                     + " INSERT INTO " + shortTableName + " (row_name, col_name, ts, val, overflow) "
                     + " VALUES (?, ?, ?, ?, ?) ",
@@ -161,7 +164,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             }
             while (true) {
                 try {
-                    String shortTableName = oraclePrefixedTableNames.get(tableRef);
+                    String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
                     conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + shortTableName + ") */"
                             + " INSERT INTO " + shortTableName
                             + "   (row_name, col_name, ts, val, overflow)"
@@ -218,8 +221,8 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 throw new EnumConstantNotPresentException(
                         OverflowMigrationState.class, config.overflowMigrationState().name());
         }
+        String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         SqlConnection conn = conns.get();
-        String shortTableName = oraclePrefixedTableNames.get(tableRef);
         try {
             log.info("Got connection for delete on table {}: {}, autocommit={}",
                     shortTableName,
@@ -279,7 +282,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private void deleteOverflow(String overflowTable, List<Object[]> args) {
-        String shortTableName = oraclePrefixedTableNames.get(tableRef);
+        String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
                 + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ "
                 + "   FROM " + overflowTable + " m "

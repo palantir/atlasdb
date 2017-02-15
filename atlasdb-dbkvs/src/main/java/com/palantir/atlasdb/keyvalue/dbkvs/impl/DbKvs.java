@@ -89,6 +89,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.BatchingStrategies;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.BatchingTaskRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ImmediateSingleBatchTaskRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ParallelTaskRunner;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresPrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
@@ -140,12 +141,10 @@ public class DbKvs extends AbstractKeyValueService {
         this.connections = connections;
         if (DBType.ORACLE.equals(dbTables.getDbType())) {
             prefixedTableNames = new OraclePrefixedTableNames(
-                    config,
-                    new ConnectionSupplier(connections),
                     ((OracleDbTableFactory) dbTables).getOracleTableNameGetter());
             batchingQueryRunner = new ImmediateSingleBatchTaskRunner();
         } else {
-            prefixedTableNames = new PrefixedTableNames(config);
+            prefixedTableNames = new PostgresPrefixedTableNames(config);
             batchingQueryRunner = new ParallelTaskRunner(
                     newFixedThreadPool(config.poolSize()),
                     config.fetchBatchSize());
