@@ -13,7 +13,9 @@ dependencies {
   compile project(':commons-api')
 
   testCompile project(':atlasdb-config')
+  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'org.mockito', name: 'mockito-core'
+  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 
   processor group: 'org.immutables', name: 'value'
   processor "com.google.auto.service:auto-service:1.0-rc2"

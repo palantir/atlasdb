@@ -16,9 +16,9 @@ External Timelock Service
     installation
     migration
 
-The AtlasDB Timelock Service is an external implementation of the Timestamp and Lock services. Running an external
-Timelock Service (as opposed to running timestamp and lock services embedded within one's clients) provides several
-benefits:
+The AtlasDB Timelock Service is an external implementation of the :ref:`Timestamp <timestamp-service>` and
+:ref:`Lock <lock-service>` services. Running an external Timelock Service (as opposed to running timestamp and lock
+services embedded within one's clients) provides several benefits:
 
 - Additional reliability; we have subjected our new implementation to Jepsen testing, and do not rely on the
   consistency of the user's key-value services.

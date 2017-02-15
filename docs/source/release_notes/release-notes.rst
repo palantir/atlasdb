@@ -42,14 +42,93 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved| |userbreak|
+         - AtlasDB HTTP clients will now have a user agent of ``<project.name>-atlasdb (project.version)`` as opposed
+           to ``okhttp/2.5.0``. This should make associating request logs with AtlasDB much easier. However, user
+           workflows relying on associating requests with a user agent of ``okhttp/2.5.0`` with AtlasDB will no longer
+           work.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1535>`__)
+
+    *    - |new|
+         - Sweep now takes out a lock to ensure data is not corrupted during online backups.
+           Users performing `live backups <https://palantir.github.io/atlasdb/html/cluster_management/backup-restore.html>`__ should grab this lock before performing a backup, and release the lock once the backup is complete.
+           This enables the backup to safely run alongside either the `background sweeper <https://palantir.github.io/atlasdb/html/cluster_management/sweep/background-sweep.html>`__ or the `sweep CLI <https://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-cli.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1509>`__)
+
+    *    - |new|
+         - Initial support for tracing Key Value Services integrating with `http-remoting tracing <https://github.com/palantir/http-remoting#tracing>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
+
+    *    - |improved|
+         - Improved heap usage during heavy DBKVS querying
+           (Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
+
+    *    - |fixed|
+         - Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1578>`__)
+
+    *    - |devbreak|
+         - Modified the type signature of `BatchingVisitableView#of` to no long accept `final BatchingVisitable<? extends T> underlyingVisitable` and instead accept
+           `final BatchingVisitable<T> underlyingVisitable`.  We do not believe this typing is in use.  If you discover that is not the case and you cannot work around it,
+           please file a ticket on the AtlasDB github page.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1582>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.31.0
+=======
+
+8 Feb 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved| |devbreak|
+         - Improved Oracle performance on DBKVS by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
+           Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.          
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
+
+    *    - |devbreak|
+         - Removed the unused ``TieredKeyValueService`` which offered the ability to spread tables across multiple KVSs that exist in a stacked hierarchy (primary & secondary).
+           If you require this KVS please file a ticket to have it reinstated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1553>`__)
+
+    *    - |devbreak|
+         - Fast forwarding a persistent timestamp service to ``Long.MIN_VALUE`` will now throw an exception, whereas previously it would be a no-op.
+           Calling the ``fast-forward`` endpoint without specifying the fast-forward timestamp parameter will now default to submitting ``Long.MIN_VALUE``, and thus return a HTTP 400 response.
+
+           We are introducing this break to prevent accidental corruption by forgetting to submit the fast-forward timestamp.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1538>`__)
+
+    *    - |fixed|
+         - Oracle queries now use the correct hints when generating the query plan.
+           This will improve performance for Oracle on DB KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1549>`__)
+
+    *    - |userbreak|
+         - Oracle table names can now have a maximum length of 27 characters instead of the previous limit of 30.
+           This is to ensure consistency in naming the primary key constraint which adds a prefix of ``pk_`` to the table name.
+           This will break any installation of Oracle with the ``useTableMapping`` flag set to ``true``.
+
+           Since Oracle support is still in beta, we are not providing an automatic migration path from older versions of AtlasDB.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1552>`__)
+
+    *    - |fixed|
+         - Support for Oracle 12c batch responses.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1540>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.30.0
 =======
+
+27 Jan 2017
 
 .. list-table::
     :widths: 5 40
@@ -103,6 +182,8 @@ v0.30.0
 v0.29.0
 =======
 
+17 Jan 2017
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -141,6 +222,8 @@ v0.29.0
 =======
 v0.28.0
 =======
+
+13 Jan 2017
 
 .. list-table::
     :widths: 5 40
@@ -207,6 +290,8 @@ v0.28.0
 v0.27.2
 =======
 
+10 Jan 2017
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -226,6 +311,8 @@ v0.27.2
 =======
 v0.27.1
 =======
+
+6 Jan 2017
 
 .. list-table::
     :widths: 5 40
@@ -247,8 +334,10 @@ v0.27.1
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-0.27.0
+v0.27.0
 =======
+
+6 Jan 2017
 
 .. list-table::
     :widths: 5 40
@@ -308,11 +397,19 @@ v0.27.1
            See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
 
+    *     - |new|
+          - Add KeyValueStore.deleteRange(); makes large swathes of row deletions faster,
+            like transaction sweeping. Also can be used as a fallback option for people
+            having issues with their backup solutions not allowing truncate() during a backup
+            (`Pull Request <https://github.com/palantir/atlasdb/pull/1391>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.26.0
 =======
+
+5 Dec 2016
 
 .. list-table::
     :widths: 5 40
@@ -359,6 +456,8 @@ v0.26.0
 =======
 v0.25.0
 =======
+
+25 Nov 2016
 
 .. list-table::
     :widths: 5 40
@@ -427,6 +526,8 @@ v0.25.0
 v0.24.0
 =======
 
+15 Nov 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -490,6 +591,8 @@ v0.24.0
 =======
 v0.23.0
 =======
+
+8 Nov 2016
 
 .. list-table::
     :widths: 5 40
@@ -559,6 +662,8 @@ v0.23.0
 v0.22.0
 =======
 
+28 Oct 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -590,6 +695,8 @@ v0.22.0
 v0.21.1
 =======
 
+24 Oct 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -614,6 +721,8 @@ v0.21.1
 v0.21.0
 =======
 
+21 Oct 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -637,6 +746,8 @@ v0.21.0
 =======
 v0.20.0
 =======
+
+19 Oct 2016
 
 .. list-table::
     :widths: 5 40
@@ -692,6 +803,8 @@ v0.20.0
 =======
 v0.19.0
 =======
+
+11 Oct 2016
 
 .. list-table::
     :widths: 5 40
@@ -750,6 +863,8 @@ v0.19.0
 v0.18.0
 =======
 
+3 Oct 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -779,6 +894,8 @@ v0.18.0
 v0.17.0
 =======
 
+28 Sept 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -802,6 +919,8 @@ v0.17.0
 =======
 v0.16.0
 =======
+
+26 Sept 2016
 
 .. list-table::
     :widths: 5 40
@@ -830,6 +949,8 @@ v0.16.0
 =======
 v0.15.0
 =======
+
+14 Sept 2016
 
 .. list-table::
     :widths: 5 40
@@ -885,6 +1006,8 @@ v0.15.0
 v0.14.0
 =======
 
+8 Sept 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -923,6 +1046,8 @@ v0.14.0
 =======
 v0.13.0
 =======
+
+30 Aug 2016
 
 .. list-table::
     :widths: 5 40
@@ -967,6 +1092,8 @@ v0.13.0
 v0.12.0
 =======
 
+22 Aug 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -1002,6 +1129,8 @@ v0.12.0
 v0.11.4
 =======
 
+29 Jul 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -1019,6 +1148,8 @@ v0.11.4
 =======
 v0.11.2
 =======
+
+29 Jul 2016
 
 .. list-table::
     :widths: 5 40
@@ -1040,6 +1171,8 @@ v0.11.2
 =======
 v0.11.1
 =======
+
+28 Jul 2016
 
 .. list-table::
     :widths: 5 40
@@ -1063,6 +1196,8 @@ v0.11.1
 =======
 v0.11.0
 =======
+
+27 Jul 2016
 
 .. list-table::
     :widths: 5 40
@@ -1117,6 +1252,8 @@ v0.11.0
 v0.10.0
 =======
 
+13 Jul 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -1151,6 +1288,8 @@ v0.10.0
 ======
 v0.9.0
 ======
+
+11 Jul 2016
 
 .. list-table::
     :widths: 5 40
@@ -1207,6 +1346,8 @@ v0.9.0
 v0.8.0
 ======
 
+5 Jul 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -1223,6 +1364,8 @@ v0.8.0
 ======
 v0.7.0
 ======
+
+4 Jul 2016
 
 .. list-table::
     :widths: 5 40
@@ -1255,6 +1398,8 @@ v0.7.0
 v0.6.0
 ======
 
+26 May 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -1281,6 +1426,8 @@ v0.6.0
 v0.5.0
 ======
 
+16 May 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -1296,6 +1443,8 @@ v0.5.0
 ======
 v0.4.1
 ======
+
+17 May 2016
 
 .. list-table::
     :widths: 5 40

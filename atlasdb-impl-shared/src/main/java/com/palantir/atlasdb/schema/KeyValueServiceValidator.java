@@ -42,6 +42,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting1.tracing.Tracers;
 
 public class KeyValueServiceValidator {
     private final TransactionManager validationFromTransactionManager;
@@ -97,7 +98,7 @@ public class KeyValueServiceValidator {
     }
 
     private void validateTables(Set<TableReference> tables) {
-        ExecutorService executor = PTExecutors.newFixedThreadPool(threads);
+        ExecutorService executor = Tracers.wrap(PTExecutors.newFixedThreadPool(threads));
         List<Future<Void>> futures = Lists.newArrayList();
         for (final TableReference table : tables) {
             Future<Void> future = executor.submit(new Callable<Void>() {

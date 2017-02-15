@@ -21,6 +21,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting1.tracing.Tracers;
 
 @ThreadSafe
 public class PersistentTimestampService implements TimestampService, TimestampManagementService {
@@ -42,8 +43,9 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
         PersistentUpperLimit upperLimit = new PersistentUpperLimit(tbs);
         LastReturnedTimestamp lastReturned = new LastReturnedTimestamp(upperLimit.get());
         AvailableTimestamps availableTimestamps = new AvailableTimestamps(lastReturned, upperLimit);
-        ExecutorService executor = PTExecutors.newSingleThreadExecutor(
-                PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
+        ExecutorService executor = Tracers.wrap(
+                PTExecutors.newSingleThreadExecutor(
+                        PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true)));
 
         return new PersistentTimestampService(availableTimestamps, executor);
     }
@@ -67,6 +69,9 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
 
     @Override
     public void fastForwardTimestamp(long currentTimestamp) {
+        Preconditions.checkArgument(currentTimestamp != TimestampManagementService.SENTINEL_TIMESTAMP,
+                "Cannot fast forward to the sentinel timestamp %s. If you accessed this timestamp service remotely"
+                        + " this is likely due to specifying an incorrect query parameter.", currentTimestamp);
         availableTimestamps.fastForwardTo(currentTimestamp);
     }
 

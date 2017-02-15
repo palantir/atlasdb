@@ -67,6 +67,11 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        delegate().deleteRange(tableRef, range);
+    }
+
+    @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
         return delegate().getAllTimestamps(tableRef, keys, timestamp);
     }
@@ -148,6 +153,11 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         delegate().putUnlessExists(tableRef, values);
+    }
+
+    @Override
+    public boolean supportsCheckAndSet() {
+        return delegate().supportsCheckAndSet();
     }
 
     @Override

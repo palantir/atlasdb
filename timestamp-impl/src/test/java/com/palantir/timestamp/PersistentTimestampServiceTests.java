@@ -86,6 +86,11 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
         assertThat(timestampBoundStore.numberOfAllocations(), is(lessThan(2)));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectFastForwardToTheSentinelValue() {
+        getTimestampManagementService().fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP);
+    }
+
     private void getTimestampAndIgnoreErrors() {
         try {
             getTimestampService().getFreshTimestamp();

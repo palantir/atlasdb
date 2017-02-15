@@ -34,7 +34,7 @@ Required parameters:
            :ref:`timelock-server-configuration`.
 
     *    - serversList::servers
-         - A list of all hosts. The hosts must be specified as addresses, i.e. ``host:port``.
+         - A list of all hosts. The hosts must be specified as addresses, i.e. ``https://host:port``.
            At least one server must be specified. AtlasDB assumes that the Timelock Servers being pointed at
            are part of the same Timelock cluster.
 

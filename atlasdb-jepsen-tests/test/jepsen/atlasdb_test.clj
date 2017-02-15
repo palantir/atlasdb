@@ -10,5 +10,5 @@
 (deftest timestamp-test
    (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test))))))
 
-;;(deftest lock-test
-;;   (is (:valid? (:results (jepsen/run! (lock/lock-test))))))
+(deftest lock-test
+   (is (:valid? (:results (jepsen/run! (lock/lock-test))))))

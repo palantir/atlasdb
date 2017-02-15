@@ -26,6 +26,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -37,6 +38,8 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 public class LockStoreTest {
     private static final String REASON = "reason";
+    private static final UUID OTHER_ID = UUID.fromString("4-8-15-16-23"/*-42*/);
+    private static final String OTHER_REASON = "bar";
 
     private InMemoryKeyValueService kvs;
     private LockStore lockStore;
@@ -69,34 +72,42 @@ public class LockStoreTest {
 
     @Test
     public void canAcquireLock() throws Exception {
-        LockEntry lockEntry = lockStore.acquireLock(REASON);
+        LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
 
         assertThat(lockStore.allLockEntries(), contains(lockEntry));
     }
 
     @Test(expected = CheckAndSetException.class)
     public void canNotAcquireLockTwice() throws Exception {
-        lockStore.acquireLock(REASON);
-        lockStore.acquireLock(REASON);
+        lockStore.acquireBackupLock(REASON);
+        lockStore.acquireBackupLock(REASON);
     }
 
     @Test(expected = CheckAndSetException.class)
     public void canNotAcquireLockTwiceForDifferentReasons() throws Exception {
-        lockStore.acquireLock(REASON);
-        lockStore.acquireLock("other-reason");
+        lockStore.acquireBackupLock(REASON);
+        lockStore.acquireBackupLock("other-reason");
     }
 
     @Test(expected = CheckAndSetException.class)
     public void canNotAcquireLockThatWasTakenOutByAnotherStore() throws Exception {
         LockStore otherLockStore = LockStore.create(kvs);
-        otherLockStore.acquireLock("grabbed by other store");
+        otherLockStore.acquireBackupLock("grabbed by other store");
 
-        lockStore.acquireLock(REASON);
+        lockStore.acquireBackupLock(REASON);
+    }
+
+    @Test
+    public void canViewLockAcquiredByAnotherLockStore() {
+        LockStore otherLockStore = LockStore.create(kvs);
+        LockEntry otherLockEntry = otherLockStore.acquireBackupLock("grabbed by other store");
+
+        assertThat(lockStore.allLockEntries(), contains(otherLockEntry));
     }
 
     @Test
     public void releaseLockPopulatesStoreWithOpenValue() throws Exception {
-        LockEntry lockEntry = lockStore.acquireLock(REASON);
+        LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
         lockStore.releaseLock(lockEntry);
 
         assertThat(lockStore.allLockEntries(), contains(LockStore.LOCK_OPEN));
@@ -104,37 +115,49 @@ public class LockStoreTest {
 
     @Test(expected = CheckAndSetException.class)
     public void cannotReleaseLockWhenLockIsOpen() throws Exception {
-        LockEntry otherLockEntry = ImmutableLockEntry.builder().rowName("name").lockId("42").reason("other").build();
+        LockEntry otherLockEntry = ImmutableLockEntry.builder()
+                .lockName("name")
+                .instanceId(OTHER_ID)
+                .reason(OTHER_REASON)
+                .build();
         lockStore.releaseLock(otherLockEntry);
     }
 
     @Test(expected = CheckAndSetException.class)
     public void canNotReleaseNonExistentLock() throws Exception {
-        LockEntry lockEntry = lockStore.acquireLock(REASON);
+        LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
 
-        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("42").reason("other").build();
+        LockEntry otherLockEntry = ImmutableLockEntry.builder()
+                .from(lockEntry)
+                .instanceId(OTHER_ID)
+                .reason(OTHER_REASON)
+                .build();
         lockStore.releaseLock(otherLockEntry);
     }
 
     @Test
     public void canReleaseLockAndReacquire() throws Exception {
-        LockEntry lockEntry = lockStore.acquireLock(REASON);
+        LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
         lockStore.releaseLock(lockEntry);
 
-        lockStore.acquireLock(REASON);
+        lockStore.acquireBackupLock(REASON);
     }
 
     @Test(expected = CheckAndSetException.class)
     public void canNotReacquireAfterReleasingDifferentLock() throws Exception {
-        LockEntry lockEntry = lockStore.acquireLock(REASON);
+        LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
 
-        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("42").reason("other").build();
+        LockEntry otherLockEntry = ImmutableLockEntry.builder()
+                .from(lockEntry)
+                .instanceId(OTHER_ID)
+                .reason(OTHER_REASON)
+                .build();
         try {
             lockStore.releaseLock(otherLockEntry);
         } catch (CheckAndSetException e) {
             // expected
         }
 
-        lockStore.acquireLock(REASON);
+        lockStore.acquireBackupLock(REASON);
     }
 }
