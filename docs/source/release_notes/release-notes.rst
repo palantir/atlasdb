@@ -93,6 +93,7 @@ develop
            The AtlasDB team has so far only implemented automated migration for Cassandra. If using DBKVS or other
            key-value services, it remains the user's responsibility to ensure that they have performed the migration
            detailed in :ref:`Migration to External Timelock Services <timelock-migration>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1579>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
