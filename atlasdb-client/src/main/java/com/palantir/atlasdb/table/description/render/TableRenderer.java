@@ -201,6 +201,7 @@ public class TableRenderer {
                 importRenderer.renderImports();
             }
             line("@Generated(\"",  TableRenderer.class.getName(), "\")");
+            line("@SuppressWarnings(\"all\")");
             line("public ", isNestedIndex ? "static " : "", "final class ", Table, " implements");
             if (isNamedSet(table)) {
                 if (isExpiring(table)) {

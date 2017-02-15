@@ -70,6 +70,7 @@ import com.palantir.util.file.TempFileUtils;
 import net.jpountz.lz4.LZ4BlockInputStream;
 
 @Generated("com.palantir.atlasdb.table.description.render.StreamStoreRenderer")
+@SuppressWarnings("all")
 public final class StreamTestMaxMemStreamStore extends AbstractPersistentStreamStore {
     public static final int BLOCK_SIZE_IN_BYTES = 1000000; // 1MB. DO NOT CHANGE THIS WITHOUT AN UPGRADE TASK
     public static final int IN_MEMORY_THRESHOLD = 2147483639; // streams under this size are kept in memory when loaded
