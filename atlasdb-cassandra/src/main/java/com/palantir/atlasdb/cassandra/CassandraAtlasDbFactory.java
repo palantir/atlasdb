@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBackupRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidator;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -73,8 +72,6 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
-        return new CassandraTimestampStoreInvalidator(
-                new CassandraTimestampBackupRunner(
-                        ((CassandraKeyValueService) rawKvs)));
+        return CassandraTimestampStoreInvalidator.create(rawKvs);
     }
 }

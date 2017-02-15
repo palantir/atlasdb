@@ -34,6 +34,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
@@ -43,8 +44,10 @@ public class CassandraTimestampBackupRunner {
 
     private final CassandraKeyValueService cassandraKeyValueService;
 
-    public CassandraTimestampBackupRunner(CassandraKeyValueService cassandraKeyValueService) {
-        this.cassandraKeyValueService = cassandraKeyValueService;
+    public CassandraTimestampBackupRunner(KeyValueService keyValueService) {
+        Preconditions.checkArgument(keyValueService instanceof CassandraKeyValueService,
+                "Cannot create a Cassandra timestamp backup runner from a non-Cassandra KVS.");
+        this.cassandraKeyValueService = (CassandraKeyValueService) keyValueService;
     }
 
     /**
