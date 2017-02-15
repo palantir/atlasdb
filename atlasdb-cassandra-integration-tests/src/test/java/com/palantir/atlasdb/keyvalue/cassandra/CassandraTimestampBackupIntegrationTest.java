@@ -54,7 +54,7 @@ public class CassandraTimestampBackupIntegrationTest {
     private static final int POOL_SIZE = 32;
 
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
+    public static final Containers CONTAINERS = new Containers(CassandraTimestampBackupIntegrationTest.class)
             .with(new CassandraContainer());
 
     private final CassandraKeyValueService kv = CassandraKeyValueService.create(

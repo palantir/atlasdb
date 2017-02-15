@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
@@ -32,6 +33,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.util.Pair;
 
 public class CassandraTimestampUtilsTest {
@@ -49,6 +51,7 @@ public class CassandraTimestampUtilsTest {
     private static final byte[] CQL_SUCCESS = {1};
     private static final byte[] CQL_FAILURE = {0};
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    private static final UUID ID = UUID.randomUUID();
 
     private static final Map<String, Pair<byte[], byte[]>> CAS_MAP_TWO_COLUMNS
             = ImmutableMap.<String, Pair<byte[], byte[]>>builder()
@@ -79,6 +82,14 @@ public class CassandraTimestampUtilsTest {
     public void longConvertedToBytesIsValidTimestampData() {
         assertThat(CassandraTimestampUtils.isValidTimestampData(PtBytes.toBytes(1234567L))).isTrue();
         assertThat(CassandraTimestampUtils.isValidTimestampData(new byte[Long.BYTES])).isTrue();
+    }
+
+    @Test
+    public void entryConvertedToBytesIsValidTimestampData() {
+        assertThat(CassandraTimestampUtils.isValidTimestampData(
+                TimestampBoundStoreEntry.create(1234567L, ID).getByteValue())).isTrue();
+        assertThat(CassandraTimestampUtils.isValidTimestampData(
+                new byte[Long.BYTES + ValueType.UUID.sizeOf(null)])).isTrue();
     }
 
     @Test

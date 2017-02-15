@@ -42,6 +42,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed| |improved|
+         - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `ticket <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
+
+           This fix also enables better detection of legitimate occurrences of ``MultipleRunningTimestampServicesError``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1577>`__)
+
     *    - |improved| |userbreak|
          - AtlasDB HTTP clients will now have a user agent of ``<project.name>-atlasdb (project.version)`` as opposed
            to ``okhttp/2.5.0``. This should make associating request logs with AtlasDB much easier. However, user
