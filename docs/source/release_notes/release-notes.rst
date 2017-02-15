@@ -66,6 +66,11 @@ develop
            please file a ticket on the AtlasDB github page.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1582>`__)
 
+    *    - |improved|
+         - Reduced logging noise from large Cassandra gets and puts by removing ERROR messages and only providing stacktraces at DEBUG.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1590>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
