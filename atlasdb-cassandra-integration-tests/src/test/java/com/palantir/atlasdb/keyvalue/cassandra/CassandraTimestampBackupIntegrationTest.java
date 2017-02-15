@@ -18,16 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.junit.After;
 import org.junit.Before;
@@ -41,7 +32,6 @@ import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.common.base.Throwables;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class CassandraTimestampBackupIntegrationTest {
@@ -50,9 +40,6 @@ public class CassandraTimestampBackupIntegrationTest {
     private static final long TIMESTAMP_2 = TIMESTAMP_1 + 1000;
     private static final long TIMESTAMP_3 = TIMESTAMP_2 + 1000;
 
-    private static final long TIMEOUT_SECONDS = 5L;
-    private static final int POOL_SIZE = 32;
-
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraTimestampBackupIntegrationTest.class)
             .with(new CassandraContainer());
@@ -60,14 +47,13 @@ public class CassandraTimestampBackupIntegrationTest {
     private final CassandraKeyValueService kv = CassandraKeyValueService.create(
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
             CassandraContainer.LEADER_CONFIG);
-    private final ExecutorService executorService = Executors.newFixedThreadPool(POOL_SIZE);
     private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
     private final CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
 
     @Before
     public void setUp() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
-        backupRunner.createTimestampTable();
+        backupRunner.ensureTimestampTableExists();
     }
 
     @After
@@ -104,7 +90,7 @@ public class CassandraTimestampBackupIntegrationTest {
 
     @Test
     public void resilientToMultipleConcurrentBackups() {
-        executeInParallelOnExecutorService(backupRunner::backupExistingTimestamp);
+        CassandraTestTools.executeInParallelOnExecutorService(backupRunner::backupExistingTimestamp);
         assertBoundNotReadable();
         backupRunner.restoreFromBackup();
         assertBoundEquals(INITIAL_VALUE);
@@ -190,19 +176,28 @@ public class CassandraTimestampBackupIntegrationTest {
     @Test
     public void resilientToMultipleConcurrentRestores() {
         backupRunner.backupExistingTimestamp();
-        executeInParallelOnExecutorService(backupRunner::restoreFromBackup);
+        CassandraTestTools.executeInParallelOnExecutorService(() -> {
+            CassandraTimestampBackupRunner runner = new CassandraTimestampBackupRunner(kv);
+            runner.restoreFromBackup();
+        });
         assertBoundEquals(INITIAL_VALUE);
     }
 
     @Test
-    public void resilientToMultipleConcurrentBackupsAndRestores() {
+    public void stateIsWellDefinedEvenUnderConcurrentBackupsAndRestores() {
         timestampBoundStore.getUpperLimit();
         timestampBoundStore.storeUpperLimit(TIMESTAMP_3);
-        executeInParallelOnExecutorService(() -> {
-            if (ThreadLocalRandom.current().nextBoolean()) {
-                backupRunner.backupExistingTimestamp();
-            } else {
-                backupRunner.restoreFromBackup();
+        CassandraTestTools.executeInParallelOnExecutorService(() -> {
+            CassandraTimestampBackupRunner runner = new CassandraTimestampBackupRunner(kv);
+            try {
+                if (ThreadLocalRandom.current().nextBoolean()) {
+                    runner.backupExistingTimestamp();
+                } else {
+                    runner.restoreFromBackup();
+                }
+            } catch (IllegalStateException exception) {
+                // This is possible under concurrent backup *and* restore.
+                // The point of this test is to ensure that the table is in a well defined state at the end.
             }
         });
         backupRunner.restoreFromBackup();
@@ -232,23 +227,8 @@ public class CassandraTimestampBackupIntegrationTest {
     private void setupTwoReadableBoundsInKv() {
         backupRunner.backupExistingTimestamp();
         byte[] rowAndColumnNameBytes = PtBytes.toBytes(CassandraTimestampUtils.ROW_AND_COLUMN_NAME);
-        kv.put(
-                AtlasDbConstants.TIMESTAMP_TABLE,
+        kv.put(AtlasDbConstants.TIMESTAMP_TABLE,
                 ImmutableMap.of(Cell.create(rowAndColumnNameBytes, rowAndColumnNameBytes), PtBytes.toBytes(0L)),
                 Long.MAX_VALUE - 1);
-    }
-
-    private void executeInParallelOnExecutorService(Runnable runnable) {
-        List<Future<?>> futures =
-                Stream.generate(() -> executorService.submit(runnable))
-                        .limit(POOL_SIZE)
-                        .collect(Collectors.toList());
-        futures.forEach(future -> {
-            try {
-                future.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            } catch (InterruptedException | ExecutionException | TimeoutException exception) {
-                throw Throwables.rewrapAndThrowUncheckedException(exception);
-            }
-        });
     }
 }
