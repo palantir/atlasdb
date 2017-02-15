@@ -42,6 +42,13 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |userbreak|
+         - AtlasDB HTTP clients will now have a user agent of ``<project.name>-atlasdb (project.version)`` as opposed
+           to ``okhttp/2.5.0``. This should make associating request logs with AtlasDB much easier. However, user
+           workflows relying on associating requests with a user agent of ``okhttp/2.5.0`` with AtlasDB will no longer
+           work.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1535>`__)
+
     *    - |new|
          - Sweep now takes out a lock to ensure data is not corrupted during online backups.
            Users performing `live backups <https://palantir.github.io/atlasdb/html/cluster_management/backup-restore.html>`__ should grab this lock before performing a backup, and release the lock once the backup is complete.
