@@ -41,7 +41,7 @@ import com.palantir.common.base.Throwables;
  */
 public final class CassandraTestTools {
     private static final int NUM_PARALLEL_TASKS = 32;
-    private static final long TIMEOUT_SECONDS = 5;
+    private static final long TIMEOUT_SECONDS = 10;
 
     private CassandraTestTools() {
         // Empty constructor for utility class
