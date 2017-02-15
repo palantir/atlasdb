@@ -44,7 +44,7 @@ public class UpdateExecutor {
                 oldValue
         };
 
-        String prefixedTableName = prefixedTableNames.get(tableRef);
+        String prefixedTableName = prefixedTableNames.get(tableRef, conns);
         String sqlString = "/* UPDATE (" + prefixedTableName + ") */"
                 + " UPDATE " + prefixedTableName + ""
                 + " SET row_name = ?, col_name = ?, ts = ?, val = ?"

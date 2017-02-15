@@ -87,6 +87,10 @@ develop
          - Fixed multiple connection pool deadlocks in DbKvs
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
 
+    *    - |fixed|
+         - Fixed a long-held connection in Oracle table name mapping code
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1593>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresPrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresTableInitializer;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresWriteTable;
@@ -55,7 +56,7 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns) {
-        return new PostgresWriteTable(config, conns, tableRef, new PrefixedTableNames(config));
+        return new PostgresWriteTable(config, conns, tableRef, new PostgresPrefixedTableNames(config));
     }
 
     @Override
