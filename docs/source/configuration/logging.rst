@@ -19,7 +19,7 @@ For more information, see :ref:`enabling-cassandra-tracing`.
 Debug Logging for Multiple Timestamp Services Error
 ===================================================
 
-From version 0.22, it is recommended that you send logging related to the timestamp service to a separate appender.
+From version 0.23.0, it is recommended that you send logging related to the timestamp service to a separate appender.
 To do this, add the following to your logging configuration:
 
 .. code:: yaml

@@ -58,6 +58,7 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.remoting1.tracing.Tracers;
 
 
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
@@ -170,7 +171,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         }
     }
 
-    @Test(expected=TransactionFailedRetriableException.class)
+    @Test(expected = TransactionFailedRetriableException.class)
     public void testConcurrentWriteSkew() throws InterruptedException, BrokenBarrierException {
         Transaction t0 = startTransaction();
         put(t0, "row1", "col1", "100");
@@ -180,8 +181,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         final CyclicBarrier barrier = new CyclicBarrier(2);
 
         final Transaction t1 = startTransaction();
-        ExecutorService exec = PTExecutors.newCachedThreadPool();
-        Future<?> f = exec.submit( new Callable<Void>() {
+        ExecutorService exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
+        Future<?> f = exec.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 withdrawMoney(t1, true, false);

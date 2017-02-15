@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class SweepProgressTable implements
         AtlasDbMutablePersistentTable<SweepProgressTable.SweepProgressRow,
                                          SweepProgressTable.SweepProgressNamedColumnValue<?>,
@@ -1273,5 +1274,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "D+ku3UNbkHgU75aRsw008A==";
+    static String __CLASS_HASH = "w/iQ+G1DPbQx2I22vC12KQ==";
 }

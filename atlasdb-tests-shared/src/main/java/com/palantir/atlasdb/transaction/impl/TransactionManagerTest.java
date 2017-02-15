@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting1.tracing.Tracers;
 
 public class TransactionManagerTest extends TransactionTestSetup {
     @Rule
@@ -93,6 +94,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
+        return new InMemoryKeyValueService(false,
+                Tracers.wrap(PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true))));
     }
 }

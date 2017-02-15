@@ -41,6 +41,7 @@ import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.remoting1.tracing.Tracers;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -60,7 +61,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     @GuardedBy("this")
     private SequenceAndBound agreedState;
 
-    private final ExecutorService executor = PTExecutors.newCachedThreadPool(PTExecutors.newNamedThreadFactory(true));
+    private final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
+            PTExecutors.newNamedThreadFactory(true)));
 
     public PaxosTimestampBoundStore(PaxosProposer proposer,
             PaxosLearner knowledge,
