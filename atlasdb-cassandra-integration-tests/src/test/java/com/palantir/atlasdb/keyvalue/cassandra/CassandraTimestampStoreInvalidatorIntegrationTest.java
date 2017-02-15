@@ -18,8 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -36,7 +34,6 @@ import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
-import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class CassandraTimestampStoreInvalidatorIntegrationTest {
     @ClassRule
@@ -49,9 +46,6 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
             CassandraContainer.LEADER_CONFIG);
     private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);
-
-    private static final int POOL_SIZE = 32;
-    private final ExecutorService executorService = Executors.newFixedThreadPool(POOL_SIZE);
 
     @Before
     public void setUp() {
@@ -118,17 +112,6 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
     public void restoringTimestampTableWithNoDataIsANoOp() {
         invalidator.revalidateFromBackup();
         assertWeCanReadInitialValue();
-    }
-
-    @Test
-    public void differentInvalidatorsCanReadSameBackupBound() {
-        TimestampStoreInvalidator invalidator2 = CassandraTimestampStoreInvalidator.create(kv);
-        TimestampStoreInvalidator invalidator3 = CassandraTimestampStoreInvalidator.create(kv);
-        long limit = getBoundAfterTakingOutOneMillionTimestamps();
-
-        assertThat(invalidator.backupAndInvalidate()).isEqualTo(limit);
-        assertThat(invalidator2.backupAndInvalidate()).isEqualTo(limit);
-        assertThat(invalidator3.backupAndInvalidate()).isEqualTo(limit);
     }
 
     @Test

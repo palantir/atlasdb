@@ -40,8 +40,7 @@ import com.palantir.common.base.Throwables;
  * Created by aloro on 12/04/2016.
  */
 public final class CassandraTestTools {
-    public static final int NUM_PARALLEL_TASKS = 32;
-
+    private static final int NUM_PARALLEL_TASKS = 32;
     private static final long TIMEOUT_SECONDS = 5;
 
     private CassandraTestTools() {
