@@ -464,7 +464,7 @@ public final class RangeScanTestTable implements
     }
 
     @Override
-    public void delete(Iterable<? extends RangeScanTestRow> rows) {
+    public void delete(Iterable<RangeScanTestRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c")));
@@ -538,7 +538,7 @@ public final class RangeScanTestTable implements
     }
 
     @Override
-    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimap(Iterable<? extends RangeScanTestRow> rows) {
+    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimap(Iterable<RangeScanTestRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -564,7 +564,7 @@ public final class RangeScanTestTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends RangeScanTestRow> rows, ColumnSelection columns) {
+    private Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimapInternal(Iterable<RangeScanTestRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -639,9 +639,9 @@ public final class RangeScanTestTable implements
     public void deleteRanges(Iterable<RangeRequest> ranges) {
         BatchingVisitables.concat(getRanges(ranges))
                           .transform(RangeScanTestRowResult.getRowNameFun())
-                          .batchAccept(1000, new AbortingVisitor<List<? extends RangeScanTestRow>, RuntimeException>() {
+                          .batchAccept(1000, new AbortingVisitor<List<RangeScanTestRow>, RuntimeException>() {
             @Override
-            public boolean visit(List<? extends RangeScanTestRow> rows) {
+            public boolean visit(List<RangeScanTestRow> rows) {
                 delete(rows);
                 return true;
             }
@@ -747,5 +747,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "BTMX0u5VM+o9jfSqcqyWnA==";
+    static String __CLASS_HASH = "L7M2vLCALaiylKoSvDZfkg==";
 }

@@ -488,7 +488,7 @@ public final class UserPhotosStreamMetadataTable implements
     }
 
     @Override
-    public void delete(Iterable<? extends UserPhotosStreamMetadataRow> rows) {
+    public void delete(Iterable<UserPhotosStreamMetadataRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("md")));
@@ -562,7 +562,7 @@ public final class UserPhotosStreamMetadataTable implements
     }
 
     @Override
-    public Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<? extends UserPhotosStreamMetadataRow> rows) {
+    public Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<UserPhotosStreamMetadataRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -588,7 +588,7 @@ public final class UserPhotosStreamMetadataTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends UserPhotosStreamMetadataRow> rows, ColumnSelection columns) {
+    private Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<UserPhotosStreamMetadataRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }

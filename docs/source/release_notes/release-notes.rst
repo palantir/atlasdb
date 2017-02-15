@@ -48,9 +48,36 @@ develop
            This fix also enables better detection of legitimate occurrences of ``MultipleRunningTimestampServicesError``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1577>`__)
 
+    *    - |improved| |userbreak|
+         - AtlasDB HTTP clients will now have a user agent of ``<project.name>-atlasdb (project.version)`` as opposed
+           to ``okhttp/2.5.0``. This should make associating request logs with AtlasDB much easier. However, user
+           workflows relying on associating requests with a user agent of ``okhttp/2.5.0`` with AtlasDB will no longer
+           work.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1535>`__)
+
+    *    - |new|
+         - Sweep now takes out a lock to ensure data is not corrupted during online backups.
+           Users performing `live backups <https://palantir.github.io/atlasdb/html/cluster_management/backup-restore.html>`__ should grab this lock before performing a backup, and release the lock once the backup is complete.
+           This enables the backup to safely run alongside either the `background sweeper <https://palantir.github.io/atlasdb/html/cluster_management/sweep/background-sweep.html>`__ or the `sweep CLI <https://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-cli.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1509>`__)
+
     *    - |new|
          - Initial support for tracing Key Value Services integrating with `http-remoting tracing <https://github.com/palantir/http-remoting#tracing>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
+
+    *    - |improved|
+         - Improved heap usage during heavy DBKVS querying
+           (Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
+
+    *    - |fixed|
+         - Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1578>`__)
+
+    *    - |devbreak|
+         - Modified the type signature of `BatchingVisitableView#of` to no long accept `final BatchingVisitable<? extends T> underlyingVisitable` and instead accept
+           `final BatchingVisitable<T> underlyingVisitable`.  We do not believe this typing is in use.  If you discover that is not the case and you cannot work around it,
+           please file a ticket on the AtlasDB github page.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1582>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -68,7 +95,7 @@ v0.31.0
          - Change
 
     *    - |improved| |devbreak|
-         - Improved performance by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
+         - Improved Oracle performance on DBKVS by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
            Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.          
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
 
@@ -100,11 +127,6 @@ v0.31.0
     *    - |fixed|
          - Support for Oracle 12c batch responses.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1540>`__)
-
-    *    - |devbreak| |fixed|
-         - Devs should regenerate their Schemas when upgrading to get rid of some type problems that are no longer
-           accepted in newer Java compilers.
-           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1545>`__) and (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1571>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -380,6 +402,12 @@ v0.27.0
          - Updated our dependency on ``gradle-java-distribution`` from 1.0.1 to 1.2.0.
            See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
+
+    *     - |new|
+          - Add KeyValueStore.deleteRange(); makes large swathes of row deletions faster,
+            like transaction sweeping. Also can be used as a fallback option for people
+            having issues with their backup solutions not allowing truncate() during a backup
+            (`Pull Request <https://github.com/palantir/atlasdb/pull/1391>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

@@ -1766,19 +1766,6 @@
                 "io.dropwizard:dropwizard-validation"
             ]
         },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl"
-            ]
-        },
         "org.hibernate:hibernate-validator": {
             "locked": "5.1.3.Final",
             "transitive": [

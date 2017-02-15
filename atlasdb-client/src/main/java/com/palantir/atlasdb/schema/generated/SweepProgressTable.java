@@ -1016,7 +1016,7 @@ public final class SweepProgressTable implements
     }
 
     @Override
-    public void delete(Iterable<? extends SweepProgressRow> rows) {
+    public void delete(Iterable<SweepProgressRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 5);
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("d")));
@@ -1094,7 +1094,7 @@ public final class SweepProgressTable implements
     }
 
     @Override
-    public Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getRowsMultimap(Iterable<? extends SweepProgressRow> rows) {
+    public Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getRowsMultimap(Iterable<SweepProgressRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -1120,7 +1120,7 @@ public final class SweepProgressTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends SweepProgressRow> rows, ColumnSelection columns) {
+    private Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getRowsMultimapInternal(Iterable<SweepProgressRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
