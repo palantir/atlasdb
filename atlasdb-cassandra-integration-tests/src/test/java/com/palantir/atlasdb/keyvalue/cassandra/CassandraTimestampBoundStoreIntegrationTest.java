@@ -46,7 +46,7 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     private static final long GREATER_OFFSET = OFFSET + 1;
 
     private final CassandraKeyValueService kv = CassandraKeyValueService.create(
-            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.THRIFT_CONFIG),
             CassandraContainer.LEADER_CONFIG);
 
     @ClassRule

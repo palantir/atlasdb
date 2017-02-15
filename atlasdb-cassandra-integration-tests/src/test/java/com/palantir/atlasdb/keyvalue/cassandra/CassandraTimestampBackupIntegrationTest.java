@@ -58,7 +58,7 @@ public class CassandraTimestampBackupIntegrationTest {
             .with(new CassandraContainer());
 
     private final CassandraKeyValueService kv = CassandraKeyValueService.create(
-            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.THRIFT_CONFIG),
             CassandraContainer.LEADER_CONFIG);
     private final ExecutorService executorService = Executors.newFixedThreadPool(POOL_SIZE);
     private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);

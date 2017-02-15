@@ -169,7 +169,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         cassandraKeyValueService.createTable(testTable, tableMetadata);
 
-        List<CfDef> knownCfs = cassandraKeyValueService.clientPool.runWithRetry(client ->
+        List<CfDef> knownCfs = cassandraKeyValueService.getClientPool().runWithRetry(client ->
                 client.describe_keyspace("atlasdb").getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals("ns__never_seen"))
@@ -210,7 +210,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
                 ckvs.getClientPool(),
-                CassandraContainer.KVS_CONFIG);
+                CassandraContainer.THRIFT_CONFIG);
         SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
                 ckvs.getClientPool(),
                 new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
