@@ -48,7 +48,6 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TimelockMigratorTest {
     private static final int PORT = 8080;
-
     private static final long BACKUP_TIMESTAMP = 42;
     private static final String TEST_ENDPOINT = "/testClient/timestamp-management/fast-forward?currentTimestamp="
             + BACKUP_TIMESTAMP;
@@ -68,6 +67,7 @@ public class TimelockMigratorTest {
             .keyValueService(KVS_CONFIG)
             .timelock(TIMELOCK_CONFIG)
             .build();
+    private static final String USER_AGENT = "user-agent (123456789)";
 
     private final TimestampStoreInvalidator invalidator = mock(TimestampStoreInvalidator.class);
 
@@ -88,7 +88,7 @@ public class TimelockMigratorTest {
         AtlasDbConfig embeddedConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG)
                 .build();
-        assertThatThrownBy(() -> TimelockMigrator.create(embeddedConfig, invalidator, null))
+        assertThatThrownBy(() -> TimelockMigrator.create(embeddedConfig, invalidator, USER_AGENT))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -98,7 +98,7 @@ public class TimelockMigratorTest {
                 .keyValueService(KVS_CONFIG)
                 .leader(mock(LeaderConfig.class))
                 .build();
-        assertThatThrownBy(() -> TimelockMigrator.create(leaderConfig, invalidator, null))
+        assertThatThrownBy(() -> TimelockMigrator.create(leaderConfig, invalidator, USER_AGENT))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -106,7 +106,7 @@ public class TimelockMigratorTest {
     public void propagatesBackupTimestampToFastForwardOnRemoteService() {
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
 
-        TimelockMigrator migrator = TimelockMigrator.create(CANONICAL_TIMELOCK_CONFIG, invalidator, null);
+        TimelockMigrator migrator = TimelockMigrator.create(CANONICAL_TIMELOCK_CONFIG, invalidator, USER_AGENT);
         migrator.migrate();
 
         wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
@@ -118,7 +118,7 @@ public class TimelockMigratorTest {
     public void invalidationDoesNotProceedIfTimelockPingUnsuccessful() {
         wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse().withStatus(500)));
 
-        TimelockMigrator migrator = TimelockMigrator.create(CANONICAL_TIMELOCK_CONFIG, invalidator, null);
+        TimelockMigrator migrator = TimelockMigrator.create(CANONICAL_TIMELOCK_CONFIG, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
         verify(invalidator, never()).backupAndInvalidate();
     }
@@ -127,7 +127,7 @@ public class TimelockMigratorTest {
     public void migrationDoesNotProceedIfInvalidationFails() {
         when(invalidator.backupAndInvalidate()).thenThrow(new IllegalStateException());
 
-        TimelockMigrator migrator = TimelockMigrator.create(CANONICAL_TIMELOCK_CONFIG, invalidator, null);
+        TimelockMigrator migrator = TimelockMigrator.create(CANONICAL_TIMELOCK_CONFIG, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
         wireMockRule.verify(0, postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
     }
