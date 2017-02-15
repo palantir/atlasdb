@@ -69,10 +69,10 @@ fi
 
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
-    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} -x :atlasdb-cassandra-integration-tests:longTest -Dtest.single=CassandraTimestampBackupIntegrationTest ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-cassandra-integration-tests:longTest -Dtest.single=CassandraTimestampBackupIntegrationTest ;;
-    3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} -x :atlasdb-cassandra-integration-tests:longTest -Dtest.single=CassandraTimestampBackupIntegrationTest ;;
-    4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} -x :atlasdb-cassandra-integration-tests:longTest -Dtest.single=CassandraTimestampBackupIntegrationTest ;;
-    5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} -x :atlasdb-cassandra-integration-tests:longTest -Dtest.single=CassandraTimestampBackupIntegrationTest ;;
-    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} -x :atlasdb-cassandra-integration-tests:longTest -Dtest.single=CassandraTimestampBackupIntegrationTest && checkDocsBuild ;;
+    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
+    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
+    3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
+    4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
+    5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
+    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} -x :atlasdb-cassandra-integration-tests:longTest && checkDocsBuild ;;
 esac
