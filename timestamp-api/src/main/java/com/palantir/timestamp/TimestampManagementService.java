@@ -15,6 +15,8 @@
  */
 package com.palantir.timestamp;
 
+import javax.annotation.CheckReturnValue;
+import javax.annotation.meta.When;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -49,7 +51,8 @@ public interface TimestampManagementService {
 
     @GET
     @Path("ping")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
+    @CheckReturnValue(when = When.NEVER)
     default String ping() {
         return "pong";
     }
