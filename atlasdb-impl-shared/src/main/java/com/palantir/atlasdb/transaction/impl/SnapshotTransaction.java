@@ -951,7 +951,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES && log.isWarnEnabled()) {
             log.warn("A single get had quite a few bytes: {} for table {}. The number of results was {}. "
-                    + " Enable debug logging for more information.",
+                    + "Enable debug logging for more information.",
                     bytes, tableRef.getQualifiedName(), rawResults.size());
             if (log.isDebugEnabled()) {
                 log.debug("The first 10 results of your request were {}.", Iterables.limit(rawResults.entrySet(), 10),
@@ -1123,7 +1123,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (newVal >= TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES
                         && newVal - toAdd < TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES) {
                     log.warn("A single transaction has put quite a few bytes: {}. "
-                            + " Enable debug logging for more information", newVal);
+                            + "Enable debug logging for more information", newVal);
                     if (log.isDebugEnabled()) {
                         log.debug("This exception and stack trace are provided for debugging purposes.",
                                 new RuntimeException());
