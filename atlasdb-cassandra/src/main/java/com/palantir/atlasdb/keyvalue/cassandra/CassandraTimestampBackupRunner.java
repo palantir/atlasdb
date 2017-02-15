@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -75,6 +77,7 @@ public class CassandraTimestampBackupRunner {
             BoundReadability boundReadability = checkReadability(boundData);
             if (boundReadability == BoundReadability.BACKUP) {
                 log.info("[BACKUP] Didn't backup, because there is already a valid backup.");
+                System.err.println(LocalDateTime.now() + "; [BACKUP] Didn't backup - valid exists");
                 return PtBytes.toLong(currentBackupBound);
             }
 
@@ -88,7 +91,8 @@ public class CassandraTimestampBackupRunner {
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                             Pair.create(currentBackupBound, backupValue));
             executeAndVerifyCas(client, casMap);
-            log.info("[BACKUP] Backed up the value {}", currentBackupBound);
+            log.info("[BACKUP] Backed up the value {}", currentBound);
+            System.err.println(LocalDateTime.now() + "; [BACKUP] Did " + Arrays.toString(currentBound));
             return TimestampBoundStoreEntry.createFromBytes(backupValue).getTimestampOrInitialValue();
         });
     }
@@ -106,6 +110,7 @@ public class CassandraTimestampBackupRunner {
             BoundReadability boundReadability = checkReadability(boundData);
             if (boundReadability == BoundReadability.BOUND) {
                 log.info("[RESTORE] Didn't restore, because the current bound is readable.");
+                System.err.println(LocalDateTime.now() + "; [RESTORE] Bound already readable");
                 return null;
             }
 
@@ -116,6 +121,7 @@ public class CassandraTimestampBackupRunner {
                     Pair.create(currentBackupBound, PtBytes.EMPTY_BYTE_ARRAY));
             executeAndVerifyCas(client, casMap);
             log.info("[RESTORE] Restored the value {}", currentBackupBound);
+            System.err.println(LocalDateTime.now() + "; [RESTORE] Did " + Arrays.toString(currentBackupBound));
             return null;
         });
     }

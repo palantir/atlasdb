@@ -23,6 +23,7 @@ task longTest(type: Test) {
 }
 
 test {
+    testLogging.showStandardStreams = true
     dependsOn longTest
     exclude '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
     exclude '**/CassandraKeyValueServiceSweeperIntegrationTest.class'

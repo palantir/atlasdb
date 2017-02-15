@@ -8,9 +8,9 @@
     </encoder>
   </appender>
 
-  <logger name="org.apache.cassandra" level="WARN"/>
+  <logger name="org.apache.cassandra" level="INFO"/>
 
-  <root level="info">
+  <root level="INFO">
     <appender-ref ref="STDOUT" />
   </root>
 </configuration>
