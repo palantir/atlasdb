@@ -245,7 +245,9 @@ public class CassandraTimestampBackupIntegrationTest {
                         .collect(Collectors.toList());
         futures.forEach(future -> {
             try {
+                long currentTime = System.currentTimeMillis();
                 future.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                System.err.println("Delta: " + (System.currentTimeMillis() - currentTime) + " ms.");
             } catch (InterruptedException | ExecutionException | TimeoutException exception) {
                 throw Throwables.rewrapAndThrowUncheckedException(exception);
             }
