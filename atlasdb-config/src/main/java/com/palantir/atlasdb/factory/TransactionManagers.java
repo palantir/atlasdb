@@ -17,7 +17,6 @@ package com.palantir.atlasdb.factory;
 
 import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -36,10 +35,10 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.factory.startup.TimelockMigrator;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -83,6 +82,7 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public final class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
@@ -160,6 +160,7 @@ public final class TransactionManagers {
                 env,
                 () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService,
+                atlasFactory::getTimestampStoreInvalidator,
                 userAgent);
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
@@ -264,7 +265,9 @@ public final class TransactionManagers {
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
-        return createLockAndTimestampServices(config, env, lock, time, UserAgents.DEFAULT_USER_AGENT);
+        return createLockAndTimestampServices(config, env, lock, time, () -> {
+            throw new UnsupportedOperationException("Tried to migrate, but no invalidator was applied!");
+        }, UserAgents.DEFAULT_USER_AGENT);
     }
 
     @VisibleForTesting
@@ -273,9 +276,10 @@ public final class TransactionManagers {
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
+            Supplier<TimestampStoreInvalidator> invalidator,
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
-                createRawServices(config, env, lock, time, userAgent);
+                createRawServices(config, env, lock, time, invalidator, userAgent);
         return withRefreshingLockService(lockAndTimestampServices);
     }
 
@@ -293,14 +297,14 @@ public final class TransactionManagers {
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
+            Supplier<TimestampStoreInvalidator> invalidator,
             String userAgent) {
         if (config.leader().isPresent()) {
             return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
         } else if (config.timelock().isPresent()) {
-            // Do migration if necessary
-            // Then create the raw services
+            TimelockMigrator.create(config, invalidator.get(), userAgent).migrate();
             return createNamespacedRawRemoteServices(config.timelock().get(), userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time);
@@ -310,18 +314,8 @@ public final class TransactionManagers {
     private static LockAndTimestampServices createNamespacedRawRemoteServices(
             TimeLockClientConfig config,
             String userAgent) {
-        ServerListConfig namespacedServerListConfig = getNamespacedServerListConfig(config);
+        ServerListConfig namespacedServerListConfig = config.toNamespacedServerList();
         return getLockAndTimestampServices(namespacedServerListConfig, userAgent);
-    }
-
-    @VisibleForTesting
-    static ServerListConfig getNamespacedServerListConfig(TimeLockClientConfig config) {
-        return ImmutableServerListConfig.copyOf(config.serversList())
-                .withServers(config.serversList()
-                        .servers()
-                        .stream()
-                        .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + config.client())
-                        .collect(Collectors.toSet()));
     }
 
     private static LockAndTimestampServices getLockAndTimestampServices(
