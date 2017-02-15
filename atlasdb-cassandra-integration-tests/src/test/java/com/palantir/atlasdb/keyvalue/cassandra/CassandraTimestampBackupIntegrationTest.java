@@ -50,7 +50,7 @@ public class CassandraTimestampBackupIntegrationTest {
     private static final long TIMESTAMP_2 = TIMESTAMP_1 + 1000;
     private static final long TIMESTAMP_3 = TIMESTAMP_2 + 1000;
 
-    private static final long TIMEOUT_SECONDS = 5L;
+    private static final long TIMEOUT_SECONDS = 60;
     private static final int POOL_SIZE = 32;
 
     @ClassRule
