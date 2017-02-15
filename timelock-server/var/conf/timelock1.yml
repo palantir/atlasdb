@@ -1,0 +1,29 @@
+clients:
+  - test
+  - test2
+
+cluster:
+  localServer: localhost:8081
+  localWebsocketPaxosServer: http://localhost:8071
+  localWebsocketTimestampServer: http://localhost:8061
+  websocketTimestampClient: test
+  paxosTransport: WEBSOCKET
+  servers:
+    - localhost:8080
+    - localhost:8081
+    - localhost:8082
+  websocketPaxosServers:
+    - http://localhost:8070
+    - http://localhost:8071
+    - http://localhost:8072
+
+algorithm:
+  type: paxos
+
+server:
+  applicationConnectors:
+  - type: http 
+    port: 8081
+  adminConnectors:
+  - type: http 
+    port: 9081

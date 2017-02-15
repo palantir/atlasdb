@@ -23,6 +23,7 @@ import org.eclipse.jetty.util.component.LifeCycle;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.atlasdb.timelock.paxos.TimestampWebsocketServer;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 
 import io.dropwizard.Application;
@@ -60,6 +61,12 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
                 serverImpl,
                 configuration.clients());
 
+        String websocketTimestampClient = configuration.cluster().websocketTimestampClient();
+        TimestampWebsocketServer timestampServer = new TimestampWebsocketServer(
+                configuration.cluster().localWebsocketTimestampServer(),
+                clientToServices.get(websocketTimestampClient).getTimestampService());
+
+        environment.lifecycle().manage(timestampServer);
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));
     }
@@ -73,4 +80,5 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         }
         return clientToServices.build();
     }
+
 }
