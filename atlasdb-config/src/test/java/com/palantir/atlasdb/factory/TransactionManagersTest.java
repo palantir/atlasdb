@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import static org.hamcrest.Matchers.hasItems;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -52,8 +50,6 @@ import com.palantir.timestamp.InMemoryTimestampService;
 
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
-    private static final String SERVER_1 = "http://localhost:8080";
-    private static final String SERVER_2 = "http://palantir.com:8080";
     private static final int AVAILABLE_PORT = 8080;
     private static final String USER_AGENT = "user-agent (3.14159265)";
     private static final String USER_AGENT_HEADER = "User-Agent";
@@ -70,8 +66,6 @@ public class TransactionManagersTest {
 
     private static final TimeLockClientConfig MOCK_CLIENT_CONFIG
             = getTimelockConfigForServers(ImmutableList.of(getUriForPort(AVAILABLE_PORT)));
-    private static final TimeLockClientConfig MULTIPLE_SERVER_CONFIG
-            = getTimelockConfigForServers(ImmutableList.of(SERVER_1, SERVER_2));
 
     private static final ServerListConfig RAW_REMOTE_SERVICE_CONFIG = ImmutableServerListConfig.builder()
             .addServers(getUriForPort(AVAILABLE_PORT))
@@ -130,12 +124,6 @@ public class TransactionManagersTest {
         verifyUserAgentOnRawTimestampAndLockRequests();
     }
 
-    @Test
-    public void canGetNamespacedConfigsFromTimelockBlock() {
-        ServerListConfig namespacedConfig = TransactionManagers.getNamespacedServerListConfig(MULTIPLE_SERVER_CONFIG);
-        assertThat(namespacedConfig.servers(), hasItems(SERVER_1 + "/" + CLIENT, SERVER_2 + "/" + CLIENT));
-    }
-
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
         verifyUserAgentOnTimestampAndLockRequests(TIMESTAMP_PATH, LOCK_PATH);
     }
@@ -165,7 +153,7 @@ public class TransactionManagersTest {
         return String.format("http://%s:%s", WireMockConfiguration.DEFAULT_BIND_ADDRESS, port);
     }
 
-    private static ImmutableTimeLockClientConfig getTimelockConfigForServers(List<String> servers) {
+    private static TimeLockClientConfig getTimelockConfigForServers(List<String> servers) {
         return ImmutableTimeLockClientConfig.builder()
                 .client(CLIENT)
                 .serversList(ImmutableServerListConfig.builder()

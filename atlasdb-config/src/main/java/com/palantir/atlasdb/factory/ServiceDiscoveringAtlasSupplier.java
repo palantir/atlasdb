@@ -86,6 +86,10 @@ public class ServiceDiscoveringAtlasSupplier {
         return timestampService.get();
     }
 
+    public synchronized TimestampStoreInvalidator getTimestampStoreInvalidator() {
+        return timestampStoreInvalidator.get();
+    }
+
     private void handleMultipleTimestampFetch() {
         try {
             String threadDumpFile = saveThreadDumps();

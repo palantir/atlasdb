@@ -400,11 +400,11 @@ public final class TransactionManagers {
         return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent);
     }
 
-    private static final class ServiceCreator<T> implements Function<ServerListConfig, T> {
+    public static final class ServiceCreator<T> implements Function<ServerListConfig, T> {
         private final Class<T> serviceClass;
         private final String userAgent;
 
-        private ServiceCreator(Class<T> serviceClass, String userAgent) {
+        public ServiceCreator(Class<T> serviceClass, String userAgent) {
             this.serviceClass = serviceClass;
             this.userAgent = userAgent;
         }

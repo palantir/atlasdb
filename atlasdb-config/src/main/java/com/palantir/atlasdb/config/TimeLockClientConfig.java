@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.config;
 
+import java.util.stream.Collectors;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -27,4 +29,13 @@ public abstract class TimeLockClientConfig {
     public abstract String client();
 
     public abstract ServerListConfig serversList();
+
+    public ServerListConfig toNamespacedServerList() {
+        return ImmutableServerListConfig.copyOf(serversList())
+                .withServers(serversList()
+                        .servers()
+                        .stream()
+                        .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + client())
+                        .collect(Collectors.toSet()));
+    }
 }
