@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -90,8 +91,8 @@ public final class CassandraTestTools {
                         .collect(Collectors.toList());
         futures.forEach(future -> {
             try {
-                future.get();
-            } catch (InterruptedException | ExecutionException exception) {
+                future.get(1, TimeUnit.MINUTES);
+            } catch (InterruptedException | ExecutionException | TimeoutException exception) {
                 throw Throwables.rewrapAndThrowUncheckedException(exception);
             }
         });
