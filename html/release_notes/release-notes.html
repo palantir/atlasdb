@@ -169,32 +169,38 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td><p class="first">Fixed erroneous occurrence of <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code> (see <a class="reference external" href="https://github.com/palantir/atlasdb/issues/1000">ticket</a>) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.</p>
+<p class="last">This fix also enables better detection of legitimate occurrences of <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1577">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>AtlasDB HTTP clients will now have a user agent of <code class="docutils literal"><span class="pre">&lt;project.name&gt;-atlasdb</span> <span class="pre">(project.version)</span></code> as opposed
 to <code class="docutils literal"><span class="pre">okhttp/2.5.0</span></code>. This should make associating request logs with AtlasDB much easier. However, user
 workflows relying on associating requests with a user agent of <code class="docutils literal"><span class="pre">okhttp/2.5.0</span></code> with AtlasDB will no longer
 work.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1535">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Sweep now takes out a lock to ensure data is not corrupted during online backups.
 Users performing <a class="reference external" href="https://palantir.github.io/atlasdb/html/cluster_management/backup-restore.html">live backups</a> should grab this lock before performing a backup, and release the lock once the backup is complete.
 This enables the backup to safely run alongside either the <a class="reference external" href="https://palantir.github.io/atlasdb/html/cluster_management/sweep/background-sweep.html">background sweeper</a> or the <a class="reference external" href="https://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-cli.html">sweep CLI</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1509">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Initial support for tracing Key Value Services integrating with <a class="reference external" href="https://github.com/palantir/http-remoting#tracing">http-remoting tracing</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1385">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Improved heap usage during heavy DBKVS querying
 (Pull Request &lt;<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1560">https://github.com/palantir/atlasdb/pull/1560</a>&gt;`__)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1578">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Modified the type signature of <cite>BatchingVisitableView#of</cite> to no long accept <cite>final BatchingVisitable&lt;? extends T&gt; underlyingVisitable</cite> and instead accept
 <cite>final BatchingVisitable&lt;T&gt; underlyingVisitable</cite>.  We do not believe this typing is in use.  If you discover that is not the case and you cannot work around it,
 please file a ticket on the AtlasDB github page.
