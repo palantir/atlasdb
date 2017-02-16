@@ -36,6 +36,9 @@ public abstract class TesterConfiguration {
         return 1;
     }
 
+    @Value.Default
+    public int numThreads() { return 100; }
+
     //queriesPerSecond for each client
     public abstract List<Integer> queriesPerSecond();
 

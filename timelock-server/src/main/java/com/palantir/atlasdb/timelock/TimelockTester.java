@@ -19,6 +19,7 @@ import java.io.FileReader;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -57,11 +58,11 @@ final class TimelockTester {
         TesterConfiguration testerConfiguration = mapper.readValue(configurationFile, TesterConfiguration.class);
 
         Set<String> paths = testerConfiguration.paths();
+        long numThreads = testerConfiguration.numThreads();
         long numClients = testerConfiguration.numClients();
 
         SslConfiguration sslConfiguration = testerConfiguration.sslConfiguration();
         SSLSocketFactory sslSocketFactory = SslSocketFactories.createSslSocketFactory(sslConfiguration);
-
         // spawn requests
         for (int currentClientNum = 0; currentClientNum < numClients; currentClientNum++) {
             TimestampService proxy = AtlasDbHttpClients.createProxyWithFailover(
@@ -69,15 +70,16 @@ final class TimelockTester {
                     paths,
                     TimestampService.class);
 
-            int qpsForCurrentClient = testerConfiguration.queriesPerSecond().get(currentClientNum);
-
-            ExecutorService scheduler = Executors.newCachedThreadPool();
-            scheduler.submit(() -> {
-                while (true) {
-                    scheduler.submit(new IdRequestor(proxy));
-                    TimeUnit.NANOSECONDS.sleep((int) 1_000_000_000.0 / qpsForCurrentClient);
-                }
-            });
+            for (int i = 0; i < numThreads; i++) {
+                ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+                long qpsForCurrentClientPerThread = testerConfiguration.queriesPerSecond().get(currentClientNum)
+                        / numThreads;
+                scheduledExecutorService.scheduleAtFixedRate(
+                        new IdRequestor(proxy),
+                        1000,
+                        1000_000 / qpsForCurrentClientPerThread,
+                        TimeUnit.MICROSECONDS);
+            }
         }
 
         // block indefinitely
