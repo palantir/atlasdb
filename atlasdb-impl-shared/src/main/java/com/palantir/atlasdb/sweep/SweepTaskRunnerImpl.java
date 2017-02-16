@@ -190,7 +190,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                                 sweeper,
                                 sweepTs,
                                 peekingValues,
-                                runType));
+                                runType);
                         totalCellsSwept.addAndGet(cellsSwept);
                         return true;
                     });
