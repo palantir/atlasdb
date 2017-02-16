@@ -54,9 +54,8 @@ public final class Benchmarks {
             TableMetadataPersistence.SweepStrategy sweepStrategy) {
         TableDefinition tableDef = new TableDefinition() {
             {
-                rowName();
                 rowComponent(rowComponent, ValueType.STRING);
-                columns();
+
                 column(columnName, columnName, ValueType.BLOB);
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 sweepStrategy(sweepStrategy);
@@ -71,9 +70,8 @@ public final class Benchmarks {
             String columnComponent) {
         TableDefinition tableDef = new TableDefinition() {
             {
-                rowName();
                 rowComponent(rowComponent, ValueType.STRING);
-                dynamicColumns();
+
                 columnComponent(columnComponent, ValueType.FIXED_LONG);
                 value(ValueType.FIXED_LONG);
                 conflictHandler(ConflictHandler.IGNORE_ALL);

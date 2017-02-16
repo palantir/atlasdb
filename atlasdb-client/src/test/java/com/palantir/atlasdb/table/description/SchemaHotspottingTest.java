@@ -42,8 +42,8 @@ public class SchemaHotspottingTest {
     private static Schema getHotspottingSchema() {
         Schema suffersFromHotspoting = new Schema(SCHEMA_NAME, "unused", Namespace.DEFAULT_NAMESPACE);
         suffersFromHotspoting.addTableDefinition(TABLE_NAME, new TableDefinition() {{
-            rowName();
-                rowComponent(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
+            rowComponent(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
+
             noColumns();
         }});
         return suffersFromHotspoting;
@@ -53,8 +53,9 @@ public class SchemaHotspottingTest {
         Schema ignoredHotspottingSchema = new Schema(SCHEMA_NAME, "valid.package", Namespace.DEFAULT_NAMESPACE);
         ignoredHotspottingSchema.addTableDefinition(TABLE_NAME, new TableDefinition() {{
             ignoreHotspottingChecks();
-            rowName();
-                rowComponent(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
+
+            rowComponent(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
+
             noColumns();
         }});
         return ignoredHotspottingSchema;
@@ -63,9 +64,10 @@ public class SchemaHotspottingTest {
     private static Schema getTableFirstRowComponentHashedSchema() {
         Schema tableFirstRowComponentHashed = new Schema(SCHEMA_NAME, "unused", Namespace.DEFAULT_NAMESPACE);
         tableFirstRowComponentHashed.addTableDefinition(TABLE_NAME, new TableDefinition() {{
-            rowName();
-                hashFirstRowComponent();
-                rowComponent(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
+
+            hashFirstRowComponent();
+            rowComponent(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
+
             noColumns();
         }});
         return tableFirstRowComponentHashed;

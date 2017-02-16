@@ -639,9 +639,8 @@ public abstract class AbstractSweeperTest {
     protected void createTable(TableReference tableReference, SweepStrategy sweepStrategy) {
         kvs.createTable(tableReference,
                 new TableDefinition() {{
-                    rowName();
                     rowComponent("row", ValueType.BLOB);
-                    columns();
+
                     column("col", COL, ValueType.BLOB);
                     conflictHandler(ConflictHandler.IGNORE_ALL);
                     sweepStrategy(sweepStrategy);

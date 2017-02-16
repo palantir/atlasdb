@@ -130,9 +130,8 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         TableReference missingMetadataTable = TableReference.createFromFullyQualifiedName("test.metadata_missing");
         byte[] initialMetadata = new TableDefinition() {
             {
-                rowName();
                 rowComponent("blob", ValueType.BLOB);
-                columns();
+
                 column("bar", "b", ValueType.BLOB);
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
@@ -171,9 +170,8 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
 
         byte[] initialMetadata = new TableDefinition() {
             {
-                rowName();
                 rowComponent("blob", ValueType.BLOB);
-                columns();
+
                 column("bar", "b", ValueType.BLOB);
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);

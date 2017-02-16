@@ -135,11 +135,12 @@ public class SchemasTest {
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
         return new TableDefinition() {{
             javaTableName(tableRef.getTablename());
-            rowName();
-                rowComponent("rowName", ValueType.STRING);
-            columns();
-                column("col1", "1", ValueType.VAR_LONG);
-                column("col2", "2", ValueType.VAR_LONG);
+
+            rowComponent("rowName", ValueType.STRING);
+
+            column("col1", "1", ValueType.VAR_LONG);
+            column("col2", "2", ValueType.VAR_LONG);
+
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }};
     }

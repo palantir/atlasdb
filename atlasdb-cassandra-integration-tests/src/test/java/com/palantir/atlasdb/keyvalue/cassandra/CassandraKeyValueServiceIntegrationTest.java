@@ -77,9 +77,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
     private byte[] tableMetadata = new TableDefinition() {
         {
-            rowName();
             rowComponent("blob", ValueType.BLOB);
-            columns();
+
             column("boblawblowlawblob", "col", ValueType.BLOB);
             conflictHandler(ConflictHandler.IGNORE_ALL);
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);

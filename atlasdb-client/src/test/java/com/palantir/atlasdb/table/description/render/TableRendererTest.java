@@ -66,9 +66,9 @@ public class TableRendererTest {
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
         return new TableDefinition() {{
             javaTableName(tableRef.getTablename());
-            rowName();
+
             rowComponent("rowName", ValueType.STRING);
-            columns();
+
             column("col1", "1", ValueType.VAR_LONG);
         }};
     }

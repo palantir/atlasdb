@@ -45,13 +45,13 @@ public class ProfileSchema implements AtlasSchema {
                 OptionalType.JAVA8);
 
         schema.addTableDefinition("user_profile", new TableDefinition() {{
-            rowName();
-                rowComponent("id", ValueType.UUID);
-            columns();
-                column("metadata", "m", ProfilePersistence.UserProfile.class);
-                column("create", "c", CreationData.Persister.class);
-                column("json", "j", JsonNodePersister.class);
-                column("photo_stream_id", "p", ValueType.FIXED_LONG);
+
+            rowComponent("id", ValueType.UUID);
+
+            column("metadata", "m", ProfilePersistence.UserProfile.class);
+            column("create", "c", CreationData.Persister.class);
+            column("json", "j", JsonNodePersister.class);
+            column("photo_stream_id", "p", ValueType.FIXED_LONG);
         }});
 
         schema.addIndexDefinition("user_birthdays", new IndexDefinition(IndexType.CELL_REFERENCING) {{

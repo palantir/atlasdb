@@ -129,11 +129,12 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
     private Schema getSchema() {
         Schema schema = new Schema(checkpointTable.getNamespace());
         schema.addTableDefinition(checkpointTable.getTablename(), new TableDefinition() {{
-            rowName();
-                rowComponent("table_name", ValueType.VAR_STRING);
-                rowComponent("range_id",   ValueType.VAR_LONG);
-            columns();
-                column("start", SHORT_COLUMN_NAME, ValueType.BLOB);
+
+            rowComponent("table_name", ValueType.VAR_STRING);
+            rowComponent("range_id",   ValueType.VAR_LONG);
+
+            column("start", SHORT_COLUMN_NAME, ValueType.BLOB);
+
             rangeScanAllowed();
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});
