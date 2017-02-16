@@ -92,8 +92,8 @@ develop
            So far, automated migration is only supported for Cassandra KVS.
            If using DBKVS or other key-value services, it remains the user's responsibility to ensure that they have performed the migration detailed in :ref:`Migration to External Timelock Services <timelock-migration>`.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1569>`__, 
-            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1570>`__ and
-            `Pull Request 3 <https://github.com/palantir/atlasdb/pull/1579>`__)
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1570>`__ and
+           `Pull Request 3 <https://github.com/palantir/atlasdb/pull/1579>`__)
            
     *    - |fixed|
          - Fixed multiple connection pool deadlocks in DbKvs
