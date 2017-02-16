@@ -72,7 +72,8 @@
     (setup!
       [this test node]
       "Factory that returns an object implementing client/Client"
-      (AtlasDbEteServer/main "server" "resources/atlasdb/atlasdb-ete.yml.template")
+      (info node "starting AtlasDB client")
+      (AtlasDbEteServer/mainNonBlocking (into-array ["server" "resources/atlasdb/atlasdb-ete.yml.template"]))
       (create-client node))
 
     (invoke! [this test op]

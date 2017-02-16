@@ -16,6 +16,7 @@
 package com.palantir.atlasdb;
 
 import java.util.Set;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -52,6 +53,16 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     public static void main(String[] args) throws Exception {
         new AtlasDbEteServer().run(args);
+    }
+
+    public static void mainNonBlocking(String[] args) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                new AtlasDbEteServer().run(args);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override
