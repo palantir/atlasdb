@@ -188,7 +188,8 @@
             "locked": "1.0.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:lock-impl"
             ]
         },
         "com.palantir.remoting:ssl-config": {
@@ -462,7 +463,8 @@
             "locked": "1.0.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:lock-impl"
             ]
         },
         "com.palantir.remoting:ssl-config": {

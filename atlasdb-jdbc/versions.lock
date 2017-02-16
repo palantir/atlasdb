@@ -151,7 +151,6 @@
             "locked": "1.0.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -370,7 +369,6 @@
             "locked": "1.0.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },

@@ -4,4 +4,5 @@ apply from: "../gradle/shared.gradle"
 dependencies {
   testCompile project(":atlasdb-rocksdb")
   testCompile project(":atlasdb-tests-shared")
+  testCompile group: 'com.palantir.remoting1', name: 'tracing'
 }
