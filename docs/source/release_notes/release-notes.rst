@@ -29,10 +29,24 @@ Changelog
 .. toctree::
   :hidden:
 
+=======
+develop
+=======
+
+.. list-table::
+:widths: 5 40
+    :header-rows: 1
+
+        *    - Type
+             - Change
+
+        *    -
+             -
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-develop
+v0.32.0
 =======
 
 .. list-table::
@@ -49,10 +63,9 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1577>`__)
 
     *    - |improved| |userbreak|
-         - AtlasDB HTTP clients will now have a user agent of ``<project.name>-atlasdb (project.version)`` as opposed
-           to ``okhttp/2.5.0``. This should make associating request logs with AtlasDB much easier. However, user
-           workflows relying on associating requests with a user agent of ``okhttp/2.5.0`` with AtlasDB will no longer
-           work.
+         - AtlasDB HTTP clients will now have a user agent of ``<project.name>-atlasdb (project.version)`` as opposed to ``okhttp/2.5.0``.
+           This should make associating request logs with AtlasDB much easier.
+           However, user workflows relying on associating requests with a user agent of ``okhttp/2.5.0`` with AtlasDB will no longer work.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1535>`__)
 
     *    - |new|
@@ -66,15 +79,15 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
 
     *    - |improved|
-         - Improved heap usage during heavy DBKVS querying
-           (Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
+         - Improved heap usage during heavy DBKVS querying.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
 
     *    - |fixed|
          - Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1578>`__)
 
     *    - |devbreak|
-         - Modified the type signature of `BatchingVisitableView#of` to no long accept `final BatchingVisitable<? extends T> underlyingVisitable` and instead accept
+         - Modified the type signature of `BatchingVisitableView#of` to no longer accept `final BatchingVisitable<? extends T> underlyingVisitable` and instead accept
            `final BatchingVisitable<T> underlyingVisitable`.  We do not believe this typing is in use.  If you discover that is not the case and you cannot work around it,
            please file a ticket on the AtlasDB github page.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1582>`__)
@@ -96,7 +109,7 @@ develop
            `Pull Request 3 <https://github.com/palantir/atlasdb/pull/1579>`__)
            
     *    - |fixed|
-         - Fixed multiple connection pool deadlocks in DbKvs
+         - Fixed multiple connection pool deadlocks in DbKvs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
