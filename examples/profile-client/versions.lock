@@ -147,7 +147,7 @@
             ]
         },
         "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-commons"
@@ -360,7 +360,7 @@
             ]
         },
         "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-commons"
