@@ -47,7 +47,7 @@ dependencies {
 
 distribution {
     serviceName "timelock-server"
-    mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
+    mainClass 'com.palantir.atlasdb.timelock.TimelockTester'
     args 'server', 'var/conf/timelock.yml'
     defaultJvmOpts '-Xbootclasspath/p:service/lib/alpn-boot-8.1.9.v20160720.jar'
 }
