@@ -59,10 +59,7 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-commons": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-api"
-            ]
+            "project": true
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true,
@@ -167,10 +164,7 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-commons": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-api"
-            ]
+            "project": true
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true,

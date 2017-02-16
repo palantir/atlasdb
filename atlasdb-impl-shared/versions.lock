@@ -134,8 +134,7 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:lock-impl",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:lock-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {
@@ -378,8 +377,7 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:lock-impl",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:lock-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {

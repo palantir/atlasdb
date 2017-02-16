@@ -73,8 +73,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:lock-api"
             ]
         },
         "com.palantir.atlasdb:commons-executors": {
@@ -220,8 +219,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:lock-api"
             ]
         },
         "com.palantir.atlasdb:commons-executors": {
