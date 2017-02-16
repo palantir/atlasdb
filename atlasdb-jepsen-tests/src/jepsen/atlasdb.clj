@@ -67,14 +67,13 @@
    The object defines how you create a lock client, and how to request locks from it. The first call to this
    function will return an invalid object: you should call 'setup' on the returned object to get a valid one.
   "
-  [client-name]
+  [node]
   (reify client/Client
     (setup!
       [this test node]
       "Factory that returns an object implementing client/Client"
       (AtlasDbEteServer/main "server" "resources/atlasdb/atlasdb-ete.yml.template")
-      (create-client
-        (name node)))
+      (create-client node))
 
     (invoke! [this test op]
       (case (:f op)
