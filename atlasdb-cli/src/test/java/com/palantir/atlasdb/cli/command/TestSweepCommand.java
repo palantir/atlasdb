@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cli.command;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
@@ -25,6 +26,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -50,6 +53,7 @@ import com.palantir.timestamp.TimestampService;
 
 import io.airlift.airline.Command;
 
+@RunWith(Parameterized.class)
 public class TestSweepCommand {
 
     private static final Namespace NS1 = Namespace.create("test");
@@ -63,6 +67,14 @@ public class TestSweepCommand {
 
     private static AtomicLong sweepTimestamp;
     private static AtlasDbServicesFactory moduleFactory;
+
+    @Parameterized.Parameter
+    public boolean dryRun;
+
+    @Parameterized.Parameters
+    public static Collection<Boolean> parameters() {
+        return Arrays.asList(Boolean.FALSE, Boolean.TRUE);
+    }
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -83,19 +95,9 @@ public class TestSweepCommand {
     }
 
     @Test
-    public void testDryRunSweepTable() throws Exception {
-        testSweepTable(true);
-    }
-
-    @Test
     public void testSweepTable() throws Exception {
-        testSweepTable(false);
-    }
-
-    private void testSweepTable(boolean dryRun) throws Exception {List<String> params = new ArrayList<>(
-            Arrays.asList(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName()));
-        if (dryRun) { params.add("--dry-run"); }
-        try (SingleBackendCliTestRunner runner = makeRunner(params.toArray(new String[0]))) {
+        try (SingleBackendCliTestRunner runner = makeRunner(
+                paramsWithDryRunSet(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName()))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
@@ -119,12 +121,8 @@ public class TestSweepCommand {
             Assert.assertEquals(1, deletedCells);
 
             Assert.assertEquals("baz", get(kvs, TABLE_ONE, "foo", ts5));
-            String oldFooValue = dryRun ? "bar" : "";
-            Assert.assertEquals(oldFooValue, get(kvs, TABLE_ONE, "foo", mid(ts1, ts3)));
-            ImmutableSet<Long> remainingTimestampsForFoo = dryRun
-                    ? ImmutableSet.of(ts1, ts3)
-                    : ImmutableSet.of(-1L, ts3);
-            Assert.assertEquals(remainingTimestampsForFoo, getAllTs(kvs, TABLE_ONE, "foo"));
+            Assert.assertEquals(deletedValue("bar"), get(kvs, TABLE_ONE, "foo", mid(ts1, ts3)));
+            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts1), ts3), getAllTs(kvs, TABLE_ONE, "foo"));
             Assert.assertEquals("taz", get(kvs, TABLE_TWO, "foo", ts5));
             Assert.assertEquals("tar", get(kvs, TABLE_TWO, "foo", mid(ts3, ts4)));
             Assert.assertEquals(ImmutableSet.of(ts2, ts4), getAllTs(kvs, TABLE_TWO, "foo"));
@@ -133,7 +131,8 @@ public class TestSweepCommand {
 
     @Test
     public void testSweepNonExistingTable() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner(SWEEP_COMMAND, "-t", NON_EXISTING_TABLE.getQualifiedName())) {
+        try (SingleBackendCliTestRunner runner = makeRunner(
+                paramsWithDryRunSet(SWEEP_COMMAND, "-t", NON_EXISTING_TABLE.getQualifiedName()))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
 
             long ts5 = services.getTimestampService().getFreshTimestamp();
@@ -144,10 +143,9 @@ public class TestSweepCommand {
         }
     }
 
-
     @Test
     public void testSweepNamespace() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner(SWEEP_COMMAND, "-n", NS1.getName())) {
+        try (SingleBackendCliTestRunner runner = makeRunner(paramsWithDryRunSet(SWEEP_COMMAND, "-n", NS1.getName()))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
@@ -166,11 +164,11 @@ public class TestSweepCommand {
             sweep(runner, ts7);
 
             Assert.assertEquals("baz", get(kvs, TABLE_ONE, "foo", ts7));
-            Assert.assertEquals("", get(kvs, TABLE_ONE, "foo", mid(ts1, ts2)));
-            Assert.assertEquals(ImmutableSet.of(-1L, ts4), getAllTs(kvs, TABLE_ONE, "foo"));
+            Assert.assertEquals(deletedValue("bar"), get(kvs, TABLE_ONE, "foo", mid(ts1, ts2)));
+            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts1), ts4), getAllTs(kvs, TABLE_ONE, "foo"));
             Assert.assertEquals("taz", get(kvs, TABLE_TWO, "foo", ts7));
-            Assert.assertEquals("", get(kvs, TABLE_TWO, "foo", mid(ts4, ts6)));
-            Assert.assertEquals(ImmutableSet.of(-1L, ts6), getAllTs(kvs, TABLE_TWO, "foo"));
+            Assert.assertEquals(deletedValue("tar"), get(kvs, TABLE_TWO, "foo", mid(ts4, ts6)));
+            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts2), ts6), getAllTs(kvs, TABLE_TWO, "foo"));
             Assert.assertEquals("jaz", get(kvs, TABLE_THREE, "foo", ts7));
             Assert.assertEquals("jar", get(kvs, TABLE_THREE, "foo", mid(ts3, ts5)));
             Assert.assertEquals(ImmutableSet.of(ts3, ts5), getAllTs(kvs, TABLE_THREE, "foo"));
@@ -179,7 +177,7 @@ public class TestSweepCommand {
 
     @Test
     public void testSweepAll() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner(SWEEP_COMMAND, "-a")) {
+        try (SingleBackendCliTestRunner runner = makeRunner(paramsWithDryRunSet(SWEEP_COMMAND, "-a"))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
@@ -198,20 +196,21 @@ public class TestSweepCommand {
             sweep(runner, ts7);
 
             Assert.assertEquals("baz", get(kvs, TABLE_ONE, "foo", ts7));
-            Assert.assertEquals("", get(kvs, TABLE_ONE, "foo", mid(ts1, ts2)));
-            Assert.assertEquals(ImmutableSet.of(-1L, ts4), getAllTs(kvs, TABLE_ONE, "foo"));
+            Assert.assertEquals(deletedValue("bar"), get(kvs, TABLE_ONE, "foo", mid(ts1, ts2)));
+            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts1), ts4), getAllTs(kvs, TABLE_ONE, "foo"));
             Assert.assertEquals("taz", get(kvs, TABLE_TWO, "foo", ts7));
-            Assert.assertEquals("", get(kvs, TABLE_TWO, "foo", mid(ts4, ts6)));
-            Assert.assertEquals(ImmutableSet.of(-1L, ts6), getAllTs(kvs, TABLE_TWO, "foo"));
+            Assert.assertEquals(deletedValue("tar"), get(kvs, TABLE_TWO, "foo", mid(ts4, ts6)));
+            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts2), ts6), getAllTs(kvs, TABLE_TWO, "foo"));
             Assert.assertEquals("jaz", get(kvs, TABLE_THREE, "foo", ts7));
-            Assert.assertEquals("", get(kvs, TABLE_THREE, "foo", mid(ts3, ts5)));
-            Assert.assertEquals(ImmutableSet.of(-1L, ts5), getAllTs(kvs, TABLE_THREE, "foo"));
+            Assert.assertEquals(deletedValue("jar"), get(kvs, TABLE_THREE, "foo", mid(ts3, ts5)));
+            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts3), ts5), getAllTs(kvs, TABLE_THREE, "foo"));
         }
     }
 
     @Test
     public void testSweepStartRow() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName(), "-r", BaseEncoding.base16().encode("foo".getBytes()))) {
+        try (SingleBackendCliTestRunner runner = makeRunner(
+                paramsWithDryRunSet(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName(), "-r", BaseEncoding.base16().encode("foo".getBytes())))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
@@ -226,12 +225,31 @@ public class TestSweepCommand {
             sweep(runner, ts5);
 
             Assert.assertEquals("baz", get(kvs, TABLE_ONE, "foo", ts5));
-            Assert.assertEquals("", get(kvs, TABLE_ONE, "foo", mid(ts1, ts3)));
-            Assert.assertEquals("", get(kvs, TABLE_ONE, "foo", mid(ts2, ts4)));
+            Assert.assertEquals(deletedValue("bar"), get(kvs, TABLE_ONE, "foo", mid(ts1, ts3)));
+            Assert.assertEquals(deletedValue("biz"), get(kvs, TABLE_ONE, "foo", mid(ts2, ts4)));
             Assert.assertEquals("biz", get(kvs, TABLE_ONE, "boo", mid(ts3, ts5)));
-            Assert.assertEquals(ImmutableSet.of(-1L, ts4), getAllTs(kvs, TABLE_ONE, "foo"));
+            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts1), deletedTimestamp(ts2), ts4), getAllTs(kvs, TABLE_ONE, "foo"));
             Assert.assertEquals(ImmutableSet.of(ts3), getAllTs(kvs, TABLE_ONE, "boo"));
         }
+    }
+
+
+    private String[] paramsWithDryRunSet(String... params) {
+        List<String> paramList = new ArrayList<>(
+                Arrays.asList(params));
+        if (dryRun) {
+            paramList.add("--dry-run");
+        }
+
+        return paramList.toArray(new String[0]);
+    }
+
+    private String deletedValue(String oldValue) {
+        return dryRun ? oldValue : "";
+    }
+
+    private long deletedTimestamp(long ts) {
+        return dryRun ? ts : -1L;
     }
 
     private long mid(long low, long high) {
