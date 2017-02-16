@@ -59,10 +59,10 @@ public class TimeLockClientConfigTest {
 
     @Test
     public void preservesAbsenceOfSslOnConversionToNamespacedServerListIfAbsent() {
+        ImmutableServerListConfig serversListWithoutSsl = ImmutableServerListConfig.copyOf(SERVERS_LIST)
+                .withSslConfiguration(Optional.absent());
         TimeLockClientConfig config = ImmutableTimeLockClientConfig.copyOf(CLIENT_CONFIG)
-                .withServersList(
-                        ImmutableServerListConfig.copyOf(SERVERS_LIST)
-                        .withSslConfiguration(Optional.absent()));
+                .withServersList(serversListWithoutSsl);
         assertThat(config.toNamespacedServerList().sslConfiguration(), equalTo(Optional.absent()));
     }
 
