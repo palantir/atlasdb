@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -39,7 +38,6 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimelockMigrator;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
@@ -79,8 +77,6 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.remoting.ssl.SslConfiguration;
-import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -263,6 +259,8 @@ public final class TransactionManagers {
     /**
      * This method should not be used directly. It remains here to support the AtlasDB-Dagger module and the CLIs, but
      * may be removed at some point in the future.
+     *
+     * @deprecated Not intended for public use outside of the AtlasDB CLIs
      */
     @Deprecated
     public static LockAndTimestampServices createLockAndTimestampServices(
@@ -349,11 +347,20 @@ public final class TransactionManagers {
         env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
         env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));
 
-        Optional<SSLSocketFactory> sslSocketFactory = createSslSocketFactory(leaderConfig.sslConfiguration());
+        Optional<SSLSocketFactory> sslSocketFactory = ServiceCreator.createSslSocketFactory(
+                leaderConfig.sslConfiguration());
 
         return ImmutableLockAndTimestampServices.builder()
-                .lock(createService(sslSocketFactory, leaderConfig.leaders(), RemoteLockService.class, userAgent))
-                .time(createService(sslSocketFactory, leaderConfig.leaders(), TimestampService.class, userAgent))
+                .lock(ServiceCreator.createService(
+                        sslSocketFactory,
+                        leaderConfig.leaders(),
+                        RemoteLockService.class,
+                        userAgent))
+                .time(ServiceCreator.createService(
+                        sslSocketFactory,
+                        leaderConfig.leaders(),
+                        TimestampService.class,
+                        userAgent))
                 .build();
     }
 
@@ -383,37 +390,6 @@ public final class TransactionManagers {
                 .lock(lockService)
                 .time(timeService)
                 .build();
-    }
-
-    /**
-     * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link SSLSocketFactory}.
-     */
-    public static Optional<SSLSocketFactory> createSslSocketFactory(Optional<SslConfiguration> sslConfiguration) {
-        return sslConfiguration.transform(config -> SslSocketFactories.createSslSocketFactory(config));
-    }
-
-    private static <T> T createService(
-            Optional<SSLSocketFactory> sslSocketFactory,
-            Set<String> uris,
-            Class<T> serviceClass,
-            String userAgent) {
-        return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent);
-    }
-
-    public static final class ServiceCreator<T> implements Function<ServerListConfig, T> {
-        private final Class<T> serviceClass;
-        private final String userAgent;
-
-        public ServiceCreator(Class<T> serviceClass, String userAgent) {
-            this.serviceClass = serviceClass;
-            this.userAgent = userAgent;
-        }
-
-        @Override
-        public T apply(ServerListConfig input) {
-            Optional<SSLSocketFactory> sslSocketFactory = createSslSocketFactory(input.sslConfiguration());
-            return createService(sslSocketFactory, input.servers(), serviceClass, userAgent);
-        }
     }
 
     @Value.Immutable

@@ -17,7 +17,7 @@ package com.palantir.atlasdb.factory.startup;
 
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
-import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -68,7 +68,7 @@ public class TimelockMigrator {
             TimeLockClientConfig timelockConfig,
             String userAgent) {
         ServerListConfig serverListConfig = timelockConfig.toNamespacedServerList();
-        return new TransactionManagers.ServiceCreator<>(TimestampManagementService.class, userAgent)
+        return new ServiceCreator<>(TimestampManagementService.class, userAgent)
                 .apply(serverListConfig);
     }
 }
