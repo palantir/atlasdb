@@ -28,6 +28,8 @@ public class SQLStringTest {
     public void testCanonicalizeString() {
         List<String> testQuery = ImmutableList.of(
                 "insert foo into bar ; ",
+                "insert\nfoo into bar",
+                "insert\n \tfoo into bar",
                 "insert foo into bar;",
                 "insert  foo into bar;   ",
                 "insert  foo into bar; ;;  ",

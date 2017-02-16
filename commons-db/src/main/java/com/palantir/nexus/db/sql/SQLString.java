@@ -279,10 +279,13 @@ public class SQLString extends BasicSQLString {
             if (originalIdx == firstUnregisteredIdx) {
                 originalIdx += UNREGISTERED_SQL_COMMENT.length();
                 firstUnregisteredIdx = original.indexOf(UNREGISTERED_SQL_COMMENT, originalIdx);
-            } else if ((Character.isWhitespace(originalChar))
-                    && ((cleanedIdx == 0)
-                    || (Character.isWhitespace(cleanedString.charAt(cleanedIdx - 1)))
-                    || removeAllWhitespaceEntirely)) {
+            } else if (Character.isWhitespace(originalChar)) {
+                if (cleanedIdx != 0
+                        && !Character.isWhitespace(cleanedString.charAt(cleanedIdx - 1))
+                        && !removeAllWhitespaceEntirely) {
+                    cleanedString.setCharAt(cleanedIdx, ' ');
+                    ++cleanedIdx;
+                }
                 ++originalIdx;
             } else {
                 cleanedString.setCharAt(cleanedIdx, originalChar);
