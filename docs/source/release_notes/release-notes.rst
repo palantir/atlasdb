@@ -42,6 +42,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Canonicalised SQL strings will now have contiguous whitespace rendered as a single space as opposed to the first character of said whitespace.
+           This is important for backwards compatibility with internal product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1603>`__)
+
     *    - |fixed| |improved|
          - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `ticket <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
 
