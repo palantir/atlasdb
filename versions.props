@@ -48,5 +48,4 @@ org.slf4j:* = 1.7.5
 org.yaml:snakeyaml = 1.12
 
 // versions below 8.10.0 have a bug where POST requests must have a body
-com.netflix.feign:* = 8.6.1
-com.netflix.feign:feign-okhttp = 8.10.1
+com.netflix.feign:* = 8.18.0
