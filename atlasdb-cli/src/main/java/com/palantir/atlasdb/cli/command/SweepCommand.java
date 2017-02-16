@@ -140,19 +140,13 @@ public class SweepCommand extends SingleBackendCommand {
                 SweepResults results = dryRun
                         ? sweepRunner.dryRun(table, batchSize, cellBatchSize, startRow.get())
                         : sweepRunner.run(table, batchSize, cellBatchSize, startRow.get());
-                if (!dryRun) {
-                    printer.info(
-                            "Swept from {} to {} in table {} in {} ms, examined {} unique cells, deleted {} stale versions of those cells.",
-                            encodeStartRow(startRow), encodeEndRow(results.getNextStartRow()),
-                            table, watch.elapsed(TimeUnit.MILLISECONDS),
-                            results.getCellsExamined(), results.getCellsDeleted());
-                } else {
-                    printer.info(
-                            "Swept from {} to {} in table {} in {} ms, examined {} unique cells, would have deleted {} stale versions of those cells.",
-                            encodeStartRow(startRow), encodeEndRow(results.getNextStartRow()),
-                            table, watch.elapsed(TimeUnit.MILLISECONDS),
-                            results.getCellsExamined(), results.getCellsDeleted());
-                }
+                printer.info(
+                        "Swept from {} to {} in table {} in {} ms, examined {} unique cells, {}deleted {} stale versions of those cells.",
+                        encodeStartRow(startRow), encodeEndRow(results.getNextStartRow()),
+                        table, watch.elapsed(TimeUnit.MILLISECONDS),
+                        results.getCellsExamined(),
+                        dryRun ? "would have " : "",
+                        results.getCellsDeleted());
                 startRow = results.getNextStartRow();
                 cellsDeleted.addAndGet(results.getCellsDeleted());
                 cellsExamined.addAndGet(results.getCellsExamined());
