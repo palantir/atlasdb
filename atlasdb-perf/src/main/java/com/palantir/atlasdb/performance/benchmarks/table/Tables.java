@@ -80,4 +80,14 @@ public final class Tables {
         return map;
     }
 
+    static Map<Cell, byte[]> generateBatchOfColumns(Random random, int startCol, int size) {
+        Map<Cell, byte[]> map = Maps.newHashMapWithExpectedSize(size);
+        for (int j = 0; j < size; j++) {
+            byte[] col = Ints.toByteArray(startCol + j);
+            byte[] value = Tables.generateValue(random);
+            map.put(Cell.create(Tables.ROW_BYTES.array(), col), value);
+        }
+        return map;
+    }
+
 }

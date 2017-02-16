@@ -185,12 +185,21 @@ public abstract class RegeneratingTable<T> {
         protected void populateTable(int numberOfBatches, int batchSize, int numberOfDuplicates) {
             for (int i = 0; i < numberOfBatches; i++) {
                 Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, batchSize);
-                for (int j = 0; j < numberOfDuplicates; j++) {
-                    getTransactionManager().runTaskThrowOnConflict(txn -> {
-                        txn.put(getTableRef(), batch);
-                        return null;
-                    });
-                }
+                putBatchManyTimes(batch, numberOfDuplicates);
+            }
+        }
+
+        protected void populateTableDeterministic(int numberOfColumns, int numberOfDuplicates) {
+            Map<Cell, byte[]> batch = Tables.generateBatchOfColumns(random, 1, numberOfColumns);
+            putBatchManyTimes(batch, numberOfDuplicates);
+        }
+
+        private void putBatchManyTimes(Map<Cell, byte[]> batch, int numberOfDuplicates) {
+            for (int j = 0; j < numberOfDuplicates; j++) {
+                getTransactionManager().runTaskThrowOnConflict(txn -> {
+                    txn.put(getTableRef(), batch);
+                    return null;
+                });
             }
         }
 
@@ -226,6 +235,16 @@ public abstract class RegeneratingTable<T> {
         public void setupTableData() {
             getKvs().truncateTable(getTableRef());
             populateTable(SWEEP_BATCH_SIZE, 1, SWEEP_DUPLICATES);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class SweepHundredColumnsDeterministicRegeneratingTable extends SweepRegeneratingTable {
+
+        @Override
+        public void setupTableData() {
+            getKvs().truncateTable(getTableRef());
+            populateTableDeterministic(100, 100);
         }
     }
 }
