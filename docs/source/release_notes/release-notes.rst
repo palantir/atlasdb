@@ -72,7 +72,7 @@ develop
 
     *    - |improved|
          - Improved heap usage during heavy DBKVS querying
-           (Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
 
     *    - |fixed|
          - Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
