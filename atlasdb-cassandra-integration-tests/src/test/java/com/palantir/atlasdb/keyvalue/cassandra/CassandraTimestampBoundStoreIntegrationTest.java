@@ -290,7 +290,7 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
         if (changeId) {
             id = new UUID(id.getMostSignificantBits(), id.getLeastSignificantBits() ^ 1);
         }
-        setTimestampTableValueTo(TimestampBoundStoreEntry.getByteValueForIdAndBound(id, value));
+        setTimestampTableValueTo(CassandraTimestampBoundStoreEntry.getByteValueForIdAndBound(id, value));
     }
 
     private void setTimestampTableValueTo(byte[] data) {
@@ -301,13 +301,13 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     private long getBoundFromDb() {
         Value value = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TIMESTAMP_BOUND_CELL, Long.MAX_VALUE))
                 .get(TIMESTAMP_BOUND_CELL);
-        return TimestampBoundStoreEntry.createFromBytes(value.getContents()).timestamp().get();
+        return CassandraTimestampBoundStoreEntry.createFromBytes(value.getContents()).timestamp.get();
     }
 
     private UUID getIdFromDb() {
         Value value = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TIMESTAMP_BOUND_CELL, Long.MAX_VALUE))
                 .get(TIMESTAMP_BOUND_CELL);
-        return TimestampBoundStoreEntry.createFromBytes(value.getContents()).id().get();
+        return CassandraTimestampBoundStoreEntry.createFromBytes(value.getContents()).id.get();
     }
 
     private UUID getStoreId(TimestampBoundStore store) {

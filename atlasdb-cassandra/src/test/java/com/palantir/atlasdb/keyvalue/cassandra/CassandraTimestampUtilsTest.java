@@ -87,7 +87,7 @@ public class CassandraTimestampUtilsTest {
     @Test
     public void entryConvertedToBytesIsValidTimestampData() {
         assertThat(CassandraTimestampUtils.isValidTimestampData(
-                TimestampBoundStoreEntry.create(1234567L, ID).getByteValue())).isTrue();
+                CassandraTimestampBoundStoreEntry.create(1234567L, ID).getByteValue())).isTrue();
         assertThat(CassandraTimestampUtils.isValidTimestampData(
                 new byte[Long.BYTES + ValueType.UUID.sizeOf(null)])).isTrue();
     }
