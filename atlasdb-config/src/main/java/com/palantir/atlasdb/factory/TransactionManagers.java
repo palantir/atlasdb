@@ -160,7 +160,7 @@ public final class TransactionManagers {
                 env,
                 () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService,
-                atlasFactory::getTimestampStoreInvalidator,
+                atlasFactory.getTimestampStoreInvalidator(),
                 userAgent);
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
@@ -260,6 +260,11 @@ public final class TransactionManagers {
         return () -> txManager.getUnreadableTimestamp();
     }
 
+    /**
+     * This method should not be used directly. It remains here to support the AtlasDB-Dagger module and the CLIs, but
+     * may be removed at some point in the future.
+     */
+    @Deprecated
     public static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
             Environment env,
@@ -276,7 +281,7 @@ public final class TransactionManagers {
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
-            Supplier<TimestampStoreInvalidator> invalidator,
+            TimestampStoreInvalidator invalidator,
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawServices(config, env, lock, time, invalidator, userAgent);
@@ -297,15 +302,16 @@ public final class TransactionManagers {
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
-            Supplier<TimestampStoreInvalidator> invalidator,
+            TimestampStoreInvalidator invalidator,
             String userAgent) {
         if (config.leader().isPresent()) {
             return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
         } else if (config.timelock().isPresent()) {
-            TimelockMigrator.create(config, invalidator.get(), userAgent).migrate();
-            return createNamespacedRawRemoteServices(config.timelock().get(), userAgent);
+            TimeLockClientConfig timeLockClientConfig = config.timelock().get();
+            TimelockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
+            return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time);
         }

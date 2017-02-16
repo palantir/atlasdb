@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.factory.startup;
 
-import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
@@ -34,15 +32,11 @@ public class TimelockMigrator {
     }
 
     public static TimelockMigrator create(
-            AtlasDbConfig config,
+            TimeLockClientConfig config,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
-        Preconditions.checkArgument(config.timelock().isPresent(),
-                "Timelock Migration should not be done without a timelock server configured!");
-        TimeLockClientConfig timelockConfig = config.timelock().get();
-
         TimestampManagementService remoteTimestampManagementService =
-                createRemoteManagementService(timelockConfig, userAgent);
+                createRemoteManagementService(config, userAgent);
         return new TimelockMigrator(invalidator, remoteTimestampManagementService);
     }
 

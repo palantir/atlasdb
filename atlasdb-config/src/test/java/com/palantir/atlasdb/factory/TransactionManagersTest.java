@@ -166,7 +166,7 @@ public class TransactionManagersTest {
                         environment,
                         LockServiceImpl::create,
                         InMemoryTimestampService::new,
-                        () -> invalidator,
+                        invalidator,
                         USER_AGENT);
         lockAndTimestampServices.time().getFreshTimestamp();
         lockAndTimestampServices.lock().currentTimeMillis();
