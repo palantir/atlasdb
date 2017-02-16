@@ -136,7 +136,10 @@ public class SweepCommand extends SingleBackendCommand {
 
             while (startRow.isPresent()) {
                 Stopwatch watch = Stopwatch.createStarted();
-                SweepResults results = sweepRunner.run(table, batchSize, cellBatchSize, startRow.get(), dryRun);
+
+                SweepResults results = dryRun
+                        ? sweepRunner.dryRun(table, batchSize, cellBatchSize, startRow.get())
+                        : sweepRunner.run(table, batchSize, cellBatchSize, startRow.get());
                 if (!dryRun) {
                     printer.info(
                             "Swept from {} to {} in table {} in {} ms, examined {} unique cells, deleted {} stale versions of those cells.",

@@ -192,8 +192,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                     progress.getFullTableName()),
                     rowBatchSize,
                     cellBatchSize,
-                    progress.getStartRow(),
-                    false);
+                    progress.getStartRow());
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
             log.debug("Swept {} unique cells from {} starting at {}"
                     + " and performed {} deletions in {} ms"

@@ -592,7 +592,7 @@ public abstract class AbstractSweeperTest {
 
     private SweepResults sweep(TableReference tableReference, long ts, int batchSize) {
         sweepTimestamp.set(ts);
-        return sweepRunner.run(tableReference, batchSize, DEFAULT_CELL_BATCH_SIZE, new byte[0], false);
+        return sweepRunner.run(tableReference, batchSize, DEFAULT_CELL_BATCH_SIZE, new byte[0]);
     }
 
     private SweepResults partialSweep(long ts, int batchSize) {

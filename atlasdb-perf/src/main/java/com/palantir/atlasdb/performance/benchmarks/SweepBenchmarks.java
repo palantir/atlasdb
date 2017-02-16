@@ -35,7 +35,7 @@ public class SweepBenchmarks {
 
     private Object runSingleSweep(RegeneratingTable table, int batchSize) {
         SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
-        SweepResults sweepResults = sweepTaskRunner.run(table.getTableRef(), batchSize, batchSize, null, false);
+        SweepResults sweepResults = sweepTaskRunner.run(table.getTableRef(), batchSize, batchSize, null);
         assertThat(sweepResults.getCellsDeleted(), is(DELETED_COUNT * batchSize));
         return sweepResults;
     }
@@ -45,7 +45,7 @@ public class SweepBenchmarks {
         SweepResults sweepResults = null;
         byte[] nextStartRow = null;
         for (int i = 0; i < BATCH_SIZE; i++) {
-            sweepResults = sweepTaskRunner.run(table.getTableRef(), 1, 1, nextStartRow, false);
+            sweepResults = sweepTaskRunner.run(table.getTableRef(), 1, 1, nextStartRow);
             nextStartRow = sweepResults.getNextStartRow().get();
             assertThat(sweepResults.getCellsDeleted(), is(DELETED_COUNT));
         }

@@ -97,7 +97,19 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     }
 
     @Override
-    public SweepResults run(
+    public SweepResults dryRun(TableReference tableRef,
+            int rowBatchSize,
+            int cellBatchSize,
+            @Nullable byte[] startRow) {
+        return run(tableRef, rowBatchSize, cellBatchSize, startRow, true);
+    }
+
+    @Override
+    public SweepResults run(TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] startRow) {
+        return run(tableRef, rowBatchSize, cellBatchSize, startRow, false);
+    }
+
+    private SweepResults run(
             TableReference tableRef,
             int rowBatchSize,
             int cellBatchSize,
@@ -156,7 +168,12 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                     cellBatchSize,
                     thisBatch -> {
                         CellsAndTimestamps thisBatchCells = CellsAndTimestamps.fromCellAndTimestampsList(thisBatch);
-                        int cellsSwept = sweepForCells(thisBatchCells, tableRef, sweeper, sweepTs, peekingValues, dryRun);
+                        int cellsSwept = sweepForCells(thisBatchCells,
+                                tableRef,
+                                sweeper,
+                                sweepTs,
+                                peekingValues,
+                                dryRun);
                         totalCellsSwept.addAndGet(cellsSwept);
                         return true;
                     });
