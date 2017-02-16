@@ -96,17 +96,34 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         this.cellsSweeper = cellsSweeper;
     }
 
+    /**
+     * Represents the type of run to be conducted by the sweep runner.
+     */
+    private enum RunType {
+        /**
+         * A DRY run is expect to not mutate any tables (with the exception of the sweep.progress table)
+         * but will determine and report back all the values that *would* have been swept.
+         */
+        DRY,
+
+        /**
+         * A FULL run will execute all followers / sentinel additions / and deletions on the
+         * cells that qualify for sweeping.
+         */
+        FULL
+    }
+
     @Override
     public SweepResults dryRun(TableReference tableRef,
             int rowBatchSize,
             int cellBatchSize,
             @Nullable byte[] startRow) {
-        return run(tableRef, rowBatchSize, cellBatchSize, startRow, true);
+        return run(tableRef, rowBatchSize, cellBatchSize, startRow, RunType.DRY);
     }
 
     @Override
     public SweepResults run(TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] startRow) {
-        return run(tableRef, rowBatchSize, cellBatchSize, startRow, false);
+        return run(tableRef, rowBatchSize, cellBatchSize, startRow, RunType.FULL);
     }
 
     private SweepResults run(
@@ -114,7 +131,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             int rowBatchSize,
             int cellBatchSize,
             @Nullable byte[] nullableStartRow,
-            boolean dryRun) {
+            RunType runType) {
         Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
         Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
@@ -173,7 +190,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                                 sweeper,
                                 sweepTs,
                                 peekingValues,
-                                dryRun);
+                                runType));
                         totalCellsSwept.addAndGet(cellsSwept);
                         return true;
                     });
@@ -214,7 +231,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             Sweeper sweeper,
             long sweepTs,
             PeekingIterator<RowResult<Value>> peekingValues,
-            boolean dryRun) {
+            RunType runType) {
         CellsAndTimestamps currentBatchWithoutIgnoredTimestamps =
                 currentBatch.withoutIgnoredTimestamps(sweeper.getTimestampsToIgnore());
 
@@ -223,7 +240,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
         Multimap<Cell, Long> startTimestampsToSweepPerCell = cellsToSweep.timestampsAsMultimap();
 
-        if (!dryRun) {
+        if (runType == RunType.FULL) {
             cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, cellsToSweep.allSentinels());
         }
 
