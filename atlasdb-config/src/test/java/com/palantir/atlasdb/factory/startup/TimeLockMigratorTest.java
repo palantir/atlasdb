@@ -43,7 +43,7 @@ import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
-public class TimelockMigratorTest {
+public class TimeLockMigratorTest {
     private static final int PORT = 8080;
     private static final long BACKUP_TIMESTAMP = 42;
     private static final String TEST_ENDPOINT = "/testClient/timestamp-management/fast-forward?currentTimestamp="
@@ -80,7 +80,7 @@ public class TimelockMigratorTest {
     public void propagatesBackupTimestampToFastForwardOnRemoteService() {
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
 
-        TimelockMigrator migrator = TimelockMigrator.create(TIMELOCK_CONFIG, invalidator, USER_AGENT);
+        TimeLockMigrator migrator = TimeLockMigrator.create(TIMELOCK_CONFIG, invalidator, USER_AGENT);
         migrator.migrate();
 
         wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
@@ -92,7 +92,7 @@ public class TimelockMigratorTest {
     public void invalidationDoesNotProceedIfTimelockPingUnsuccessful() {
         wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse().withStatus(500)));
 
-        TimelockMigrator migrator = TimelockMigrator.create(TIMELOCK_CONFIG, invalidator, USER_AGENT);
+        TimeLockMigrator migrator = TimeLockMigrator.create(TIMELOCK_CONFIG, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
         verify(invalidator, never()).backupAndInvalidate();
     }
@@ -101,7 +101,7 @@ public class TimelockMigratorTest {
     public void migrationDoesNotProceedIfInvalidationFails() {
         when(invalidator.backupAndInvalidate()).thenThrow(new IllegalStateException());
 
-        TimelockMigrator migrator = TimelockMigrator.create(TIMELOCK_CONFIG, invalidator, USER_AGENT);
+        TimeLockMigrator migrator = TimeLockMigrator.create(TIMELOCK_CONFIG, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
         wireMockRule.verify(0, postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
     }

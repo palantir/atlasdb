@@ -22,22 +22,22 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
-public class TimelockMigrator {
+public class TimeLockMigrator {
     private final TimestampStoreInvalidator source;
     private final TimestampManagementService destination;
 
-    public TimelockMigrator(TimestampStoreInvalidator source, TimestampManagementService destination) {
+    public TimeLockMigrator(TimestampStoreInvalidator source, TimestampManagementService destination) {
         this.source = source;
         this.destination = destination;
     }
 
-    public static TimelockMigrator create(
+    public static TimeLockMigrator create(
             TimeLockClientConfig config,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         TimestampManagementService remoteTimestampManagementService =
                 createRemoteManagementService(config, userAgent);
-        return new TimelockMigrator(invalidator, remoteTimestampManagementService);
+        return new TimeLockMigrator(invalidator, remoteTimestampManagementService);
     }
 
     /**

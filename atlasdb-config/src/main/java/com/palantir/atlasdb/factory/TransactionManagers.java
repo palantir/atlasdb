@@ -37,7 +37,7 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
-import com.palantir.atlasdb.factory.startup.TimelockMigrator;
+import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
@@ -308,7 +308,7 @@ public final class TransactionManagers {
             return createRawRemoteServices(config, userAgent);
         } else if (config.timelock().isPresent()) {
             TimeLockClientConfig timeLockClientConfig = config.timelock().get();
-            TimelockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
+            TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
             return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time);
