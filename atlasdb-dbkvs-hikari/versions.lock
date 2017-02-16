@@ -111,7 +111,7 @@
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:commons-db"
             ]
         },
         "com.zaxxer:HikariCP": {
@@ -298,7 +298,7 @@
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:commons-db"
             ]
         },
         "com.zaxxer:HikariCP": {

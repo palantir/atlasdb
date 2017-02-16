@@ -71,10 +71,7 @@
             "project": true
         },
         "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
+            "locked": "1.0.3"
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
@@ -176,10 +173,7 @@
             "project": true
         },
         "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
+            "locked": "1.0.3"
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
