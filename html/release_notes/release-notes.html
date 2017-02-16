@@ -210,7 +210,19 @@ please file a ticket on the AtlasDB github page.
 <td>Reduced logging noise from large Cassandra gets and puts by removing ERROR messages and only providing stacktraces at DEBUG.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1590">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td><p class="first">Upon startup of a Cassandra-backed AtlasDB client with a <a class="reference internal" href="../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock block</span></a>, the client will now automatically migrate its timestamp to the Timelock cluster.
+The client will fast-forward the Timelock Server&#8217;s timestamp bound to that of the embedded service.
+The client will now also <em>invalidate</em> the embedded service&#8217;s bound, backing this up in a separate row in the timestamp table.
+This is not cause for concern if you have already done a manual migration to Timelock, as fast forwarding to an earlier bound is a no-op.</p>
+<p class="last">So far, automated migration is only supported for Cassandra KVS.
+If using DBKVS or other key-value services, it remains the user&#8217;s responsibility to ensure that they have performed the migration detailed in <a class="reference internal" href="../services/timelock_service/migration.html#timelock-migration"><span class="std std-ref">Migration to External Timelock Services</span></a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1569">Pull Request 1</a>,
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1570">Pull Request 2</a> and
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1579">Pull Request 3</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed multiple connection pool deadlocks in DbKvs
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1566">Pull Request</a>)</td>
 </tr>

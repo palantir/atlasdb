@@ -83,6 +83,18 @@ develop
          - Reduced logging noise from large Cassandra gets and puts by removing ERROR messages and only providing stacktraces at DEBUG.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1590>`__)
 
+    *    - |new|
+         - Upon startup of a Cassandra-backed AtlasDB client with a :ref:`Timelock block <timelock-client-configuration>`, the client will now automatically migrate its timestamp to the Timelock cluster.
+           The client will fast-forward the Timelock Server's timestamp bound to that of the embedded service.
+           The client will now also *invalidate* the embedded service's bound, backing this up in a separate row in the timestamp table.
+           This is not cause for concern if you have already done a manual migration to Timelock, as fast forwarding to an earlier bound is a no-op.
+
+           So far, automated migration is only supported for Cassandra KVS.
+           If using DBKVS or other key-value services, it remains the user's responsibility to ensure that they have performed the migration detailed in :ref:`Migration to External Timelock Services <timelock-migration>`.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1569>`__, 
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1570>`__ and
+           `Pull Request 3 <https://github.com/palantir/atlasdb/pull/1579>`__)
+           
     *    - |fixed|
          - Fixed multiple connection pool deadlocks in DbKvs
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
