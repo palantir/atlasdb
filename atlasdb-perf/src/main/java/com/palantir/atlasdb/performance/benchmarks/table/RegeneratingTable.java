@@ -52,6 +52,7 @@ public abstract class RegeneratingTable<T> {
 
     private AtlasDbServicesConnector connector;
     private AtlasDbServices services;
+    private SweepTaskRunner sweepTaskRunner;
 
     public TransactionManager getTransactionManager() {
         return services.getTransactionManager();
@@ -66,13 +67,14 @@ public abstract class RegeneratingTable<T> {
     }
 
     public SweepTaskRunner getSweepTaskRunner() {
-        return services.getSweepTaskRunner();
+        return sweepTaskRunner;
     }
 
     @Setup(Level.Trial)
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         this.services = conn.connect();
+        this.sweepTaskRunner = services.getSweepTaskRunner();
         setupTable();
         setupTableData();
     }
