@@ -116,11 +116,9 @@ public class DbKvsGetRanges {
         Object[] args = argsList.toArray();
 
         TimingState timer = logTimer.begin("Table: " + tableRef.getQualifiedName() + " get_page");
-        final SqlConnection conn = connectionSupplier.get();
         try {
-            return getFirstPagesFromDb(tableRef, requests, timestamp, conn, query, args);
+            return getFirstPagesFromDb(tableRef, requests, timestamp, query, args);
         } finally {
-            closeSql(conn);
             timer.end();
         }
     }
@@ -129,10 +127,9 @@ public class DbKvsGetRanges {
             TableReference tableRef,
             List<RangeRequest> requests,
             long timestamp,
-            final SqlConnection conn,
             String query,
             Object[] args) {
-        SortedSetMultimap<Integer, byte[]> rowsForBatches = getRowsForBatches(conn, query, args);
+        SortedSetMultimap<Integer, byte[]> rowsForBatches = getRowsForBatches(connectionSupplier, query, args);
         Map<Cell, Value> cells = kvs.getRows(tableRef, rowsForBatches.values(),
                 ColumnSelection.all(), timestamp);
         NavigableMap<byte[], SortedMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(cells);
@@ -141,22 +138,27 @@ public class DbKvsGetRanges {
     }
 
     private static SortedSetMultimap<Integer, byte[]> getRowsForBatches(
-            SqlConnection connection,
+            Supplier<SqlConnection> connectionSupplier,
             String query,
             Object[] args) {
-        AgnosticResultSet results = connection.selectResultSetUnregisteredQuery(query, args);
-        SortedSetMultimap<Integer, byte[]> ret = TreeMultimap.create(
-                Ordering.natural(),
-                UnsignedBytes.lexicographicalComparator());
-        for (AgnosticResultRow row : results.rows()) {
-            @SuppressWarnings("deprecation")
-            byte[] rowName = row.getBytes("row_name");
-            int batchNum = row.getInteger("batch_num");
-            if (rowName != null) {
-                ret.put(batchNum, rowName);
+        SqlConnection connection = connectionSupplier.get();
+        try {
+            AgnosticResultSet results = connection.selectResultSetUnregisteredQuery(query, args);
+            SortedSetMultimap<Integer, byte[]> ret = TreeMultimap.create(
+                    Ordering.natural(),
+                    UnsignedBytes.lexicographicalComparator());
+            for (AgnosticResultRow row : results.rows()) {
+                @SuppressWarnings("deprecation")
+                byte[] rowName = row.getBytes("row_name");
+                int batchNum = row.getInteger("batch_num");
+                if (rowName != null) {
+                    ret.put(batchNum, rowName);
+                }
             }
+            return ret;
+        } finally {
+            closeSql(connection);
         }
-        return ret;
     }
 
     private Pair<String, List<Object>> getRangeQueryAndArgs(
