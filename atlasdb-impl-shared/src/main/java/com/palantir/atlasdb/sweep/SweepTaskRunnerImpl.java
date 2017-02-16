@@ -150,6 +150,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                     .create(getTimestampsFromRowResultsIterator(() -> rowResultTimestamps));
 
             final AtomicInteger totalCellsSwept = new AtomicInteger(0);
+            final AtomicInteger batches = new AtomicInteger(0);
             final ConcurrentSkipListSet<CellsToSweep> setsOfCellsToSweep = new ConcurrentSkipListSet<>(
                     Comparator.comparing(Object::hashCode));
             cellsAndTimestamps.batchAccept(
@@ -158,8 +159,21 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                         CellsAndTimestamps thisBatchCells = CellsAndTimestamps.fromCellAndTimestampsList(thisBatch);
                         CellsToSweep cellsToSweep = getCellsToSweep(thisBatchCells, sweeper, sweepTs, peekingValues);
                         setsOfCellsToSweep.add(cellsToSweep);
+//                        ImmutableCellsToSweep.Builder builder = ImmutableCellsToSweep.builder();
+//                        setsOfCellsToSweep.stream().map(CellsToSweep::cellToSweepList)
+                        // .forEach(builder::addAllCellToSweepList);
+//                        CellsToSweep cellsToSweep = builder.build();
+
+                        // Eager delete
+//                        Multimap<Cell, Long> startTimestampsToSweepPerCell = cellsToSweep.timestampsAsMultimap();
+//                        cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, cellsToSweep.allSentinels());
+//
+//                        int cellsSwept = startTimestampsToSweepPerCell.size();
+//                        totalCellsSwept.addAndGet(cellsSwept);
+                        batches.incrementAndGet();
                         return true;
                     });
+
             ImmutableCellsToSweep.Builder builder = ImmutableCellsToSweep.builder();
             setsOfCellsToSweep.stream().map(CellsToSweep::cellToSweepList).forEach(builder::addAllCellToSweepList);
             CellsToSweep cellsToSweep = builder.build();
