@@ -80,6 +80,38 @@ public class TestSweepCommand {
     }
 
     @Test
+    public void testDryRunSweepTable() throws Exception {
+        try (SingleBackendCliTestRunner runner = makeRunner(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName(), "--dry-run")) {
+            TestAtlasDbServices services = runner.connect(moduleFactory);
+            SerializableTransactionManager txm = services.getTransactionManager();
+            TimestampService tss = services.getTimestampService();
+            KeyValueService kvs = services.getKeyValueService();
+
+            createTable(kvs, TABLE_ONE, TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+            createTable(kvs, TABLE_TWO, TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+            long ts1 = put(txm, TABLE_ONE, "foo", "bar");
+            long ts2 = put(txm, TABLE_TWO, "foo", "tar");
+            long ts3 = put(txm, TABLE_ONE, "foo", "baz");
+            long ts4 = put(txm, TABLE_TWO, "foo", "taz");
+            long ts5 = tss.getFreshTimestamp();
+            String stdout = sweep(runner, ts5);
+
+            Scanner scanner = new Scanner(stdout);
+            final long uniqueCells = Long.parseLong(scanner.findInLine("\\d+ unique cells").split(" ")[0]);
+            final long deletedCells = Long.parseLong(scanner.findInLine("would have deleted \\d+ stale versions of those cells").split(" ")[3]);
+            Assert.assertEquals(1, uniqueCells);
+            Assert.assertEquals(1, deletedCells);
+
+            Assert.assertEquals("baz", get(kvs, TABLE_ONE, "foo", ts5));
+            Assert.assertEquals("bar", get(kvs, TABLE_ONE, "foo", mid(ts1, ts3)));
+            Assert.assertEquals(ImmutableSet.of(ts1, ts3), getAllTs(kvs, TABLE_ONE, "foo"));
+            Assert.assertEquals("taz", get(kvs, TABLE_TWO, "foo", ts5));
+            Assert.assertEquals("tar", get(kvs, TABLE_TWO, "foo", mid(ts3, ts4)));
+            Assert.assertEquals(ImmutableSet.of(ts2, ts4), getAllTs(kvs, TABLE_TWO, "foo"));
+        }
+    }
+
+    @Test
     public void testSweepTable() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName())) {
             TestAtlasDbServices services = runner.connect(moduleFactory);

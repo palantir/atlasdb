@@ -98,7 +98,11 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
     @Override
     public SweepResults run(
-            TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] nullableStartRow) {
+            TableReference tableRef,
+            int rowBatchSize,
+            int cellBatchSize,
+            @Nullable byte[] nullableStartRow,
+            boolean dryRun) {
         Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
         Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
@@ -152,7 +156,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                     cellBatchSize,
                     thisBatch -> {
                         CellsAndTimestamps thisBatchCells = CellsAndTimestamps.fromCellAndTimestampsList(thisBatch);
-                        int cellsSwept = sweepForCells(thisBatchCells, tableRef, sweeper, sweepTs, peekingValues);
+                        int cellsSwept = sweepForCells(thisBatchCells, tableRef, sweeper, sweepTs, peekingValues, dryRun);
                         totalCellsSwept.addAndGet(cellsSwept);
                         return true;
                     });
@@ -192,7 +196,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             TableReference tableRef,
             Sweeper sweeper,
             long sweepTs,
-            PeekingIterator<RowResult<Value>> peekingValues) {
+            PeekingIterator<RowResult<Value>> peekingValues,
+            boolean dryRun) {
         CellsAndTimestamps currentBatchWithoutIgnoredTimestamps =
                 currentBatch.withoutIgnoredTimestamps(sweeper.getTimestampsToIgnore());
 
@@ -200,7 +205,10 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                 currentBatchWithoutIgnoredTimestamps, peekingValues, sweepTs, sweeper);
 
         Multimap<Cell, Long> startTimestampsToSweepPerCell = cellsToSweep.timestampsAsMultimap();
-        cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, cellsToSweep.allSentinels());
+
+        if (!dryRun) {
+            cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, cellsToSweep.allSentinels());
+        }
 
         return startTimestampsToSweepPerCell.size();
     }

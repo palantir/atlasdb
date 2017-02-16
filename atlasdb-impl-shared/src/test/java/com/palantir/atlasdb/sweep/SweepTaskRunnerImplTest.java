@@ -260,7 +260,7 @@ public class SweepTaskRunnerImplTest {
         when(mockKvs.getRangeOfTimestamps(eq(TABLE_REFERENCE), any(RangeRequest.class), anyLong()))
                 .thenReturn(ClosableIterators.wrap(timestamps.iterator()));
 
-        sweepTaskRunner.run(TABLE_REFERENCE, ROW_BATCH_SIZE, maxBatchSize, null);
+        sweepTaskRunner.run(TABLE_REFERENCE, ROW_BATCH_SIZE, maxBatchSize, null, false);
 
         verifyAllCallsRespectBatching(batches, maxBatchSize);
     }

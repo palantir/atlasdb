@@ -22,6 +22,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 
 public interface SweepTaskRunner {
-    SweepResults run(TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] startRow);
+    SweepResults run(
+            TableReference tableRef,
+            int rowBatchSize,
+            int cellBatchSize,
+            @Nullable byte[] startRow,
+            boolean dryRun);
     long getSweepTimestamp(SweepStrategy sweepStrategy);
 }

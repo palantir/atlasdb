@@ -77,6 +77,10 @@ public class SweepCommand extends SingleBackendCommand {
             description = "Time to wait in milliseconds after each sweep batch (throttles long-running sweep jobs, default: 0)")
     long sleepTimeInMs = 0;
 
+    @Option(name = {"--dry-run"},
+            description = "Run sweep in dry run mode to get how much would have been deleted and check safety.")
+    boolean dryRun = false;
+
     @Override
     public boolean isOnlineRunSupported() {
         return true;
@@ -132,11 +136,20 @@ public class SweepCommand extends SingleBackendCommand {
 
             while (startRow.isPresent()) {
                 Stopwatch watch = Stopwatch.createStarted();
-                SweepResults results = sweepRunner.run(table, batchSize, cellBatchSize, startRow.get());
-                printer.info("Swept from {} to {} in table {} in {} ms, examined {} unique cells, deleted {} stale versions of those cells.",
-                        encodeStartRow(startRow), encodeEndRow(results.getNextStartRow()),
-                        table, watch.elapsed(TimeUnit.MILLISECONDS),
-                        results.getCellsExamined(), results.getCellsDeleted());
+                SweepResults results = sweepRunner.run(table, batchSize, cellBatchSize, startRow.get(), dryRun);
+                if (!dryRun) {
+                    printer.info(
+                            "Swept from {} to {} in table {} in {} ms, examined {} unique cells, deleted {} stale versions of those cells.",
+                            encodeStartRow(startRow), encodeEndRow(results.getNextStartRow()),
+                            table, watch.elapsed(TimeUnit.MILLISECONDS),
+                            results.getCellsExamined(), results.getCellsDeleted());
+                } else {
+                    printer.info(
+                            "Swept from {} to {} in table {} in {} ms, examined {} unique cells, would have deleted {} stale versions of those cells.",
+                            encodeStartRow(startRow), encodeEndRow(results.getNextStartRow()),
+                            table, watch.elapsed(TimeUnit.MILLISECONDS),
+                            results.getCellsExamined(), results.getCellsDeleted());
+                }
                 startRow = results.getNextStartRow();
                 cellsDeleted.addAndGet(results.getCellsDeleted());
                 cellsExamined.addAndGet(results.getCellsExamined());
