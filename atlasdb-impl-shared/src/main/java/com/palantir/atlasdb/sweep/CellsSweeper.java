@@ -98,13 +98,13 @@ public class CellsSweeper {
                     sentinelsToAdd);
         }
 
-        LockEntry lockEntry = acquirePersistentLockWithRetry();
-
-        try {
+//        LockEntry lockEntry = acquirePersistentLockWithRetry();
+//
+//        try {
             keyValueService.delete(tableRef, cellTsPairsToSweep);
-        } finally {
-            releasePersistentLock(lockEntry);
-        }
+//        } finally {
+//            releasePersistentLock(lockEntry);
+//        }
     }
 
     private LockEntry acquirePersistentLockWithRetry() {
