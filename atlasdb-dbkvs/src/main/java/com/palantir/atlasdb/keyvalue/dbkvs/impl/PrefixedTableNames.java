@@ -18,7 +18,5 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public interface PrefixedTableNames {
-
     String get(TableReference tableRef, ConnectionSupplier connectionSupplier);
-
 }

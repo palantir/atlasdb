@@ -27,6 +27,7 @@ public interface DbTableFactory extends Closeable {
     DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns);
     DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns);
     DBType getDbType();
+    PrefixedTableNames getPrefixedTableNames();
     @Override
     void close();
 }

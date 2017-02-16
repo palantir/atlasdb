@@ -100,7 +100,7 @@ public class OracleDbTableFactory implements DbTableFactory {
                 return OracleOverflowWriteTable.create(
                         config, conns, oracleTableNameGetter, oraclePrefixedTableNames, tableRef);
             case RAW:
-                return new OracleWriteTable(config, conns, oracleTableNameGetter, tableRef);
+                return new OracleWriteTable(config, conns, oraclePrefixedTableNames, tableRef);
             default:
                 throw new EnumConstantNotPresentException(TableValueStyle.class, tableValueStyle.name());
         }
@@ -111,8 +111,9 @@ public class OracleDbTableFactory implements DbTableFactory {
         return DBType.ORACLE;
     }
 
-    public OracleTableNameGetter getOracleTableNameGetter() {
-        return oracleTableNameGetter;
+    @Override
+    public PrefixedTableNames getPrefixedTableNames() {
+        return oraclePrefixedTableNames;
     }
 
     @Override

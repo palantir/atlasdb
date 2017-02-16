@@ -27,9 +27,11 @@ import com.palantir.nexus.db.DBType;
 public class PostgresDbTableFactory implements DbTableFactory {
 
     private final PostgresDdlConfig config;
+    private final PostgresPrefixedTableNames prefixedTableNames;
 
     public PostgresDbTableFactory(PostgresDdlConfig config) {
         this.config = config;
+        this.prefixedTableNames = new PostgresPrefixedTableNames(config);
     }
 
     @Override
@@ -56,12 +58,17 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns) {
-        return new PostgresWriteTable(config, conns, tableRef, new PostgresPrefixedTableNames(config));
+        return new PostgresWriteTable(config, conns, tableRef, prefixedTableNames);
     }
 
     @Override
     public DBType getDbType() {
         return DBType.POSTGRESQL;
+    }
+
+    @Override
+    public PrefixedTableNames getPrefixedTableNames() {
+        return prefixedTableNames;
     }
 
     @Override

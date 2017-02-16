@@ -89,7 +89,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.BatchingStrategies;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.BatchingTaskRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ImmediateSingleBatchTaskRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ParallelTaskRunner;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresPrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
@@ -118,7 +117,6 @@ public class DbKvs extends AbstractKeyValueService {
     private final DdlConfig config;
     private final DbTableFactory dbTables;
     private final SqlConnectionSupplier connections;
-    private final PrefixedTableNames prefixedTableNames;
     private final BatchingTaskRunner batchingQueryRunner;
 
     public static DbKvs create(DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier) {
@@ -139,12 +137,10 @@ public class DbKvs extends AbstractKeyValueService {
         this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
+
         if (DBType.ORACLE.equals(dbTables.getDbType())) {
-            prefixedTableNames = new OraclePrefixedTableNames(
-                    ((OracleDbTableFactory) dbTables).getOracleTableNameGetter());
             batchingQueryRunner = new ImmediateSingleBatchTaskRunner();
         } else {
-            prefixedTableNames = new PostgresPrefixedTableNames(config);
             batchingQueryRunner = new ParallelTaskRunner(
                     newFixedThreadPool(config.poolSize()),
                     config.fetchBatchSize());
@@ -469,7 +465,7 @@ public class DbKvs extends AbstractKeyValueService {
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             long timestamp) {
-        return new DbKvsGetRanges(this, dbTables.getDbType(), connections, prefixedTableNames)
+        return new DbKvsGetRanges(this, dbTables.getDbType(), connections, dbTables.getPrefixedTableNames())
                 .getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
