@@ -263,8 +263,8 @@ public class SQLString extends BasicSQLString {
     /**
      * Cleans up whitespace, any trailing semicolons, and prefixed comments that a string is
      * unregistered, in order to come up with a canonical representation of this sql string.
-     * Note that for backwards compatibility, this method condenses all contiguous whitespace
-     * in a single string into a single space. For example, "foo\t \nbar;" becomes "foo bar".
+     * Note that for backwards compatibility, this method condenses contiguous whitespace
+     * into a single space. For example, "foo\t \nbar;" becomes "foo bar".
      */
     public static String canonicalizeString(String sql) {
         return canonicalizeString(sql, false);
