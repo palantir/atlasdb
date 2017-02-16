@@ -33,6 +33,8 @@ public class SQLStringTest {
                 "insert foo into bar;",
                 "insert  foo into bar;   ",
                 "insert  foo into bar; ;;  ",
+                "\tinsert foo into bar;",
+                "\t insert foo into bar;",
                 "insert  foo into bar;\n;;  ",
                 "   insert \t\nfoo \n \tinto  \n\rbar\n\t;   ",
                 "/* UnregisteredSQLString */ insert foo into bar;",
