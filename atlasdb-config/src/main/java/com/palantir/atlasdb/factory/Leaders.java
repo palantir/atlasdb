@@ -95,7 +95,7 @@ public final class Leaders {
         PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath());
 
         Optional<SSLSocketFactory> sslSocketFactory =
-                TransactionManagers.createSslSocketFactory(config.sslConfiguration());
+                ServiceCreator.createSslSocketFactory(config.sslConfiguration());
 
         List<PaxosLearner> learners = createProxyAndLocalList(
                 ourLearner, remotePaxosServerSpec.remoteLearnerUris(), sslSocketFactory, PaxosLearner.class, userAgent);
