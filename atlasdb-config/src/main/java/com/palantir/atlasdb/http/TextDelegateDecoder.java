@@ -35,12 +35,14 @@ import java.util.Collection;
 
 import javax.ws.rs.core.MediaType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Iterables;
 import com.google.common.net.HttpHeaders;
 
 import feign.FeignException;
 import feign.Response;
-import feign.codec.DecodeException;
 import feign.codec.Decoder;
 import feign.codec.StringDecoder;
 
@@ -50,6 +52,7 @@ import feign.codec.StringDecoder;
  * @author jmeacham
  */
 public class TextDelegateDecoder implements Decoder {
+    private static final Logger log = LoggerFactory.getLogger(TextDelegateDecoder.class);
     private final Decoder delegate;
     private final Decoder stringDecoder;
 
@@ -59,15 +62,19 @@ public class TextDelegateDecoder implements Decoder {
     }
 
     @Override
-    public Object decode(Response response, Type type) throws IOException, DecodeException, FeignException {
-        Collection<String> contentTypes = response.headers().get(HttpHeaders.CONTENT_TYPE);
-        // In the case of multiple content types, or an unknown content type, we'll use the delegate instead.
-        if (contentTypes != null
-                && contentTypes.size() == 1
-                && Iterables.getOnlyElement(contentTypes, "").equals(MediaType.TEXT_PLAIN)) {
-            return stringDecoder.decode(response, type);
+    public Object decode(Response response, Type type) throws IOException, FeignException {
+        try {
+            Collection<String> contentTypes = response.headers().get(HttpHeaders.CONTENT_TYPE);
+            // In the case of multiple content types, or an unknown content type, we'll use the delegate instead.
+            if (contentTypes != null
+                    && contentTypes.size() == 1
+                    && Iterables.getOnlyElement(contentTypes, "").equals(MediaType.TEXT_PLAIN)) {
+                return stringDecoder.decode(response, type);
+            }
+            return delegate.decode(response, type);
+        } catch (Exception e) {
+            log.error("Failed decoding response for type {}: {}", type, response);
+            throw e;
         }
-
-        return delegate.decode(response, type);
     }
 }
