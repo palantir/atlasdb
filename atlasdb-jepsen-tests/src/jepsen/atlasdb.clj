@@ -1,6 +1,5 @@
 (ns jepsen.atlasdb
   (:require [cheshire.core :as json]
-            [clj-http.client :as http]
             [clojure.tools.logging :refer :all]
             [jepsen.core :as jepsen]
             [jepsen.checker :as checker]
@@ -26,7 +25,8 @@
    (info node "installing Cassandra" version)
    (debian/add-repo!
     "cassandra"
-    "deb http://www.apache.org/dist/cassandra/debian 22x main")
+    "deb http://www.apache.org/dist/cassandra/debian 22x main"
+    "pool.sks-keyservers.net" "0xA278B781FE4B2BDA")
    (debian/install {:cassandra version})
    (info node "starting Cassandra")
    (c/upload "resources/cassandra/cassandra.yaml.template" "/etc/cassandra/")
@@ -56,16 +56,11 @@
     (log-files [_ test node]
          CASSANDRA_LOG_FILES)))
 
-(defn atlasdb-get [node]
-  (json/parse-string (:body (http/get (format "http://%s:3828/cas" (name node)) {:content-type :json}))))
+(defn atlasdb-get [node] "")
 
-(defn atlasdb-put! [node new-value]
-  (let [contents (json/generate-string new-value)]
-    (http/put (format "http://%s:3828/cas" (name node)) {:content-type :json :body contents})))
+(defn atlasdb-put! [node new-value] "")
 
-(defn atlasdb-cas! [node old-value new-value]
-  (let [contents (json/generate-string {:oldValue old-value :newValue new-value})]
-    (json/parse-string (:body (http/patch (format "http://%s:3828/cas" (name node)) {:content-type :json :body contents})))))
+(defn atlasdb-cas! [node old-value new-value] "")
 
 (defn create-client
   "Creates an object that implements the client/Client protocol.
