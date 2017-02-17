@@ -48,7 +48,7 @@ public class TableValueStyleCacheTest {
     @Before
     public void setup() {
         SqlConnection mockConnection = mock(SqlConnection.class);
-        when(connectionSupplier.getNewUnsharedConnection()).thenReturn(mockConnection);
+        when(connectionSupplier.get()).thenReturn(mockConnection);
 
         AgnosticResultSet resultSet = mock(AgnosticResultSet.class);
         when(mockConnection.selectResultSetUnregisteredQuery(startsWith("SELECT table_size FROM"), anyObject()))
@@ -72,7 +72,7 @@ public class TableValueStyleCacheTest {
         assertThat(valueStyleCache.getTableType(
                 connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
-        verify(connectionSupplier, times(1)).getNewUnsharedConnection();
+        verify(connectionSupplier, times(1)).get();
     }
 
 
@@ -85,7 +85,7 @@ public class TableValueStyleCacheTest {
                 connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
 
-        verify(connectionSupplier, times(1)).getNewUnsharedConnection();
+        verify(connectionSupplier, times(1)).get();
     }
 
     @Test
@@ -98,7 +98,7 @@ public class TableValueStyleCacheTest {
                 connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
 
-        verify(connectionSupplier, times(2)).getNewUnsharedConnection();
+        verify(connectionSupplier, times(2)).get();
     }
 
     @Test
@@ -111,7 +111,7 @@ public class TableValueStyleCacheTest {
                         connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
 
-        verify(connectionSupplier, times(2)).getNewUnsharedConnection();
+        verify(connectionSupplier, times(2)).get();
     }
 
     @Test
@@ -129,13 +129,13 @@ public class TableValueStyleCacheTest {
                 valueStyleCache.getTableType(
                         connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
-        verify(connectionSupplier, times(3)).getNewUnsharedConnection();
+        verify(connectionSupplier, times(3)).get();
 
         // No additional fetch required
         assertThat(
                 valueStyleCache.getTableType(
                         connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
-        verify(connectionSupplier, times(3)).getNewUnsharedConnection();
+        verify(connectionSupplier, times(3)).get();
     }
 }

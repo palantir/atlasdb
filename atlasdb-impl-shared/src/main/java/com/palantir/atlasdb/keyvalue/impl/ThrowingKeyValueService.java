@@ -113,6 +113,11 @@ public class ThrowingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        throw throwEx();
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         throw throwEx();
     }
@@ -120,6 +125,12 @@ public class ThrowingKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+        throw throwEx();
+    }
+
+    @Override
+    @Idempotent
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
         throw throwEx();
     }
 

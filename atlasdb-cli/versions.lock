@@ -68,6 +68,7 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
                 "io.dropwizard:dropwizard-jackson"
             ]
@@ -83,6 +84,7 @@
             "locked": "2.8.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -107,6 +109,7 @@
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
             "locked": "2.8.6",
             "transitive": [
+                "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -151,6 +154,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
                 "io.airlift:airline",
                 "io.dropwizard:dropwizard-jackson",
@@ -357,6 +361,17 @@
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
+        "com.palantir.remoting1:tracing": {
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
         "com.palantir.remoting:ssl-config": {
             "locked": "0.13.0",
             "transitive": [
@@ -526,19 +541,6 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl"
-            ]
-        },
         "org.slf4j:jcl-over-slf4j": {
             "locked": "1.7.5",
             "transitive": [
@@ -556,6 +558,7 @@
             "transitive": [
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting1:tracing",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "org.apache.cassandra:cassandra-thrift",
@@ -646,6 +649,7 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
                 "io.dropwizard:dropwizard-jackson"
             ]
@@ -661,6 +665,7 @@
             "locked": "2.8.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -685,6 +690,7 @@
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
             "locked": "2.8.6",
             "transitive": [
+                "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -729,6 +735,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
                 "io.airlift:airline",
                 "io.dropwizard:dropwizard-jackson",
@@ -935,6 +942,17 @@
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
+        "com.palantir.remoting1:tracing": {
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
         "com.palantir.remoting:ssl-config": {
             "locked": "0.13.0",
             "transitive": [
@@ -1104,19 +1122,6 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl"
-            ]
-        },
         "org.slf4j:jcl-over-slf4j": {
             "locked": "1.7.5",
             "transitive": [
@@ -1134,6 +1139,7 @@
             "transitive": [
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting1:tracing",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "org.apache.cassandra:cassandra-thrift",

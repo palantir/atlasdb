@@ -35,7 +35,7 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
-import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -111,7 +111,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private void registerHealthCheck(TimeLockServerConfiguration configuration) {
         Set<PingableLeader> pingableLeaders = Leaders.generatePingables(
                 getAllServerPaths(configuration),
-                TransactionManagers.createSslSocketFactory(paxosConfiguration.sslConfiguration())).keySet();
+                ServiceCreator.createSslSocketFactory(paxosConfiguration.sslConfiguration())).keySet();
         environment.healthChecks().register("leader-ping", new LeaderPingHealthCheck(pingableLeaders));
     }
 

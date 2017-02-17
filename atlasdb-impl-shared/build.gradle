@@ -20,6 +20,7 @@ dependencies {
   compile project(":lock-impl")
 
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
+  compile group: 'com.palantir.remoting1', name: 'tracing'
 
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'

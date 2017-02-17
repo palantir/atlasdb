@@ -373,6 +373,11 @@
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.remoting1:jersey-servers"
             ]
         },
@@ -593,6 +598,9 @@
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
+        "io.dropwizard:dropwizard-http2": {
+            "locked": "1.0.6"
+        },
         "io.dropwizard:dropwizard-jackson": {
             "locked": "1.0.6",
             "transitive": [
@@ -614,6 +622,7 @@
             "locked": "1.0.6",
             "transitive": [
                 "io.dropwizard:dropwizard-core",
+                "io.dropwizard:dropwizard-http2",
                 "io.dropwizard:dropwizard-request-logging"
             ]
         },
@@ -787,6 +796,24 @@
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
+        "org.eclipse.jetty.http2:http2-common": {
+            "locked": "9.4.0.v20161208",
+            "transitive": [
+                "org.eclipse.jetty.http2:http2-server"
+            ]
+        },
+        "org.eclipse.jetty.http2:http2-hpack": {
+            "locked": "9.4.0.v20161208",
+            "transitive": [
+                "org.eclipse.jetty.http2:http2-common"
+            ]
+        },
+        "org.eclipse.jetty.http2:http2-server": {
+            "locked": "9.4.0.v20161208",
+            "transitive": [
+                "io.dropwizard:dropwizard-http2"
+            ]
+        },
         "org.eclipse.jetty.toolchain.setuid:jetty-setuid-java": {
             "locked": "1.0.3",
             "transitive": [
@@ -794,7 +821,10 @@
             ]
         },
         "org.eclipse.jetty:jetty-alpn-server": {
-            "locked": "9.4.0.v20161208"
+            "locked": "9.4.0.v20161208",
+            "transitive": [
+                "io.dropwizard:dropwizard-http2"
+            ]
         },
         "org.eclipse.jetty:jetty-continuation": {
             "locked": "9.4.0.v20161208",
@@ -807,6 +837,7 @@
             "locked": "9.4.0.v20161208",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty",
+                "org.eclipse.jetty.http2:http2-hpack",
                 "org.eclipse.jetty:jetty-server",
                 "org.eclipse.jetty:jetty-servlets"
             ]
@@ -814,6 +845,7 @@
         "org.eclipse.jetty:jetty-io": {
             "locked": "9.4.0.v20161208",
             "transitive": [
+                "org.eclipse.jetty.http2:http2-hpack",
                 "org.eclipse.jetty:jetty-http",
                 "org.eclipse.jetty:jetty-server",
                 "org.eclipse.jetty:jetty-servlets"
@@ -831,6 +863,7 @@
                 "io.dropwizard:dropwizard-jersey",
                 "io.dropwizard:dropwizard-jetty",
                 "io.dropwizard:dropwizard-lifecycle",
+                "org.eclipse.jetty.http2:http2-server",
                 "org.eclipse.jetty:jetty-alpn-server",
                 "org.eclipse.jetty:jetty-security"
             ]
@@ -852,6 +885,7 @@
             "locked": "9.4.0.v20161208",
             "transitive": [
                 "io.dropwizard:dropwizard-logging",
+                "org.eclipse.jetty.http2:http2-hpack",
                 "org.eclipse.jetty:jetty-http",
                 "org.eclipse.jetty:jetty-io",
                 "org.eclipse.jetty:jetty-servlets",
@@ -992,19 +1026,6 @@
                 "io.dropwizard:dropwizard-validation"
             ]
         },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl"
-            ]
-        },
         "org.hibernate:hibernate-validator": {
             "locked": "5.1.3.Final",
             "transitive": [
@@ -1022,6 +1043,9 @@
             "transitive": [
                 "org.hibernate:hibernate-validator"
             ]
+        },
+        "org.mortbay.jetty.alpn:alpn-boot": {
+            "locked": "8.1.9.v20160720"
         },
         "org.slf4j:jcl-over-slf4j": {
             "locked": "1.7.5",
@@ -1463,6 +1487,11 @@
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.remoting1:jersey-servers"
             ]
         },
@@ -1683,6 +1712,9 @@
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
+        "io.dropwizard:dropwizard-http2": {
+            "locked": "1.0.6"
+        },
         "io.dropwizard:dropwizard-jackson": {
             "locked": "1.0.6",
             "transitive": [
@@ -1704,6 +1736,7 @@
             "locked": "1.0.6",
             "transitive": [
                 "io.dropwizard:dropwizard-core",
+                "io.dropwizard:dropwizard-http2",
                 "io.dropwizard:dropwizard-request-logging"
             ]
         },
@@ -1877,6 +1910,24 @@
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
+        "org.eclipse.jetty.http2:http2-common": {
+            "locked": "9.4.0.v20161208",
+            "transitive": [
+                "org.eclipse.jetty.http2:http2-server"
+            ]
+        },
+        "org.eclipse.jetty.http2:http2-hpack": {
+            "locked": "9.4.0.v20161208",
+            "transitive": [
+                "org.eclipse.jetty.http2:http2-common"
+            ]
+        },
+        "org.eclipse.jetty.http2:http2-server": {
+            "locked": "9.4.0.v20161208",
+            "transitive": [
+                "io.dropwizard:dropwizard-http2"
+            ]
+        },
         "org.eclipse.jetty.toolchain.setuid:jetty-setuid-java": {
             "locked": "1.0.3",
             "transitive": [
@@ -1884,7 +1935,10 @@
             ]
         },
         "org.eclipse.jetty:jetty-alpn-server": {
-            "locked": "9.4.0.v20161208"
+            "locked": "9.4.0.v20161208",
+            "transitive": [
+                "io.dropwizard:dropwizard-http2"
+            ]
         },
         "org.eclipse.jetty:jetty-continuation": {
             "locked": "9.4.0.v20161208",
@@ -1897,6 +1951,7 @@
             "locked": "9.4.0.v20161208",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty",
+                "org.eclipse.jetty.http2:http2-hpack",
                 "org.eclipse.jetty:jetty-server",
                 "org.eclipse.jetty:jetty-servlets"
             ]
@@ -1904,6 +1959,7 @@
         "org.eclipse.jetty:jetty-io": {
             "locked": "9.4.0.v20161208",
             "transitive": [
+                "org.eclipse.jetty.http2:http2-hpack",
                 "org.eclipse.jetty:jetty-http",
                 "org.eclipse.jetty:jetty-server",
                 "org.eclipse.jetty:jetty-servlets"
@@ -1921,6 +1977,7 @@
                 "io.dropwizard:dropwizard-jersey",
                 "io.dropwizard:dropwizard-jetty",
                 "io.dropwizard:dropwizard-lifecycle",
+                "org.eclipse.jetty.http2:http2-server",
                 "org.eclipse.jetty:jetty-alpn-server",
                 "org.eclipse.jetty:jetty-security"
             ]
@@ -1942,6 +1999,7 @@
             "locked": "9.4.0.v20161208",
             "transitive": [
                 "io.dropwizard:dropwizard-logging",
+                "org.eclipse.jetty.http2:http2-hpack",
                 "org.eclipse.jetty:jetty-http",
                 "org.eclipse.jetty:jetty-io",
                 "org.eclipse.jetty:jetty-servlets",
@@ -2082,19 +2140,6 @@
                 "io.dropwizard:dropwizard-validation"
             ]
         },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl"
-            ]
-        },
         "org.hibernate:hibernate-validator": {
             "locked": "5.1.3.Final",
             "transitive": [
@@ -2112,6 +2157,9 @@
             "transitive": [
                 "org.hibernate:hibernate-validator"
             ]
+        },
+        "org.mortbay.jetty.alpn:alpn-boot": {
+            "locked": "8.1.9.v20160720"
         },
         "org.slf4j:jcl-over-slf4j": {
             "locked": "1.7.5",

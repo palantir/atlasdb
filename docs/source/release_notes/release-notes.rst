@@ -42,8 +42,71 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Canonicalised SQL strings will now have contiguous whitespace rendered as a single space as opposed to the first character of said whitespace.
+           This is important for backwards compatibility with internal product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1603>`__)
+
+    *    - |fixed| |improved|
+         - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `ticket <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
+
+           This fix also enables better detection of legitimate occurrences of ``MultipleRunningTimestampServicesError``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1577>`__)
+
+    *    - |improved| |userbreak|
+         - AtlasDB HTTP clients will now have a user agent of ``<project.name>-atlasdb (project.version)`` as opposed
+           to ``okhttp/2.5.0``. This should make associating request logs with AtlasDB much easier. However, user
+           workflows relying on associating requests with a user agent of ``okhttp/2.5.0`` with AtlasDB will no longer
+           work.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1535>`__)
+
+    *    - |new|
+         - Sweep now takes out a lock to ensure data is not corrupted during online backups.
+           Users performing `live backups <https://palantir.github.io/atlasdb/html/cluster_management/backup-restore.html>`__ should grab this lock before performing a backup, and release the lock once the backup is complete.
+           This enables the backup to safely run alongside either the `background sweeper <https://palantir.github.io/atlasdb/html/cluster_management/sweep/background-sweep.html>`__ or the `sweep CLI <https://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-cli.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1509>`__)
+
+    *    - |new|
+         - Initial support for tracing Key Value Services integrating with `http-remoting tracing <https://github.com/palantir/http-remoting#tracing>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
+
+    *    - |improved|
+         - Improved heap usage during heavy DBKVS querying
+           (Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
+
+    *    - |fixed|
+         - Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1578>`__)
+
+    *    - |devbreak|
+         - Modified the type signature of `BatchingVisitableView#of` to no long accept `final BatchingVisitable<? extends T> underlyingVisitable` and instead accept
+           `final BatchingVisitable<T> underlyingVisitable`.  We do not believe this typing is in use.  If you discover that is not the case and you cannot work around it,
+           please file a ticket on the AtlasDB github page.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1582>`__)
+
+    *    - |improved|
+         - Reduced logging noise from large Cassandra gets and puts by removing ERROR messages and only providing stacktraces at DEBUG.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1590>`__)
+
+    *    - |new|
+         - Upon startup of a Cassandra-backed AtlasDB client with a :ref:`Timelock block <timelock-client-configuration>`, the client will now automatically migrate its timestamp to the Timelock cluster.
+           The client will fast-forward the Timelock Server's timestamp bound to that of the embedded service.
+           The client will now also *invalidate* the embedded service's bound, backing this up in a separate row in the timestamp table.
+           This is not cause for concern if you have already done a manual migration to Timelock, as fast forwarding to an earlier bound is a no-op.
+
+           So far, automated migration is only supported for Cassandra KVS.
+           If using DBKVS or other key-value services, it remains the user's responsibility to ensure that they have performed the migration detailed in :ref:`Migration to External Timelock Services <timelock-migration>`.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1569>`__,
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1570>`__ and
+           `Pull Request 3 <https://github.com/palantir/atlasdb/pull/1579>`__)
+
+    *    - |fixed|
+         - Fixed multiple connection pool deadlocks in DbKvs
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
+
+    *    - |fixed|
+         - Fixed atlasdb-commons Java 1.6 compatibility by removing tracing from InterruptibleProxy
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1599>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -61,7 +124,7 @@ v0.31.0
          - Change
 
     *    - |improved| |devbreak|
-         - Improved performance by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
+         - Improved Oracle performance on DBKVS by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
            Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.          
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
 
@@ -368,6 +431,12 @@ v0.27.0
          - Updated our dependency on ``gradle-java-distribution`` from 1.0.1 to 1.2.0.
            See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
+
+    *     - |new|
+          - Add KeyValueStore.deleteRange(); makes large swathes of row deletions faster,
+            like transaction sweeping. Also can be used as a fallback option for people
+            having issues with their backup solutions not allowing truncate() during a backup
+            (`Pull Request <https://github.com/palantir/atlasdb/pull/1391>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

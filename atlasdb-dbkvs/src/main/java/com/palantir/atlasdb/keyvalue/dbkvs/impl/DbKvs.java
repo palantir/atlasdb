@@ -303,22 +303,19 @@ public class DbKvs extends AbstractKeyValueService {
                 tableRef,
                 getByteSizingFunction());
 
-        runWrite(tableRef, new Function<DbWriteTable, Void>() {
-            @Override
-            public Void apply(DbWriteTable table) {
-                for (List<Entry<Cell, byte[]>> batch : batches) {
-                    try {
-                        table.put(batch, timestamp);
-                    } catch (KeyAlreadyExistsException e) {
-                        if (idempotent) {
-                            putIfNotUpdate(tableRef, table, batch, timestamp, e);
-                        } else {
-                            throw e;
-                        }
+        runReadWrite(tableRef, (readTable, writeTable) -> {
+            for (List<Entry<Cell, byte[]>> batch : batches) {
+                try {
+                    writeTable.put(batch, timestamp);
+                } catch (KeyAlreadyExistsException e) {
+                    if (idempotent) {
+                        putIfNotUpdate(readTable, writeTable, batch, timestamp, e);
+                    } else {
+                        throw e;
                     }
                 }
-                return null;
             }
+            return null;
         });
     }
 
@@ -329,15 +326,16 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     private void putIfNotUpdate(
-            TableReference tableRef,
-            DbWriteTable table,
+            DbReadTable readTable,
+            DbWriteTable writeTable,
             List<Entry<Cell, Value>> batch,
             KeyAlreadyExistsException ex) {
         Map<Cell, Long> timestampByCell = Maps.newHashMap();
         for (Entry<Cell, Value> entry : batch) {
             timestampByCell.put(entry.getKey(), entry.getValue().getTimestamp() + 1);
         }
-        Map<Cell, Value> results = get(tableRef, timestampByCell);
+
+        Map<Cell, Value> results = extractResults(readTable, readTable.getLatestCells(timestampByCell, true));
 
         ListIterator<Entry<Cell, Value>> iter = batch.listIterator();
         while (iter.hasNext()) {
@@ -354,19 +352,19 @@ public class DbKvs extends AbstractKeyValueService {
                 }
             }
         }
-        table.put(batch);
+        writeTable.put(batch);
     }
 
     private void putIfNotUpdate(
-            TableReference tableRef,
-            DbWriteTable table,
+            DbReadTable readTable,
+            DbWriteTable writeTable,
             List<Entry<Cell, byte[]>> batch,
             long timestamp,
             KeyAlreadyExistsException ex) {
         List<Entry<Cell, Value>> batchValues =
                 Lists.transform(batch,
                         input -> Maps.immutableEntry(input.getKey(), Value.create(input.getValue(), timestamp)));
-        putIfNotUpdate(tableRef, table, batchValues, ex);
+        putIfNotUpdate(readTable, writeTable, batchValues, ex);
     }
 
     @Override
@@ -379,18 +377,15 @@ public class DbKvs extends AbstractKeyValueService {
                 tableRef,
                 getValueSizingFunction());
 
-        runWrite(tableRef, new Function<DbWriteTable, Void>() {
-            @Override
-            public Void apply(DbWriteTable table) {
-                for (List<Entry<Cell, Value>> batch : batches) {
-                    try {
-                        table.put(batch);
-                    } catch (KeyAlreadyExistsException e) {
-                        putIfNotUpdate(tableRef, table, batch, e);
-                    }
+        runReadWrite(tableRef, (readTable, writeTable) -> {
+            for (List<Entry<Cell, Value>> batch : batches) {
+                try {
+                    writeTable.put(batch);
+                } catch (KeyAlreadyExistsException e) {
+                    putIfNotUpdate(readTable, writeTable, batch, e);
                 }
-                return null;
             }
+            return null;
         });
     }
 
@@ -458,6 +453,17 @@ public class DbKvs extends AbstractKeyValueService {
             return comparison;
         }
     });
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        runWriteForceAutocommit(tableRef, new Function<DbWriteTable, Void>() {
+            @Override
+            public Void apply(DbWriteTable table) {
+                table.delete(range);
+                return null;
+            }
+        });
+    }
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
@@ -1228,6 +1234,17 @@ public class DbKvs extends AbstractKeyValueService {
         }
     }
 
+    private <T> T runReadWrite(TableReference tableRef, ReadWriteTask<T> runner) {
+        ConnectionSupplier conns = new ConnectionSupplier(connections);
+        try {
+            return runner.run(
+                    dbTables.createRead(tableRef, conns),
+                    dbTables.createWrite(tableRef, conns));
+        } finally {
+            conns.close();
+        }
+    }
+
     private <T> T runWriteForceAutocommit(TableReference tableRef, Function<DbWriteTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
@@ -1290,5 +1307,9 @@ public class DbKvs extends AbstractKeyValueService {
         return Optional.ofNullable(batchHint)
                 .map(x -> (int) (1.1 * x))
                 .orElse(100);
+    }
+
+    private interface ReadWriteTask<T> {
+        T run(DbReadTable readTable, DbWriteTable writeTable);
     }
 }

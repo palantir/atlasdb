@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -24,11 +25,14 @@ import javax.net.ssl.SSLSocketFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.squareup.okhttp.CipherSuite;
 import com.squareup.okhttp.ConnectionPool;
 import com.squareup.okhttp.ConnectionSpec;
+import com.squareup.okhttp.Interceptor;
+import com.squareup.okhttp.Response;
 import com.squareup.okhttp.TlsVersion;
 
 import feign.Client;
@@ -44,7 +48,6 @@ import feign.jaxrs.JAXRSContract;
 import feign.okhttp.OkHttpClient;
 
 public final class AtlasDbHttpClients {
-
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 1000;
@@ -91,6 +94,9 @@ public final class AtlasDbHttpClients {
                     .build(),
             ConnectionSpec.CLEARTEXT);
 
+    @VisibleForTesting
+    static final String USER_AGENT_HEADER = "User-Agent";
+
     private AtlasDbHttpClients() {
         // Utility class
     }
@@ -100,12 +106,20 @@ public final class AtlasDbHttpClients {
      * feign.Client.Default} HTTP client.
      */
     public static <T> T createProxy(Optional<SSLSocketFactory> sslSocketFactory, String uri, Class<T> type) {
+        return createProxy(sslSocketFactory, uri, type, UserAgents.DEFAULT_USER_AGENT);
+    }
+
+    public static <T> T createProxy(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            String uri,
+            Class<T> type,
+            String userAgent) {
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
-                .client(newOkHttpClient(sslSocketFactory))
+                .client(newOkHttpClient(sslSocketFactory, userAgent))
                 .target(type, uri);
     }
 
@@ -115,12 +129,21 @@ public final class AtlasDbHttpClients {
      */
     public static <T> List<T> createProxies(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
+        return createProxies(sslSocketFactory, endpointUris, type, UserAgents.DEFAULT_USER_AGENT);
+    }
+
+    public static <T> List<T> createProxies(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Collection<String> endpointUris,
+            Class<T> type,
+            String userAgent) {
         List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
         for (String uri : endpointUris) {
-            ret.add(createProxy(sslSocketFactory, uri, type));
+            ret.add(createProxy(sslSocketFactory, uri, type, userAgent));
         }
         return ret;
     }
+
 
     /**
      * Constructs an HTTP-invoking dynamic proxy for the specified type that will cycle through the list of supplied
@@ -130,13 +153,28 @@ public final class AtlasDbHttpClients {
      * Failover will continue to cycle through the supplied endpoint list indefinitely.
      */
     public static <T> T createProxyWithFailover(
-            Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Collection<String> endpointUris,
+            Class<T> type) {
+        return createProxyWithFailover(
+                sslSocketFactory,
+                endpointUris,
+                type,
+                UserAgents.DEFAULT_USER_AGENT);
+    }
+
+    public static <T> T createProxyWithFailover(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Collection<String> endpointUris,
+            Class<T> type,
+            String userAgent) {
         return createProxyWithFailover(
                 sslSocketFactory,
                 endpointUris,
                 DEFAULT_FEIGN_OPTIONS,
                 FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
-                type);
+                type,
+                userAgent);
     }
 
     /**
@@ -146,9 +184,9 @@ public final class AtlasDbHttpClients {
      */
     private static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris,
-            Request.Options feignOptions, int maxBackoffMillis, Class<T> type) {
+            Request.Options feignOptions, int maxBackoffMillis, Class<T> type, String userAgent) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
-        Client client = failoverFeignTarget.wrapClient(newOkHttpClient(sslSocketFactory));
+        Client client = failoverFeignTarget.wrapClient(newOkHttpClient(sslSocketFactory, userAgent));
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
@@ -169,19 +207,39 @@ public final class AtlasDbHttpClients {
                 endpointUris,
                 options,
                 QUICK_MAX_BACKOFF_MILLIS,
-                type);
+                type,
+                UserAgents.DEFAULT_USER_AGENT);
     }
 
     /**
      * Returns a feign {@link Client} wrapping a {@link com.squareup.okhttp.OkHttpClient} client with optionally
      * specified {@link SSLSocketFactory}.
      */
-    private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory) {
+    private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory, String userAgent) {
         com.squareup.okhttp.OkHttpClient client = new com.squareup.okhttp.OkHttpClient();
 
         client.setConnectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES);
         client.setConnectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS));
         client.setSslSocketFactory(sslSocketFactory.orNull());
+        client.interceptors().add(new UserAgentAddingInterceptor(userAgent));
         return new OkHttpClient(client);
+    }
+
+    private static final class UserAgentAddingInterceptor implements Interceptor {
+        private final String userAgent;
+
+        private UserAgentAddingInterceptor(String userAgent) {
+            Preconditions.checkNotNull(userAgent, "User Agent should never be null.");
+            this.userAgent = userAgent;
+        }
+
+        @Override
+        public Response intercept(Chain chain) throws IOException {
+            com.squareup.okhttp.Request requestWithUserAgent = chain.request()
+                    .newBuilder()
+                    .addHeader(USER_AGENT_HEADER, userAgent)
+                    .build();
+            return chain.proceed(requestWithUserAgent);
+        }
     }
 }
