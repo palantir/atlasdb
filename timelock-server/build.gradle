@@ -24,6 +24,7 @@ dependencies {
     compile group: 'com.github.rholder', name: 'guava-retrying'
     compile group: 'com.palantir.remoting1', name: 'jersey-servers'
     compile group: 'com.palantir.remoting1', name: 'ssl-config'
+    compile group: 'com.palantir.remoting1', name: 'tracing'
     compile group: 'io.atomix', name: 'atomix'
     compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
     compile group: 'io.dropwizard', name: 'dropwizard-core'

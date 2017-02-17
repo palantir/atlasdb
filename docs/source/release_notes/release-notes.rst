@@ -42,6 +42,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Canonicalised SQL strings will now have contiguous whitespace rendered as a single space as opposed to the first character of said whitespace.
+           This is important for backwards compatibility with internal product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1603>`__)
+
     *    - |fixed| |improved|
          - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `ticket <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
 
@@ -83,9 +88,25 @@ develop
          - Reduced logging noise from large Cassandra gets and puts by removing ERROR messages and only providing stacktraces at DEBUG.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1590>`__)
 
+    *    - |new|
+         - Upon startup of a Cassandra-backed AtlasDB client with a :ref:`Timelock block <timelock-client-configuration>`, the client will now automatically migrate its timestamp to the Timelock cluster.
+           The client will fast-forward the Timelock Server's timestamp bound to that of the embedded service.
+           The client will now also *invalidate* the embedded service's bound, backing this up in a separate row in the timestamp table.
+           This is not cause for concern if you have already done a manual migration to Timelock, as fast forwarding to an earlier bound is a no-op.
+
+           So far, automated migration is only supported for Cassandra KVS.
+           If using DBKVS or other key-value services, it remains the user's responsibility to ensure that they have performed the migration detailed in :ref:`Migration to External Timelock Services <timelock-migration>`.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1569>`__,
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1570>`__ and
+           `Pull Request 3 <https://github.com/palantir/atlasdb/pull/1579>`__)
+
     *    - |fixed|
          - Fixed multiple connection pool deadlocks in DbKvs
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
+
+    *    - |fixed|
+         - Fixed atlasdb-commons Java 1.6 compatibility by removing tracing from InterruptibleProxy
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1599>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
