@@ -18,6 +18,8 @@ package com.palantir.timestamp;
 import java.util.Optional;
 import java.util.UUID;
 
+import javax.annotation.Nonnull;
+
 public class TimestampBoundStoreEntry {
     public Optional<UUID> id;
     public Optional<Long> timestamp;
@@ -35,7 +37,7 @@ public class TimestampBoundStoreEntry {
         return timestamp.orElse(initialValue);
     }
 
-    public boolean idMatches(UUID otherId) {
+    public boolean idMatches(@Nonnull UUID otherId) {
         return id.map(otherId::equals).orElse(false);
     }
 
