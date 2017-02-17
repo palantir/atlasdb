@@ -64,7 +64,12 @@ develop
          - Sweep now takes out a lock to ensure data is not corrupted during online backups.
            Users performing `live backups <https://palantir.github.io/atlasdb/html/cluster_management/backup-restore.html>`__ should grab this lock before performing a backup, and release the lock once the backup is complete.
            This enables the backup to safely run alongside either the `background sweeper <https://palantir.github.io/atlasdb/html/cluster_management/sweep/background-sweep.html>`__ or the `sweep CLI <https://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-cli.html>`__.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1509>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1598>`__)
+
+    *    - |new|
+         - Added the option to perform a dry run of sweep via the CLI.
+           When ``--dry-run`` is set, sweep will tell you how many cells would have been deleted, but will not actually delete any cells.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
 
     *    - |new|
          - Initial support for tracing Key Value Services integrating with `http-remoting tracing <https://github.com/palantir/http-remoting#tracing>`__.
@@ -72,7 +77,7 @@ develop
 
     *    - |improved|
          - Improved heap usage during heavy DBKVS querying
-           (Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
 
     *    - |fixed|
          - Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
@@ -125,7 +130,7 @@ v0.31.0
 
     *    - |improved| |devbreak|
          - Improved Oracle performance on DBKVS by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
-           Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.          
+           Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
 
     *    - |devbreak|
