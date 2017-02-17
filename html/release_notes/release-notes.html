@@ -191,31 +191,36 @@ work.
 <td>Sweep now takes out a lock to ensure data is not corrupted during online backups.
 Users performing <a class="reference external" href="https://palantir.github.io/atlasdb/html/cluster_management/backup-restore.html">live backups</a> should grab this lock before performing a backup, and release the lock once the backup is complete.
 This enables the backup to safely run alongside either the <a class="reference external" href="https://palantir.github.io/atlasdb/html/cluster_management/sweep/background-sweep.html">background sweeper</a> or the <a class="reference external" href="https://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-cli.html">sweep CLI</a>.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1509">Pull Request</a>)</td>
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1598">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Added the option to perform a dry run of sweep via the CLI.
+When <code class="docutils literal"><span class="pre">--dry-run</span></code> is set, sweep will tell you how many cells would have been deleted, but will not actually delete any cells.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1385">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Initial support for tracing Key Value Services integrating with <a class="reference external" href="https://github.com/palantir/http-remoting#tracing">http-remoting tracing</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1385">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Improved heap usage during heavy DBKVS querying
-(Pull Request &lt;<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1560">https://github.com/palantir/atlasdb/pull/1560</a>&gt;`__)</td>
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1560">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1578">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Modified the type signature of <cite>BatchingVisitableView#of</cite> to no long accept <cite>final BatchingVisitable&lt;? extends T&gt; underlyingVisitable</cite> and instead accept
 <cite>final BatchingVisitable&lt;T&gt; underlyingVisitable</cite>.  We do not believe this typing is in use.  If you discover that is not the case and you cannot work around it,
 please file a ticket on the AtlasDB github page.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1582">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Reduced logging noise from large Cassandra gets and puts by removing ERROR messages and only providing stacktraces at DEBUG.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1590">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td><p class="first">Upon startup of a Cassandra-backed AtlasDB client with a <a class="reference internal" href="../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock block</span></a>, the client will now automatically migrate its timestamp to the Timelock cluster.
 The client will fast-forward the Timelock Server&#8217;s timestamp bound to that of the embedded service.
 The client will now also <em>invalidate</em> the embedded service&#8217;s bound, backing this up in a separate row in the timestamp table.
@@ -227,11 +232,11 @@ If using DBKVS or other key-value services, it remains the user&#8217;s responsi
 <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1579">Pull Request 3</a>)</p>
 </td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed multiple connection pool deadlocks in DbKvs
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1566">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed atlasdb-commons Java 1.6 compatibility by removing tracing from InterruptibleProxy
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1599">Pull Request</a>)</td>
 </tr>

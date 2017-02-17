@@ -198,6 +198,10 @@ The CLI has the following arguments:</p>
 <td><code class="docutils literal"><span class="pre">--row</span> <span class="pre">&lt;row</span> <span class="pre">name&gt;</span></code></td>
 <td>A row name encoded in hexadecimal to start sweeping from. The CLI prints out row names as it runs, so you can use this to easily resume a manual sweep job without unnecessarily processing rows that have already been recently swept. If this option is omitted, sweeping will process all rows of the table.</td>
 </tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td><code class="docutils literal"><span class="pre">--dry-run</span></code></td>
+<td>Perform a dry run of sweep. Instead of actually deleting cells, this will tell you how many cells would be deleted. Note that running a dry run and then running a regular sweep may produce slightly different results, as more data may have been added to the database in the meantime.</td>
+</tr>
 </tbody>
 </table>
 <p>You must specify exactly one of <code class="docutils literal"><span class="pre">-a</span></code>, <code class="docutils literal"><span class="pre">-n</span></code>, and <code class="docutils literal"><span class="pre">-t</span></code>. If you are sweeping a specific table with <code class="docutils literal"><span class="pre">-t</span></code>, you may additionally specify the start row with <code class="docutils literal"><span class="pre">-r</span></code>. This is useful for resuming failed jobs.</p>
