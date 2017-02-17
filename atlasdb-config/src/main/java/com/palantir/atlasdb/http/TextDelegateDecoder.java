@@ -32,6 +32,7 @@ package com.palantir.atlasdb.http;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.core.MediaType;
 
@@ -40,7 +41,6 @@ import com.google.common.net.HttpHeaders;
 
 import feign.FeignException;
 import feign.Response;
-import feign.codec.DecodeException;
 import feign.codec.Decoder;
 import feign.codec.StringDecoder;
 
@@ -59,15 +59,31 @@ public class TextDelegateDecoder implements Decoder {
     }
 
     @Override
-    public Object decode(Response response, Type type) throws IOException, DecodeException, FeignException {
-        Collection<String> contentTypes = response.headers().get(HttpHeaders.CONTENT_TYPE);
-        // In the case of multiple content types, or an unknown content type, we'll use the delegate instead.
-        if (contentTypes != null
-                && contentTypes.size() == 1
-                && Iterables.getOnlyElement(contentTypes, "").equals(MediaType.TEXT_PLAIN)) {
+    public Object decode(Response response, Type type) throws IOException, FeignException {
+        Collection<String> contentTypes = getContentTypes(response);
+        if (indicatesTextPlainContent(contentTypes)) {
             return stringDecoder.decode(response, type);
         }
-
         return delegate.decode(response, type);
+    }
+
+    /**
+     * Returns all content types indicated by the response headers.
+     * Note that case insensitivity is needed, by RFC 2616, Section 4.2.
+     *
+     * @param response to extract content types from
+     * @return a list of content types suggested by the response headers
+     */
+    private Collection<String> getContentTypes(Response response) {
+        return response.headers()
+                .entrySet()
+                .stream()
+                .filter(entry -> entry.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
+                .flatMap(entry -> entry.getValue().stream())
+                .collect(Collectors.toList());
+    }
+
+    private boolean indicatesTextPlainContent(Collection<String> contentTypes) {
+        return contentTypes.size() == 1 && Iterables.getOnlyElement(contentTypes).equals(MediaType.TEXT_PLAIN);
     }
 }
