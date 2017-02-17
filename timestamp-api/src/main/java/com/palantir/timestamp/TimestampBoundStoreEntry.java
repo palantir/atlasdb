@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class TimestampBoundStoreEntry {
-    private static final Long INITIAL_VALUE = 10000L;
     public Optional<UUID> id;
     public Optional<Long> timestamp;
 
@@ -32,8 +31,8 @@ public class TimestampBoundStoreEntry {
         return new TimestampBoundStoreEntry(timestamp, id);
     }
 
-    public long getTimestampOrInitialValue() {
-        return timestamp.orElse(INITIAL_VALUE);
+    public long getTimestampOrValue(Long initialValue) {
+        return timestamp.orElse(initialValue);
     }
 
     public boolean idMatches(UUID otherId) {

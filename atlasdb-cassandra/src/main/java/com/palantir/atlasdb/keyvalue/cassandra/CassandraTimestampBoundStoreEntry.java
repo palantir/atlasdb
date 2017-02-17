@@ -40,10 +40,6 @@ public class CassandraTimestampBoundStoreEntry extends TimestampBoundStoreEntry 
         return new CassandraTimestampBoundStoreEntry(timestamp, id);
     }
 
-    public static CassandraTimestampBoundStoreEntry createFromSuper(TimestampBoundStoreEntry entry) {
-        return CassandraTimestampBoundStoreEntry.create(entry.timestamp.orElse(null), entry.id.orElse(null));
-    }
-
     public static CassandraTimestampBoundStoreEntry createFromBytes(byte[] values) {
         if (values.length == SIZE_WITH_ID_IN_BYTES) {
             return create(PtBytes.toLong(values),
@@ -55,16 +51,23 @@ public class CassandraTimestampBoundStoreEntry extends TimestampBoundStoreEntry 
                 + SIZE_WITHOUT_ID_IN_BYTES + " bytes, but has " + values.length + "!");
     }
 
+    public static CassandraTimestampBoundStoreEntry createFromCasResult(CASResult result) {
+        if (result.getCurrent_values() == null) {
+            return null;
+        }
+        return createFromColumn(Optional.ofNullable(Iterables.getOnlyElement(result.getCurrent_values(), null)));
+    }
+
     public static CassandraTimestampBoundStoreEntry createFromColumn(Optional<Column> column) {
         return column.map(Column::getValue).map(CassandraTimestampBoundStoreEntry::createFromBytes)
                 .orElse(create(null, null));
     }
 
-    public static CassandraTimestampBoundStoreEntry createFromCasResult(CASResult result) {
-        return createFromColumn(Optional.ofNullable(Iterables.getOnlyElement(result.getCurrent_values(), null)));
+    public static CassandraTimestampBoundStoreEntry createFromSuper(TimestampBoundStoreEntry entry) {
+        return CassandraTimestampBoundStoreEntry.create(entry.timestamp.orElse(null), entry.id.orElse(null));
     }
 
-    public static byte[] getByteValueForIdAndBound(UUID id, Long ts) {
+    public static byte[] getByteValueForBoundAndId(Long ts, UUID id) {
         return (create(ts, id)).getByteValue();
     }
 

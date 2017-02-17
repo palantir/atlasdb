@@ -1,5 +1,6 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
+apply plugin: 'org.inferred.processors'
 
 dependencies {
     compile project(":atlasdb-commons")
@@ -7,4 +8,16 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
 
     testCompile group: 'org.assertj', name: 'assertj-core'
+
+    processor group: 'org.immutables', name: 'value'
+}
+
+configurations {
+    testArtifacts {
+        extendsFrom testRuntime
+    }
+}
+
+artifacts {
+    testArtifacts testJar
 }
