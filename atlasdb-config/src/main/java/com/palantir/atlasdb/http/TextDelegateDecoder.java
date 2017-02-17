@@ -32,6 +32,8 @@ package com.palantir.atlasdb.http;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.core.MediaType;
 
@@ -64,7 +66,11 @@ public class TextDelegateDecoder implements Decoder {
     @Override
     public Object decode(Response response, Type type) throws IOException, FeignException {
         try {
-            Collection<String> contentTypes = response.headers().get(HttpHeaders.CONTENT_TYPE);
+            Collection<String> contentTypes = response.headers().entrySet().stream()
+                    .filter(entry -> entry.getKey().compareToIgnoreCase(HttpHeaders.CONTENT_TYPE) == 0)
+                    .map(Map.Entry::getValue)
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toSet());
             // In the case of multiple content types, or an unknown content type, we'll use the delegate instead.
             if (contentTypes != null
                     && contentTypes.size() == 1
