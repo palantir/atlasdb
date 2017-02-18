@@ -31,13 +31,11 @@ package com.palantir.atlasdb.http;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.Collection;
-import java.util.stream.Collectors;
 
 import javax.ws.rs.core.MediaType;
 
-import com.google.common.collect.Iterables;
 import com.google.common.net.HttpHeaders;
+import com.palantir.common.remoting.HeaderAccessUtils;
 
 import feign.FeignException;
 import feign.Response;
@@ -60,30 +58,12 @@ public class TextDelegateDecoder implements Decoder {
 
     @Override
     public Object decode(Response response, Type type) throws IOException, FeignException {
-        Collection<String> contentTypes = getContentTypes(response);
-        if (indicatesTextPlainContent(contentTypes)) {
+        if (HeaderAccessUtils.caseInsensitiveContainsEntryUnsafe(
+                response.headers(),
+                HttpHeaders.CONTENT_TYPE,
+                MediaType.TEXT_PLAIN)) {
             return stringDecoder.decode(response, type);
         }
         return delegate.decode(response, type);
-    }
-
-    /**
-     * Returns all content types indicated by the response headers.
-     * Note that case insensitivity is needed, by RFC 2616, Section 4.2.
-     *
-     * @param response to extract content types from
-     * @return a list of content types suggested by the response headers
-     */
-    private Collection<String> getContentTypes(Response response) {
-        return response.headers()
-                .entrySet()
-                .stream()
-                .filter(entry -> entry.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
-                .flatMap(entry -> entry.getValue().stream())
-                .collect(Collectors.toList());
-    }
-
-    private boolean indicatesTextPlainContent(Collection<String> contentTypes) {
-        return contentTypes.size() == 1 && Iterables.getOnlyElement(contentTypes).equals(MediaType.TEXT_PLAIN);
     }
 }

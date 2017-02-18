@@ -46,6 +46,12 @@ public class TextDelegateDecoderTest {
     private final TextDelegateDecoder textDelegateDecoder = new TextDelegateDecoder(delegate);
 
     @Test
+    public void delegatesContentWithNoHttpHeaders() throws IOException {
+        Response response = createResponse(ImmutableMap.of());
+        verifyDelegated(response);
+    }
+
+    @Test
     public void delegatesApplicationJsonContent() throws IOException {
         Response response = createSingleHeaderResponse(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
         verifyDelegated(response);
@@ -67,11 +73,25 @@ public class TextDelegateDecoderTest {
     }
 
     @Test
-    public void delegatesContentWithMultipleDistinctContentTypes() throws IOException {
-        Response response = createSingleHeaderResponse(HttpHeaders.CONTENT_TYPE,
-                MediaType.TEXT_PLAIN, MediaType.APPLICATION_OCTET_STREAM);
+    public void delegatesContentWithOtherTextPlainHttpHeaders() throws IOException {
+        Response response = createResponse(
+                ImmutableMap.<String, Collection<String>>builder()
+                        .put(HttpHeaders.ACCEPT, ImmutableList.of(MediaType.TEXT_PLAIN))
+                        .put(HttpHeaders.CONTENT_TYPE, ImmutableList.of(MediaType.APPLICATION_JSON))
+                        .build());
 
         verifyDelegated(response);
+    }
+
+    @Test
+    public void decodesContentWithContentTypeTextPlainRegardlessOfOtherHeaders() throws IOException {
+        Response response = createResponse(
+                ImmutableMap.<String, Collection<String>>builder()
+                        .put(HttpHeaders.CONTENT_TYPE, ImmutableList.of(MediaType.TEXT_PLAIN))
+                        .put(HttpHeaders.ACCEPT, ImmutableList.of(MediaType.APPLICATION_JSON))
+                        .build());
+
+        verifyNotDelegated(response);
     }
 
     private Response createResponse(Map<String, Collection<String>> headerMap) {
