@@ -29,10 +29,11 @@ import com.google.common.collect.Maps;
 import com.palantir.common.remoting.HeaderAccessUtils;
 
 public class HeaderAccessUtilsTest {
+    private static final String FOO = "foo";
     private static final String KEY_1 = "variables";
     private static final String KEY_2 = "unix";
     private static final String KEY_3 = "haltingProblemProofs";
-    private static final ImmutableList<String> VALUE_1 = ImmutableList.of("foo", "bar", "baz");
+    private static final ImmutableList<String> VALUE_1 = ImmutableList.of(FOO, "bar", "baz");
     private static final ImmutableList<String> VALUE_2 = ImmutableList.of("ls", "du", "cut");
     private static final ImmutableList<String> VALUE_3 = ImmutableList.of();
 
@@ -44,14 +45,14 @@ public class HeaderAccessUtilsTest {
 
     @Test
     public void caseInsensitiveContainsEntryIgnoresCaseOnKeys() {
-        assertCaseInsensitiveContainsEntry(KEY_1, "bar", true);
-        assertCaseInsensitiveContainsEntry(KEY_1.toUpperCase(), "bar", true);
-        assertCaseInsensitiveContainsEntry("VaRiAbLES", "bar", true);
+        assertCaseInsensitiveContainsEntry(KEY_1, FOO, true);
+        assertCaseInsensitiveContainsEntry(KEY_1.toUpperCase(), FOO, true);
+        assertCaseInsensitiveContainsEntry("VaRiAbLES", FOO, true);
     }
 
     @Test
     public void caseInsensitiveContainsEntryRespectsCaseOnValues() {
-        assertCaseInsensitiveContainsEntry(KEY_1, "BAR", false);
+        assertCaseInsensitiveContainsEntry(KEY_1, "FoO", false);
         assertCaseInsensitiveContainsEntry(KEY_2, "Cut", false);
     }
 
@@ -70,8 +71,8 @@ public class HeaderAccessUtilsTest {
         Map<String, Collection<String>> testMap = Maps.newLinkedHashMap();
         String additionalCommand = "ps ax | awk '{print $1}' | xargs kill -9";
         testMap.put(KEY_2, VALUE_2);
-        testMap.put("uniX", ImmutableList.of(additionalCommand));
-        assertCaseInsensitiveContainsEntry("uniX", additionalCommand, false);
+        testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
+        assertCaseInsensitiveContainsEntry(KEY_2.toUpperCase(), additionalCommand, false);
     }
 
     private static void assertCaseInsensitiveContainsEntry(String key, String value, boolean outcome) {
