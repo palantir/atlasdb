@@ -144,8 +144,7 @@
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.remoting:ssl-config": {
@@ -363,8 +362,7 @@
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.remoting:ssl-config": {

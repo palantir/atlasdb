@@ -40,8 +40,19 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Canonicalised SQL strings will now have contiguous whitespace rendered as a single space as opposed to the first character of said whitespace.
+           This is important for backwards compatibility with an internal product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1603>`__)
+
+    *    - |new|
+         - Added the option to perform a dry run of sweep via the CLI.
+           When ``--dry-run`` is set, sweep will tell you how many cells would have been deleted, but will not actually delete any cells.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1598>`__)
+
+    *    - |fixed|
+         - Fixed atlasdb-commons Java 1.6 compatibility by removing tracing from InterruptibleProxy.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1599>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -56,22 +67,21 @@ v0.32.0
     *    - Type
          - Change
 
-    *    - |fixed| |improved|
-         - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `ticket <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
-
-           This fix also enables better detection of legitimate occurrences of ``MultipleRunningTimestampServicesError``.
+    *    - |fixed|
+         - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `#1000 <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
+           This fix only applies to Cassandra backed AtlasDB clients who are not using the external Timelock service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1577>`__)
 
-    *    - |improved| |userbreak|
+    *    - |improved|
          - AtlasDB HTTP clients will now have a user agent of ``<project.name>-atlasdb (project.version)`` as opposed to ``okhttp/2.5.0``.
-           This should make associating request logs with AtlasDB much easier.
-           However, user workflows relying on associating requests with a user agent of ``okhttp/2.5.0`` with AtlasDB will no longer work.
+           This should make distinguishing AtlasDB request logs from application request logs much easier.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1535>`__)
 
     *    - |new|
          - Sweep now takes out a lock to ensure data is not corrupted during online backups.
-           Users performing `live backups <https://palantir.github.io/atlasdb/html/cluster_management/backup-restore.html>`__ should grab this lock before performing a backup, and release the lock once the backup is complete.
-           This enables the backup to safely run alongside either the `background sweeper <https://palantir.github.io/atlasdb/html/cluster_management/sweep/background-sweep.html>`__ or the `sweep CLI <https://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-cli.html>`__.
+
+           Users performing :ref:`live backups <backup-restore>` should grab this lock before performing a backup of the underlying KVS, and then release the lock once the backup is complete.
+           This enables the backup to safely run alongside either the :ref:`background sweeper <background-sweep>` or the :ref:`sweep CLI <atlasdb-sweep-cli>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1509>`__)
 
     *    - |new|
@@ -79,17 +89,17 @@ v0.32.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
 
     *    - |improved|
-         - Improved heap usage during heavy DBKVS querying.
+         - Improved heap usage during heavy DBKVS querying by reducing mallocs in ``SQLString.canonicalizeString()``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
 
-    *    - |fixed|
-         - Removed an unused hamcrest import from timestamp-impl.  This should reduce the size of our transitive dependencies and therefore of product binaries.
+    *    - |improved|
+         - Removed an unused hamcrest import from the timestamp-impl project.
+           This should reduce the size of our transitive dependencies, and therefore the size of product binaries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1578>`__)
 
     *    - |devbreak|
-         - Modified the type signature of `BatchingVisitableView#of` to no longer accept `final BatchingVisitable<? extends T> underlyingVisitable` and instead accept
-           `final BatchingVisitable<T> underlyingVisitable`.  We do not believe this typing is in use.  If you discover that is not the case and you cannot work around it,
-           please file a ticket on the AtlasDB github page.
+         - Modified the type signature of ``BatchingVisitableView#of`` to no longer accept ``final BatchingVisitable<? extends T> underlyingVisitable`` and instead accept ``final BatchingVisitable<T> underlyingVisitable``.
+           This will resolve an issue where newer versions of Intellij fail to compile AtlasDB.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1582>`__)
 
     *    - |improved|
@@ -97,19 +107,19 @@ v0.32.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1590>`__)
 
     *    - |new|
-         - Upon startup of a Cassandra-backed AtlasDB client with a :ref:`Timelock block <timelock-client-configuration>`, the client will now automatically migrate its timestamp to the Timelock cluster.
+         - Upon startup of an AtlasDB client with a ``timeblock`` :ref:`config block <timelock-client-configuration>`, the client will now automatically migrate its timestamp to the the :ref:`external Timelock cluster <external-timelock-service>`.
+
            The client will fast-forward the Timelock Server's timestamp bound to that of the embedded service.
            The client will now also *invalidate* the embedded service's bound, backing this up in a separate row in the timestamp table.
-           This is not cause for concern if you have already done a manual migration to Timelock, as fast forwarding to an earlier bound is a no-op.
 
-           So far, automated migration is only supported for Cassandra KVS.
+           Automated migration is only supported for Cassandra KVS at the moment.
            If using DBKVS or other key-value services, it remains the user's responsibility to ensure that they have performed the migration detailed in :ref:`Migration to External Timelock Services <timelock-migration>`.
-           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1569>`__, 
-           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1570>`__ and
-           `Pull Request 3 <https://github.com/palantir/atlasdb/pull/1579>`__)
-           
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1569>`__,
+            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1570>`__, and
+            `Pull Request 3 <https://github.com/palantir/atlasdb/pull/1579>`__)
+
     *    - |fixed|
-         - Fixed multiple connection pool deadlocks in DbKvs.
+         - Fixed multiple scenarios where DBKVS can run into deadlocks due to unnecessary connections.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -129,7 +139,7 @@ v0.31.0
 
     *    - |improved| |devbreak|
          - Improved Oracle performance on DBKVS by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
-           Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.          
+           Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
 
     *    - |devbreak|

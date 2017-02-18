@@ -1,4 +1,4 @@
-.. _background_sweep:
+.. _background-sweep:
 
 Background Sweep
 ================
