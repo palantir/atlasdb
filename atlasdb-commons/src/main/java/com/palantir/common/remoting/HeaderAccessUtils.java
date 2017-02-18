@@ -32,12 +32,12 @@ public final class HeaderAccessUtils {
     /**
      * Compares the keys of the map to the header in a case-insensitive manner; upon finding a match, compares
      * the associated collection of strings from the map with the value, returning true iff this contains a match.
-     * If no key matches
+     * If no key matches, this method returns false.
      *
-     * This method assumes as a precondition that no two keys differ only by case.
-     * This is implemented as such for performance reasons.
+     * As a precondition: the headers map should NOT contain distinct keys differing only in case.
+     * (This is true as far as our use-case is concerned.)
      */
-    public static boolean caseInsensitiveContainsEntryUnsafe(
+    public static boolean shortcircuitingCaseInsensitiveContainsEntry(
             Map<String, Collection<String>> headers,
             String header,
             String value) {

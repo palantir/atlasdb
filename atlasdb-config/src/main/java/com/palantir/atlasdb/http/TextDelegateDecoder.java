@@ -58,7 +58,7 @@ public class TextDelegateDecoder implements Decoder {
 
     @Override
     public Object decode(Response response, Type type) throws IOException, FeignException {
-        if (HeaderAccessUtils.caseInsensitiveContainsEntryUnsafe(
+        if (HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(
                 response.headers(),
                 HttpHeaders.CONTENT_TYPE,
                 MediaType.TEXT_PLAIN)) {
