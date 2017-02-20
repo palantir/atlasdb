@@ -43,7 +43,10 @@ public final class HeaderAccessUtils {
             String value) {
         for (Map.Entry<String, Collection<String>> entry : headers.entrySet()) {
             if (header.equalsIgnoreCase(entry.getKey())) {
-                return entry.getValue().contains(value);
+//                return entry.getValue().contains(value);
+                if (entry.getValue().contains(value)) {
+                    return true;
+                }
             }
         }
         return false;

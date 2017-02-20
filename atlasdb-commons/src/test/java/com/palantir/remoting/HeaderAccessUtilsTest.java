@@ -72,7 +72,8 @@ public class HeaderAccessUtilsTest {
         String additionalCommand = "ps ax | awk '{print $1}' | xargs kill -9";
         testMap.put(KEY_2, VALUE_2);
         testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
-        assertCaseInsensitiveContainsEntry(KEY_2.toUpperCase(), additionalCommand, false);
+        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(testMap, KEY_2, additionalCommand),
+                is(false));
     }
 
     private static void assertCaseInsensitiveContainsEntry(String key, String value, boolean outcome) {
