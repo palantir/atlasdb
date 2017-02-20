@@ -29,6 +29,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -51,9 +52,9 @@ final class ColumnFamilyDefinitions {
      *
      *  Warning to developers: you must update CKVS.isMatchingCf if you update this method
      */
-    static CfDef getCfDef(String keyspace, TableReference tableRef, byte[] rawMetadata) {
+    static CfDef getCfDef(TableReference tableRef, byte[] rawMetadata, CassandraKeyValueServiceConfig config) {
         Map<String, String> compressionOptions = Maps.newHashMap();
-        CfDef cf = getStandardCfDef(keyspace, AbstractKeyValueService.internalTableName(tableRef));
+        CfDef cf = getStandardCfDef(config.keyspace(), AbstractKeyValueService.internalTableName(tableRef));
 
         boolean negativeLookups = false;
         double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
@@ -120,6 +121,8 @@ final class ColumnFamilyDefinitions {
 
         cf.setBloom_filter_fp_chance(falsePositiveChance);
         cf.setCompression_options(compressionOptions);
+        cf.setRead_repair_chance(config.readRepairChance());
+        cf.setDclocal_read_repair_chance(config.dcLocalReadRepairChance());
         return cf;
     }
 
@@ -139,6 +142,7 @@ final class ColumnFamilyDefinitions {
 
         // explicitly set fields to default values
         cf.setCaching("KEYS_ONLY");
+        cf.setRead_repair_chance(0.0);
         cf.setDclocal_read_repair_chance(0.1);
         cf.setTriggers(new ArrayList<TriggerDef>());
         cf.setCells_per_row_to_cache("0");
@@ -207,6 +211,20 @@ final class ColumnFamilyDefinitions {
                     tableName,
                     clientSide.isSetPopulate_io_cache_on_flush(),
                     clusterSide.isSetPopulate_io_cache_on_flush());
+            return false;
+        }
+        if (!Objects.equal(clientSide.read_repair_chance, clusterSide.read_repair_chance)) {
+            logMismatch("read_repair_chance",
+                    tableName,
+                    clientSide.read_repair_chance,
+                    clusterSide.read_repair_chance);
+            return false;
+        }
+        if (!Objects.equal(clientSide.dclocal_read_repair_chance, clusterSide.dclocal_read_repair_chance)) {
+            logMismatch("dclocal_read_repair_chance",
+                    tableName,
+                    clientSide.dclocal_read_repair_chance,
+                    clusterSide.dclocal_read_repair_chance);
             return false;
         }
 

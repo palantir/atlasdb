@@ -181,6 +181,16 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     @Value.Default
+    public double readRepairChance() {
+        return 0.0;
+    }
+
+    @Value.Default
+    public double dcLocalReadRepairChance() {
+        return 0.1;
+    }
+
+    @Value.Default
     public boolean scyllaDb() {
         return false;
     }

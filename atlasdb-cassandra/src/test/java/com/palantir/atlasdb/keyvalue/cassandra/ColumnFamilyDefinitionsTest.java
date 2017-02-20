@@ -17,18 +17,27 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.junit.Assert.assertTrue;
 
+import java.net.InetSocketAddress;
+
 import org.apache.cassandra.thrift.CfDef;
 import org.junit.Test;
 
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class ColumnFamilyDefinitionsTest {
+    ImmutableCassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.builder()
+            .addServers(new InetSocketAddress("localhost", 666))
+            .replicationFactor(1)
+            .keyspace("atlasdb")
+            .build();
+
     @Test
     public void compactionStrategiesShouldMatchWithOrWithoutPackageName() {
         CfDef standard = ColumnFamilyDefinitions.getCfDef(
-                "test_keyspace",
                 TableReference.fromString("test_table"),
-                new byte[0]);
+                new byte[0],
+                config);
 
         CfDef fullyQualified = standard.setCompaction_strategy("com.palantir.AwesomeCompactionStrategy");
         CfDef onlyClassName = standard.deepCopy().setCompaction_strategy("AwesomeCompactionStrategy");
