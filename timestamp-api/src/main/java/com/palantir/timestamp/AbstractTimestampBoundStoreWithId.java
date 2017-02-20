@@ -25,23 +25,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.util.debug.ThreadDumps;
 
-public abstract class AbstractTimestampBoundStoreWithId implements TimestampBoundStore{
+public abstract class AbstractTimestampBoundStoreWithId implements TimestampBoundStore {
     protected long currentLimit = -1;
     protected boolean startingUp = true;
     protected UUID id;
-    protected long INITIAL_VALUE;
+    protected long initialValue;
 
     public static Logger log = LoggerFactory.getLogger(TimestampBoundStore.class);
 
     protected AbstractTimestampBoundStoreWithId(Long initialValue) {
-        id = UUID.randomUUID();
-        INITIAL_VALUE = initialValue;
+        this.id = UUID.randomUUID();
+        this.initialValue = initialValue;
     }
 
-    @VisibleForTesting
     public UUID getId() {
         return id;
     }
@@ -73,7 +71,7 @@ public abstract class AbstractTimestampBoundStoreWithId implements TimestampBoun
         log.info("[GET] The service is starting up. Attempting to get timestamp bound from the DB and"
                 + " resetting it with this process's ID.");
         TimestampBoundStoreEntry newEntry = TimestampBoundStoreEntry.create(
-                entryInDb.getTimestampOrValue(INITIAL_VALUE), id);
+                entryInDb.getTimestampOrValue(initialValue), id);
         checkAndSet(entryInDb, newEntry);
         startingUp = false;
         return newEntry;
@@ -97,7 +95,7 @@ public abstract class AbstractTimestampBoundStoreWithId implements TimestampBoun
 
     private void checkLimitNotDecreasing(TimestampBoundStoreEntry newEntry) {
         if (currentLimit > newEntry.getTimestampOrValue(null)) {
-            throwNewTimestampTooSmallException(currentLimit, newEntry);
+            throwNewTimestampTooSmallException(newEntry);
         }
     }
 
@@ -110,16 +108,15 @@ public abstract class AbstractTimestampBoundStoreWithId implements TimestampBoun
     private void retryCasIfMatchingId(TimestampBoundStoreEntry newEntry, TimestampBoundStoreEntry entryInDb) {
         if (entryInDb.idMatches(id)) {
             setCurrentLimit("CAS", entryInDb);
-            entryInDb = TimestampBoundStoreEntry.create(currentLimit, id);
-            cas(entryInDb, newEntry);
+            cas(TimestampBoundStoreEntry.create(currentLimit, id), newEntry);
         } else {
-            throwStoringMultipleRunningTimestampServiceError(currentLimit, id, entryInDb, newEntry);
+            throwStoringMultipleRunningTimestampServiceError(entryInDb, newEntry);
         }
     }
 
     private void checkMatchingId(TimestampBoundStoreEntry entryInDb) {
         if (!entryInDb.idMatches(id)) {
-            throwGettingMultipleRunningTimestampServiceError(id, entryInDb);
+            throwGettingMultipleRunningTimestampServiceError(entryInDb);
         }
     }
 
@@ -131,7 +128,7 @@ public abstract class AbstractTimestampBoundStoreWithId implements TimestampBoun
 
     protected abstract void runWithNoReturn(Function<?, Void> function);
 
-    public void throwGettingMultipleRunningTimestampServiceError(UUID id, TimestampBoundStoreEntry entryInDb) {
+    public void throwGettingMultipleRunningTimestampServiceError(TimestampBoundStoreEntry entryInDb) {
         String message = "Error getting the timestamp limit from the DB: the timestamp service ID {} in the DB"
                 + " does not match this service's ID: {}. This may indicate that another timestamp service is"
                 + " running against this cassandra keyspace.";
@@ -141,7 +138,7 @@ public abstract class AbstractTimestampBoundStoreWithId implements TimestampBoun
         throw new MultipleRunningTimestampServiceError(formattedMessage);
     }
 
-    protected void throwStoringMultipleRunningTimestampServiceError(long currentLimit, UUID id,
+    protected void throwStoringMultipleRunningTimestampServiceError(
             TimestampBoundStoreEntry entryInDb,
             TimestampBoundStoreEntry desiredNewEntry) {
         String message = "Unable to CAS from {} to {}. Timestamp limit changed underneath us or another timestamp"
@@ -162,7 +159,7 @@ public abstract class AbstractTimestampBoundStoreWithId implements TimestampBoun
         throw new MultipleRunningTimestampServiceError(formattedMessage);
     }
 
-    protected void throwNewTimestampTooSmallException(long currentLimit, TimestampBoundStoreEntry entryInDb) {
+    protected void throwNewTimestampTooSmallException(TimestampBoundStoreEntry entryInDb) {
         String message = "Cannot set cached timestamp bound value from {} to {}. The bounds must be increasing!";
         String formattedMessage = MessageFormatter.arrayFormat(message, new String[]{
                 Long.toString(currentLimit), entryInDb.getTimestampAsString()}).getMessage();
@@ -184,7 +181,7 @@ public abstract class AbstractTimestampBoundStoreWithId implements TimestampBoun
     }
 
     @Value.Immutable
-    public static abstract class Result {
+    public abstract static class Result {
         abstract boolean isSuccess();
         @Nullable abstract TimestampBoundStoreEntry entry();
 
