@@ -67,26 +67,25 @@
    The object defines how you create a lock client, and how to request locks from it. The first call to this
    function will return an invalid object: you should call 'setup' on the returned object to get a valid one.
   "
-  [node]
+  [node cas-client]
   (reify client/Client
     (setup!
       [this test node]
       "Factory that returns an object implementing client/Client"
       (info node "starting AtlasDB client")
-      (AtlasDbEteServer/mainNonBlocking (into-array ["server" "resources/atlasdb/atlasdb-ete.yml.template"]))
-      (create-client node))
-
+      (let [cas-client (AtlasDbEteServer/mainReturningClient (into-array ["server" "resources/atlasdb/atlasdb-ete.yml.template"]))]
+        (create-client node cas-client)))
     (invoke! [this test op]
       (case (:f op)
-        :read (try (assoc op :type :ok :value (atlasdb-get node))
+        :read (try (assoc op :type :ok :value (. cas-client (getInt)))
                 (catch Exception e
                   (warn e "Read failed")
                   (assoc op :type :fail)))
 
-        :write (do (atlasdb-put! node (:value op))
+        :write (do (. cas-client (setInt (:value op)))
                  (assoc op :type :ok))
         :cas (let [[value value'] (:value op)
-                   ok? (atlasdb-cas! node value value')]
+                   ok? (. cas-client (checkAndSetInt value value'))]
                (assoc op :type (if ok? :ok :fail)))))
 
     (teardown! [_ test])))
@@ -102,7 +101,7 @@
          :nodes ["n1"]
          :os debian/os
          :db (db)
-         :client (create-client nil)
+         :client (create-client nil nil)
          :nemesis (nemesis/partition-random-halves)
          :model (model/cas-register)
          :checker (checker/compose
@@ -110,10 +109,10 @@
                     :perf (checker/perf)
                     :linear checker/linearizable})
          :generator (->> (gen/mix [r w cas])
-                         (gen/stagger 1)
+                         (gen/stagger 0.5)
                          (gen/nemesis
                           (gen/seq (cycle [(gen/sleep 5)
                                            {:type :info, :f :start}
                                            (gen/sleep 5)
                                            {:type :info, :f :stop}])))
-                         (gen/time-limit 15))))
+                         (gen/time-limit 120))))

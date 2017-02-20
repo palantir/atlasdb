@@ -25,8 +25,16 @@ public class CheckAndSetClient {
         this.transactionManager = transactionManager;
     }
 
+    public int getInt() {
+        return (get()).get().intValue();
+    }
+
     public Optional<Long> get() {
         return transactionManager.runTaskReadOnly((transaction) -> new CheckAndSetPersistentValue(transaction).get());
+    }
+
+    public void setInt(int value) {
+        set(Optional.of((long) value));
     }
 
     public void set(Optional<Long> value) {
@@ -34,6 +42,10 @@ public class CheckAndSetClient {
             new CheckAndSetPersistentValue(transaction).set(value);
             return null;
         });
+    }
+
+    public boolean checkAndSetInt(int oldValue, int newValue) {
+        return checkAndSet(Optional.of((long) oldValue), Optional.of((long) newValue));
     }
 
     public boolean checkAndSet(Optional<Long> oldValue, Optional<Long> newValue) {

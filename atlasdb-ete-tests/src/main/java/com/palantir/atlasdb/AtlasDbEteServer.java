@@ -51,18 +51,16 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             CheckAndSetSchema.getSchema(),
             TodoSchema.getSchema());
 
+    private CheckAndSetClient client;
+
     public static void main(String[] args) throws Exception {
         new AtlasDbEteServer().run(args);
     }
 
-    public static void mainNonBlocking(String[] args) {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                new AtlasDbEteServer().run(args);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+    public static CheckAndSetClient mainReturningClient(String[] args) throws Exception {
+        AtlasDbEteServer server = new AtlasDbEteServer();
+        server.run(args);
+        return server.client;
     }
 
     @Override
@@ -75,7 +73,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
         TransactionManager transactionManager = createTransactionManager(config, environment);
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager)));
-        environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
+        client = new CheckAndSetClient(transactionManager);
+        environment.jersey().register(new SimpleCheckAndSetResource(client));
     }
 
     private TransactionManager createTransactionManager(AtlasDbEteConfiguration config, Environment environment)
