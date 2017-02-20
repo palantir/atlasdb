@@ -106,6 +106,7 @@ import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
+import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -570,119 +571,7 @@ public class DbKvs extends AbstractKeyValueService {
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        Iterable<RowResult<Set<Long>>> rows = new AbstractPagingIterable<
-                RowResult<Set<Long>>,
-                TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]>>() {
-            @Override
-            protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getFirstPage() {
-                return getTimestampsPage(tableRef, rangeRequest, timestamp);
-            }
-
-            @Override
-            protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getNextPage(
-                    TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> previous) {
-                // TODO if we didn't get through all the cells last time, the next page logic will look different
-                // TODO it'll be simpler! Continue to go through the iterator
-                /**
-                 * If cell limit is 10, row limit is 2, results per row: 15,10,5,4,9,1,1,2, might see this:
-                 * Page 1 Query 1 **********
-                 * Page 2         *****@@@@@
-                 * Page 3         @@@@@
-                 * Page 4 Query 2 *****@@@@
-                 * Page 5 Query 3 *********@
-                 * Page 6 Query 4 *@@ ~fin~
-                 */
-                byte[] newStartRow = previous.getTokenForNextPage();
-                RangeRequest newRange = rangeRequest.getBuilder().startRowInclusive(newStartRow).build();
-                return getTimestampsPage(tableRef, newRange, timestamp);
-            }
-        };
-        return ClosableIterators.wrap(rows.iterator());
-    }
-
-    private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getTimestampsPage(
-            TableReference tableRef,
-            RangeRequest range,
-            long timestamp) {
-        Stopwatch watch = Stopwatch.createStarted();
-        try {
-            return runRead(tableRef, table -> getTimestampsPageInternal(table, range, timestamp));
-        } finally {
-            log.debug("Call to KVS.getTimestampsPage on table {} took {} ms.",
-                    tableRef, watch.elapsed(TimeUnit.MILLISECONDS));
-        }
-    }
-
-    @SuppressWarnings("deprecation")
-    private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getTimestampsPageInternal(DbReadTable table,
-                                                                                                RangeRequest range,
-                                                                                                long timestamp) {
-        Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
-        SortedSet<byte[]> rows = Sets.newTreeSet(comp);
-        int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
-
-        try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {
-            while (rows.size() < maxRows && rangeResults.hasNext()) {
-                byte[] rowName = rangeResults.next().getBytes("row_name");
-                if (rowName != null) {
-                    rows.add(rowName);
-                }
-            }
-            if (rows.isEmpty()) {
-                return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Set<Long>>>of(), false);
-            }
-        }
-
-        ColumnSelection columns = ColumnSelection.all();
-        if (!range.getColumnNames().isEmpty()) {
-            columns = ColumnSelection.create(range.getColumnNames());
-        }
-
-        // TODO This needs to finish early when we have too many cells. Next row may therefore be different
-        // TODO will return multimap and iterator
-        SetMultimap<Cell, Long> results = getTimestampsByCell(table, rows, columns, timestamp);
-
-        // INFO this is where we process the result...
-        NavigableMap<byte[], SortedMap<byte[], Set<Long>>> cellsByRow =
-                Cells.breakCellsUpByRow(Multimaps.asMap(results));
-        if (range.isReverse()) {
-            cellsByRow = cellsByRow.descendingMap();
-        }
-        List<RowResult<Set<Long>>> finalResults = Lists.newArrayListWithCapacity(results.size());
-        for (Entry<byte[], SortedMap<byte[], Set<Long>>> entry : cellsByRow.entrySet()) {
-            finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
-        }
-
-        // INFO Here's logic for making the results token
-        byte[] nextRow = null;
-        boolean mayHaveMoreResults = false;
-        byte[] lastRow = range.isReverse() ? rows.first() : rows.last();
-        if (!RangeRequests.isTerminalRow(range.isReverse(), lastRow)) {
-            // TODO nextRow will be different if the iterator is not empty
-            nextRow = RangeRequests.getNextStartRow(range.isReverse(), lastRow);
-            mayHaveMoreResults = rows.size() == maxRows;
-        }
-        // TODO include the iterator in the results page. Now, where is that used?
-        return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
-    }
-
-    private SetMultimap<Cell, Long> getTimestampsByCell(DbReadTable table,
-                                                        Iterable<byte[]> rows,
-                                                        ColumnSelection columns,
-                                                        long timestamp) {
-        SetMultimap<Cell, Long> results = HashMultimap.create();
-        try (ClosableIterator<AgnosticLightResultRow> rowResults = table.getAllRows(rows, columns, timestamp, false)) {
-            // TODO - pass in iterator, pass out iterator + results (once it gets to size limit)
-            while (rowResults.hasNext()) {
-                AgnosticLightResultRow row = rowResults.next();
-                Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
-                long ts = row.getLong("ts");
-                // TODO This is where we OOM - need to split into pages based on cell batch size.
-                results.put(cell, ts);
-            }
-        }
-        // TODO also return iterator
-        return results;
+        return new TimestampRangeFetcher().invoke(tableRef, rangeRequest, timestamp);
     }
 
     @Override
@@ -1331,5 +1220,157 @@ public class DbKvs extends AbstractKeyValueService {
 
     private interface ReadWriteTask<T> {
         T run(DbReadTable readTable, DbWriteTable writeTable);
+    }
+
+    private class TimestampRangeFetcher {
+        TimestampRangeFetcher() {
+        }
+
+        public ClosableIterator<RowResult<Set<Long>>> invoke(TableReference tableRef,
+                RangeRequest rangeRequest,
+                long timestamp) {
+            Iterable<RowResult<Set<Long>>> rows = new AbstractPagingIterable<
+                    RowResult<Set<Long>>,
+                    TokenBackedBasicResultsPage<RowResult<Set<Long>>, TimestampsByCellToken>>() {
+                @Override
+                protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, TimestampsByCellToken> getFirstPage() {
+                    return getTimestampsPage(tableRef, rangeRequest, timestamp);
+                }
+
+                @Override
+                protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, TimestampsByCellToken> getNextPage(
+                        TokenBackedBasicResultsPage<RowResult<Set<Long>>, TimestampsByCellToken> previous) {
+                    // TODO if we didn't get through all the cells last time, the next page logic will look different
+                    // TODO it'll be simpler! Continue to go through the iterator
+                    /**
+                     * If cell limit is 10, row limit is 2, results per row: 15,10,5,4,9,1,1,2, might see this:
+                     * Page 1 Query 1 **********
+                     * Page 2         *****@@@@@
+                     * Page 3         @@@@@
+                     * Page 4 Query 2 *****@@@@
+                     * Page 5 Query 3 *********@
+                     * Page 6 Query 4 *@@ ~fin~
+                     */
+                    byte[] newStartRow = previous.getTokenForNextPage().nextRow;
+                    RangeRequest newRange = rangeRequest.getBuilder().startRowInclusive(newStartRow).build();
+                    return getTimestampsPage(tableRef, newRange, timestamp);
+                }
+            };
+            return ClosableIterators.wrap(rows.iterator());
+        }
+
+        private TokenBackedBasicResultsPage<RowResult<Set<Long>>, TimestampsByCellToken> getTimestampsPage(
+                TableReference tableRef,
+                RangeRequest range,
+                long timestamp) {
+            log.info("Getting a page!");
+            Stopwatch watch = Stopwatch.createStarted();
+            try {
+                return runRead(tableRef, table -> getTimestampsPageInternal(table, range, timestamp));
+            } finally {
+                log.debug("Call to KVS.getTimestampsPage on table {} took {} ms.",
+                        tableRef, watch.elapsed(TimeUnit.MILLISECONDS));
+            }
+        }
+
+        @SuppressWarnings("deprecation")
+        private TokenBackedBasicResultsPage<RowResult<Set<Long>>, TimestampsByCellToken> getTimestampsPageInternal(
+                DbReadTable table,
+                RangeRequest range,
+                long timestamp) {
+            Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
+            SortedSet<byte[]> rows = Sets.newTreeSet(comp);
+
+            // TODO only this method is used in both DbKvs and the inner class
+            int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
+
+            log.info("DbKvs.getTimestampsPageInternal calling getRange");
+            try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {
+                while (rows.size() < maxRows && rangeResults.hasNext()) {
+                    byte[] rowName = rangeResults.next().getBytes("row_name");
+                    if (rowName != null) {
+                        rows.add(rowName);
+                    }
+                }
+                if (rows.isEmpty()) {
+                    return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Set<Long>>>of(), false);
+                }
+            }
+
+            ColumnSelection columns = ColumnSelection.all();
+            if (!range.getColumnNames().isEmpty()) {
+                columns = ColumnSelection.create(range.getColumnNames());
+            }
+
+            log.info("DbKvs.getTimestampsPageInternal calling getTimestampsByCell");
+            // TODO This finishes early when we have too many cells. Next row may therefore be different
+            Pair<SetMultimap<Cell, Long>, ClosableIterator<AgnosticLightResultRow>> pair = getTimestampsByCell(table,
+                    rows,
+                    columns,
+                    timestamp);
+            SetMultimap<Cell, Long> results = pair.getLhSide();
+
+            List<RowResult<Set<Long>>> finalResults = processResults(range, results);
+
+            // INFO Here's logic for making the results token
+            byte[] nextRow = null;
+            boolean mayHaveMoreResults = false;
+            byte[] lastRow = range.isReverse() ? rows.first() : rows.last();
+            if (!RangeRequests.isTerminalRow(range.isReverse(), lastRow)) {
+                // TODO nextRow will be different if the iterator is not empty
+                nextRow = RangeRequests.getNextStartRow(range.isReverse(), lastRow);
+                mayHaveMoreResults = rows.size() == maxRows;
+            }
+            // TODO include the iterator in the results page. Now, where is that used?
+            TimestampsByCellToken token = new TimestampsByCellToken(nextRow, pair.getRhSide());
+            return SimpleTokenBackedResultsPage.create(token, finalResults, mayHaveMoreResults);
+        }
+
+        private List<RowResult<Set<Long>>> processResults(RangeRequest range, SetMultimap<Cell, Long> results) {
+            NavigableMap<byte[], SortedMap<byte[], Set<Long>>> cellsByRow
+                    = Cells.breakCellsUpByRow(Multimaps.asMap(results));
+            if (range.isReverse()) {
+                cellsByRow = cellsByRow.descendingMap();
+            }
+            List<RowResult<Set<Long>>> finalResults = Lists.newArrayListWithCapacity(results.size());
+            for (Entry<byte[], SortedMap<byte[], Set<Long>>> entry : cellsByRow.entrySet()) {
+                finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
+            }
+            return finalResults;
+        }
+
+        private Pair<SetMultimap<Cell, Long>, ClosableIterator<AgnosticLightResultRow>> getTimestampsByCell(
+                DbReadTable table,
+                Iterable<byte[]> rows,
+                ColumnSelection columns,
+                long timestamp) {
+            // TODO pass maxCells in from RangeRequest
+            int maxCells = 1_000_000;
+            SetMultimap<Cell, Long> results = HashMultimap.create();
+            log.info("DbKVs.getTimestampsByCell creating iterator");
+            try (ClosableIterator<AgnosticLightResultRow> rowResults =
+                    table.getAllRows(rows, columns, timestamp, false)) {
+                log.info("Got all rows!");
+                // TODO - pass in iterator, pass out iterator + results (once it gets to size limit)
+                while (rowResults.hasNext() && results.size() < maxCells) {
+                    AgnosticLightResultRow row = rowResults.next();
+                    Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
+                    long ts = row.getLong("ts");
+                    results.put(cell, ts);
+                }
+
+                return Pair.create(results, rowResults);
+            }
+        }
+
+        private class TimestampsByCellToken {
+            final byte[] nextRow;
+            final ClosableIterator<AgnosticLightResultRow> iterator;
+
+            TimestampsByCellToken(byte[] nextRow, ClosableIterator<AgnosticLightResultRow> iterator) {
+                this.nextRow = nextRow;
+                this.iterator = iterator;
+            }
+        }
     }
 }
