@@ -54,6 +54,10 @@ develop
          - Fixed atlasdb-commons Java 1.6 compatibility by removing tracing from InterruptibleProxy.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1599>`__)
 
+    *    - |fixed|
+         - Persisted locks table is now considered an Atomic Table and will not get KVS migrated
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1610>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
