@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
-import static org.apache.commons.lang3.CharEncoding.UTF_8;
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +43,7 @@ public class HttpBenchmarks {
     private static final Map<String, Collection<String>> HEADERS =
             ImmutableMap.<String, Collection<String>>builder()
                     .put(HttpHeaders.ACCEPT.toLowerCase(), ImmutableList.of(MediaType.APPLICATION_JSON))
-                    .put(HttpHeaders.ACCEPT_ENCODING.toLowerCase(), ImmutableList.of(UTF_8))
+                    .put(HttpHeaders.ACCEPT_ENCODING.toLowerCase(), ImmutableList.of("UTF-8"))
                     .put(HttpHeaders.CACHE_CONTROL.toLowerCase(), ImmutableList.of("no cache"))
                     .put(HttpHeaders.CONTENT_TYPE.toLowerCase(), ImmutableList.of(MediaType.TEXT_PLAIN))
                     .put(HttpHeaders.FROM.toLowerCase(), ImmutableList.of("TimeLock"))
