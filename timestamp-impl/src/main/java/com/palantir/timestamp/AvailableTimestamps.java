@@ -15,16 +15,22 @@
  */
 package com.palantir.timestamp;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.ThreadSafe;
+
+@ThreadSafe
 public class AvailableTimestamps {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
     private static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
     private static final long MAX_TIMESTAMPS_TO_HAND_OUT = 10 * 1000;
 
+    @GuardedBy("this")
     private final LastReturnedTimestamp lastReturnedTimestamp;
+    @GuardedBy("this")
     private final PersistentUpperLimit upperLimit;
 
     public AvailableTimestamps(LastReturnedTimestamp lastReturnedTimestamp, PersistentUpperLimit upperLimit) {
@@ -34,27 +40,46 @@ public class AvailableTimestamps {
         this.upperLimit = upperLimit;
     }
 
-    public synchronized TimestampRange handOut(long numberToHandOut) {
-        checkArgument(
-                numberToHandOut <= MAX_TIMESTAMPS_TO_HAND_OUT,
+    private static void checkValidTimestampRangeRequest(long numberToHandOut) {
+        checkArgument(numberToHandOut <= MAX_TIMESTAMPS_TO_HAND_OUT,
                 "Can only hand out %s timestamps at a time, but %s were requested",
                 MAX_TIMESTAMPS_TO_HAND_OUT, numberToHandOut);
-
-        long targetTimestamp = lastHandedOut() + numberToHandOut;
-        DebugLogger.logger.trace("Handing out {} timestamps, taking us to {}.", numberToHandOut, targetTimestamp);
-        return handOutTimestamp(targetTimestamp);
     }
 
-    public synchronized void refreshBuffer() {
-        long currentUpperLimit = upperLimit.get();
-        long buffer = currentUpperLimit - lastHandedOut();
+    public TimestampRange handOut(long numberToHandOut) {
+        checkValidTimestampRangeRequest(numberToHandOut);
+        synchronized (this) {
+            long targetTimestamp = lastHandedOut() + numberToHandOut;
+            DebugLogger.logger.trace("Handing out {} timestamps, taking us to {}.", numberToHandOut, targetTimestamp);
+            return handOutTimestamp(targetTimestamp);
+        }
+    }
 
-        if (buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
-            DebugLogger.logger.trace(
-                    "refreshBuffer: refreshing and allocating timestamps. Buffer {}, Current upper limit {}.",
-                    buffer,
-                    currentUpperLimit);
-            allocateEnoughTimestampsToHandOut(lastHandedOut() + ALLOCATION_BUFFER_SIZE);
+    public void refreshBuffer() {
+        boolean needsRefresh;
+        long currentUpperLimit;
+        long buffer;
+
+        synchronized (this) {
+            currentUpperLimit = upperLimit.get();
+            long lastHandedOut = lastHandedOut();
+            buffer = currentUpperLimit - lastHandedOut;
+            needsRefresh = buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, TimeUnit.MINUTES);
+            if (needsRefresh) {
+                allocateEnoughTimestampsToHandOut(lastHandedOut + ALLOCATION_BUFFER_SIZE);
+            }
+        }
+
+        if (DebugLogger.logger.isTraceEnabled()) {
+            logRefresh(needsRefresh, currentUpperLimit, buffer);
+        }
+    }
+
+    private void logRefresh(boolean needsRefresh, long currentUpperLimit, long buffer) {
+        if (needsRefresh) {
+            DebugLogger.logger.trace("refreshBuffer: refreshing and allocating timestamps. "
+                            + "Buffer {}, Current upper limit {}.",
+                    buffer, currentUpperLimit);
         } else {
             DebugLogger.logger.trace("refreshBuffer: refreshing, but not allocating");
         }
@@ -65,25 +90,29 @@ public class AvailableTimestamps {
         upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
     }
 
-    private long lastHandedOut() {
+    private synchronized long lastHandedOut() {
         return lastReturnedTimestamp.get();
     }
 
+    private synchronized TimestampRange getRangeToHandOut(long targetTimestamp) {
+        long lastHandedOut = lastHandedOut();
+        if (targetTimestamp <= lastHandedOut) {
+            throw new IllegalArgumentException(String.format(
+                    "Could not hand out timestamp '%s' as it was earlier than the last handed out timestamp: %s",
+                    targetTimestamp, lastHandedOut));
+        }
+        return TimestampRange.createInclusiveRange(lastHandedOut + 1, targetTimestamp);
+    }
+
     private synchronized TimestampRange handOutTimestamp(long targetTimestamp) {
-        checkArgument(
-                targetTimestamp > lastHandedOut(),
-                "Could not hand out timestamp '%s' as it was earlier than the last handed out timestamp: %s",
-                targetTimestamp, lastHandedOut());
-
-        TimestampRange rangeToHandOut = TimestampRange.createInclusiveRange(lastHandedOut() + 1, targetTimestamp);
-
+        TimestampRange rangeToHandOut = getRangeToHandOut(targetTimestamp);
         allocateEnoughTimestampsToHandOut(targetTimestamp);
         lastReturnedTimestamp.increaseToAtLeast(targetTimestamp);
 
         return rangeToHandOut;
     }
 
-    private void allocateEnoughTimestampsToHandOut(long timestamp) {
+    private synchronized void allocateEnoughTimestampsToHandOut(long timestamp) {
         DebugLogger.logger.trace("Increasing limit to at least {}.", timestamp);
         upperLimit.increaseToAtLeast(timestamp);
         if (DebugLogger.logger.isTraceEnabled()) {

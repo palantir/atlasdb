@@ -16,19 +16,20 @@
 package com.palantir.timestamp;
 
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.concurrent.ThreadSafe;
 
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting1.tracing.Tracers;
 
 @ThreadSafe
 public class PersistentTimestampService implements TimestampService, TimestampManagementService {
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
 
-    private final ExecutorService executor;
     private final AvailableTimestamps availableTimestamps;
+    private final ExecutorService executor;
+    private final AtomicBoolean isAllocationTaskSubmitted;
 
     public PersistentTimestampService(AvailableTimestamps availableTimestamps, ExecutorService executor) {
         DebugLogger.logger.info(
@@ -37,19 +38,20 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
 
         this.availableTimestamps = availableTimestamps;
         this.executor = executor;
+        this.isAllocationTaskSubmitted = new AtomicBoolean(false);
     }
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
         PersistentUpperLimit upperLimit = new PersistentUpperLimit(tbs);
         LastReturnedTimestamp lastReturned = new LastReturnedTimestamp(upperLimit.get());
         AvailableTimestamps availableTimestamps = new AvailableTimestamps(lastReturned, upperLimit);
-        ExecutorService executor = Tracers.wrap(
-                PTExecutors.newSingleThreadExecutor(
-                        PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true)));
+        ExecutorService executor = PTExecutors.newSingleThreadExecutor(
+                PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
 
         return new PersistentTimestampService(availableTimestamps, executor);
     }
 
+    @SuppressWarnings("unused") // used by product
     public long getUpperLimitTimestampToHandOutInclusive() {
         return availableTimestamps.getUpperLimit();
     }
@@ -60,7 +62,7 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
     }
 
     @Override
-    public synchronized TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+    public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         int numTimestampsToHandOut = cleanUpTimestampRequest(numTimestampsRequested);
         TimestampRange handedOut = availableTimestamps.handOut(numTimestampsToHandOut);
         asynchronouslyRefreshBuffer();
@@ -75,15 +77,25 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
         availableTimestamps.fastForwardTo(currentTimestamp);
     }
 
-    private int cleanUpTimestampRequest(int numTimestampsRequested) {
-        Preconditions.checkArgument(numTimestampsRequested > 0,
-                "Number of timestamps requested must be greater than zero, was %s",
-                numTimestampsRequested);
+    private static int cleanUpTimestampRequest(int numTimestampsRequested) {
+        if (numTimestampsRequested <= 0) {
+            throw new IllegalArgumentException(String.format(
+                    "Number of timestamps requested must be greater than zero, was %s", numTimestampsRequested));
+        }
 
         return Math.min(numTimestampsRequested, MAX_REQUEST_RANGE_SIZE);
     }
 
     private void asynchronouslyRefreshBuffer() {
-        executor.submit(availableTimestamps::refreshBuffer);
+        if (isAllocationTaskSubmitted.compareAndSet(false, true)) {
+            executor.submit(() -> {
+                try {
+                    availableTimestamps.refreshBuffer();
+                } finally {
+                    isAllocationTaskSubmitted.set(false);
+                }
+            });
+        }
     }
+
 }

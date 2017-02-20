@@ -49,7 +49,7 @@ public class PersistentUpperLimit {
         this(boundStore, new SystemClock(), new TimestampAllocationFailures());
     }
 
-    public long get() {
+    public synchronized long get() {
         return cachedValue;
     }
 

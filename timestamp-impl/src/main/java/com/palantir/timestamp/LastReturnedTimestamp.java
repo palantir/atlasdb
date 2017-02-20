@@ -15,6 +15,9 @@
  */
 package com.palantir.timestamp;
 
+import javax.annotation.concurrent.ThreadSafe;
+
+@ThreadSafe
 public class LastReturnedTimestamp {
     private long timestamp;
 
@@ -23,10 +26,13 @@ public class LastReturnedTimestamp {
     }
 
     public synchronized void increaseToAtLeast(long newTimestamp) {
-        this.timestamp = Math.max(this.timestamp, newTimestamp);
+        long current = this.timestamp;
+        if (newTimestamp > current) {
+            this.timestamp = newTimestamp;
+        }
     }
 
-    public long get() {
+    public synchronized long get() {
         return this.timestamp;
     }
 }
