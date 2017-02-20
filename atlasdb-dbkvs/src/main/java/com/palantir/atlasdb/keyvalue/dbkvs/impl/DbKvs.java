@@ -192,6 +192,7 @@ public class DbKvs extends AbstractKeyValueService {
         super.close();
         dbTables.close();
         connections.close();
+        batchingQueryRunner.close();
     }
 
     @Override

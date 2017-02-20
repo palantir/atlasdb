@@ -25,4 +25,9 @@ public class ImmediateSingleBatchTaskRunner implements BatchingTaskRunner {
                                     Function<InT, OutT> task) {
         return task.apply(input);
     }
+
+    @Override
+    public void close() {
+        // nothing to do
+    }
 }
