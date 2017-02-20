@@ -46,6 +46,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -353,9 +354,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                             .build());
         }
 
-        // Truncate instead of delete because the progress table contains only
-        // a single row that has accumulated many overwrites.
-        kvs.truncateTable(tableFactory.getSweepProgressTable(null).getTableRef());
+        // use delete instead of truncate so that sweep does not interfere with dbkvs online backups
+        kvs.deleteRange(tableFactory.getSweepProgressTable(null).getTableRef(), RangeRequest.all());
     }
 
     private void saveIntermediateSweepResults(final SweepProgressRowResult progress,
@@ -422,7 +422,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
             if (result == null || tables.contains(result.getFullTableName())) {
                 return false;
             }
-            kvs.truncateTable(tableFactory.getSweepProgressTable(null).getTableRef());
+            // use delete instead of truncate so that sweep does not interfere with dbkvs online backups
+            kvs.deleteRange(tableFactory.getSweepProgressTable(null).getTableRef(), RangeRequest.all());
             return true;
         } catch (RuntimeException e) {
             log.error("Failed to check whether the table being swept was dropped."

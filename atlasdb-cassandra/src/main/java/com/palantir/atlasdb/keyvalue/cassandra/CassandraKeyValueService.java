@@ -1900,6 +1900,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         delete(AtlasDbConstants.DEFAULT_METADATA_TABLE, oldVersions);
     }
 
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        // TODO: implement an actual range delete using the cassandra client
+        // As a cheap optimization, use truncate when the range is for the whole table.
+        if (range.equals(RangeRequest.all())) {
+            truncateTable(tableRef);
+        } else {
+            super.deleteRange(tableRef, range);
+        }
+    }
+
     /**
      * Performs non-destructive cleanup when the KVS is no longer needed.
      */
