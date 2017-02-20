@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.function.Function;
 
 import org.apache.cassandra.thrift.CASResult;
@@ -53,12 +52,10 @@ public final class CassandraTimestampBoundStore extends AbstractTimestampBoundSt
     }
 
     private CassandraTimestampBoundStore(CassandraClientPool clientPool) {
-        log.info("Creating CassandraTimestampBoundStore object on thread {}. This should only happen once.",
-                Thread.currentThread().getName());
+        super(CassandraTimestampUtils.INITIAL_VALUE);
+        log.info("Creating CassandraTimestampBoundStore object on thread {}. This should only happen once. The ID of"
+                + " this timestamp service is {}.", Thread.currentThread().getName(), id);
         this.clientPool = Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
-        super.id = UUID.randomUUID();
-        super.INITIAL_VALUE = CassandraTimestampUtils.INITIAL_VALUE;
-        log.info("The ID of this timestamp service is {}.", id);
     }
 
     @Override

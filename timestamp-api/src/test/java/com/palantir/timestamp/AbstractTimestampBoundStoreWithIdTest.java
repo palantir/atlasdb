@@ -38,6 +38,12 @@ public abstract class AbstractTimestampBoundStoreWithIdTest {
         store = createTimestampBoundStore();
     }
 
+    @After
+    public void cleanUp() {
+        dropTimestampTable();
+        closeKvs();
+    }
+
     @Test
     public void storeWithNoTableOnStartupThrows() {
         dropTimestampTable();
@@ -223,12 +229,6 @@ public abstract class AbstractTimestampBoundStoreWithIdTest {
         assertThat(store.getUpperLimit()).isEqualTo(limit);
         store.storeUpperLimit(limit + 1);
         assertThat(store.getUpperLimit()).isEqualTo(limit + 1);
-    }
-
-    @After
-    public void cleanUp() {
-        dropTimestampTable();
-        closeKvs();
     }
 
     protected void assertThatGetReturnsBoundEqualTo(long limit) {
