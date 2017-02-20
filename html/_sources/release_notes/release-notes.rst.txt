@@ -60,6 +60,8 @@ develop
 v0.32.0
 =======
 
+16 Feb 2017
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
