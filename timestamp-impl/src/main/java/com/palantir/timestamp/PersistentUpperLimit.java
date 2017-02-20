@@ -19,8 +19,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.concurrent.GuardedBy;
-
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.exception.PalantirInterruptedException;
@@ -30,7 +28,6 @@ public class PersistentUpperLimit {
     private final Clock clock;
     private final TimestampAllocationFailures allocationFailures;
 
-    @GuardedBy("this")
     private volatile long cachedValue;
     private volatile long lastIncreasedTime;
 
@@ -49,18 +46,19 @@ public class PersistentUpperLimit {
         this(boundStore, new SystemClock(), new TimestampAllocationFailures());
     }
 
-    public synchronized long get() {
+    public long get() {
         return cachedValue;
     }
 
     public synchronized void increaseToAtLeast(long minimum) {
-        if (cachedValue < minimum) {
+        long currentValue = get();
+        if (currentValue < minimum) {
             store(minimum);
         } else {
             DebugLogger.logger.trace(
                     "Not storing upper limit of {}, as the cached value {} was higher.",
                     minimum,
-                    cachedValue);
+                    currentValue);
         }
     }
 
