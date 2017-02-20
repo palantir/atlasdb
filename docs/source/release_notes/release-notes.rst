@@ -115,8 +115,8 @@ v0.32.0
            Automated migration is only supported for Cassandra KVS at the moment.
            If using DBKVS or other key-value services, it remains the user's responsibility to ensure that they have performed the migration detailed in :ref:`Migration to External Timelock Services <timelock-migration>`.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1569>`__,
-            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1570>`__, and
-            `Pull Request 3 <https://github.com/palantir/atlasdb/pull/1579>`__)
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1570>`__, and
+           `Pull Request 3 <https://github.com/palantir/atlasdb/pull/1579>`__)
 
     *    - |fixed|
          - Fixed multiple scenarios where DBKVS can run into deadlocks due to unnecessary connections.
@@ -782,7 +782,7 @@ v0.21.0
     *    - |new|
          - Sweep now supports batching on a per-cell level via the ``sweepCellBatchSize`` parameter in your AtlasDB config.
            This can decrease Sweep memory consumption on the client side if your tables have large cells or many columns (i.e. wide rows).
-           For information on how to configure Sweep batching, see the :ref:`sweep documentation <atlas-sweep-cli>`.
+           For information on how to configure Sweep batching, see the :ref:`sweep documentation <atlasdb-sweep-cli>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1068>`__)
 
     *    - |fixed|
