@@ -15,8 +15,6 @@
  */
 package com.palantir.timestamp;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.GuardedBy;
@@ -41,9 +39,11 @@ public class AvailableTimestamps {
     }
 
     private static void checkValidTimestampRangeRequest(long numberToHandOut) {
-        checkArgument(numberToHandOut <= MAX_TIMESTAMPS_TO_HAND_OUT,
-                "Can only hand out %s timestamps at a time, but %s were requested",
-                MAX_TIMESTAMPS_TO_HAND_OUT, numberToHandOut);
+        if (numberToHandOut > MAX_TIMESTAMPS_TO_HAND_OUT) {
+            throw new IllegalArgumentException(String.format(
+                    "Can only hand out %s timestamps at a time, but %s were requested",
+                    MAX_TIMESTAMPS_TO_HAND_OUT, numberToHandOut));
+        }
     }
 
     public TimestampRange handOut(long numberToHandOut) {
