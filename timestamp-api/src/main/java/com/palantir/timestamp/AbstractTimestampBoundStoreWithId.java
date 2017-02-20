@@ -80,22 +80,19 @@ public abstract class AbstractTimestampBoundStoreWithId implements TimestampBoun
     }
 
     private void checkAndSet(TimestampBoundStoreEntry entryInDb, TimestampBoundStoreEntry newEntry) {
-        runWithNoReturn(cas(entryInDb, newEntry));
+        cas(entryInDb, newEntry);
     }
 
-    private Function<Object, Void> cas(TimestampBoundStoreEntry entryInDb, TimestampBoundStoreEntry newEntry) {
-        return client -> {
-            checkLimitNotDecreasing(newEntry);
-            log.info("[CAS] Trying to set upper limit from {} to {}.", entryInDb.getTimestampAsString(),
-                    newEntry.getTimestampAsString());
-            Result result = updateEntryInDb(client, entryInDb, newEntry);
-            if (result.isSuccess()) {
-                setCurrentLimit("CAS", newEntry);
-            } else {
-                retryCasIfMatchingId(client, newEntry, result.entry());
-            }
-            return null;
-        };
+    private void cas(TimestampBoundStoreEntry entryInDb, TimestampBoundStoreEntry newEntry) {
+        checkLimitNotDecreasing(newEntry);
+        log.info("[CAS] Trying to set upper limit from {} to {}.", entryInDb.getTimestampAsString(),
+                newEntry.getTimestampAsString());
+        Result result = updateEntryInDb(entryInDb, newEntry);
+        if (result.isSuccess()) {
+            setCurrentLimit("CAS", newEntry);
+        } else {
+            retryCasIfMatchingId(newEntry, result.entry());
+        }
     }
 
     private void checkLimitNotDecreasing(TimestampBoundStoreEntry newEntry) {
@@ -110,13 +107,11 @@ public abstract class AbstractTimestampBoundStoreWithId implements TimestampBoun
         log.info("[{}] Setting cached timestamp limit to {}.", type, currentLimit);
     }
 
-    private void retryCasIfMatchingId(Object client,
-            TimestampBoundStoreEntry newEntry,
-            TimestampBoundStoreEntry entryInDb) {
+    private void retryCasIfMatchingId(TimestampBoundStoreEntry newEntry, TimestampBoundStoreEntry entryInDb) {
         if (entryInDb.idMatches(id)) {
             setCurrentLimit("CAS", entryInDb);
             entryInDb = TimestampBoundStoreEntry.create(currentLimit, id);
-            cas(entryInDb, newEntry).apply(client);
+            cas(entryInDb, newEntry);
         } else {
             throwStoringMultipleRunningTimestampServiceError(currentLimit, id, entryInDb, newEntry);
         }
@@ -130,9 +125,7 @@ public abstract class AbstractTimestampBoundStoreWithId implements TimestampBoun
 
     protected abstract TimestampBoundStoreEntry getStoredEntry(Object client);
 
-    protected abstract Result updateEntryInDb(Object client,
-            TimestampBoundStoreEntry entryInDb,
-            TimestampBoundStoreEntry newEntry);
+    protected abstract Result updateEntryInDb(TimestampBoundStoreEntry entryInDb, TimestampBoundStoreEntry newEntry);
 
     protected abstract long runReturnLong(Function<?, Long> function);
 

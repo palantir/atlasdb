@@ -67,24 +67,24 @@ public final class CassandraTimestampBoundStore extends AbstractTimestampBoundSt
     }
 
     @Override
-    protected Result updateEntryInDb(Object client,
-            TimestampBoundStoreEntry entryInDb,
-            TimestampBoundStoreEntry newEntry) {
-        try {
-            CASResult casResult = ((Client) client).cas(
-                    ROW_NAME_BYTE_BUFFER,
-                    AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
-                    makeListOfColumnsFromEntry(CassandraTimestampBoundStoreEntry.createFromSuper(entryInDb)),
-                    makeListOfColumnsFromEntry(CassandraTimestampBoundStoreEntry.createFromSuper(newEntry)),
-                    ConsistencyLevel.SERIAL,
-                    ConsistencyLevel.EACH_QUORUM);
-            Result result = casResult.isSuccess() ? Result.success() : Result.failure(
-                    CassandraTimestampBoundStoreEntry.createFromCasResult(casResult));
-            return result;
-        } catch (Exception e) {
-            logUpdateUncheckedException(entryInDb, newEntry);
-            throw Throwables.throwUncheckedException(e);
-        }
+    protected Result updateEntryInDb(TimestampBoundStoreEntry entryInDb, TimestampBoundStoreEntry newEntry) {
+        return clientPool.runWithRetry(client -> {
+            try {
+                CASResult casResult = client.cas(
+                        ROW_NAME_BYTE_BUFFER,
+                        AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
+                        makeListOfColumnsFromEntry(CassandraTimestampBoundStoreEntry.createFromSuper(entryInDb)),
+                        makeListOfColumnsFromEntry(CassandraTimestampBoundStoreEntry.createFromSuper(newEntry)),
+                        ConsistencyLevel.SERIAL,
+                        ConsistencyLevel.EACH_QUORUM);
+                Result result = casResult.isSuccess() ? Result.success() : Result.failure(
+                        CassandraTimestampBoundStoreEntry.createFromCasResult(casResult));
+                return result;
+            } catch (Exception e) {
+                logUpdateUncheckedException(entryInDb, newEntry);
+                throw Throwables.throwUncheckedException(e);
+            }
+        });
     }
 
     @Override
