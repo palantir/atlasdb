@@ -75,7 +75,7 @@ public class AvailableTimestamps {
         }
     }
 
-    private void logRefresh(boolean needsRefresh, long currentUpperLimit, long buffer) {
+    private static void logRefresh(boolean needsRefresh, long currentUpperLimit, long buffer) {
         if (needsRefresh) {
             DebugLogger.logger.trace("refreshBuffer: refreshing and allocating timestamps. "
                             + "Buffer {}, Current upper limit {}.",
