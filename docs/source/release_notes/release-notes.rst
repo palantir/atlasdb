@@ -63,6 +63,10 @@ develop
          - Persisted locks table is now considered an Atomic Table and will not get KVS migrated
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1610>`__)
 
+    *    - |new|
+         - Cassandra now attempts to truncate when performing a deleteRange(RangeRequest.All()) in an effort to buildup less garbage.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1617>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
