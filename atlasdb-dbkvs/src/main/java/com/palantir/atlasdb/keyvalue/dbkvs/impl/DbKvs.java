@@ -581,6 +581,17 @@ public class DbKvs extends AbstractKeyValueService {
             @Override
             protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getNextPage(
                     TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> previous) {
+                // TODO if we didn't get through all the cells last time, the next page logic will look different
+                // TODO it'll be simpler! Continue to go through the iterator
+                /**
+                 * If cell limit is 10, row limit is 2, results per row: 15,10,5,4,9,1,1,2, might see this:
+                 * Page 1 Query 1 **********
+                 * Page 2         *****@@@@@
+                 * Page 3         @@@@@
+                 * Page 4 Query 2 *****@@@@
+                 * Page 5 Query 3 *********@
+                 * Page 6 Query 4 *@@ ~fin~
+                 */
                 byte[] newStartRow = previous.getTokenForNextPage();
                 RangeRequest newRange = rangeRequest.getBuilder().startRowInclusive(newStartRow).build();
                 return getTimestampsPage(tableRef, newRange, timestamp);
@@ -610,7 +621,6 @@ public class DbKvs extends AbstractKeyValueService {
         SortedSet<byte[]> rows = Sets.newTreeSet(comp);
         int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
 
-
         try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {
             while (rows.size() < maxRows && rangeResults.hasNext()) {
                 byte[] rowName = rangeResults.next().getBytes("row_name");
@@ -628,8 +638,11 @@ public class DbKvs extends AbstractKeyValueService {
             columns = ColumnSelection.create(range.getColumnNames());
         }
 
+        // TODO This needs to finish early when we have too many cells. Next row may therefore be different
+        // TODO will return multimap and iterator
         SetMultimap<Cell, Long> results = getTimestampsByCell(table, rows, columns, timestamp);
 
+        // INFO this is where we process the result...
         NavigableMap<byte[], SortedMap<byte[], Set<Long>>> cellsByRow =
                 Cells.breakCellsUpByRow(Multimaps.asMap(results));
         if (range.isReverse()) {
@@ -639,13 +652,17 @@ public class DbKvs extends AbstractKeyValueService {
         for (Entry<byte[], SortedMap<byte[], Set<Long>>> entry : cellsByRow.entrySet()) {
             finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
         }
+
+        // INFO Here's logic for making the results token
         byte[] nextRow = null;
         boolean mayHaveMoreResults = false;
         byte[] lastRow = range.isReverse() ? rows.first() : rows.last();
         if (!RangeRequests.isTerminalRow(range.isReverse(), lastRow)) {
+            // TODO nextRow will be different if the iterator is not empty
             nextRow = RangeRequests.getNextStartRow(range.isReverse(), lastRow);
             mayHaveMoreResults = rows.size() == maxRows;
         }
+        // TODO include the iterator in the results page. Now, where is that used?
         return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
     }
 
@@ -655,13 +672,16 @@ public class DbKvs extends AbstractKeyValueService {
                                                         long timestamp) {
         SetMultimap<Cell, Long> results = HashMultimap.create();
         try (ClosableIterator<AgnosticLightResultRow> rowResults = table.getAllRows(rows, columns, timestamp, false)) {
+            // TODO - pass in iterator, pass out iterator + results (once it gets to size limit)
             while (rowResults.hasNext()) {
                 AgnosticLightResultRow row = rowResults.next();
                 Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
                 long ts = row.getLong("ts");
+                // TODO This is where we OOM - need to split into pages based on cell batch size.
                 results.put(cell, ts);
             }
         }
+        // TODO also return iterator
         return results;
     }
 
