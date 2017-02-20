@@ -48,6 +48,8 @@ import feign.codec.StringDecoder;
  * @author jmeacham
  */
 public class TextDelegateDecoder implements Decoder {
+    private static final String CONTENT_TYPE = HttpHeaders.CONTENT_TYPE.toLowerCase();
+
     private final Decoder delegate;
     private final Decoder stringDecoder;
 
@@ -60,7 +62,7 @@ public class TextDelegateDecoder implements Decoder {
     public Object decode(Response response, Type type) throws IOException, FeignException {
         if (HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(
                 response.headers(),
-                HttpHeaders.CONTENT_TYPE,
+                CONTENT_TYPE,
                 MediaType.TEXT_PLAIN)) {
             return stringDecoder.decode(response, type);
         }

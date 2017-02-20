@@ -27,6 +27,8 @@ import feign.FeignException;
 import feign.codec.Decoder;
 
 public final class OctetStreamDelegateDecoder implements Decoder {
+    private static final String CONTENT_TYPE = HttpHeaders.CONTENT_TYPE.toLowerCase();
+
     private final Decoder delegate;
 
     public OctetStreamDelegateDecoder(Decoder delegate) {
@@ -37,7 +39,7 @@ public final class OctetStreamDelegateDecoder implements Decoder {
     public Object decode(feign.Response response, Type type) throws IOException, FeignException {
         if (HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(
                 response.headers(),
-                HttpHeaders.CONTENT_TYPE,
+                CONTENT_TYPE,
                 MediaType.APPLICATION_OCTET_STREAM)) {
             if (response.body() == null || response.body().length() == null) {
                 return null;
