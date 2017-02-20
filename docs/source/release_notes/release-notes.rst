@@ -45,7 +45,7 @@ develop
     *    - |fixed|
          - AtlasDB HTTP clients are now compatible with OkHttp 3.3.0+, and no longer assume that header names
            are specified in Train-Case.
-           (Pull Request)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1613>`__)
 
     *    - |fixed|
          - Canonicalised SQL strings will now have contiguous whitespace rendered as a single space as opposed to the first character of said whitespace.
