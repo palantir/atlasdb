@@ -170,20 +170,25 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB HTTP clients are now compatible with OkHttp 3.3.0+, and no longer assume that header names
+are specified in Train-Case.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1613">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Canonicalised SQL strings will now have contiguous whitespace rendered as a single space as opposed to the first character of said whitespace.
 This is important for backwards compatibility with an internal product.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1603">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Added the option to perform a dry run of sweep via the CLI.
 When <code class="docutils literal"><span class="pre">--dry-run</span></code> is set, sweep will tell you how many cells would have been deleted, but will not actually delete any cells.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1598">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed atlasdb-commons Java 1.6 compatibility by removing tracing from InterruptibleProxy.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1599">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Persisted locks table is now considered an Atomic Table and will not get KVS migrated
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1610">Pull Request</a>)</td>
 </tr>
