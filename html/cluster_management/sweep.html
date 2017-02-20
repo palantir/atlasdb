@@ -204,7 +204,7 @@ This situation could have been mitigated by sweeping the table in question.</li>
 <ul class="simple">
 <li><a class="reference internal" href="sweep/background-sweep.html#background-sweep"><span class="std std-ref">Background sweep process</span></a> scheduled periodically:
 Under normal use, the sweep job is intended to run at a constant interval as a background sweep process that does not consume significant system resources.</li>
-<li><a class="reference internal" href="sweep/sweep-cli.html#atlas-sweep-cli"><span class="std std-ref">Sweep CLI</span></a> triggered manually:
+<li><a class="reference internal" href="sweep/sweep-cli.html#atlasdb-sweep-cli"><span class="std std-ref">Sweep CLI</span></a> triggered manually:
 You may trigger the sweep job on demand via the sweep CLI. This could be useful in order to address any one-off performance issues.
 Long-running AtlasDB instances with large data scale may want to manually sweep specific tables before enabling the background sweeper.
 Given that the background sweep job chooses which tables it sweeps, you can ensure that a one-off large sweep job occurs during non-peak usage hours.</li>

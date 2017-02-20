@@ -37,7 +37,7 @@ sweep
 Sweep old table rows.
 This can be useful for improving performance if having too many dead cells is impacting read times.
 The command allows you to specify a namespace or a specific set of tables.
-For more information, check out :ref:`the sweep CLI documentation <atlas-sweep-cli>`, or run ``./bin/atlasdb help sweep``.
+For more information, check out :ref:`the sweep CLI documentation <atlasdb-sweep-cli>`, or run ``./bin/atlasdb help sweep``.
 
 
 timestamp
