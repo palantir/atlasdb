@@ -1,20 +1,20 @@
 {
     "compileClasspath": {
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.8.6"
+            "locked": "2.6.6"
         },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3",
@@ -73,20 +73,20 @@
     },
     "runtime": {
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.8.6"
+            "locked": "2.6.6"
         },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3",

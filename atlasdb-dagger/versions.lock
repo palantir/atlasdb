@@ -13,11 +13,10 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:leader-election-api",
@@ -28,26 +27,24 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.palantir.atlasdb:atlasdb-client",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
@@ -62,40 +59,34 @@
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
-        "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.8.6",
+        "com.fasterxml.jackson.datatype:jackson-datatype-jdk7": {
+            "locked": "2.6.6",
             "transitive": [
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
-            "locked": "2.8.6",
-            "transitive": [
-                "io.dropwizard:dropwizard-jackson"
-            ]
-        },
-        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
@@ -360,13 +351,13 @@
             ]
         },
         "io.dropwizard:dropwizard-jackson": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "io.dropwizard:dropwizard-util": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-jackson"
             ]
@@ -451,11 +442,10 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:leader-election-api",
@@ -466,26 +456,24 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.palantir.atlasdb:atlasdb-client",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
@@ -500,40 +488,34 @@
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
-        "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.8.6",
+        "com.fasterxml.jackson.datatype:jackson-datatype-jdk7": {
+            "locked": "2.6.6",
             "transitive": [
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
-            "locked": "2.8.6",
-            "transitive": [
-                "io.dropwizard:dropwizard-jackson"
-            ]
-        },
-        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
-            "locked": "2.8.6",
+            "locked": "2.6.6",
             "transitive": [
                 "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
@@ -798,13 +780,13 @@
             ]
         },
         "io.dropwizard:dropwizard-jackson": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "io.dropwizard:dropwizard-util": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-jackson"
             ]
