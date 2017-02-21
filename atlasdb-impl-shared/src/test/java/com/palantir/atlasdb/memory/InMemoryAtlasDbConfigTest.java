@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+
 public class InMemoryAtlasDbConfigTest {
     private static final InMemoryAtlasDbConfig CONFIG_1 = new InMemoryAtlasDbConfig();
     private static final InMemoryAtlasDbConfig CONFIG_2 = new InMemoryAtlasDbConfig();
@@ -31,5 +33,11 @@ public class InMemoryAtlasDbConfigTest {
     @Test
     public void twoInstancesOfInMemoryConfigsHaveEqualHashCodes() {
         assertThat(CONFIG_1.hashCode()).isEqualTo(CONFIG_2.hashCode());
+    }
+
+    @Test
+    public void inMemoryConfigNotEqualToOtherKeyValueServiceConfig() {
+        KeyValueServiceConfig otherKvsConfig = () -> "FooDB";
+        assertThat(CONFIG_1).isNotEqualTo(otherKvsConfig);
     }
 }
