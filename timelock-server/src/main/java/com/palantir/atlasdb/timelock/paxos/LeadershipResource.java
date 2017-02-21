@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import javax.ws.rs.Path;
 
+import com.codahale.metrics.annotation.Timed;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 
@@ -33,11 +34,13 @@ public class LeadershipResource {
         this.learner = learner;
     }
 
+    @Timed
     @Path("/acceptor")
     public PaxosAcceptor getAcceptor() {
         return acceptor;
     }
 
+    @Timed
     @Path("/learner")
     public PaxosLearner getLearner() {
         return learner;
