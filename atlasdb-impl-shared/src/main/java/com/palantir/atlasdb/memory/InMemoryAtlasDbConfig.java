@@ -30,8 +30,8 @@ public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
     }
 
     @Override
-    public boolean equals(Object o) {
-        return this == o || (o != null && this.getClass() == o.getClass());
+    public boolean equals(Object other) {
+        return this == other || (other != null && this.getClass() == other.getClass());
     }
 
     @Override
