@@ -106,7 +106,6 @@ import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
-import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -1303,26 +1302,26 @@ public class DbKvs extends AbstractKeyValueService {
             }
 
             log.info("DbKvs.getTimestampsPageInternal calling getTimestampsByCell");
-            // TODO This finishes early when we have too many cells. Next row may therefore be different
-            Pair<SetMultimap<Cell, Long>, ClosableIterator<AgnosticLightResultRow>> pair = getTimestampsByCell(table,
+            TimestampsByCellResult result = getTimestampsByCell(table,
                     rows,
                     columns,
                     timestamp);
-            SetMultimap<Cell, Long> results = pair.getLhSide();
+            SetMultimap<Cell, Long> results = result.results; // TODO naming is bad here
 
             List<RowResult<Set<Long>>> finalResults = processResults(range, results);
 
             // INFO Here's logic for making the results token
             byte[] nextRow = null;
             boolean mayHaveMoreResults = false;
-            byte[] lastRow = range.isReverse() ? rows.first() : rows.last();
+            // TODO find last row used
+            byte[] lastRow = range.isReverse() ? result.rowsReturned.first() : result.rowsReturned.last();
             if (!RangeRequests.isTerminalRow(range.isReverse(), lastRow)) {
                 // TODO nextRow will be different if the iterator is not empty
                 nextRow = RangeRequests.getNextStartRow(range.isReverse(), lastRow);
-                mayHaveMoreResults = rows.size() == maxRows;
+                mayHaveMoreResults = rows.size() == maxRows || result.incomplete;
             }
             // TODO include the iterator in the results page. Now, where is that used?
-            TimestampsByCellToken token = new TimestampsByCellToken(nextRow, pair.getRhSide());
+            TimestampsByCellToken token = new TimestampsByCellToken(nextRow, null);
             return SimpleTokenBackedResultsPage.create(token, finalResults, mayHaveMoreResults);
         }
 
@@ -1339,7 +1338,7 @@ public class DbKvs extends AbstractKeyValueService {
             return finalResults;
         }
 
-        private Pair<SetMultimap<Cell, Long>, ClosableIterator<AgnosticLightResultRow>> getTimestampsByCell(
+        private TimestampsByCellResult getTimestampsByCell(
                 DbReadTable table,
                 Iterable<byte[]> rows,
                 ColumnSelection columns,
@@ -1347,7 +1346,9 @@ public class DbKvs extends AbstractKeyValueService {
             // TODO pass maxCells in from RangeRequest
             int maxCells = 1_000_000;
             SetMultimap<Cell, Long> results = HashMultimap.create();
-            Set<byte[]> rowsReturned = Sets.newHashSet();
+            Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
+            SortedSet<byte[]> rowsReturned = Sets.newTreeSet(comp);
+
             log.info("DbKVs.getTimestampsByCell creating iterator");
             try (ClosableIterator<AgnosticLightResultRow> rowResults =
                     table.getAllRows(rows, columns, timestamp, false)) {
@@ -1376,7 +1377,21 @@ public class DbKvs extends AbstractKeyValueService {
                     } while (rowAlreadyPresent);
                 }
 
-                return Pair.create(results, rowResults);
+                return new TimestampsByCellResult(results, rowsReturned, rowResults.hasNext());
+            }
+        }
+
+        private final class TimestampsByCellResult {
+            final SetMultimap<Cell, Long> results;
+            final SortedSet<byte[]> rowsReturned;
+            final boolean incomplete;
+
+            private TimestampsByCellResult(SetMultimap<Cell, Long> results,
+                    SortedSet<byte[]> rowsReturned,
+                    boolean incomplete) {
+                this.results = results;
+                this.rowsReturned = rowsReturned;
+                this.incomplete = incomplete;
             }
         }
 
