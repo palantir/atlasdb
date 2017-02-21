@@ -1883,7 +1883,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             }
 
         } catch (TException e) {
-            Throwables.rewrapAndThrowUncheckedException(e);
+            throw Throwables.rewrapAndThrowUncheckedException(e);
         }
 
         if (newMetadata.isEmpty()) {
