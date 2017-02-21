@@ -18,12 +18,10 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Column;
 import org.apache.commons.lang3.ArrayUtils;
 import org.immutables.value.Value;
 
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ValueType;
 
@@ -56,10 +54,6 @@ abstract class TimestampBoundStoreEntry {
 
     static TimestampBoundStoreEntry createFromColumn(Optional<Column> column) {
         return column.map(Column::getValue).map(TimestampBoundStoreEntry::createFromBytes).orElse(create(null, null));
-    }
-
-    static TimestampBoundStoreEntry createFromCasResult(CASResult result) {
-        return createFromColumn(Optional.ofNullable(Iterables.getOnlyElement(result.getCurrent_values(), null)));
     }
 
     static byte[] getByteValueForIdAndBound(UUID id, Long ts) {
