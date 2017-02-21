@@ -88,6 +88,12 @@ v0.33.0
            This is particularly relevant for AtlasDB clients that make use of the TableSplittingKVS and want to keep tables on different KVSs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1610>`__)
 
+    *    - |fixed|
+         - Reverted PR #1577 in 0.32.0 because this change prevents AtlasDB clients from downgrading to earlier versions of AtlasDB.
+           We will merge a fix for MRTSE once we have a solution that allows a seamless rollback process.
+           This change is also reverted on 0.32.1.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1622>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
