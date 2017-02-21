@@ -21,7 +21,7 @@ import org.junit.Test;
 
 public class InMemoryAtlasDbConfigTest {
     private static final InMemoryAtlasDbConfig CONFIG_1 = new InMemoryAtlasDbConfig();
-    private static  final InMemoryAtlasDbConfig CONFIG_2 = new InMemoryAtlasDbConfig();
+    private static final InMemoryAtlasDbConfig CONFIG_2 = new InMemoryAtlasDbConfig();
 
     @Test
     public void twoDistinctInstancesOfInMemoryConfigsAreEqual() {
