@@ -22,6 +22,7 @@ io.atomix.copycat:* = 1.2.0
 io.dropwizard.metrics:metrics-* = 3.1.1
 io.dropwizard.modules:* = 0.9.0-1
 io.dropwizard:* = 0.9.3
+io.netty:* = 4.1.6.Final
 javax.validation:validation-api = 1.1.0.Final
 joda-time:joda-time = 2.7
 jp.skypencil.findbugs.slf4j:* = 1.2.4

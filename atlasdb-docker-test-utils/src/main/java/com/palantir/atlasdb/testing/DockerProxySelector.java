@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.net.InetAddresses;
 import com.palantir.docker.compose.connection.Cluster;
 
 public class DockerProxySelector extends ProxySelector {
@@ -37,8 +38,8 @@ public class DockerProxySelector extends ProxySelector {
     private final Supplier<ProjectInfoMappings> projectInfo;
 
     public DockerProxySelector(Cluster containers, Supplier<ProjectInfoMappings> projectInfo) {
-        this.proxyAddress = InetSocketAddress.createUnresolved(
-                containers.ip(),
+        this.proxyAddress = new InetSocketAddress(
+                InetAddresses.forString(containers.ip()),
                 containers.container(PROXY_CONTAINER_NAME).port(PROXY_CONTAINER_PORT).getExternalPort());
         this.projectInfo = projectInfo;
     }

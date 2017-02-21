@@ -666,39 +666,39 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.atomix.catalyst:catalyst-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.atomix.catalyst:catalyst-netty",
                 "io.netty:netty-codec",
@@ -1732,39 +1732,39 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.atomix.catalyst:catalyst-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.atomix.catalyst:catalyst-netty",
                 "io.netty:netty-codec",

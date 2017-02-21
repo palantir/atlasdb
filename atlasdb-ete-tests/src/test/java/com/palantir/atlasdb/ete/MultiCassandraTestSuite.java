@@ -27,6 +27,7 @@ import org.junit.runners.Suite;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.jayway.awaitility.Awaitility;
+import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraVersion;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
@@ -40,7 +41,6 @@ import com.palantir.docker.compose.connection.DockerPort;
         })
 public class MultiCassandraTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
-    private static final int CASSANDRA_PORT = 9160;
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
@@ -69,9 +69,17 @@ public class MultiCassandraTestSuite extends EteSetup {
     }
 
     private static void waitForCassandraContainer(Container container) {
-        DockerPort containerPort = new DockerPort(container.getContainerName(), CASSANDRA_PORT, CASSANDRA_PORT);
+        DockerPort thriftPort = new DockerPort(
+                container.getContainerName(),
+                CassandraContainer.THRIFT_PORT,
+                CassandraContainer.THRIFT_PORT);
+        DockerPort cqlPort = new DockerPort(
+                container.getContainerName(),
+                CassandraContainer.CQL_PORT,
+                CassandraContainer.CQL_PORT);
+
         Awaitility.await()
                 .atMost(60, TimeUnit.SECONDS)
-                .until(containerPort::isListeningNow);
+                .until(() -> thriftPort.isListeningNow() && cqlPort.isListeningNow());
     }
 }

@@ -505,35 +505,63 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.0.27.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.0.27.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
-        "io.netty:netty-common": {
-            "locked": "4.0.27.Final",
+        "io.netty:netty-codec-http": {
+            "locked": "4.1.6.Final",
             "transitive": [
-                "io.netty:netty-buffer"
+                "io.netty:netty-handler-proxy"
+            ]
+        },
+        "io.netty:netty-codec-socks": {
+            "locked": "4.1.6.Final",
+            "transitive": [
+                "io.netty:netty-handler-proxy"
+            ]
+        },
+        "io.netty:netty-common": {
+            "locked": "4.1.6.Final",
+            "transitive": [
+                "io.netty:netty-buffer",
+                "io.netty:netty-resolver"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.0.27.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core"
             ]
         },
+        "io.netty:netty-handler-proxy": {
+            "locked": "4.1.6.Final",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "io.netty:netty-resolver": {
+            "locked": "4.1.6.Final",
+            "transitive": [
+                "io.netty:netty-transport"
+            ]
+        },
         "io.netty:netty-transport": {
-            "locked": "4.0.27.Final",
+            "locked": "4.1.6.Final",
             "transitive": [
                 "io.netty:netty-codec",
-                "io.netty:netty-handler"
+                "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy"
             ]
         },
         "javax.inject:javax.inject": {

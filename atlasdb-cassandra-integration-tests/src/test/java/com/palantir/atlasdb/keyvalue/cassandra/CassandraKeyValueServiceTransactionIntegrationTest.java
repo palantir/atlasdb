@@ -15,24 +15,34 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import org.junit.ClassRule;
+import java.util.function.Supplier;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import org.junit.ClassRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 
+@RunWith(Parameterized.class)
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
+    @Parameterized.Parameters
+    public static Iterable<?> keyValueServicesToTest() {
+        return CassandraContainer.testWithBothThriftAndCql();
+    }
+
+    @Parameterized.Parameter
+    public Supplier<KeyValueService> kvsSupplier;
+
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceTransactionIntegrationTest.class)
             .with(new CassandraContainer());
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
-                CassandraContainer.LEADER_CONFIG);
+        return kvsSupplier.get();
     }
 
     @Override

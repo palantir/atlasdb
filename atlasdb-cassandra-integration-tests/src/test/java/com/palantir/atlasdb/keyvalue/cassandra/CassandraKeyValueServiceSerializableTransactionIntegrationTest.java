@@ -33,7 +33,7 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.THRIFT_CONFIG),
                 CassandraContainer.LEADER_CONFIG);
     }
 

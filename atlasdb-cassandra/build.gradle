@@ -9,13 +9,14 @@ dependencies {
   compile project(":commons-api")
   compile project(':timestamp-impl')
 
-  compile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
+  compile (group: 'org.apache.cassandra', name: 'cassandra-thrift', version: libVersions.cassandra) {
     exclude module: 'junit'
   }
-  compile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
+  compile group: 'com.datastax.cassandra', name: 'cassandra-driver-core', version: libVersions.cassandra_driver_core
+  compile group: 'io.netty', name: 'netty-handler-proxy'
   compile group: 'com.google.guava', name: 'guava'
 
-  compile 'org.apache.commons:commons-pool2:2.4.2'
+  compile group: 'org.apache.commons', name: 'commons-pool2', version: '2.4.2'
 
   compile group: 'com.palantir.remoting', name: 'ssl-config'
   compile group: 'com.palantir.remoting1', name: 'tracing'
@@ -27,5 +28,5 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 
   processor group: 'org.immutables', name: 'value'
-  processor 'com.google.auto.service:auto-service:1.0-rc2'
+  processor group: 'com.google.auto.service', name: 'auto-service', version: '1.0-rc2'
 }
