@@ -68,6 +68,7 @@ public final class CassandraTimestampUtils {
             ConflictHandler.IGNORE_ALL);
 
     public static final String ROW_AND_COLUMN_NAME = "ts";
+    public static final String ID_ROW_AND_COLUMN_NAME = "id";
     public static final String BACKUP_COLUMN_NAME = "oldTs";
     public static final ByteString INVALIDATED_VALUE = ByteString.copyFrom(new byte[] {0});
     public static final long INITIAL_VALUE = 10000;

@@ -18,12 +18,21 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import org.apache.cassandra.thrift.CASResult;
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.ColumnPath;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.NotFoundException;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -32,8 +41,18 @@ import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.NameComponentDescription;
+import com.palantir.atlasdb.table.description.NameMetadataDescription;
+import com.palantir.atlasdb.table.description.NamedColumnDescription;
+import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -198,6 +217,22 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
     }
 
     @Test
+    public void oldVersionOfCasWorks() {
+        long limit = store.getUpperLimit();
+        store.storeUpperLimit(limit + OFFSET);
+
+        OldCassandraTimestampBoundStoreMock oldStore = new OldCassandraTimestampBoundStoreMock();
+        assertThat(oldStore.getUpperLimit()).isEqualTo(limit + OFFSET);
+        oldStore.storeUpperLimit(limit);
+        assertThat(oldStore.getUpperLimit()).isEqualTo(limit);
+
+        TimestampBoundStore newts = CassandraTimestampBoundStore.create(kv);
+        assertThat(newts.getUpperLimit()).isEqualTo(limit);
+        newts.storeUpperLimit(limit + GREATER_OFFSET);
+        assertThat(newts.getUpperLimit()).isEqualTo(limit + GREATER_OFFSET);
+    }
+
+    @Test
     public void valueBelowEightBytesThrows() {
         setTimestampTableValueTo(new byte[1]);
         assertThatGetUpperLimitThrows(store, IllegalArgumentException.class);
@@ -312,5 +347,89 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
 
     private UUID getStoreId(TimestampBoundStore store) {
         return ((CassandraTimestampBoundStore) store).getId();
+    }
+
+    private class OldCassandraTimestampBoundStoreMock {
+        private static final long CASSANDRA_TIMESTAMP = 0L;
+        private static final String ROW_AND_COLUMN_NAME = "ts";
+        private static final long INITIAL_VALUE = 10000L;
+        private long currentLimit = -1;
+        CassandraClientPool clientPool;
+
+        public OldCassandraTimestampBoundStoreMock() {
+            clientPool =  kv.getClientPool();
+        }
+
+        public long getUpperLimit() {
+        return clientPool.runWithRetry(client -> {
+                    ByteBuffer rowName = getRowName();
+                    ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
+                    columnPath.setColumn(getColumnName());
+                    ColumnOrSuperColumn result;
+                    try {
+                        result = client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
+                    } catch (NotFoundException e) {
+                        result = null;
+                    } catch (Exception e) {
+                        throw Throwables.throwUncheckedException(e);
+                    }
+                    if (result == null) {
+                        DebugLogger.logger.info("[OLDGET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
+                        cas(client, null, INITIAL_VALUE);
+                        return INITIAL_VALUE;
+                    }
+                    Column column = result.getColumn();
+                    currentLimit = PtBytes.toLong(column.getValue());
+                    DebugLogger.logger.info("[OLDGET] Setting cached timestamp limit to {}.", currentLimit);
+                    return currentLimit;
+            });
+        }
+
+        public void storeUpperLimit(final long limit) {
+            DebugLogger.logger.debug("[OLDPUT] Storing upper limit of {}.", limit);
+            clientPool.runWithRetry(client ->  {
+                    cas(client, currentLimit, limit);
+                    return null;
+                });
+        }
+
+        private void cas(Cassandra.Client client, Long oldVal, long newVal) {
+            final CASResult result;
+            try {
+                result = client.cas(
+                        getRowName(),
+                        AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
+                        oldVal == null ? ImmutableList.of() : ImmutableList.of(makeColumn(oldVal)),
+                        ImmutableList.of(makeColumn(newVal)),
+                        ConsistencyLevel.SERIAL,
+                        ConsistencyLevel.EACH_QUORUM);
+            } catch (Exception e) {
+                throw Throwables.throwUncheckedException(e);
+            }
+            if (!result.isSuccess()) {
+                throw new MultipleRunningTimestampServiceError("MRTSE");
+            } else {
+                DebugLogger.logger.info("[OLDCAS] Setting cached limit to {}.", newVal);
+                currentLimit = newVal;
+            }
+        }
+
+        private Column makeColumn(long ts) {
+            Column col = new Column();
+            col.setName(getColumnName());
+            col.setValue(PtBytes.toBytes(ts));
+            col.setTimestamp(CASSANDRA_TIMESTAMP);
+            return col;
+        }
+
+        private byte[] getColumnName() {
+            return CassandraKeyValueServices
+                    .makeCompositeBuffer(PtBytes.toBytes(ROW_AND_COLUMN_NAME), CASSANDRA_TIMESTAMP)
+                    .array();
+        }
+
+        private ByteBuffer getRowName() {
+            return ByteBuffer.wrap(PtBytes.toBytes(ROW_AND_COLUMN_NAME));
+        }
     }
 }
