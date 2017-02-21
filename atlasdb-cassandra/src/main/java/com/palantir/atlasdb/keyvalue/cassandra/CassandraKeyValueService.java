@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -1313,7 +1314,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     protected CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata) {
-        return ColumnFamilyDefinitions.getCfDef(configManager.getConfig().keyspace(), tableRef, rawMetadata);
+        return ColumnFamilyDefinitions.getCfDef(tableRef, rawMetadata, configManager.getConfig());
     }
 
     //TODO: after cassandra change: handle multiRanges
@@ -1638,9 +1639,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
                     client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
-                            configManager.getConfig().keyspace(),
                             tableEntry.getKey(),
-                            tableEntry.getValue()));
+                            tableEntry.getValue(),
+                            configManager.getConfig()));
                 } catch (UnavailableException e) {
                     throw new PalantirRuntimeException(
                             "Creating tables requires all Cassandra nodes to be up and available.");
@@ -1843,14 +1844,46 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 requestForLatestDbSideMetadata);
         final Map<Cell, byte[]> newMetadata = Maps.newHashMap();
         final Collection<CfDef> updatedCfs = Lists.newArrayList();
-        for (Entry<Cell, byte[]> entry : metadataRequestedForUpdate.entrySet()) {
-            Value val = persistedMetadata.get(entry.getKey());
-            if (val == null || !Arrays.equals(val.getContents(), entry.getValue())) {
-                newMetadata.put(entry.getKey(), entry.getValue());
-                updatedCfs.add(getCfForTable(
-                        tableReferenceFromBytes(entry.getKey().getRowName()),
-                        entry.getValue()));
+        try {
+            KsDef ksDef = clientPool.runWithRetry(
+                    client -> client.describe_keyspace(configManager.getConfig().keyspace()));
+
+            for (Entry<Cell, byte[]> entry : metadataRequestedForUpdate.entrySet()) {
+                Value val = persistedMetadata.get(entry.getKey());
+                TableReference persistedTableRef = tableReferenceFromBytes(entry.getKey().getRowName());
+                CfDef clientSideCfDef = getCfForTable(
+                        persistedTableRef,
+                        entry.getValue());
+
+                // if metadata is different than previous, we have an update
+                if (val == null || !Arrays.equals(val.getContents(), entry.getValue())) {
+                    newMetadata.put(entry.getKey(), entry.getValue());
+                    updatedCfs.add(clientSideCfDef);
+                }
+
+
+                if (val != null) { // if we had an existing metadata (and thus an existing table)
+                    try {
+                        CfDef clusterSideCfDef = Iterables.getOnlyElement(
+                                Iterables.filter(ksDef.cf_defs, cfDef ->
+                                        cfDef.getName().equals(
+                                                AbstractKeyValueService.internalTableName(persistedTableRef))));
+
+                        // if generated CfDef is different than previous, we should perform an update
+                        if (!ColumnFamilyDefinitions.isMatchingCf(clientSideCfDef, clusterSideCfDef)) {
+                            newMetadata.put(entry.getKey(), entry.getValue());
+                            updatedCfs.add(clientSideCfDef);
+                        }
+                    } catch (NoSuchElementException e) {
+                        // This shouldn't be possible
+                        log.error("There exists a table {} that we've persisted metadata for, "
+                                + "but have not actually created.", persistedTableRef);
+                    }
+                }
             }
+
+        } catch (TException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
         }
 
         if (newMetadata.isEmpty()) {
@@ -1909,6 +1942,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         if (compactionManager.isPresent()) {
             compactionManager.get().close();
         }
+
         super.close();
     }
 

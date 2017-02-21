@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlRow;
+import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -50,12 +52,14 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -213,5 +217,64 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                         tableRef.getQualifiedName().getBytes(StandardCharsets.UTF_8),
                         "m".getBytes(StandardCharsets.UTF_8))),
                 AtlasDbConstants.MAX_TS).size();
+    }
+
+    // This also incidentally tests / relies heavily on the functionality of CKVS.upgradeFromOlderInternalSchema()
+    @Test
+    @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD") // we have to bounce the KVS to take in a setting
+    public void canSetReadRepairChanceValues() throws TException {
+        double newReadRepairChance = 0.3;
+        double newDcLocalReadRepairChance = 0.4;
+
+        // Setup a table with normal read repair chance defaults
+        keyValueService.createTable(testTable, tableMetadata);
+
+        // Reach into CKVS and grab the actual column family definition corresponding to our test table
+        CfDef testTableCfDef = getCfDefForTestTable();
+
+        // Confirm that the Read Repair chances are within an ulp of what we set
+        assertEquals(CassandraContainer.KVS_CONFIG.readRepairChance(),
+                testTableCfDef.read_repair_chance,
+                Double.MIN_VALUE);
+        assertEquals(CassandraContainer.KVS_CONFIG.dcLocalReadRepairChance(),
+                testTableCfDef.dclocal_read_repair_chance,
+                Double.MIN_VALUE);
+
+        // Close this test suite's KVS
+        keyValueService.close();
+
+        // Replace it with one that has altered read repair chances
+        keyValueService = CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(
+                        ImmutableCassandraKeyValueServiceConfig.builder()
+                                .from(CassandraContainer.KVS_CONFIG)
+                                .readRepairChance(newReadRepairChance)
+                                .dcLocalReadRepairChance(newDcLocalReadRepairChance)
+                                .build()),
+                CassandraContainer.LEADER_CONFIG,
+                logger);
+
+        CfDef testTableAfterChange = getCfDefForTestTable();
+
+        // Confirm that the Read Repair chances are within an ulp of what we set
+        assertEquals(newReadRepairChance,
+                testTableAfterChange.read_repair_chance,
+                Double.MIN_VALUE);
+        assertEquals(newDcLocalReadRepairChance,
+                testTableAfterChange.dclocal_read_repair_chance,
+                Double.MIN_VALUE);
+
+        // clean up after ourselves and put back the original KVS with original defaults
+        keyValueService.close();
+        keyValueService = getKeyValueService();
+    }
+
+    private CfDef getCfDefForTestTable() throws TException {
+        CassandraClientPool clientPool = ((CassandraKeyValueService) keyValueService).getClientPool();
+        KsDef ksDef = clientPool.runWithRetry(
+                client -> client.describe_keyspace(CassandraContainer.KVS_CONFIG.keyspace()));
+        return Iterables.getOnlyElement(
+                Iterables.filter(ksDef.cf_defs, cfDef ->
+                        cfDef.getName().equals(AbstractKeyValueService.internalTableName(testTable))));
     }
 }

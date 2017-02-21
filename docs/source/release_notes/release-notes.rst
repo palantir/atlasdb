@@ -63,6 +63,11 @@ develop
          - Persisted locks table is now considered an Atomic Table and will not get KVS migrated
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1610>`__)
 
+
+    *    - |new|
+         - Allow users to set read repair options for their Cassandra KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1620>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
