@@ -1,7 +1,7 @@
 {
     "compileClasspath": {
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.6.6",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
@@ -77,7 +77,7 @@
     },
     "runtime": {
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.6.6",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]

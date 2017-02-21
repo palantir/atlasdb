@@ -1,7 +1,7 @@
 {
     "compileClasspath": {
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.6.6"
+            "locked": "2.6.7"
         },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3"
@@ -13,7 +13,7 @@
     },
     "runtime": {
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.6.6"
+            "locked": "2.6.7"
         },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3"
