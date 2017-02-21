@@ -49,9 +49,14 @@ develop
 v0.33.0
 =======
 
+21 Feb 2017
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - AtlasDB HTTP clients are now compatible with OkHttp 3.3.0+, and no longer assume that header names are specified in Train-Case.
@@ -82,6 +87,27 @@ v0.33.0
            ``ATOMIC_TABLES`` are those that must always exist on KVSs that support check-and-set (CAS) operations.
            This is particularly relevant for AtlasDB clients that make use of the TableSplittingKVS and want to keep tables on different KVSs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1610>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.32.1
+=======
+
+21 Feb 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Reverted PR #1577 in 0.32.0 because this change prevents AtlasDB clients from downgrading to earlier versions of AtlasDB.
+           We will merge a fix for MRTSE once we have a solution that allows a seamless rollback process.
+           This change is also reverted on develop.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1622>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
