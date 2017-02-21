@@ -40,9 +40,27 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.33.0
+=======
+
+21 Feb 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
-         - AtlasDB HTTP clients are now compatible with OkHttp 3.3.0+, and no longer assume that header names
-           are specified in Train-Case.
+         - AtlasDB HTTP clients are now compatible with OkHttp 3.3.0+, and no longer assume that header names are specified in Train-Case.
+           This fix enables the Timelock server and AtlasDB clients to use HTTP/2.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1613>`__)
 
     *    - |fixed|
@@ -51,17 +69,51 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1603>`__)
 
     *    - |new|
-         - Added the option to perform a dry run of sweep via the CLI.
+         - Added the option to perform a dry run of sweep via the :ref:`Sweep CLI <atlasdb-sweep-cli>`.
            When ``--dry-run`` is set, sweep will tell you how many cells would have been deleted, but will not actually delete any cells.
+
+           This feature was introduced to avoid accidentally generating more tombstones than the Cassandra tombstone threshold (default 100k) introduced in `CASSANDRA-6117 <https://issues.apache.org/jira/browse/CASSANDRA-6117>`__.
+           If you delete more than 100k cells and thus cross the Cassandra threshold, then Cassandra may reject read requests until the tombstones have been compacted away.
+           Customers wishing to run Sweep should first run with the ``--dry-run`` option and only continue if the number of cells to be deleted is fewer than 100k.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1598>`__)
 
     *    - |fixed|
-         - Fixed atlasdb-commons Java 1.6 compatibility by removing tracing from InterruptibleProxy.
+         - Fixed atlasdb-commons Java 1.6 compatibility by removing tracing from ``InterruptibleProxy``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1599>`__)
 
     *    - |fixed|
-         - Persisted locks table is now considered an Atomic Table and will not get KVS migrated
+         - Persisted locks table is now considered an Atomic Table.
+
+           ``ATOMIC_TABLES`` are those that must always exist on KVSs that support check-and-set (CAS) operations.
+           This is particularly relevant for AtlasDB clients that make use of the TableSplittingKVS and want to keep tables on different KVSs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1610>`__)
+
+    *    - |fixed|
+         - Reverted PR #1577 in 0.32.0 because this change prevents AtlasDB clients from downgrading to earlier versions of AtlasDB.
+           We will merge a fix for MRTSE once we have a solution that allows a seamless rollback process.
+           This change is also reverted on 0.32.1.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1622>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.32.1
+=======
+
+21 Feb 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Reverted PR #1577 in 0.32.0 because this change prevents AtlasDB clients from downgrading to earlier versions of AtlasDB.
+           We will merge a fix for MRTSE once we have a solution that allows a seamless rollback process.
+           This change is also reverted on develop.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1622>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
