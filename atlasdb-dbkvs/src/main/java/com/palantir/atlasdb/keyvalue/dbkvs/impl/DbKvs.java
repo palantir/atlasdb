@@ -1271,13 +1271,10 @@ public class DbKvs extends AbstractKeyValueService {
                     1_000_000); // TODO duplicate magic number
 
             SetMultimap<Cell, Long> results = pair.getLhSide();
-            ClosableIterator<AgnosticLightResultRow> nextResults = pair.getRhSide();
+            ClosableIterator<AgnosticLightResultRow> iterator = pair.getRhSide();
 
             List<RowResult<Set<Long>>> finalResults = processResults(token.rangeRequest, results);
-            TimestampsByCellToken nextToken = new TimestampsByCellToken(token.nextRow, token.rangeRequest, nextResults);
-            if (!nextResults.hasNext()) {
-                nextResults.close();
-            }
+            TimestampsByCellToken nextToken = new TimestampsByCellToken(token.nextRow, token.rangeRequest, iterator);
             return SimpleTokenBackedResultsPage.create(nextToken, finalResults, true);
         }
 
@@ -1342,9 +1339,6 @@ public class DbKvs extends AbstractKeyValueService {
                 nextRow = RangeRequests.getNextStartRow(range.isReverse(), lastRow);
                 mayHaveMoreResults = rows.size() == maxRows || nextResults.hasNext();
             }
-            if (!nextResults.hasNext()) {
-                nextResults.close();
-            }
             TimestampsByCellToken token = new TimestampsByCellToken(nextRow, range, nextResults);
             return SimpleTokenBackedResultsPage.create(token, finalResults, mayHaveMoreResults);
         }
@@ -1370,10 +1364,11 @@ public class DbKvs extends AbstractKeyValueService {
             // TODO pass maxCells in from RangeRequest
             int maxCells = 1_000_000;
             log.info("DbKVs.getTimestampsByCell creating iterator");
-            // We don't want to close the iterator yet in this method, as we might go through it in many stages
-            ClosableIterator<AgnosticLightResultRow> rowResults = table.getAllRows(rows, columns, timestamp, false);
-            log.info("Got all rows!");
-            return getResults(rowResults, maxCells);
+            try (ClosableIterator<AgnosticLightResultRow> rowResults =
+                    table.getAllRows(rows, columns, timestamp, false)) {
+                log.info("Got all rows!");
+                return getResults(rowResults, maxCells);
+            }
         }
 
         private Pair<SetMultimap<Cell, Long>, ClosableIterator<AgnosticLightResultRow>> getResults(
