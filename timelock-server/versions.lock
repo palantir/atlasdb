@@ -804,19 +804,19 @@
             ]
         },
         "org.eclipse.jetty.http2:http2-common": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "org.eclipse.jetty.http2:http2-server"
             ]
         },
         "org.eclipse.jetty.http2:http2-hpack": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "org.eclipse.jetty.http2:http2-common"
             ]
         },
         "org.eclipse.jetty.http2:http2-server": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-http2"
             ]
@@ -828,20 +828,20 @@
             ]
         },
         "org.eclipse.jetty:jetty-alpn-server": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-http2"
             ]
         },
         "org.eclipse.jetty:jetty-continuation": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey",
                 "org.eclipse.jetty:jetty-servlets"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty",
                 "org.eclipse.jetty.http2:http2-hpack",
@@ -850,22 +850,21 @@
             ]
         },
         "org.eclipse.jetty:jetty-io": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "org.eclipse.jetty.http2:http2-hpack",
-                "org.eclipse.jetty:jetty-http",
                 "org.eclipse.jetty:jetty-server",
                 "org.eclipse.jetty:jetty-servlets"
             ]
         },
         "org.eclipse.jetty:jetty-security": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "org.eclipse.jetty:jetty-servlet"
             ]
         },
         "org.eclipse.jetty:jetty-server": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey",
                 "io.dropwizard:dropwizard-jetty",
@@ -876,20 +875,20 @@
             ]
         },
         "org.eclipse.jetty:jetty-servlet": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty",
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
         "org.eclipse.jetty:jetty-servlets": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty"
             ]
         },
         "org.eclipse.jetty:jetty-util": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-logging",
                 "org.eclipse.jetty.http2:http2-hpack",
@@ -900,13 +899,13 @@
             ]
         },
         "org.eclipse.jetty:jetty-webapp": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
         "org.eclipse.jetty:jetty-xml": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "org.eclipse.jetty:jetty-webapp"
             ]
@@ -1922,19 +1921,19 @@
             ]
         },
         "org.eclipse.jetty.http2:http2-common": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "org.eclipse.jetty.http2:http2-server"
             ]
         },
         "org.eclipse.jetty.http2:http2-hpack": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "org.eclipse.jetty.http2:http2-common"
             ]
         },
         "org.eclipse.jetty.http2:http2-server": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-http2"
             ]
@@ -1946,20 +1945,20 @@
             ]
         },
         "org.eclipse.jetty:jetty-alpn-server": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-http2"
             ]
         },
         "org.eclipse.jetty:jetty-continuation": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey",
                 "org.eclipse.jetty:jetty-servlets"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty",
                 "org.eclipse.jetty.http2:http2-hpack",
@@ -1968,22 +1967,21 @@
             ]
         },
         "org.eclipse.jetty:jetty-io": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "org.eclipse.jetty.http2:http2-hpack",
-                "org.eclipse.jetty:jetty-http",
                 "org.eclipse.jetty:jetty-server",
                 "org.eclipse.jetty:jetty-servlets"
             ]
         },
         "org.eclipse.jetty:jetty-security": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "org.eclipse.jetty:jetty-servlet"
             ]
         },
         "org.eclipse.jetty:jetty-server": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey",
                 "io.dropwizard:dropwizard-jetty",
@@ -1994,20 +1992,20 @@
             ]
         },
         "org.eclipse.jetty:jetty-servlet": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty",
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
         "org.eclipse.jetty:jetty-servlets": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty"
             ]
         },
         "org.eclipse.jetty:jetty-util": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.3.9.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-logging",
                 "org.eclipse.jetty.http2:http2-hpack",
@@ -2018,13 +2016,13 @@
             ]
         },
         "org.eclipse.jetty:jetty-webapp": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
         "org.eclipse.jetty:jetty-xml": {
-            "locked": "9.4.0.v20161208",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "org.eclipse.jetty:jetty-webapp"
             ]
