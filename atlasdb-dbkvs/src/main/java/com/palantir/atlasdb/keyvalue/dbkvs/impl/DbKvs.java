@@ -1321,7 +1321,7 @@ public class DbKvs extends AbstractKeyValueService {
                 mayHaveMoreResults = rows.size() == maxRows || result.incomplete;
             }
             // TODO include the iterator in the results page. Now, where is that used?
-            TimestampsByCellToken token = new TimestampsByCellToken(nextRow, null);
+            TimestampsByCellToken token = new TimestampsByCellToken(nextRow);
             return SimpleTokenBackedResultsPage.create(token, finalResults, mayHaveMoreResults);
         }
 
@@ -1397,11 +1397,9 @@ public class DbKvs extends AbstractKeyValueService {
 
         private class TimestampsByCellToken {
             final byte[] nextRow;
-            final ClosableIterator<AgnosticLightResultRow> iterator;
 
-            TimestampsByCellToken(byte[] nextRow, ClosableIterator<AgnosticLightResultRow> iterator) {
+            TimestampsByCellToken(byte[] nextRow) {
                 this.nextRow = nextRow;
-                this.iterator = iterator;
             }
         }
     }
