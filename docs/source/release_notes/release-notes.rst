@@ -62,6 +62,10 @@ develop
     *    - |fixed|
          - Persisted locks table is now considered an Atomic Table and will not get KVS migrated
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1610>`__)
+           
+    *    - |new|
+         - Instrument timelock resources with Dropwizard timings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1625>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
