@@ -33,7 +33,7 @@ import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
-import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.memory.ImmutableInMemoryAtlasDbConfig;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.setup.Bootstrap;
@@ -47,7 +47,7 @@ public class AtlasDbConsoleCommandTest {
                     .addLeaders(LOCAL_SERVER_NAME)
                     .localServer(LOCAL_SERVER_NAME)
                     .build())
-            .keyValueService(new InMemoryAtlasDbConfig())
+            .keyValueService(ImmutableInMemoryAtlasDbConfig.builder().build())
             .build();
 
     private static final Map<String, Object> ONLINE_PARAMS = Collections
