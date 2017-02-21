@@ -15,10 +15,13 @@
  */
 package com.palantir.timestamp;
 
+import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public class LastReturnedTimestamp {
+
+    @GuardedBy("this")
     private long timestamp;
 
     public LastReturnedTimestamp(long timestamp) {
@@ -26,8 +29,7 @@ public class LastReturnedTimestamp {
     }
 
     public synchronized void increaseToAtLeast(long newTimestamp) {
-        long current = this.timestamp;
-        if (newTimestamp > current) {
+        if (newTimestamp > this.timestamp) {
             this.timestamp = newTimestamp;
         }
     }

@@ -56,6 +56,7 @@ public class TimestampAllocationFailures {
     }
 
     public void verifyWeShouldTryToAllocateMoreTimestamps() {
+        // perform only single volatile load on hot path
         Throwable failure = this.previousAllocationFailure;
         if (failure instanceof MultipleRunningTimestampServiceError) {
             throw wrapMultipleRunningTimestampServiceError(failure);
@@ -73,6 +74,7 @@ public class TimestampAllocationFailures {
     }
 
     private boolean isSameAsPreviousFailure(Throwable newFailure) {
+        // perform only single volatile load on hot path
         Throwable failure = this.previousAllocationFailure;
         return failure != null && failure.getClass().equals(newFailure.getClass());
     }

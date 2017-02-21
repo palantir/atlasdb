@@ -63,6 +63,10 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+        /*
+         * Under high concurrent load, this will be a hot method as clients request timestamps.
+         * It is important to minimize contention as much as possible on this path.
+         */
         int numTimestampsToHandOut = cleanUpTimestampRequest(numTimestampsRequested);
         TimestampRange handedOut = availableTimestamps.handOut(numTimestampsToHandOut);
         asynchronouslyRefreshBuffer();
@@ -79,6 +83,7 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
 
     private static int cleanUpTimestampRequest(int numTimestampsRequested) {
         if (numTimestampsRequested <= 0) {
+            // explicitly not using Preconditions to optimize hot success path and avoid allocations
             throw new IllegalArgumentException(String.format(
                     "Number of timestamps requested must be greater than zero, was %s", numTimestampsRequested));
         }
@@ -86,6 +91,9 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
         return Math.min(numTimestampsRequested, MAX_REQUEST_RANGE_SIZE);
     }
 
+    /**
+     * Attempts to submit a task to refresh the buffer if one is not already in-flight; otherwise does nothing.
+     */
     private void asynchronouslyRefreshBuffer() {
         if (isAllocationTaskSubmitted.compareAndSet(false, true)) {
             executor.submit(() -> {

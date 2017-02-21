@@ -40,6 +40,7 @@ public class AvailableTimestamps {
 
     private static void checkValidTimestampRangeRequest(long numberToHandOut) {
         if (numberToHandOut > MAX_TIMESTAMPS_TO_HAND_OUT) {
+            // explicitly not using Preconditions to optimize hot success path and avoid allocations
             throw new IllegalArgumentException(String.format(
                     "Can only hand out %s timestamps at a time, but %s were requested",
                     MAX_TIMESTAMPS_TO_HAND_OUT, numberToHandOut));
@@ -48,11 +49,20 @@ public class AvailableTimestamps {
 
     public TimestampRange handOut(long numberToHandOut) {
         checkValidTimestampRangeRequest(numberToHandOut);
+        long targetTimestamp;
+        TimestampRange timestampRange;
+
         synchronized (this) {
-            long targetTimestamp = lastHandedOut() + numberToHandOut;
-            DebugLogger.logger.trace("Handing out {} timestamps, taking us to {}.", numberToHandOut, targetTimestamp);
-            return handOutTimestamp(targetTimestamp);
+            /*
+             * Under high concurrent load, this will be a hot critical section as clients request timestamps.
+             * It is important to minimize contention as much as possible on this path.
+             */
+            targetTimestamp = lastHandedOut() + numberToHandOut;
+            timestampRange = handOutTimestamp(targetTimestamp);
         }
+
+        DebugLogger.logger.trace("Handing out {} timestamps, taking us to {}.", numberToHandOut, targetTimestamp);
+        return timestampRange;
     }
 
     public void refreshBuffer() {
@@ -71,6 +81,7 @@ public class AvailableTimestamps {
         }
 
         if (DebugLogger.logger.isTraceEnabled()) {
+            // explicitly avoiding boxing when logging disabled
             logRefresh(needsRefresh, currentUpperLimit, buffer);
         }
     }
@@ -91,12 +102,19 @@ public class AvailableTimestamps {
     }
 
     private synchronized long lastHandedOut() {
+        // synchronizing for semantic consistency and avoid `assert Thread.holdsLock(this);` overhead
         return lastReturnedTimestamp.get();
     }
 
+    /**
+     * Gets the range of timestamps to hand out.
+     * @return timestamp range to hand out
+     * @throws IllegalArgumentException if targetTimestamp is less than or equal to last handed out timestamp
+     */
     private synchronized TimestampRange getRangeToHandOut(long targetTimestamp) {
         long lastHandedOut = lastHandedOut();
         if (targetTimestamp <= lastHandedOut) {
+            // explicitly not using Preconditions to optimize hot success path and avoid allocations
             throw new IllegalArgumentException(String.format(
                     "Could not hand out timestamp '%s' as it was earlier than the last handed out timestamp: %s",
                     targetTimestamp, lastHandedOut));
@@ -113,10 +131,11 @@ public class AvailableTimestamps {
     }
 
     private synchronized void allocateEnoughTimestampsToHandOut(long timestamp) {
+        // synchronizing for semantic consistency and avoid `assert Thread.holdsLock(this);` overhead
         DebugLogger.logger.trace("Increasing limit to at least {}.", timestamp);
-        upperLimit.increaseToAtLeast(timestamp);
+        long newLimit = upperLimit.increaseToAtLeast(timestamp);
         if (DebugLogger.logger.isTraceEnabled()) {
-            DebugLogger.logger.trace("Increased to at least {}. Limit is now {}.", timestamp, getUpperLimit());
+            DebugLogger.logger.trace("Increased to at least {}. Limit is now {}.", timestamp, newLimit);
         }
     }
 
