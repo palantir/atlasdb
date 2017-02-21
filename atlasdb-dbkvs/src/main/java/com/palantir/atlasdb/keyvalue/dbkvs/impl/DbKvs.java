@@ -1347,16 +1347,33 @@ public class DbKvs extends AbstractKeyValueService {
             // TODO pass maxCells in from RangeRequest
             int maxCells = 1_000_000;
             SetMultimap<Cell, Long> results = HashMultimap.create();
+            Set<byte[]> rowsReturned = Sets.newHashSet();
             log.info("DbKVs.getTimestampsByCell creating iterator");
             try (ClosableIterator<AgnosticLightResultRow> rowResults =
                     table.getAllRows(rows, columns, timestamp, false)) {
                 log.info("Got all rows!");
-                // TODO - pass in iterator, pass out iterator + results (once it gets to size limit)
+                // Great, add up to a million rows
                 while (rowResults.hasNext() && results.size() < maxCells) {
                     AgnosticLightResultRow row = rowResults.next();
-                    Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
+                    byte[] rowName = row.getBytes("row_name");
+                    Cell cell = Cell.create(rowName, row.getBytes("col_name"));
                     long ts = row.getLong("ts");
                     results.put(cell, ts);
+                    rowsReturned.add(rowName);
+                }
+                // If we hit 1M, try to fill up the last row
+                if (rowResults.hasNext()) {
+                    boolean rowAlreadyPresent;
+                    do {
+                        AgnosticLightResultRow row = rowResults.next();
+                        byte[] rowName = row.getBytes("row_name");
+                        rowAlreadyPresent = rowsReturned.contains(rowName);
+                        if (rowAlreadyPresent) {
+                            Cell cell = Cell.create(rowName, row.getBytes("col_name"));
+                            long ts = row.getLong("ts");
+                            results.put(cell, ts);
+                        }
+                    } while (rowAlreadyPresent);
                 }
 
                 return Pair.create(results, rowResults);
