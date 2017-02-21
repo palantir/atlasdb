@@ -15,13 +15,18 @@
  */
 package com.palantir.atlasdb.memory;
 
+import org.immutables.value.Value;
+
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
+@JsonDeserialize(as = ImmutableInMemoryAtlasDbConfig.class)
 @JsonTypeName(InMemoryAtlasDbConfig.TYPE)
 @AutoService(KeyValueServiceConfig.class)
-public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
+@Value.Immutable
+public abstract class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
     public static final String TYPE = "memory";
 
     @Override
