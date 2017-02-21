@@ -237,6 +237,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -809,6 +810,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },

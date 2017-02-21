@@ -4,6 +4,7 @@ apply plugin: 'org.inferred.processors'
 apply from: "../gradle/shared.gradle"
 
 dependencies {
+  testCompile project(path: ":timestamp-api", configuration: "testArtifacts")
   testCompile project(":atlasdb-cassandra")
   testCompile project(":atlasdb-tests-shared")
   testCompile project(":atlasdb-container-test-utils")
