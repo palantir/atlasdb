@@ -65,9 +65,10 @@ public final class AtlasDbHttpClients {
                     .tlsVersions(TlsVersion.TLS_1_2)
                     .cipherSuites(
                             // This GCM cipher suite is for HTTP/2 over TLS1.2 as clients have to
-                            // have at least one permitted cipher suite not in the blacklist.
-                            // Timelock server will support  HTTP/2 connections, and this will ensure
-                            // all AtlasDB clients have a required cipher suite.
+                            // enable at least one cipher suite not in the blacklist.
+                            // (https://http2.github.io/http2-spec/index.html#BadCipherSuites)
+                            // Timelock server will support HTTP/2 connections, and this will ensure
+                            // all AtlasDB clients have one supported cipher suite.
                             // See also:
                             //    - https://http2.github.io/http2-spec/index.html#rfc.section.9.2.2
                             CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
