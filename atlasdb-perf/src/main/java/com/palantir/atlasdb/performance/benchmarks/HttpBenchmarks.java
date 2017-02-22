@@ -22,9 +22,7 @@ import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.MediaType;
 
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
@@ -55,7 +53,6 @@ public class HttpBenchmarks {
     @Benchmark
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 60, timeUnit = TimeUnit.SECONDS)
-    @BenchmarkMode(Mode.SampleTime)
     public void parseHttpHeaders(Blackhole blackhole) {
         blackhole.consume(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(
                 HEADERS,
