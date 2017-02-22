@@ -40,8 +40,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - AtlasDB Perf Cli can now run output KVS-agnostic benchmark data (such as ``HttpBenchmarks``) to a file.
+           Previously running these benchmarks whilst writing output to a file would fail.
+           (Pull Request)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
