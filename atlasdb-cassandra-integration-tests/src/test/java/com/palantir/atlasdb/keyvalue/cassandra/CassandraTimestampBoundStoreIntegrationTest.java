@@ -55,7 +55,7 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
             PtBytes.toBytes(CassandraTimestampUtils.ROW_AND_COLUMN_NAME));
     private static final Cell NEW_TIMESTAMP_BOUND_CELL = Cell.create(
             PtBytes.toBytes(CassandraTimestampUtils.ROW_AND_COLUMN_NAME),
-            PtBytes.toBytes(CassandraTimestampUtils.ID_ROW_AND_COLUMN_NAME));
+            PtBytes.toBytes(CassandraTimestampUtils.WITH_ID_COLUMN_NAME));
     private static final long OFFSET = CassandraTimestampUtils.INITIAL_VALUE + 100301;
     private static final long GREATER_OFFSET = OFFSET + 1;
 
@@ -444,6 +444,8 @@ public class CassandraTimestampBoundStoreIntegrationTest extends AbstractDbTimes
         CassandraClientPool clientPool;
 
         MinimalOldCassandraTimestampBoundStore() {
+            kv.createTable(AtlasDbConstants.TIMESTAMP_TABLE,
+                    CassandraTimestampUtils.TIMESTAMP_TABLE_METADATA.persistToBytes());
             clientPool = kv.getClientPool();
         }
 
