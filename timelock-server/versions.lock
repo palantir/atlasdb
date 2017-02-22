@@ -657,6 +657,7 @@
         },
         "io.dropwizard:dropwizard-request-logging": {
             "locked": "1.0.6",
+            "requested": "1.0.6",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
@@ -1780,6 +1781,7 @@
         },
         "io.dropwizard:dropwizard-request-logging": {
             "locked": "1.0.6",
+            "requested": "1.0.6",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]

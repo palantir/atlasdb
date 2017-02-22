@@ -29,6 +29,7 @@ dependencies {
     compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
     compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
     compile group: 'io.dropwizard', name: 'dropwizard-http2', version: libVersions.timelock_dropwizard
+    compile group: 'io.dropwizard', name: 'dropwizard-request-logging', version: libVersions.timelock_dropwizard
     compile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
     compile group: 'org.eclipse.jetty', name: 'jetty-alpn-server'
     compile group: 'org.eclipse.jetty.http2', name: 'http2-common'
@@ -56,4 +57,28 @@ distribution {
 
 dependencyRecommendations {
     strategy ConflictResolved
+}
+
+configurations.all {
+    resolutionStrategy {
+        eachDependency {details ->
+            //specifying a fixed version for all libraries with 'io.dropwizard' group
+            if (details.requested.group == 'io.dropwizard') {
+                details.useVersion libVersions.timelock_dropwizard
+            }
+            if (details.requested.group == 'org.eclipse.jetty') {
+                details.useVersion libVersions.timelock_jetty
+            }
+            if (details.requested.group == 'org.glassfish.jersey.core') {
+                details.useVersion libVersions.timelock_jersey
+            }
+        }
+        forcedModules = [
+                'ch.qos.logback:logback-classic:1.1.7',
+                'com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7',
+                'com.netflix.feign:feign-core:8.10.1',
+                'io.atomix.catalyst:catalyst-transport:1.1.2',
+                'org.objenesis:objenesis:2.3'
+        ]
+    }
 }
