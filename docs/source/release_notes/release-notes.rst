@@ -40,8 +40,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Reduced contention on PersistentTimestampService.getFreshTimestamps.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1618>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

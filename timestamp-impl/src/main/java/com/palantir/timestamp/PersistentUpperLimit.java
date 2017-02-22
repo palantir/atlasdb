@@ -19,8 +19,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.concurrent.GuardedBy;
-
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.exception.PalantirInterruptedException;
@@ -30,7 +28,6 @@ public class PersistentUpperLimit {
     private final Clock clock;
     private final TimestampAllocationFailures allocationFailures;
 
-    @GuardedBy("this")
     private volatile long cachedValue;
     private volatile long lastIncreasedTime;
 
@@ -49,21 +46,33 @@ public class PersistentUpperLimit {
         this(boundStore, new SystemClock(), new TimestampAllocationFailures());
     }
 
+    /**
+     * Gets the current upper limit timestamp.
+     * @return upper limit timestamp
+     */
     public long get() {
         return cachedValue;
     }
 
-    public synchronized void increaseToAtLeast(long minimum) {
-        if (cachedValue < minimum) {
-            store(minimum);
+    public synchronized long increaseToAtLeast(long minimum) {
+        long currentValue = get();
+        if (currentValue < minimum) {
+            return store(minimum);
         } else {
             DebugLogger.logger.trace(
                     "Not storing upper limit of {}, as the cached value {} was higher.",
                     minimum,
-                    cachedValue);
+                    currentValue);
+            return currentValue;
         }
     }
 
+    /**
+     * Determines if the upper limit has changed within the most recent specified period.
+     * @param time time
+     * @param unit time unit
+     * @return true if the upper limit has increased within the most recent specified period
+     */
     public boolean hasIncreasedWithin(int time, TimeUnit unit) {
         long durationInMillis = unit.toMillis(time);
         long timeSinceIncrease = clock.getTimeMillis() - lastIncreasedTime;
@@ -71,7 +80,12 @@ public class PersistentUpperLimit {
         return timeSinceIncrease < durationInMillis;
     }
 
-    private synchronized void store(long upperLimit) {
+    /**
+     * Stores the upper limit.
+     * @param upperLimit new upper limit
+     * @return the stored upper limit
+     */
+    private synchronized long store(long upperLimit) {
         DebugLogger.logger.trace("Storing new upper limit of {}.", upperLimit);
         checkWeHaveNotBeenInterrupted();
         allocationFailures.verifyWeShouldTryToAllocateMoreTimestamps();
@@ -79,6 +93,7 @@ public class PersistentUpperLimit {
         cachedValue = upperLimit;
         lastIncreasedTime = clock.getTimeMillis();
         DebugLogger.logger.trace("Stored; upper limit is now {}.", upperLimit);
+        return upperLimit;
     }
 
     private void checkWeHaveNotBeenInterrupted() {
