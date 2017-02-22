@@ -63,25 +63,18 @@ public class PerformanceResults {
 
     private static List<ImmutablePerformanceResult> getPerformanceResults(Collection<RunResult> results) {
         long date = System.currentTimeMillis();
-        return results.stream().flatMap(rs -> {
-                    try {
-                        return Stream.of(ImmutablePerformanceResult.builder()
-                                .date(date)
-                                .benchmark(getBenchmarkName(rs.getParams()))
-                                .samples(rs.getPrimaryResult().getStatistics().getN())
-                                .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
-                                .mean(rs.getPrimaryResult().getStatistics().getMean())
-                                .data(getData(rs))
-                                .units(rs.getParams().getTimeUnit())
-                                .p50(rs.getPrimaryResult().getStatistics().getPercentile(50.0))
-                                .p90(rs.getPrimaryResult().getStatistics().getPercentile(90.0))
-                                .p99(rs.getPrimaryResult().getStatistics().getPercentile(99.0))
-                                .build());
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return Stream.of();
-                    }
-                }).collect(Collectors.toList());
+        return results.stream().flatMap(rs -> Stream.of(ImmutablePerformanceResult.builder()
+                .date(date)
+                .benchmark(getBenchmarkName(rs.getParams()))
+                .samples(rs.getPrimaryResult().getStatistics().getN())
+                .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
+                .mean(rs.getPrimaryResult().getStatistics().getMean())
+                .data(getData(rs))
+                .units(rs.getParams().getTimeUnit())
+                .p50(rs.getPrimaryResult().getStatistics().getPercentile(50.0))
+                .p90(rs.getPrimaryResult().getStatistics().getPercentile(90.0))
+                .p99(rs.getPrimaryResult().getStatistics().getPercentile(99.0))
+                .build())).collect(Collectors.toList());
     }
 
     @VisibleForTesting
