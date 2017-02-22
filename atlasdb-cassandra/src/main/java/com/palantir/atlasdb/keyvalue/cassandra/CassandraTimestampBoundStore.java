@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -83,6 +84,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         return clientPool.runWithRetry(client -> {
                     EntryPair entriesInDb = getStoredTimestampAndMigrateIfStartingUp(client);
                     checkMatchingId(entriesInDb);
+                    entriesInDb.checkTimestampsMatch();
                     setCurrentLimit("[GET]", entriesInDb);
                     return currentLimit;
                 }
@@ -246,14 +248,14 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             }
             Column column1 = result.getCurrent_values().get(0);
             Column column2 = result.getCurrent_values().get(1);
-            if (column1.getName().equals(CassandraTimestampUtils.ROW_AND_COLUMN_NAME)
-                    && column2.getName().equals(CassandraTimestampUtils.WITH_ID_COLUMN_NAME)) {
-                return create(TimestampBoundStoreEntry.createFromColumn(Optional.of(column2)),
-                        TimestampBoundStoreEntry.createFromColumn(Optional.of(column1)));
-            } else if (column2.getName().equals(CassandraTimestampUtils.ROW_AND_COLUMN_NAME)
-                    && column1.getName().equals(CassandraTimestampUtils.WITH_ID_COLUMN_NAME)) {
+            if (Arrays.equals(column1.getName(), NO_ID_TIMESTAMP_ARRAY)
+                    && Arrays.equals(column2.getName(), WITH_ID_TIMESTAMP_ARRAY)) {
                 return create(TimestampBoundStoreEntry.createFromColumn(Optional.of(column1)),
                         TimestampBoundStoreEntry.createFromColumn(Optional.of(column2)));
+            } else if (Arrays.equals(column2.getName(), NO_ID_TIMESTAMP_ARRAY)
+                    && Arrays.equals(column1.getName(), WITH_ID_TIMESTAMP_ARRAY)) {
+                return create(TimestampBoundStoreEntry.createFromColumn(Optional.of(column2)),
+                        TimestampBoundStoreEntry.createFromColumn(Optional.of(column1)));
             }
             throw new MultipleRunningTimestampServiceError("tsbstore has been tampered with");
         }
