@@ -42,6 +42,7 @@ import org.openjdk.jmh.util.Statistics;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 
@@ -64,10 +65,9 @@ public class PerformanceResults {
         long date = System.currentTimeMillis();
         return results.stream().flatMap(rs -> {
                     try {
-                        String benchmark = getBenchmarkName(rs.getParams());
                         return Stream.of(ImmutablePerformanceResult.builder()
                                 .date(date)
-                                .benchmark(benchmark)
+                                .benchmark(getBenchmarkName(rs.getParams()))
                                 .samples(rs.getPrimaryResult().getStatistics().getN())
                                 .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
                                 .mean(rs.getPrimaryResult().getStatistics().getMean())
@@ -84,7 +84,8 @@ public class PerformanceResults {
                 }).collect(Collectors.toList());
     }
 
-    private static String getBenchmarkName(BenchmarkParams params) {
+    @VisibleForTesting
+    static String getBenchmarkName(BenchmarkParams params) {
         Optional<String> benchmarkUriSuffix = Optional.ofNullable(params.getParam(BenchmarkParam.URI.getKey()))
                 .map(DockerizedDatabaseUri::fromUriString)
                 .map(uri -> uri.getKeyValueServiceInstrumentation().toString());
