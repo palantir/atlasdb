@@ -2177,6 +2177,7 @@
         },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
             "locked": "2.0.6",
+            "requested": "2.0.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
             ]
