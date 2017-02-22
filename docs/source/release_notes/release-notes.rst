@@ -41,6 +41,11 @@ develop
          - Change
 
     *    - |fixed|
+         - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `#1000 <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
+           This fix only applies to Cassandra backed AtlasDB clients who are not using the external Timelock service.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1577>`__)
+
+    *    - |fixed|
          - AtlasDB HTTP clients are now compatible with OkHttp 3.3.0+, and no longer assume that header names
            are specified in Train-Case.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1613>`__)
@@ -77,11 +82,6 @@ v0.32.0
 
     *    - Type
          - Change
-
-    *    - |fixed|
-         - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `#1000 <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
-           This fix only applies to Cassandra backed AtlasDB clients who are not using the external Timelock service.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1577>`__)
 
     *    - |improved|
          - AtlasDB HTTP clients will now have a user agent of ``<project.name>-atlasdb (project.version)`` as opposed to ``okhttp/2.5.0``.
