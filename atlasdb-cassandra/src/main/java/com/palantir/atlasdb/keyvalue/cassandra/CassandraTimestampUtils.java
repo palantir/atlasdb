@@ -256,7 +256,7 @@ public final class CassandraTimestampUtils {
         return "\"" + tableName + "\"";
     }
 
-    public static void throwNewTimestampTooSmallException(long currentLimit, CassandraTimestampBoundStore.EntryPair entriesInDb) {
+    public static void throwNewTimestampTooSmallException(long currentLimit, EntryPair entriesInDb) {
         String message = "Cannot set cached timestamp bound value from {} to {}. The bounds must be increasing!";
         String formattedMessage = MessageFormatter.arrayFormat(message, new String[]{
                 Long.toString(currentLimit), entriesInDb.withId().getTimestampAsString()}).getMessage();
@@ -265,7 +265,7 @@ public final class CassandraTimestampUtils {
     }
 
     public static void throwGettingMultipleRunningTimestampServiceError(UUID id,
-            CassandraTimestampBoundStore.EntryPair entriesInDb) {
+            EntryPair entriesInDb) {
         String message = "Error getting the timestamp limit from the DB: the timestamp service ID {} in the DB"
                 + " does not match this service's ID: {}. This may indicate that another timestamp service is"
                 + " running against this cassandra keyspace.";
@@ -275,18 +275,18 @@ public final class CassandraTimestampUtils {
         throw new MultipleRunningTimestampServiceError(formattedMessage);
     }
 
-    public static void throwGetTimestampMismatchError(CassandraTimestampBoundStore.EntryPair entries) {
+    public static void throwGetTimestampMismatchError(EntryPair entries) {
         String message = "Error getting the timestamp limit from the DB: the old format timestamp entry {} does not"
                 + " match the new format timestamp entry {}. This may indicate that another timestamp service is"
                 + " running against this cassandra keyspace.";
         String formattedMessage = MessageFormatter.arrayFormat(message, new String[]{
-                entries.withoutId().getTimestampAsString(), entries.withId().getTimestampAsString()}).getMessage();
+                entries.noId().getTimestampAsString(), entries.withId().getTimestampAsString()}).getMessage();
         logMessage(formattedMessage);
         throw new MultipleRunningTimestampServiceError(formattedMessage);
     }
 
     public static void throwStoringMultipleRunningTimestampServiceError(long currentLimit, UUID id,
-            CassandraTimestampBoundStore.EntryPair entriesInDb, CassandraTimestampBoundStore.EntryPair desiredEntries) {
+            EntryPair entriesInDb, EntryPair desiredEntries) {
         String message = "Unable to CAS from {} to {}. Timestamp limit changed underneath us or another timestamp"
                 + " service ID detected. Limit in memory: {}, this service's ID: {}. Limit stored in DB: {},"
                 + " the ID stored in DB: {}. This may indicate that another timestamp service is running against"
@@ -314,7 +314,6 @@ public final class CassandraTimestampUtils {
     }
 
     private static void logMessage(String formattedMessage) {
-        log.error("Error: {}", formattedMessage);
         DebugLogger.logger.error("Error: {}", formattedMessage);
         DebugLogger.logger.error("Thread dump: {}", ThreadDumps.programmaticThreadDump());
     }
