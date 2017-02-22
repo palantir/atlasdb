@@ -27,11 +27,14 @@ import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
+import java.util.stream.Stream;
 
 import org.immutables.value.Value;
+import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.util.Multiset;
 import org.openjdk.jmh.util.Statistics;
@@ -52,46 +55,65 @@ public class PerformanceResults {
 
     public void writeToFile(File file) throws IOException {
         try (BufferedWriter fout = openFileWriter(file)) {
-            long date = System.currentTimeMillis();
-            List<ImmutablePerformanceResult> newResults = results.stream().map(rs -> {
-                DockerizedDatabaseUri uri =
-                        DockerizedDatabaseUri.fromUriString(rs.getParams().getParam(BenchmarkParam.URI.getKey()));
-                String benchmark = getBenchmarkStr(rs.getParams().getBenchmark(), uri);
-                return ImmutablePerformanceResult.builder()
-                        .date(date)
-                        .benchmark(benchmark)
-                        .samples(rs.getPrimaryResult().getStatistics().getN())
-                        .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
-                        .mean(rs.getPrimaryResult().getStatistics().getMean())
-                        .data(getData(rs))
-                        .units(rs.getParams().getTimeUnit())
-                        .p50(rs.getPrimaryResult().getStatistics().getPercentile(50.0))
-                        .p90(rs.getPrimaryResult().getStatistics().getPercentile(90.0))
-                        .p99(rs.getPrimaryResult().getStatistics().getPercentile(99.0))
-                        .build();
-            }).collect(Collectors.toList());
+            List<ImmutablePerformanceResult> newResults = getPerformanceResults(results);
             new ObjectMapper().writeValue(fout, newResults);
         }
     }
 
-    private String getBenchmarkStr(String benchmark, DockerizedDatabaseUri uri) {
+    private static List<ImmutablePerformanceResult> getPerformanceResults(Collection<RunResult> results) {
+        long date = System.currentTimeMillis();
+        return results.stream().flatMap(rs -> {
+                    try {
+                        String benchmark = getBenchmarkName(rs.getParams());
+                        return Stream.of(ImmutablePerformanceResult.builder()
+                                .date(date)
+                                .benchmark(benchmark)
+                                .samples(rs.getPrimaryResult().getStatistics().getN())
+                                .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
+                                .mean(rs.getPrimaryResult().getStatistics().getMean())
+                                .data(getData(rs))
+                                .units(rs.getParams().getTimeUnit())
+                                .p50(rs.getPrimaryResult().getStatistics().getPercentile(50.0))
+                                .p90(rs.getPrimaryResult().getStatistics().getPercentile(90.0))
+                                .p99(rs.getPrimaryResult().getStatistics().getPercentile(99.0))
+                                .build());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return Stream.of();
+                    }
+                }).collect(Collectors.toList());
+    }
+
+    private static String getBenchmarkName(BenchmarkParams params) {
+        Optional<String> benchmarkUriSuffix = Optional.ofNullable(params.getParam(BenchmarkParam.URI.getKey()))
+                .map(DockerizedDatabaseUri::fromUriString)
+                .map(uri -> uri.getKeyValueServiceInstrumentation().toString());
+        return formatBenchmarkString(params.getBenchmark(), benchmarkUriSuffix);
+    }
+
+    private static String formatBenchmarkString(String benchmark, Optional<String> uriSuffix) {
         String[] benchmarkParts = benchmark.split("\\.");
         String benchmarkSuite = benchmarkParts[benchmarkParts.length - 2];
         String benchmarkName = benchmarkParts[benchmarkParts.length - 1];
-        return benchmarkSuite + "#" + benchmarkName + "-" + uri.getKeyValueServiceInstrumentation().toString();
+
+        StringBuilder result = new StringBuilder();
+        result.append(benchmarkSuite).append("#").append(benchmarkName);
+        uriSuffix.ifPresent(suffix -> result.append("-").append(suffix));
+
+        return result.toString();
     }
 
-    private BufferedWriter openFileWriter(File file) throws FileNotFoundException {
+    private static BufferedWriter openFileWriter(File file) throws FileNotFoundException {
         return new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
     }
 
-    private List<Double> getData(RunResult result) {
+    private static List<Double> getData(RunResult result) {
         return result.getBenchmarkResults().stream()
                 .flatMap(b -> getRawResults(b.getPrimaryResult().getStatistics()).stream())
                 .collect(Collectors.toList());
     }
 
-    private List<Double> getRawResults(Statistics statistics) {
+    private static List<Double> getRawResults(Statistics statistics) {
         try {
             Field field = statistics.getClass().getDeclaredField("values");
             field.setAccessible(true);
