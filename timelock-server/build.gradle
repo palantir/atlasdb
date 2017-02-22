@@ -52,25 +52,4 @@ distribution {
     serviceName "timelock-server"
     mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
     args 'server', 'var/conf/timelock.yml'
-    defaultJvmOpts "-javaagent:service/javaAgents/jetty-alpn-agent.jar"
-}
-
-tasks.withType(JavaForkOptions) {
-    dependsOn 'copyJavaAgents'
-    jvmArgs "-javaagent:${projectDir}/service/javaAgents/jetty-alpn-agent.jar"
-}
-
-task copyJavaAgents(type: Copy) {
-    outputs.upToDateWhen { false }
-    from(configurations.runtime) {
-        include '*jetty-alpn-agent*'
-    }
-    into "${projectDir}/service/javaAgents"
-    rename { String fileName ->
-        fileName.replaceFirst("-[0-9]+\\.[0-9]+\\.[0-9]+.*\\.jar", ".jar")
-    }
-}
-
-configurations {
-    javaAgent
 }
