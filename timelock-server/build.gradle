@@ -62,16 +62,18 @@ dependencyRecommendations {
 
 configurations.all {
     resolutionStrategy {
-        eachDependency {details ->
+        eachDependency { details ->
             //specifying a fixed version for all libraries with 'io.dropwizard' group
-            if (details.requested.group == 'io.dropwizard') {
-                details.useVersion libVersions.timelock_dropwizard
-            }
-            if (details.requested.group == 'org.eclipse.jetty') {
-                details.useVersion libVersions.timelock_jetty
-            }
-            if (details.requested.group == 'org.glassfish.jersey.core') {
-                details.useVersion libVersions.timelock_jersey
+            switch (details.requested.group) {
+                case 'io.dropwizard':
+                    details.useVersion libVersions.timelock_dropwizard
+                    break
+                case 'org.eclipse.jetty':
+                    details.useVersion libVersions.timelock_jetty
+                    break
+                case 'org.glassfish.jersey.core':
+                    details.useVersion libVersions.timelock_jersey
+                    break
             }
         }
         forcedModules = [
