@@ -24,6 +24,7 @@ import java.util.UUID;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.cassandra.thrift.CASResult;
+import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -34,6 +35,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -105,15 +107,16 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private Optional<Column> getColumnIfExists(ByteBuffer rowName, ColumnPath columnPath) {
-        return clientPool.runWithRetry(client -> {
-            try {
-                return Optional.of(client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM).getColumn());
-            } catch (NotFoundException e) {
-                return Optional.empty();
-            } catch (TException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
-        });
+        return clientPool.runWithRetry(
+                (FunctionCheckedException<Client, Optional<Column>, RuntimeException>) client -> {
+                    try {
+                        return Optional.of(client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM).getColumn());
+                    } catch (NotFoundException e) {
+                        return Optional.empty();
+                    } catch (TException e) {
+                        throw Throwables.throwUncheckedException(e);
+                    }
+                });
     }
 
     private EntryPair migrateIfStartingUp(EntryPair entries) {
