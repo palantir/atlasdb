@@ -29,8 +29,6 @@ dependencies {
     compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
     compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
     compile group: 'io.dropwizard', name: 'dropwizard-http2', version: libVersions.timelock_dropwizard
-    compile group: 'io.dropwizard', name: 'dropwizard-request-logging', version: libVersions.timelock_dropwizard
-    compile group: 'io.dropwizard', name: 'dropwizard-util', version: libVersions.timelock_dropwizard
     compile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
     compile group: 'org.eclipse.jetty', name: 'jetty-alpn-server'
     compile group: 'org.eclipse.jetty.http2', name: 'http2-common'
@@ -54,4 +52,8 @@ distribution {
     mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
     args 'server', 'var/conf/timelock.yml'
     defaultJvmOpts "-javaagent:service/lib/jetty-alpn-agent-2.0.6.jar"
+}
+
+dependencyRecommendations {
+    strategy ConflictResolved
 }
