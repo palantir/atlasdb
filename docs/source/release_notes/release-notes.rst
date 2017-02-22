@@ -40,8 +40,12 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Timelock server now supports HTTP/2 and the AtlasDB HTTP clients enable a required GCM cipher suite.
+           This feature improves performance of the Timelock server. Any client that wishes to connect to the timelock server
+           via HTTP2 must add the jetty_alpn_agent as a javaAgent JVM argument, otherwise connections will fall back to
+           HTTP/1.1 and performance may be slow.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1594>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
