@@ -1,12 +1,12 @@
 **Goals (and why)**:
 
-**How**:
+**Implementation Description (bullets)**:
 
-**Concerns**:
+**Concerns (what feedback would you like?)**:
+
+**Where should we start reviewing?**:
 
 **Priority (whenever / two weeks / yesterday)**:
-
-**Entrypoint (where should we start reviewing?)**:
 
 <!---
 Please remember to:
