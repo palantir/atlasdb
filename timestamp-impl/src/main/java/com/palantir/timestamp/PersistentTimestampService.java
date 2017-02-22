@@ -179,7 +179,7 @@ public class PersistentTimestampService implements TimestampService {
                     throw new RuntimeException("failed to allocate more timestamps", possibleFailure);
                 }
                 if (!hasLogged) {
-                    log.error("We haven't gotten enough timestamps from the DB", new RuntimeException());
+                    log.info("Not enough timestamps were preallocated, so we requested a new batch");
                     hasLogged = true;
                 }
                 if (Thread.interrupted()) {
