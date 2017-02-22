@@ -49,7 +49,7 @@ develop
 v0.33.0
 =======
 
-21 Feb 2017
+22 Feb 2017
 
 .. list-table::
     :widths: 5 40
