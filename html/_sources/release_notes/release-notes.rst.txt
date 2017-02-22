@@ -40,9 +40,8 @@ develop
     *    - Type
          - Change
 
-    *    - |improved|
-         - Reduced contention on PersistentTimestampService.getFreshTimestamps.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1618>`__)
+    *    -
+         -
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -50,7 +49,7 @@ develop
 v0.33.0
 =======
 
-21 Feb 2017
+22 Feb 2017
 
 .. list-table::
     :widths: 5 40
@@ -94,6 +93,10 @@ v0.33.0
            We will merge a fix for MRTSE once we have a solution that allows a seamless rollback process.
            This change is also reverted on 0.32.1.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1622>`__)
+
+    *    - |improved|
+         - Reduced contention on ``PersistentTimestampService.getFreshTimestamps`` to provide performance improvements to the Timestamp service under heavy request load.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1618>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

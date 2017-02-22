@@ -169,16 +169,15 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Reduced contention on PersistentTimestampService.getFreshTimestamps.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1618">Pull Request</a>)</td>
+<tr class="row-even"><td>&nbsp;</td>
+<td>&nbsp;</td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="section" id="v0-33-0">
 <h2>v0.33.0<a class="headerlink" href="#v0-33-0" title="Permalink to this headline">¶</a></h2>
-<p>21 Feb 2017</p>
+<p>22 Feb 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -225,6 +224,10 @@ This is particularly relevant for AtlasDB clients that make use of the TableSpli
 We will merge a fix for MRTSE once we have a solution that allows a seamless rollback process.
 This change is also reverted on 0.32.1.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1622">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Reduced contention on <code class="docutils literal"><span class="pre">PersistentTimestampService.getFreshTimestamps</span></code> to provide performance improvements to the Timestamp service under heavy request load.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1618">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
