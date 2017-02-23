@@ -1,0 +1,24 @@
+version: '2'
+
+services:
+  timelock1:
+    image: palantirtechnologies/timelock-server
+    ports:
+      - 8421
+      - 8422
+    environment:
+      - ME=timelock1
+  timelock2:
+    image: palantirtechnologies/timelock-server
+    ports:
+      - 8421
+      - 8422
+    environment:
+      - ME=timelock2
+  timelock3:
+    image: palantirtechnologies/timelock-server
+    ports:
+      - 8421
+      - 8422
+    environment:
+      - ME=timelock3
