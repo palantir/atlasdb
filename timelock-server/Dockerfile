@@ -1,8 +1,8 @@
 FROM frolvlad/alpine-oraclejdk8:slim
 MAINTAINER AtlasDB Team
 
-# Bash is super useful
-RUN apk update && apk add bash wget
+# Bash is useful for monitoring; curl is used by our healthchecks.
+RUN apk update && apk add bash curl
 
 # Prefer ADD to COPY because it does the tar handling
 ADD timelock-server-*.tgz /timelock-server
@@ -12,9 +12,6 @@ ADD timelock-server-*.tgz /timelock-server
 RUN mv "/timelock-server/"$(ls "/timelock-server/") "/timelock/" && \
     rmdir "/timelock-server/" && \
     mv "/timelock/" "/timelock-server/"
-
-# Add curl, useful for health-check
-RUN ["apk", "--update", "add", "curl"]
 
 WORKDIR /timelock-server
 
