@@ -169,8 +169,16 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>AtlasDB Perf Cli can now output KVS-agnostic benchmark data (such as <code class="docutils literal"><span class="pre">HttpBenchmarks</span></code>) to a file.
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td><p class="first">Timelock server now supports <a class="reference external" href="https://http2.github.io/">HTTP/2</a>, and the AtlasDB HTTP clients enable a required GCM cipher suite.
+This feature improves performance of the Timelock server.
+Any client that wishes to connect to the timelock server via HTTP/2 must add jetty_alpn_agent as a javaAgent JVM argument, otherwise connections will fall back to HTTP/1.1 and performance will be considerably slower.</p>
+<p class="last">For an example of how to add this dependency, see our <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1594/files#diff-e7db4468f37a8004be3c399d791c323eR57">timelock-server/build.gradle</a> file.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1594">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB <a class="reference internal" href="../performance/benchmarking.html#perf-cli"><span class="std std-ref">Perf CLI</span></a> can now output KVS-agnostic benchmark data (such as <code class="docutils literal"><span class="pre">HttpBenchmarks</span></code>) to a file.
 Previously running these benchmarks whilst attempting to write output to a file would fail.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1635">Pull Request</a>)</td>
 </tr>
