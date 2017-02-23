@@ -643,6 +643,12 @@
                 "com.palantir.atlasdb:atlasdb-jdbc"
             ]
         },
+        "org.mortbay.jetty.alpn:jetty-alpn-agent": {
+            "locked": "2.0.6",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
         "org.postgresql:postgresql": {
             "locked": "9.4.1209",
             "transitive": [

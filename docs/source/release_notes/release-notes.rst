@@ -40,8 +40,16 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - Timelock server now supports `HTTP/2 <https://http2.github.io/>`__, and the AtlasDB HTTP clients enable a required GCM cipher suite.
+           This feature improves performance of the Timelock server.
+           Any client that wishes to connect to the timelock server via HTTP/2 must add jetty_alpn_agent as a javaAgent JVM argument, otherwise connections will fall back to HTTP/1.1 and performance will be considerably slower.
+
+           For an example of how to add this dependency, see our `timelock-server/build.gradle <https://github.com/palantir/atlasdb/pull/1594/files#diff-e7db4468f37a8004be3c399d791c323eR57>`__ file.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1594>`__)
+
     *    - |fixed|
-         - AtlasDB Perf Cli can now output KVS-agnostic benchmark data (such as ``HttpBenchmarks``) to a file.
+         - AtlasDB :ref:`Perf CLI <perf-cli>` can now output KVS-agnostic benchmark data (such as ``HttpBenchmarks``) to a file.
            Previously running these benchmarks whilst attempting to write output to a file would fail.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1635>`__)
 
