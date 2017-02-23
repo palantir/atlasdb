@@ -40,8 +40,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - AtlasDB Perf Cli can now output KVS-agnostic benchmark data (such as ``HttpBenchmarks``) to a file.
+           Previously running these benchmarks whilst attempting to write output to a file would fail.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1635>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
