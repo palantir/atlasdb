@@ -436,7 +436,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     private void clearSweepProgressTable() {
         // Use deleteRange instead of truncate
         // 1) The table should be small, performance difference should be negligible.
-        // 2) Truncate takes an exclusive lock in some stores which can interfere
+        // 2) Truncate takes an exclusive lock in Postgres, which can interfere
         // with concurrently running backups.
         kvs.deleteRange(tableFactory.getSweepProgressTable(null).getTableRef(), RangeRequest.all());
     }
