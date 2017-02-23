@@ -44,6 +44,10 @@ develop
          - Cassandra now attempts to truncate when performing a ``deleteRange(RangeRequest.All())`` in an effort to build up less garbage.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1617>`__)
 
+    *    - |fixed|
+         - Timelock server now specifies minimum and maximum heap size of 512 MB.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1647>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
