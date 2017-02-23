@@ -43,13 +43,6 @@ dependencies {
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
 }
 
-task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
-    from distTar.outputs
-    into 'build/docker/'
-
-    rename { filename -> 'timelock-server-snapshot.tgz' }
-}
-
 distribution {
     serviceName "timelock-server"
     mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'

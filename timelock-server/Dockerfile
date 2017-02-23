@@ -5,11 +5,11 @@ MAINTAINER AtlasDB Team
 ADD timelock-server-*.tgz /timelock-server
 
 # Remove possible version prefix
-RUN for file in timelock-server/*; do mv "$file" "timelock-server/timelock-server-snapshot"; done
+RUN mv "timelock-server/"$(ls "timelock-server") "timelock-server/"
 
-WORKDIR /timelock-server/timelock-server
+WORKDIR /timelock-server
 
 EXPOSE 8421 \
        8422
 
-CMD service/bin/init.sh console
+CMD ["service/bin/init.sh", "console"]
