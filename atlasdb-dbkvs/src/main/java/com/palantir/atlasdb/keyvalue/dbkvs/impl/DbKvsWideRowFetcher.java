@@ -63,7 +63,7 @@ import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class DbKvsWideRowFetcher {
+class DbKvsWideRowFetcher {
     private static final Logger log = LoggerFactory.getLogger(DbKvsWideRowFetcher.class);
 
     private final BatchingTaskRunner batchingQueryRunner;
@@ -79,7 +79,7 @@ public class DbKvsWideRowFetcher {
         this.dbTables = dbTables;
     }
 
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
+    Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
             Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         List<byte[]> rowList = ImmutableList.copyOf(rows);
         Map<byte[], List<Map.Entry<Cell, Value>>> firstPage =
@@ -114,7 +114,9 @@ public class DbKvsWideRowFetcher {
         return ret;
     }
 
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
+    // TODO: Make this also able to return Iterator<Map.Entry<Cell, Long>> (currently, Iterator<Map.Entry<Cell, Value>>
+    // TODO: Lots of methods here should possibly be generified
+    RowColumnRangeIterator getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
             ColumnRangeSelection columnRangeSelection, int cellBatchHint, long timestamp) {
         List<byte[]> rowList = ImmutableList.copyOf(rows);
         Map<Sha256Hash, byte[]> rowHashesToBytes = Maps.uniqueIndex(rowList, Sha256Hash::computeHash);
@@ -295,6 +297,7 @@ public class DbKvsWideRowFetcher {
                                 batch.keySet())));
     }
 
+    // TODO Generify
     private Map<byte[], List<Map.Entry<Cell, Value>>> extractRowColumnRangePage(
             TableReference tableRef,
             RowsColumnRangeBatchRequest rowsColumnRangeBatch,
@@ -306,7 +309,7 @@ public class DbKvsWideRowFetcher {
                 batch -> runRead(tableRef, table ->
                         extractRowColumnRangePageInternal(
                                 table,
-                                () -> table.getRowsColumnRange(batch, ts),
+                                () -> table.getRowsColumnRange(batch, ts), // TODO different method for timestamps
                                 RowsColumnRangeBatchRequests.getAllRowsInOrder(batch))));
     }
 
@@ -332,6 +335,8 @@ public class DbKvsWideRowFetcher {
                 Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
                 Sha256Hash rowHash = Sha256Hash.computeHash(cell.getRowName());
                 cellsByRow.get(rowHash).add(cell);
+
+                // TODO prob no need for overflow logic for timestamps
                 Long overflowId = hasOverflow ? row.getLongObject("overflow") : null;
                 if (overflowId == null) {
                     Value value = Value.create(row.getBytes("val"), row.getLong("ts"));
@@ -423,6 +428,7 @@ public class DbKvsWideRowFetcher {
         return runRead(tableRef, dbReadTable -> {
             Map<Sha256Hash, Integer> counts = new HashMap<Sha256Hash, Integer>(rowList.size());
             try (ClosableIterator<AgnosticLightResultRow> iter =
+                    // TODO does this exclude old values?
                     dbReadTable.getRowsColumnRangeCounts(rowList, timestamp, columnRangeSelection)) {
                 while (iter.hasNext()) {
                     AgnosticLightResultRow row = iter.next();
