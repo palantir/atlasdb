@@ -2,6 +2,7 @@ apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
 apply plugin: 'org.unbroken-dome.test-sets'
 
+apply from: "../gradle/docker.gradle"
 apply from: "../gradle/publish-dists.gradle"
 apply from: "../gradle/shared.gradle"
 
