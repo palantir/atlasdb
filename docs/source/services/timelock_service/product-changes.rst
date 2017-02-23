@@ -1,7 +1,7 @@
-.. _timelock-migration:
+.. _product-changes:
 
-Migration to Timelock Services
-==============================
+Developing a product to use the timelock service
+================================================
 
 Why Migration?
 --------------
@@ -11,6 +11,7 @@ this guarantee when moving from an embedded timestamp service to an external tim
 that timestamps issued by the external timestamp service are larger than those issued by the embedded one.
 Otherwise, this can lead to serious data corruption.
 
+..
 Automated Migration
 -------------------
 
