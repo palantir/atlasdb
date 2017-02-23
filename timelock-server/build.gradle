@@ -52,7 +52,7 @@ distribution {
     serviceName "timelock-server"
     mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
     args 'server', 'var/conf/timelock.yml'
-    defaultJvmOpts "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
+    defaultJvmOpts "-Xms512m", "-Xmx512m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
 }
 
 dependencyRecommendations {
