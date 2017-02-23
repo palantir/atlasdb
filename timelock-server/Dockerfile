@@ -13,3 +13,9 @@ EXPOSE 8421 \
        8422
 
 CMD ["service/bin/init.sh", "console"]
+
+HEALTHCHECK --interval=10s \
+            --retries=5 \
+            CMD curl http://localhost:8422/healthcheck | \
+                python -c "import sys, json; sys.exit(json.load(sys.stdin)['leader-ping']['healthy'] != True)" || \
+                exit 1
