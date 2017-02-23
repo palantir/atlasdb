@@ -60,9 +60,4 @@ public abstract class ForwardingRemoteLockService extends ForwardingObject imple
     public void logCurrentState() {
         delegate().logCurrentState();
     }
-
-    @Override
-    public void logCurrentHeldLocks(String descriptorRegex, boolean versionIdNecessary) {
-        delegate().logCurrentHeldLocks(descriptorRegex, versionIdNecessary);
-    }
 }
