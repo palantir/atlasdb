@@ -406,6 +406,12 @@
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
+        "org.mortbay.jetty.alpn:jetty-alpn-agent": {
+            "locked": "2.0.6",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
@@ -833,6 +839,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.config.crypto:encrypted-config-value-module"
+            ]
+        },
+        "org.mortbay.jetty.alpn:jetty-alpn-agent": {
+            "locked": "2.0.6",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "org.slf4j:slf4j-api": {
