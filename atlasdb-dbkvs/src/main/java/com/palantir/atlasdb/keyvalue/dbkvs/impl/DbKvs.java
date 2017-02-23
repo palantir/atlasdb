@@ -1374,7 +1374,7 @@ public class DbKvs extends AbstractKeyValueService {
                             long ts = row.getLong("ts");
                             results.put(cell, ts);
                         }
-                    } while (rowAlreadyPresent);
+                    } while (rowAlreadyPresent && rowResults.hasNext());
                 }
 
                 return new TimestampsByCellResult(results, rowsReturned, rowResults.hasNext());
