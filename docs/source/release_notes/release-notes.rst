@@ -40,8 +40,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |new|
+         - Cassandra now attempts to truncate when performing a ``deleteRange(RangeRequest.All())`` in an effort to build up less garbage.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1617>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
