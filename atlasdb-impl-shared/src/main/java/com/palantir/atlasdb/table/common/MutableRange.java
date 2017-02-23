@@ -18,17 +18,25 @@ package com.palantir.atlasdb.table.common;
 import java.util.Arrays;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 
 class MutableRange {
     private byte[] startRow;
     private final byte[] endRow;
     private final int batchSize;
+    private final ColumnSelection columnSelection;
+
 
     public MutableRange(byte[] startRow, byte[] endRow, int batchSize) {
+        this(startRow, endRow, batchSize, ColumnSelection.all());
+    }
+
+    public MutableRange(byte[] startRow, byte[] endRow, int batchSize, ColumnSelection columnSelection) {
         this.startRow = Preconditions.checkNotNull(startRow);
         this.endRow = Preconditions.checkNotNull(endRow);
         this.batchSize = batchSize;
+        this.columnSelection = columnSelection;
     }
 
     public void setStartRow(byte[] startRow) {
@@ -36,7 +44,7 @@ class MutableRange {
     }
 
     public RangeRequest getRangeRequest() {
-        return RangeRequest.builder().startRowInclusive(startRow).endRowExclusive(endRow).build();
+        return RangeRequest.builder().startRowInclusive(startRow).endRowExclusive(endRow).retainColumns(columnSelection).build();
     }
 
     public int getBatchSize() {
@@ -49,8 +57,11 @@ class MutableRange {
 
     @Override
     public String toString() {
-        return "MutableRange [startRow=" + Arrays.toString(startRow) + ", endRow="
-                + Arrays.toString(endRow) + ", batchSize=" + batchSize + "]";
+        return "MutableRange{" +
+                "startRow=" + Arrays.toString(startRow) +
+                ", endRow=" + Arrays.toString(endRow) +
+                ", batchSize=" + batchSize +
+                ", columnSelection=" + columnSelection +
+                '}';
     }
-
 }
