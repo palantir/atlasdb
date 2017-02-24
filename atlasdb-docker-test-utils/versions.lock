@@ -40,8 +40,7 @@
             ]
         },
         "com.palantir.docker.compose:docker-compose-rule-junit4": {
-            "locked": "0.31.0",
-            "requested": "0.31.0"
+            "locked": "0.31.0"
         },
         "commons-io:commons-io": {
             "locked": "2.1",
@@ -141,8 +140,7 @@
             ]
         },
         "com.palantir.docker.compose:docker-compose-rule-junit4": {
-            "locked": "0.31.0",
-            "requested": "0.31.0"
+            "locked": "0.31.0"
         },
         "commons-io:commons-io": {
             "locked": "2.1",

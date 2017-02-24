@@ -219,7 +219,6 @@
         },
         "com.palantir.docker.compose:docker-compose-rule-core": {
             "locked": "0.31.0",
-            "requested": "0.31.0",
             "transitive": [
                 "com.palantir.docker.compose:docker-compose-rule-junit4"
             ]
@@ -653,7 +652,6 @@
         },
         "com.palantir.docker.compose:docker-compose-rule-core": {
             "locked": "0.31.0",
-            "requested": "0.31.0",
             "transitive": [
                 "com.palantir.docker.compose:docker-compose-rule-junit4"
             ]
