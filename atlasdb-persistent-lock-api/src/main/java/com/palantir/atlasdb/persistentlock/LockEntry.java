@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.common.base.Throwables;
@@ -83,9 +82,8 @@ public abstract class LockEntry {
             byte[] contents = columns.get(columnNameBytes).getContents();
             return asString(contents);
         } else {
-            throw new IllegalStateException(String.format("Couldn't find column %s in the %s table!",
-                    LOCK_COLUMN,
-                    AtlasDbConstants.PERSISTED_LOCKS_TABLE));
+            throw new IllegalStateException(String.format("Couldn't find column %s in the persisted locks table!",
+                    LOCK_COLUMN));
         }
     }
 
