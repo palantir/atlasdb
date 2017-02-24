@@ -14,7 +14,7 @@ dependencies {
   testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
 
   testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
+  testCompile 'com.palantir.docker.compose:docker-compose-rule-core:' + libVersions.dockerComposeRule
 }
 
 task longTest(type: Test) {

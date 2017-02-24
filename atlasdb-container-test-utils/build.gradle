@@ -9,7 +9,7 @@ dependencies {
     compile project(':atlasdb-docker-test-utils')
 
     compile group: 'com.google.guava', name: 'guava'
-    compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: libVersions.dockerComposeRule
+    compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core', version: libVersions.dockerComposeRule
 
     processor group: 'org.immutables', name: 'value'
 

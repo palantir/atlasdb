@@ -15,7 +15,7 @@ dependencies {
 
   compile group: 'io.airlift', name: 'airline', version: '0.7'
   compile group: 'org.reflections', name: 'reflections', version: '0.9.10'
-  compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: libVersions.dockerComposeRule
+  compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core', version: libVersions.dockerComposeRule
   compile group: 'ch.qos.logback', name: 'logback-classic'
 
   testCompile group: 'org.assertj', name: 'assertj-core'
