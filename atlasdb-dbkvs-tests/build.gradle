@@ -8,7 +8,7 @@ dependencies {
   testCompile project(":atlasdb-tests-shared")
 
   testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile 'com.palantir.docker.compose:docker-compose-rule-junit4:' + libVersions.dockerComposeRule
+  testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
   testCompile group: 'junit', name: 'junit'
 }
 

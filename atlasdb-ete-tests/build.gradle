@@ -31,7 +31,7 @@ dependencies {
     testCompile project(':atlasdb-ete-test-utils')
 
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
-    testCompile 'com.palantir.docker.compose:docker-compose-rule-core:' + libVersions.dockerComposeRule
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
 }
 
 task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
