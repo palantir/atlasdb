@@ -45,6 +45,10 @@ public class Value implements Serializable {
         return new Value(contents, timestamp);
     }
 
+    public static Value createWithCopyOfData(byte[] contents, long timestamp) {
+        return Value.create(Arrays.copyOf(contents, contents.length), timestamp);
+    }
+
     /**
      * The contents of the value.
      */
