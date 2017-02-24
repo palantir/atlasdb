@@ -1,14 +1,14 @@
 .. _manual-timelock-migration:
 
-Manual Migration to Timelock Services
-=====================================
+Manual Migration to Timelock Server
+===================================
 
 .. warning::
 
-   This is not a recommended way to migrate to external timelock server. We have **automatic** migrations in place.
+   This is not a recommended way to migrate to external timelock server. We have **automatic** migrations for Cassandra KVS in place.
    Please contact the AtlasDB team before attempting the manual migration.
 
-The migration process must be run offline (that is, with no AtlasDB clients running during migration) and basically
+This migration process must be run offline (that is, with no AtlasDB clients running during migration) and basically
 consists of the following steps:
 
 #. Set up the external timestamp service.

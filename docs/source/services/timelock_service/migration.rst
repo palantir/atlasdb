@@ -1,7 +1,7 @@
 .. _timelock-migration:
 
-Migration to Timelock Services
-==============================
+Migration to Timelock Server
+============================
 
 Why Migration?
 --------------
@@ -13,9 +13,12 @@ Otherwise, this can lead to serious data corruption.
 
 Automated Migration
 -------------------
+.. warning::
+    Automated migrations are only implemented for Cassandra.
 
-1. Add the :ref:`timelock-client-configuration` block to the AtlasDB config.
-2. Starting/re-starting the service will automatically migrate the service.
+1. If you are using the Casssandra key value service, starting/re-starting the service will automatically migrate the service.
+2. If you are using any other KVS, please follow the instructions at :ref:`manual-timelock-migration`.
+
 
 Reverse Migration
 -----------------
