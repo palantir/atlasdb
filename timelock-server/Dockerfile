@@ -14,6 +14,7 @@ WORKDIR /timelock-server
 EXPOSE 8421 \
        8422
 
+# Putting exit code as '1' on failure to adhere to docker specification
 HEALTHCHECK --interval=5s \
             --timeout=5s \
             --retries=5 \
