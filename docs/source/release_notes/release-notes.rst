@@ -48,6 +48,11 @@ develop
          - Timelock server now specifies minimum and maximum heap size of 512 MB.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1647>`__)
 
+    *    - |fixed|
+         - The background sweeper now uses deleteRange instead of truncate when clearing the ``sweep.progress`` table.
+           This prevents the operation from interfering with concurrently running Postgres backups.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1616>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
