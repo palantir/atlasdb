@@ -14,10 +14,12 @@
             [jepsen.tests :as tests])
   (:import com.palantir.atlasdb.AtlasDbEteServer))
 
+(def o (Object.))
+
 (def CASSANDRA_LOG_FILES ["/var/log/cassandra/system.log",
                           "/var/log/cassandra/debug.log"])
 
-(def CASSANDRA_VERSION "2.2.8")
+(def CASSANDRA_VERSION "2.2.9")
 
 (defn install-cassandra
   [node version]
@@ -29,10 +31,13 @@
     "pool.sks-keyservers.net" "0xA278B781FE4B2BDA")
    (debian/install {:cassandra version})
    (info node "starting Cassandra")
-   (c/upload "resources/cassandra/cassandra.yaml.template" "/etc/cassandra/")
-   (c/exec :sed (c/lit "\"s/{{LOCAL_ADDRESS}}/$(hostname -I)/g\"") "/etc/cassandra/cassandra.yaml.template" :> "/etc/cassandra/cassandra.yaml")
-   (c/upload "resources/cassandra/cassandra-env.sh" "/etc/cassandra/")
+    (c/upload "resources/cassandra/cassandra.yaml.template" "/etc/cassandra/")
+    (c/exec :sed (c/lit "\"s/{{LOCAL_ADDRESS}}/$(hostname -I)/g\"") "/etc/cassandra/cassandra.yaml.template" :> "/etc/cassandra/cassandra.yaml")
+    (c/upload "resources/cassandra/cassandra-env.sh" "/etc/cassandra/")
+    (debian/install [:netcat])
    (c/exec :service :cassandra :start)
+    (c/exec* (str "while ! nc -z 0.0.0.0 9160; do sleep 10; done"))
+    ;(c/exec :sleep "50")
    (info node "Cassandra is ready")))
 
 (defn teardown-cassandra
@@ -40,7 +45,8 @@
   (c/su
    (info node "tearing down Cassandra")
    (c/exec :service :cassandra :stop)
-   (c/exec :rm "-rf" "/var/lib/cassandra/{saved_caches,data,commitlog}")))
+    (info node "removing Cassandra caches")
+   (c/exec* "rm -rf /var/lib/cassandra/{saved_caches,data,commitlog}")))
 
 (defn db
   "AtlasDB node setup."
@@ -73,8 +79,9 @@
       [this test node]
       "Factory that returns an object implementing client/Client"
       (info node "starting AtlasDB client")
-      (let [cas-client (AtlasDbEteServer/mainReturningClient (into-array ["server" "resources/atlasdb/atlasdb-ete.yml.template"]))]
-        (create-client node cas-client)))
+      (locking o
+      (let [cas-client (AtlasDbEteServer/mainReturningClient (into-array ["server" (str "resources/atlasdb/atlasdb-ete.yml.template" (name node))]))]
+        (create-client node cas-client))))
     (invoke! [this test op]
       (case (:f op)
         :read (try (assoc op :type :ok :value (. cas-client (getInt)))
@@ -98,7 +105,7 @@
   []
   (assoc tests/noop-test
          :name "atlasdb"
-         :nodes ["n1"]
+         :nodes ["n4" "n5"]
          :os debian/os
          :db (db)
          :client (create-client nil nil)
@@ -108,11 +115,7 @@
                    {:html (timeline/html)
                     :perf (checker/perf)
                     :linear checker/linearizable})
-         :generator (->> (gen/mix [r w cas])
-                         (gen/stagger 0.5)
-                         (gen/nemesis
-                          (gen/seq (cycle [(gen/sleep 5)
-                                           {:type :info, :f :start}
-                                           (gen/sleep 5)
-                                           {:type :info, :f :stop}])))
-                         (gen/time-limit 120))))
+    :generator (->> (gen/mix [r w cas])
+                 (gen/stagger 0.05)
+                 (gen/clients)
+                 (gen/time-limit 60))))

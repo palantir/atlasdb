@@ -26,7 +26,7 @@ public class CheckAndSetClient {
     }
 
     public int getInt() {
-        return (get()).get().intValue();
+        return (get().or(-1L)).intValue();
     }
 
     public Optional<Long> get() {
