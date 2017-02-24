@@ -3,30 +3,15 @@
 Developing a product to use the timelock service
 ================================================
 
-Why Migration?
---------------
+All products deploying against the AtlasDB Timelock service should follow the following checklist.
 
-AtlasDB assumes that timestamps returned by the timestamp service are monotonically increasing. In order to preserve
-this guarantee when moving from an embedded timestamp service to an external timestamp service, we need to ensure
-that timestamps issued by the external timestamp service are larger than those issued by the embedded one.
-Otherwise, this can lead to serious data corruption.
+1.  Ensure that the AtlasDB config contains :ref:`timelock-client-configuration`.
+2. The `Jetty ALPN agent <https://github.com/jetty-project/jetty-alpn-agent#usage>`__ is added as a javaagent JVM argument.
+   All AtlasDB clients will already have ``jetty-alpn-agent-2.0.6.jar`` in the classpath. This is required to establish HTTP/2 connections.
 
-..
-Automated Migration
--------------------
+    .. code-block:: yaml
 
-1. Add the :ref:`timelock-client-configuration` block to the AtlasDB config.
-2. Starting/re-starting the service will automatically migrate the service.
+        java -javaagent:service/lib/jetty-alpn-agent-2.0.6.jar
 
-Reverse Migration
------------------
-
-.. danger::
-
-   AtlasDB does not support reverse migrations. Improperly executing reverse migration from external timestamp
-   and lock services can result in **SEVERE DATA CORRUPTION**! Please contact the AtlasDB team before attempting a
-   reverse migration.
-
-If one wishes to downgrade from an external Timelock Server to embedded timestamp and lock services, one can perform
-the inverse of the database migrations mentioned in :ref:`manual-timelock-migration`. It is also important to update the
-embedded timestamp bound to account for any timestamps issued since the original migration.
+3. Ensure that the timelock server has added the product as a client in the :ref:`timelock-server-clients` block.
+   The client name should be same as the ``client`` field in the :ref:`timelock-client-configuration`.
