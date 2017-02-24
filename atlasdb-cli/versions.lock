@@ -532,6 +532,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.mortbay.jetty.alpn:jetty-alpn-agent": {
+            "locked": "2.0.6",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
         "org.slf4j:jcl-over-slf4j": {
             "locked": "1.7.5",
             "transitive": [
@@ -1102,6 +1108,12 @@
             "locked": "0.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.mortbay.jetty.alpn:jetty-alpn-agent": {
+            "locked": "2.0.6",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "org.slf4j:jcl-over-slf4j": {

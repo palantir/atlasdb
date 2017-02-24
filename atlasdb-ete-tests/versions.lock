@@ -1032,6 +1032,12 @@
                 "com.palantir.atlasdb:atlasdb-jdbc"
             ]
         },
+        "org.mortbay.jetty.alpn:jetty-alpn-agent": {
+            "locked": "2.0.6",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
         "org.rocksdb:rocksdbjni": {
             "locked": "4.1.0",
             "transitive": [
@@ -2186,6 +2192,12 @@
             "locked": "3.6.4",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-jdbc"
+            ]
+        },
+        "org.mortbay.jetty.alpn:jetty-alpn-agent": {
+            "locked": "2.0.6",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "org.postgresql:postgresql": {
