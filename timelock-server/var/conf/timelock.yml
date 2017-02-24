@@ -3,9 +3,17 @@ clients:
   - test2
 
 cluster:
-  localServer: localhost:8080
+  localServer: localhost:8421
   servers:
-    - localhost:8080
+    - localhost:8421
 
 algorithm:
   type: paxos
+
+server:
+  applicationConnectors:
+    - type: http
+      port: 8421
+  adminConnectors:
+    - type: http
+      port: 8422
