@@ -50,7 +50,7 @@ public class KvsBackedPersistentLockService implements PersistentLockService {
 
         try {
             lockStore.releaseLock(lockEntry);
-            return "The lock was released successfully.\n";
+            return "\"The lock was released successfully.\\n\"";
         } catch (CheckAndSetException e) {
             log.error("Failed to release the persistent lock. This means that somebody already cleared this lock. "
                     + "You should investigate this, as this means your operation didn't necessarily hold the lock when "
