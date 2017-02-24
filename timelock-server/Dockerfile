@@ -5,13 +5,9 @@ MAINTAINER AtlasDB Team
 RUN apk update && apk add bash curl
 
 # Prefer ADD to COPY because it does the tar handling
-ADD timelock-server-*.tgz /timelock-server
+ADD timelock-server-*.tgz /
 
-# Remove possible version prefix, and avoid unnecessary directory nesting
-# Note: We can't use mv -T because busybox's mv doesn't have that option.
-RUN mv "/timelock-server/"$(ls "/timelock-server/") "/timelock/" && \
-    rmdir "/timelock-server/" && \
-    mv "/timelock/" "/timelock-server/"
+RUN mv /timelock-server-* /timelock-server
 
 WORKDIR /timelock-server
 
