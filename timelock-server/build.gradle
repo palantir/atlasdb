@@ -51,7 +51,7 @@ dependencies {
 
 distribution {
     serviceName "timelock-server"
-    mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
+    mainClass 'com.palantir.atlasdb.timelock.TimelockTester'
     args 'server', 'var/conf/timelock.yml'
     defaultJvmOpts "-Xms512m", "-Xmx512m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
 }
