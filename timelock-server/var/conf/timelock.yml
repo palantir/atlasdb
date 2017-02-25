@@ -1,19 +1,17 @@
-clients:
-  - test
-  - test2
-
-cluster:
-  localServer: localhost:8421
-  servers:
-    - localhost:8421
-
-algorithm:
-  type: paxos
-
-server:
-  applicationConnectors:
-    - type: http
-      port: 8421
-  adminConnectors:
-    - type: http
-      port: 8422
+namespaces:
+  - namespace1
+  - namespace2
+  - namespace3
+queriesPerSecond:
+  - 2000
+  - 1000
+  - 500
+paths:
+  - https://url-1:8421
+  - https://url-2:8421
+  - https://url-3:8421
+sslConfiguration:
+  keyStoreKeyAlias: keystore-alias
+  keyStorePassword:
+  keyStorePath: /var/security/keystore.jks
+  trustStorePath: /var/security/truststore.jks
