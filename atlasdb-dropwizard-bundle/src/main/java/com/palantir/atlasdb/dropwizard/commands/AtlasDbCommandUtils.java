@@ -39,10 +39,17 @@ public final class AtlasDbCommandUtils {
     }
 
     public static AtlasDbConfig convertServerConfigToClientConfig(AtlasDbConfig serverConfig) {
-        Preconditions.checkArgument(serverConfig.leader().isPresent(),
-                "Your server configuration file must have a leader block. For instructions on how to do this, see the "
-                        + "documentation: http://palantir.github.io/atlasdb/html/configuration/leader_config.html");
+        Preconditions.checkArgument(serverConfig.leader().isPresent() || serverConfig.timelock().isPresent(),
+                "Your server configuration file must have a leader or timelock block. For instructions on how to do "
+                        + "this, see the documentation: "
+                        + "http://palantir.github.io/atlasdb/html/configuration/leader_config.html");
 
+        return serverConfig.timelock().isPresent() ?
+                serverConfig :
+                convertConfigWithLeaderBlockToClientConfig(serverConfig);
+    }
+
+    private static AtlasDbConfig convertConfigWithLeaderBlockToClientConfig(AtlasDbConfig serverConfig) {
         ServerListConfig leaders = ImmutableServerListConfig.builder()
                 .servers(serverConfig.leader().get().leaders())
                 .sslConfiguration(serverConfig.leader().get().sslConfiguration())
