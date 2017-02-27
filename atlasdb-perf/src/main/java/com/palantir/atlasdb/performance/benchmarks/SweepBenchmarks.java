@@ -54,35 +54,35 @@ public class SweepBenchmarks {
 
     @Benchmark
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object singleSweepRun(RegeneratingTable.SweepRegeneratingTable table) {
         return runSingleSweep(table, 1);
     }
 
     @Benchmark
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object batchedUniformSingleSweepRun(RegeneratingTable.SweepBatchUniformMultipleRegeneratingTable table) {
         return runSingleSweep(table, BATCH_SIZE);
     }
 
     @Benchmark
     @Warmup(time = 10, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 75, timeUnit = TimeUnit.SECONDS)
     public Object batchedSingleSweepRun(RegeneratingTable.SweepBatchNonUniformMultipleSeparateRegeneratingTable table) {
         return runSingleSweep(table, BATCH_SIZE);
     }
 
     @Benchmark
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 25, timeUnit = TimeUnit.SECONDS)
     public Object multipleUniformSweepRun(RegeneratingTable.SweepBatchUniformMultipleRegeneratingTable table) {
         return runMultiSweep(table);
     }
 
     @Benchmark
     @Warmup(time = 15, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 90, timeUnit = TimeUnit.SECONDS)
     public Object multipleSweepRun(RegeneratingTable.SweepBatchNonUniformMultipleSeparateRegeneratingTable table) {
         return runMultiSweep(table);
     }

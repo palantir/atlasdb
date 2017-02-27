@@ -40,28 +40,20 @@ import com.palantir.atlasdb.performance.benchmarks.table.WideRowsTable;
 @State(Scope.Benchmark)
 public class KvsGetRowsColumnRangeBenchmarks {
 
+    public static final int EXPECTED_NUM_CELLS = WideRowsTable.NUM_ROWS * WideRowsTable.NUM_COLS_PER_ROW;
+    public static final List<byte[]> ROWS = IntStream
+            .rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
+            .mapToObj(WideRowsTable::getRow)
+            .collect(Collectors.toList());
+    public static final int CORRECT_CELL_BATCH_HINT = 10000;
+    public static final int INCORRECT_CELL_BATCH_HINT = 10017;
+
     @Benchmark
     @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsAligned(WideRowsTable table) {
-        List<byte[]> rows =
-                IntStream.rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
-                        .mapToObj(WideRowsTable::getRow)
-                        .collect(Collectors.toList());
-        RowColumnRangeIterator rowsColumnRange =
-                table.getKvs().getRowsColumnRange(
-                        table.getTableRef(),
-                        rows,
-                        new ColumnRangeSelection(null, null),
-                        10000,
-                        Long.MAX_VALUE);
-        int expectedNumCells = WideRowsTable.NUM_ROWS * WideRowsTable.NUM_COLS_PER_ROW;
-        List<Map.Entry<Cell, Value>> loadedCells = new ArrayList<>(expectedNumCells);
-        while (rowsColumnRange.hasNext()) {
-            loadedCells.add(rowsColumnRange.next());
-        }
-        Preconditions.checkState(loadedCells.size() == expectedNumCells,
-                "Should be %s cells, but were: %s", expectedNumCells, loadedCells.size());
+        List<Map.Entry<Cell, Value>> loadedCells = getEntriesFromGetRowsColumnRange(table, CORRECT_CELL_BATCH_HINT);
+        assertCorrectness(loadedCells);
         return loadedCells;
     }
 
@@ -69,24 +61,28 @@ public class KvsGetRowsColumnRangeBenchmarks {
     @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsUnaligned(WideRowsTable table) {
-        List<byte[]> rows =
-                IntStream.rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
-                        .mapToObj(WideRowsTable::getRow)
-                        .collect(Collectors.toList());
+        List<Map.Entry<Cell, Value>> loadedCells = getEntriesFromGetRowsColumnRange(table, INCORRECT_CELL_BATCH_HINT);
+        assertCorrectness(loadedCells);
+        return loadedCells;
+    }
+
+    private List<Map.Entry<Cell, Value>> getEntriesFromGetRowsColumnRange(WideRowsTable table, int batchHint) {
         RowColumnRangeIterator rowsColumnRange =
                 table.getKvs().getRowsColumnRange(
                         table.getTableRef(),
-                        rows,
+                        ROWS,
                         new ColumnRangeSelection(null, null),
-                        10017,
+                        batchHint,
                         Long.MAX_VALUE);
-        int expectedNumCells = WideRowsTable.NUM_ROWS * WideRowsTable.NUM_COLS_PER_ROW;
-        List<Map.Entry<Cell, Value>> loadedCells = new ArrayList<>(expectedNumCells);
+        List<Map.Entry<Cell, Value>> loadedCells = new ArrayList<>(EXPECTED_NUM_CELLS);
         while (rowsColumnRange.hasNext()) {
             loadedCells.add(rowsColumnRange.next());
         }
-        Preconditions.checkState(loadedCells.size() == expectedNumCells,
-                "Should be %s cells, but were: %s", expectedNumCells, loadedCells.size());
         return loadedCells;
+    }
+
+    private void assertCorrectness(List<Map.Entry<Cell, Value>> loadedCells) {
+        Preconditions.checkState(loadedCells.size() == EXPECTED_NUM_CELLS,
+                "Should be %s cells, but were: %s", EXPECTED_NUM_CELLS, loadedCells.size());
     }
 }

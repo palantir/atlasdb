@@ -40,7 +40,7 @@ public class TransactionPutBenchmarks {
 
     @Benchmark
     @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object singleRandomPut(EmptyTables tables) {
         return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
@@ -51,7 +51,7 @@ public class TransactionPutBenchmarks {
 
     @Benchmark
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomPut(EmptyTables tables) {
         return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);

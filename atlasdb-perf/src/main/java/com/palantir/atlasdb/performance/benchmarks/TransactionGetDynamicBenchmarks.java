@@ -48,7 +48,7 @@ public class TransactionGetDynamicBenchmarks {
 
     @Benchmark
     @Warmup(time = 25, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 180, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsExplicitly(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), table.getAllCells());
@@ -60,7 +60,7 @@ public class TransactionGetDynamicBenchmarks {
 
     @Benchmark
     @Warmup(time = 10, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 65, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsImplicitly(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(table.getTableRef(),

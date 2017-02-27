@@ -116,7 +116,7 @@ public class TransactionGetBenchmarks {
 
     @Benchmark
     @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getCellsDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getCellsInner(table);
     }
@@ -139,14 +139,14 @@ public class TransactionGetBenchmarks {
 
     @Benchmark
     @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getRangeInner(table);
     }
 
     @Benchmark
     @Warmup(time = 8, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
     public Object getRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getRangeInner(table);
     }
@@ -169,14 +169,14 @@ public class TransactionGetBenchmarks {
 
     @Benchmark
     @Warmup(time = 8, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 40, timeUnit = TimeUnit.SECONDS)
     public Object getRanges(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getRangesInner(table);
     }
 
     @Benchmark
     @Warmup(time = 15, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 100)
+    @Measurement(time = 70, timeUnit = TimeUnit.SECONDS)
     public Object getRangesDirty(
             ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getRangesInner(table);
