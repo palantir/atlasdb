@@ -41,8 +41,8 @@ import com.palantir.atlasdb.performance.benchmarks.table.WideRowsTable;
 public class KvsGetRowsColumnRangeBenchmarks {
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsAligned(WideRowsTable table) {
         List<byte[]> rows =
                 IntStream.rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
@@ -66,8 +66,8 @@ public class KvsGetRowsColumnRangeBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsUnaligned(WideRowsTable table) {
         List<byte[]> rows =
                 IntStream.rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
