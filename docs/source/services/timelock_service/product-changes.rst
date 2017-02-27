@@ -3,7 +3,7 @@
 Developing a product to use the timelock service
 ================================================
  .. note::
-    We recommend only product instances deployed against Cassandra KVS to use the timelock server.
+    We recommend only product instances deployed against Cassandra KVS use the timelock server, as we don't have automated migrations for other KVSs.
 
 All products deploying against the AtlasDB Timelock service should follow the following checklist.
 
