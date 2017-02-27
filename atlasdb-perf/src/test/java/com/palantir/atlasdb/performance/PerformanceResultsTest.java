@@ -30,6 +30,9 @@ public class PerformanceResultsTest {
             = "com.palantir.atlasdb.performance." + SUITE_NAME + "." + BENCHMARK_NAME;
     private static final String FORMATTED_BENCHMARK_NAME = SUITE_NAME + "#" + BENCHMARK_NAME;
 
+    private static final String FORMATTED_BENCHMARK_NAME_AGNOSTIC
+            = FORMATTED_BENCHMARK_NAME + "-" + PerformanceResults.KVS_AGNOSTIC_SUFFIX;
+
     private static final String DOCKERIZED_CASSANDRA_URI
             = CassandraKeyValueServiceInstrumentation.class.getCanonicalName() + "@192.168.99.100:9160";
     private static final String FORMATTED_BENCHMARK_NAME_CASSANDRA
@@ -39,7 +42,7 @@ public class PerformanceResultsTest {
     public void canGenerateBenchmarkNameForTestWithoutKeyValueService() {
         BenchmarkParams params = createBenchmarkParams(FULL_BENCHMARK_NAME, "foo", "bar");
 
-        assertThat(PerformanceResults.getBenchmarkName(params)).isEqualTo(FORMATTED_BENCHMARK_NAME);
+        assertThat(PerformanceResults.getBenchmarkName(params)).isEqualTo(FORMATTED_BENCHMARK_NAME_AGNOSTIC);
     }
 
     @Test

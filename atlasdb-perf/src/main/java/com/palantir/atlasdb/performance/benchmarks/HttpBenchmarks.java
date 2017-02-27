@@ -52,7 +52,7 @@ public class HttpBenchmarks {
 
     @Benchmark
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 60, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public void parseHttpHeaders(Blackhole blackhole) {
         blackhole.consume(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(
                 HEADERS,

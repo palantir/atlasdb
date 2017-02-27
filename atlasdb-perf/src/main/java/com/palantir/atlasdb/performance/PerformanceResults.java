@@ -47,6 +47,8 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 
 public class PerformanceResults {
+    @VisibleForTesting
+    static final String KVS_AGNOSTIC_SUFFIX = "N/A";
 
     private final Collection<RunResult> results;
 
@@ -90,11 +92,7 @@ public class PerformanceResults {
         String benchmarkSuite = benchmarkParts[benchmarkParts.length - 2];
         String benchmarkName = benchmarkParts[benchmarkParts.length - 1];
 
-        StringBuilder result = new StringBuilder();
-        result.append(benchmarkSuite).append("#").append(benchmarkName);
-        uriSuffix.ifPresent(suffix -> result.append("-").append(suffix));
-
-        return result.toString();
+        return String.format("%s#%s-%s", benchmarkSuite, benchmarkName, uriSuffix.orElse(KVS_AGNOSTIC_SUFFIX));
     }
 
     private static BufferedWriter openFileWriter(File file) throws FileNotFoundException {
