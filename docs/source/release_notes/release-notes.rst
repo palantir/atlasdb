@@ -53,6 +53,11 @@ develop
            This prevents the operation from interfering with concurrently running Postgres backups.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1616>`__)
 
+    *    - |improved|
+         - The backup lock endpoints now use a response object that encapsulates all the other information that needs
+           to be returned rather than relying on exceptions and returning raw strings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1659>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
