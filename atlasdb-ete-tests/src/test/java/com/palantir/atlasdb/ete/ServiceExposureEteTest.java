@@ -24,7 +24,7 @@ import org.junit.Test;
 
 import com.palantir.timestamp.TimestampService;
 
-public class ServiceExposureTest {
+public class ServiceExposureEteTest {
     @Test
     public void shouldExposeATimestampServer() {
         TimestampService timestampClient = EteSetup.createClientToAllNodes(TimestampService.class);

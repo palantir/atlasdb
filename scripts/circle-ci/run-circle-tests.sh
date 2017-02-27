@@ -12,7 +12,7 @@ function checkDocsBuild {
 
 CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
-CONTAINER_2=(':atlasdb-ete-tests:check')
+CONTAINER_2=(':timelock-server:dockerTag' ':atlasdb-ete-tests:check')
 
 CONTAINER_3=(':atlasdb-cassandra-integration-tests:longTest')
 
