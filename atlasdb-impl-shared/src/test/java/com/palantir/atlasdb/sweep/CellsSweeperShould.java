@@ -40,13 +40,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
+import com.palantir.atlasdb.persistentlock.PersistentLockServiceResponse;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class CellsSweeperShould {
@@ -74,7 +74,8 @@ public class CellsSweeperShould {
 
     @Before
     public void setUp() {
-        when(mockPls.acquireBackupLock(anyString())).thenReturn(mockEntry);
+        when(mockPls.acquireBackupLock(anyString()))
+                .thenReturn(PersistentLockServiceResponse.successfulResponseWithLockEntry(mockEntry));
     }
 
     @Test
@@ -128,7 +129,9 @@ public class CellsSweeperShould {
 
     @Test
     public void retryWhenAcquiringTheBackupLock() {
-        when(mockPls.acquireBackupLock(anyString())).thenThrow(mock(CheckAndSetException.class)).thenReturn(mockEntry);
+        when(mockPls.acquireBackupLock(anyString()))
+                .thenReturn(PersistentLockServiceResponse.failureResponseWithMessage("some-failure-message"))
+                .thenReturn(PersistentLockServiceResponse.successfulResponseWithLockEntry(mockEntry));
 
         sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 

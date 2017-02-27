@@ -15,11 +15,14 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
@@ -39,24 +42,51 @@ public class KvsBackedPersistentLockService implements PersistentLockService {
     }
 
     @Override
-    public LockEntry acquireBackupLock(String reason) {
+    public PersistentLockServiceResponse acquireBackupLock(String reason) {
         Preconditions.checkNotNull(reason, "Please provide a reason for acquiring the lock.");
-        return lockStore.acquireBackupLock(reason);
+        try {
+            return PersistentLockServiceResponse.successfulResponseWithLockEntry(lockStore.acquireBackupLock(reason));
+        } catch (CheckAndSetException e) {
+            LockEntry actualEntry = extractStoredLockEntry(e);
+            log.error("Request failed. Stored persistent lock: {}", actualEntry);
+            return PersistentLockServiceResponse.failureResponseWithMessage(
+                    String.format("The lock has already been taken out; reason: %s", actualEntry.reason()));
+        }
     }
 
     @Override
-    public String releaseLock(LockEntry lockEntry) throws CheckAndSetException {
+    public PersistentLockServiceResponse releaseLock(LockEntry lockEntry) {
         Preconditions.checkNotNull(lockEntry, "Please provide a LockEntry to release.");
 
         try {
             lockStore.releaseLock(lockEntry);
-            return "\"The lock was released successfully.\\n\"";
+            return PersistentLockServiceResponse.successfulResponseWithMessage(
+                    "The lock was released successfully.");
         } catch (CheckAndSetException e) {
+            LockEntry actualEntry = extractStoredLockEntry(e);
+
+            log.error("Request failed. Stored persistent lock: {}", actualEntry);
             log.error("Failed to release the persistent lock. This means that somebody already cleared this lock. "
                     + "You should investigate this, as this means your operation didn't necessarily hold the lock when "
                     + "it should have done.", e);
-            throw e;
+
+            String message = LockStore.LOCK_OPEN.equals(actualEntry)
+                    ? "The lock has already been released."
+                    : String.format("The lock doesn't match the lock that was taken out with reason: %s", actualEntry.reason());
+
+            return PersistentLockServiceResponse.failureResponseWithMessage(message);
         }
     }
 
+    private LockEntry extractStoredLockEntry(CheckAndSetException ex) {
+        // Want a slightly different response if the lock was already open
+        List<byte[]> actualValues = ex.getActualValues();
+        if (actualValues == null || actualValues.size() != 1) {
+            // Rethrow - something odd happened in the db, and here we _do_ want the log message/stack trace.
+            throw ex;
+        }
+
+        byte[] actualValue = Iterables.getOnlyElement(actualValues);
+        return LockEntry.fromStoredValue(actualValue);
+    }
 }

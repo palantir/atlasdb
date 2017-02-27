@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import java.util.Optional;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -34,13 +36,17 @@ public interface PersistentLockService {
      * Attempt to acquire the lock.
      * Call this method before performing any destructive operations.
      * @param reason the reason for the lock, for logging purposes (e.g. "sweep")
-     * @return a {@link LockEntry} on success. The LockEntry will contain the given reason, and a unique ID. It is
-     *   essential that you retain a reference to this lock, as you will need it in order to release the lock.
+     * @return a {@link PersistentLockServiceResponse}.
+     *   If successful, the response will contain a {@link LockEntry} object that contains the given reason,
+     *   and a unique ID. It is essential that you retain a reference to this lock, as you will need it in order
+     *   to release the lock.
+     *
+     *   If unsuccessful, the response will contain {@link Optional#empty()} instead.
      */
     @POST // This has to be POST because we can't allow caching.
     @Path("acquire-backup-lock")
     @Produces(MediaType.APPLICATION_JSON)
-    LockEntry acquireBackupLock(@QueryParam("reason") String reason);
+    PersistentLockServiceResponse acquireBackupLock(@QueryParam("reason") String reason);
 
     /**
      * Release a lock that you have previously acquired.
@@ -53,5 +59,5 @@ public interface PersistentLockService {
     @Path("release")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    String releaseLock(LockEntry lockEntry) throws CheckAndSetException;
+    PersistentLockServiceResponse releaseLock(LockEntry lockEntry);
 }

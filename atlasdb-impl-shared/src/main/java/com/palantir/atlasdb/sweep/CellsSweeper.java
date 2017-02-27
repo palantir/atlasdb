@@ -33,6 +33,7 @@ import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
+import com.palantir.atlasdb.persistentlock.PersistentLockServiceResponse;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
@@ -110,9 +111,11 @@ public class CellsSweeper {
     private LockEntry acquirePersistentLockWithRetry() {
         while (true) {
             try {
-                LockEntry lockEntry = persistentLockService.acquireBackupLock("Sweep");
-                log.info("Successfully acquired persistent lock for sweep: {}", lockEntry);
-                return lockEntry;
+                PersistentLockServiceResponse response = persistentLockService.acquireBackupLock("Sweep");
+                if (response.lockEntry().isPresent()) {
+                    log.info("Successfully acquired persistent lock for sweep: {}", response.lockEntry().get());
+                    return response.lockEntry().get();
+                }
             } catch (CheckAndSetException e) {
                 log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
                 waitForRetry();
