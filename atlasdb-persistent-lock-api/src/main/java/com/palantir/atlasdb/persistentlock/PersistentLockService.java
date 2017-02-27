@@ -36,7 +36,7 @@ public interface PersistentLockService {
      * Attempt to acquire the lock.
      * Call this method before performing any destructive operations.
      * @param reason the reason for the lock, for logging purposes (e.g. "sweep")
-     * @return a {@link PersistentLockServiceResponse}.
+     * @return a {@link PersistentLockServiceResponse}
      *   If successful, the response will contain a {@link LockEntry} object that contains the given reason,
      *   and a unique ID. It is essential that you retain a reference to this lock, as you will need it in order
      *   to release the lock.

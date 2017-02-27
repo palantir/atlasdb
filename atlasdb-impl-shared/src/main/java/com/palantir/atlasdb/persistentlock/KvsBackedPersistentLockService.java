@@ -72,7 +72,9 @@ public class KvsBackedPersistentLockService implements PersistentLockService {
 
             String message = LockStore.LOCK_OPEN.equals(actualEntry)
                     ? "The lock has already been released."
-                    : String.format("The lock doesn't match the lock that was taken out with reason: %s", actualEntry.reason());
+                    : String.format(
+                            "The lock doesn't match the lock that was taken out with reason: %s",
+                            actualEntry.reason());
 
             return PersistentLockServiceResponse.failureResponseWithMessage(message);
         }
