@@ -12,7 +12,7 @@ atlasdb:
     servers:
       - n1:9160
       - n2:9160
+      - n3:9160
     ssl: false
     replicationFactor: 1
     keyspace: atlasete
-

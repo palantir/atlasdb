@@ -105,7 +105,7 @@
   []
   (assoc tests/noop-test
          :name "atlasdb"
-         :nodes ["n4" "n5"]
+         :nodes ["n1" "n2" "n3"]
          :os debian/os
          :db (db)
          :client (create-client nil nil)
