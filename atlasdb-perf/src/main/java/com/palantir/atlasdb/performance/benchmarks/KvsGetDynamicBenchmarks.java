@@ -52,7 +52,8 @@ public class KvsGetDynamicBenchmarks {
     @Measurement(time = 180, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsExplicitly(WideRowTable table) {
         Map<Cell, Value> result = table.getKvs().get(table.getTableRef(), table.getAllCellsAtMaxTimestamp());
-        assertCorrectNumberOfColumns(result);
+        Preconditions.checkState(result.size() == WideRowTable.NUM_COLS,
+                "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, result.size());
         return result;
     }
 
@@ -60,8 +61,13 @@ public class KvsGetDynamicBenchmarks {
     @Warmup(time = 6, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 60, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsImplicitly(WideRowTable table) throws UnsupportedEncodingException {
-        Map<Cell, Value> result = getColumnsUsingGetRows(table, ColumnSelection.all());
-        assertCorrectNumberOfColumns(result);
+        Map<Cell, Value> result = table.getKvs().getRows(
+                table.getTableRef(),
+                Collections.singleton(Tables.ROW_BYTES.array()),
+                ColumnSelection.all(),
+                Long.MAX_VALUE);
+        Preconditions.checkState(result.size() == WideRowTable.NUM_COLS,
+                "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, result.size());
         return result;
     }
 
@@ -70,7 +76,9 @@ public class KvsGetDynamicBenchmarks {
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getFirstColumnExplicitly(WideRowTable table) {
         Map<Cell, Value> result = table.getKvs().get(table.getTableRef(), table.getFirstCellAtMaxTimestampAsMap());
-        assertCorrectResult(result);
+        Preconditions.checkState(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
+        int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
+        Preconditions.checkState(value == 0, "Value should be %s but is %s", 0,  value);
         return result;
     }
 
@@ -78,30 +86,16 @@ public class KvsGetDynamicBenchmarks {
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getFirstColumnExplicitlyGetRows(WideRowTable table) throws UnsupportedEncodingException {
-        Map<Cell, Value> result = getColumnsUsingGetRows(table, ColumnSelection.create(
-                table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
-        ));
-        assertCorrectResult(result);
-        return result;
-    }
-
-    private Map<Cell, Value> getColumnsUsingGetRows(WideRowTable table,
-            ColumnSelection columnSelection) {
-        return table.getKvs()
+        Map<Cell, Value> result = table.getKvs()
                 .getRows(table.getTableRef(), Collections.singleton(Tables.ROW_BYTES.array()),
-                        columnSelection,
+                        ColumnSelection.create(
+                                table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
+                        ),
                         Long.MAX_VALUE);
-    }
-
-    private void assertCorrectNumberOfColumns(Map<Cell, Value> result) {
-        Preconditions.checkState(result.size() == WideRowTable.NUM_COLS,
-                "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, result.size());
-    }
-
-    private void assertCorrectResult(Map<Cell, Value> result) {
         Preconditions.checkState(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
         int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
         Preconditions.checkState(value == 0, "Value should be %s but is %s", 0,  value);
+        return result;
     }
 
 }
