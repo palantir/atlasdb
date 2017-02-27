@@ -35,7 +35,7 @@ public class CassandraTimelockTestSuite extends EteSetup {
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            CassandraNoLeaderTestSuite.class,
+            CassandraTimelockTestSuite.class,
             "docker-compose.timelock.cassandra.yml",
             CLIENTS,
             CassandraVersion.getEnvironment());
