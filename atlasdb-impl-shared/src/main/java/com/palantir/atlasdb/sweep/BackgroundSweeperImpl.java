@@ -79,6 +79,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     private final Supplier<Long> sweepPauseMillis;
     private final Supplier<Integer> sweepBatchSize;
     private final SweepTableFactory tableFactory;
+    private final Supplier<Set<TableReference>> blackList;
     private volatile float batchSizeMultiplier = 1.0f;
     private Thread daemon;
 
@@ -92,7 +93,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                                  Supplier<Boolean> isSweepEnabled,
                                  Supplier<Long> sweepPauseMillis,
                                  Supplier<Integer> sweepBatchSize,
-                                 SweepTableFactory tableFactory) {
+                                 SweepTableFactory tableFactory,
+                                 Supplier<Set<TableReference>> blackList) {
         this.txManager = txManager;
         this.kvs = kvs;
         this.sweepRunner = sweepRunner;
@@ -100,6 +102,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         this.sweepPauseMillis = sweepPauseMillis;
         this.sweepBatchSize = sweepBatchSize;
         this.tableFactory = tableFactory;
+        this.blackList = blackList;
     }
 
     @Override
@@ -198,7 +201,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @Nullable
     private SweepProgressRowResult chooseNextTableToSweep(SweepTransaction t) {
-        Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), AtlasDbConstants.hiddenTables);
+        Set<TableReference> tablesToSkip = Sets.union(AtlasDbConstants.hiddenTables, blackList.get());
+        Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), tablesToSkip);
         SweepPriorityTable oldPriorityTable = tableFactory.getSweepPriorityTable(t);
         SweepPriorityTable newPriorityTable = tableFactory.getSweepPriorityTable(t.delegate());
 

@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cleaner;
 
 import static com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRowResult;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -117,7 +118,7 @@ public abstract class AbstractSweeperTest {
         Supplier<Boolean> sweepEnabledSupplier = () -> true;
         Supplier<Long> sweepNoPause = () -> 0L;
         Supplier<Integer> batchSizeSupplier = () -> batchSize;
-        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSizeSupplier, SweepTableFactory.of());
+        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSizeSupplier, SweepTableFactory.of(), () -> Collections.emptySet());
     }
 
     @After
