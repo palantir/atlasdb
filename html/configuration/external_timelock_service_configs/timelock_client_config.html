@@ -163,11 +163,6 @@
             
   <div class="section" id="timelock-client-configuration">
 <span id="id1"></span><h1>Timelock Client Configuration<a class="headerlink" href="#timelock-client-configuration" title="Permalink to this headline">¶</a></h1>
-<div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">Improperly configuring one&#8217;s cluster to use external timestamp and lock services can result in <strong>SEVERE DATA
-CORRUPTION</strong>! Please contact the AtlasDB team before you configure your clients to use this.</p>
-</div>
 <p>You will need to update your AtlasDB configuration in order to have said clients request timestamps and locks from
 external Timelock Servers as opposed to their embedded services. This is an extension of the leader block configuration
 options discussed at <a class="reference internal" href="../leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>
