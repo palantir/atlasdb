@@ -56,16 +56,16 @@ public class PersistentLockServiceClientTest {
 
     @Test
     public void singleAcquireReturnsLockId() {
-        PersistentLockId lockID = lockService.acquireBackupLock(REASON);
-        assertThat(lockID).isNotNull();
+        PersistentLockId lockId = lockService.acquireBackupLock(REASON);
+        assertThat(lockId).isNotNull();
     }
 
     @Test
     public void singleAcquireFollowedBySingleReleaseWorks() {
-        PersistentLockId lockID = lockService.acquireBackupLock(REASON);
-        assertThat(lockID).isNotNull();
+        PersistentLockId lockId = lockService.acquireBackupLock(REASON);
+        assertThat(lockId).isNotNull();
 
-        lockService.releaseLock(lockID);
+        lockService.releaseLock(lockId);
     }
 
     @Test

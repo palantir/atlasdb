@@ -32,8 +32,8 @@ public interface PersistentLockService {
      * Attempt to acquire the lock.
      * Call this method before performing any destructive operations.
      * @param reason the reason for the lock, for logging purposes (e.g. "sweep")
-     * @return a {@link PersistentLockId} on success that represents the unique id of the lock that has been acquired.
-     *   You will need to provide this lock id when releasing the lock.
+     * @return a {@link PersistentLockId} on success that represents the unique id of the lock that has
+     *   been acquired. You will need to provide this lock id when releasing the lock.
      */
     @POST // This has to be POST because we can't allow caching.
     @Path("acquire-backup-lock")
