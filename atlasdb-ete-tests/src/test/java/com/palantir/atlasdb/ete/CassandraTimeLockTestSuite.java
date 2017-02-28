@@ -30,12 +30,12 @@ import com.palantir.atlasdb.containers.CassandraVersion;
         TodoEteTest.class,
         DropwizardEteTest.class
 })
-public class CassandraTimelockTestSuite extends EteSetup {
+public class CassandraTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            CassandraTimelockTestSuite.class,
+            CassandraTimeLockTestSuite.class,
             "docker-compose.timelock.cassandra.yml",
             CLIENTS,
             CassandraVersion.getEnvironment());
