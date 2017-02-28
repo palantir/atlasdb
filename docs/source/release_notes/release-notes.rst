@@ -53,6 +53,11 @@ develop
            This prevents the operation from interfering with concurrently running Postgres backups.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1616>`__)
 
+    *    - |new|
+         - Users can now create a Docker image and run containers of the Timelock Server, by running ``./gradlew timelock-server:dockerTag``.
+           This can be useful for quickly spinning up a Timelock instance (e.g. for testing purposes).
+           (Pull Request)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
