@@ -19,27 +19,31 @@ commit timestamp.
 Write Protocol
 --------------
 
-1. We buffer writes in memory until commit time. At commit time we grab
+1. Using the transactions start timestamp, complete all reads.  This is necessary to
+   determine writes required by the transaction. Buffer writes in memory
+   until commit time.
+
+2. At commit time we grab
    row locks for all the rows we are about to write (this is to detect
    write/write conflicts). We also grab the start timestamp row lock for
    the Transaction table.
 
-2. Now that we have our locks we check for write/write conflicts. If any
+3. Now that we have our locks we check for write/write conflicts. If any
    cell has been modified by a transaction that committed after our
    startTS then we have a write conflict.
 
-3. Write the data to the KV store with TS = startTs.
+4. Write the data to the KV store with TS = startTs.
 
-4. Now we get a fresh commit timestamp.
+5. Now we get a fresh commit timestamp.
 
-5. Then (this is important) we make sure our locks are still valid. If
+6. Then (this is important) we make sure our locks are still valid. If
    our locks expire after this point that is ok, but they have to be
    valid now.
 
-6. Then we atomically do a "putUnlessExists" into the transaction table
+7. Then we atomically do a "putUnlessExists" into the transaction table
    with our commit timestamp.
 
-7. Unlock the locks
+8. Unlock the locks
 
 Read Protocol
 -------------
@@ -48,10 +52,13 @@ Lets assume we are reading Cell c.
 
 1. Read from the KV store and get the most recent data with TS <
    startTs.
+
 2. Get a read lock on the transaction row for c.startTs (not needed if
    c.startTs is less than immutableTs). This is to wait to make sure
    the transaction that wrote it is done.
+
 3. Read the transaction table for the commitTs.
+
 4. One of two actions:
    
    a. If commitTs doesn't exist, try to roll back this transaction and
