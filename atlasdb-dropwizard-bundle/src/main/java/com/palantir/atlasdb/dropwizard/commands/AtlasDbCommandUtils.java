@@ -44,9 +44,9 @@ public final class AtlasDbCommandUtils {
                         + "this, see the documentation: "
                         + "http://palantir.github.io/atlasdb/html/configuration/leader_config.html");
 
-        return serverConfig.timelock().isPresent() ?
-                serverConfig :
-                convertConfigWithLeaderBlockToClientConfig(serverConfig);
+        return serverConfig.timelock().isPresent()
+                ? serverConfig
+                : convertConfigWithLeaderBlockToClientConfig(serverConfig);
     }
 
     private static AtlasDbConfig convertConfigWithLeaderBlockToClientConfig(AtlasDbConfig serverConfig) {
