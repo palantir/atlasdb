@@ -15,14 +15,14 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import java.util.Optional;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 
 /**
  * Provides endpoints for acquiring and releasing the Backup Lock. This is intended to be used by backups and sweep,
@@ -34,24 +34,27 @@ public interface PersistentLockService {
      * Attempt to acquire the lock.
      * Call this method before performing any destructive operations.
      * @param reason the reason for the lock, for logging purposes (e.g. "sweep")
-     * @return a {@link LockEntry} on success. The LockEntry will contain the given reason, and a unique ID. It is
-     *   essential that you retain a reference to this lock, as you will need it in order to release the lock.
+     * @return a {@link PersistentLockServiceResponse} object
+     *   If successful, the response will contain a {@link LockEntry} object that contains the given reason,
+     *   and a unique ID. It is essential that you retain a reference to this lock, as you will need it in order
+     *   to release the lock.
+     *
+     *   If unsuccessful, the response will contain {@link Optional#empty()} instead.
      */
     @POST // This has to be POST because we can't allow caching.
     @Path("acquire-backup-lock")
     @Produces(MediaType.APPLICATION_JSON)
-    LockEntry acquireBackupLock(@QueryParam("reason") String reason);
+    PersistentLockServiceResponse acquireBackupLock(@QueryParam("reason") String reason);
 
     /**
      * Release a lock that you have previously acquired.
      * Call this method as soon as you no longer need the lock (e.g. because you finished deleting stuff).
      * @param lockEntry the {@link LockEntry} you were given when you called {@link #acquireBackupLock(String)}
-     * @return A success message if the lock was successfully released
-     * @throws CheckAndSetException if there was a conflict.
+     * @return a {@link PersistentLockServiceResponse} object
      */
     @POST
     @Path("release")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    String releaseLock(LockEntry lockEntry) throws CheckAndSetException;
+    PersistentLockServiceResponse releaseLock(LockEntry lockEntry);
 }
