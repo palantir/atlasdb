@@ -1177,7 +1177,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void truncateTables(final Set<TableReference> tablesToTruncate) {
         if (!tablesToTruncate.isEmpty()) {
             try {
-                clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
+                clientPool.run(new FunctionCheckedException<Client, Void, Exception>() {
                     @Override
                     public Void apply(Client client) throws Exception {
                         for (TableReference tableRef : tablesToTruncate) {
