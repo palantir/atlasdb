@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.persistentlock;
 
 import java.util.List;
+import java.util.UUID;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -33,8 +34,9 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
 
     @Override
     public Response toResponse(CheckAndSetException ex) {
-        LockEntry actualEntry = extractStoredLockEntry(ex);
-        return createReleaseErrorResponse(actualEntry);
+        String errorId = UUID.randomUUID().toString();
+        log.error("Error handling a request: {}. Stored persistent lock: {}", errorId, extractStoredLockEntry(ex), ex);
+        return createErrorResponse(errorId);
     }
 
     private LockEntry extractStoredLockEntry(CheckAndSetException ex) {
@@ -49,17 +51,14 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
         return LockEntry.fromStoredValue(actualValue);
     }
 
-    private Response createReleaseErrorResponse(LockEntry actualEntry) {
-        log.warn("Request failed. Stored persistent lock: {}", actualEntry);
-        String message = LockStore.LOCK_OPEN.equals(actualEntry)
-                ? "The lock has already been released"
-                : String.format("The lock has already been taken out; reason: %s", actualEntry.reason());
+    // This is needed to allow clients using http-remoting clients to properly receive RemoteExceptions
+    private Response createErrorResponse(String errorId) {
         return Response
                 .status(Response.Status.CONFLICT)
                 .type(MediaType.APPLICATION_JSON_TYPE)
                 .entity(ImmutableMap.of(
-                        "exceptionClass", CheckAndSetException.class,
-                        "message", message,
+                        "exceptionClass", CheckAndSetException.class.getName(),
+                        "message", String.format("Error %s: Check and set failed.", errorId),
                         "code", Response.Status.CONFLICT.getStatusCode()))
                 .build();
     }
