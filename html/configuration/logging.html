@@ -169,8 +169,10 @@ For more information, see <a class="reference internal" href="enabling_cassandra
 </div>
 <div class="section" id="debug-logging-for-multiple-timestamp-services-error">
 <h2>Debug Logging for Multiple Timestamp Services Error<a class="headerlink" href="#debug-logging-for-multiple-timestamp-services-error" title="Permalink to this headline">¶</a></h2>
-<p>From version 0.23.0, it is recommended that you send logging related to the timestamp service to a separate appender.
-To do this, add the following to your logging configuration:</p>
+<p>This logging is available from version 0.23.0.  It is intended for targeted use only
+(read: when you have consistent reproduction) as it is particularly verbose.
+Due to the volume, it is recommended that you send logging related to the timestamp service to a separate appender.</p>
+<p>To do this, add the following to your logging configuration:</p>
 <div class="code yaml highlight-default"><div class="highlight"><pre><span></span><span class="n">logging</span><span class="p">:</span>
   <span class="n">loggers</span><span class="p">:</span>
     <span class="n">com</span><span class="o">.</span><span class="n">palantir</span><span class="o">.</span><span class="n">timestamp</span><span class="p">:</span>
