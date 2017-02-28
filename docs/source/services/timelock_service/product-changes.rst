@@ -2,8 +2,6 @@
 
 Developing a product to use the timelock service
 ================================================
- .. note::
-    We recommend only product instances deployed against Cassandra KVS use the timelock server, as we don't have automated migrations for other KVSs.
 
 All products deploying against the AtlasDB Timelock service should follow the following checklist.
 
@@ -17,4 +15,4 @@ All products deploying against the AtlasDB Timelock service should follow the fo
 
 3. Ensure that the timelock server has added the product as a client in the :ref:`timelock-server-clients` block.
    The client name should be same as the ``client`` field in the :ref:`timelock-client-configuration`.
-4. Each deployed instance of the product should upgrade and migrate from embedded timestamp/lock services to the timelock server :ref:`timelock-migration`.
+4. All users of the product should :ref:`migrate <timelock-migration>` from embedded timestamp/lock services to the timelock server post-upgrade.
