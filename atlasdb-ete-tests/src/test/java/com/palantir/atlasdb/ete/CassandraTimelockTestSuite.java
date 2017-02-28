@@ -39,5 +39,4 @@ public class CassandraTimelockTestSuite extends EteSetup {
             "docker-compose.timelock.cassandra.yml",
             CLIENTS,
             CassandraVersion.getEnvironment());
-
 }

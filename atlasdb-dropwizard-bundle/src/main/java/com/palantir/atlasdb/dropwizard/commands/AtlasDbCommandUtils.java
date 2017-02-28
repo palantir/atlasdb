@@ -31,6 +31,11 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 
 public final class AtlasDbCommandUtils {
+    private static final String TIMELOCK_CLIENT_DOCS_URL
+            = "http://palantir.github.io/atlasdb/html/configuration/external_timelock_service_configs/timelock_client_config.html";
+    private static final String LEADER_CONFIG_DOCS_URL
+            = "http://palantir.github.io/atlasdb/html/configuration/leader_config.html";
+
     public static final Object ZERO_ARITY_ARG_CONSTANT = "<ZERO ARITY ARG CONSTANT>";
     public static final String OFFLINE_COMMAND_ARG_NAME = "--offline";
 
@@ -42,7 +47,10 @@ public final class AtlasDbCommandUtils {
         Preconditions.checkArgument(serverConfig.leader().isPresent() || serverConfig.timelock().isPresent(),
                 "Your server configuration file must have a leader or timelock block. For instructions on how to do "
                         + "this, see the documentation: "
-                        + "http://palantir.github.io/atlasdb/html/configuration/leader_config.html");
+                        + LEADER_CONFIG_DOCS_URL
+                        + " or "
+                        + TIMELOCK_CLIENT_DOCS_URL
+                        + ", respectively.");
 
         return serverConfig.timelock().isPresent()
                 ? serverConfig

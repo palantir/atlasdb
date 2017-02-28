@@ -4,8 +4,8 @@ services:
   timelock:
     image: palantirtechnologies/timelock-server
     ports:
-      - 8421
-      - 8422
+      - "8421"
+      - "8422"
 
   cassandra:
     image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION

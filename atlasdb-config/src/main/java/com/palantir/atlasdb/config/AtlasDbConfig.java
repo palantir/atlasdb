@@ -200,7 +200,6 @@ public abstract class AtlasDbConfig {
                 .leader(Optional.absent())
                 .lock(Optional.absent())
                 .timestamp(Optional.absent())
-                .timelock(Optional.absent())
                 .build();
     }
 }

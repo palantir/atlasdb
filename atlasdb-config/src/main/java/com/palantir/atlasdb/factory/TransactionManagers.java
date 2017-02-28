@@ -273,7 +273,10 @@ public final class TransactionManagers {
                 env,
                 lock,
                 time,
-                () -> AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP,
+                () -> {
+                    log.warn("Note: Automatic migration isn't performed by the CLI tools.");
+                    return AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
+                },
                 UserAgents.DEFAULT_USER_AGENT);
     }
 
