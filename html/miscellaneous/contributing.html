@@ -39,7 +39,7 @@
         <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="OSS AtlasDB develop documentation" href="../index.html"/>
         <link rel="up" title="Miscellaneous" href="index.html"/>
-        <link rel="next" title="Troubleshooting" href="../troubleshooting/index.html"/>
+        <link rel="next" title="Architecture Decision Records" href="doc/adr/index.html"/>
         <link rel="prev" title="Miscellaneous" href="index.html"/> 
 
   
@@ -99,6 +99,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../performance/index.html">Performance Testing</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Miscellaneous</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Contributing to AtlasDB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="doc/adr/index.html">Architecture Decision Records</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../troubleshooting/index.html">Troubleshooting</a></li>
@@ -174,7 +175,7 @@ implementing the AtlasDB API for more underlying physical stores.</p>
 <p>If you would like to build the docs locally follow these steps:</p>
 <ol class="arabic simple">
 <li>Clone the git repository:<code class="docutils literal"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</li>
-<li>Install sphinx and sphinx_rtd_theme if you don&#8217;t have it.  Instructions can be found <a class="reference external" href="http://www.sphinx-doc.org/en/stab/install.html">here</a>.  The easiest option for Mac users will be using pip.  Please be sure to update sphinx if you haven&#8217;t used it in a while.  Also please be aware the exact commands to build the docs can be found in <code class="docutils literal"><span class="pre">scripts/circle-ci/publish-github-pages.sh</span></code>.</li>
+<li>Install sphinx, sphinx_rtd_theme, and recommonmark if you don&#8217;t have it.  Instructions can be found <a class="reference external" href="http://www.sphinx-doc.org/en/stab/install.html">here</a>.  The easiest option for Mac users will be using pip.  Please be sure to update sphinx if you haven&#8217;t used it in a while.  Also please be aware the exact commands to build the docs can be found in <code class="docutils literal"><span class="pre">scripts/circle-ci/publish-github-pages.sh</span></code>.</li>
 <li>Confirm you installation is working by running <code class="docutils literal"><span class="pre">cd</span> <span class="pre">docs</span> <span class="pre">&amp;&amp;</span> <span class="pre">make</span> <span class="pre">html</span></code>.  The freshly built documentation will be in <code class="docutils literal"><span class="pre">docs/build/html</span></code>.</li>
 <li>Existing pages can be found in <code class="docutils literal"><span class="pre">docs/source</span></code>. Create new pages by adding an .rst file to <code class="docutils literal"><span class="pre">docs/source</span></code> and then adding the file name to the appropriate .toctree in the parent file.</li>
 <li>Commit any changes to a <code class="docutils literal"><span class="pre">docs/*</span></code> branch and push them up to github for review.</li>
@@ -192,7 +193,7 @@ implementing the AtlasDB API for more underlying physical stores.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../troubleshooting/index.html" class="btn btn-neutral float-right" title="Troubleshooting" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="doc/adr/index.html" class="btn btn-neutral float-right" title="Architecture Decision Records" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="index.html" class="btn btn-neutral" title="Miscellaneous" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>

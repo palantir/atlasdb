@@ -1,0 +1,268 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>2. Prevent tables from being created simultaneously in cassandra via a locks table &mdash; OSS AtlasDB develop documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
+  
+    <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="OSS AtlasDB develop documentation" href="../../../index.html"/>
+        <link rel="up" title="Architecture Decision Records" href="index.html"/>
+        <link rel="next" title="3. Tagging for releases and long-term support" href="0003-tagging-for-releases-and-long-term-support.html"/>
+        <link rel="prev" title="1. Record architecture decisions" href="0001-record-architecture-decisions.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> OSS AtlasDB
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                develop
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../schemas/index.html">Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../transactions/index.html">Transactions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configuration/index.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cluster_management/index.html">Cluster Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../performance/index.html">Performance Testing</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Miscellaneous</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../contributing.html">Contributing to AtlasDB</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Architecture Decision Records</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="0001-record-architecture-decisions.html">1. Record architecture decisions</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">2. Prevent tables from being created simultaneously in cassandra via a locks table</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0003-tagging-for-releases-and-long-term-support.html">3. Tagging for releases and long-term support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0004-create-schema-lock-table-via-a-one-off-cli-command.html">4. Create schema lock table via a one off CLI command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0005-stop-allowing-embedded-lock-and-timestamp-services-in-production.html">5. stop allowing embedded lock and timestamp services in production</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0006-create-schema-lock-table-using-configuration.html">6. Create schema lock table using configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0007-use-cql-for-column-paging-for-sweep.html">7. Use CQL for column paging for sweep</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0008-add-heartbeat-for-schema-lock-holders.html">8. Adding Heartbeat for Schema Lock Holders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0009-load-and-read-streams-in-same-transaction.html">9. Load and Read Streams in the Same Transaction</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting/index.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes/index.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../index.html">OSS AtlasDB</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../index.html">Miscellaneous</a> &raquo;</li>
+      
+          <li><a href="index.html">Architecture Decision Records</a> &raquo;</li>
+      
+    <li>2. Prevent tables from being created simultaneously in cassandra via a locks table</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/miscellaneous/doc/adr/0002-prevent-tables-from-being-creating-simultaneously-in-cassandra-via-a-locks-table.md" class="fa fa-github"> Edit on GitHub</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="prevent-tables-from-being-created-simultaneously-in-cassandra-via-a-locks-table">
+<span id="prevent-tables-from-being-created-simultaneously-in-cassandra-via-a-locks-table"></span><h1>2. Prevent tables from being created simultaneously in cassandra via a locks table<a class="headerlink" href="#prevent-tables-from-being-created-simultaneously-in-cassandra-via-a-locks-table" title="Permalink to this headline">¶</a></h1>
+<p>Date: 18/05/2016</p>
+<div class="section" id="status">
+<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<p>Accepted</p>
+</div>
+<div class="section" id="context">
+<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<p>Cassandra <a class="reference external" href="https://issues.apache.org/jira/browse/CASSANDRA-10699">has an issue</a> which can cause data loss in the situation:</p>
+<ol class="simple">
+<li>Node A and node B concurrently create table &#8220;some.table&#8221;</li>
+<li>Both table creations succeed, creating tables with column family ids &#8220;123&#8221; and &#8220;456&#8221;</li>
+<li>Cassandra picks &#8220;123&#8221; to be the correct table for &#8220;some.table&#8221;</li>
+<li>Cassandra is restarted</li>
+<li>After restart Cassandra gossips and decides that &#8220;456&#8221; is the correct table for &#8220;some.table&#8221;</li>
+<li>All data that was written to &#8220;123&#8221; is now lost</li>
+</ol>
+<p>To fix this we must prevent tables from being created at the same time.</p>
+</div>
+<div class="section" id="decision">
+<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<p>All schema mutations will globally synchronise via a check-and-set operation on a specific cell in a _lock table.</p>
+</div>
+<div class="section" id="consequences">
+<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>If a node attempts to mutate the schema but dies before releasing the lock, then the lock will never be released. This will require manual intervention.</li>
+<li>We need to ensure that the lock table does not suffer from this bug, so the lock table must be created in a synchronous manner.</li>
+<li>Client startup will become slower as part of the startup will be linearized.</li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="0003-tagging-for-releases-and-long-term-support.html" class="btn btn-neutral float-right" title="3. Tagging for releases and long-term support" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="0001-record-architecture-decisions.html" class="btn btn-neutral" title="1. Record architecture decisions" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Palantir Technologies.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'develop',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
