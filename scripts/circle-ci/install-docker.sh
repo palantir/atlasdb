@@ -2,7 +2,7 @@
 
 set -x
 
-MIN_VERSION_WANTED=1.10.0
+MIN_VERSION_WANTED=1.12.0
 CURRENT_VERSION=$(docker version --format '{{.Client.Version}}')
 
 if [ "$MIN_VERSION_WANTED" != "$(echo -e "$CURRENT_VERSION\n$MIN_VERSION_WANTED" | sort -V | head -n 1)" ]; then
