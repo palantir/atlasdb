@@ -53,6 +53,10 @@ develop
            This prevents the operation from interfering with concurrently running Postgres backups.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1616>`__)
 
+    *    - |improved|
+         - Cassandra truncates that are going to fail will do so faster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1660>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
