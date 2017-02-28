@@ -148,9 +148,4 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
     public void logCurrentState() {
         delegate().logCurrentState();
     }
-
-    @Override
-    public void logCurrentHeldLocks(String descriptorRegex, boolean versionIdNecessary) {
-        delegate().logCurrentHeldLocks(descriptorRegex, versionIdNecessary);
-    }
 }

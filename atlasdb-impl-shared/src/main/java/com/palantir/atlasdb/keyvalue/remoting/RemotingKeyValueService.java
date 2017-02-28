@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.remoting;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -29,9 +31,12 @@ import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -39,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
+import com.palantir.atlasdb.keyvalue.remoting.iterators.RemoteRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.TimestampsRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.ValueRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.outofband.OutboxShippingInterceptor;
@@ -219,6 +225,18 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
             });
     }
 
+    @Override
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
+                                                                  ColumnRangeSelection columnRangeSelection, long timestamp) {
+        Map<byte[], RowColumnRangeIterator> rowsColumnRange = super.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+        Map<byte[], RowColumnRangeIterator> transformed = Maps.transformValues(rowsColumnRange,
+                it -> {
+                    List<Map.Entry<Cell, Value>> page = ImmutableList.copyOf(Iterators.limit(it, columnRangeSelection.getBatchHint()));
+                    return (RowColumnRangeIterator) new RemoteRowColumnRangeIterator(tableRef, columnRangeSelection, timestamp, it.hasNext(), page);
+                });
+        return transformed;
+    }
+
     private static final SimpleModule kvsModule = new SimpleModule(); static {
         kvsModule.addKeyDeserializer(Cell.class, CellAsKeyDeserializer.instance());
         kvsModule.addKeyDeserializer(byte[].class, BytesAsKeyDeserializer.instance());
@@ -228,6 +246,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
         kvsModule.addDeserializer(RowResult.class, RowResultDeserializer.instance());
         kvsModule.addSerializer(DynamicPartitionMapImpl.class, DynamicPartitionMapImpl.Serializer.instance());
         kvsModule.addDeserializer(DynamicPartitionMapImpl.class, DynamicPartitionMapImpl.Deserializer.instance());
+        kvsModule.addAbstractTypeMapping(RowColumnRangeIterator.class, RemoteRowColumnRangeIterator.class);
     }
     private static final ObjectMapper kvsMapper = new ObjectMapper(); static {
         kvsMapper.registerModule(kvsModule);

@@ -42,9 +42,11 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -164,6 +166,17 @@ public class TieredKeyValueService implements KeyValueService {
         }
         Map<Cell, Value> primaryResults = primary.getRows(tableRef, rows, columnSelection, timestamp);
         Map<Cell, Value> results = Maps.newHashMap(secondary.getRows(tableRef, rows, columnSelection, timestamp));
+        results.putAll(primaryResults);
+        return results;
+    }
+
+    @Override
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+        if (isNotTiered(tableRef)) {
+            return primary.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+        }
+        Map<byte[], RowColumnRangeIterator> primaryResults = primary.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+        Map<byte[], RowColumnRangeIterator> results = Maps.newHashMap(secondary.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp));
         results.putAll(primaryResults);
         return results;
     }
