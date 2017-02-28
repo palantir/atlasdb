@@ -261,8 +261,10 @@ public class SQLString extends BasicSQLString {
     }
 
     /**
-     * Cleans up whitespace, any trailing semicolon, and prefixed comments that a string is
+     * Cleans up whitespace, any trailing semicolons, and prefixed comments that a string is
      * unregistered, in order to come up with a canonical representation of this sql string.
+     * Note that for backwards compatibility, this method condenses contiguous whitespace
+     * into a single space. For example, "foo\t \nbar;" becomes "foo bar".
      */
     public static String canonicalizeString(String sql) {
         return canonicalizeString(sql, false);
@@ -279,10 +281,13 @@ public class SQLString extends BasicSQLString {
             if (originalIdx == firstUnregisteredIdx) {
                 originalIdx += UNREGISTERED_SQL_COMMENT.length();
                 firstUnregisteredIdx = original.indexOf(UNREGISTERED_SQL_COMMENT, originalIdx);
-            } else if ((Character.isWhitespace(originalChar))
-                    && ((cleanedIdx == 0)
-                    || (Character.isWhitespace(cleanedString.charAt(cleanedIdx - 1)))
-                    || removeAllWhitespaceEntirely)) {
+            } else if (Character.isWhitespace(originalChar)) {
+                if (cleanedIdx != 0
+                        && !Character.isWhitespace(cleanedString.charAt(cleanedIdx - 1))
+                        && !removeAllWhitespaceEntirely) {
+                    cleanedString.setCharAt(cleanedIdx, ' ');
+                    ++cleanedIdx;
+                }
                 ++originalIdx;
             } else {
                 cleanedString.setCharAt(cleanedIdx, originalChar);

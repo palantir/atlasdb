@@ -19,9 +19,10 @@ For more information, see :ref:`enabling-cassandra-tracing`.
 Debug Logging for Multiple Timestamp Services Error
 ===================================================
 
-This logging is available from version 0.22.0.  It is intended for targeted use only 
+This logging is available from version 0.22.0.  It is intended for targeted use only
 (read: when you have consistent reproduction) as it is particularly verbose. 
 Due to the volume, it is recommended that you send logging related to the timestamp service to a separate appender.
+
 To do this, add the following to your logging configuration:
 
 .. code:: yaml

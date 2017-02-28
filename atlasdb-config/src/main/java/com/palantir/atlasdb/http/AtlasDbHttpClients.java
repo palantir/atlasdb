@@ -64,6 +64,14 @@ public final class AtlasDbHttpClients {
             new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
                     .tlsVersions(TlsVersion.TLS_1_2)
                     .cipherSuites(
+                            // This GCM cipher suite is for HTTP/2 over TLS1.2 as clients have to
+                            // enable at least one cipher suite not in the blacklist.
+                            // (https://http2.github.io/http2-spec/index.html#BadCipherSuites)
+                            // Timelock server will support HTTP/2 connections, and this will ensure
+                            // all AtlasDB clients have one supported cipher suite.
+                            // See also:
+                            //    - https://http2.github.io/http2-spec/index.html#rfc.section.9.2.2
+                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
                             // In an ideal world, we'd use GCM suites, but they're an order of
                             // magnitude slower than the CBC suites, which have JVM optimizations
                             // already. We should revisit with JDK9.
@@ -71,7 +79,6 @@ public final class AtlasDbHttpClients {
                             //  - http://openjdk.java.net/jeps/246
                             //  - https://bugs.openjdk.java.net/secure/attachment/25422/GCM%20Analysis.pdf
                             // CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-                            // CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
                             // CipherSuite.TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384,
                             // CipherSuite.TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256,
                             // CipherSuite.TLS_RSA_WITH_AES_256_GCM_SHA384,

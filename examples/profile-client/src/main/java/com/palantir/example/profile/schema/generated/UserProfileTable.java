@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class UserProfileTable implements
         AtlasDbMutablePersistentTable<UserProfileTable.UserProfileRow,
                                          UserProfileTable.UserProfileNamedColumnValue<?>,
@@ -1240,6 +1241,7 @@ public final class UserProfileTable implements
     }
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+    @SuppressWarnings("all")
     public static final class CookiesIdxTable implements
             AtlasDbDynamicMutablePersistentTable<CookiesIdxTable.CookiesIdxRow,
                                                     CookiesIdxTable.CookiesIdxColumn,
@@ -1927,6 +1929,7 @@ public final class UserProfileTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+    @SuppressWarnings("all")
     public static final class CreatedIdxTable implements
             AtlasDbDynamicMutablePersistentTable<CreatedIdxTable.CreatedIdxRow,
                                                     CreatedIdxTable.CreatedIdxColumn,
@@ -2614,6 +2617,7 @@ public final class UserProfileTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+    @SuppressWarnings("all")
     public static final class UserBirthdaysIdxTable implements
             AtlasDbDynamicMutablePersistentTable<UserBirthdaysIdxTable.UserBirthdaysIdxRow,
                                                     UserBirthdaysIdxTable.UserBirthdaysIdxColumn,
@@ -3386,5 +3390,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "XAWQ7jzaJOs0v1rHKKvroQ==";
+    static String __CLASS_HASH = "Yrbc9BJH9QduFOQYBCrcWw==";
 }

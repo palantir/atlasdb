@@ -98,7 +98,7 @@ public class LockStore {
                 LOCK_OPEN.value());
 
         keyValueService.checkAndSet(request);
-        log.info("Successfully released the persistent lock.");
+        log.info("Successfully released the persistent lock: {}", lockEntry);
     }
 
     @VisibleForTesting

@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class StreamTestMaxMemStreamMetadataTable implements
         AtlasDbMutablePersistentTable<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow,
                                          StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataNamedColumnValue<?>,
@@ -741,5 +742,5 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ovKBuFSKXhb5ELOhaS04Gw==";
+    static String __CLASS_HASH = "f9ELD6jdrjjZyplQIaq9UA==";
 }
