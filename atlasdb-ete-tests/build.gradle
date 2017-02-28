@@ -47,7 +47,7 @@ task longTest(type: Test) {
 }
 
 task timeLockTest(type: Test) {
-    dependsOn prepareForEteTests
+    dependsOn prepareForEteTests, ':timelock-server:dockerTag'
     include '**/*TimeLock*.class'
 }
 

@@ -5,7 +5,7 @@ machine:
   environment:
     _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
     TERM: dumb
-  post:
+  post: # install-docker.sh and starting Docker depend on environment variables to deduce whether they're running on external or internal CircleCI, which are not visible in 'pre'.
     - ./scripts/circle-ci/install-docker.sh:
         pwd: $CIRCLE_PROJECT_REPONAME
     - sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m`

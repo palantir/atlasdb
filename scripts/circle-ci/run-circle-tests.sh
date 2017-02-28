@@ -13,9 +13,6 @@ function checkDocsBuild {
 CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
 CONTAINER_2=(':atlasdb-ete-tests:check')
-if [[ $INTERNAL_BUILD == true ]]; then
-    CONTAINER_2+=(':timelock-server:dockerTag')
-fi
 
 CONTAINER_3=(':atlasdb-cassandra-integration-tests:longTest')
 
@@ -66,6 +63,9 @@ else
 fi
 
 ETE_EXCLUDES=('-x :atlasdb-ete-tests:longTest')
+
+# Timelock requires Docker 1.12; currently unavailable on external Circle. Might not be needed if we move to
+# CircleCI 2.0.
 if [[ $INTERNAL_BUILD != true ]]; then
     ETE_EXCLUDES+=('-x :atlasdb-ete-tests:timeLockTest')
 fi

@@ -56,10 +56,13 @@ develop
     *    - |new|
          - Users can now create a Docker image and run containers of the Timelock Server, by running ``./gradlew timelock-server:dockerTag``.
            This can be useful for quickly spinning up a Timelock instance (e.g. for testing purposes).
+           Note that we are not yet publishing this image.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
 
     *    - |fixed|
-         - AtlasDB :ref:`CLIs <clis>` can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
+         - AtlasDB :ref:`CLIs <clis>` run via the :ref:`Dropwizard bundle <dropwizard-bundle>` can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
+           Previously, these CLIs would throw an error that a leader block was not specified.
+           Note that CLIs will not perform automated migrations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
