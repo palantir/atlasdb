@@ -56,7 +56,8 @@ public class KvsBackedPersistentLockServiceTest {
     @Test
     public void canReleaseLock() {
         LockEntry entry = lockStore.acquireBackupLock(TEST_REASON);
-        service.releaseLock(entry);
+        PersistentLockId entryId = ImmutablePersistentLockId.of(entry.instanceId());
+        service.releaseLock(entryId);
 
         verify(lockStore, times(1)).releaseLock(entry);
     }

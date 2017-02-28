@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.persistentlock;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -24,8 +25,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -99,6 +102,21 @@ public class LockStore {
 
         keyValueService.checkAndSet(request);
         log.info("Successfully released the persistent lock: {}", lockEntry);
+    }
+
+    public LockEntry getLockEntryWithLockId(PersistentLockId lockId) {
+        List<LockEntry> locksWithId = allLockEntries().stream()
+                .filter(lockEntry -> Objects.equals(lockEntry.instanceId(), lockId.value()))
+                .collect(Collectors.toList());
+
+        Preconditions.checkArgument(
+                locksWithId.size() == 1,
+                "Expected a single lock with id %s but found %s matching locks [%s]",
+                lockId,
+                locksWithId.size(),
+                locksWithId);
+
+        return Iterables.getOnlyElement(locksWithId);
     }
 
     @VisibleForTesting

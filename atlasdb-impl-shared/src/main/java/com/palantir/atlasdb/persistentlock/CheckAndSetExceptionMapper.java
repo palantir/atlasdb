@@ -17,13 +17,14 @@ package com.palantir.atlasdb.persistentlock;
 
 import java.util.List;
 
-import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 
@@ -49,10 +50,17 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
     }
 
     private Response createReleaseErrorResponse(LockEntry actualEntry) {
-        log.info("Request failed. Stored persistent lock: {}", actualEntry);
+        log.warn("Request failed. Stored persistent lock: {}", actualEntry);
         String message = LockStore.LOCK_OPEN.equals(actualEntry)
                 ? "The lock has already been released"
                 : String.format("The lock has already been taken out; reason: %s", actualEntry.reason());
-        return Response.status(Response.Status.CONFLICT).entity(Entity.text(message)).build();
+        return Response
+                .status(Response.Status.CONFLICT)
+                .type(MediaType.APPLICATION_JSON_TYPE)
+                .entity(ImmutableMap.of(
+                        "exceptionClass", CheckAndSetException.class,
+                        "message", message,
+                        "code", Response.Status.CONFLICT.getStatusCode()))
+                .build();
     }
 }
