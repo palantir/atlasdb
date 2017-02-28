@@ -2,7 +2,6 @@
 
 set -x
 
-MIN_VERSION_WANTED=1.13.1
 CURRENT_VERSION=$(docker version --format '{{.Client.Version}}')
 
 if [[ $INTERNAL_BUILD == true ]]; then
