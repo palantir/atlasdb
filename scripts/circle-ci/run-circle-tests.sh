@@ -12,7 +12,10 @@ function checkDocsBuild {
 
 CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
-CONTAINER_2=(':timelock-server:dockerTag' ':atlasdb-ete-tests:check')
+CONTAINER_2=(':atlasdb-ete-tests:check')
+if [[ $INTERNAL_BUILD == true ]]; then
+    CONTAINER_2+=(':timelock-server:dockerTag')
+fi
 
 CONTAINER_3=(':atlasdb-cassandra-integration-tests:longTest')
 
@@ -62,10 +65,15 @@ else
     export CASSANDRA_HEAP_NEWSIZE=24m
 fi
 
+ETE_EXCLUDES=('-x :atlasdb-ete-tests:longTest')
+if [[ $INTERNAL_BUILD != true ]]; then
+    ETE_EXCLUDES+=('-x :atlasdb-ete-tests:timeLockTest')
+fi
+
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
     1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest ;;
+    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} ${ETE_EXCLUDES[@]};;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
