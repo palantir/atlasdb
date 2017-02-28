@@ -89,7 +89,7 @@ public class PersistentLockServiceClientTest {
 
     @Test
     public void releaseReturnsBadRequestWithNonExistentLockId() {
-        PersistentLockId nonExistentLockId = PersistentLockId.withId(UUID.randomUUID());
+        PersistentLockId nonExistentLockId = PersistentLockId.of(UUID.randomUUID());
 
         assertThatExceptionOfType(RemoteException.class)
                 .isThrownBy(() -> lockService.releaseLock(nonExistentLockId))
