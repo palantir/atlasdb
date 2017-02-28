@@ -43,8 +43,8 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
         // Want a slightly different response if the lock was already open
         List<byte[]> actualValues = ex.getActualValues();
         if (actualValues == null || actualValues.size() != 1) {
-            // Rethrow - something odd happened in the db, and here we _do_ want the log message/stack trace.
-            throw ex;
+            // something odd happened in the db
+            return null;
         }
 
         byte[] actualValue = Iterables.getOnlyElement(actualValues);

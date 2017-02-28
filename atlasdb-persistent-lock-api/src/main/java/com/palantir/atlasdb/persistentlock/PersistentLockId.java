@@ -24,17 +24,16 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 @Value.Immutable
 public interface PersistentLockId {
-
     @JsonValue
     @Value.Parameter
     UUID value();
 
     @JsonCreator
     static PersistentLockId fromString(String uuid) {
-        return PersistentLockId.withId(UUID.fromString(uuid));
+        return PersistentLockId.of(UUID.fromString(uuid));
     }
 
-    static PersistentLockId withId(UUID id) {
+    static PersistentLockId of(UUID id) {
         return ImmutablePersistentLockId.of(id);
     }
 }
