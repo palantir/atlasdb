@@ -16,7 +16,7 @@ Automated Migration
 .. warning::
     Automated migrations are only implemented for Cassandra.
 
-1. If you are using the Casssandra key value service, starting/re-starting the service will automatically migrate the service.
+1. If you are using the Casssandra key value service and have added the :ref:`Timelock client configuration <timelock-client-configuration>`, then starting/re-starting the service will automatically migrate the service.
 2. If you are using any other KVS, please follow the instructions at :ref:`manual-timelock-migration`.
 
 
