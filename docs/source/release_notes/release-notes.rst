@@ -69,6 +69,11 @@ develop
          - Cassandra truncates that are going to fail will do so faster.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1660>`__)
 
+    *    - |devbreak|
+         - The backup lock endpoints now use ``PersistentLockId`` instead of ``LockEntry``. Additionally, the
+           ``releaseLock`` endpoint will now throw the http-remoting compatible exceptions on errors and not return anything on success.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1665>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

@@ -34,7 +34,7 @@ import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
-public class PersistentLockServiceClientTest {
+public class KvsBackedPersistentLockServiceClientTest {
     private static final String REASON = "some-reason";
     private static final LockStore LOCK_STORE = LockStore.create(new InMemoryKeyValueService(true));
 
