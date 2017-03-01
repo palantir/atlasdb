@@ -49,6 +49,7 @@
 
 <body class="wy-body-for-nav" role="document">
 
+   
   <div class="wy-grid-for-nav">
 
     
@@ -118,8 +119,10 @@
 
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="../index.html">OSS AtlasDB</a>
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OSS AtlasDB</a>
+        
       </nav>
 
 
@@ -128,25 +131,44 @@
         <div class="rst-content">
           
 
- 
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 <div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
-    <li><a href="../index.html">Docs</a> &raquo;</li>
-      
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
           <li><a href="index.html">Releases</a> &raquo;</li>
-      
-    <li>Changelog</li>
+        
+      <li>Changelog</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
         
-          
-            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/release_notes/release-notes.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+            
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/release_notes/release-notes.rst" class="fa fa-github"> Edit on GitHub</a>
+            
           
         
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
@@ -197,6 +219,14 @@ Note that CLIs will not perform automated migrations.
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Cassandra truncates that are going to fail will do so faster.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1660">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><p class="first">The backup lock endpoints now use <code class="docutils literal"><span class="pre">PersistentLockId</span></code> instead of <code class="docutils literal"><span class="pre">LockEntry</span></code>.</p>
+<p class="last">Additionally, the <code class="docutils literal"><span class="pre">CheckAndSetException</span></code> now gets mapped to the correct response for compatibility
+with <a class="reference external" href="https://github.com/palantir/http-remoting">http-remoting</a> whereas previously, any consumer using http-remoting would have to
+deal with deserialization errors.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1665">Pull Request</a>)</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -1837,6 +1867,9 @@ The error has been downgraded to INFO and made less scary.</td>
 
 
            </div>
+           <div class="articleComments">
+            
+           </div>
           </div>
           <footer>
   
@@ -1879,7 +1912,8 @@ The error has been downgraded to INFO and made less scary.</td>
             VERSION:'develop',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
         };
     </script>
       <script type="text/javascript" src="../_static/jquery.js"></script>
