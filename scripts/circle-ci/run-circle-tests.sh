@@ -62,10 +62,18 @@ else
     export CASSANDRA_HEAP_NEWSIZE=24m
 fi
 
+ETE_EXCLUDES=('-x :atlasdb-ete-tests:longTest')
+
+# Timelock requires Docker 1.12; currently unavailable on external Circle. Might not be needed if we move to
+# CircleCI 2.0.
+if [[ $INTERNAL_BUILD != true ]]; then
+    ETE_EXCLUDES+=('-x :atlasdb-ete-tests:timeLockTest')
+fi
+
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
     1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest ;;
+    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} ${ETE_EXCLUDES[@]};;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;

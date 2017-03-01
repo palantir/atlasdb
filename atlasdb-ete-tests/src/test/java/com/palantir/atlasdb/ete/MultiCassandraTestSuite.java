@@ -35,6 +35,7 @@ import com.palantir.docker.compose.connection.DockerPort;
 @Suite.SuiteClasses({
         TodoEteTest.class,
         DropwizardEteTest.class,
+        ServiceExposureEteTest.class,
         MultiCassandraSingleNodeDownEteTest.class,
         MultiCassandraDoubleNodeDownEteTest.class
         })

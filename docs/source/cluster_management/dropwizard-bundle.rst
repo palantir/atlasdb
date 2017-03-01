@@ -10,7 +10,9 @@ Overview
 The AtlasDB Dropwizard bundle can be added to Dropwizard applications. This will add startup commands to launch
 the AtlasDB :ref:`Console <console>` and :ref:`CLIs <clis>` such as ``sweep`` and ``timestamp``.
 
-.. warning:: These commands will only work if the server is started with a leader block in the configuration.
+.. warning::
+
+    These commands will only work if the server is started with a leader or timelock block in the configuration.
 
 Getting Started
 ===============

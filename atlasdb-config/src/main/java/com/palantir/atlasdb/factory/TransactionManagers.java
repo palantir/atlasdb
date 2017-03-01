@@ -268,9 +268,16 @@ public final class TransactionManagers {
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
-        return createLockAndTimestampServices(config, env, lock, time, () -> {
-            throw new UnsupportedOperationException("Tried to migrate, but no invalidator was applied!");
-        }, UserAgents.DEFAULT_USER_AGENT);
+        return createLockAndTimestampServices(
+                config,
+                env,
+                lock,
+                time,
+                () -> {
+                    log.warn("Note: Automatic migration isn't performed by the CLI tools.");
+                    return AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
+                },
+                UserAgents.DEFAULT_USER_AGENT);
     }
 
     @VisibleForTesting

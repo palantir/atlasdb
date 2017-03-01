@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,16 +28,15 @@ import com.palantir.atlasdb.containers.CassandraVersion;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
-        ServiceExposureEteTest.class,
         DropwizardEteTest.class
 })
-public class CassandraMultinodeTestSuite extends EteSetup {
-    private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
+public class CassandraTimeLockTestSuite extends EteSetup {
+    private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            CassandraMultinodeTestSuite.class,
-            "docker-compose.cassandra.yml",
+            CassandraTimeLockTestSuite.class,
+            "docker-compose.timelock.cassandra.yml",
             CLIENTS,
             CassandraVersion.getEnvironment());
 }
