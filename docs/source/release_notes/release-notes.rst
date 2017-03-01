@@ -71,7 +71,8 @@ develop
 
     *    - |devbreak|
          - The backup lock endpoints now use ``PersistentLockId`` instead of ``LockEntry``. Additionally, the
-           ``releaseLock`` endpoint will now throw the http-remoting compatible exceptions on errors and not return anything on success.
+           ``CheckAndSetException`` now gets mapped to the correct response for compatibility
+           with `http-remoting <https://github.com/palantir/http-remoting>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1665>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
