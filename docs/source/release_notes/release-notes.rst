@@ -65,6 +65,10 @@ develop
            Note that CLIs will not perform automated migrations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
 
+    *    - |improved|
+         - Cassandra truncates that are going to fail will do so faster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1660>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
