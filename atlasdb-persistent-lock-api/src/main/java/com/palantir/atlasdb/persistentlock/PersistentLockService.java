@@ -22,8 +22,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-
 /**
  * Provides endpoints for acquiring and releasing the Backup Lock. This is intended to be used by backups and sweep,
  * to ensure that only one of these operations is deleting data at once.
@@ -34,24 +32,22 @@ public interface PersistentLockService {
      * Attempt to acquire the lock.
      * Call this method before performing any destructive operations.
      * @param reason the reason for the lock, for logging purposes (e.g. "sweep")
-     * @return a {@link LockEntry} on success. The LockEntry will contain the given reason, and a unique ID. It is
-     *   essential that you retain a reference to this lock, as you will need it in order to release the lock.
+     * @return a {@link PersistentLockId} on success that represents the unique id of the lock that has
+     *   been acquired. You will need to provide this lock id when releasing the lock.
      */
     @POST // This has to be POST because we can't allow caching.
     @Path("acquire-backup-lock")
     @Produces(MediaType.APPLICATION_JSON)
-    LockEntry acquireBackupLock(@QueryParam("reason") String reason);
+    PersistentLockId acquireBackupLock(@QueryParam("reason") String reason);
 
     /**
      * Release a lock that you have previously acquired.
      * Call this method as soon as you no longer need the lock (e.g. because you finished deleting stuff).
-     * @param lockEntry the {@link LockEntry} you were given when you called {@link #acquireBackupLock(String)}
-     * @return A success message if the lock was successfully released
-     * @throws CheckAndSetException if there was a conflict.
+     * @param lockId the {@link PersistentLockId} you were given when you called {@link #acquireBackupLock(String)}
      */
     @POST
     @Path("release")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    String releaseLock(LockEntry lockEntry) throws CheckAndSetException;
+    void releaseLock(PersistentLockId lockId);
 }

@@ -16,14 +16,16 @@
 package com.palantir.atlasdb.persistentlock;
 
 import java.util.List;
+import java.util.UUID;
 
-import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 
@@ -32,27 +34,32 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
 
     @Override
     public Response toResponse(CheckAndSetException ex) {
-        LockEntry actualEntry = extractStoredLockEntry(ex);
-        return createReleaseErrorResponse(actualEntry);
+        String errorId = UUID.randomUUID().toString();
+        log.error("Error handling a request: {}. Stored persistent lock: {}", errorId, extractStoredLockEntry(ex), ex);
+        return createErrorResponse(errorId);
     }
 
     private LockEntry extractStoredLockEntry(CheckAndSetException ex) {
         // Want a slightly different response if the lock was already open
         List<byte[]> actualValues = ex.getActualValues();
         if (actualValues == null || actualValues.size() != 1) {
-            // Rethrow - something odd happened in the db, and here we _do_ want the log message/stack trace.
-            throw ex;
+            // something odd happened in the db
+            return null;
         }
 
         byte[] actualValue = Iterables.getOnlyElement(actualValues);
         return LockEntry.fromStoredValue(actualValue);
     }
 
-    private Response createReleaseErrorResponse(LockEntry actualEntry) {
-        log.info("Request failed. Stored persistent lock: {}", actualEntry);
-        String message = LockStore.LOCK_OPEN.equals(actualEntry)
-                ? "The lock has already been released"
-                : String.format("The lock has already been taken out; reason: %s", actualEntry.reason());
-        return Response.status(Response.Status.CONFLICT).entity(Entity.text(message)).build();
+    // This is needed to allow clients using http-remoting clients to properly receive RemoteExceptions
+    private Response createErrorResponse(String errorId) {
+        return Response
+                .status(Response.Status.CONFLICT)
+                .type(MediaType.APPLICATION_JSON_TYPE)
+                .entity(ImmutableMap.of(
+                        "exceptionClass", CheckAndSetException.class.getName(),
+                        "message", String.format("Error %s: Check and set failed.", errorId),
+                        "code", Response.Status.CONFLICT.getStatusCode()))
+                .build();
     }
 }

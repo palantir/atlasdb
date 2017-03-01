@@ -45,7 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
-import com.palantir.atlasdb.persistentlock.LockEntry;
+import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
@@ -68,13 +68,13 @@ public class CellsSweeperShould {
     private final KeyValueService mockKvs = mock(KeyValueService.class);
     private final Follower mockFollower = mock(Follower.class);
     private final PersistentLockService mockPls = mock(KvsBackedPersistentLockService.class);
-    private final LockEntry mockEntry = mock(LockEntry.class);
+    private final PersistentLockId mockLockId = mock(PersistentLockId.class);
 
     private final CellsSweeper sweeper = new CellsSweeper(null, mockKvs, mockPls, 1, ImmutableList.of(mockFollower));
 
     @Before
     public void setUp() {
-        when(mockPls.acquireBackupLock(anyString())).thenReturn(mockEntry);
+        when(mockPls.acquireBackupLock(anyString())).thenReturn(mockLockId);
     }
 
     @Test
@@ -128,7 +128,9 @@ public class CellsSweeperShould {
 
     @Test
     public void retryWhenAcquiringTheBackupLock() {
-        when(mockPls.acquireBackupLock(anyString())).thenThrow(mock(CheckAndSetException.class)).thenReturn(mockEntry);
+        when(mockPls.acquireBackupLock(anyString()))
+                .thenThrow(mock(CheckAndSetException.class))
+                .thenReturn(mockLockId);
 
         sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
@@ -146,7 +148,7 @@ public class CellsSweeperShould {
 
         ordering.verify(mockKvs, atLeastOnce()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
         ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
-        ordering.verify(mockPls, times(1)).releaseLock(eq(mockEntry));
+        ordering.verify(mockPls, times(1)).releaseLock(mockLockId);
     }
 
     @Test
@@ -159,6 +161,6 @@ public class CellsSweeperShould {
             // expected
         }
 
-        verify(mockPls, times(1)).releaseLock(eq(mockEntry));
+        verify(mockPls, times(1)).releaseLock(mockLockId);
     }
 }

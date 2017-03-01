@@ -39,18 +39,19 @@ public class KvsBackedPersistentLockService implements PersistentLockService {
     }
 
     @Override
-    public LockEntry acquireBackupLock(String reason) {
+    public PersistentLockId acquireBackupLock(String reason) {
         Preconditions.checkNotNull(reason, "Please provide a reason for acquiring the lock.");
-        return lockStore.acquireBackupLock(reason);
+        return PersistentLockId.of(lockStore.acquireBackupLock(reason).instanceId());
     }
 
     @Override
-    public String releaseLock(LockEntry lockEntry) throws CheckAndSetException {
-        Preconditions.checkNotNull(lockEntry, "Please provide a LockEntry to release.");
+    public void releaseLock(PersistentLockId lockId) {
+        Preconditions.checkNotNull(lockId, "Please provide a PersistentLockId to release.");
+
+        LockEntry lockToRelease = lockStore.getLockEntryWithLockId(lockId);
 
         try {
-            lockStore.releaseLock(lockEntry);
-            return "\"The lock was released successfully.\\n\"";
+            lockStore.releaseLock(lockToRelease);
         } catch (CheckAndSetException e) {
             log.error("Failed to release the persistent lock. This means that somebody already cleared this lock. "
                     + "You should investigate this, as this means your operation didn't necessarily hold the lock when "
