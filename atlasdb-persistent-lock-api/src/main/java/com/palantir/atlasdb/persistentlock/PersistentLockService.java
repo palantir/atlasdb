@@ -49,5 +49,5 @@ public interface PersistentLockService {
     @Path("release")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    void releaseLock(@QueryParam("lockId") PersistentLockId lockId);
+    void releaseLock(PersistentLockId lockId);
 }

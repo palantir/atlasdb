@@ -70,8 +70,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1660>`__)
 
     *    - |devbreak|
-         - The backup lock endpoints now use ``PersistentLockId`` instead of ``LockEntry``, with the release lock
-           endpoint taking the lock id as a query parameter instead of the body.
+         - The backup lock endpoints now use ``PersistentLockId`` instead of ``LockEntry``.
 
            Additionally, the ``CheckAndSetException`` now gets mapped to the correct response for compatibility
            with `http-remoting <https://github.com/palantir/http-remoting>`__ whereas previously, any consumer using http-remoting would have to
