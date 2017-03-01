@@ -182,6 +182,18 @@
 This prevents the operation from interfering with concurrently running Postgres backups.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1616">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Users can now create a Docker image and run containers of the Timelock Server, by running <code class="docutils literal"><span class="pre">./gradlew</span> <span class="pre">timelock-server:dockerTag</span></code>.
+This can be useful for quickly spinning up a Timelock instance (e.g. for testing purposes).
+Note that we are not yet publishing this image.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1661">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB <a class="reference internal" href="../cluster_management/clis.html#clis"><span class="std std-ref">CLIs</span></a> run via the <a class="reference internal" href="../cluster_management/dropwizard-bundle.html#dropwizard-bundle"><span class="std std-ref">Dropwizard bundle</span></a> can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
+Previously, these CLIs would throw an error that a leader block was not specified.
+Note that CLIs will not perform automated migrations.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1661">Pull Request</a>)</td>
+</tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Cassandra truncates that are going to fail will do so faster.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1660">Pull Request</a>)</td>
