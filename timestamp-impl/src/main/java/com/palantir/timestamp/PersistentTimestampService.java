@@ -20,7 +20,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import com.codahale.metrics.Timer;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 
 @ThreadSafe
@@ -30,6 +32,7 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
     private final AvailableTimestamps availableTimestamps;
     private final ExecutorService executor;
     private final AtomicBoolean isAllocationTaskSubmitted;
+    private final MetricsManager metricsManager = new MetricsManager();
 
     public PersistentTimestampService(AvailableTimestamps availableTimestamps, ExecutorService executor) {
         DebugLogger.logger.info(
@@ -58,19 +61,37 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
 
     @Override
     public long getFreshTimestamp() {
-        return getFreshTimestamps(1).getLowerBound();
+        Timer.Context timer = metricsManager.registerTimer(PersistentTimestampService.class, "getSingleTimestamp").time();
+        metricsManager.registerMeter(PersistentTimestampService.class, null, "countGetSingleTimestamp").mark();
+        try {
+            return getFreshTimestamps(1).getLowerBound();
+        } catch (Exception e) {
+            metricsManager.registerMeter(PersistentTimestampService.class, null, "countExceptionGetSingleTimestamp").mark();
+            throw e;
+        } finally {
+            timer.stop();
+        }
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+        Timer.Context timer = metricsManager.registerTimer(PersistentTimestampService.class, "getMultipleTimestamps").time();
+        metricsManager.registerMeter(PersistentTimestampService.class, null, "countGetMultipleTimestamps").mark();
+        try {
         /*
          * Under high concurrent load, this will be a hot method as clients request timestamps.
          * It is important to minimize contention as much as possible on this path.
          */
-        int numTimestampsToHandOut = cleanUpTimestampRequest(numTimestampsRequested);
-        TimestampRange handedOut = availableTimestamps.handOut(numTimestampsToHandOut);
-        asynchronouslyRefreshBuffer();
-        return handedOut;
+            int numTimestampsToHandOut = cleanUpTimestampRequest(numTimestampsRequested);
+            TimestampRange handedOut = availableTimestamps.handOut(numTimestampsToHandOut);
+            asynchronouslyRefreshBuffer();
+            return handedOut;
+        } catch (Exception e) {
+            metricsManager.registerMeter(PersistentTimestampService.class, null, "countExceptionGetMultipleTimestamps").mark();
+            throw e;
+        } finally {
+            timer.stop();
+        }
     }
 
     @Override

@@ -23,6 +23,7 @@ import org.eclipse.jetty.util.component.LifeCycle;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 
 import io.dropwizard.Application;
@@ -35,6 +36,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
+        AtlasDbMetrics.setMetricRegistry(environment.metrics());
         TimeLockServer serverImpl = configuration.algorithm().createServerImpl(environment);
         try {
             serverImpl.onStartup(configuration);
