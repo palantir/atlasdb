@@ -19,8 +19,8 @@ commit timestamp.
 Write Protocol
 --------------
 
-1. Using the transactions start timestamp, complete all reads.  This is necessary to
-   determine writes required by the transaction. Buffer writes in memory
+1. Complete all reads using the transaction's start timestamp.  This is necessary to
+   determine the writes required by the transaction. Buffer writes in memory
    until commit time.
 
 2. At commit time we grab
