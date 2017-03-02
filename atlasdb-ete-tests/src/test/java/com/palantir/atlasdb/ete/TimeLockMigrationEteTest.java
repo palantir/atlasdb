@@ -63,6 +63,7 @@ public class TimeLockMigrationEteTest {
     private static final Map<String, String> ENVIRONMENT = Maps.newHashMap();
 
     // Docker Engine daemon only has limited access to the filesystem, if the user is using Docker-Machine
+    // Thus root the temporary folder as a subdirectory of the user's home directory
     private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder(new File(System.getProperty("user.home")));
 
     private static DockerMachine dockerMachine;
@@ -72,6 +73,7 @@ public class TimeLockMigrationEteTest {
 
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Todo TODO_2 = ImmutableTodo.of("more stuff to do");
+    private static final Todo TODO_3 = ImmutableTodo.of("even more stuff to do");
     private static final int DEFAULT_PORT = 3828;
 
     private static final ExternalResource SETUP_VARIABLES_RULE = new ExternalResource() {
@@ -131,22 +133,21 @@ public class TimeLockMigrationEteTest {
         FileUtils.writeStringToFile(configFile, FileUtils.readFileToString(
                 new File("docker/conf/atlasdb-ete.timelock.cassandra.yml")));
 
-        System.out.println(dockerComposeRule.exec(DockerComposeExecOption.noOptions(),
+        // Go-Java-Launcher's functionality for seeing if a process is running is not correct with respect to busybox.
+        // See also https://github.com/palantir/sls-packaging/issues/185
+        dockerComposeRule.exec(
+                DockerComposeExecOption.noOptions(),
                 "ete1",
-                ImmutableDockerComposeExecArgument.arguments("bash", "-c", "sed -i 's/ps $PID > \\/dev\\/null;/kill -0 $PID/' service/bin/init.sh")));
-        System.out.println(dockerComposeRule.exec(DockerComposeExecOption.noOptions(),
-                "ete1",
-                ImmutableDockerComposeExecArgument.arguments("nohup", "service/bin/init.sh", "restart")));
+                ImmutableDockerComposeExecArgument.arguments(
+                        "sed", "-i", "s/ps $PID > \\/dev\\/null;/kill -0 $PID/", "service/bin/init.sh"));
 
-        Awaitility.await()
-                .ignoreExceptions()
-                .atMost(com.jayway.awaitility.Duration.TEN_MINUTES)
-                .pollInterval(com.jayway.awaitility.Duration.ONE_SECOND)
-                .until(serversAreReady());
-
+        // Need nohup - otherwise our process is a child of our shell, and will be killed when we're done.
+        restartEteServer();
+        waitForServers();
         todoClient.addTodo(TODO_2);
         assertThat(todoClient.getTodoList(), hasItems(TODO, TODO_2));
 
+        // Did not expose a timestamp server!
         TimestampService timestampClient = createClientFor(TimestampService.class, "ete1", DEFAULT_PORT);
         try {
             timestampClient.getFreshTimestamp();
@@ -155,6 +156,33 @@ public class TimeLockMigrationEteTest {
             // Expected
             assertThat(e.getMessage().contains("404"), is(true));
         }
+
+        FileUtils.writeStringToFile(configFile, FileUtils.readFileToString(
+                new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml")));
+        restartEteServer();
+        waitForTransactionManagerCreationError();
+        try {
+            todoClient.addTodo(TODO_3);
+            fail();
+        } catch (FeignException e) {
+            // Expected
+        }
+    }
+
+    private void restartEteServer() throws IOException, InterruptedException {
+        dockerComposeRule.exec(
+                DockerComposeExecOption.noOptions(),
+                "ete1",
+                ImmutableDockerComposeExecArgument.arguments(
+                        "bash", "-c", "nohup service/bin/init.sh restart"));
+    }
+
+    private static String getEteServerLogs() throws IOException, InterruptedException {
+        return dockerComposeRule.exec(
+                DockerComposeExecOption.noOptions(),
+                "ete1",
+                ImmutableDockerComposeExecArgument.arguments(
+                        "cat", "var/log/atlasdb-ete-startup.log"));
     }
 
     private static <T> T createClientFor(Class<T> clazz, String host, int port) {
@@ -166,12 +194,31 @@ public class TimeLockMigrationEteTest {
         return new ExternalResource() {
             @Override
             protected void before() throws Throwable {
-                Awaitility.await()
-                        .ignoreExceptions()
-                        .atMost(com.jayway.awaitility.Duration.TEN_MINUTES)
-                        .pollInterval(com.jayway.awaitility.Duration.ONE_SECOND)
-                        .until(serversAreReady());
+                waitForServers();
             }
+        };
+    }
+
+    private static void waitForServers() {
+        Awaitility.await()
+                .ignoreExceptions()
+                .atMost(com.jayway.awaitility.Duration.TWO_MINUTES)
+                .pollInterval(com.jayway.awaitility.Duration.TWO_SECONDS)
+                .until(serversAreReady());
+    }
+
+    private static void waitForTransactionManagerCreationError() {
+        Awaitility.await()
+                .ignoreExceptions()
+                .atMost(com.jayway.awaitility.Duration.TWO_MINUTES)
+                .pollInterval(com.jayway.awaitility.Duration.TWO_SECONDS)
+                .until(logsContainTransactionManagerCreationFailure());
+    }
+
+    private static Callable<Boolean> logsContainTransactionManagerCreationFailure() {
+        return () -> {
+            String serverLogs = getEteServerLogs();
+            return serverLogs.contains("An error occurred while trying to create transaction manager.");
         };
     }
 
