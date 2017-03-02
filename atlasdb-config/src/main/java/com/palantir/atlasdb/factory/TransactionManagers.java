@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.Collections;
 import java.util.ServiceLoader;
 import java.util.Set;
 
@@ -159,7 +160,8 @@ public class TransactionManagers {
                 Suppliers.ofInstance(config.enableSweep()),
                 Suppliers.ofInstance(config.getSweepPauseMillis()),
                 Suppliers.ofInstance(config.getSweepBatchSize()),
-                SweepTableFactory.of());
+                SweepTableFactory.of(),
+                () -> Collections.emptySet());
         backgroundSweeper.runInBackground();
 
         return transactionManager;
