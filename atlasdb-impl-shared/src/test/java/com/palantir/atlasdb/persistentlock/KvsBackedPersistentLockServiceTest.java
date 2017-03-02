@@ -59,7 +59,7 @@ public class KvsBackedPersistentLockServiceTest {
     public void canReleaseLock() {
         PersistentLockId lockId = service.acquireBackupLock(TEST_REASON);
         LockEntry lockEntry = Iterables.getOnlyElement(lockStore.allLockEntries());
-        service.releaseLock(lockId);
+        service.releaseBackupLock(lockId);
 
         verify(lockStore, times(1)).releaseLock(eq(lockEntry));
     }

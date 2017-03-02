@@ -49,8 +49,9 @@ import com.palantir.atlasdb.keyvalue.api.Value;
  * acquireBackupLock(REASON) attempts to move the lock state from "OPEN" to "taken because REASON",
  * returning a LockEntry that holds a unique identifier for that occasion of taking the lock.
  *
- * releaseLock(LockEntry) attempts to move the state from "taken because REASON" to "OPEN", but only succeeds if the
- * LockEntry currently stored matches the one passed in, ensuring that nobody released the lock when we weren't looking.
+ * releaseBackupLock(LockEntry) attempts to move the state from "taken because REASON" to "OPEN", but only succeeds if
+ * the LockEntry currently stored matches the one passed in, ensuring that nobody released the lock when we weren't
+ * looking.
  *
  * Upon creating the PERSISTED_LOCKS_TABLE, we attempt to enter this state machine by populating the table.
  * If we fail to do this, it's because someone else also created the table, and populated it before we did.

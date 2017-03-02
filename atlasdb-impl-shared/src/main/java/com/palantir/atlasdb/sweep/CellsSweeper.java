@@ -130,7 +130,7 @@ public class CellsSweeper {
 
     private void releasePersistentLock(PersistentLockId lockId) {
         try {
-            persistentLockService.releaseLock(lockId);
+            persistentLockService.releaseBackupLock(lockId);
         } catch (CheckAndSetException e) {
             log.error("Failed to release persistent lock {}. "
                     + "Either the lock was already released, or communications with the database failed.", lockId, e);

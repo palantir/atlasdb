@@ -70,12 +70,15 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1660>`__)
 
     *    - |devbreak|
-         - The backup lock endpoints now use ``PersistentLockId`` instead of ``LockEntry``.
+         - The persistent lock endpoints now use ``PersistentLockId`` instead of ``LockEntry``.
 
-           Additionally, the ``CheckAndSetException`` now gets mapped to the correct response for compatibility
-           with `http-remoting <https://github.com/palantir/http-remoting>`__ whereas previously, any consumer using http-remoting would have to
-           deal with deserialization errors.
+    *    - |improved|
+         - The ``CheckAndSetException`` now gets mapped to the correct response for compatibility.
+           with `http-remoting <https://github.com/palantir/http-remoting>`__ whereas previously, any consumer using http-remoting would have to deal with deserialization errors.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1665>`__)
+
+    *    - |devbreak|
+         - The persistent lock release endpoint has now been renamed to ``releaseBackupLock`` since it is currently only supposed to be used for the backup lock.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

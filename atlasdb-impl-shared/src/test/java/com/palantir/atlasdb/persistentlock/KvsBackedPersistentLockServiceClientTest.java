@@ -65,7 +65,7 @@ public class KvsBackedPersistentLockServiceClientTest {
         PersistentLockId lockId = lockService.acquireBackupLock(REASON);
         assertThat(lockId).isNotNull();
 
-        lockService.releaseLock(lockId);
+        lockService.releaseBackupLock(lockId);
     }
 
     @Test
@@ -80,10 +80,10 @@ public class KvsBackedPersistentLockServiceClientTest {
     @Test
     public void multipleReleasesOnSameLockReturnBadRequestAfterFirstTry() {
         PersistentLockId lockId = lockService.acquireBackupLock(REASON);
-        lockService.releaseLock(lockId);
+        lockService.releaseBackupLock(lockId);
 
         assertThatExceptionOfType(RemoteException.class)
-                .isThrownBy(() -> lockService.releaseLock(lockId))
+                .isThrownBy(() -> lockService.releaseBackupLock(lockId))
                 .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
     }
 
@@ -92,7 +92,7 @@ public class KvsBackedPersistentLockServiceClientTest {
         PersistentLockId nonExistentLockId = PersistentLockId.of(UUID.randomUUID());
 
         assertThatExceptionOfType(RemoteException.class)
-                .isThrownBy(() -> lockService.releaseLock(nonExistentLockId))
+                .isThrownBy(() -> lockService.releaseBackupLock(nonExistentLockId))
                 .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
     }
 
@@ -104,7 +104,7 @@ public class KvsBackedPersistentLockServiceClientTest {
                 .isThrownBy(() -> lockService.acquireBackupLock(REASON))
                 .matches(ex -> ex.getStatus() == Response.Status.CONFLICT.getStatusCode());
 
-        lockService.releaseLock(lockId);
+        lockService.releaseBackupLock(lockId);
 
         PersistentLockId newLockId = lockService.acquireBackupLock(REASON);
         assertThat(newLockId).isNotNull();
