@@ -37,7 +37,7 @@ Call the ``persistent-lock/acquire-backup-lock`` endpoint, supplying your reason
 
   $ curl -X GET --header 'Accept: application/json' '<product-base-url>/persistent-lock/acquire-backup-lock?reason=manual-backup'
 
-If the request succeeds, you will receive a ``LockEntry`` back. It is essential that you save this lock somewhere, so that you can release it later in the process.
+If the request succeeds, you will receive a ``PersistentLockId`` back. It is essential that you save this lock somewhere, so that you can release it later in the process.
 
 2. Obtain a backup timestamp
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -73,12 +73,12 @@ These two timestamp files and the entirety of your underlying storage's backup a
 5. Release the Backup Lock
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Call the ``persistent-lock/release`` endpoint, passing back the ``LockEntry`` that you received in step 1.
-For example (replace the serialised ``LockEntry`` with your own from step 1):
+Call the ``persistent-lock/release-backup-lock`` endpoint, passing back the ``PersistentLockId`` that you received in step 1.
+For example (replace the serialised ``PersistentLockId`` with your own from step 1):
 
 .. code:: bash
 
-   $ curl -X POST --header 'content-type: application/json' '<product-base-url>/persistent-lock/release' -d '{"rowName":"BackupLock","lockId":"9dbae91b-a35c-4938-82fe-58fb31772738","reason":"manual-backup"}'
+   $ curl -X POST --header 'content-type: application/json' '<product-base-url>/persistent-lock/release-backup-lock' -d '9dbae91b-a35c-4938-82fe-58fb31772738'
 
 
 Restoring from a Backup
