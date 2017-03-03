@@ -27,32 +27,19 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-import org.apache.commons.io.FileUtils;
-import org.joda.time.Duration;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.jayway.awaitility.Awaitility;
-import com.palantir.atlasdb.containers.CassandraVersion;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.connection.DockerMachine;
-import com.palantir.docker.compose.connection.waiting.ClusterHealthCheck;
-import com.palantir.docker.compose.connection.waiting.ClusterWait;
-import com.palantir.docker.compose.connection.waiting.HealthChecks;
-import com.palantir.docker.compose.execution.DockerComposeExecOption;
-import com.palantir.docker.compose.execution.ImmutableDockerComposeExecArgument;
-import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.timestamp.TimestampService;
 
 import feign.FeignException;
@@ -67,58 +54,23 @@ public class TimeLockMigrationEteTest {
     private static final TemporaryFolder TEMPORARY_FOLDER
             = new TemporaryFolder(new File(System.getProperty("user.home")));
 
-    private static DockerComposeRule dockerComposeRule;
-    private static DockerProxyRule dockerProxyRule;
-    private static File configFile;
+    private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE
+            = new DockerClientOrchestrationRule(TEMPORARY_FOLDER);
 
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Todo TODO_2 = ImmutableTodo.of("more stuff to do");
     private static final Todo TODO_3 = ImmutableTodo.of("even more stuff to do");
     private static final int DEFAULT_PORT = 3828;
 
-    private static final ExternalResource SETUP_VARIABLES_RULE = new ExternalResource() {
-        @Override
-        protected void before() throws Throwable {
-            try {
-                configFile = TEMPORARY_FOLDER.newFile("atlasdb-ete.yml");
-                FileUtils.writeStringToFile(configFile, FileUtils.readFileToString(
-                        new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml")));
-                ENVIRONMENT.put("CONFIG_FILE_MOUNTPOINT", TEMPORARY_FOLDER.getRoot().getAbsolutePath());
-                ENVIRONMENT.putAll(CassandraVersion.getEnvironment());
-                System.out.println(ENVIRONMENT);
-
-                DockerMachine dockerMachine = DockerMachine.localMachine()
-                        .withEnvironment(ENVIRONMENT)
-                        .build();
-
-                dockerComposeRule = DockerComposeRule.builder()
-                        .machine(dockerMachine)
-                        .file("docker-compose.timelock-migration.cassandra.yml")
-                        .waitingForService("cassandra", HealthChecks.toHaveAllPortsOpen())
-                        .saveLogsTo(LogDirectory.circleAwareLogDirectory(TimeLockMigrationEteTest.class.getSimpleName()))
-                        .addClusterWait(new ClusterWait(ClusterHealthCheck.nativeHealthChecks(), Duration.standardMinutes(100)))
-                        .build();
-
-                dockerProxyRule = new DockerProxyRule(dockerComposeRule.projectName(), TimeLockMigrationEteTest.class);
-
-                dockerComposeRule.before();
-                dockerProxyRule.before();
-            } catch (IOException e) {
-                throw Throwables.propagate(e);
-            }
-        }
-
-        @Override
-        protected void after() {
-            dockerProxyRule.after();
-            dockerComposeRule.after();
-        }
-    };
-
     @ClassRule
     public static final RuleChain RULE_CHAIN = RuleChain.outerRule(TEMPORARY_FOLDER)
-            .around(SETUP_VARIABLES_RULE)
-            .around(waitForServersToBeReady());
+            .around(CLIENT_ORCHESTRATION_RULE);
+
+    @BeforeClass
+    public static void setUp() {
+        CLIENT_ORCHESTRATION_RULE.updateProcessLivenessScript();
+        waitUntil(serversAreReady());
+    }
 
     @Test
     public void canAutomaticallyMigrateTimestampsAndFailsOnRestart()
@@ -130,20 +82,11 @@ public class TimeLockMigrationEteTest {
         assertThat(todoClient.getTodoList(), hasItem(TODO));
 
         // change config!
-        FileUtils.writeStringToFile(configFile, FileUtils.readFileToString(
-                new File("docker/conf/atlasdb-ete.timelock.cassandra.yml")));
-
-        // Go-Java-Launcher's functionality for seeing if a process is running is not correct with respect to busybox.
-        // See also https://github.com/palantir/sls-packaging/issues/185
-        dockerComposeRule.exec(
-                DockerComposeExecOption.noOptions(),
-                "ete1",
-                ImmutableDockerComposeExecArgument.arguments(
-                        "sed", "-i", "s/ps $PID > \\/dev\\/null;/kill -0 $PID/", "service/bin/init.sh"));
+        CLIENT_ORCHESTRATION_RULE.updateClientConfig(new File("docker/conf/atlasdb-ete.timelock.cassandra.yml"));
 
         // Need nohup - otherwise our process is a child of our shell, and will be killed when we're done.
-        restartEteServer();
-        waitForServers();
+        CLIENT_ORCHESTRATION_RULE.restartAtlasClient();
+        waitUntil(serversAreReady());
         todoClient.addTodo(TODO_2);
         assertThat(todoClient.getTodoList(), hasItems(TODO, TODO_2));
 
@@ -157,9 +100,8 @@ public class TimeLockMigrationEteTest {
             assertThat(e.getMessage().contains("404"), is(true));
         }
 
-        FileUtils.writeStringToFile(configFile, FileUtils.readFileToString(
-                new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml")));
-        restartEteServer();
+        CLIENT_ORCHESTRATION_RULE.updateClientConfig(new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml"));
+        CLIENT_ORCHESTRATION_RULE.restartAtlasClient();
         waitForTransactionManagerCreationError();
         try {
             todoClient.addTodo(TODO_3);
@@ -169,55 +111,26 @@ public class TimeLockMigrationEteTest {
         }
     }
 
-    private void restartEteServer() throws IOException, InterruptedException {
-        dockerComposeRule.exec(
-                DockerComposeExecOption.noOptions(),
-                "ete1",
-                ImmutableDockerComposeExecArgument.arguments(
-                        "bash", "-c", "nohup service/bin/init.sh restart"));
-    }
-
-    private static String getEteServerLogs() throws IOException, InterruptedException {
-        return dockerComposeRule.exec(
-                DockerComposeExecOption.noOptions(),
-                "ete1",
-                ImmutableDockerComposeExecArgument.arguments(
-                        "cat", "var/log/atlasdb-ete-startup.log"));
-    }
-
     private static <T> T createClientFor(Class<T> clazz, String host, int port) {
         String uri = String.format("http://%s:%s", host, port);
         return AtlasDbHttpClients.createProxy(Optional.absent(), uri, clazz);
     }
 
-    private static ExternalResource waitForServersToBeReady() {
-        return new ExternalResource() {
-            @Override
-            protected void before() throws Throwable {
-                waitForServers();
-            }
-        };
-    }
-
-    private static void waitForServers() {
+    private static void waitUntil(Callable<Boolean> condition) {
         Awaitility.await()
                 .ignoreExceptions()
                 .atMost(com.jayway.awaitility.Duration.TWO_MINUTES)
                 .pollInterval(com.jayway.awaitility.Duration.TWO_SECONDS)
-                .until(serversAreReady());
+                .until(condition);
     }
 
     private static void waitForTransactionManagerCreationError() {
-        Awaitility.await()
-                .ignoreExceptions()
-                .atMost(com.jayway.awaitility.Duration.TWO_MINUTES)
-                .pollInterval(com.jayway.awaitility.Duration.TWO_SECONDS)
-                .until(logsContainTransactionManagerCreationFailure());
+        waitUntil(logsContainTransactionManagerCreationFailure());
     }
 
     private static Callable<Boolean> logsContainTransactionManagerCreationFailure() {
         return () -> {
-            String serverLogs = getEteServerLogs();
+            String serverLogs = CLIENT_ORCHESTRATION_RULE.getClientLogs();
             return serverLogs.contains("An error occurred while trying to create transaction manager.");
         };
     }
