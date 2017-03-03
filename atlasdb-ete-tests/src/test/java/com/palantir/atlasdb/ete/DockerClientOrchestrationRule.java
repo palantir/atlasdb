@@ -25,7 +25,7 @@ import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.containers.CassandraVersion;
 import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.docker.compose.DockerComposeRule;
@@ -38,7 +38,9 @@ import com.palantir.docker.compose.execution.ImmutableDockerComposeExecArgument;
 import com.palantir.docker.compose.logging.LogDirectory;
 
 public class DockerClientOrchestrationRule extends ExternalResource {
-    public static final String CONTAINER_NAME = "ete1";
+    private static final String CONTAINER = "ete1";
+    private static final Duration WAIT_TIMEOUT = Duration.standardMinutes(5L);
+
     private final TemporaryFolder temporaryFolder;
 
     private DockerComposeRule dockerComposeRule;
@@ -62,7 +64,7 @@ public class DockerClientOrchestrationRule extends ExternalResource {
                     .file("docker-compose.timelock-migration.cassandra.yml")
                     .waitingForService("cassandra", HealthChecks.toHaveAllPortsOpen())
                     .saveLogsTo(LogDirectory.circleAwareLogDirectory(TimeLockMigrationEteTest.class.getSimpleName()))
-                    .addClusterWait(new ClusterWait(ClusterHealthCheck.nativeHealthChecks(), Duration.standardMinutes(100)))
+                    .addClusterWait(new ClusterWait(ClusterHealthCheck.nativeHealthChecks(), WAIT_TIMEOUT))
                     .build();
 
             dockerProxyRule = new DockerProxyRule(dockerComposeRule.projectName(), TimeLockMigrationEteTest.class);
@@ -83,15 +85,7 @@ public class DockerClientOrchestrationRule extends ExternalResource {
     public void updateProcessLivenessScript() {
         // Go-Java-Launcher's functionality for seeing if a process is running is not correct with respect to busybox.
         // See also https://github.com/palantir/sls-packaging/issues/185
-        try {
-            dockerComposeRule.exec(
-                    DockerComposeExecOption.noOptions(),
-                    CONTAINER_NAME,
-                    ImmutableDockerComposeExecArgument.arguments(
-                            "sed", "-i", "s/ps $PID > \\/dev\\/null;/kill -0 $PID/", "service/bin/init.sh"));
-        } catch (IOException | InterruptedException e) {
-            throw Throwables.propagate(e);
-        }
+        dockerExecOnClient("sed", "-i", "s/ps $PID > \\/dev\\/null;/kill -0 $PID/", "service/bin/init.sh");
     }
 
     public void updateClientConfig(File file) {
@@ -102,34 +96,37 @@ public class DockerClientOrchestrationRule extends ExternalResource {
         }
     }
 
-    public void restartAtlasClient() throws IOException, InterruptedException {
-        dockerComposeRule.exec(
-                DockerComposeExecOption.noOptions(),
-                CONTAINER_NAME,
-                ImmutableDockerComposeExecArgument.arguments(
-                        "bash", "-c", "nohup service/bin/init.sh restart"));
+    public void restartAtlasClient() {
+        // Need nohup - otherwise our process is a child of our shell, and will be killed when we're done.
+        // Flakes with nohup receiving the HUP signal have occurred when running it directly, so just use bash.
+        dockerExecOnClient("bash", "-c", "nohup service/bin/init.sh restart");
     }
 
-    public String getClientLogs() throws IOException, InterruptedException {
-        return dockerComposeRule.exec(
-                DockerComposeExecOption.noOptions(),
-                CONTAINER_NAME,
-                ImmutableDockerComposeExecArgument.arguments(
-                        "cat", "var/log/atlasdb-ete-startup.log"));
+    public String getClientLogs() {
+        return dockerExecOnClient("cat", "var/log/atlasdb-ete-startup.log");
     }
-
 
     private DockerMachine createDockerMachine() {
-        Map<String, String> environment = getEnvironment();
         return DockerMachine.localMachine()
-                .withEnvironment(environment)
+                .withEnvironment(getEnvironment())
                 .build();
     }
 
     private Map<String, String> getEnvironment() {
-        Map<String, String> environment = Maps.newHashMap(CassandraVersion.getEnvironment());
-        environment.put("CONFIG_FILE_MOUNTPOINT", temporaryFolder.getRoot().getAbsolutePath());
-        return environment;
+        return ImmutableMap.<String, String>builder()
+                .putAll(CassandraVersion.getEnvironment())
+                .put("CONFIG_FILE_MOUNTPOINT", temporaryFolder.getRoot().getAbsolutePath())
+                .build();
     }
 
+    private String dockerExecOnClient(String... arguments) {
+        try {
+            return dockerComposeRule.exec(
+                    DockerComposeExecOption.noOptions(),
+                    CONTAINER,
+                    ImmutableDockerComposeExecArgument.arguments(arguments));
+        } catch (InterruptedException | IOException e) {
+            throw Throwables.propagate(e);
+        }
+    }
 }
