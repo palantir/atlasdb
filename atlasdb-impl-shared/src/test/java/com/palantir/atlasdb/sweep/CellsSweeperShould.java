@@ -148,7 +148,7 @@ public class CellsSweeperShould {
 
         ordering.verify(mockKvs, atLeastOnce()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
         ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
-        ordering.verify(mockPls, times(1)).releaseLock(mockLockId);
+        ordering.verify(mockPls, times(1)).releaseBackupLock(mockLockId);
     }
 
     @Test
@@ -161,6 +161,6 @@ public class CellsSweeperShould {
             // expected
         }
 
-        verify(mockPls, times(1)).releaseLock(mockLockId);
+        verify(mockPls, times(1)).releaseBackupLock(mockLockId);
     }
 }

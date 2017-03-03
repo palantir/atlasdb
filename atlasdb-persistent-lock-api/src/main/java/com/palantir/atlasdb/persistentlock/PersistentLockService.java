@@ -46,8 +46,8 @@ public interface PersistentLockService {
      * @param lockId the {@link PersistentLockId} you were given when you called {@link #acquireBackupLock(String)}
      */
     @POST
-    @Path("release")
+    @Path("release-backup-lock")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    void releaseLock(PersistentLockId lockId);
+    void releaseBackupLock(PersistentLockId lockId);
 }

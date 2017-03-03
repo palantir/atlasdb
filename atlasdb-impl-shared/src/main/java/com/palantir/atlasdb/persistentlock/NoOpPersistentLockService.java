@@ -24,7 +24,7 @@ public class NoOpPersistentLockService implements PersistentLockService {
     }
 
     @Override
-    public void releaseLock(PersistentLockId lockId) {
+    public void releaseBackupLock(PersistentLockId lockId) {
         // no-op
     }
 }
