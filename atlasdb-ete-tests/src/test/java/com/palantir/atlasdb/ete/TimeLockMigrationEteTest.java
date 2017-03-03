@@ -64,9 +64,9 @@ public class TimeLockMigrationEteTest {
 
     // Docker Engine daemon only has limited access to the filesystem, if the user is using Docker-Machine
     // Thus root the temporary folder as a subdirectory of the user's home directory
-    private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder(new File(System.getProperty("user.home")));
+    private static final TemporaryFolder TEMPORARY_FOLDER
+            = new TemporaryFolder(new File(System.getProperty("user.home")));
 
-    private static DockerMachine dockerMachine;
     private static DockerComposeRule dockerComposeRule;
     private static DockerProxyRule dockerProxyRule;
     private static File configFile;
@@ -87,7 +87,7 @@ public class TimeLockMigrationEteTest {
                 ENVIRONMENT.putAll(CassandraVersion.getEnvironment());
                 System.out.println(ENVIRONMENT);
 
-                dockerMachine = DockerMachine.localMachine()
+                DockerMachine dockerMachine = DockerMachine.localMachine()
                         .withEnvironment(ENVIRONMENT)
                         .build();
 
@@ -121,7 +121,7 @@ public class TimeLockMigrationEteTest {
             .around(waitForServersToBeReady());
 
     @Test
-    public void canAutomaticallyMigrateTimestamps()
+    public void canAutomaticallyMigrateTimestampsAndFailsOnRestart()
             throws IOException, InterruptedException, NoSuchFieldException, NoSuchMethodException,
             IllegalAccessException, InvocationTargetException {
         TodoResource todoClient = createClientFor(TodoResource.class, "ete1", DEFAULT_PORT);
