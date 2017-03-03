@@ -80,6 +80,12 @@ develop
     *    - |devbreak|
          - The persistent lock release endpoint has now been renamed to ``releaseBackupLock`` since it is currently only supposed to be used for the backup lock.
 
+    *    - |devbreak| |improved|
+         - ``TransactionManager`` now explicitly declares a ``close`` method that does not throw exceptions.
+           This makes ``TransactionManager``s significantly easier to develop against.
+           Clients who have implemented a concrete ``TransactionManager`` throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1677>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
