@@ -17,12 +17,15 @@ package com.palantir.atlasdb.ete;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.joda.time.Duration;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -34,12 +37,19 @@ import com.palantir.docker.compose.connection.waiting.ClusterHealthCheck;
 import com.palantir.docker.compose.connection.waiting.ClusterWait;
 import com.palantir.docker.compose.connection.waiting.HealthChecks;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
+import com.palantir.docker.compose.execution.DockerExecutionException;
 import com.palantir.docker.compose.execution.ImmutableDockerComposeExecArgument;
 import com.palantir.docker.compose.logging.LogDirectory;
 
 public class DockerClientOrchestrationRule extends ExternalResource {
+    private static final Logger log = LoggerFactory.getLogger(DockerClientOrchestrationRule.class);
+
+    public static final File TIMELOCK_CONFIG = new File("docker/conf/atlasdb-ete.timelock.cassandra.yml");
+    public static final File EMBEDDED_CONFIG = new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml");
+
     private static final String CONTAINER = "ete1";
-    private static final Duration WAIT_TIMEOUT = Duration.standardMinutes(5L);
+    private static final Duration WAIT_TIMEOUT = Duration.standardMinutes(5);
+    private static final int MAX_EXEC_TRIES = 10;
 
     private final TemporaryFolder temporaryFolder;
 
@@ -55,7 +65,7 @@ public class DockerClientOrchestrationRule extends ExternalResource {
     protected void before() throws Throwable {
         try {
             configFile = temporaryFolder.newFile("atlasdb-ete.yml");
-            updateClientConfig(new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml"));
+            updateClientConfig(EMBEDDED_CONFIG);
 
             DockerMachine dockerMachine = createDockerMachine();
 
@@ -98,7 +108,6 @@ public class DockerClientOrchestrationRule extends ExternalResource {
 
     public void restartAtlasClient() {
         // Need nohup - otherwise our process is a child of our shell, and will be killed when we're done.
-        // Flakes with nohup receiving the HUP signal have occurred when running it directly, so just use bash.
         dockerExecOnClient("bash", "-c", "nohup service/bin/init.sh restart");
     }
 
@@ -120,13 +129,27 @@ public class DockerClientOrchestrationRule extends ExternalResource {
     }
 
     private String dockerExecOnClient(String... arguments) {
-        try {
-            return dockerComposeRule.exec(
-                    DockerComposeExecOption.noOptions(),
-                    CONTAINER,
-                    ImmutableDockerComposeExecArgument.arguments(arguments));
-        } catch (InterruptedException | IOException e) {
-            throw Throwables.propagate(e);
+        for (int i = 1; i <= MAX_EXEC_TRIES; i++) {
+            try {
+                log.info("Attempting docker-exec with arguments: {}", Arrays.asList(arguments));
+                return dockerComposeRule.exec(
+                        DockerComposeExecOption.noOptions(),
+                        CONTAINER,
+                        ImmutableDockerComposeExecArgument.arguments(arguments));
+            } catch (InterruptedException | IOException e) {
+                throw Throwables.propagate(e);
+            } catch (DockerExecutionException e) {
+                if (i != MAX_EXEC_TRIES) {
+                    // I have seen very odd flakes where exec terminates with exit code 129
+                    // i.e. they are interrupted with the hangup signal.
+                    log.warn("Encountered error in docker-exec, retrying (attempt {} of {})", i, MAX_EXEC_TRIES, e);
+                } else {
+                    log.error("Made {} attempts, and now giving up", MAX_EXEC_TRIES, e);
+                    throw e;
+                }
+            }
         }
+        throw new IllegalStateException(
+                String.format("Unexpected state after %s unsuccessful attempts in docker-exec", MAX_EXEC_TRIES));
     }
 }

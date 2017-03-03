@@ -15,30 +15,27 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.io.File;
 import java.util.concurrent.Callable;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.base.Optional;
 import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.timestamp.TimestampService;
-
-import feign.FeignException;
 
 // We don't use EteSetup because we need much finer-grained control of the orchestration here, compared to the other
 // ETE tests where the general idea is "set up all the containers, and fire".
@@ -47,9 +44,9 @@ public class TimeLockMigrationEteTest {
     // Thus root the temporary folder as a subdirectory of the user's home directory
     private static final TemporaryFolder TEMPORARY_FOLDER
             = new TemporaryFolder(new File(System.getProperty("user.home")));
-
     private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE
             = new DockerClientOrchestrationRule(TEMPORARY_FOLDER);
+    private static final String CONTAINER = "ete1";
 
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Todo TODO_2 = ImmutableTodo.of("more stuff to do");
@@ -59,7 +56,9 @@ public class TimeLockMigrationEteTest {
     @ClassRule
     public static final RuleChain RULE_CHAIN = RuleChain.outerRule(TEMPORARY_FOLDER)
             .around(CLIENT_ORCHESTRATION_RULE);
-    public static final String CONTAINER = "ete1";
+
+    @Rule
+    public final JUnitSoftAssertions softAssertions = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void setUp() {
@@ -68,45 +67,69 @@ public class TimeLockMigrationEteTest {
     }
 
     @Test
-    public void canAutomaticallyMigrateTimestampsAndFailsOnRestart() throws Exception {
+    public void automaticallyMigratesTimestampsAndFailsOnRestart() throws Exception {
         TodoResource todoClient = createClientFor(TodoResource.class);
 
         todoClient.addTodo(TODO);
-        assertThat(todoClient.getTodoList(), hasItem(TODO));
+        softAssertions.assertThat(todoClient.getTodoList())
+                .as("contains one todo pre-migration")
+                .contains(TODO);
 
-        CLIENT_ORCHESTRATION_RULE.updateClientConfig(new File("docker/conf/atlasdb-ete.timelock.cassandra.yml"));
+        upgradeAtlasClientToTimelock();
 
+        softAssertions.assertThat(todoClient.getTodoList())
+                .as("can still read todo after migration to TimeLock")
+                .contains(TODO);
+
+        todoClient.addTodo(TODO_2);
+        softAssertions.assertThat(todoClient.getTodoList())
+                .as("can add a new todo using TimeLock")
+                .contains(TODO, TODO_2);
+
+        assertNoLongerExposesEmbeddedTimestampService();
+
+        downgradeAtlasClientFromTimelock();
+
+        assertCanNeitherReadNorWrite();
+    }
+
+    private void upgradeAtlasClientToTimelock() {
+        CLIENT_ORCHESTRATION_RULE.updateClientConfig(DockerClientOrchestrationRule.TIMELOCK_CONFIG);
         CLIENT_ORCHESTRATION_RULE.restartAtlasClient();
         waitUntil(serversAreReady());
-        todoClient.addTodo(TODO_2);
-        assertThat(todoClient.getTodoList(), hasItems(TODO, TODO_2));
+    }
 
-        // Did not expose a timestamp server!
-        TimestampService timestampClient = createClientFor(TimestampService.class);
-        try {
-            timestampClient.getFreshTimestamp();
-            fail();
-        } catch (FeignException e) {
-            // Expected
-            assertThat(e.getMessage().contains("404"), is(true));
-        }
-
-        CLIENT_ORCHESTRATION_RULE.updateClientConfig(new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml"));
+    private void downgradeAtlasClientFromTimelock() {
+        CLIENT_ORCHESTRATION_RULE.updateClientConfig(DockerClientOrchestrationRule.EMBEDDED_CONFIG);
         CLIENT_ORCHESTRATION_RULE.restartAtlasClient();
         waitForTransactionManagerCreationError();
-        try {
-            todoClient.addTodo(TODO_3);
-            fail();
-        } catch (FeignException e) {
-            // Expected
-        }
+    }
+
+    private void assertNoLongerExposesEmbeddedTimestampService() {
+        TimestampService timestampClient = createClientFor(TimestampService.class);
+
+        // as() is not compatible with assertThatThrownBy - see
+        // http://joel-costigliola.github.io/assertj/core/api/org/assertj/core/api/Assertions.html
+        softAssertions.assertThat(catchThrowable(timestampClient::getFreshTimestamp))
+                .as("no longer exposes an embedded timestamp service")
+                .hasMessageContaining("404");
+    }
+
+    private void assertCanNeitherReadNorWrite() {
+        TodoResource todoClient = createClientFor(TodoResource.class);
+        softAssertions.assertThat(catchThrowable(() -> todoClient.addTodo(TODO_3)))
+                .as("cannot write using embedded service after migration to TimeLock")
+                .hasMessageContaining("Connection refused");
+        softAssertions.assertThat(catchThrowable(todoClient::getTodoList))
+                .as("cannot read using embedded service after migration to TimeLock")
+                .hasMessageContaining("Connection refused");
     }
 
     private static void waitUntil(Callable<Boolean> condition) {
         Awaitility.await()
                 .ignoreExceptions()
-                .atMost(com.jayway.awaitility.Duration.TWO_MINUTES)
-                .pollInterval(com.jayway.awaitility.Duration.TWO_SECONDS)
+                .atMost(Duration.TWO_MINUTES)
+                .pollInterval(Duration.TWO_SECONDS)
                 .until(condition);
     }
 
