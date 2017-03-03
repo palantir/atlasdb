@@ -202,7 +202,7 @@ The lock must be obtained prior to obtaining the backup timestamp, and released 
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ curl -X GET --header &#39;Accept: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/acquire-backup-lock?reason=manual-backup&#39;
 </pre></div>
 </div>
-<p>If the request succeeds, you will receive a <code class="docutils literal"><span class="pre">LockEntry</span></code> back. It is essential that you save this lock somewhere, so that you can release it later in the process.</p>
+<p>If the request succeeds, you will receive a <code class="docutils literal"><span class="pre">PersistentLockId</span></code> back. It is essential that you save this lock somewhere, so that you can release it later in the process.</p>
 </div>
 <div class="section" id="obtain-a-backup-timestamp">
 <h3>2. Obtain a backup timestamp<a class="headerlink" href="#obtain-a-backup-timestamp" title="Permalink to this headline">¶</a></h3>
@@ -231,9 +231,9 @@ The lock must be obtained prior to obtaining the backup timestamp, and released 
 </div>
 <div class="section" id="release-the-backup-lock">
 <h3>5. Release the Backup Lock<a class="headerlink" href="#release-the-backup-lock" title="Permalink to this headline">¶</a></h3>
-<p>Call the <code class="docutils literal"><span class="pre">persistent-lock/release</span></code> endpoint, passing back the <code class="docutils literal"><span class="pre">LockEntry</span></code> that you received in step 1.
-For example (replace the serialised <code class="docutils literal"><span class="pre">LockEntry</span></code> with your own from step 1):</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ curl -X POST --header &#39;content-type: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/release&#39; -d &#39;{&quot;rowName&quot;:&quot;BackupLock&quot;,&quot;lockId&quot;:&quot;9dbae91b-a35c-4938-82fe-58fb31772738&quot;,&quot;reason&quot;:&quot;manual-backup&quot;}&#39;
+<p>Call the <code class="docutils literal"><span class="pre">persistent-lock/release-backup-lock</span></code> endpoint, passing back the <code class="docutils literal"><span class="pre">PersistentLockId</span></code> that you received in step 1.
+For example (replace the serialised <code class="docutils literal"><span class="pre">PersistentLockId</span></code> with your own from step 1):</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ curl -X POST --header &#39;content-type: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/release-backup-lock&#39; -d &#39;9dbae91b-a35c-4938-82fe-58fb31772738&#39;
 </pre></div>
 </div>
 </div>

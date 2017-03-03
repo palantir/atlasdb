@@ -221,12 +221,15 @@ Note that CLIs will not perform automated migrations.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1660">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td><p class="first">The backup lock endpoints now use <code class="docutils literal"><span class="pre">PersistentLockId</span></code> instead of <code class="docutils literal"><span class="pre">LockEntry</span></code>.</p>
-<p class="last">Additionally, the <code class="docutils literal"><span class="pre">CheckAndSetException</span></code> now gets mapped to the correct response for compatibility
-with <a class="reference external" href="https://github.com/palantir/http-remoting">http-remoting</a> whereas previously, any consumer using http-remoting would have to
-deal with deserialization errors.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1665">Pull Request</a>)</p>
-</td>
+<td>The persistent lock endpoints now use <code class="docutils literal"><span class="pre">PersistentLockId</span></code> instead of <code class="docutils literal"><span class="pre">LockEntry</span></code>.</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The <code class="docutils literal"><span class="pre">CheckAndSetException</span></code> now gets mapped to the correct response for compatibility.
+with <a class="reference external" href="https://github.com/palantir/http-remoting">http-remoting</a> whereas previously, any consumer using http-remoting would have to deal with deserialization errors.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1665">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The persistent lock release endpoint has now been renamed to <code class="docutils literal"><span class="pre">releaseBackupLock</span></code> since it is currently only supposed to be used for the backup lock.</td>
 </tr>
 </tbody>
 </table>
