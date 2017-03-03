@@ -46,12 +46,16 @@ public class TimeLockMigrationEteTest {
             = new TemporaryFolder(new File(System.getProperty("user.home")));
     private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE
             = new DockerClientOrchestrationRule(TEMPORARY_FOLDER);
-    private static final String CONTAINER = "ete1";
 
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Todo TODO_2 = ImmutableTodo.of("more stuff to do");
     private static final Todo TODO_3 = ImmutableTodo.of("even more stuff to do");
-    private static final int DEFAULT_PORT = 3828;
+
+    private static final int ETE_PORT = 3828;
+    private static final String ETE_CONTAINER = "ete1";
+    private static final String TIMELOCK_CONTAINER = "timelock";
+    private static final int TIMELOCK_PORT = 8421;
+    private static final String TEST_CLIENT = "test";
 
     @ClassRule
     public static final RuleChain RULE_CHAIN = RuleChain.outerRule(TEMPORARY_FOLDER)
@@ -68,12 +72,18 @@ public class TimeLockMigrationEteTest {
 
     @Test
     public void automaticallyMigratesTimestampsAndFailsOnRestart() throws Exception {
-        TodoResource todoClient = createClientFor(TodoResource.class);
+        TimestampService timestampClient = createEteClientFor(TimestampService.class);
+        TodoResource todoClient = createEteClientFor(TodoResource.class);
 
         todoClient.addTodo(TODO);
         softAssertions.assertThat(todoClient.getTodoList())
                 .as("contains one todo pre-migration")
                 .contains(TODO);
+
+        long embeddedTimestamp = timestampClient.getFreshTimestamp();
+        softAssertions.assertThat(embeddedTimestamp)
+                .as("can get a timestamp before migration")
+                .isNotNull();
 
         upgradeAtlasClientToTimelock();
 
@@ -87,6 +97,8 @@ public class TimeLockMigrationEteTest {
                 .contains(TODO, TODO_2);
 
         assertNoLongerExposesEmbeddedTimestampService();
+
+        assertTimeLockGivesHigherTimestampThan(embeddedTimestamp);
 
         downgradeAtlasClientFromTimelock();
 
@@ -106,7 +118,7 @@ public class TimeLockMigrationEteTest {
     }
 
     private void assertNoLongerExposesEmbeddedTimestampService() {
-        TimestampService timestampClient = createClientFor(TimestampService.class);
+        TimestampService timestampClient = createEteClientFor(TimestampService.class);
 
         // as() is not compatible with assertThatThrownBy - see
         // http://joel-costigliola.github.io/assertj/core/api/org/assertj/core/api/Assertions.html
@@ -116,13 +128,20 @@ public class TimeLockMigrationEteTest {
     }
 
     private void assertCanNeitherReadNorWrite() {
-        TodoResource todoClient = createClientFor(TodoResource.class);
+        TodoResource todoClient = createEteClientFor(TodoResource.class);
         softAssertions.assertThat(catchThrowable(() -> todoClient.addTodo(TODO_3)))
                 .as("cannot write using embedded service after migration to TimeLock")
                 .hasMessageContaining("Connection refused");
         softAssertions.assertThat(catchThrowable(todoClient::getTodoList))
                 .as("cannot read using embedded service after migration to TimeLock")
                 .hasMessageContaining("Connection refused");
+    }
+
+    private void assertTimeLockGivesHigherTimestampThan(long timestamp) {
+        long newTimestamp = createTimeLockTimestampClient().getFreshTimestamp();
+        softAssertions.assertThat(newTimestamp)
+                .as("timestamp was migrated to TimeLock")
+                .isGreaterThan(timestamp);
     }
 
     private static void waitUntil(Callable<Boolean> condition) {
@@ -146,13 +165,18 @@ public class TimeLockMigrationEteTest {
 
     private static Callable<Boolean> serversAreReady() {
         return () -> {
-            createClientFor(TodoResource.class).isHealthy();
+            createEteClientFor(TodoResource.class).isHealthy();
             return true;
         };
     }
 
-    private static <T> T createClientFor(Class<T> clazz) {
-        String uri = String.format("http://%s:%s", CONTAINER, DEFAULT_PORT);
+    private static <T> T createEteClientFor(Class<T> clazz) {
+        String uri = String.format("http://%s:%s", ETE_CONTAINER, ETE_PORT);
         return AtlasDbHttpClients.createProxy(Optional.absent(), uri, clazz);
+    }
+
+    private static TimestampService createTimeLockTimestampClient() {
+        String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
+        return AtlasDbHttpClients.createProxy(Optional.absent(), uri, TimestampService.class);
     }
 }
