@@ -40,9 +40,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
  * State class for creating a single Atlas table with one wide row.
  */
 @State(Scope.Benchmark)
-public class WideRowTable {
-    public static final int NUM_COLS = 50000;
-
+public abstract class WideRowTable {
     private AtlasDbServicesConnector connector;
     private AtlasDbServices services;
 
@@ -79,6 +77,8 @@ public class WideRowTable {
         return firstCellAtMaxTimestamp.keySet();
     }
 
+    public abstract int getNumCols();
+
     @Setup
     public void setup(AtlasDbServicesConnector conn) throws UnsupportedEncodingException {
         this.connector = conn;
@@ -103,7 +103,7 @@ public class WideRowTable {
             allCellsAtMaxTimestamp = Maps.newHashMap();
             firstCellAtMaxTimestamp = Maps.newHashMap();
             firstCellAtMaxTimestamp.put(cell(0), Long.MAX_VALUE);
-            for (int i = 0; i < NUM_COLS; i++) {
+            for (int i = 0; i < getNumCols(); i++) {
                 Cell curCell = cell(i);
                 values.put(curCell, Ints.toByteArray(i));
                 allCellsAtMaxTimestamp.put(curCell, Long.MAX_VALUE);
