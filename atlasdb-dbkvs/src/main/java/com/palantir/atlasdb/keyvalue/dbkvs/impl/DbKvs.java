@@ -114,6 +114,8 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class DbKvs extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(DbKvs.class);
 
+    private static final long GET_RANGE_OF_TS_MAX_BATCH = 1000000L;
+
     private final DdlConfig config;
     private final DbTableFactory dbTables;
     private final SqlConnectionSupplier connections;
@@ -576,7 +578,7 @@ public class DbKvs extends AbstractKeyValueService {
                 TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]>>() {
             @Override
             protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getFirstPage() {
-                return getTimestampsPage(tableRef, rangeRequest, timestamp);
+                return getTimestampsPage(tableRef, rangeRequest, timestamp, GET_RANGE_OF_TS_MAX_BATCH);
             }
 
             @Override
@@ -584,8 +586,9 @@ public class DbKvs extends AbstractKeyValueService {
                     TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> previous) {
                 byte[] newStartRow = previous.getTokenForNextPage();
                 RangeRequest newRange = rangeRequest.getBuilder().startRowInclusive(newStartRow).build();
-                return getTimestampsPage(tableRef, newRange, timestamp);
+                return getTimestampsPage(tableRef, newRange, timestamp, GET_RANGE_OF_TS_MAX_BATCH);
             }
+
         };
         return ClosableIterators.wrap(rows.iterator());
     }
@@ -593,28 +596,30 @@ public class DbKvs extends AbstractKeyValueService {
     private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getTimestampsPage(
             TableReference tableRef,
             RangeRequest range,
-            long timestamp) {
+            long timestamp,
+            long batchSize) {
         Stopwatch watch = Stopwatch.createStarted();
         try {
-            return runRead(tableRef, table -> getTimestampsPageInternal(table, range, timestamp));
+            return runRead(tableRef, table -> getTimestampsPageInternal(table, range, timestamp, batchSize));
         } finally {
             log.debug("Call to KVS.getTimestampsPage on table {} took {} ms.",
                     tableRef, watch.elapsed(TimeUnit.MILLISECONDS));
         }
     }
 
-    @SuppressWarnings("deprecation")
-    private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getTimestampsPageInternal(DbReadTable table,
-                                                                                                RangeRequest range,
-                                                                                                long timestamp) {
-        Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
+    private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getTimestampsPageInternal(
+            DbReadTable table,
+            RangeRequest range,
+            long timestamp,
+            long batchSize) {
+        Comparator<byte[]> comp = range.isReverse()
+                ? UnsignedBytes.lexicographicalComparator().reversed() : UnsignedBytes.lexicographicalComparator();
         SortedSet<byte[]> rows = Sets.newTreeSet(comp);
         int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
 
-
         try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {
             while (rows.size() < maxRows && rangeResults.hasNext()) {
-                byte[] rowName = rangeResults.next().getBytes("row_name");
+                byte[] rowName = rangeResults.next().getBlob("row_name");
                 if (rowName != null) {
                     rows.add(rowName);
                 }
@@ -624,46 +629,57 @@ public class DbKvs extends AbstractKeyValueService {
             }
         }
 
-        ColumnSelection columns = ColumnSelection.all();
-        if (!range.getColumnNames().isEmpty()) {
-            columns = ColumnSelection.create(range.getColumnNames());
-        }
+        ColumnSelection columns = range.getColumnNames().isEmpty()
+                ? ColumnSelection.all() : ColumnSelection.create(range.getColumnNames());
 
-        SetMultimap<Cell, Long> results = getTimestampsByCell(table, rows, columns, timestamp);
+        ResultWithToken results = getTimestampsByCell(table, rows, columns, timestamp, batchSize, range.isReverse());
 
         NavigableMap<byte[], SortedMap<byte[], Set<Long>>> cellsByRow =
-                Cells.breakCellsUpByRow(Multimaps.asMap(results));
-        if (range.isReverse()) {
-            cellsByRow = cellsByRow.descendingMap();
-        }
+                Cells.breakCellsUpByRow(Multimaps.asMap(results.results));
+
         List<RowResult<Set<Long>>> finalResults = Lists.newArrayListWithCapacity(results.size());
         for (Entry<byte[], SortedMap<byte[], Set<Long>>> entry : cellsByRow.entrySet()) {
             finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
         }
-        byte[] nextRow = null;
-        boolean mayHaveMoreResults = false;
-        byte[] lastRow = range.isReverse() ? rows.first() : rows.last();
-        if (!RangeRequests.isTerminalRow(range.isReverse(), lastRow)) {
-            nextRow = RangeRequests.getNextStartRow(range.isReverse(), lastRow);
-            mayHaveMoreResults = rows.size() == maxRows;
+        byte[] nextRow = results.currentRow;
+        boolean mayHaveMoreResults = !results.finishedRange;
+        if (results.isEmpty() && nextRow != null) {
+            if (!RangeRequests.isTerminalRow(range.isReverse(), nextRow)) {
+                mayHaveMoreResults = false;
+            } else {
+                nextRow = RangeRequests.getNextStartRow(range.isReverse(), nextRow);
+            }
         }
         return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
     }
 
-    private SetMultimap<Cell, Long> getTimestampsByCell(DbReadTable table,
-                                                        Iterable<byte[]> rows,
-                                                        ColumnSelection columns,
-                                                        long timestamp) {
-        SetMultimap<Cell, Long> results = HashMultimap.create();
-        try (ClosableIterator<AgnosticLightResultRow> rowResults = table.getAllRows(rows, columns, timestamp, false)) {
-            while (rowResults.hasNext()) {
-                AgnosticLightResultRow row = rowResults.next();
-                Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
-                long ts = row.getLong("ts");
-                results.put(cell, ts);
+    private ResultWithToken getTimestampsByCell(
+            DbReadTable table,
+            Iterable<byte[]> rows,
+            ColumnSelection columns,
+            long timestamp,
+            long batchSize,
+            boolean isReverse) {
+        try (ClosableIterator<AgnosticLightResultRow> iterator = table
+                .getAllRows(rows, columns, timestamp, false, isReverse)) {
+            ResultWithToken result = new ResultWithToken();
+            SetMultimap<Cell, Long> rowBuffer = HashMultimap.create();
+            while (iterator.hasNext() && result.size() + rowBuffer.size() < batchSize) {
+                AgnosticLightResultRow cellResult = iterator.next();
+                result.storePreviousRowIfComplete(cellResult, rowBuffer);
+                Cell cell = Cell.create(cellResult.getBlob("row_name"), cellResult.getBlob("col_name"));
+                long ts = cellResult.getLong("ts");
+                rowBuffer.put(cell, ts);
             }
+            if (iterator.hasNext()) {
+                AgnosticLightResultRow cellResult = iterator.next();
+                result.storePreviousRowIfComplete(cellResult, rowBuffer);
+            } else {
+                result.storeRow(rowBuffer);
+                result.finishedRange = true;
+            }
+            return result;
         }
-        return results;
     }
 
     @Override
@@ -1312,5 +1328,35 @@ public class DbKvs extends AbstractKeyValueService {
 
     private interface ReadWriteTask<T> {
         T run(DbReadTable readTable, DbWriteTable writeTable);
+    }
+
+    static class ResultWithToken {
+        SetMultimap<Cell, Long> results;
+        byte[] currentRow = null;
+        boolean finishedRange = false;
+
+        ResultWithToken() {
+            results = HashMultimap.create();
+        }
+
+        boolean isEmpty() {
+            return results.isEmpty();
+        }
+
+        int size() {
+            return results.size();
+        }
+
+        void storeRow(SetMultimap<Cell, Long> rowBuffer) {
+            results.putAll(rowBuffer);
+        }
+
+        void storePreviousRowIfComplete(AgnosticLightResultRow cellResult, SetMultimap<Cell, Long> rowBuffer) {
+            if (!Arrays.equals(currentRow, cellResult.getBlob("row_name"))) {
+                currentRow = cellResult.getBlob("row_name");
+                storeRow(rowBuffer);
+                rowBuffer.clear();
+            }
+        }
     }
 }

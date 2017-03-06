@@ -15,13 +15,16 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
@@ -134,6 +137,33 @@ public abstract class AbstractSweeperTest {
      * @return the KVS used for testing
      */
     protected abstract KeyValueService getKeyValueService();
+
+    @Ignore
+    @Test
+    public void testOom() {
+        createTable(SweepStrategy.CONSERVATIVE);
+
+        for (int col = 0; col < 10000; ++col) {
+            Map<Cell, byte[]> toPut = new HashMap<>();
+            for (int row = 0; row < 1000; ++row) {
+                Cell cell = Cell.create(
+                        Integer.toString(row).getBytes(),
+                        Integer.toString(col).getBytes());
+                toPut.put(cell, "foo".getBytes());
+            }
+            kvs.put(TABLE_NAME, toPut, col + 1000);
+            txService.putUnlessExists(col + 1000, col + 1000);
+            if (col % 1000 == 0) {
+                kvs.put(TABLE_NAME, toPut, col + 11000);
+                txService.putUnlessExists(col + 11000, col + 11000);
+            }
+            System.out.println("inserted col " + col);
+        }
+        System.out.println("starting sweep");
+        SweepResults results = sweep(TABLE_NAME, 30000, 1000, 1000);
+        Assert.assertTrue(results.getNextStartRow().isPresent());
+        Assert.assertEquals(10000L, results.getCellsDeleted());
+    }
 
     @Test
     public void testSweepOneConservative() {
@@ -591,8 +621,12 @@ public abstract class AbstractSweeperTest {
     }
 
     private SweepResults sweep(TableReference tableReference, long ts, int batchSize) {
+        return sweep(tableReference, ts, batchSize, DEFAULT_CELL_BATCH_SIZE);
+    }
+
+    private SweepResults sweep(TableReference tableReference, long ts, int batchSize, int cellBatchSize) {
         sweepTimestamp.set(ts);
-        return sweepRunner.run(tableReference, batchSize, DEFAULT_CELL_BATCH_SIZE, new byte[0]);
+        return sweepRunner.run(tableReference, batchSize, cellBatchSize, new byte[0]);
     }
 
     private SweepResults partialSweep(long ts, int batchSize) {

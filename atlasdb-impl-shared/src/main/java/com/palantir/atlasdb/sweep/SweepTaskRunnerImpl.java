@@ -196,7 +196,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                     });
 
             byte[] nextRow = rowResultTimestamps.size() < rowBatchSize ? null :
-                    RangeRequests.getNextStartRow(false, rowResultTimestamps.lastItem().getRowName());
+                    RangeRequests.getNextStartRow(range.isReverse(), rowResultTimestamps.lastItem().getRowName());
             return SweepResults.builder()
                     .previousStartRow(Optional.fromNullable(startRow))
                     .nextStartRow(Optional.fromNullable(nextRow))

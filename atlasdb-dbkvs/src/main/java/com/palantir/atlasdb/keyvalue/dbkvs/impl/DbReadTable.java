@@ -15,10 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -62,14 +64,28 @@ public class DbReadTable {
 
     public ClosableIterator<AgnosticLightResultRow> getAllRows(
             Iterable<byte[]> rows, ColumnSelection columns, long ts, boolean includeValues) {
+        return getAllRows(rows, columns, ts, includeValues, null);
+    }
+
+    public ClosableIterator<AgnosticLightResultRow> getAllRows(
+            Iterable<byte[]> rows, ColumnSelection columns, long ts, boolean includeValues, Boolean reverseRows) {
         if (columns.noColumnsSelected()) {
             return ClosableIterators.emptyImmutableClosableIterator();
         } else if (isSingleton(rows)) {
             byte[] row = Iterables.getOnlyElement(rows);
             return run(queryFactory.getAllRowQuery(row, ts, columns, includeValues));
         } else {
-            return run(queryFactory.getAllRowsQuery(rows, ts, columns, includeValues));
+            FullQuery orderedQuery = addOrdering(Optional.ofNullable(reverseRows),
+                    queryFactory.getAllRowsQuery(rows, ts, columns, includeValues));
+            return run(orderedQuery);
         }
+    }
+
+    private FullQuery addOrdering(Optional<Boolean> reverseRows, FullQuery query) {
+        String ordering = reverseRows
+                .map(reverse -> " ORDER BY m.row_name" + (reverse ? " DESC" : " ASC") + ", m.col_name, m.ts")
+                .orElse("");
+        return new FullQuery(query.getQuery() + ordering).withArgs(Arrays.asList(query.getArgs()));
     }
 
     public ClosableIterator<AgnosticLightResultRow> getLatestCells(Map<Cell, Long> cells, boolean includeValue) {
