@@ -1,12 +1,12 @@
 /**
  * Copyright 2017 Palantir Technologies
- *
+ * <p>
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://opensource.org/licenses/BSD-3-Clause
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.util;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,9 +25,12 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.cache.Cache;
+import com.palantir.tritium.proxy.Instrumentation;
 
 public final class AtlasDbMetrics {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbMetrics.class);
+
     @VisibleForTesting
     static final String DEFAULT_REGISTRY_NAME = "AtlasDb";
 
@@ -51,4 +57,18 @@ public final class AtlasDbMetrics {
 
         return AtlasDbMetrics.metrics;
     }
+
+    public static void registerCache(Cache<?, ?> cache, String metricsPrefix) {
+        MetricRegistry metricRegistry = getMetricRegistry();
+        Set<String> existingMetrics = metricRegistry.getMetrics().keySet().stream()
+                .filter(name -> name.startsWith(metricsPrefix))
+                .collect(Collectors.toSet());
+        if (existingMetrics.isEmpty()) {
+            MetricRegistries.registerCache(metricRegistry, cache, metricsPrefix);
+        } else {
+            log.info("Not registering cache with prefix '{}' as metric registry already contains metrics: {}",
+                    metricsPrefix, existingMetrics);
+        }
+    }
+
 }
