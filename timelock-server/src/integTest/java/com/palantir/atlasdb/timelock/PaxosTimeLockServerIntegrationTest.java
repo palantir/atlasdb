@@ -259,7 +259,8 @@ public class PaxosTimeLockServerIntegrationTest {
         return AtlasDbHttpClients.createProxy(
                 NO_SSL,
                 getRootUriForClient(client),
-                clazz);
+                clazz,
+                client);
     }
 
     private static String getRootUriForClient(String client) {

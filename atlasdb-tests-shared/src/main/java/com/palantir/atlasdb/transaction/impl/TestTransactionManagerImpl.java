@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -23,11 +24,15 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampService;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
+
+    public static final String TRANSACTION_METRIC_NAME = MetricRegistry.name(Transaction.class, "test");
+
     public TestTransactionManagerImpl(KeyValueService keyValueService,
                                       TimestampService timestampService,
                                       LockClient lockClient,
@@ -75,23 +80,26 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @Override
-    public Transaction commitAndStartNewTransaction(Transaction t) {
-        t.commit();
+    public Transaction commitAndStartNewTransaction(Transaction tx) {
+        tx.commit();
         return createNewTransaction();
     }
 
     @Override
     public Transaction createNewTransaction() {
-        return new SnapshotTransaction(
-                keyValueService,
-                lockService,
-                timestampService,
-                transactionService,
-                cleaner,
-                timestampService.getFreshTimestamp(),
-                conflictDetectionManager.get(),
-                constraintModeSupplier.get(),
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                timestampValidationReadCache);
+        return AtlasDbMetrics.instrument(
+                Transaction.class,
+                new SnapshotTransaction(
+                        keyValueService,
+                        lockService,
+                        timestampService,
+                        transactionService,
+                        cleaner,
+                        timestampService.getFreshTimestamp(),
+                        conflictDetectionManager.get(),
+                        constraintModeSupplier.get(),
+                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                        timestampValidationReadCache),
+                TRANSACTION_METRIC_NAME);
     }
 }

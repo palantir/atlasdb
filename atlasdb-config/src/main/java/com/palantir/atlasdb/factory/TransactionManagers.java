@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
@@ -80,7 +81,6 @@ import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
-import com.palantir.tritium.Tritium;
 
 public final class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
@@ -165,7 +165,8 @@ public final class TransactionManagers {
         kvs = ProfilingKeyValueService.create(kvs);
         kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
         kvs = TracingKeyValueService.create(kvs);
-        kvs = Tritium.instrument(KeyValueService.class, kvs, AtlasDbMetrics.getMetricRegistry());
+        kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs,
+                MetricRegistry.name(KeyValueService.class, userAgent));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
         TransactionTables.createTables(kvs);

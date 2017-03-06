@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
@@ -23,6 +25,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -41,17 +45,21 @@ import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting1.tracing.Tracers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.tritium.metrics.MetricRegistries;
 
 public class AtlasDbTestCase {
     protected static LockClient lockClient;
-    protected static LockServiceImpl lockService;
+    protected static LockService lockService;
+    protected static MetricRegistry previousMetrics;
 
     protected StatsTrackingKeyValueService keyValueServiceWithStats;
     protected TrackingKeyValueService keyValueService;
@@ -60,6 +68,7 @@ public class AtlasDbTestCase {
     protected SweepStrategyManager sweepStrategyManager;
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
+    protected MetricRegistry metrics;
 
     @BeforeClass
     public static void setupLockClient() {
@@ -82,16 +91,30 @@ public class AtlasDbTestCase {
         }
     }
 
+    @BeforeClass
+    public static void savePreviousMetrics() throws Exception {
+        previousMetrics = AtlasDbMetrics.getMetricRegistry();
+    }
+
     @AfterClass
-    public static void tearDownLockService() {
+    public static void restorePreviousMetrics() throws Exception {
+        AtlasDbMetrics.setMetricRegistry(previousMetrics);
+    }
+
+    @AfterClass
+    public static void tearDownLockService() throws IOException {
+        if (lockService instanceof Closeable) {
+            ((Closeable) lockService).close();
+        }
         if (lockService != null) {
-            lockService.close();
             lockService = null;
         }
     }
 
     @Before
     public void setUp() throws Exception {
+        metrics = MetricRegistries.createWithHdrHistogramReservoirs();
+        AtlasDbMetrics.setMetricRegistry(metrics);
         timestampService = new InMemoryTimestampService();
         KeyValueService kvs = getBaseKeyValueService();
         keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
@@ -113,12 +136,20 @@ public class AtlasDbTestCase {
         txManager = new CachingTestTransactionManager(txManager);
     }
 
+    @After
+    public void after() throws Exception {
+        ConsoleReporter reporter = ConsoleReporter.forRegistry(metrics).build();
+        reporter.report();
+        reporter.close();
+    }
+
     protected KeyValueService getBaseKeyValueService() {
         ExecutorService executor = Tracers.wrap(PTExecutors.newSingleThreadExecutor(
                 PTExecutors.newNamedThreadFactory(true)));
         InMemoryKeyValueService inMemoryKvs = new InMemoryKeyValueService(false, executor);
         KeyValueService namespacedKvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(inMemoryKvs);
-        return TracingKeyValueService.create(namespacedKvs);
+        KeyValueService tracingKvs = TracingKeyValueService.create(namespacedKvs);
+        return AtlasDbMetrics.instrument(KeyValueService.class, tracingKvs);
     }
 
     @After

@@ -26,6 +26,10 @@ import com.codahale.metrics.SharedMetricRegistries;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
+import com.palantir.tritium.event.log.LoggingInvocationEventHandler;
+import com.palantir.tritium.event.log.LoggingLevel;
+import com.palantir.tritium.event.metrics.MetricsInvocationEventHandler;
+import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.proxy.Instrumentation;
 
 public final class AtlasDbMetrics {
@@ -56,6 +60,19 @@ public final class AtlasDbMetrics {
         }
 
         return AtlasDbMetrics.metrics;
+
+    public static <T, U extends T> T instrument(Class<T> serviceInterface, U service) {
+        return instrument(serviceInterface, service, serviceInterface.getName());
+    }
+
+    public static <T, U extends T> T instrument(Class<T> serviceInterface, U service, String name) {
+        return Instrumentation.builder(serviceInterface, service)
+                .withHandler(new MetricsInvocationEventHandler(getMetricRegistry(), name))
+                .withLogging(
+                        LoggerFactory.getLogger("performance." + name),
+                        LoggingLevel.TRACE,
+                        LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
+                .build();
     }
 
     public static void registerCache(Cache<?, ?> cache, String metricsPrefix) {

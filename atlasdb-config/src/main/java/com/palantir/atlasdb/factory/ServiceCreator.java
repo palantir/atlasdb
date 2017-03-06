@@ -19,8 +19,6 @@ import java.util.Set;
 
 import javax.net.ssl.SSLSocketFactory;
 
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -29,10 +27,6 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.remoting.ssl.SslSocketFactories;
-import com.palantir.tritium.event.log.LoggingInvocationEventHandler;
-import com.palantir.tritium.event.log.LoggingLevel;
-import com.palantir.tritium.event.metrics.MetricsInvocationEventHandler;
-import com.palantir.tritium.proxy.Instrumentation;
 
 public class ServiceCreator<T> implements Function<ServerListConfig, T> {
     private final Class<T> serviceClass;
@@ -61,18 +55,10 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
             Set<String> uris,
             Class<T> serviceClass,
             String userAgent) {
-        return instrument(userAgent, serviceClass,
-                AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent));
+        return AtlasDbMetrics.instrument(
+                serviceClass,
+                AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent),
+                MetricRegistry.name(serviceClass, userAgent));
     }
 
-    private static <T> T instrument(String userAgent, Class<T> serviceClass, T remoteService) {
-        String name = MetricRegistry.name(serviceClass, userAgent);
-        return Instrumentation.builder(serviceClass, remoteService)
-                .withHandler(new MetricsInvocationEventHandler(AtlasDbMetrics.getMetricRegistry(), name))
-                .withLogging(
-                        LoggerFactory.getLogger("performance." + name),
-                        LoggingLevel.TRACE,
-                        LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
-                .build();
-    }
 }

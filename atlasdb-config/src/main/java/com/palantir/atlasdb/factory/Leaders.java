@@ -27,6 +27,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 import org.immutables.value.Value;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -49,7 +50,6 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.tritium.Tritium;
 
 public final class Leaders {
     private Leaders() {
@@ -146,15 +146,14 @@ public final class Leaders {
             List<PaxosLearner> learners,
             int quorumSize,
             ExecutorService executor) {
-        return Tritium.instrument(
+        return AtlasDbMetrics.instrument(
                 PaxosProposer.class,
                 PaxosProposerImpl.newProposer(
                         ourLearner,
                         ImmutableList.copyOf(acceptors),
                         ImmutableList.copyOf(learners),
                         quorumSize,
-                        executor),
-                AtlasDbMetrics.getMetricRegistry());
+                        executor));
     }
 
     public static <T> List<T> createProxyAndLocalList(
@@ -173,7 +172,8 @@ public final class Leaders {
             String userAgent) {
         return ImmutableList.copyOf(Iterables.concat(
                 AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz, userAgent),
-                ImmutableList.of(Tritium.instrument(clazz, localObject, AtlasDbMetrics.getMetricRegistry()))));
+                ImmutableList.of(
+                        AtlasDbMetrics.instrument(clazz, localObject, MetricRegistry.name(clazz, userAgent)))));
     }
 
     public static Map<PingableLeader, HostAndPort> generatePingables(
