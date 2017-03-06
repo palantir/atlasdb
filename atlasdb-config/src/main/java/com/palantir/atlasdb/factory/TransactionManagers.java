@@ -70,6 +70,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
@@ -79,6 +80,7 @@ import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.tritium.Tritium;
 
 public final class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
@@ -163,6 +165,7 @@ public final class TransactionManagers {
         kvs = ProfilingKeyValueService.create(kvs);
         kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
         kvs = TracingKeyValueService.create(kvs);
+        kvs = Tritium.instrument(KeyValueService.class, kvs, AtlasDbMetrics.getMetricRegistry());
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
         TransactionTables.createTables(kvs);

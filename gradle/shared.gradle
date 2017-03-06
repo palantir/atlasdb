@@ -18,6 +18,9 @@ repositories {
     maven {
         url 'http://dl.bintray.com/palantir/releases/'
     }
+    maven {
+        url 'https://dl.bintray.com/marshallpierce/maven/'
+    }
 }
 
 checkstyle {

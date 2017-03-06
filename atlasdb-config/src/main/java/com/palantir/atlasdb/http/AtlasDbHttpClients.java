@@ -28,6 +28,8 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.tritium.Tritium;
 import com.squareup.okhttp.CipherSuite;
 import com.squareup.okhttp.ConnectionPool;
 import com.squareup.okhttp.ConnectionSpec;
@@ -119,13 +121,16 @@ public final class AtlasDbHttpClients {
             String uri,
             Class<T> type,
             String userAgent) {
-        return Feign.builder()
-                .contract(contract)
-                .encoder(encoder)
-                .decoder(decoder)
-                .errorDecoder(errorDecoder)
-                .client(newOkHttpClient(sslSocketFactory, userAgent))
-                .target(type, uri);
+        return Tritium.instrument(
+                type,
+                Feign.builder()
+                        .contract(contract)
+                        .encoder(encoder)
+                        .decoder(decoder)
+                        .errorDecoder(errorDecoder)
+                        .client(newOkHttpClient(sslSocketFactory, userAgent))
+                        .target(type, uri),
+                AtlasDbMetrics.getMetricRegistry());
     }
 
     /**
@@ -192,15 +197,18 @@ public final class AtlasDbHttpClients {
             Request.Options feignOptions, int maxBackoffMillis, Class<T> type, String userAgent) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
         Client client = failoverFeignTarget.wrapClient(newOkHttpClient(sslSocketFactory, userAgent));
-        return Feign.builder()
-                .contract(contract)
-                .encoder(encoder)
-                .decoder(decoder)
-                .errorDecoder(errorDecoder)
-                .client(client)
-                .retryer(failoverFeignTarget)
-                .options(feignOptions)
-                .target(failoverFeignTarget);
+        return Tritium.instrument(
+                type,
+                Feign.builder()
+                        .contract(contract)
+                        .encoder(encoder)
+                        .decoder(decoder)
+                        .errorDecoder(errorDecoder)
+                        .client(client)
+                        .retryer(failoverFeignTarget)
+                        .options(feignOptions)
+                        .target(failoverFeignTarget),
+                AtlasDbMetrics.getMetricRegistry());
     }
 
     @VisibleForTesting

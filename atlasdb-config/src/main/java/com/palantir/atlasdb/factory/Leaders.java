@@ -29,6 +29,7 @@ import org.immutables.value.Value;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.factory.TransactionManagers.Environment;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
@@ -47,6 +49,7 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
+import com.palantir.tritium.Tritium;
 
 public final class Leaders {
     private Leaders() {
@@ -143,12 +146,15 @@ public final class Leaders {
             List<PaxosLearner> learners,
             int quorumSize,
             ExecutorService executor) {
-        return PaxosProposerImpl.newProposer(
-                    ourLearner,
-                    ImmutableList.copyOf(acceptors),
-                    ImmutableList.copyOf(learners),
-                    quorumSize,
-                    executor);
+        return Tritium.instrument(
+                PaxosProposer.class,
+                PaxosProposerImpl.newProposer(
+                        ourLearner,
+                        ImmutableList.copyOf(acceptors),
+                        ImmutableList.copyOf(learners),
+                        quorumSize,
+                        executor),
+                AtlasDbMetrics.getMetricRegistry());
     }
 
     public static <T> List<T> createProxyAndLocalList(
@@ -165,9 +171,9 @@ public final class Leaders {
             Optional<SSLSocketFactory> sslSocketFactory,
             Class<T> clazz,
             String userAgent) {
-        List<T> objects = AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz, userAgent);
-        objects.add(localObject);
-        return objects;
+        return ImmutableList.copyOf(Iterables.concat(
+                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz, userAgent),
+                ImmutableList.of(Tritium.instrument(clazz, localObject, AtlasDbMetrics.getMetricRegistry()))));
     }
 
     public static Map<PingableLeader, HostAndPort> generatePingables(

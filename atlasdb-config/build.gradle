@@ -17,6 +17,7 @@ dependencies {
     compile group: 'com.netflix.feign', name: 'feign-okhttp'
     compile group: 'javax.validation', name: 'validation-api'
     compile group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
+    compile group: 'com.palantir.tritium', name: 'tritium-lib'
 
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
