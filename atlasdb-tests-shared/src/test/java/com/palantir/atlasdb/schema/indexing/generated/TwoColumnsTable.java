@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class TwoColumnsTable implements
         AtlasDbMutablePersistentTable<TwoColumnsTable.TwoColumnsRow,
                                          TwoColumnsTable.TwoColumnsNamedColumnValue<?>,
@@ -678,12 +679,10 @@ public final class TwoColumnsTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<TwoColumnsRowResult> getRow(TwoColumnsRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<TwoColumnsRowResult> getRow(TwoColumnsRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -893,6 +892,7 @@ public final class TwoColumnsTable implements
     }
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+    @SuppressWarnings("all")
     public static final class FooToIdCondIdxTable implements
             AtlasDbDynamicMutablePersistentTable<FooToIdCondIdxTable.FooToIdCondIdxRow,
                                                     FooToIdCondIdxTable.FooToIdCondIdxColumn,
@@ -1546,6 +1546,7 @@ public final class TwoColumnsTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+    @SuppressWarnings("all")
     public static final class FooToIdIdxTable implements
             AtlasDbDynamicMutablePersistentTable<FooToIdIdxTable.FooToIdIdxRow,
                                                     FooToIdIdxTable.FooToIdIdxColumn,
@@ -2293,5 +2294,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "CoGTujrSWASTbNC1oi69+w==";
+    static String __CLASS_HASH = "XlnDML5kDOS0MZI8cpul2g==";
 }

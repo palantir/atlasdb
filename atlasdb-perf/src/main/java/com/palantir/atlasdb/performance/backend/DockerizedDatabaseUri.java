@@ -29,7 +29,7 @@ public class DockerizedDatabaseUri {
         this.addr = addr;
     }
 
-    public static DockerizedDatabaseUri fromUriString(String uri) {
+    public static DockerizedDatabaseUri fromUriString(String uri) throws IllegalArgumentException {
         String[] parts = uri.trim().split(DELIMITER);
         String[] addrParts = parts[1].split(":");
         return new DockerizedDatabaseUri(KeyValueServiceInstrumentation.forDatabase(parts[0]),
@@ -45,7 +45,7 @@ public class DockerizedDatabaseUri {
     }
 
     public String toString() {
-        return type.toString() + DELIMITER + addr.toString();
+        return type.getClassName() + DELIMITER + addr.toString();
     }
 
 }

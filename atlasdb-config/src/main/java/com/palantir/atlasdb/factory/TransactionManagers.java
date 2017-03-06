@@ -17,7 +17,6 @@ package com.palantir.atlasdb.factory;
 
 import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -26,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -36,16 +34,21 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
+import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
+import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
+import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
+import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -74,9 +77,8 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.remoting.ssl.SslConfiguration;
-import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public final class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
@@ -123,22 +125,49 @@ public final class TransactionManagers {
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess) {
+        return create(config, schemas, env, lockServerOptions, allowHiddenTableAccess, UserAgents.DEFAULT_USER_AGENT);
+    }
+
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Set<Schema> schemas,
+            Environment env,
+            LockServerOptions lockServerOptions,
+            boolean allowHiddenTableAccess,
+            Class<?> callingClass) {
+        return create(config, schemas, env, lockServerOptions, allowHiddenTableAccess,
+                UserAgents.fromClass(callingClass));
+    }
+
+    private static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Set<Schema> schemas,
+            Environment env,
+            LockServerOptions lockServerOptions,
+            boolean allowHiddenTableAccess,
+            String userAgent) {
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
+
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
-        LockAndTimestampServices lts = createLockAndTimestampServices(
+        LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
                 env,
                 () -> LockServiceImpl.create(lockServerOptions),
-                atlasFactory::getTimestampService);
+                atlasFactory::getTimestampService,
+                atlasFactory.getTimestampStoreInvalidator(),
+                userAgent);
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
-        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
         kvs = ProfilingKeyValueService.create(kvs);
-        kvs = SweepStatsKeyValueService.create(kvs, lts.time());
+        kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
+        kvs = TracingKeyValueService.create(kvs);
+        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
         TransactionTables.createTables(kvs);
+
+        PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
@@ -156,8 +185,8 @@ public final class TransactionManagers {
 
         Cleaner cleaner = new DefaultCleanerBuilder(
                 kvs,
-                lts.lock(),
-                lts.time(),
+                lockAndTimestampServices.lock(),
+                lockAndTimestampServices.time(),
                 LOCK_CLIENT,
                 ImmutableList.of(follower),
                 transactionService)
@@ -170,9 +199,9 @@ public final class TransactionManagers {
                 .buildCleaner();
 
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
-                lts.time(),
+                lockAndTimestampServices.time(),
                 LOCK_CLIENT,
-                lts.lock(),
+                lockAndTimestampServices.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
@@ -180,13 +209,19 @@ public final class TransactionManagers {
                 cleaner,
                 allowHiddenTableAccess);
 
+        CellsSweeper cellsSweeper = new CellsSweeper(
+                transactionManager,
+                kvs,
+                persistentLockService,
+                config.getSweepPersistentLockWaitMillis(),
+                ImmutableList.of(follower));
         SweepTaskRunner sweepRunner = new SweepTaskRunnerImpl(
                 kvs,
                 getUnreadableTsSupplier(transactionManager),
                 getImmutableTsSupplier(transactionManager),
                 transactionService,
                 sweepStrategyManager,
-                new CellsSweeper(transactionManager, kvs, ImmutableList.of(follower)));
+                cellsSweeper);
         BackgroundSweeper backgroundSweeper = new BackgroundSweeperImpl(
                 transactionManager,
                 kvs,
@@ -202,6 +237,17 @@ public final class TransactionManagers {
         return transactionManager;
     }
 
+    private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
+        if (!kvs.supportsCheckAndSet()) {
+            return new NoOpPersistentLockService();
+        }
+
+        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs);
+        env.register(pls);
+        env.register(new CheckAndSetExceptionMapper());
+        return pls;
+    }
+
     private static Supplier<Long> getImmutableTsSupplier(final TransactionManager txManager) {
         return () -> txManager.getImmutableTimestamp();
     }
@@ -210,13 +256,40 @@ public final class TransactionManagers {
         return () -> txManager.getUnreadableTimestamp();
     }
 
+    /**
+     * This method should not be used directly. It remains here to support the AtlasDB-Dagger module and the CLIs, but
+     * may be removed at some point in the future.
+     *
+     * @deprecated Not intended for public use outside of the AtlasDB CLIs
+     */
+    @Deprecated
     public static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
+        return createLockAndTimestampServices(
+                config,
+                env,
+                lock,
+                time,
+                () -> {
+                    log.warn("Note: Automatic migration isn't performed by the CLI tools.");
+                    return AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
+                },
+                UserAgents.DEFAULT_USER_AGENT);
+    }
+
+    @VisibleForTesting
+    static LockAndTimestampServices createLockAndTimestampServices(
+            AtlasDbConfig config,
+            Environment env,
+            Supplier<RemoteLockService> lock,
+            Supplier<TimestampService> time,
+            TimestampStoreInvalidator invalidator,
+            String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
-                createRawServices(config, env, lock, time);
+                createRawServices(config, env, lock, time, invalidator, userAgent);
         return withRefreshingLockService(lockAndTimestampServices);
     }
 
@@ -228,40 +301,41 @@ public final class TransactionManagers {
                 .build();
     }
 
-    private static LockAndTimestampServices createRawServices(
+    @VisibleForTesting
+    static LockAndTimestampServices createRawServices(
             AtlasDbConfig config,
             Environment env,
             Supplier<RemoteLockService> lock,
-            Supplier<TimestampService> time) {
+            Supplier<TimestampService> time,
+            TimestampStoreInvalidator invalidator,
+            String userAgent) {
         if (config.leader().isPresent()) {
-            return createRawLeaderServices(config.leader().get(), env, lock, time);
+            return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
-            return createRawRemoteServices(config);
+            return createRawRemoteServices(config, userAgent);
         } else if (config.timelock().isPresent()) {
-            return createNamespacedRawRemoteServices(config.timelock().get());
+            TimeLockClientConfig timeLockClientConfig = config.timelock().get();
+            TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
+            return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time);
         }
     }
 
-    private static LockAndTimestampServices createNamespacedRawRemoteServices(TimeLockClientConfig config) {
-        ServerListConfig namespacedServerListConfig = getNamespacedServerListConfig(config);
-        return getLockAndTimestampServices(namespacedServerListConfig);
+    private static LockAndTimestampServices createNamespacedRawRemoteServices(
+            TimeLockClientConfig config,
+            String userAgent) {
+        ServerListConfig namespacedServerListConfig = config.toNamespacedServerList();
+        return getLockAndTimestampServices(namespacedServerListConfig, userAgent);
     }
 
-    @VisibleForTesting
-    static ServerListConfig getNamespacedServerListConfig(TimeLockClientConfig config) {
-        return ImmutableServerListConfig.copyOf(config.serversList())
-                .withServers(config.serversList()
-                        .servers()
-                        .stream()
-                        .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + config.client())
-                        .collect(Collectors.toSet()));
-    }
-
-    private static LockAndTimestampServices getLockAndTimestampServices(ServerListConfig timelockServerListConfig) {
-        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class).apply(timelockServerListConfig);
-        TimestampService timeService = new ServiceCreator<>(TimestampService.class).apply(timelockServerListConfig);
+    private static LockAndTimestampServices getLockAndTimestampServices(
+            ServerListConfig timelockServerListConfig,
+            String userAgent) {
+        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class, userAgent)
+                .apply(timelockServerListConfig);
+        TimestampService timeService = new ServiceCreator<>(TimestampService.class, userAgent)
+                .apply(timelockServerListConfig);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
@@ -273,23 +347,35 @@ public final class TransactionManagers {
             LeaderConfig leaderConfig,
             Environment env,
             Supplier<RemoteLockService> lock,
-            Supplier<TimestampService> time) {
-        LeaderElectionService leader = Leaders.create(env, leaderConfig);
+            Supplier<TimestampService> time,
+            String userAgent) {
+        LeaderElectionService leader = Leaders.create(env, leaderConfig, userAgent);
 
         env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
         env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));
 
-        Optional<SSLSocketFactory> sslSocketFactory = createSslSocketFactory(leaderConfig.sslConfiguration());
+        Optional<SSLSocketFactory> sslSocketFactory = ServiceCreator.createSslSocketFactory(
+                leaderConfig.sslConfiguration());
 
         return ImmutableLockAndTimestampServices.builder()
-                .lock(createService(sslSocketFactory, leaderConfig.leaders(), RemoteLockService.class))
-                .time(createService(sslSocketFactory, leaderConfig.leaders(), TimestampService.class))
+                .lock(ServiceCreator.createService(
+                        sslSocketFactory,
+                        leaderConfig.leaders(),
+                        RemoteLockService.class,
+                        userAgent))
+                .time(ServiceCreator.createService(
+                        sslSocketFactory,
+                        leaderConfig.leaders(),
+                        TimestampService.class,
+                        userAgent))
                 .build();
     }
 
-    private static LockAndTimestampServices createRawRemoteServices(AtlasDbConfig config) {
-        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class).apply(config.lock().get());
-        TimestampService timeService = new ServiceCreator<>(TimestampService.class).apply(config.timestamp().get());
+    private static LockAndTimestampServices createRawRemoteServices(AtlasDbConfig config, String userAgent) {
+        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class, userAgent)
+                .apply(config.lock().get());
+        TimestampService timeService = new ServiceCreator<>(TimestampService.class, userAgent)
+                .apply(config.timestamp().get());
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
@@ -311,34 +397,6 @@ public final class TransactionManagers {
                 .lock(lockService)
                 .time(timeService)
                 .build();
-    }
-
-    /**
-     * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link SSLSocketFactory}.
-     */
-    public static Optional<SSLSocketFactory> createSslSocketFactory(Optional<SslConfiguration> sslConfiguration) {
-        return sslConfiguration.transform(config -> SslSocketFactories.createSslSocketFactory(config));
-    }
-
-    private static <T> T createService(
-            Optional<SSLSocketFactory> sslSocketFactory,
-            Set<String> uris,
-            Class<T> serviceClass) {
-        return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass);
-    }
-
-    private static class ServiceCreator<T> implements Function<ServerListConfig, T> {
-        private Class<T> serviceClass;
-
-        ServiceCreator(Class<T> serviceClass) {
-            this.serviceClass = serviceClass;
-        }
-
-        @Override
-        public T apply(ServerListConfig input) {
-            Optional<SSLSocketFactory> sslSocketFactory = createSslSocketFactory(input.sslConfiguration());
-            return createService(sslSocketFactory, input.servers(), serviceClass);
-        }
     }
 
     @Value.Immutable

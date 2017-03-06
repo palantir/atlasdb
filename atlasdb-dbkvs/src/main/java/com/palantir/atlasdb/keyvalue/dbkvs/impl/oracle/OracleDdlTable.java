@@ -80,7 +80,7 @@ public final class OracleDdlTable implements DbDdlTable {
         boolean needsOverflow = false;
         TableMetadata metadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata);
         if (metadata != null) {
-            needsOverflow = metadata.getColumns().getMaxValueSize() > 2000;
+            needsOverflow = metadata.getColumns().getMaxValueSize() > AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD;
         }
 
         createTable(needsOverflow);
@@ -101,9 +101,9 @@ public final class OracleDdlTable implements DbDdlTable {
                 + "  row_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
                 + "  col_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
                 + "  ts         NUMBER(20) NOT NULL,"
-                + "  val        RAW(2000), "
+                + "  val        RAW(" + AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD + "), "
                 + (needsOverflow ? "overflow   NUMBER(38), " : "")
-                + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortTableName)
+                + "  CONSTRAINT " + PrimaryKeyConstraintNames.get(shortTableName)
                 + " PRIMARY KEY (row_name, col_name, ts) "
                 + ") organization index compress overflow",
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
@@ -116,7 +116,7 @@ public final class OracleDdlTable implements DbDdlTable {
                 "CREATE TABLE " + shortOverflowTableName + " ("
                 + "  id  NUMBER(38) NOT NULL, "
                 + "  val BLOB NOT NULL,"
-                + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortOverflowTableName) + " PRIMARY KEY (id)"
+                + "  CONSTRAINT " + PrimaryKeyConstraintNames.get(shortOverflowTableName) + " PRIMARY KEY (id)"
                 + ")",
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
         putTableNameMapping(oracleTableNameGetter.getPrefixedOverflowTableName(tableRef), shortOverflowTableName);
@@ -188,7 +188,8 @@ public final class OracleDdlTable implements DbDdlTable {
             throw new IllegalStateException(
                     String.format(
                         "Truncate called on a table (%s) that did not exist",
-                        oracleTableNameGetter.getPrefixedTableName(tableRef)));
+                        oracleTableNameGetter.getPrefixedTableName(tableRef)),
+                    e);
         }
         truncateOverflowTableIfItExists();
     }
@@ -206,7 +207,8 @@ public final class OracleDdlTable implements DbDdlTable {
                                 "Truncate called on a table (%s) that was supposed to have an overflow table (%s),"
                                 + " but that overflow table appears to not exist",
                                 oracleTableNameGetter.getPrefixedTableName(tableRef),
-                                oracleTableNameGetter.getPrefixedOverflowTableName(tableRef)));
+                                oracleTableNameGetter.getPrefixedOverflowTableName(tableRef)),
+                        e);
             }
         }
     }
@@ -254,10 +256,5 @@ public final class OracleDdlTable implements DbDdlTable {
                 throw Throwables.propagate(e);
             }
         }
-    }
-
-    private String getPrimaryKeyConstraintName(String tableName) {
-        String primaryKeyConstraintPrefix = "pk_";
-        return primaryKeyConstraintPrefix + tableName.substring(primaryKeyConstraintPrefix.length());
     }
 }

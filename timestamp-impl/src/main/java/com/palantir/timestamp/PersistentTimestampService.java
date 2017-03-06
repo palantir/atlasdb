@@ -16,6 +16,7 @@
 package com.palantir.timestamp;
 
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -26,8 +27,9 @@ import com.palantir.common.concurrent.PTExecutors;
 public class PersistentTimestampService implements TimestampService, TimestampManagementService {
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
 
-    private final ExecutorService executor;
     private final AvailableTimestamps availableTimestamps;
+    private final ExecutorService executor;
+    private final AtomicBoolean isAllocationTaskSubmitted;
 
     public PersistentTimestampService(AvailableTimestamps availableTimestamps, ExecutorService executor) {
         DebugLogger.logger.info(
@@ -36,6 +38,7 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
 
         this.availableTimestamps = availableTimestamps;
         this.executor = executor;
+        this.isAllocationTaskSubmitted = new AtomicBoolean(false);
     }
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
@@ -48,6 +51,7 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
         return new PersistentTimestampService(availableTimestamps, executor);
     }
 
+    @SuppressWarnings("unused") // used by product
     public long getUpperLimitTimestampToHandOutInclusive() {
         return availableTimestamps.getUpperLimit();
     }
@@ -58,7 +62,11 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
     }
 
     @Override
-    public synchronized TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+    public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+        /*
+         * Under high concurrent load, this will be a hot method as clients request timestamps.
+         * It is important to minimize contention as much as possible on this path.
+         */
         int numTimestampsToHandOut = cleanUpTimestampRequest(numTimestampsRequested);
         TimestampRange handedOut = availableTimestamps.handOut(numTimestampsToHandOut);
         asynchronouslyRefreshBuffer();
@@ -67,18 +75,35 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
 
     @Override
     public void fastForwardTimestamp(long currentTimestamp) {
+        Preconditions.checkArgument(currentTimestamp != TimestampManagementService.SENTINEL_TIMESTAMP,
+                "Cannot fast forward to the sentinel timestamp %s. If you accessed this timestamp service remotely"
+                        + " this is likely due to specifying an incorrect query parameter.", currentTimestamp);
         availableTimestamps.fastForwardTo(currentTimestamp);
     }
 
-    private int cleanUpTimestampRequest(int numTimestampsRequested) {
-        Preconditions.checkArgument(numTimestampsRequested > 0,
-                "Number of timestamps requested must be greater than zero, was %s",
-                numTimestampsRequested);
+    private static int cleanUpTimestampRequest(int numTimestampsRequested) {
+        if (numTimestampsRequested <= 0) {
+            // explicitly not using Preconditions to optimize hot success path and avoid allocations
+            throw new IllegalArgumentException(String.format(
+                    "Number of timestamps requested must be greater than zero, was %s", numTimestampsRequested));
+        }
 
         return Math.min(numTimestampsRequested, MAX_REQUEST_RANGE_SIZE);
     }
 
+    /**
+     * Attempts to submit a task to refresh the buffer if one is not already in-flight; otherwise does nothing.
+     */
     private void asynchronouslyRefreshBuffer() {
-        executor.submit(availableTimestamps::refreshBuffer);
+        if (isAllocationTaskSubmitted.compareAndSet(false, true)) {
+            executor.submit(() -> {
+                try {
+                    availableTimestamps.refreshBuffer();
+                } finally {
+                    isAllocationTaskSubmitted.set(false);
+                }
+            });
+        }
     }
+
 }

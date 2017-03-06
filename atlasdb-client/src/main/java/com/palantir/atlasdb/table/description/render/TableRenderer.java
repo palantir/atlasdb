@@ -201,6 +201,7 @@ public class TableRenderer {
                 importRenderer.renderImports();
             }
             line("@Generated(\"",  TableRenderer.class.getName(), "\")");
+            line("@SuppressWarnings(\"all\")");
             line("public ", isNestedIndex ? "static " : "", "final class ", Table, " implements");
             if (isNamedSet(table)) {
                 if (isExpiring(table)) {
@@ -1043,12 +1044,10 @@ public class TableRenderer {
         }
 
         private void renderNamedGetRow() {
-            line("@Override");
             line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row) {"); {
                 line("return getRow(row, allColumns);");
             } line("}");
             line();
-            line("@Override");
             line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row, ColumnSelection columns) {"); {
                 line("byte[] bytes = row.persistToBytes();");
                 line("RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);");

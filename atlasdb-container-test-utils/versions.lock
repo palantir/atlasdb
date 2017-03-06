@@ -32,6 +32,7 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
@@ -39,16 +40,25 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting1:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.module:jackson-module-afterburner": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting1:tracing"
             ]
         },
         "com.github.almondtools:conmatch": {
@@ -60,7 +70,7 @@
         "com.github.zafarkhaja:java-semver": {
             "locked": "0.9.0",
             "transitive": [
-                "com.palantir.docker.compose:docker-compose-rule"
+                "com.palantir.docker.compose:docker-compose-rule-core"
             ]
         },
         "com.google.code.findbugs:annotations": {
@@ -93,7 +103,8 @@
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-docker-test-utils",
-                "com.palantir.docker.compose:docker-compose-rule",
+                "com.palantir.docker.compose:docker-compose-rule-core",
+                "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config"
             ]
         },
@@ -119,7 +130,7 @@
         "com.jayway.awaitility:awaitility": {
             "locked": "1.6.5",
             "transitive": [
-                "com.palantir.docker.compose:docker-compose-rule"
+                "com.palantir.docker.compose:docker-compose-rule-core"
             ]
         },
         "com.netflix.feign:feign-core": {
@@ -206,11 +217,24 @@
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
-        "com.palantir.docker.compose:docker-compose-rule": {
-            "locked": "0.28.1",
-            "requested": "0.28.1",
+        "com.palantir.docker.compose:docker-compose-rule-core": {
+            "locked": "0.31.0",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule-junit4"
+            ]
+        },
+        "com.palantir.docker.compose:docker-compose-rule-junit4": {
+            "locked": "0.31.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-docker-test-utils"
+            ]
+        },
+        "com.palantir.remoting1:tracing": {
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.remoting:ssl-config": {
@@ -229,7 +253,7 @@
         "commons-io:commons-io": {
             "locked": "2.1",
             "transitive": [
-                "com.palantir.docker.compose:docker-compose-rule"
+                "com.palantir.docker.compose:docker-compose-rule-core"
             ]
         },
         "commons-lang:commons-lang": {
@@ -293,14 +317,14 @@
         "joda-time:joda-time": {
             "locked": "2.7",
             "transitive": [
-                "com.palantir.docker.compose:docker-compose-rule"
+                "com.palantir.docker.compose:docker-compose-rule-core"
             ]
         },
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
                 "com.github.almondtools:conmatch",
-                "com.palantir.docker.compose:docker-compose-rule"
+                "com.palantir.docker.compose:docker-compose-rule-junit4"
             ]
         },
         "net.amygdalum:xrayinterface": {
@@ -325,7 +349,7 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.docker.compose:docker-compose-rule",
+                "com.palantir.docker.compose:docker-compose-rule-core",
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
@@ -358,7 +382,6 @@
             "locked": "1.3",
             "transitive": [
                 "com.jayway.awaitility:awaitility",
-                "com.palantir.atlasdb:timestamp-impl",
                 "junit:junit",
                 "org.hamcrest:hamcrest-library"
             ]
@@ -367,8 +390,7 @@
             "locked": "1.3",
             "transitive": [
                 "com.github.almondtools:conmatch",
-                "com.jayway.awaitility:awaitility",
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.jayway.awaitility:awaitility"
             ]
         },
         "org.objenesis:objenesis": {
@@ -394,7 +416,8 @@
             "transitive": [
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.docker.compose:docker-compose-rule",
+                "com.palantir.docker.compose:docker-compose-rule-core",
+                "com.palantir.remoting1:tracing",
                 "io.dropwizard.metrics:metrics-core",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
@@ -442,6 +465,7 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
@@ -449,16 +473,25 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting1:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.module:jackson-module-afterburner": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting1:tracing"
             ]
         },
         "com.github.almondtools:conmatch": {
@@ -470,7 +503,7 @@
         "com.github.zafarkhaja:java-semver": {
             "locked": "0.9.0",
             "transitive": [
-                "com.palantir.docker.compose:docker-compose-rule"
+                "com.palantir.docker.compose:docker-compose-rule-core"
             ]
         },
         "com.google.code.findbugs:annotations": {
@@ -503,7 +536,8 @@
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-docker-test-utils",
-                "com.palantir.docker.compose:docker-compose-rule",
+                "com.palantir.docker.compose:docker-compose-rule-core",
+                "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config"
             ]
         },
@@ -529,7 +563,7 @@
         "com.jayway.awaitility:awaitility": {
             "locked": "1.6.5",
             "transitive": [
-                "com.palantir.docker.compose:docker-compose-rule"
+                "com.palantir.docker.compose:docker-compose-rule-core"
             ]
         },
         "com.netflix.feign:feign-core": {
@@ -616,11 +650,24 @@
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
-        "com.palantir.docker.compose:docker-compose-rule": {
-            "locked": "0.28.1",
-            "requested": "0.28.1",
+        "com.palantir.docker.compose:docker-compose-rule-core": {
+            "locked": "0.31.0",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule-junit4"
+            ]
+        },
+        "com.palantir.docker.compose:docker-compose-rule-junit4": {
+            "locked": "0.31.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-docker-test-utils"
+            ]
+        },
+        "com.palantir.remoting1:tracing": {
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.remoting:ssl-config": {
@@ -639,7 +686,7 @@
         "commons-io:commons-io": {
             "locked": "2.1",
             "transitive": [
-                "com.palantir.docker.compose:docker-compose-rule"
+                "com.palantir.docker.compose:docker-compose-rule-core"
             ]
         },
         "commons-lang:commons-lang": {
@@ -703,14 +750,14 @@
         "joda-time:joda-time": {
             "locked": "2.7",
             "transitive": [
-                "com.palantir.docker.compose:docker-compose-rule"
+                "com.palantir.docker.compose:docker-compose-rule-core"
             ]
         },
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
                 "com.github.almondtools:conmatch",
-                "com.palantir.docker.compose:docker-compose-rule"
+                "com.palantir.docker.compose:docker-compose-rule-junit4"
             ]
         },
         "net.amygdalum:xrayinterface": {
@@ -735,7 +782,7 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.docker.compose:docker-compose-rule",
+                "com.palantir.docker.compose:docker-compose-rule-core",
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
@@ -768,7 +815,6 @@
             "locked": "1.3",
             "transitive": [
                 "com.jayway.awaitility:awaitility",
-                "com.palantir.atlasdb:timestamp-impl",
                 "junit:junit",
                 "org.hamcrest:hamcrest-library"
             ]
@@ -777,8 +823,7 @@
             "locked": "1.3",
             "transitive": [
                 "com.github.almondtools:conmatch",
-                "com.jayway.awaitility:awaitility",
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.jayway.awaitility:awaitility"
             ]
         },
         "org.objenesis:objenesis": {
@@ -804,7 +849,8 @@
             "transitive": [
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.docker.compose:docker-compose-rule",
+                "com.palantir.docker.compose:docker-compose-rule-core",
+                "com.palantir.remoting1:tracing",
                 "io.dropwizard.metrics:metrics-core",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",

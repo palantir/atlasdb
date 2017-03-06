@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class SweepProgressTable implements
         AtlasDbMutablePersistentTable<SweepProgressTable.SweepProgressRow,
                                          SweepProgressTable.SweepProgressNamedColumnValue<?>,
@@ -1027,12 +1028,10 @@ public final class SweepProgressTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<SweepProgressRowResult> getRow(SweepProgressRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<SweepProgressRowResult> getRow(SweepProgressRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -1275,5 +1274,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/I2gV/xLpiGWuzDf+9UF1g==";
+    static String __CLASS_HASH = "w/iQ+G1DPbQx2I22vC12KQ==";
 }

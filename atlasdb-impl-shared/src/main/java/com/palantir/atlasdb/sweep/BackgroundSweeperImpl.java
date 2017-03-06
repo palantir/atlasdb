@@ -46,6 +46,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -353,9 +354,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                             .build());
         }
 
-        // Truncate instead of delete because the progress table contains only
-        // a single row that has accumulated many overwrites.
-        kvs.truncateTable(tableFactory.getSweepProgressTable(null).getTableRef());
+        clearSweepProgressTable();
     }
 
     private void saveIntermediateSweepResults(final SweepProgressRowResult progress,
@@ -422,13 +421,24 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
             if (result == null || tables.contains(result.getFullTableName())) {
                 return false;
             }
-            kvs.truncateTable(tableFactory.getSweepProgressTable(null).getTableRef());
+            clearSweepProgressTable();
             return true;
         } catch (RuntimeException e) {
             log.error("Failed to check whether the table being swept was dropped."
                     + " Continuing under the assumption that it wasn't...", e);
             return false;
         }
+    }
+
+    /**
+     * Fully remove the contents of the sweep progress table.
+     */
+    private void clearSweepProgressTable() {
+        // Use deleteRange instead of truncate
+        // 1) The table should be small, performance difference should be negligible.
+        // 2) Truncate takes an exclusive lock in Postgres, which can interfere
+        // with concurrently running backups.
+        kvs.deleteRange(tableFactory.getSweepProgressTable(null).getTableRef(), RangeRequest.all());
     }
 
     private long fromNullable(Long num) {

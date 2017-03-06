@@ -4,6 +4,10 @@ apply from: "../gradle/shared.gradle"
 apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
 
+schemas = [
+        'com.palantir.atlasdb.cas.CheckAndSetSchema'
+]
+
 dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
@@ -27,7 +31,7 @@ dependencies {
     testCompile project(':atlasdb-ete-test-utils')
 
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
-    testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
 }
 
 task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
@@ -42,9 +46,15 @@ task longTest(type: Test) {
     include '**/MultiCassandraTestSuite.class'
 }
 
+task timeLockTest(type: Test) {
+    dependsOn prepareForEteTests, ':timelock-server:dockerTag'
+    include '**/*TimeLock*.class'
+}
+
 test {
-    dependsOn longTest, prepareForEteTests
+    dependsOn longTest, prepareForEteTests, timeLockTest
     exclude '**/MultiCassandraTestSuite.class'
+    exclude '**/*TimeLock*.class'
     exclude '**/*EteTest.class'
 }
 

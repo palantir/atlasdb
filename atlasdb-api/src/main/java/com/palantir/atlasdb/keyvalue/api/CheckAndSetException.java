@@ -16,9 +16,6 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
-import com.palantir.atlasdb.encoding.PtBytes;
 
 public class CheckAndSetException extends RuntimeException {
     private static final long serialVersionUID = 1L;
@@ -50,21 +47,13 @@ public class CheckAndSetException extends RuntimeException {
     }
 
     public CheckAndSetException(Cell key, TableReference table, byte[] expected, List<byte[]> actual) {
-        super(getExceptionMessage(key, table, expected, actual));
+        super(String.format(
+                "Unexpected value observed in table %s. "
+                        + "If this is happening repeatedly, your program may be out of sync with the database.",
+                table));
         this.key = key;
         this.expectedValue = expected;
         this.actualValues = actual;
-    }
-
-    private static String getExceptionMessage(Cell key, TableReference table, byte[] expected, List<byte[]> actual) {
-        String template = "The cell %s in table %s has an unexpected value. "
-                + "Expected '%s' but got '%s'. "
-                + "If this is happening repeatedly, your program may be out of sync with the database.";
-        return String.format(template, key, table, PtBytes.encodeHexString(expected), encodeHexStrings(actual));
-    }
-
-    private static List<String> encodeHexStrings(List<byte[]> values) {
-        return values.stream().map(PtBytes::encodeHexString).collect(Collectors.toList());
     }
 
     public Cell getKey() {

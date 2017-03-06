@@ -1,3 +1,5 @@
+.. _performance-writing:
+
 ==================
 Writing Benchmarks
 ==================
@@ -39,7 +41,6 @@ State annotations specify a ``Scope`` which describes when the object is created
 Similarly, methods in a State object can have functions marked as ``@Setup`` and ``@Teardown`` with a specified ``Level`` that describes when to run it.
 Check the JMH source code for ``Scope`` and ``Level`` for more information.
 
-
 Writing a New Benchmark
 =======================
 
@@ -54,3 +55,12 @@ Validation that does not include client/server calls generally has a negligible 
 
 .. tip::
    Pass the name of the benchmark you're working on to the CLI in order to avoid running all benchmarks during development.
+
+Benchmarking With a Custom Key Value Store (KVS)
+================================================
+
+To run the benchmark suite on a custom KVS, simply follow these steps:
+
+1. Extend ``KeyValueServiceInstrumentation`` with the proper configurations, e.g., see ``CassandraKeyValueServiceInstrumentation.java``.
+#. Register the new backend: ``KeyValueServiceInstrumentation.addNewBackendType(new YourKeyValueServiceInstrumentation())``.
+#. Run the ``AtlasDbPerfCli.main`` function with the desired arguments.

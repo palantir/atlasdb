@@ -27,6 +27,7 @@ import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.table.description.IndexDefinition;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
+import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -40,7 +41,8 @@ public class ProfileSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema("Profile",
                 ProfileSchema.class.getPackage().getName() + ".generated",
-                Namespace.DEFAULT_NAMESPACE);
+                Namespace.DEFAULT_NAMESPACE,
+                OptionalType.JAVA8);
 
         schema.addTableDefinition("user_profile", new TableDefinition() {{
             rowName();

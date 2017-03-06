@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class StreamTestWithHashStreamValueTable implements
         AtlasDbMutablePersistentTable<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow,
                                          StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueNamedColumnValue<?>,
@@ -492,12 +493,10 @@ public final class StreamTestWithHashStreamValueTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<StreamTestWithHashStreamValueRowResult> getRow(StreamTestWithHashStreamValueRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<StreamTestWithHashStreamValueRowResult> getRow(StreamTestWithHashStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -740,5 +739,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "8IRhcqBIePRPBqc0EBPnRw==";
+    static String __CLASS_HASH = "bvrv2jXFCSd7uSJq0tn77Q==";
 }

@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting1.tracing.Tracers;
 
 public class InMemorySweeperTest extends AbstractSweeperTest {
     private ExecutorService exec;
@@ -36,7 +37,7 @@ public class InMemorySweeperTest extends AbstractSweeperTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
-        exec = PTExecutors.newCachedThreadPool();
+        exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
         return new InMemoryKeyValueService(false, exec);
     }
 }

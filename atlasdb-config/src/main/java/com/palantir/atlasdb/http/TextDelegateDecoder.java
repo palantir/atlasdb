@@ -31,16 +31,14 @@ package com.palantir.atlasdb.http;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.Collection;
 
 import javax.ws.rs.core.MediaType;
 
-import com.google.common.collect.Iterables;
 import com.google.common.net.HttpHeaders;
+import com.palantir.common.remoting.HeaderAccessUtils;
 
 import feign.FeignException;
 import feign.Response;
-import feign.codec.DecodeException;
 import feign.codec.Decoder;
 import feign.codec.StringDecoder;
 
@@ -50,6 +48,8 @@ import feign.codec.StringDecoder;
  * @author jmeacham
  */
 public class TextDelegateDecoder implements Decoder {
+    private static final String CONTENT_TYPE = HttpHeaders.CONTENT_TYPE.toLowerCase();
+
     private final Decoder delegate;
     private final Decoder stringDecoder;
 
@@ -59,15 +59,13 @@ public class TextDelegateDecoder implements Decoder {
     }
 
     @Override
-    public Object decode(Response response, Type type) throws IOException, DecodeException, FeignException {
-        Collection<String> contentTypes = response.headers().get(HttpHeaders.CONTENT_TYPE);
-        // In the case of multiple content types, or an unknown content type, we'll use the delegate instead.
-        if (contentTypes != null
-                && contentTypes.size() == 1
-                && Iterables.getOnlyElement(contentTypes, "").equals(MediaType.TEXT_PLAIN)) {
+    public Object decode(Response response, Type type) throws IOException, FeignException {
+        if (HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(
+                response.headers(),
+                CONTENT_TYPE,
+                MediaType.TEXT_PLAIN)) {
             return stringDecoder.decode(response, type);
         }
-
         return delegate.decode(response, type);
     }
 }

@@ -47,6 +47,8 @@ public final class PaxosQuorumChecker {
 
     /**
      * Collects a list of responses from a quorum of remote services.
+     * This method short-circuits if a quorum can no longer be obtained (if too many servers have sent nacks), and
+     * cancels pending requests once a quorum has been obtained.
      *
      * @param remotes a list endpoints to make the remote call on
      * @param request the request to make on each of the remote endpoints
@@ -54,20 +56,62 @@ public final class PaxosQuorumChecker {
      * @param executor runs the requests
      * @return a list responses
      */
-    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(ImmutableList<SERVICE> remotes,
-                                                                                                  final Function<SERVICE, RESPONSE> request,
-                                                                                                  int quorumSize,
-                                                                                                  Executor executor,
-                                                                                                  long remoteRequestTimeoutInSec) {
+    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(
+            ImmutableList<SERVICE> remotes,
+            final Function<SERVICE, RESPONSE> request,
+            int quorumSize,
+            Executor executor,
+            long remoteRequestTimeoutInSec) {
         return collectQuorumResponses(remotes, request, quorumSize, executor, remoteRequestTimeoutInSec, false);
     }
 
-    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(ImmutableList<SERVICE> remotes,
-                                                                                                  final Function<SERVICE, RESPONSE> request,
-                                                                                                  int quorumSize,
-                                                                                                  Executor executor,
-                                                                                                  long remoteRequestTimeoutInSec,
-                                                                                                  boolean onlyLogOnQuorumFailure) {
+    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(
+            ImmutableList<SERVICE> remotes,
+            final Function<SERVICE, RESPONSE> request,
+            int quorumSize,
+            Executor executor,
+            long remoteRequestTimeoutInSec,
+            boolean onlyLogOnQuorumFailure) {
+        return collectResponses(
+                remotes, request, quorumSize, executor, remoteRequestTimeoutInSec, onlyLogOnQuorumFailure, true);
+    }
+
+    /**
+     * Collects as many responses as possible from remote services.
+     * This method will continue even in the presence of nacks.
+     *
+     * @param remotes a list of endpoints to make the remote call on
+     * @param request the request to make on each of the remote endpoints
+     * @param executor runs the requests
+     * @return a list of responses
+     */
+    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectAsManyResponsesAsPossible(
+            ImmutableList<SERVICE> remotes,
+            final Function<SERVICE, RESPONSE> request,
+            Executor executor,
+            long remoteRequestTimeoutInSec) {
+        return collectResponses(remotes, request, remotes.size(), executor, remoteRequestTimeoutInSec, false, false);
+    }
+
+    /**
+     * Collects a list of responses from remote services.
+     * This method may short-circuit if a quorum can no longer be obtained (depending on the
+     * shortcircuitIfQuorumImpossible parameter) and cancels pending requests once a quorum has been obtained.
+     *
+     * @param remotes a list of endpoints to make the remote call on
+     * @param request the request to make on each of the remote endpoints
+     * @param quorumSize number of acknowledge requests after termination
+     * @param executor runs the requests
+     * @return a list of responses
+     */
+    private static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectResponses(
+            ImmutableList<SERVICE> remotes,
+            final Function<SERVICE, RESPONSE> request,
+            int quorumSize,
+            Executor executor,
+            long remoteRequestTimeoutInSec,
+            boolean onlyLogOnQuorumFailure,
+            boolean shortcircuitIfQuorumImpossible) {
         CompletionService<RESPONSE> responseCompletionService = new ExecutorCompletionService<RESPONSE>(executor);
 
         // kick off all the requests
@@ -93,7 +137,7 @@ public final class PaxosQuorumChecker {
             while (acksRecieved < quorumSize) {
                 try {
                     // check if quorum is impossible (nack quorum failure)
-                    if (nacksRecieved > remotes.size() - quorumSize) {
+                    if (shortcircuitIfQuorumImpossible && nacksRecieved > remotes.size() - quorumSize) {
                         break;
                     }
 

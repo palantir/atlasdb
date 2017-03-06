@@ -43,6 +43,7 @@ public class JepsenHistoryCheckerTest {
     private static final Map<Keyword, ?> INVOKE_EVENT = ImmutableMap.of(
             Keyword.intern("type"), "invoke",
             Keyword.intern("process"), 0,
+            Keyword.intern("f"), "function",
             Keyword.intern("time"), 0L);
     private static final Map<Keyword, ?> UNRECOGNISED_EVENT = ImmutableMap.of(Keyword.intern("foo"), "bar");
 

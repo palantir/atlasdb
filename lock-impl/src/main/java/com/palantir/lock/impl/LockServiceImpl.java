@@ -95,6 +95,7 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
+import com.palantir.remoting1.tracing.Tracers;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Pair;
 
@@ -109,8 +110,8 @@ import com.palantir.util.Pair;
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
 
     /** Executor for the reaper threads. */
-    private final ExecutorService executor = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(LockServiceImpl.class.getName(), true));
+    private final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory(LockServiceImpl.class.getName(), true)));
 
     private static final Function<HeldLocksToken, String> TOKEN_TO_ID =
             new Function<HeldLocksToken, String>() {
