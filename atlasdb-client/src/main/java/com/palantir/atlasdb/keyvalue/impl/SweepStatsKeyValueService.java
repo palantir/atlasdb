@@ -30,6 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
@@ -44,6 +45,7 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.SweepSchema;
@@ -73,7 +75,10 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     private final KeyValueService delegate;
     private final TimestampService timestampService;
     private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
-    private final Set<TableReference> clearedTables = Collections.newSetFromMap(new ConcurrentHashMap<TableReference, Boolean>());
+
+    @VisibleForTesting
+    final Set<TableReference> clearedTables = Collections.newSetFromMap(new ConcurrentHashMap<TableReference, Boolean>());
+
     private final AtomicInteger totalModifications = new AtomicInteger();
     private final Lock flushLock = new ReentrantLock();
     private final ScheduledExecutorService flushExecutor = PTExecutors.newSingleThreadScheduledExecutor();
@@ -120,10 +125,18 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest request) {
+        delegate().deleteRange(tableRef, request);
+        if (RangeRequest.all().equals(request)) {
+            // This is equivalent to truncate.
+            recordClear(tableRef);
+        }
+    }
+
+    @Override
     public void truncateTable(TableReference tableRef) {
         delegate().truncateTable(tableRef);
-        clearedTables.add(tableRef);
-        recordModifications(CLEAR_WEIGHT);
+        recordClear(tableRef);
     }
 
     @Override
@@ -136,8 +149,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     @Override
     public void dropTable(TableReference tableRef) {
         delegate().dropTable(tableRef);
-        clearedTables.add(tableRef);
-        recordModifications(CLEAR_WEIGHT);
+        recordClear(tableRef);
     }
 
     @Override
@@ -151,9 +163,13 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     // updates could be clobbered), and it makes little effort to ensure that
     // all updates are flushed. It is intended only to be "good enough" for
     // determining what tables have been written to a lot.
-
     private void recordModifications(int newWrites) {
         totalModifications.addAndGet(newWrites);
+    }
+
+    private void recordClear(TableReference tableRef) {
+        clearedTables.add(tableRef);
+        recordModifications(CLEAR_WEIGHT);
     }
 
     private Runnable createFlushTask() {
