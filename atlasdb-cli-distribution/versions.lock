@@ -238,7 +238,6 @@
                 "com.palantir.atlasdb:atlasdb-dbkvs",
                 "com.palantir.atlasdb:atlasdb-jdbc",
                 "com.palantir.atlasdb:atlasdb-lock-api",
-                "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:atlasdb-rocksdb"
             ]
         },

@@ -30,8 +30,8 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
-import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
+import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -98,21 +98,21 @@ public class CellsSweeper {
                     sentinelsToAdd);
         }
 
-        LockEntry lockEntry = acquirePersistentLockWithRetry();
+        PersistentLockId lockId = acquirePersistentLockWithRetry();
 
         try {
             keyValueService.delete(tableRef, cellTsPairsToSweep);
         } finally {
-            releasePersistentLock(lockEntry);
+            releasePersistentLock(lockId);
         }
     }
 
-    private LockEntry acquirePersistentLockWithRetry() {
+    private PersistentLockId acquirePersistentLockWithRetry() {
         while (true) {
             try {
-                LockEntry lockEntry = persistentLockService.acquireBackupLock("Sweep");
-                log.info("Successfully acquired persistent lock for sweep: {}", lockEntry);
-                return lockEntry;
+                PersistentLockId lockId = persistentLockService.acquireBackupLock("Sweep");
+                log.info("Successfully acquired persistent lock for sweep: {}", lockId);
+                return lockId;
             } catch (CheckAndSetException e) {
                 log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
                 waitForRetry();
@@ -128,12 +128,12 @@ public class CellsSweeper {
         }
     }
 
-    private void releasePersistentLock(LockEntry entry) {
+    private void releasePersistentLock(PersistentLockId lockId) {
         try {
-            persistentLockService.releaseLock(entry);
+            persistentLockService.releaseBackupLock(lockId);
         } catch (CheckAndSetException e) {
             log.error("Failed to release persistent lock {}. "
-                    + "Either the lock was already released, or communications with the database failed.", entry, e);
+                    + "Either the lock was already released, or communications with the database failed.", lockId, e);
         }
     }
 }

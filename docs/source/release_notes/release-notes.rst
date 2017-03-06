@@ -53,6 +53,33 @@ develop
            This prevents the operation from interfering with concurrently running Postgres backups.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1616>`__)
 
+    *    - |new|
+         - Users can now create a Docker image and run containers of the Timelock Server, by running ``./gradlew timelock-server:dockerTag``.
+           This can be useful for quickly spinning up a Timelock instance (e.g. for testing purposes).
+           Note that we are not yet publishing this image.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
+
+    *    - |fixed|
+         - AtlasDB :ref:`CLIs <clis>` run via the :ref:`Dropwizard bundle <dropwizard-bundle>` can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
+           Previously, these CLIs would throw an error that a leader block was not specified.
+           Note that CLIs will not perform automated migrations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
+
+    *    - |improved|
+         - Cassandra truncates that are going to fail will do so faster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1660>`__)
+
+    *    - |devbreak|
+         - The persistent lock endpoints now use ``PersistentLockId`` instead of ``LockEntry``.
+
+    *    - |improved|
+         - The ``CheckAndSetException`` now gets mapped to the correct response for compatibility.
+           with `http-remoting <https://github.com/palantir/http-remoting>`__ whereas previously, any consumer using http-remoting would have to deal with deserialization errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1665>`__)
+
+    *    - |devbreak|
+         - The persistent lock release endpoint has now been renamed to ``releaseBackupLock`` since it is currently only supposed to be used for the backup lock.
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

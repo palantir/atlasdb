@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.persistentlock;
 
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -55,9 +57,10 @@ public class KvsBackedPersistentLockServiceTest {
 
     @Test
     public void canReleaseLock() {
-        LockEntry entry = lockStore.acquireBackupLock(TEST_REASON);
-        service.releaseLock(entry);
+        PersistentLockId lockId = service.acquireBackupLock(TEST_REASON);
+        LockEntry lockEntry = Iterables.getOnlyElement(lockStore.allLockEntries());
+        service.releaseBackupLock(lockId);
 
-        verify(lockStore, times(1)).releaseLock(entry);
+        verify(lockStore, times(1)).releaseLock(eq(lockEntry));
     }
 }

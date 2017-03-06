@@ -187,8 +187,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-lock-api",
-                "com.palantir.atlasdb:atlasdb-persistent-lock-api"
+                "com.palantir.atlasdb:atlasdb-lock-api"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client": {
@@ -617,8 +616,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-lock-api",
-                "com.palantir.atlasdb:atlasdb-persistent-lock-api"
+                "com.palantir.atlasdb:atlasdb-lock-api"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client": {
