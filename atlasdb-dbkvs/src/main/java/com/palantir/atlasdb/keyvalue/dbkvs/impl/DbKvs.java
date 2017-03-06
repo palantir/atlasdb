@@ -117,7 +117,6 @@ public class DbKvs extends AbstractKeyValueService {
     private final DdlConfig config;
     private final DbTableFactory dbTables;
     private final SqlConnectionSupplier connections;
-    private final PrefixedTableNames prefixedTableNames;
     private final BatchingTaskRunner batchingQueryRunner;
 
     public static DbKvs create(DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier) {
@@ -138,14 +137,10 @@ public class DbKvs extends AbstractKeyValueService {
         this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
+
         if (DBType.ORACLE.equals(dbTables.getDbType())) {
-            prefixedTableNames = new OraclePrefixedTableNames(
-                    config,
-                    new ConnectionSupplier(connections),
-                    ((OracleDbTableFactory) dbTables).getOracleTableNameGetter());
             batchingQueryRunner = new ImmediateSingleBatchTaskRunner();
         } else {
-            prefixedTableNames = new PrefixedTableNames(config);
             batchingQueryRunner = new ParallelTaskRunner(
                     newFixedThreadPool(config.poolSize()),
                     config.fetchBatchSize());
@@ -471,7 +466,7 @@ public class DbKvs extends AbstractKeyValueService {
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             long timestamp) {
-        return new DbKvsGetRanges(this, dbTables.getDbType(), connections, prefixedTableNames)
+        return new DbKvsGetRanges(this, dbTables.getDbType(), connections, dbTables.getPrefixedTableNames())
                 .getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
