@@ -49,17 +49,21 @@ public final class AtlasDbMetrics {
 
     // Using this means that all atlasdb clients will report to the same registry, which may give confusing stats
     public static MetricRegistry getMetricRegistry() {
-        if (AtlasDbMetrics.metrics == null) {
+        MetricRegistry currentMetricRegistry = AtlasDbMetrics.metrics;
+        if (currentMetricRegistry == null) {
             synchronized (AtlasDbMetrics.class) {
-                if (AtlasDbMetrics.metrics == null) {
-                    AtlasDbMetrics.metrics = SharedMetricRegistries.getOrCreate(DEFAULT_REGISTRY_NAME);
-                    log.info("Metric Registry was not set, setting to default registry name of "
+                currentMetricRegistry = AtlasDbMetrics.metrics;
+                if (currentMetricRegistry == null) {
+                    currentMetricRegistry = SharedMetricRegistries.getOrCreate(DEFAULT_REGISTRY_NAME);
+                    log.warn("Metric Registry was not set, setting to shared default registry name of "
                             + DEFAULT_REGISTRY_NAME);
+                    AtlasDbMetrics.metrics = currentMetricRegistry;
                 }
             }
         }
 
-        return AtlasDbMetrics.metrics;
+        return currentMetricRegistry;
+    }
 
     public static <T, U extends T> T instrument(Class<T> serviceInterface, U service) {
         return instrument(serviceInterface, service, serviceInterface.getName());
