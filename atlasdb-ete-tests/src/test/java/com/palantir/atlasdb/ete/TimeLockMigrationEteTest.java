@@ -50,6 +50,7 @@ public class TimeLockMigrationEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Todo TODO_2 = ImmutableTodo.of("more stuff to do");
     private static final Todo TODO_3 = ImmutableTodo.of("even more stuff to do");
+    private static final int TEN_MILLION = 10_000_000;
 
     private static final int ETE_PORT = 3828;
     private static final String ETE_CONTAINER = "ete1";
@@ -87,6 +88,8 @@ public class TimeLockMigrationEteTest {
 
         upgradeAtlasClientToTimelock();
 
+        assertTimeLockGivesHigherTimestampThan(embeddedTimestamp);
+
         softAssertions.assertThat(todoClient.getTodoList())
                 .as("can still read todo after migration to TimeLock")
                 .contains(TODO);
@@ -97,8 +100,6 @@ public class TimeLockMigrationEteTest {
                 .contains(TODO, TODO_2);
 
         assertNoLongerExposesEmbeddedTimestampService();
-
-        assertTimeLockGivesHigherTimestampThan(embeddedTimestamp);
 
         downgradeAtlasClientFromTimelock();
 

@@ -66,24 +66,22 @@ public class DockerClientOrchestrationRule extends ExternalResource {
         try {
             configFile = temporaryFolder.newFile("atlasdb-ete.yml");
             updateClientConfig(EMBEDDED_CONFIG);
-
-            DockerMachine dockerMachine = createDockerMachine();
-
-            dockerComposeRule = DockerComposeRule.builder()
-                    .machine(dockerMachine)
-                    .file("docker-compose.timelock-migration.cassandra.yml")
-                    .waitingForService("cassandra", HealthChecks.toHaveAllPortsOpen())
-                    .saveLogsTo(LogDirectory.circleAwareLogDirectory(TimeLockMigrationEteTest.class.getSimpleName()))
-                    .addClusterWait(new ClusterWait(ClusterHealthCheck.nativeHealthChecks(), WAIT_TIMEOUT))
-                    .build();
-
-            dockerProxyRule = new DockerProxyRule(dockerComposeRule.projectName(), TimeLockMigrationEteTest.class);
-
-            dockerComposeRule.before();
-            dockerProxyRule.before();
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
+
+        DockerMachine dockerMachine = createDockerMachine();
+        dockerComposeRule = DockerComposeRule.builder()
+                .machine(dockerMachine)
+                .file("docker-compose.timelock-migration.cassandra.yml")
+                .waitingForService("cassandra", HealthChecks.toHaveAllPortsOpen())
+                .saveLogsTo(LogDirectory.circleAwareLogDirectory(TimeLockMigrationEteTest.class.getSimpleName()))
+                .addClusterWait(new ClusterWait(ClusterHealthCheck.nativeHealthChecks(), WAIT_TIMEOUT))
+                .build();
+        dockerProxyRule = new DockerProxyRule(dockerComposeRule.projectName(), TimeLockMigrationEteTest.class);
+
+        dockerComposeRule.before();
+        dockerProxyRule.before();
     }
 
     @Override
