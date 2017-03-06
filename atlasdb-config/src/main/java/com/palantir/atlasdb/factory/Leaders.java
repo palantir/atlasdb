@@ -39,6 +39,7 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
+import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
@@ -116,16 +117,17 @@ public final class Leaders {
 
         PaxosProposer proposer = createPaxosProposer(ourLearner, acceptors, learners, config.quorumSize(), executor);
 
-        PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
-                proposer,
-                ourLearner,
-                otherLeaders,
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners),
-                executor,
-                config.pingRateMs(),
-                config.randomWaitBeforeProposingLeadershipMs(),
-                config.leaderPingResponseWaitMs());
+        PaxosLeaderElectionService leader = new PaxosLeaderElectionServiceBuilder()
+                .proposer(proposer)
+                .knowledge(ourLearner)
+                .potentialLeadersToHosts(otherLeaders)
+                .acceptors(ImmutableList.copyOf(acceptors))
+                .learners(ImmutableList.copyOf(learners))
+                .executor(executor)
+                .pingRateMs(config.pingRateMs())
+                .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
+                .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
+                .build();
 
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
