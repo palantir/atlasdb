@@ -28,42 +28,23 @@ import java.util.List;
 import java.util.Set;
 
 import org.hamcrest.MatcherAssert;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsRule;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
-import com.palantir.tritium.metrics.MetricRegistries;
 
 public class LeadersTest {
 
     public static final Set<String> REMOTE_SERVICE_ADDRESSES = ImmutableSet.of("foo:1234", "bar:5678");
 
-    private MetricRegistry beforeMetrics;
-    private MetricRegistry metrics;
-
-    @Before
-    public void before() throws Exception {
-        beforeMetrics = AtlasDbMetrics.getMetricRegistry();
-        metrics = MetricRegistries.createWithHdrHistogramReservoirs();
-        AtlasDbMetrics.setMetricRegistry(metrics);
-    }
-
-    @After
-    public void after() throws Exception {
-        AtlasDbMetrics.setMetricRegistry(beforeMetrics);
-        ConsoleReporter reporter = ConsoleReporter.forRegistry(metrics).build();
-        reporter.report();
-        reporter.close();
-    }
+    @Rule
+    public MetricsRule metricsRule = new MetricsRule();
 
     @Test
     public void canCreateProxyAndLocalListOfPaxosLearners() {

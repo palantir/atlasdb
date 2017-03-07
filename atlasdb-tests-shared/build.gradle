@@ -22,5 +22,6 @@ dependencies {
   compile group: 'org.hamcrest', name: 'hamcrest-library'
   compile group: 'org.assertj', name: 'assertj-core'
 
+  testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
   testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
 }

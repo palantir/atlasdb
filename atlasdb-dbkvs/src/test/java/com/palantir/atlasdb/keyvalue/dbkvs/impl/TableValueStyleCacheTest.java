@@ -30,13 +30,13 @@ import java.sql.Connection;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
-import com.codahale.metrics.ConsoleReporter;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsRule;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
@@ -46,6 +46,9 @@ public class TableValueStyleCacheTest {
     private static final TableReference TEST_TABLE_2 = TableReference.createFromFullyQualifiedName("ns.test_table_2");
     private final ConnectionSupplier connectionSupplier = mock(ConnectionSupplier.class);
     private final TableValueStyleCache valueStyleCache = new TableValueStyleCache();
+
+    @Rule
+    public MetricsRule metricsRule = new MetricsRule();
 
     @Before
     public void setup() {
@@ -65,7 +68,6 @@ public class TableValueStyleCacheTest {
 
     @After
     public void tearDown() {
-        ConsoleReporter.forRegistry(AtlasDbMetrics.getMetricRegistry()).build().report();
         valueStyleCache.clearCacheForTable(TEST_TABLE);
         valueStyleCache.clearCacheForTable(TEST_TABLE_2);
     }

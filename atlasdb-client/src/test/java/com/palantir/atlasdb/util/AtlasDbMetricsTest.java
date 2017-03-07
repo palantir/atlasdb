@@ -20,27 +20,22 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
-import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
-import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 public class AtlasDbMetricsTest {
 
+    @Rule
+    public MetricsRule metricsRule = new MetricsRule();
+
     @Before
     public void before() throws Exception {
         AtlasDbMetrics.metrics = null;
-    }
-
-    @After
-    public void after() throws Exception {
-        ConsoleReporter reporter = ConsoleReporter.forRegistry(AtlasDbMetrics.getMetricRegistry()).build();
-        reporter.report();
-        reporter.close();
     }
 
     @Test

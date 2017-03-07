@@ -15,22 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.Rule;
 
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.atlasdb.util.MetricsRule;
 
 public class InstrumentedKeyValueServiceTest extends AbstractKeyValueServiceTest {
 
     private static final String METRIC_PREFIX = "test.instrumented." + KeyValueService.class.getName();
 
-    private static MetricRegistry previousMetrics;
-    private final MetricRegistry metrics = MetricRegistries.createWithHdrHistogramReservoirs();
+    @Rule
+    public MetricsRule metricsRule = new MetricsRule();
 
     @Override
     protected KeyValueService getKeyValueService() {
@@ -39,30 +35,13 @@ public class InstrumentedKeyValueServiceTest extends AbstractKeyValueServiceTest
                 METRIC_PREFIX);
     }
 
-    @BeforeClass
-    public static void beforeClass() throws Exception {
-        previousMetrics = AtlasDbMetrics.getMetricRegistry();
-    }
-
-    @AfterClass
-    public static void afterClass() throws Exception {
-        AtlasDbMetrics.setMetricRegistry(previousMetrics);
-    }
-
-    @Override
-    public void setUp() throws Exception {
-        AtlasDbMetrics.setMetricRegistry(metrics);
-        super.setUp();
-    }
-
+    /**
+     * Tear down KVS so that it is recreated and captures metrics for each test.
+     */
     @Override
     public void tearDown() throws Exception {
         super.tearDown();
         tearDownKvs();
-        AtlasDbMetrics.setMetricRegistry(previousMetrics);
-        ConsoleReporter reporter = ConsoleReporter.forRegistry(metrics).build();
-        reporter.report();
-        reporter.close();
     }
 
 }
