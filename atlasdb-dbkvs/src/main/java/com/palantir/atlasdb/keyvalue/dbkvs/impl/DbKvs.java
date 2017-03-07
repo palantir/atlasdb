@@ -630,7 +630,7 @@ public class DbKvs extends AbstractKeyValueService {
 
         try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {
             while (rows.size() < maxRows && rangeResults.hasNext()) {
-                byte[] rowName = rangeResults.next().getBlob(ROW);
+                byte[] rowName = rangeResults.next().getBytes(ROW);
                 if (rowName != null) {
                     rows.add(rowName);
                 }
@@ -1347,7 +1347,7 @@ public class DbKvs extends AbstractKeyValueService {
             boolean forwarding = oldToken.shouldForward();
             while (forwarding && resultWithToken.iterator.hasNext()) {
                 AgnosticLightResultRow nextResult = resultWithToken.iterator.peek();
-                if (!Arrays.equals(nextResult.getBlob(ROW), oldToken.row())
+                if (!Arrays.equals(nextResult.getBytes(ROW), oldToken.row())
                         || compareColumns(oldToken, nextResult) > 0
                         || (compareColumns(oldToken, nextResult) == 0
                         && nextResult.getLong(TIMESTAMP) >= oldToken.timestamp())) {
@@ -1360,7 +1360,7 @@ public class DbKvs extends AbstractKeyValueService {
         }
 
         private static int compareColumns(Token oldToken, AgnosticLightResultRow nextResult) {
-            return UnsignedBytes.lexicographicalComparator().compare(nextResult.getBlob(COL), oldToken.col());
+            return UnsignedBytes.lexicographicalComparator().compare(nextResult.getBytes(COL), oldToken.col());
         }
 
         void populate(long batchSize) {
@@ -1371,8 +1371,8 @@ public class DbKvs extends AbstractKeyValueService {
         }
 
         void store(AgnosticLightResultRow cellResult) {
-            currentRow = cellResult.getBlob(ROW);
-            currentCol = cellResult.getBlob(COL);
+            currentRow = cellResult.getBytes(ROW);
+            currentCol = cellResult.getBytes(COL);
             currentTimestamp = cellResult.getLong(TIMESTAMP);
             Cell cell = Cell.create(currentRow, currentCol);
             resultMap.put(cell, currentTimestamp);
@@ -1386,7 +1386,7 @@ public class DbKvs extends AbstractKeyValueService {
             if (iterator.hasNext()) {
                 mayHaveMoreResults = true;
                 AgnosticLightResultRow nextEntry = iterator.peek();
-                if (Arrays.equals(nextEntry.getBlob(ROW), currentRow)) {
+                if (Arrays.equals(nextEntry.getBytes(ROW), currentRow)) {
                     token = ImmutableToken.builder()
                             .row(currentRow)
                             .col(currentCol)
@@ -1394,7 +1394,7 @@ public class DbKvs extends AbstractKeyValueService {
                             .shouldForward(true)
                             .build();
                 } else {
-                    token = ImmutableToken.builder().row(nextEntry.getBlob(ROW)).shouldForward(false).build();
+                    token = ImmutableToken.builder().row(nextEntry.getBytes(ROW)).shouldForward(false).build();
                 }
             }
         }
