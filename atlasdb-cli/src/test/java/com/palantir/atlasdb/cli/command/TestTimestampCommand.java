@@ -38,6 +38,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
@@ -149,16 +150,22 @@ public class TestTimestampCommand {
         cliArgs.add("-d");
 
         runAndVerifyCli((runner, tss, immutableTs, prePunch, postPunch, lastFreshTs, shouldTestImmutable) -> {
-            Scanner scanner = new Scanner(runner.run(true, false));
-            long timestamp = getTimestampFromStdout(scanner);
-            scanner.nextLine();
-            long wallClockTimestamp = getWallClockTimestamp(scanner);
-            scanner.close();
-            if (shouldTestImmutable && isImmutable) {
-                verifyImmutableTs(timestamp, immutableTs, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(),
-                        wallClockTimestamp);
-            } else {
-                verifyFreshTs(timestamp, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(), wallClockTimestamp);
+            String output = runner.run(true, false);
+            try {
+                Scanner scanner = new Scanner(output);
+                long timestamp = getTimestampFromStdout(scanner);
+                scanner.nextLine();
+                long wallClockTimestamp = getWallClockTimestamp(scanner);
+                scanner.close();
+                if (shouldTestImmutable && isImmutable) {
+                    verifyImmutableTs(timestamp, immutableTs, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(),
+                            wallClockTimestamp);
+                } else {
+                    verifyFreshTs(timestamp, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(),
+                            wallClockTimestamp);
+                }
+            } catch (RuntimeException e) {
+                throw new RuntimeException("Failed " + e.getMessage() + " while processing result:\n" + output, e);
             }
         });
     }
@@ -203,16 +210,22 @@ public class TestTimestampCommand {
         }
         cliArgs.add("-d");
         runAndVerifyCli((runner, tss, immutableTs, prePunch, postPunch, lastFreshTs, shouldTestImmutable) -> {
-            Scanner scanner = new Scanner(runner.run(true, false));
-            long timestamp = getTimestampFromFile(inputFileString);
-            scanner.nextLine();
-            long wallClockTimestamp = getWallClockTimestamp(scanner);
-            scanner.close();
-            if (shouldTestImmutable && isImmutable) {
-                verifyImmutableTs(timestamp, immutableTs, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(),
-                        wallClockTimestamp);
-            } else {
-                verifyFreshTs(timestamp, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(), wallClockTimestamp);
+            String output = runner.run(true, false);
+            try {
+                Scanner scanner = new Scanner(output);
+                long timestamp = getTimestampFromFile(inputFileString);
+                scanner.nextLine();
+                long wallClockTimestamp = getWallClockTimestamp(scanner);
+                scanner.close();
+                if (shouldTestImmutable && isImmutable) {
+                    verifyImmutableTs(timestamp, immutableTs, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(),
+                            wallClockTimestamp);
+                } else {
+                    verifyFreshTs(timestamp, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(),
+                            wallClockTimestamp);
+                }
+            } catch (RuntimeException e) {
+                throw new RuntimeException("Failed " + e.getMessage() + " while verifying result:\n" + output, e);
             }
         });
     }
