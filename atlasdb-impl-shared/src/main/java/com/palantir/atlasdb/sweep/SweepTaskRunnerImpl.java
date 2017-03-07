@@ -173,8 +173,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
         try (ClosableIterator<RowResult<Value>> valueResults = sweeper.getValues(tableRef, range, sweepTs);
              ClosableIterator<RowResult<Set<Long>>> rowResults = sweeper.getCellTimestamps(tableRef, range, sweepTs)) {
-            CountingIterator<RowResult<Set<Long>>> rowResultTimestamps =
-                    new CountingIterator<>(Iterators.limit(rowResults, rowBatchSize));
+            RowBatchCountingIterator<Set<Long>> rowResultTimestamps =
+                    new RowBatchCountingIterator<>(rowResults, rowBatchSize);
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults);
 
             BatchingVisitable<CellAndTimestamps> cellsAndTimestamps = BatchingVisitableFromIterable

@@ -624,7 +624,7 @@ public abstract class AbstractSweeperTest {
         return sweep(tableReference, ts, batchSize, DEFAULT_CELL_BATCH_SIZE);
     }
 
-    private SweepResults sweep(TableReference tableReference, long ts, int batchSize, int cellBatchSize) {
+    protected SweepResults sweep(TableReference tableReference, long ts, int batchSize, int cellBatchSize) {
         sweepTimestamp.set(ts);
         return sweepRunner.run(tableReference, batchSize, cellBatchSize, new byte[0]);
     }
