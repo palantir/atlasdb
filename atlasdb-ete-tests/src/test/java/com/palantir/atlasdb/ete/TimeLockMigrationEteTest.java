@@ -41,7 +41,7 @@ import com.palantir.timestamp.TimestampService;
 // ETE tests where the general idea is "set up all the containers, and fire".
 public class TimeLockMigrationEteTest {
     // Docker Engine daemon only has limited access to the filesystem, if the user is using Docker-Machine
-    // Thus root the temporary folder as a subdirectory of the user's home directory
+    // Thus ensure the temporary folder is a subdirectory of the user's home directory
     private static final TemporaryFolder TEMPORARY_FOLDER
             = new TemporaryFolder(new File(System.getProperty("user.home")));
     private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE
@@ -50,7 +50,6 @@ public class TimeLockMigrationEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Todo TODO_2 = ImmutableTodo.of("more stuff to do");
     private static final Todo TODO_3 = ImmutableTodo.of("even more stuff to do");
-    private static final int TEN_MILLION = 10_000_000;
 
     private static final int ETE_PORT = 3828;
     private static final String ETE_CONTAINER = "ete1";
@@ -101,7 +100,7 @@ public class TimeLockMigrationEteTest {
 
         assertNoLongerExposesEmbeddedTimestampService();
 
-        downgradeAtlasClientFromTimelock();
+        downgradeAtlasClientFromTimelockWithoutMigration();
 
         assertCanNeitherReadNorWrite();
     }
@@ -112,7 +111,7 @@ public class TimeLockMigrationEteTest {
         waitUntil(serversAreReady());
     }
 
-    private void downgradeAtlasClientFromTimelock() {
+    private void downgradeAtlasClientFromTimelockWithoutMigration() {
         CLIENT_ORCHESTRATION_RULE.updateClientConfig(DockerClientOrchestrationRule.EMBEDDED_CONFIG);
         CLIENT_ORCHESTRATION_RULE.restartAtlasClient();
         waitForTransactionManagerCreationError();
