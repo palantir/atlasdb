@@ -124,7 +124,9 @@ public abstract class AbstractLockAwareTransactionManager
     }
 
     private void logSuccess(UUID runId, int failureCount) {
-        log.info("[{}] Successfully completed transaction after {} retries.", runId, failureCount);
+        if (failureCount > 0) {
+            log.info("[{}] Successfully completed transaction after {} retries.", runId, failureCount);
+        }
     }
 
     private void refreshAfterLockTimeout(Iterable<HeldLocksToken> lockTokens, TransactionLockTimeoutException ex) {
