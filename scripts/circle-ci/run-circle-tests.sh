@@ -71,11 +71,11 @@ if [[ $INTERNAL_BUILD != true ]]; then
 fi
 
 case $CIRCLE_NODE_INDEX in
-    0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
-    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} ${ETE_EXCLUDES[@]};;
-    3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
-    4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
-    5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
-    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} -x :atlasdb-jepsen-tests:jepsenTest && checkDocsBuild ;;
+    0) ./gradlew atlasdb-ete-tests:timeLockTest ;;
+    1) ./gradlew atlasdb-ete-tests:timeLockTest ;;
+    2) ./gradlew atlasdb-ete-tests:timeLockTest ;;
+    3) ./gradlew atlasdb-ete-tests:timeLockTest ;;
+    4) ./gradlew atlasdb-ete-tests:timeLockTest ;;
+    5) ./gradlew atlasdb-ete-tests:timeLockTest ;;
+    6) ./gradlew atlasdb-ete-tests:timeLockTest ;;
 esac
