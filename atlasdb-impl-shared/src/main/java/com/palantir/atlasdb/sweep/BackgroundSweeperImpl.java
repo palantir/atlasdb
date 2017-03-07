@@ -31,6 +31,8 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.CachedGauge;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -63,6 +65,8 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.atlasdb.transaction.impl.UnmodifiableTransaction;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
@@ -89,7 +93,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final double MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT =
             100_000.0 / TimeUnit.MILLISECONDS.convert(30, TimeUnit.DAYS);
 
-    public BackgroundSweeperImpl(
+    private BackgroundSweeperImpl(
             LockAwareTransactionManager txManager,
             KeyValueService kvs,
             SweepTaskRunner sweepRunner,
@@ -108,6 +112,50 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         this.sweepCellBatchSize = sweepCellBatchSize;
         this.tableFactory = tableFactory;
         this.sweepPerfLogger = sweepPerfLogger;
+    }
+
+    public BackgroundSweeperImpl create(
+            LockAwareTransactionManager txManager,
+            KeyValueService kvs,
+            SweepTaskRunner sweepRunner,
+            Supplier<Boolean> isSweepEnabled,
+            Supplier<Long> sweepPauseMillis,
+            Supplier<Integer> sweepBatchSize,
+            Supplier<Integer> sweepCellBatchSize,
+            SweepTableFactory tableFactory,
+            BackgroundSweeperPerformanceLogger sweepPerfLogger) {
+
+        registerSweepMetrics();
+
+        return new BackgroundSweeperImpl(txManager,
+                kvs,
+                sweepRunner,
+                isSweepEnabled,
+                sweepPauseMillis,
+                sweepBatchSize,
+                sweepCellBatchSize,
+                tableFactory,
+                sweepPerfLogger);
+    }
+
+    private void registerSweepMetrics() {
+        MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
+        metricRegistry.register(MetricRegistry.name(BackgroundSweeperImpl.class, "Test"),
+                new CachedGauge<Long>(10, TimeUnit.MINUTES) {
+                    @Override
+                    protected Long loadValue() {
+                        SweepProgressRowResult priority = txManager.runTaskWithRetry(tx -> {
+                            SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(tx);
+                            BatchingVisitableView<SweepPriorityRowResult> allRowsUnordered = priorityTable.getAllRowsUnordered();
+                            if (result == null) {
+                                result = chooseNextTableToSweep(new SweepTransaction(
+                                        tx,
+                                        sweepRunner.getSweepTimestamp(SweepStrategy.CONSERVATIVE)));
+                            }
+                            return result;
+                        });
+                    }
+                });
     }
 
     @Override
@@ -196,8 +244,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                     progress.getStartRow());
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
             log.debug("Swept {} unique cells from {} starting at {}"
-                    + " and performed {} deletions in {} ms"
-                    + " up to timestamp {}.",
+                            + " and performed {} deletions in {} ms"
+                            + " up to timestamp {}.",
                     results.getCellsExamined(), progress.getFullTableName(),
                     progress.getStartRow() == null ? "0" : PtBytes.encodeHexString(progress.getStartRow()),
                     results.getCellsDeleted(), elapsedMillis, results.getSweptTimestamp());
@@ -244,9 +292,9 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         }
         RowResult<byte[]> rawResult = RowResult.create(SweepProgressRow.of(0).persistToBytes(),
                 ImmutableSortedMap.<byte[], byte[]>orderedBy(UnsignedBytes.lexicographicalComparator())
-                    .put(SweepProgressTable.SweepProgressNamedColumn.FULL_TABLE_NAME.getShortName(),
-                         SweepProgressTable.FullTableName.of(tableRef.getQualifiedName()).persistValue())
-                    .build());
+                        .put(SweepProgressTable.SweepProgressNamedColumn.FULL_TABLE_NAME.getShortName(),
+                                SweepProgressTable.FullTableName.of(tableRef.getQualifiedName()).persistValue())
+                        .build());
 
         log.debug("Now starting to sweep {}.", tableRef);
         return SweepProgressRowResult.of(rawResult);
@@ -254,9 +302,9 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @Nullable
     private TableReference getTableToSweep(SweepTransaction tx,
-                                   Set<TableReference> allTables,
-                                   List<SweepPriorityRowResult> oldPriorities,
-                                   Map<TableReference, SweepPriorityRowResult> newPrioritiesByTableName) {
+            Set<TableReference> allTables,
+            List<SweepPriorityRowResult> oldPriorities,
+            Map<TableReference, SweepPriorityRowResult> newPrioritiesByTableName) {
         // Arbitrarily pick the first table alphabetically from the never-before-swept tables
         List<TableReference> unsweptTables = Sets.difference(allTables, newPrioritiesByTableName.keySet())
                 .stream().sorted(Comparator.comparing(TableReference::getTablename)).collect(Collectors.toList());
@@ -320,7 +368,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private void saveSweepResults(final SweepProgressRowResult progress,
-                                  final SweepResults results) {
+            final SweepResults results) {
         final long cellsDeleted = fromNullable(progress.getCellsDeleted()) + results.getCellsDeleted();
         final long cellsExamined = fromNullable(progress.getCellsExamined()) + results.getCellsExamined();
         final long minimumSweptTimestamp = results.getSweptTimestamp();
@@ -358,10 +406,10 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private void saveIntermediateSweepResults(final SweepProgressRowResult progress,
-                                              final byte[] nextStartRow,
-                                              final long cellsDeleted,
-                                              final long cellsExamined,
-                                              final long minimumSweptTimestamp) {
+            final byte[] nextStartRow,
+            final long cellsDeleted,
+            final long cellsExamined,
+            final long minimumSweptTimestamp) {
         txManager.runTaskWithRetry(new TxTask() {
             @Override
             public Void execute(Transaction tx) {
@@ -385,9 +433,9 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private void saveFinalSweepResults(final SweepProgressRowResult progress,
-                                       final long cellsDeleted,
-                                       final long cellsExamined,
-                                       final long minimumSweptTimestamp) {
+            final long cellsDeleted,
+            final long cellsExamined,
+            final long minimumSweptTimestamp) {
         txManager.runTaskWithRetry(new TxTask() {
             @Override
             public Void execute(Transaction tx) {
