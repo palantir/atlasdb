@@ -171,7 +171,12 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-api",
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.palantir.atlasdb:timestamp-impl",
+                "com.palantir.tritium:tritium-api",
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-slf4j"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -180,7 +185,8 @@
                 "com.github.rholder:guava-retrying",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting1:error-handling",
-                "io.dropwizard:dropwizard-util"
+                "io.dropwizard:dropwizard-util",
+                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
         "com.google.guava:guava": {
@@ -195,6 +201,9 @@
                 "com.palantir.remoting1:ssl-config",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-lifecycle",
                 "io.dropwizard:dropwizard-util"
@@ -400,6 +409,42 @@
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
+        "com.palantir.tritium:tritium-api": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-slf4j"
+            ]
+        },
+        "com.palantir.tritium:tritium-core": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-slf4j"
+            ]
+        },
+        "com.palantir.tritium:tritium-lib": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.palantir.tritium:tritium-metrics": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.palantir.tritium:tritium-slf4j": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.tritium:tritium-lib"
+            ]
+        },
         "com.squareup.okhttp:okhttp": {
             "locked": "2.5.0",
             "transitive": [
@@ -541,6 +586,7 @@
             "locked": "3.1.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.tritium:tritium-metrics",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
                 "io.dropwizard.metrics:metrics-json",
@@ -549,7 +595,8 @@
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-metrics",
-                "io.dropwizard:dropwizard-servlets"
+                "io.dropwizard:dropwizard-servlets",
+                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
         "io.dropwizard.metrics:metrics-healthchecks": {
@@ -1042,6 +1089,13 @@
                 "io.dropwizard:dropwizard-validation"
             ]
         },
+        "org.hdrhistogram:HdrHistogram": {
+            "locked": "2.1.9",
+            "transitive": [
+                "com.palantir.tritium:tritium-metrics",
+                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+            ]
+        },
         "org.hibernate:hibernate-validator": {
             "locked": "5.2.4.Final",
             "transitive": [
@@ -1064,6 +1118,12 @@
             "locked": "2.0.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
+            "locked": "1.1.2",
+            "transitive": [
+                "com.palantir.tritium:tritium-metrics"
             ]
         },
         "org.slf4j:jcl-over-slf4j": {
@@ -1090,6 +1150,10 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:tracing",
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-slf4j",
                 "io.atomix.catalyst:catalyst-buffer",
                 "io.atomix.catalyst:catalyst-common",
                 "io.atomix.catalyst:catalyst-concurrent",
@@ -1304,7 +1368,12 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-api",
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.palantir.atlasdb:timestamp-impl",
+                "com.palantir.tritium:tritium-api",
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-slf4j"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -1313,7 +1382,8 @@
                 "com.github.rholder:guava-retrying",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting1:error-handling",
-                "io.dropwizard:dropwizard-util"
+                "io.dropwizard:dropwizard-util",
+                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
         "com.google.guava:guava": {
@@ -1328,6 +1398,9 @@
                 "com.palantir.remoting1:ssl-config",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-lifecycle",
                 "io.dropwizard:dropwizard-util"
@@ -1533,6 +1606,42 @@
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
+        "com.palantir.tritium:tritium-api": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-slf4j"
+            ]
+        },
+        "com.palantir.tritium:tritium-core": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-slf4j"
+            ]
+        },
+        "com.palantir.tritium:tritium-lib": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.palantir.tritium:tritium-metrics": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.palantir.tritium:tritium-slf4j": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.tritium:tritium-lib"
+            ]
+        },
         "com.squareup.okhttp:okhttp": {
             "locked": "2.5.0",
             "transitive": [
@@ -1674,6 +1783,7 @@
             "locked": "3.1.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.tritium:tritium-metrics",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
                 "io.dropwizard.metrics:metrics-json",
@@ -1682,7 +1792,8 @@
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-metrics",
-                "io.dropwizard:dropwizard-servlets"
+                "io.dropwizard:dropwizard-servlets",
+                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
         "io.dropwizard.metrics:metrics-healthchecks": {
@@ -2175,6 +2286,13 @@
                 "io.dropwizard:dropwizard-validation"
             ]
         },
+        "org.hdrhistogram:HdrHistogram": {
+            "locked": "2.1.9",
+            "transitive": [
+                "com.palantir.tritium:tritium-metrics",
+                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+            ]
+        },
         "org.hibernate:hibernate-validator": {
             "locked": "5.2.4.Final",
             "transitive": [
@@ -2198,6 +2316,12 @@
             "requested": "2.0.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
+            "locked": "1.1.2",
+            "transitive": [
+                "com.palantir.tritium:tritium-metrics"
             ]
         },
         "org.slf4j:jcl-over-slf4j": {
@@ -2224,6 +2348,10 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:tracing",
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-slf4j",
                 "io.atomix.catalyst:catalyst-buffer",
                 "io.atomix.catalyst:catalyst-common",
                 "io.atomix.catalyst:catalyst-concurrent",
