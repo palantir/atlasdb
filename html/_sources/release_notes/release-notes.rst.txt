@@ -40,6 +40,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Actions run by the `ReadOnlyTransactionManager` can no longer bypass necessary protections when using `getRowsColumnRange()`
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1521>`__)
+
     *    - |new|
          - Cassandra now attempts to truncate when performing a ``deleteRange(RangeRequest.All())`` in an effort to build up less garbage.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1617>`__)
@@ -228,6 +232,11 @@ v0.32.0
          - Removed an unused hamcrest import from the timestamp-impl project.
            This should reduce the size of our transitive dependencies, and therefore the size of product binaries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1578>`__)
+
+    *    - |fixed|
+         - Fixed schema generation with Java 8 optionals.
+           To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
 
     *    - |devbreak|
          - Modified the type signature of ``BatchingVisitableView#of`` to no longer accept ``final BatchingVisitable<? extends T> underlyingVisitable`` and instead accept ``final BatchingVisitable<T> underlyingVisitable``.

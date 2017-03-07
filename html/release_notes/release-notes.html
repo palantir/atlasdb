@@ -196,44 +196,48 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Actions run by the <cite>ReadOnlyTransactionManager</cite> can no longer bypass necessary protections when using <cite>getRowsColumnRange()</cite>
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1521">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Cassandra now attempts to truncate when performing a <code class="docutils literal"><span class="pre">deleteRange(RangeRequest.All())</span></code> in an effort to build up less garbage.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1617">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Timelock server now specifies minimum and maximum heap size of 512 MB.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1647">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The background sweeper now uses deleteRange instead of truncate when clearing the <code class="docutils literal"><span class="pre">sweep.progress</span></code> table.
 This prevents the operation from interfering with concurrently running Postgres backups.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1616">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Users can now create a Docker image and run containers of the Timelock Server, by running <code class="docutils literal"><span class="pre">./gradlew</span> <span class="pre">timelock-server:dockerTag</span></code>.
 This can be useful for quickly spinning up a Timelock instance (e.g. for testing purposes).
 Note that we are not yet publishing this image.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1661">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>AtlasDB <a class="reference internal" href="../cluster_management/clis.html#clis"><span class="std std-ref">CLIs</span></a> run via the <a class="reference internal" href="../cluster_management/dropwizard-bundle.html#dropwizard-bundle"><span class="std std-ref">Dropwizard bundle</span></a> can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
 Previously, these CLIs would throw an error that a leader block was not specified.
 Note that CLIs will not perform automated migrations.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1661">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Cassandra truncates that are going to fail will do so faster.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1660">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The persistent lock endpoints now use <code class="docutils literal"><span class="pre">PersistentLockId</span></code> instead of <code class="docutils literal"><span class="pre">LockEntry</span></code>.</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The <code class="docutils literal"><span class="pre">CheckAndSetException</span></code> now gets mapped to the correct response for compatibility.
 with <a class="reference external" href="https://github.com/palantir/http-remoting">http-remoting</a> whereas previously, any consumer using http-remoting would have to deal with deserialization errors.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1665">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The persistent lock release endpoint has now been renamed to <code class="docutils literal"><span class="pre">releaseBackupLock</span></code> since it is currently only supposed to be used for the backup lock.</td>
 </tr>
 </tbody>
@@ -393,16 +397,21 @@ This enables the backup to safely run alongside either the <a class="reference i
 This should reduce the size of our transitive dependencies, and therefore the size of product binaries.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1578">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed schema generation with Java 8 optionals.
+To use Java8 optionals, supply <code class="docutils literal"><span class="pre">OptionalType.JAVA8</span></code> as an additional constructor argument when creating your <code class="docutils literal"><span class="pre">Schema</span></code> object.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1501">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Modified the type signature of <code class="docutils literal"><span class="pre">BatchingVisitableView#of</span></code> to no longer accept <code class="docutils literal"><span class="pre">final</span> <span class="pre">BatchingVisitable&lt;?</span> <span class="pre">extends</span> <span class="pre">T&gt;</span> <span class="pre">underlyingVisitable</span></code> and instead accept <code class="docutils literal"><span class="pre">final</span> <span class="pre">BatchingVisitable&lt;T&gt;</span> <span class="pre">underlyingVisitable</span></code>.
 This will resolve an issue where newer versions of Intellij fail to compile AtlasDB.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1582">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Reduced logging noise from large Cassandra gets and puts by removing ERROR messages and only providing stacktraces at DEBUG.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1590">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td><p class="first">Upon startup of an AtlasDB client with a <code class="docutils literal"><span class="pre">timeblock</span></code> <a class="reference internal" href="../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">config block</span></a>, the client will now automatically migrate its timestamp to the the <a class="reference internal" href="../services/timelock_service/index.html#external-timelock-service"><span class="std std-ref">external Timelock cluster</span></a>.</p>
 <p>The client will fast-forward the Timelock Server&#8217;s timestamp bound to that of the embedded service.
 The client will now also <em>invalidate</em> the embedded service&#8217;s bound, backing this up in a separate row in the timestamp table.</p>
@@ -413,11 +422,11 @@ If using DBKVS or other key-value services, it remains the user&#8217;s responsi
 <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1579">Pull Request 3</a>)</p>
 </td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed multiple scenarios where DBKVS can run into deadlocks due to unnecessary connections.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1566">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a long-held connection in Oracle table name mapping code
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1593">Pull Request</a>)</td>
 </tr>
