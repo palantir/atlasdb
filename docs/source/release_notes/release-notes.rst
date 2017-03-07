@@ -117,6 +117,10 @@ v0.35.0
            ``PaxosLeaderElectionServiceBuilder`` should be used instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1681>`__)
 
+    *    - |new|
+         - AtlasDB now instruments services to expose aggregate response time and service call metrics for key value, timestamp, and lock services.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1685>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
