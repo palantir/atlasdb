@@ -30,8 +30,9 @@ dependencies {
     testCompile project(':atlasdb-docker-test-utils')
     testCompile project(':atlasdb-ete-test-utils')
 
-    testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
+    testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
+    testCompile group: 'org.assertj', name: 'assertj-core'
 }
 
 task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
