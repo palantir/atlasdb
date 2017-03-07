@@ -525,12 +525,10 @@ public final class StreamTestStreamMetadataTable implements
         return rowResults;
     }
 
-    @Override
     public List<StreamTestStreamMetadataRowResult> getAsyncRows(Iterable<StreamTestStreamMetadataRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<StreamTestStreamMetadataRowResult> getAsyncRows(final Iterable<StreamTestStreamMetadataRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<StreamTestStreamMetadataRowResult>> c =
                 new Callable<List<StreamTestStreamMetadataRowResult>>() {
@@ -572,12 +570,10 @@ public final class StreamTestStreamMetadataTable implements
         return getRowsMultimapInternal(rows, columns);
     }
 
-    @Override
     public Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<StreamTestStreamMetadataRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
-    @Override
     public Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<StreamTestStreamMetadataRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>>> c =
                 new Callable<Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>>>() {
@@ -742,5 +738,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Qx7obXOkxtXCYfdkwXoVkw==";
+    static String __CLASS_HASH = "4nE7LwqplqYK1NHqQEFAYA==";
 }

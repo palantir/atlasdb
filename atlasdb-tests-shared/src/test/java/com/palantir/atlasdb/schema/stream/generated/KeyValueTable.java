@@ -501,12 +501,10 @@ public final class KeyValueTable implements
         return rowResults;
     }
 
-    @Override
     public List<KeyValueRowResult> getAsyncRows(Iterable<KeyValueRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<KeyValueRowResult> getAsyncRows(final Iterable<KeyValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<KeyValueRowResult>> c =
                 new Callable<List<KeyValueRowResult>>() {
@@ -548,12 +546,10 @@ public final class KeyValueTable implements
         return getRowsMultimapInternal(rows, columns);
     }
 
-    @Override
     public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<KeyValueRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
-    @Override
     public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<KeyValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<Multimap<KeyValueRow, KeyValueNamedColumnValue<?>>> c =
                 new Callable<Multimap<KeyValueRow, KeyValueNamedColumnValue<?>>>() {
@@ -718,5 +714,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "V2DqcozmPcaclrewTg2zTA==";
+    static String __CLASS_HASH = "z2YhF0UOhZqftDdJjiHsHA==";
 }

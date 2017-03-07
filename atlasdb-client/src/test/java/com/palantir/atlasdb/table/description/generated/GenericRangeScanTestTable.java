@@ -547,7 +547,6 @@ public final class GenericRangeScanTestTable implements
         return rowMap;
     }
 
-    @Override
     public Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> getAsync(final Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> cells, ExecutorService exec) {
         Callable<Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue>> c =
                 new Callable<Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue>>() {
@@ -591,12 +590,10 @@ public final class GenericRangeScanTestTable implements
         return getRowsMultimapInternal(rows, columns);
     }
 
-    @Override
     public Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> getAsyncRowsMultimap(Iterable<GenericRangeScanTestRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
-    @Override
     public Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> getAsyncRowsMultimap(final Iterable<GenericRangeScanTestRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue>> c =
                 new Callable<Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue>>() {
@@ -801,5 +798,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "5j2By9LyGQuWYe21v8KcFA==";
+    static String __CLASS_HASH = "KoeLsoMHvbJ9axSin1mfSA==";
 }

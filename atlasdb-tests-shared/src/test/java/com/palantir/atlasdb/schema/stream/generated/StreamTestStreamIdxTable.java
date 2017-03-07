@@ -547,7 +547,6 @@ public final class StreamTestStreamIdxTable implements
         return rowMap;
     }
 
-    @Override
     public Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue> getAsync(final Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumn> cells, ExecutorService exec) {
         Callable<Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue>> c =
                 new Callable<Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue>>() {
@@ -591,12 +590,10 @@ public final class StreamTestStreamIdxTable implements
         return getRowsMultimapInternal(rows, columns);
     }
 
-    @Override
     public Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue> getAsyncRowsMultimap(Iterable<StreamTestStreamIdxRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
-    @Override
     public Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue> getAsyncRowsMultimap(final Iterable<StreamTestStreamIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue>> c =
                 new Callable<Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue>>() {
@@ -767,5 +764,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lSHM+JYwLsyUfjBu1uzZNQ==";
+    static String __CLASS_HASH = "G3XciRsajTt+itnMrMHY3g==";
 }

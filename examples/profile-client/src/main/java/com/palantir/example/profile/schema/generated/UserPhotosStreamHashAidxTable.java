@@ -547,7 +547,6 @@ public final class UserPhotosStreamHashAidxTable implements
         return rowMap;
     }
 
-    @Override
     public Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> getAsync(final Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumn> cells, ExecutorService exec) {
         Callable<Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>> c =
                 new Callable<Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>>() {
@@ -591,12 +590,10 @@ public final class UserPhotosStreamHashAidxTable implements
         return getRowsMultimapInternal(rows, columns);
     }
 
-    @Override
     public Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> getAsyncRowsMultimap(Iterable<UserPhotosStreamHashAidxRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
-    @Override
     public Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> getAsyncRowsMultimap(final Iterable<UserPhotosStreamHashAidxRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>> c =
                 new Callable<Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>>() {
@@ -767,5 +764,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "goIwkCzAkI6E3umgmPFnDA==";
+    static String __CLASS_HASH = "iUp4oms/NLc98iRmZYrn6Q==";
 }

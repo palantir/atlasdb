@@ -501,12 +501,10 @@ public final class CheckAndSetTable implements
         return rowResults;
     }
 
-    @Override
     public List<CheckAndSetRowResult> getAsyncRows(Iterable<CheckAndSetRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<CheckAndSetRowResult> getAsyncRows(final Iterable<CheckAndSetRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<CheckAndSetRowResult>> c =
                 new Callable<List<CheckAndSetRowResult>>() {
@@ -548,12 +546,10 @@ public final class CheckAndSetTable implements
         return getRowsMultimapInternal(rows, columns);
     }
 
-    @Override
     public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<CheckAndSetRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
-    @Override
     public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<CheckAndSetRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>>> c =
                 new Callable<Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>>>() {
@@ -718,5 +714,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "zUVONFcU1MVQQE0BKFnfxA==";
+    static String __CLASS_HASH = "hQ0/iIX4rjZvowRMUFD6Rg==";
 }

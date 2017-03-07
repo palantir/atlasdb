@@ -708,12 +708,10 @@ public final class TwoColumnsTable implements
         return rowResults;
     }
 
-    @Override
     public List<TwoColumnsRowResult> getAsyncRows(Iterable<TwoColumnsRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<TwoColumnsRowResult> getAsyncRows(final Iterable<TwoColumnsRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<TwoColumnsRowResult>> c =
                 new Callable<List<TwoColumnsRowResult>>() {
@@ -755,12 +753,10 @@ public final class TwoColumnsTable implements
         return getRowsMultimapInternal(rows, columns);
     }
 
-    @Override
     public Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<TwoColumnsRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
-    @Override
     public Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<TwoColumnsRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>>> c =
                 new Callable<Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>>>() {
@@ -1409,7 +1405,6 @@ public final class TwoColumnsTable implements
             return rowMap;
         }
 
-        @Override
         public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getAsync(final Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> cells, ExecutorService exec) {
             Callable<Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>> c =
                     new Callable<Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>>() {
@@ -1453,12 +1448,10 @@ public final class TwoColumnsTable implements
             return getRowsMultimapInternal(rows, columns);
         }
 
-        @Override
         public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getAsyncRowsMultimap(Iterable<FooToIdCondIdxRow> rows, ExecutorService exec) {
             return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
-        @Override
         public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getAsyncRowsMultimap(final Iterable<FooToIdCondIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
             Callable<Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>> c =
                     new Callable<Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>>() {
@@ -2072,7 +2065,6 @@ public final class TwoColumnsTable implements
             return rowMap;
         }
 
-        @Override
         public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getAsync(final Multimap<FooToIdIdxRow, FooToIdIdxColumn> cells, ExecutorService exec) {
             Callable<Multimap<FooToIdIdxRow, FooToIdIdxColumnValue>> c =
                     new Callable<Multimap<FooToIdIdxRow, FooToIdIdxColumnValue>>() {
@@ -2116,12 +2108,10 @@ public final class TwoColumnsTable implements
             return getRowsMultimapInternal(rows, columns);
         }
 
-        @Override
         public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getAsyncRowsMultimap(Iterable<FooToIdIdxRow> rows, ExecutorService exec) {
             return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
-        @Override
         public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getAsyncRowsMultimap(final Iterable<FooToIdIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
             Callable<Multimap<FooToIdIdxRow, FooToIdIdxColumnValue>> c =
                     new Callable<Multimap<FooToIdIdxRow, FooToIdIdxColumnValue>>() {
@@ -2294,5 +2284,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "XlnDML5kDOS0MZI8cpul2g==";
+    static String __CLASS_HASH = "wDj6koqtWWiP3y1ACuhaUw==";
 }

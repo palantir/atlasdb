@@ -1057,12 +1057,10 @@ public final class SweepPriorityTable implements
         return rowResults;
     }
 
-    @Override
     public List<SweepPriorityRowResult> getAsyncRows(Iterable<SweepPriorityRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<SweepPriorityRowResult> getAsyncRows(final Iterable<SweepPriorityRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<SweepPriorityRowResult>> c =
                 new Callable<List<SweepPriorityRowResult>>() {
@@ -1104,12 +1102,10 @@ public final class SweepPriorityTable implements
         return getRowsMultimapInternal(rows, columns);
     }
 
-    @Override
     public Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<SweepPriorityRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
-    @Override
     public Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<SweepPriorityRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>>> c =
                 new Callable<Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>>>() {
@@ -1274,5 +1270,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "2HFf2/0ZpwH6FqoyKkQa2A==";
+    static String __CLASS_HASH = "sJPQ2XBcV9JBIcTnqPOHbA==";
 }

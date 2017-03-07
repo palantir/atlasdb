@@ -1057,12 +1057,10 @@ public final class SweepProgressTable implements
         return rowResults;
     }
 
-    @Override
     public List<SweepProgressRowResult> getAsyncRows(Iterable<SweepProgressRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<SweepProgressRowResult> getAsyncRows(final Iterable<SweepProgressRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<SweepProgressRowResult>> c =
                 new Callable<List<SweepProgressRowResult>>() {
@@ -1104,12 +1102,10 @@ public final class SweepProgressTable implements
         return getRowsMultimapInternal(rows, columns);
     }
 
-    @Override
     public Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<SweepProgressRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
-    @Override
     public Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<SweepProgressRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>>> c =
                 new Callable<Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>>>() {
@@ -1274,5 +1270,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "w/iQ+G1DPbQx2I22vC12KQ==";
+    static String __CLASS_HASH = "l8hXa9/4+E+1XwW4P9Lwkg==";
 }
