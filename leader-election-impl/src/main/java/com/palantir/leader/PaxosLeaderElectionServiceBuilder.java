@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
@@ -52,12 +53,12 @@ public class PaxosLeaderElectionServiceBuilder {
     }
 
     public PaxosLeaderElectionServiceBuilder acceptors(List<PaxosAcceptor> acceptors) {
-        this.acceptors = acceptors;
+        this.acceptors = ImmutableList.copyOf(acceptors);
         return this;
     }
 
     public PaxosLeaderElectionServiceBuilder learners(List<PaxosLearner> learners) {
-        this.learners = learners;
+        this.learners = ImmutableList.copyOf(learners);
         return this;
     }
 
@@ -94,4 +95,5 @@ public class PaxosLeaderElectionServiceBuilder {
                 randomWaitBeforeProposingLeadershipMs,
                 leaderPingResponseWaitMs);
     }
+
 }
