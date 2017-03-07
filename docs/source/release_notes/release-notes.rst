@@ -80,6 +80,10 @@ develop
     *    - |devbreak|
          - The persistent lock release endpoint has now been renamed to ``releaseBackupLock`` since it is currently only supposed to be used for the backup lock.
 
+    *    - |new|
+         - Added benchmarks for paging over columns of a very wide row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1684>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
