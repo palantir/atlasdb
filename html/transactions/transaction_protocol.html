@@ -13,6 +13,8 @@
 
   
   
+  
+  
 
   
 
@@ -90,7 +92,10 @@
           
             
             
-                <ul class="current">
+              
+            
+            
+              <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Transactions</a><ul class="current">
@@ -188,7 +193,10 @@ commit timestamp.</p>
 <div class="section" id="write-protocol">
 <h2>Write Protocol<a class="headerlink" href="#write-protocol" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
-<li>We buffer writes in memory until commit time. At commit time we grab
+<li>Complete all reads using the transaction&#8217;s start timestamp.  This is necessary to
+determine the writes required by the transaction. Buffer writes in memory
+until commit time.</li>
+<li>At commit time we grab
 row locks for all the rows we are about to write (this is to detect
 write/write conflicts). We also grab the start timestamp row lock for
 the Transaction table.</li>
