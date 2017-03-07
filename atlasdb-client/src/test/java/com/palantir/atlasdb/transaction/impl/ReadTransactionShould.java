@@ -101,15 +101,7 @@ public class ReadTransactionShould {
     }
 
     @Test
-    public void notAllowGetsOnThoroughTables() {
-        ImmutableSet<Cell> cellToGet = ImmutableSet.of(DUMMY_CELL);
-        checkThrowsAndNoInteraction(() -> readTransaction.get(DUMMY_THOROUGH_TABLE, cellToGet),
-                IllegalStateException.class,
-                "Cannot read");
-    }
-
-    @Test
-    public void notAllowSimpleGets() throws IllegalAccessException {
+    public void notAllowSimpleGetsOnThoroughTables() throws IllegalAccessException {
         Method[] declaredMethods = ReadTransaction.class.getDeclaredMethods();
 
         for (Method m : declaredMethods) {
@@ -130,7 +122,7 @@ public class ReadTransactionShould {
     }
 
     @Test
-    public void notAllowColumnRangeGets() {
+    public void notAllowBatchColumnRangeGets() {
         checkThrowsAndNoInteraction(() -> readTransaction.getRowsColumnRange(
                 DUMMY_THOROUGH_TABLE,
                 ImmutableList.of(EMPTY_BYTES),
@@ -140,7 +132,7 @@ public class ReadTransactionShould {
     }
 
     @Test
-    public void notAllowColumnRangeGets2() {
+    public void notAllowColumnRangeGets() {
         checkThrowsAndNoInteraction(() -> readTransaction.getRowsColumnRange(
                 DUMMY_THOROUGH_TABLE,
                 ImmutableList.of(EMPTY_BYTES),
