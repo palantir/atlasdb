@@ -86,6 +86,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
 
+    @Deprecated // Use PaxosLeaderElectionServiceBuilder instead.
     public PaxosLeaderElectionService(PaxosProposer proposer,
                                       PaxosLearner knowledge,
                                       Map<PingableLeader, HostAndPort> potentialLeadersToHosts,

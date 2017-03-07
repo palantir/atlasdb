@@ -80,6 +80,11 @@ develop
     *    - |devbreak|
          - The persistent lock release endpoint has now been renamed to ``releaseBackupLock`` since it is currently only supposed to be used for the backup lock.
 
+    *    - |deprecated|
+         - ``PaxosLeaderElectionService`` is now deprecated, to mitigate risks of users supplying parameters in the wrong order.
+           ``PaxosLeaderElectionServiceBuilder`` should be used instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1681>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

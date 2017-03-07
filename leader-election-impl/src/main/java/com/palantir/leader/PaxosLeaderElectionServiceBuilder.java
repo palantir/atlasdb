@@ -95,5 +95,4 @@ public class PaxosLeaderElectionServiceBuilder {
                 randomWaitBeforeProposingLeadershipMs,
                 leaderPingResponseWaitMs);
     }
-
 }
