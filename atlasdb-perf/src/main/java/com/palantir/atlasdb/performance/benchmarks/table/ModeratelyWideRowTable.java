@@ -22,6 +22,6 @@ import org.openjdk.jmh.annotations.State;
 public class ModeratelyWideRowTable extends WideRowTable {
     @Override
     public int getNumCols() {
-        return 50000;
+        return 50_000;
     }
 }
