@@ -254,6 +254,19 @@ import com.palantir.util.Pair;
                 reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
             }
         });
+        executor.execute(() -> {
+            Thread.currentThread().setName("Lock Service Logging Dumper");
+            while (true) {
+                try {
+                    logCurrentState(); // This is at ERROR level...
+                    Thread.sleep(5 * 60 * 1000); // Five minutes
+                } catch (InterruptedException e) {
+                    log.info("Lock service logger was interrupted. Shutting down.");
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+        });
     }
 
     private HeldLocksToken createHeldLocksToken(LockClient client,
