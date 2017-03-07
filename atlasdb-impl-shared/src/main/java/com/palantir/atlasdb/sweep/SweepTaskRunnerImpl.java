@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Equivalence;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -173,8 +175,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
         try (ClosableIterator<RowResult<Value>> valueResults = sweeper.getValues(tableRef, range, sweepTs);
              ClosableIterator<RowResult<Set<Long>>> rowResults = sweeper.getCellTimestamps(tableRef, range, sweepTs)) {
-            RowBatchCountingIterator<Set<Long>> rowResultTimestamps =
-                    new RowBatchCountingIterator<>(rowResults, rowBatchSize);
+            EquivalenceCountingIterator<RowResult<Set<Long>>> rowResultTimestamps =
+                    new EquivalenceCountingIterator<>(rowResults, rowBatchSize, sameRowEquivalence());
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults);
 
             BatchingVisitable<CellAndTimestamps> cellsAndTimestamps = BatchingVisitableFromIterable
@@ -205,6 +207,20 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                     .sweptTimestamp(sweepTs)
                     .build();
         }
+    }
+
+    private Equivalence<RowResult<Set<Long>>> sameRowEquivalence() {
+        return new Equivalence<RowResult<Set<Long>>>() {
+            @Override
+            protected boolean doEquivalent(RowResult<Set<Long>> a, RowResult<Set<Long>> b) {
+                return Arrays.equals(a.getRowName(), b.getRowName());
+            }
+
+            @Override
+            protected int doHash(RowResult<Set<Long>> setRowResult) {
+                return 0;
+            }
+        };
     }
 
     private Sweeper getSweeperFor(SweepStrategy sweepStrategy) {
