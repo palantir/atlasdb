@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,7 +81,6 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -1057,21 +1055,6 @@ public final class SweepProgressTable implements
         return rowResults;
     }
 
-    public List<SweepProgressRowResult> getAsyncRows(Iterable<SweepProgressRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, allColumns, exec);
-    }
-
-    public List<SweepProgressRowResult> getAsyncRows(final Iterable<SweepProgressRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<SweepProgressRowResult>> c =
-                new Callable<List<SweepProgressRowResult>>() {
-            @Override
-            public List<SweepProgressRowResult> call() {
-                return getRows(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), List.class);
-    }
-
     @Override
     public List<SweepProgressNamedColumnValue<?>> getRowColumns(SweepProgressRow row) {
         return getRowColumns(row, allColumns);
@@ -1100,21 +1083,6 @@ public final class SweepProgressTable implements
     @Override
     public Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getRowsMultimap(Iterable<SweepProgressRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    public Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<SweepProgressRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    public Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<SweepProgressRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>>> c =
-                new Callable<Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>>>() {
-            @Override
-            public Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getRowsMultimapInternal(Iterable<SweepProgressRow> rows, ColumnSelection columns) {
@@ -1191,7 +1159,6 @@ public final class SweepProgressTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -1223,7 +1190,6 @@ public final class SweepProgressTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -1270,5 +1236,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "l8hXa9/4+E+1XwW4P9Lwkg==";
+    static String __CLASS_HASH = "8cD0KD8qcKYtclo7WmxNsg==";
 }
