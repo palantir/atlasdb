@@ -197,48 +197,78 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Actions run by the <cite>ReadOnlyTransactionManager</cite> can no longer bypass necessary protections when using <cite>getRowsColumnRange()</cite>
+<td>Fixed an unnecessarily long-held connection in Oracle table name mapping code.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1593">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Actions run by the <code class="docutils literal"><span class="pre">ReadOnlyTransactionManager</span></code> can no longer bypass necessary protections when using <code class="docutils literal"><span class="pre">getRowsColumnRange()</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1521">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td>Cassandra now attempts to truncate when performing a <code class="docutils literal"><span class="pre">deleteRange(RangeRequest.All())</span></code> in an effort to build up less garbage.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1617">Pull Request</a>)</td>
-</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed an issue where we excessively log after successful transactions.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1687">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-35-0">
+<h2>v0.35.0<a class="headerlink" href="#v0-35-0" title="Permalink to this headline">¶</a></h2>
+<p>3 Mar 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Timelock server now specifies minimum and maximum heap size of 512 MB.
+This should improve GC performance per the comments in <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1594#discussion_r102255336">#1594</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1647">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The background sweeper now uses deleteRange instead of truncate when clearing the <code class="docutils literal"><span class="pre">sweep.progress</span></code> table.
-This prevents the operation from interfering with concurrently running Postgres backups.
+This allows users with Postgres to perform backups via the normal pg_dump command while running background sweep.
+Previous it was possible for a backup to fail if sweep were performing a truncate at the same time.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1616">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Cassandra now attempts to truncate when performing a <code class="docutils literal"><span class="pre">deleteRange(RangeRequest.All())</span></code> in an effort to build up less garbage.
+This is relevant for when sweep is operating on its own sweep tables.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1617">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Users can now create a Docker image and run containers of the Timelock Server, by running <code class="docutils literal"><span class="pre">./gradlew</span> <span class="pre">timelock-server:dockerTag</span></code>.
 This can be useful for quickly spinning up a Timelock instance (e.g. for testing purposes).
 Note that we are not yet publishing this image.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1661">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>AtlasDB <a class="reference internal" href="../cluster_management/clis.html#clis"><span class="std std-ref">CLIs</span></a> run via the <a class="reference internal" href="../cluster_management/dropwizard-bundle.html#dropwizard-bundle"><span class="std std-ref">Dropwizard bundle</span></a> can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
 Previously, these CLIs would throw an error that a leader block was not specified.
 Note that CLIs will not perform automated migrations.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1661">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Cassandra truncates that are going to fail will do so faster.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1660">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>The persistent lock endpoints now use <code class="docutils literal"><span class="pre">PersistentLockId</span></code> instead of <code class="docutils literal"><span class="pre">LockEntry</span></code>.</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>The <code class="docutils literal"><span class="pre">CheckAndSetException</span></code> now gets mapped to the correct response for compatibility.
-with <a class="reference external" href="https://github.com/palantir/http-remoting">http-remoting</a> whereas previously, any consumer using http-remoting would have to deal with deserialization errors.
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The persistent lock endpoints now use <code class="docutils literal"><span class="pre">PersistentLockId</span></code> instead of <code class="docutils literal"><span class="pre">LockEntry</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1665">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>The persistent lock release endpoint has now been renamed to <code class="docutils literal"><span class="pre">releaseBackupLock</span></code> since it is currently only supposed to be used for the backup lock.</td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The <code class="docutils literal"><span class="pre">CheckAndSetException</span></code> now gets mapped to the correct response for compatibility with <a class="reference external" href="https://github.com/palantir/http-remoting">http-remoting</a>.
+Previously, any consumer using http-remoting would have to deal with deserialization errors.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1665">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The persistent lock release endpoint has now been renamed to <code class="docutils literal"><span class="pre">releaseBackupLock</span></code> since it is currently only supposed to be used for the backup lock.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1648">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -425,10 +455,6 @@ If using DBKVS or other key-value services, it remains the user&#8217;s responsi
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed multiple scenarios where DBKVS can run into deadlocks due to unnecessary connections.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1566">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed a long-held connection in Oracle table name mapping code
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1593">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
