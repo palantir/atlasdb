@@ -544,20 +544,7 @@ public abstract class AbstractSweeperTest {
 
         Assert.assertEquals(sweepResults.getCellsDeleted(), 1);
     }
-
-    private void testSweepManyRows(SweepStrategy strategy) {
-        createTable(strategy);
-        putIntoDefaultColumn("foo", "bar1", 5);
-        putIntoDefaultColumn("foo", "bar2", 10);
-        putIntoDefaultColumn("baz", "bar3", 15);
-        putIntoDefaultColumn("baz", "bar4", 20);
-
-        SweepResults results = completeSweep(175);
-
-        Assert.assertEquals(2, results.getCellsDeleted());
-        Assert.assertEquals(2, results.getCellsExamined());
-    }
-
+    
     /**
      * Test case causing the sweep DbKvs OOM #982. Takes about an hour to run, so should be @Ignored unless specifically
      * needed
@@ -587,6 +574,19 @@ public abstract class AbstractSweeperTest {
         SweepResults results = sweep(TABLE_NAME, 30000, 1000, 1000);
         Assert.assertFalse(results.getNextStartRow().isPresent());
         Assert.assertEquals(10000L, results.getCellsDeleted());
+    }
+
+    private void testSweepManyRows(SweepStrategy strategy) {
+        createTable(strategy);
+        putIntoDefaultColumn("foo", "bar1", 5);
+        putIntoDefaultColumn("foo", "bar2", 10);
+        putIntoDefaultColumn("baz", "bar3", 15);
+        putIntoDefaultColumn("baz", "bar4", 20);
+
+        SweepResults results = completeSweep(175);
+
+        Assert.assertEquals(2, results.getCellsDeleted());
+        Assert.assertEquals(2, results.getCellsExamined());
     }
 
     private List<SweepProgressRowResult> getProgressTable() {
