@@ -26,7 +26,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 
-import com.codahale.metrics.ConsoleReporter;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -123,13 +122,6 @@ public class AtlasDbTestCase {
                 conflictDetectionManager,
                 sweepStrategyManager);
         txManager = new CachingTestTransactionManager(txManager);
-    }
-
-    @After
-    public void after() throws Exception {
-        ConsoleReporter reporter = ConsoleReporter.forRegistry(metricsRule.metrics()).build();
-        reporter.report();
-        reporter.close();
     }
 
     protected KeyValueService getBaseKeyValueService() {
