@@ -138,7 +138,6 @@ public abstract class AbstractSweeperTest {
      */
     protected abstract KeyValueService getKeyValueService();
 
-    @Ignore
     @Test
     public void testOom() {
         createTable(SweepStrategy.CONSERVATIVE);

@@ -32,7 +32,7 @@ import com.google.common.collect.PeekingIterator;
  */
 public class EquivalenceCountingIterator<T> extends CountingIterator<T> {
     private final int limit;
-    Equivalence<T> equivalence;
+    private final Equivalence<T> equivalence;
 
     /**
      * Constructor.
@@ -83,6 +83,3 @@ public class EquivalenceCountingIterator<T> extends CountingIterator<T> {
     // not implemented
     }
 }
-
-
-

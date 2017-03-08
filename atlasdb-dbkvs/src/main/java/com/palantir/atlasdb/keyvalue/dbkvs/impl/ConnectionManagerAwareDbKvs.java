@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.sql.Connection;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -95,6 +96,7 @@ public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
         this.connManager = connManager;
     }
 
+    @VisibleForTesting
     @Override
     public KeyValueService delegate() {
         return kvs;

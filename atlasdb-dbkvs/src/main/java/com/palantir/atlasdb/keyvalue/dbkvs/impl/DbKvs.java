@@ -627,7 +627,6 @@ public class DbKvs extends AbstractKeyValueService {
                 RangeRequest newRange = rangeRequest.getBuilder().startRowInclusive(token.row()).build();
                 return getTimestampsPage(tableRef, newRange, timestamp, getRangeOfTsMaxBatch, token);
             }
-
         };
         return ClosableIterators.wrap(rows.iterator());
     }
