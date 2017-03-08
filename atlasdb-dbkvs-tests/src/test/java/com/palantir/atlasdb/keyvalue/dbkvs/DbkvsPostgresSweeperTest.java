@@ -15,113 +15,26 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import org.junit.Test;
-
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.sweep.AbstractSweeperTest;
+import com.palantir.atlasdb.sweep.AbstractDbKvsSweeperTest;
 
-public class DbkvsPostgresSweeperTest extends AbstractSweeperTest {
+public class DbkvsPostgresSweeperTest extends AbstractDbKvsSweeperTest {
     @Override
     protected KeyValueService getKeyValueService() {
         return ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
     }
 
-    @Test
-    public void wholeTableInOneBatch() {
-        setupTestTable();
-        SweepResults results = sweep(TABLE_NAME, 100, 10, 1000);
-        assertThat(results.getNextStartRow().isPresent()).isFalse();
-        assertThat(results.getCellsExamined()).isEqualTo(9);
-        assertThat(results.getCellsDeleted()).isEqualTo(240);
-    }
-
-    @Test
-    public void smallCellBatches() {
-        setupTestTable();
-        SweepResults results = sweep(TABLE_NAME, 100, 10, 7);
-        assertThat(results.getNextStartRow().isPresent()).isFalse();
-        assertThat(results.getCellsExamined()).isEqualTo(9);
-        assertThat(results.getCellsDeleted()).isEqualTo(240);
-    }
-
-    @Test
-    public void smallRangeOfTsMaxBatch() {
-        setupTestTable();
-        setGetRangeOfTsMaxBatch(5);
-        SweepResults results = sweep(TABLE_NAME, 100, 10, 1000);
-        assertThat(results.getNextStartRow().isPresent()).isFalse();
-        assertThat(results.getCellsExamined()).isEqualTo(9);
-        assertThat(results.getCellsDeleted()).isEqualTo(240);
-        resetGetRangeOfTsMaxBatch();
-    }
-
-    @Test
-    public void bothRangesSmallAndSmallerTimestamp() {
-        setupTestTable();
-        setGetRangeOfTsMaxBatch(7);
-        SweepResults results = sweep(TABLE_NAME, 96, 10, 3);
-        assertThat(results.getNextStartRow().isPresent()).isFalse();
-        assertThat(results.getCellsExamined()).isEqualTo(9);
-        assertThat(results.getCellsDeleted()).isEqualTo(213);
-        resetGetRangeOfTsMaxBatch();
-    }
-
-    @Test
-    public void smallRowBatch() {
-        setupTestTable();
-        setGetRangeOfTsMaxBatch(5);
-        SweepResults results = sweep(TABLE_NAME, 100, 5, 1000);
-        assertThat(results.getNextStartRow().isPresent()).isTrue();
-        assertThat(results.getCellsExamined()).isEqualTo(5);
-        assertThat(results.getCellsDeleted()).isEqualTo(170);
-        resetGetRangeOfTsMaxBatch();
-    }
-
-    private void setGetRangeOfTsMaxBatch(long value) {
+    @Override
+    protected void setGetRangeOfTsMaxBatch(long value) {
         ((DbKvs) ((ConnectionManagerAwareDbKvs) ((SweepStatsKeyValueService) kvs).delegate()).delegate())
                 .setGetRangeOfTsMaxBatch(value);
     }
 
-    private void resetGetRangeOfTsMaxBatch() {
+    @Override
+    protected void resetGetRangeOfTsMaxBatch() {
         setGetRangeOfTsMaxBatch(DbKvs.INITIAL_GET_RANGE_OF_TS_BATCH);
-    }
-
-    /*
-    Table for testing different batching strategies. Has 9 rows to be examined and 240 entries to be deleted
-        ------------------------------------------------------
-       | (10) | (20, 21) | (30, 31, 32) | ... | (90, ... , 98)|
-       |------------------------------------------------------|
-       |  --  | (20, 21) | (30, 31, 32) | ... | (90, ... , 98)|
-       |------------------------------------------------------|
-       |                        ...                           |
-       |------------------------------------------------------|
-       |  --  |    --    |      --      | ... | (90, ... , 98)|
-        ------------------------------------------------------
-     */
-    public void setupTestTable() {
-        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
-        for (int col = 1; col < 10; ++col) {
-            Map<Cell, byte[]> toPut = new HashMap<>();
-            for (int row = 1; row <= col; ++row) {
-                Cell cell = Cell.create(PtBytes.toBytes(row), PtBytes.toBytes(col));
-                toPut.put(cell, new byte[]{0});
-            }
-            for (int ts = 10 * col; ts < 11 * col; ++ts) {
-                kvs.put(TABLE_NAME, toPut, ts);
-                txService.putUnlessExists(ts, ts);
-            }
-        }
     }
 }

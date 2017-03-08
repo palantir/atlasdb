@@ -544,7 +544,7 @@ public abstract class AbstractSweeperTest {
 
         Assert.assertEquals(sweepResults.getCellsDeleted(), 1);
     }
-    
+
     /**
      * Test case causing the sweep DbKvs OOM #982. Takes about an hour to run, so should be @Ignored unless specifically
      * needed
