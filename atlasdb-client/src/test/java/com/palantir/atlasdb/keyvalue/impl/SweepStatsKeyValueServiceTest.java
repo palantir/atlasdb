@@ -45,13 +45,13 @@ public class SweepStatsKeyValueServiceTest {
     @Test
     public void deleteRangeAllCountsAsClearingTheTable() throws Exception {
         kvs.deleteRange(TABLE, RangeRequest.all());
-        assertTrue(kvs.clearedTables.contains(TABLE));
+        assertTrue(kvs.hasBeenCleared(TABLE));
     }
 
     @Test
     public void otherDeleteRangeDoesNotCountAsClearingTheTable() throws Exception {
         RangeRequest request = RangeRequest.builder().startRowInclusive(ROW).build();
         kvs.deleteRange(TABLE, request);
-        assertFalse(kvs.clearedTables.contains(TABLE));
+        assertFalse(kvs.hasBeenCleared(TABLE));
     }
 }

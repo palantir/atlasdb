@@ -76,8 +76,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     private final TimestampService timestampService;
     private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
 
-    @VisibleForTesting
-    final Set<TableReference> clearedTables = Collections.newSetFromMap(new ConcurrentHashMap<TableReference, Boolean>());
+    private final Set<TableReference> clearedTables = Collections.newSetFromMap(new ConcurrentHashMap<TableReference, Boolean>());
 
     private final AtomicInteger totalModifications = new AtomicInteger();
     private final Lock flushLock = new ReentrantLock();
@@ -125,9 +124,9 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void deleteRange(TableReference tableRef, RangeRequest request) {
-        delegate().deleteRange(tableRef, request);
-        if (RangeRequest.all().equals(request)) {
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        delegate().deleteRange(tableRef, range);
+        if (RangeRequest.all().equals(range)) {
             // This is equivalent to truncate.
             recordClear(tableRef);
         }
@@ -156,6 +155,11 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     public void close() {
         flushExecutor.shutdownNow();
         delegate.close();
+    }
+
+    @VisibleForTesting
+    boolean hasBeenCleared(TableReference tableRef) {
+        return clearedTables.contains(tableRef);
     }
 
     // This way of recording the number of writes to tables is obviously not
