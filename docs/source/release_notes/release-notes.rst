@@ -45,7 +45,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1593>`__)
 
     *    - |fixed|
-         - Actions run by the `ReadOnlyTransactionManager` can no longer bypass necessary protections when using `getRowsColumnRange()`
+         - Actions run by the ``ReadOnlyTransactionManager`` can no longer bypass necessary protections when using ``getRowsColumnRange()``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1521>`__)
 
     *    - |fixed|
@@ -68,18 +68,20 @@ v0.35.0
          - Change
 
     *    - |improved|
-         - Cassandra now attempts to truncate when performing a ``deleteRange(RangeRequest.All())`` in an effort to build up less garbage.
-           This is relevant for when sweep is operating on its own sweep tables.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1617>`__)
-
-    *    - |fixed|
          - Timelock server now specifies minimum and maximum heap size of 512 MB.
+           This should improve GC performance per the comments in `#1594 <https://github.com/palantir/atlasdb/pull/1594#discussion_r102255336>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1647>`__)
 
     *    - |fixed|
          - The background sweeper now uses deleteRange instead of truncate when clearing the ``sweep.progress`` table.
-           This prevents the operation from interfering with concurrently running Postgres backups.
+           This allows users with Postgres to perform backups via the normal pg_dump command while running background sweep.
+           Previous it was possible for a backup to fail if sweep were performing a truncate at the same time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1616>`__)
+
+    *    - |improved|
+         - Cassandra now attempts to truncate when performing a ``deleteRange(RangeRequest.All())`` in an effort to build up less garbage.
+           This is relevant for when sweep is operating on its own sweep tables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1617>`__)
 
     *    - |new|
          - Users can now create a Docker image and run containers of the Timelock Server, by running ``./gradlew timelock-server:dockerTag``.
@@ -99,14 +101,16 @@ v0.35.0
 
     *    - |devbreak|
          - The persistent lock endpoints now use ``PersistentLockId`` instead of ``LockEntry``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1665>`__)
 
-    *    - |improved|
-         - The ``CheckAndSetException`` now gets mapped to the correct response for compatibility.
-           with `http-remoting <https://github.com/palantir/http-remoting>`__ whereas previously, any consumer using http-remoting would have to deal with deserialization errors.
+    *    - |fixed|
+         - The ``CheckAndSetException`` now gets mapped to the correct response for compatibility with `http-remoting <https://github.com/palantir/http-remoting>`__.
+           Previously, any consumer using http-remoting would have to deal with deserialization errors.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1665>`__)
 
     *    - |devbreak|
          - The persistent lock release endpoint has now been renamed to ``releaseBackupLock`` since it is currently only supposed to be used for the backup lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1648>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
