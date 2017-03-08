@@ -75,7 +75,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
 
     private void put(List<Object[]> args) {
         try {
-            String prefixedTableName = prefixedTableNames.get(tableRef);
+            String prefixedTableName = prefixedTableNames.get(tableRef, conns);
             conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + prefixedTableName + ") */"
                     + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
                     + " VALUES (?, ?, ?, ?) ",
@@ -100,7 +100,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
             }
             while (true) {
                 try {
-                    String prefixedTableName = prefixedTableNames.get(tableRef);
+                    String prefixedTableName = prefixedTableNames.get(tableRef, conns);
                     conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + prefixedTableName + ") */"
                             + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
                             + " SELECT ?, ?, ?, ? FROM DUAL"
@@ -134,7 +134,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
         }
 
-        String prefixedTableName = prefixedTableNames.get(tableRef);
+        String prefixedTableName = prefixedTableNames.get(tableRef, conns);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + prefixedTableName + ") */ "
                 + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(prefixedTableName) + ") */ "
                 + " FROM " + prefixedTableName + " m "
@@ -146,7 +146,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
 
     @Override
     public void delete(RangeRequest range) {
-        String prefixedTableName = prefixedTableNames.get(tableRef);
+        String prefixedTableName = prefixedTableNames.get(tableRef, conns);
         StringBuilder query = new StringBuilder();
         query.append(" /* DELETE_RANGE (").append(prefixedTableName).append(") */ ");
         query.append(" DELETE FROM ").append(prefixedTableName).append(" m ");

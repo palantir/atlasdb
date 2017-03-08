@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.AbstractDbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.OraclePrefixedTableNames;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.PrefixedTableNames;
 
-public class OracleWriteTable extends AbstractDbWriteTable {
-    public OracleWriteTable(
-            DdlConfig config,
-            ConnectionSupplier conns,
-            OraclePrefixedTableNames oraclePrefixedTableNames,
-            TableReference tableRef) {
-        super(config, conns, tableRef, oraclePrefixedTableNames);
+public class PostgresPrefixedTableNames implements PrefixedTableNames {
+
+    private final DdlConfig config;
+
+    public PostgresPrefixedTableNames(DdlConfig config) {
+        this.config = config;
     }
+
+    @Override
+    public String get(TableReference tableRef, ConnectionSupplier connectionSupplier) {
+        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+    }
+
 }

@@ -16,17 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 
-public class PrefixedTableNames {
-    private DdlConfig config;
-
-    public PrefixedTableNames(DdlConfig config) {
-        this.config = config;
-    }
-
-    public String get(TableReference tableRef) {
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
-    }
-
+public interface PrefixedTableNames {
+    String get(TableReference tableRef, ConnectionSupplier connectionSupplier);
 }

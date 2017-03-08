@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 
 import org.junit.Test;
 
-public class DropwizardEteTest {
+public class CommandLineEteTest {
     private static final Pattern TIMESTAMP_REGEX = Pattern.compile("The Fresh timestamp is: (\\d+)");
 
     @Test

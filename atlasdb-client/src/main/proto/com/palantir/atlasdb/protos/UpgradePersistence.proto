@@ -1,0 +1,11 @@
+package com.palantir.atlasdb.protos.generated;
+
+message SchemaVersion {
+    required int64 version = 1;
+    optional int64 hotfix = 2;
+    optional int64 hotfix_hotfix = 3;
+}
+
+message SchemaVersions {
+    repeated SchemaVersion versions = 1;
+}
