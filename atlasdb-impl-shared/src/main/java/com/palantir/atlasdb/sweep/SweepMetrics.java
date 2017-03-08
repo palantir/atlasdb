@@ -36,7 +36,7 @@ final class SweepMetrics {
     private void registerAggregateMetrics() {
         SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(1, TimeUnit.DAYS);
         Histogram slidingWeek = new Histogram(reservoir);
-        String deletes = MetricRegistry.name(BackgroundSweeperImpl.class, "totalDeletes");
+        String deletes = MetricRegistry.name(SweepMetrics.class, "totalDeletes");
 
         registerMetricIfNotExists(deletes, slidingWeek);
     }
@@ -53,12 +53,14 @@ final class SweepMetrics {
         registerMetricIfNotExists(deletesMetric, slidingWeek);
     }
 
-    private void registerMetricIfNotExists(String deletesMetric, Metric slidingWeek) {
-        if (!metricRegistry.getMetrics().containsKey(deletesMetric)) {
-            metricRegistry.register(deletesMetric, slidingWeek);
+    private void registerMetricIfNotExists(String name, Metric metric) {
+        if (!metricRegistry.getMetrics().containsKey(name)) {
+            metricRegistry.register(name, metric);
         }
     }
 
+    // TODO this will obviously change when we have many metrics.
+    // Will probably end up passing in a SweepProgressRowResult object.
     void recordMetrics(TableReference tableRef, long cellsDeleted) {
         String deletesMetric = MetricRegistry.name(SweepMetrics.class, "deletes", tableRef.getQualifiedName());
         metricRegistry.histogram(deletesMetric).update(cellsDeleted);
