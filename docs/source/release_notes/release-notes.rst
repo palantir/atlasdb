@@ -40,6 +40,24 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.35.0
+=======
+
+3 Mar 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
          - Actions run by the `ReadOnlyTransactionManager` can no longer bypass necessary protections when using `getRowsColumnRange()`
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1521>`__)
