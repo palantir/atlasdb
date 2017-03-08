@@ -31,9 +31,6 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -66,7 +63,6 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.atlasdb.transaction.impl.UnmodifiableTransaction;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
@@ -86,7 +82,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private final Supplier<Integer> sweepCellBatchSize;
     private final SweepTableFactory tableFactory;
     private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
-    private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
+    private final SweepMetrics sweepMetrics = SweepMetrics.create();
 
     private volatile float batchSizeMultiplier = 1.0f;
     private Thread daemon;
@@ -137,38 +133,17 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 sweepCellBatchSize,
                 tableFactory,
                 sweepPerfLogger);
-        sweeper.registerSweepMetrics();
         return sweeper;
-    }
-
-    // Here register metric to collect across all sweep runs
-    private void registerSweepMetrics() {
-        SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(1, TimeUnit.DAYS);
-        Histogram slidingWeek = new Histogram(reservoir);
-        String deletes = MetricRegistry.name(BackgroundSweeperImpl.class, "totalDeletes");
-        metricRegistry.register(deletes, slidingWeek);
     }
 
     // Registering metrics for a specific table
     private void registerMetricsIfNecessary(String tableName) {
-        SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(7, TimeUnit.DAYS);
-        Histogram slidingWeek = new Histogram(reservoir);
-
-        String deletesMetric = MetricRegistry.name(BackgroundSweeperImpl.class, "deletes", tableName);
-
-        if (!metricRegistry.getMetrics().containsKey(deletesMetric)) {
-            metricRegistry.register(deletesMetric, slidingWeek);
-        }
-
+        sweepMetrics.registerMetricsIfNecessary(TableReference.createUnsafe(tableName));
     }
 
     // Recording metrics for a specific table
     private void recordMetrics(String tableName, long cellsDeleted) {
-        String deletesMetric = MetricRegistry.name(BackgroundSweeperImpl.class, "deletes", tableName);
-        metricRegistry.histogram(deletesMetric).update(cellsDeleted);
-
-        String totalDeletes = MetricRegistry.name(BackgroundSweeperImpl.class, "totalDeletes");
-        metricRegistry.histogram(totalDeletes).update(cellsDeleted);
+        sweepMetrics.recordMetrics(TableReference.createUnsafe(tableName), cellsDeleted);
     }
 
     @Override
