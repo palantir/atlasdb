@@ -50,7 +50,7 @@ public class EquivalenceCountingIterator<T> extends CountingIterator<T> {
     @Override
     public boolean hasNext() {
         if (delegate.hasNext()) {
-            if (limit >= totalItems + returnOneIfNextRowIsNew()) {
+            if (limit >= totalItemsWithNextEntry()) {
                 return true;
             }
         }
@@ -60,7 +60,7 @@ public class EquivalenceCountingIterator<T> extends CountingIterator<T> {
     @Override
     public T next() {
         if (!hasNext()) {
-            throw new NoSuchElementException((totalItems == limit) ? "Reached limit" : "End of delegate iterator");
+            throw new NoSuchElementException((totalItems == limit) ? "Reached limit." : "End of delegate iterator.");
         }
         T nextItem = delegate.next();
         if (!equivalence.equivalent(lastItem, nextItem)) {
@@ -70,16 +70,16 @@ public class EquivalenceCountingIterator<T> extends CountingIterator<T> {
         return nextItem;
     }
 
-    private int returnOneIfNextRowIsNew() {
+    private int totalItemsWithNextEntry() {
         T nextItem = ((PeekingIterator<T>) delegate).peek();
         if (!equivalence.equivalent(lastItem, nextItem)) {
-            return 1;
+            return totalItems + 1;
         }
-        return 0;
+        return totalItems;
     }
 
     @Override
     public void remove() {
-    // not implemented
+        throw new RuntimeException("Method remove() is not implemented.");
     }
 }

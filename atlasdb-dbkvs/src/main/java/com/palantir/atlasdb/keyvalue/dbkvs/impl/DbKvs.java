@@ -40,6 +40,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -54,7 +55,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -64,8 +64,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Atomics;
@@ -114,12 +112,14 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class DbKvs extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(DbKvs.class);
+
     public static final String ROW = "row_name";
     public static final String COL = "col_name";
     public static final String TIMESTAMP = "ts";
-    public static final long INITIAL_GET_RANGE_OF_TS_BATCH = 1_000_000L;
+    public static final String VAL = "val";
+    public static final long DEFAULT_GET_RANGE_OF_TS_BATCH = 1_000_000L;
 
-    private long getRangeOfTsMaxBatch = INITIAL_GET_RANGE_OF_TS_BATCH;
+    private long maxRangeOfTimestampsBatchSize = DEFAULT_GET_RANGE_OF_TS_BATCH;
 
     private final DdlConfig config;
     private final DbTableFactory dbTables;
@@ -247,7 +247,7 @@ public class DbKvs extends AbstractKeyValueService {
                 Cell cell = Cell.create(row.getBytes(ROW), row.getBytes(COL));
                 Long overflowId = hasOverflow ? row.getLongObject("overflow") : null;
                 if (overflowId == null) {
-                    Value value = Value.create(row.getBytes("val"), row.getLong(TIMESTAMP));
+                    Value value = Value.create(row.getBytes(VAL), row.getLong(TIMESTAMP));
                     Value oldValue = results.put(cell, value);
                     if (oldValue != null && oldValue.getTimestamp() > value.getTimestamp()) {
                         results.put(cell, oldValue);
@@ -568,12 +568,12 @@ public class DbKvs extends AbstractKeyValueService {
         return rows;
     }
 
-    public void setGetRangeOfTsMaxBatch(long newValue) {
-        getRangeOfTsMaxBatch = newValue;
+    public void setMaxRangeOfTimestampsBatchSize(long newValue) {
+        maxRangeOfTimestampsBatchSize = newValue;
     }
 
-    public long getGetRangeOfTsMaxBatch() {
-        return getRangeOfTsMaxBatch;
+    public long getMaxRangeOfTimestampsBatchSize() {
+        return maxRangeOfTimestampsBatchSize;
     }
 
     /**
@@ -581,13 +581,14 @@ public class DbKvs extends AbstractKeyValueService {
      * @param rangeRequest the range to load.
      * @param timestamp the maximum timestamp to load.
      *
-     * @return Each RowResult that is returned contains at most getRangeOfTsMaxBatch associated timestamps. It is
-     * guaranteed that all timestamps for a row will be returned in successive RowResults, sorted in ascending order
+     * @return Each RowResult that is returned contains at most maxRangeOfTimestampsBatchSize associated timestamps. It
+     * is guaranteed that all timestamps for a row will be returned in successive RowResults, sorted in ascending order
      * by column name and timestamp. In addition, the last column and timestamp of each RowResult will be repeated to
      * ensure sweep does not miss timestamps.
      *
-     * E.g., for the following table, rangeRequest taking all rows in ascending order, getRangeOfTsMaxBatch == 5,
-     * and timestamp 10:
+     * E.g., for the following table, rangeRequest taking all rows in ascending order,
+     * maxRangeOfTimestampsBatchSize == 5, and timestamp 10:
+     *
      *           a     |     b     |     c     |     d
      *     ------------------------------------------------
      *   a | (1, 2, 3) | (1, 2, 3) | (4, 5, 6) | (4, 5, 6)|
@@ -612,7 +613,11 @@ public class DbKvs extends AbstractKeyValueService {
                 TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token>>() {
             @Override
             protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> getFirstPage() {
-                return getTimestampsPage(tableRef, rangeRequest, timestamp, getRangeOfTsMaxBatch, Token.INITIAL);
+                return getTimestampsPage(tableRef,
+                        rangeRequest,
+                        timestamp,
+                        maxRangeOfTimestampsBatchSize,
+                        Token.INITIAL);
             }
 
             @Override
@@ -620,7 +625,7 @@ public class DbKvs extends AbstractKeyValueService {
                     TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> previous) {
                 Token token = previous.getTokenForNextPage();
                 RangeRequest newRange = rangeRequest.getBuilder().startRowInclusive(token.row()).build();
-                return getTimestampsPage(tableRef, newRange, timestamp, getRangeOfTsMaxBatch, token);
+                return getTimestampsPage(tableRef, newRange, timestamp, maxRangeOfTimestampsBatchSize, token);
             }
         };
         return ClosableIterators.wrap(rows.iterator());
@@ -665,20 +670,26 @@ public class DbKvs extends AbstractKeyValueService {
         ColumnSelection cols = range.getColumnNames().isEmpty()
                 ? ColumnSelection.all() : ColumnSelection.create(range.getColumnNames());
 
-        ResultWithToken result = getTimestampsByCell(table, rows, cols, timestamp, batchSize, range.isReverse(), token);
+        TimestampsByCellResultWithToken result = getTimestampsByCell(table,
+                rows,
+                cols,
+                timestamp,
+                batchSize,
+                range.isReverse(),
+                token);
 
         NavigableMap<byte[], SortedMap<byte[], Set<Long>>> cellsByRow =
                 Cells.breakCellsUpByRow(Multimaps.asMap(result.entries));
         if (range.isReverse()) {
             cellsByRow = cellsByRow.descendingMap();
         }
-        List<RowResult<Set<Long>>> finalResults = new ArrayList<>();
-        cellsByRow.entrySet().forEach(entry -> finalResults.add(RowResult.create(entry.getKey(), entry.getValue())));
+        List<RowResult<Set<Long>>> finalResults = cellsByRow.entrySet().stream()
+                .map(entry -> RowResult.create(entry.getKey(), entry.getValue())).collect(Collectors.toList());
 
         return SimpleTokenBackedResultsPage.create(result.token, finalResults, result.mayHaveMoreResults);
     }
 
-    private ResultWithToken getTimestampsByCell(
+    private TimestampsByCellResultWithToken getTimestampsByCell(
             DbReadTable table,
             Iterable<byte[]> rows,
             ColumnSelection columns,
@@ -688,11 +699,7 @@ public class DbKvs extends AbstractKeyValueService {
             Token token) {
         try (ClosableIterator<AgnosticLightResultRow> iterator = table
                 .getAllRows(rows, columns, timestamp, false, DbReadTable.Order.fromBoolean(isReverse))) {
-            ResultWithToken result = ResultWithToken.create(iterator);
-            result.moveForward(token);
-            result.getBatchOfTimestamps(batchSize);
-            result.checkNextEntryAndCreateToken();
-            return result;
+            return TimestampsByCellResultWithToken.create(iterator, token, batchSize);
         }
     }
 
@@ -958,7 +965,7 @@ public class DbKvs extends AbstractKeyValueService {
                 cellsByRow.get(rowHash).add(cell);
                 Long overflowId = hasOverflow ? row.getLongObject("overflow") : null;
                 if (overflowId == null) {
-                    Value value = Value.create(row.getBytes("val"), row.getLong(TIMESTAMP));
+                    Value value = Value.create(row.getBytes(VAL), row.getLong(TIMESTAMP));
                     Value oldValue = values.put(cell, value);
                     if (oldValue != null && oldValue.getTimestamp() > value.getTimestamp()) {
                         values.put(cell, oldValue);
@@ -1006,7 +1013,7 @@ public class DbKvs extends AbstractKeyValueService {
                     AgnosticLightResultRow row = overflowIter.next();
                     // QA-94468 LONG RAW typed columns ("val" in this case) must be retrieved first from the result set
                     // see https://docs.oracle.com/cd/B19306_01/java.102/b14355/jstreams.htm#i1007581
-                    byte[] val = row.getBytes("val");
+                    byte[] val = row.getBytes(VAL);
                     long id = row.getLong("id");
                     resolvedOverflowValues.put(id, val);
                 }
@@ -1342,97 +1349,5 @@ public class DbKvs extends AbstractKeyValueService {
 
     private interface ReadWriteTask<T> {
         T run(DbReadTable readTable, DbWriteTable writeTable);
-    }
-
-    static final class ResultWithToken {
-        private byte[] currentRow = null;
-        private byte[] currentCol = null;
-        private Long currentTimestamp = null;
-        private PeekingIterator<AgnosticLightResultRow> iterator;
-
-        final SetMultimap<Cell, Long> entries;
-        boolean mayHaveMoreResults = false;
-        Token token = Token.INITIAL;
-
-        private ResultWithToken(ClosableIterator<AgnosticLightResultRow> iterator) {
-            entries = HashMultimap.create();
-            this.iterator = Iterators.peekingIterator(iterator);
-        }
-
-        static ResultWithToken create(ClosableIterator<AgnosticLightResultRow> iterator) {
-            return new ResultWithToken(iterator);
-        }
-
-        /**
-         * @param oldToken token from previous page, specifying if we have already processed some entries from the
-         * current row and should therefore skip them. If oldToken.shouldForward() is true, we iterate until the end or
-         * the first result that is either:
-         *  1. In another row
-         *  2. In a greater column
-         *  3. In the same column, with higher or equal timestamp (to repeat the last timestamp for sweep)
-         */
-        void moveForward(Token oldToken) {
-            boolean forwarding = oldToken.shouldForward();
-            while (forwarding && iterator.hasNext()) {
-                AgnosticLightResultRow nextResult = iterator.peek();
-                if (finishedForwarding(oldToken, nextResult)) {
-                    forwarding = false;
-                } else {
-                    iterator.next();
-                }
-            }
-        }
-
-        private boolean finishedForwarding(Token oldToken, AgnosticLightResultRow next) {
-            return !Arrays.equals(next.getBytes(ROW), oldToken.row())
-                    || compareColumns(oldToken, next) > 0
-                    || (compareColumns(oldToken, next) == 0 && next.getLong(TIMESTAMP) >= oldToken.timestamp());
-        }
-
-        private static int compareColumns(Token oldToken, AgnosticLightResultRow nextResult) {
-            return UnsignedBytes.lexicographicalComparator().compare(nextResult.getBytes(COL), oldToken.col());
-        }
-
-        void getBatchOfTimestamps(long batchSize) {
-            while (iterator.hasNext() && entries.size() < batchSize) {
-                AgnosticLightResultRow cellResult = iterator.next();
-                store(cellResult);
-            }
-        }
-
-        private void store(AgnosticLightResultRow cellResult) {
-            currentRow = cellResult.getBytes(ROW);
-            currentCol = cellResult.getBytes(COL);
-            currentTimestamp = cellResult.getLong(TIMESTAMP);
-            Cell cell = Cell.create(currentRow, currentCol);
-            entries.put(cell, currentTimestamp);
-        }
-
-        void checkNextEntryAndCreateToken() {
-            if (iterator.hasNext()) {
-                mayHaveMoreResults = true;
-                AgnosticLightResultRow nextEntry = iterator.peek();
-                if (Arrays.equals(nextEntry.getBytes(ROW), currentRow)) {
-                    token = ImmutableToken.builder()
-                            .row(currentRow)
-                            .col(currentCol)
-                            .timestamp(currentTimestamp)
-                            .shouldForward(true)
-                            .build();
-                } else {
-                    token = ImmutableToken.builder().row(nextEntry.getBytes(ROW)).shouldForward(false).build();
-                }
-            }
-        }
-    }
-
-    @org.immutables.value.Value.Immutable
-    public abstract static class Token {
-        @Nullable abstract byte[] row();
-        @Nullable abstract byte[] col();
-        @Nullable abstract Long timestamp();
-        abstract boolean shouldForward();
-
-        public static final Token INITIAL = ImmutableToken.builder().shouldForward(false).build();
     }
 }

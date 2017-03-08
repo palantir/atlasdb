@@ -13,34 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.impl;
+package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Collectors;
 
+import org.junit.After;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.sweep.EquivalenceCountingIterator;
 import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueServiceTest {
+    @After
+    public void resetMaxBatch() {
+        setMaxRangeOfTimestampsBatchSize(DbKvs.DEFAULT_GET_RANGE_OF_TS_BATCH);
+    }
+
     @Test
     public void getRangeOfTimestampsWithReverseRangeOrdersTimestampsAndRepeatsWhenNecessary() {
         setupTestTable();
-        setGetRangeOfTsMaxBatch(4);
+        setMaxRangeOfTimestampsBatchSize(4);
         try (ClosableIterator<RowResult<Set<Long>>> rowResults = keyValueService.getRangeOfTimestamps(
                 TEST_TABLE,
                 reverseRange(5),
@@ -60,10 +66,9 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
             assertThat(iterator.size()).isEqualTo(5);
             assertRowColumnsTimestamps(iterator.lastItem(), 5, ImmutableSet.of(9), 95L, 96L, 97L, 98L);
         }
-        resetGetRangeOfTsMaxBatch();
     }
 
-    void assertRowColumnsTimestamps(RowResult<Set<Long>> entry, int row, Set<Integer> cols, Long... values) {
+    private void assertRowColumnsTimestamps(RowResult<Set<Long>> entry, int row, Set<Integer> cols, Long... values) {
         assertThat(entry.getRowName()).isEqualTo(PtBytes.toBytes(row));
         SortedMap<byte[], Set<Long>> columns = entry.getColumns();
         assertThat(columns.keySet()).containsExactlyElementsOf(
@@ -73,41 +78,19 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
         assertThat(timestamps).containsExactlyInAnyOrder(values);
     }
 
-    RangeRequest reverseRange(int rowBatchSize) {
+    private RangeRequest reverseRange(int rowBatchSize) {
         return RangeRequest.builder(true)
                 .startRowInclusive(PtBytes.toBytes(Long.MAX_VALUE))
                 .batchHint(rowBatchSize)
                 .build();
     }
 
+    private void setMaxRangeOfTimestampsBatchSize(long value) {
+        DbKvsTestUtils.setMaxRangeOfTimestampsBatchSize(value, (ConnectionManagerAwareDbKvs) keyValueService);
+    }
 
-    protected abstract void setGetRangeOfTsMaxBatch(long value);
-
-    protected abstract void resetGetRangeOfTsMaxBatch();
-
-    /*
-    Table for testing different batching strategies. Has 9 rows cells to be examined and 240 entries to be deleted
-        ------------------------------------------------------
-       | (10) | (20, 21) | (30, 31, 32) | ... | (90, ... , 98)|
-       |------------------------------------------------------|
-       |  --  | (20, 21) | (30, 31, 32) | ... | (90, ... , 98)|
-       |------------------------------------------------------|
-       |                        ...                           |
-       |------------------------------------------------------|
-       |  --  |    --    |      --      | ... | (90, ... , 98)|
-        ------------------------------------------------------
-     */
-    public void setupTestTable() {
+    private void setupTestTable() {
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        for (int col = 1; col < 10; ++col) {
-            Map<Cell, byte[]> toPut = new HashMap<>();
-            for (int row = 1; row <= col; ++row) {
-                Cell cell = Cell.create(PtBytes.toBytes(row), PtBytes.toBytes(col));
-                toPut.put(cell, new byte[]{0});
-            }
-            for (int ts = 10 * col; ts < 11 * col; ++ts) {
-                keyValueService.put(TEST_TABLE, toPut, ts);
-            }
-        }
+        DbKvsTestUtils.setupTestTable(keyValueService, TEST_TABLE, null);
     }
 }

@@ -17,8 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
-import com.palantir.atlasdb.keyvalue.impl.AbstractDbKvsKeyValueServiceTest;
 
 public class DbkvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
     @Override
@@ -27,13 +25,5 @@ public class DbkvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServi
         kvs.getAllTableNames().stream().filter(table -> !table.getQualifiedName().equals("_metadata")).forEach(
                 kvs::dropTable);
         return kvs;
-    }
-
-    protected void setGetRangeOfTsMaxBatch(long value) {
-        ((DbKvs) ((ConnectionManagerAwareDbKvs) keyValueService).delegate()).setGetRangeOfTsMaxBatch(value);
-    }
-
-    protected void resetGetRangeOfTsMaxBatch() {
-        setGetRangeOfTsMaxBatch(DbKvs.INITIAL_GET_RANGE_OF_TS_BATCH);
     }
 }
