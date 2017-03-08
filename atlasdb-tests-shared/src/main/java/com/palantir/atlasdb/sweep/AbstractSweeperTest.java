@@ -139,32 +139,6 @@ public abstract class AbstractSweeperTest {
     protected abstract KeyValueService getKeyValueService();
 
     @Test
-    public void testOom() {
-        createTable(SweepStrategy.CONSERVATIVE);
-
-        for (int col = 0; col < 10000; ++col) {
-            Map<Cell, byte[]> toPut = new HashMap<>();
-            for (int row = 0; row < 1000; ++row) {
-                Cell cell = Cell.create(
-                        Integer.toString(row).getBytes(),
-                        Integer.toString(col).getBytes());
-                toPut.put(cell, "foo".getBytes());
-            }
-            kvs.put(TABLE_NAME, toPut, col + 1000);
-            txService.putUnlessExists(col + 1000, col + 1000);
-            if (col % 1000 == 0) {
-                kvs.put(TABLE_NAME, toPut, col + 11000);
-                txService.putUnlessExists(col + 11000, col + 11000);
-            }
-            System.out.println("inserted col " + col);
-        }
-        System.out.println("starting sweep");
-        SweepResults results = sweep(TABLE_NAME, 30000, 1000, 1000);
-        Assert.assertTrue(results.getNextStartRow().isPresent());
-        Assert.assertEquals(10000L, results.getCellsDeleted());
-    }
-
-    @Test
     public void testSweepOneConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -582,6 +556,37 @@ public abstract class AbstractSweeperTest {
 
         Assert.assertEquals(2, results.getCellsDeleted());
         Assert.assertEquals(2, results.getCellsExamined());
+    }
+
+    /**
+     * Test case causing the sweep DbKvs OOM #982. Takes about an hour to run, so should be @Ignored unless specifically
+     * needed
+     */
+    @Ignore
+    @Test
+    public void testOom() {
+        createTable(SweepStrategy.CONSERVATIVE);
+
+        for (int col = 0; col < 10000; ++col) {
+            Map<Cell, byte[]> toPut = new HashMap<>();
+            for (int row = 0; row < 1000; ++row) {
+                Cell cell = Cell.create(
+                        Integer.toString(row).getBytes(),
+                        Integer.toString(col).getBytes());
+                toPut.put(cell, "foo".getBytes());
+            }
+            kvs.put(TABLE_NAME, toPut, col + 1000);
+            txService.putUnlessExists(col + 1000, col + 1000);
+            if (col % 1000 == 0) {
+                kvs.put(TABLE_NAME, toPut, col + 11000);
+                txService.putUnlessExists(col + 11000, col + 11000);
+            }
+            System.out.println("inserted col " + col);
+        }
+        System.out.println("starting sweep");
+        SweepResults results = sweep(TABLE_NAME, 30000, 1000, 1000);
+        Assert.assertFalse(results.getNextStartRow().isPresent());
+        Assert.assertEquals(10000L, results.getCellsDeleted());
     }
 
     private List<SweepProgressRowResult> getProgressTable() {
