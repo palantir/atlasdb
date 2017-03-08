@@ -70,10 +70,6 @@ allprojects {
         propertiesFile file: project.rootProject.file('versions.props')
     }
 
-    configurations {
-        testArtifacts.extendsFrom testCompile
-    }
-
     configurations.all {
         resolutionStrategy {
             failOnVersionConflict()
