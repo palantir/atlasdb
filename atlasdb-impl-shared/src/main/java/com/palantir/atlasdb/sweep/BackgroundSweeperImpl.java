@@ -136,16 +136,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         return sweeper;
     }
 
-    // Registering metrics for a specific table
-    private void registerMetricsIfNecessary(String tableName) {
-        sweepMetrics.registerMetricsIfNecessary(TableReference.createUnsafe(tableName));
-    }
-
-    // Recording metrics for a specific table
-    private void recordMetrics(String tableName, long cellsDeleted) {
-        sweepMetrics.recordMetrics(TableReference.createUnsafe(tableName), cellsDeleted);
-    }
-
     @Override
     public synchronized void runInBackground() {
         Preconditions.checkState(daemon == null);
@@ -225,7 +215,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         int cellBatchSize = sweepCellBatchSize.get();
         Stopwatch watch = Stopwatch.createStarted();
         String tableName = progress.getFullTableName();
-        registerMetricsIfNecessary(tableName);
+        sweepMetrics.registerMetricsIfNecessary(TableReference.createUnsafe(tableName));
         try {
             SweepResults results = sweepRunner.run(TableReference.createUnsafe(
                     tableName),
@@ -444,7 +434,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 return null;
             }
         });
-        recordMetrics(progress.getFullTableName(), cellsDeleted);
+        sweepMetrics.recordMetrics(TableReference.createUnsafe(progress.getFullTableName()), cellsDeleted);
     }
 
     /**
