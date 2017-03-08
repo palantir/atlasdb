@@ -20,14 +20,13 @@ perform both safe and destructive (read dangerous) operations.
 Getting Started
 ===============
 
-This section provides basic instructions for navigating AtlasDB Console.
-By following the steps below, you can learn how to import sample data
-and run basic queries that will give you some insight into how your data
-is stored in AtlasDB. If you have not used Groovy or GroovyShell before,
-you may wish to refer to `using
-Groovy <#using-groovy-in-atlasdb-console>`__ before you start.
+To start AtlasDB console via the AtlasDB Dropwizard bundle, you should run a command like the following:
 
-Incomplete - pending transfer from internal documentation.
+.. code-block:: bash
+
+    ./service/bin/<service> atlasdb console var/conf/<service>.yml
+
+To exit the console, you can type ``:exit`` or enter ctrl + c.
 
 Using Groovy in AtlasDB Console
 ===============================
