@@ -64,7 +64,9 @@ public class EquivalenceCountingIteratorShould {
         assertThat(iterator.next()).isEqualTo(4);
         assertThat(iterator.next()).isEqualTo(4);
         assertThat(iterator.hasNext()).isFalse();
-        assertThatThrownBy(() -> iterator.next()).isExactlyInstanceOf(NoSuchElementException.class);
+        assertThatThrownBy(() -> iterator.next())
+                .isExactlyInstanceOf(NoSuchElementException.class)
+                .withFailMessage("Reached limit");
     }
 
     @Test

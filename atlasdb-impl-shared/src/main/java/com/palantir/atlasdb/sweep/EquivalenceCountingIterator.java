@@ -58,7 +58,7 @@ public class EquivalenceCountingIterator<T> extends CountingIterator<T> {
     @Override
     public T next() {
         if (!hasNext()) {
-            throw new NoSuchElementException((limit == totalItems) ? "Reached limit" : "No more elements");
+            throw new NoSuchElementException((totalItems == limit) ? "Reached limit" : "End of delegate iterator");
         }
         T nextItem = delegate.next();
         if (!equivalence.equivalent(lastItem, nextItem)) {

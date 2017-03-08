@@ -198,7 +198,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                     });
 
             byte[] nextRow = rowResultTimestamps.size() < rowBatchSize ? null :
-                    RangeRequests.getNextStartRow(range.isReverse(), rowResultTimestamps.lastItem().getRowName());
+                    RangeRequests.getNextStartRow(false, rowResultTimestamps.lastItem().getRowName());
             return SweepResults.builder()
                     .previousStartRow(Optional.fromNullable(startRow))
                     .nextStartRow(Optional.fromNullable(nextRow))
@@ -209,7 +209,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
     }
 
-    private Equivalence<RowResult<Set<Long>>> sameRowEquivalence() {
+    public static Equivalence<RowResult<Set<Long>>> sameRowEquivalence() {
         return new Equivalence<RowResult<Set<Long>>>() {
             @Override
             protected boolean doEquivalent(RowResult<Set<Long>> a, RowResult<Set<Long>> b) {

@@ -15,10 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -27,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 
@@ -40,18 +42,18 @@ public class DbkvsPostgresSweeperTest extends AbstractSweeperTest {
     public void wholeTableInOneBatch() {
         setupTestTable();
         SweepResults results = sweep(TABLE_NAME, 100, 10, 1000);
-        Assert.assertFalse(results.getNextStartRow().isPresent());
-        Assert.assertEquals(9, results.getCellsExamined());
-        Assert.assertEquals(240, results.getCellsDeleted());
+        assertThat(results.getNextStartRow().isPresent()).isFalse();
+        assertThat(results.getCellsExamined()).isEqualTo(9);
+        assertThat(results.getCellsDeleted()).isEqualTo(240);
     }
 
     @Test
     public void smallCellBatches() {
         setupTestTable();
         SweepResults results = sweep(TABLE_NAME, 100, 10, 7);
-        Assert.assertFalse(results.getNextStartRow().isPresent());
-        Assert.assertEquals(9, results.getCellsExamined());
-        Assert.assertEquals(240, results.getCellsDeleted());
+        assertThat(results.getNextStartRow().isPresent()).isFalse();
+        assertThat(results.getCellsExamined()).isEqualTo(9);
+        assertThat(results.getCellsDeleted()).isEqualTo(240);
     }
 
     @Test
@@ -59,9 +61,9 @@ public class DbkvsPostgresSweeperTest extends AbstractSweeperTest {
         setupTestTable();
         setGetRangeOfTsMaxBatch(5);
         SweepResults results = sweep(TABLE_NAME, 100, 10, 1000);
-        Assert.assertFalse(results.getNextStartRow().isPresent());
-        Assert.assertEquals(9, results.getCellsExamined());
-        Assert.assertEquals(240, results.getCellsDeleted());
+        assertThat(results.getNextStartRow().isPresent()).isFalse();
+        assertThat(results.getCellsExamined()).isEqualTo(9);
+        assertThat(results.getCellsDeleted()).isEqualTo(240);
         resetGetRangeOfTsMaxBatch();
     }
 
@@ -70,9 +72,9 @@ public class DbkvsPostgresSweeperTest extends AbstractSweeperTest {
         setupTestTable();
         setGetRangeOfTsMaxBatch(7);
         SweepResults results = sweep(TABLE_NAME, 96, 10, 3);
-        Assert.assertFalse(results.getNextStartRow().isPresent());
-        Assert.assertEquals(9, results.getCellsExamined());
-        Assert.assertEquals(213, results.getCellsDeleted());
+        assertThat(results.getNextStartRow().isPresent()).isFalse();
+        assertThat(results.getCellsExamined()).isEqualTo(9);
+        assertThat(results.getCellsDeleted()).isEqualTo(213);
         resetGetRangeOfTsMaxBatch();
     }
 
@@ -81,15 +83,15 @@ public class DbkvsPostgresSweeperTest extends AbstractSweeperTest {
         setupTestTable();
         setGetRangeOfTsMaxBatch(5);
         SweepResults results = sweep(TABLE_NAME, 100, 5, 1000);
-        Assert.assertTrue(results.getNextStartRow().isPresent());
-        Assert.assertEquals(5, results.getCellsExamined());
-        Assert.assertEquals(170, results.getCellsDeleted());
+        assertThat(results.getNextStartRow().isPresent()).isTrue();
+        assertThat(results.getCellsExamined()).isEqualTo(5);
+        assertThat(results.getCellsDeleted()).isEqualTo(170);
         resetGetRangeOfTsMaxBatch();
     }
 
-
     private void setGetRangeOfTsMaxBatch(long value) {
-        ((DbKvs) ((ConnectionManagerAwareDbKvs) getKeyValueService()).delegate()).setGetRangeOfTsMaxBatch(value);
+        ((DbKvs) ((ConnectionManagerAwareDbKvs) ((SweepStatsKeyValueService) kvs).delegate()).delegate())
+                .setGetRangeOfTsMaxBatch(value);
     }
 
     private void resetGetRangeOfTsMaxBatch() {
@@ -97,7 +99,7 @@ public class DbkvsPostgresSweeperTest extends AbstractSweeperTest {
     }
 
     /*
-    Table for testing different batching strategies. Has 9 rows cells to be examined and 240 entries to be deleted
+    Table for testing different batching strategies. Has 9 rows to be examined and 240 entries to be deleted
         ------------------------------------------------------
        | (10) | (20, 21) | (30, 31, 32) | ... | (90, ... , 98)|
        |------------------------------------------------------|
@@ -108,7 +110,7 @@ public class DbkvsPostgresSweeperTest extends AbstractSweeperTest {
        |  --  |    --    |      --      | ... | (90, ... , 98)|
         ------------------------------------------------------
      */
-    private void setupTestTable() {
+    public void setupTestTable() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
         for (int col = 1; col < 10; ++col) {
             Map<Cell, byte[]> toPut = new HashMap<>();

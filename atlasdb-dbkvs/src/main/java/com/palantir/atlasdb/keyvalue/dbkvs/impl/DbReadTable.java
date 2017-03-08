@@ -70,14 +70,15 @@ public class DbReadTable {
             Iterable<byte[]> rows, ColumnSelection columns, long ts, boolean includeValues, Order order) {
         if (columns.noColumnsSelected()) {
             return ClosableIterators.emptyImmutableClosableIterator();
-        } else if (isSingleton(rows)) {
-            byte[] row = Iterables.getOnlyElement(rows);
-            return run(queryFactory.getAllRowQuery(row, ts, columns, includeValues));
-        } else {
-            FullQuery orderedQuery = addOrdering(order,
-                    queryFactory.getAllRowsQuery(rows, ts, columns, includeValues));
-            return run(orderedQuery);
         }
+        FullQuery query;
+        if (isSingleton(rows)) {
+            byte[] row = Iterables.getOnlyElement(rows);
+            query = queryFactory.getAllRowQuery(row, ts, columns, includeValues);
+        } else {
+            query = queryFactory.getAllRowsQuery(rows, ts, columns, includeValues);
+        }
+        return run(addOrdering(order, query));
     }
 
     private FullQuery addOrdering(Order order, FullQuery query) {
