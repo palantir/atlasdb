@@ -96,6 +96,7 @@ public class LeadersTest {
                 PaxosAcceptor.class);
 
         MatcherAssert.assertThat(paxosAcceptors.size(), is(1));
+
         MatcherAssert.assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted(), is(1L));
         verify(localAcceptor).getLatestSequencePreparedOrAccepted();
         verifyNoMoreInteractions(localAcceptor);
