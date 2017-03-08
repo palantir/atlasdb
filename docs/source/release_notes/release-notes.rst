@@ -40,8 +40,17 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Fixed an unnecessarily long-held connection in Oracle table name mapping code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1593>`__)
+
+    *    - |fixed|
+         - Actions run by the `ReadOnlyTransactionManager` can no longer bypass necessary protections when using `getRowsColumnRange()`
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1521>`__)
+
+    *    - |fixed|
+         - Fixed an issue where we excessively log after successful transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1687>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -58,12 +67,9 @@ v0.35.0
     *    - Type
          - Change
 
-    *    - |fixed|
-         - Actions run by the `ReadOnlyTransactionManager` can no longer bypass necessary protections when using `getRowsColumnRange()`
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1521>`__)
-
-    *    - |new|
+    *    - |improved|
          - Cassandra now attempts to truncate when performing a ``deleteRange(RangeRequest.All())`` in an effort to build up less garbage.
+           This is relevant for when sweep is operating on its own sweep tables.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1617>`__)
 
     *    - |fixed|
@@ -280,10 +286,6 @@ v0.32.0
     *    - |fixed|
          - Fixed multiple scenarios where DBKVS can run into deadlocks due to unnecessary connections.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
-
-    *    - |fixed|
-         - Fixed a long-held connection in Oracle table name mapping code
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1593>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
