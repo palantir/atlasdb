@@ -30,6 +30,10 @@ import com.palantir.tritium.metrics.MetricRegistries;
 
 public class AtlasDbMetricsTest {
 
+    private static final String CUSTOM_METRIC_NAME = "foo";
+    private static final String PING_REQUEST = "ping";
+    private static final String PING_RESPONSE = "pong";
+
     @Rule
     public MetricsRule metricsRule = new MetricsRule();
 
@@ -59,30 +63,37 @@ public class AtlasDbMetricsTest {
 
     @Test
     public void instrumentWithDefaultName() throws Exception {
-        MetricRegistry metrics = MetricRegistries.createWithHdrHistogramReservoirs();
-        AtlasDbMetrics.setMetricRegistry(metrics);
-        TestService service = AtlasDbMetrics.instrument(TestService.class, () -> "pong");
+        MetricRegistry metrics = setMetricRegistry();
+        TestService service = AtlasDbMetrics.instrument(TestService.class, () -> PING_RESPONSE);
 
-        String methodTimerName = MetricRegistry.name(TestService.class, "ping");
+        String methodTimerName = MetricRegistry.name(TestService.class, PING_REQUEST);
 
-        assertThat(metrics.timer(methodTimerName).getCount(), is(equalTo(0L)));
-
-        assertThat(service.ping(), is(equalTo("pong")));
-
-        assertThat(metrics.timer(methodTimerName).getCount(), is(equalTo(1L)));
+        assertMetricCountIncrementsAfterPing(metrics, service, methodTimerName);
     }
 
     @Test
     public void instrumentWithCustomName() throws Exception {
+        MetricRegistry metrics = setMetricRegistry();
+        TestService service = AtlasDbMetrics.instrument(TestService.class, () -> PING_RESPONSE, CUSTOM_METRIC_NAME);
+
+        String methodTimerName = MetricRegistry.name(CUSTOM_METRIC_NAME, PING_REQUEST);
+
+        assertMetricCountIncrementsAfterPing(metrics, service, methodTimerName);
+    }
+
+    private MetricRegistry setMetricRegistry() {
         MetricRegistry metrics = MetricRegistries.createWithHdrHistogramReservoirs();
         AtlasDbMetrics.setMetricRegistry(metrics);
-        TestService service = AtlasDbMetrics.instrument(TestService.class, () -> "pong", "foo");
+        return metrics;
+    }
 
-        String methodTimerName = "foo.ping";
-
+    private void assertMetricCountIncrementsAfterPing(
+            MetricRegistry metrics,
+            TestService service,
+            String methodTimerName) {
         assertThat(metrics.timer(methodTimerName).getCount(), is(equalTo(0L)));
 
-        assertThat(service.ping(), is(equalTo("pong")));
+        assertThat(service.ping(), is(equalTo(PING_RESPONSE)));
 
         assertThat(metrics.timer(methodTimerName).getCount(), is(equalTo(1L)));
     }
