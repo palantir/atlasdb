@@ -110,7 +110,7 @@ v0.35.0
 
     *    - |devbreak|
          - The persistent lock release endpoint has now been renamed to ``releaseBackupLock`` since it is currently only supposed to be used for the backup lock.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1648>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1674>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
