@@ -31,8 +31,9 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.CachedGauge;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -66,7 +67,6 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.atlasdb.transaction.impl.UnmodifiableTransaction;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
@@ -75,7 +75,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
 
-public class BackgroundSweeperImpl implements BackgroundSweeper {
+public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
     private final LockAwareTransactionManager txManager;
     private final KeyValueService kvs;
@@ -86,6 +86,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     private final Supplier<Integer> sweepCellBatchSize;
     private final SweepTableFactory tableFactory;
     private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
+    private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
+
     private volatile float batchSizeMultiplier = 1.0f;
     private Thread daemon;
 
@@ -114,7 +116,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         this.sweepPerfLogger = sweepPerfLogger;
     }
 
-    public BackgroundSweeperImpl create(
+    public static BackgroundSweeperImpl create(
             LockAwareTransactionManager txManager,
             KeyValueService kvs,
             SweepTaskRunner sweepRunner,
@@ -125,9 +127,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger) {
 
-        registerSweepMetrics();
 
-        return new BackgroundSweeperImpl(txManager,
+        BackgroundSweeperImpl sweeper = new BackgroundSweeperImpl(txManager,
                 kvs,
                 sweepRunner,
                 isSweepEnabled,
@@ -136,26 +137,38 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                 sweepCellBatchSize,
                 tableFactory,
                 sweepPerfLogger);
+        sweeper.registerSweepMetrics();
+        return sweeper;
     }
 
+    // Here register metric to collect across all sweep runs
     private void registerSweepMetrics() {
-        MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
-        metricRegistry.register(MetricRegistry.name(BackgroundSweeperImpl.class, "Test"),
-                new CachedGauge<Long>(10, TimeUnit.MINUTES) {
-                    @Override
-                    protected Long loadValue() {
-                        SweepProgressRowResult priority = txManager.runTaskWithRetry(tx -> {
-                            SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(tx);
-                            BatchingVisitableView<SweepPriorityRowResult> allRowsUnordered = priorityTable.getAllRowsUnordered();
-                            if (result == null) {
-                                result = chooseNextTableToSweep(new SweepTransaction(
-                                        tx,
-                                        sweepRunner.getSweepTimestamp(SweepStrategy.CONSERVATIVE)));
-                            }
-                            return result;
-                        });
-                    }
-                });
+        SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(1, TimeUnit.DAYS);
+        Histogram slidingWeek = new Histogram(reservoir);
+        String deletes = MetricRegistry.name(BackgroundSweeperImpl.class, "totalDeletes");
+        metricRegistry.register(deletes, slidingWeek);
+    }
+
+    // Registering metrics for a specific table
+    private void registerMetricsIfNecessary(String tableName) {
+        SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(7, TimeUnit.DAYS);
+        Histogram slidingWeek = new Histogram(reservoir);
+
+        String deletesMetric = MetricRegistry.name(BackgroundSweeperImpl.class, "deletes", tableName);
+
+        if (!metricRegistry.getMetrics().containsKey(deletesMetric)) {
+            metricRegistry.register(deletesMetric, slidingWeek);
+        }
+
+    }
+
+    // Recording metrics for a specific table
+    private void recordMetrics(String tableName, long cellsDeleted) {
+        String deletesMetric = MetricRegistry.name(BackgroundSweeperImpl.class, "deletes", tableName);
+        metricRegistry.histogram(deletesMetric).update(cellsDeleted);
+
+        String totalDeletes = MetricRegistry.name(BackgroundSweeperImpl.class, "totalDeletes");
+        metricRegistry.histogram(totalDeletes).update(cellsDeleted);
     }
 
     @Override
@@ -236,9 +249,11 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         int rowBatchSize = Math.max(1, (int) (sweepRowBatchSize.get() * batchSizeMultiplier));
         int cellBatchSize = sweepCellBatchSize.get();
         Stopwatch watch = Stopwatch.createStarted();
+        String tableName = progress.getFullTableName();
+        registerMetricsIfNecessary(tableName);
         try {
             SweepResults results = sweepRunner.run(TableReference.createUnsafe(
-                    progress.getFullTableName()),
+                    tableName),
                     rowBatchSize,
                     cellBatchSize,
                     progress.getStartRow());
@@ -246,13 +261,13 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
             log.debug("Swept {} unique cells from {} starting at {}"
                             + " and performed {} deletions in {} ms"
                             + " up to timestamp {}.",
-                    results.getCellsExamined(), progress.getFullTableName(),
+                    results.getCellsExamined(), tableName,
                     progress.getStartRow() == null ? "0" : PtBytes.encodeHexString(progress.getStartRow()),
                     results.getCellsDeleted(), elapsedMillis, results.getSweptTimestamp());
             sweepPerfLogger.logSweepResults(
                     SweepPerformanceResults.builder()
                             .sweepResults(results)
-                            .tableName(progress.getFullTableName())
+                            .tableName(tableName)
                             .elapsedMillis(elapsedMillis)
                             .build());
             saveSweepResults(progress, results);
@@ -260,7 +275,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
             log.debug("Failed to sweep {} with row batch size {} and cell batch size {} starting from row {}",
-                    progress.getFullTableName(),
+                    tableName,
                     rowBatchSize,
                     cellBatchSize,
                     progress.getStartRow() == null ? "0" : PtBytes.encodeHexString(progress.getStartRow()));
@@ -454,6 +469,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                 return null;
             }
         });
+        recordMetrics(progress.getFullTableName(), cellsDeleted);
     }
 
     /**
