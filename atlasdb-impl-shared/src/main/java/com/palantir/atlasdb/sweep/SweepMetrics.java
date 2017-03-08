@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -36,7 +37,8 @@ final class SweepMetrics {
         SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(1, TimeUnit.DAYS);
         Histogram slidingWeek = new Histogram(reservoir);
         String deletes = MetricRegistry.name(BackgroundSweeperImpl.class, "totalDeletes");
-        metricRegistry.register(deletes, slidingWeek);
+
+        registerMetricIfNotExists(deletes, slidingWeek);
     }
 
     private SweepMetrics() {
@@ -46,9 +48,12 @@ final class SweepMetrics {
     void registerMetricsIfNecessary(TableReference tableRef) {
         SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(7, TimeUnit.DAYS);
         Histogram slidingWeek = new Histogram(reservoir);
-
         String deletesMetric = MetricRegistry.name(SweepMetrics.class, "deletes", tableRef.getQualifiedName());
 
+        registerMetricIfNotExists(deletesMetric, slidingWeek);
+    }
+
+    private void registerMetricIfNotExists(String deletesMetric, Metric slidingWeek) {
         if (!metricRegistry.getMetrics().containsKey(deletesMetric)) {
             metricRegistry.register(deletesMetric, slidingWeek);
         }
