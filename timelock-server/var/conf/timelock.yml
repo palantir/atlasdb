@@ -2,10 +2,34 @@ namespaces:
   - namespace1
   - namespace2
   - namespace3
+  - namespace4
+  - namespace5
+  - namespace6
+  - namespace7
+  - namespace8
+  - namespace9
+  - namespace10
+  - namespace11
+  - namespace12
+  - namespace13
+  - namespace14
+  - namespace15
 queriesPerSecond:
-  - 2000
-  - 1000
-  - 500
+  - 200
+  - 200
+  - 200
+  - 200
+  - 200
+  - 200
+  - 200
+  - 200
+  - 200
+  - 200
+  - 200
+  - 200
+  - 200
+  - 200
+  - 200
 paths:
   - https://url-1:8421
   - https://url-2:8421
