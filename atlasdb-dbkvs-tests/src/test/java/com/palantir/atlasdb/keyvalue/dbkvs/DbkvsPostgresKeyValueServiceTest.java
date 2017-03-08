@@ -53,29 +53,29 @@ public class DbkvsPostgresKeyValueServiceTest extends AbstractKeyValueServiceTes
     public void getRangeOfTimestampsWithReverseRangeOrdersTimestampsAndRepeatsWhenNecessary() {
         setupTestTable();
         setGetRangeOfTsMaxBatch(4);
-        try(ClosableIterator<RowResult<Set<Long>>> rowResults = keyValueService
-                .getRangeOfTimestamps(TEST_TABLE, reverseRange(5), 100)) {
-            EquivalenceCountingIterator<RowResult<Set<Long>>> iterator = new EquivalenceCountingIterator<>(
-                    rowResults,
-                    5,
-                    SweepTaskRunnerImpl.sameRowEquivalence());
-            check(iterator.next(), 9, ImmutableSet.of(9), 90L, 91L, 92L, 93L);
-            check(iterator.next(), 9, ImmutableSet.of(9), 93L, 94L, 95L, 96L);
-            check(iterator.next(), 9, ImmutableSet.of(9), 96L, 97L, 98L);
-            check(iterator.next(), 8, ImmutableSet.of(8), 80L);
-            check(iterator.next(), 8, ImmutableSet.of(8), 80L, 81L, 82L, 83L);
-            check(iterator.next(), 8, ImmutableSet.of(8), 83L, 84L, 85L, 86L);
-            check(iterator.next(), 8, ImmutableSet.of(8, 9), 86L, 87L, 90L, 91L);
-            while(iterator.hasNext()) {
+        try (ClosableIterator<RowResult<Set<Long>>> rowResults = keyValueService.getRangeOfTimestamps(
+                TEST_TABLE,
+                reverseRange(5),
+                100)) {
+            EquivalenceCountingIterator<RowResult<Set<Long>>> iterator =
+                    new EquivalenceCountingIterator<>(rowResults, 5, SweepTaskRunnerImpl.sameRowEquivalence());
+            assertRowColumnsTimestamps(iterator.next(), 9, ImmutableSet.of(9), 90L, 91L, 92L, 93L);
+            assertRowColumnsTimestamps(iterator.next(), 9, ImmutableSet.of(9), 93L, 94L, 95L, 96L);
+            assertRowColumnsTimestamps(iterator.next(), 9, ImmutableSet.of(9), 96L, 97L, 98L);
+            assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(8), 80L);
+            assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(8), 80L, 81L, 82L, 83L);
+            assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(8), 83L, 84L, 85L, 86L);
+            assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(8, 9), 86L, 87L, 90L, 91L);
+            while (iterator.hasNext()) {
                 iterator.next();
             }
             assertThat(iterator.size()).isEqualTo(5);
-            check(iterator.lastItem(), 5, ImmutableSet.of(9), 95L, 96L, 97L, 98L);
+            assertRowColumnsTimestamps(iterator.lastItem(), 5, ImmutableSet.of(9), 95L, 96L, 97L, 98L);
         }
         resetGetRangeOfTsMaxBatch();
     }
 
-    void check (RowResult<Set<Long>> entry, int row, Set<Integer> cols, Long... values) {
+    void assertRowColumnsTimestamps(RowResult<Set<Long>> entry, int row, Set<Integer> cols, Long... values) {
         assertThat(entry.getRowName()).isEqualTo(PtBytes.toBytes(row));
         SortedMap<byte[], Set<Long>> columns = entry.getColumns();
         assertThat(columns.keySet()).containsExactlyElementsOf(

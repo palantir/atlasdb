@@ -577,6 +577,10 @@ public class DbKvs extends AbstractKeyValueService {
         getRangeOfTsMaxBatch = newValue;
     }
 
+    public long getGetRangeOfTsMaxBatch() {
+        return getRangeOfTsMaxBatch;
+    }
+
     /**
      * @param tableRef the name of the table to read from.
      * @param rangeRequest the range to load.

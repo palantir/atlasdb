@@ -212,8 +212,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     public static Equivalence<RowResult<Set<Long>>> sameRowEquivalence() {
         return new Equivalence<RowResult<Set<Long>>>() {
             @Override
-            protected boolean doEquivalent(RowResult<Set<Long>> a, RowResult<Set<Long>> b) {
-                return Arrays.equals(a.getRowName(), b.getRowName());
+            protected boolean doEquivalent(RowResult<Set<Long>> fst, RowResult<Set<Long>> snd) {
+                return Arrays.equals(fst.getRowName(), snd.getRowName());
             }
 
             @Override

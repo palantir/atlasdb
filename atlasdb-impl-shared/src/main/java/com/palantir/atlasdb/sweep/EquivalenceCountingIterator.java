@@ -35,6 +35,8 @@ public class EquivalenceCountingIterator<T> extends CountingIterator<T> {
     Equivalence<T> equivalence;
 
     /**
+     * Constructor.
+     *
      * @param delegate Iterator to use
      * @param limit The iterator reaches the end if next() would cause the counter to exceed limit
      * @param equivalence Definition of equivalence for the purpose of ignoring successive elements
@@ -78,7 +80,7 @@ public class EquivalenceCountingIterator<T> extends CountingIterator<T> {
 
     @Override
     public void remove() {
-    // not supported
+    // not implemented
     }
 }
 

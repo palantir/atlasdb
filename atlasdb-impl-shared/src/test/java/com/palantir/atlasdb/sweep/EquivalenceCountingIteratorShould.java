@@ -105,26 +105,26 @@ public class EquivalenceCountingIteratorShould {
         }
     }
 
-    private class SameObject<T> extends Equivalence<T> {
+    private static class SameObject<T> extends Equivalence<T> {
         @Override
-        protected boolean doEquivalent(T a, T b) {
+        protected boolean doEquivalent(T fst, T snd) {
             return false;
         }
 
         @Override
-        protected int doHash(T t) {
+        protected int doHash(T anything) {
             return 0;
         }
     }
 
-    private class SameFirstLetter extends Equivalence<String> {
+    private static class SameFirstLetter extends Equivalence<String> {
         @Override
-        protected boolean doEquivalent(String a, String b) {
-            return a.substring(0, 1).equals(b.substring(0, 1));
+        protected boolean doEquivalent(String fst, String snd) {
+            return fst.substring(0, 1).equals(snd.substring(0, 1));
         }
 
         @Override
-        protected int doHash(String string) {
+        protected int doHash(String anything) {
             return 0;
         }
     }

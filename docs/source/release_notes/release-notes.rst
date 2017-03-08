@@ -40,6 +40,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Fixed DbKvs sweep OOM issue `#982 <https://github.com/palantir/atlasdb/issues/982>`__ caused by very wide rows. Now uses cell batch size that
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1617>`__)
+
     *    - |new|
          - Cassandra now attempts to truncate when performing a ``deleteRange(RangeRequest.All())`` in an effort to build up less garbage.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1617>`__)
