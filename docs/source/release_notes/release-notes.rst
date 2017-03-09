@@ -117,6 +117,12 @@ v0.35.0
            ``PaxosLeaderElectionServiceBuilder`` should be used instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1681>`__)
 
+    *    - |devbreak| |improved|
+         - ``TransactionManager`` now explicitly declares a ``close`` method that does not throw exceptions.
+           This makes ``TransactionManager``s significantly easier to develop against.
+           Clients who have implemented a concrete ``TransactionManager`` throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1677>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
