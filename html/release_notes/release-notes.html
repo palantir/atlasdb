@@ -270,6 +270,11 @@ Previously, any consumer using http-remoting would have to deal with deserializa
 <td>The persistent lock release endpoint has now been renamed to <code class="docutils literal"><span class="pre">releaseBackupLock</span></code> since it is currently only supposed to be used for the backup lock.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1674">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<td>The public <code class="docutils literal"><span class="pre">PaxosLeaderElectionService</span></code> constructor is now deprecated, to mitigate risks of users supplying parameters in the wrong order.
+<code class="docutils literal"><span class="pre">PaxosLeaderElectionServiceBuilder</span></code> should be used instead.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1681">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
