@@ -29,15 +29,16 @@ import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 final class TimestampsByCellResultWithToken {
     private byte[] currentRow = null;
     private byte[] currentCol = null;
-    private Long currentTimestamp = null;
     private PeekingIterator<AgnosticLightResultRow> iterator;
 
     final SetMultimap<Cell, Long> entries;
+    private SetMultimap<Cell, Long> rowBuffer;
     private boolean moreResults = false;
     private Token token = Token.INITIAL;
 
     private TimestampsByCellResultWithToken(ClosableIterator<AgnosticLightResultRow> iterator) {
         entries = HashMultimap.create();
+        rowBuffer = HashMultimap.create();
         this.iterator = Iterators.peekingIterator(iterator);
     }
 
@@ -68,13 +69,13 @@ final class TimestampsByCellResultWithToken {
                 iterator.next();
             }
         }
+        entries.putAll(rowBuffer);
         return this;
     }
 
     private boolean finishedSkipping(Token oldToken, AgnosticLightResultRow next) {
         return !Arrays.equals(next.getBytes(DbKvs.ROW), oldToken.row())
-                || compareColumns(oldToken, next) > 0
-                || (compareColumns(oldToken, next) == 0 && next.getLong(DbKvs.TIMESTAMP) >= oldToken.timestamp());
+                || compareColumns(oldToken, next) > 0;
     }
 
     private static int compareColumns(Token oldToken, AgnosticLightResultRow nextResult) {
@@ -82,7 +83,7 @@ final class TimestampsByCellResultWithToken {
     }
 
     private TimestampsByCellResultWithToken getBatchOfTimestamps(long batchSize) {
-        while (iterator.hasNext() && entries.size() < batchSize) {
+        while (iterator.hasNext() && entries.size() + rowBuffer.size() < batchSize) {
             AgnosticLightResultRow cellResult = iterator.next();
             store(cellResult);
         }
@@ -90,14 +91,24 @@ final class TimestampsByCellResultWithToken {
     }
 
     private void store(AgnosticLightResultRow cellResult) {
-        currentRow = cellResult.getBytes(DbKvs.ROW);
+        byte[] newRow = cellResult.getBytes(DbKvs.ROW);
         currentCol = cellResult.getBytes(DbKvs.COL);
-        currentTimestamp = cellResult.getLong(DbKvs.TIMESTAMP);
+        long timestamp = cellResult.getLong(DbKvs.TIMESTAMP);
+        if (!Arrays.equals(currentRow, newRow)) {
+            flushRowBuffer();
+            currentRow = newRow;
+        }
         Cell cell = Cell.create(currentRow, currentCol);
-        entries.put(cell, currentTimestamp);
+        rowBuffer.put(cell, timestamp);
+    }
+
+    private void flushRowBuffer() {
+        entries.putAll(rowBuffer);
+        rowBuffer.clear();
     }
 
     private TimestampsByCellResultWithToken checkNextEntryAndCreateToken() {
+        boolean singleRow = finishCellIfNoRowsYet();
         if (iterator.hasNext()) {
             moreResults = true;
             AgnosticLightResultRow nextEntry = iterator.peek();
@@ -105,14 +116,34 @@ final class TimestampsByCellResultWithToken {
                 token = ImmutableToken.builder()
                         .row(currentRow)
                         .col(currentCol)
-                        .timestamp(currentTimestamp)
-                        .shouldSkip(true)
+                        .shouldSkip(singleRow)
                         .build();
             } else {
+                flushRowBuffer();
                 token = ImmutableToken.builder().row(nextEntry.getBytes(DbKvs.ROW)).shouldSkip(false).build();
             }
+        } else {
+            flushRowBuffer();
         }
         return this;
+    }
+
+    private boolean finishCellIfNoRowsYet() {
+        if (entries.size() == 0) {
+            flushRowBuffer();
+            while (currentCellHasEntriesLeft()) {
+                long timestamp = iterator.next().getLong(DbKvs.TIMESTAMP);
+                entries.put(Cell.create(currentRow, currentCol), timestamp);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private boolean currentCellHasEntriesLeft() {
+        return iterator.hasNext()
+                && Arrays.equals(iterator.peek().getBytes(DbKvs.ROW), currentRow)
+                && Arrays.equals(iterator.peek().getBytes(DbKvs.COL), currentCol);
     }
 
     public boolean mayHaveMoreResults() {

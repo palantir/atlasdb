@@ -576,6 +576,7 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(10000L, results.getCellsDeleted());
     }
 
+    @Ignore
     @Test
     public void wideRowTest() {
         createTable(SweepStrategy.CONSERVATIVE);

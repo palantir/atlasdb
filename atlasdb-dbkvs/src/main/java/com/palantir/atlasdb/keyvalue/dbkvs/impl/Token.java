@@ -25,8 +25,6 @@ abstract class Token {
     abstract byte[] row();
     @Nullable
     abstract byte[] col();
-    @Nullable
-    abstract Long timestamp();
     abstract boolean shouldSkip();
 
     public static final Token INITIAL = ImmutableToken.builder().shouldSkip(false).build();

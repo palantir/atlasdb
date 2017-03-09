@@ -46,25 +46,27 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
     @Test
     public void getRangeOfTimestampsWithReverseRangeOrdersTimestampsAndRepeatsWhenNecessary() {
         setupTestTable();
-        setMaxRangeOfTimestampsBatchSize(4);
+        setMaxRangeOfTimestampsBatchSize(8);
         try (ClosableIterator<RowResult<Set<Long>>> rowResults = keyValueService.getRangeOfTimestamps(
                 TEST_TABLE,
                 reverseRange(5),
                 100)) {
             EquivalenceCountingIterator<RowResult<Set<Long>>> iterator =
                     new EquivalenceCountingIterator<>(rowResults, 5, SweepTaskRunnerImpl.sameRowEquivalence());
-            assertRowColumnsTimestamps(iterator.next(), 9, ImmutableSet.of(9), 90L, 91L, 92L, 93L);
-            assertRowColumnsTimestamps(iterator.next(), 9, ImmutableSet.of(9), 93L, 94L, 95L, 96L);
-            assertRowColumnsTimestamps(iterator.next(), 9, ImmutableSet.of(9), 96L, 97L, 98L);
-            assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(8), 80L);
-            assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(8), 80L, 81L, 82L, 83L);
-            assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(8), 83L, 84L, 85L, 86L);
-            assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(8, 9), 86L, 87L, 90L, 91L);
+            assertRowColumnsTimestamps(iterator.next(), 9, ImmutableSet.of(9),
+                    90L, 91L, 92L, 93L, 94L, 95L, 96L, 97L, 98L);
+            assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(8),
+                    80L, 81L, 82L, 83L, 84L, 85L, 86L, 87L);
+            assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(9),
+                    90L, 91L, 92L, 93L, 94L, 95L, 96L, 97L, 98L);
+            assertRowColumnsTimestamps(iterator.next(), 7, ImmutableSet.of(7, 8),
+                    70L, 71L, 72L, 73L, 74L, 75L, 76L, 80L, 81L, 82L, 83L, 84L, 85L, 86L, 87L);
             while (iterator.hasNext()) {
                 iterator.next();
             }
             assertThat(iterator.size()).isEqualTo(5);
-            assertRowColumnsTimestamps(iterator.lastItem(), 5, ImmutableSet.of(9), 95L, 96L, 97L, 98L);
+            assertRowColumnsTimestamps(iterator.lastItem(), 5, ImmutableSet.of(9),
+                    90L, 91L, 92L, 93L, 94L, 95L, 96L, 97L, 98L);
         }
     }
 
