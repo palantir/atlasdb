@@ -27,7 +27,6 @@ import javax.net.ssl.SSLSocketFactory;
 
 import org.immutables.value.Value;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -39,7 +38,6 @@ import com.palantir.atlasdb.factory.TransactionManagers.Environment;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
@@ -146,14 +144,12 @@ public final class Leaders {
             List<PaxosLearner> learners,
             int quorumSize,
             ExecutorService executor) {
-        return AtlasDbMetrics.instrument(
-                PaxosProposer.class,
-                PaxosProposerImpl.newProposer(
-                        ourLearner,
-                        ImmutableList.copyOf(acceptors),
-                        ImmutableList.copyOf(learners),
-                        quorumSize,
-                        executor));
+        return PaxosProposerImpl.newProposer(
+                    ourLearner,
+                    ImmutableList.copyOf(acceptors),
+                    ImmutableList.copyOf(learners),
+                    quorumSize,
+                    executor);
     }
 
     public static <T> List<T> createProxyAndLocalList(
@@ -172,8 +168,7 @@ public final class Leaders {
             String userAgent) {
         return ImmutableList.copyOf(Iterables.concat(
                 AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz, userAgent),
-                ImmutableList.of(
-                        AtlasDbMetrics.instrument(clazz, localObject, MetricRegistry.name(clazz, userAgent)))));
+                ImmutableList.of(localObject)));
     }
 
     public static Map<PingableLeader, HostAndPort> generatePingables(
