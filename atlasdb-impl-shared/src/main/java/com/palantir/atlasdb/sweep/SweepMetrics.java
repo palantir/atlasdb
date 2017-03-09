@@ -25,6 +25,9 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 final class SweepMetrics {
+    private static final String AGGREGATE_DELETES = "totalDeletesInLastDay";
+    private static final String PER_TABLE_DELETES = "deletesInLastWeek";
+
     private final MetricRegistry metricRegistry;
 
     public static SweepMetrics create() {
@@ -36,7 +39,7 @@ final class SweepMetrics {
     private void registerAggregateMetrics() {
         SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(1, TimeUnit.DAYS);
         Histogram slidingWeek = new Histogram(reservoir);
-        String deletes = MetricRegistry.name(SweepMetrics.class, "totalDeletes");
+        String deletes = MetricRegistry.name(SweepMetrics.class, AGGREGATE_DELETES);
 
         registerMetricIfNotExists(deletes, slidingWeek);
     }
@@ -48,7 +51,7 @@ final class SweepMetrics {
     void registerMetricsIfNecessary(TableReference tableRef) {
         SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(7, TimeUnit.DAYS);
         Histogram slidingWeek = new Histogram(reservoir);
-        String deletesMetric = MetricRegistry.name(SweepMetrics.class, "deletes", tableRef.getQualifiedName());
+        String deletesMetric = MetricRegistry.name(SweepMetrics.class, PER_TABLE_DELETES, tableRef.getQualifiedName());
 
         registerMetricIfNotExists(deletesMetric, slidingWeek);
     }
@@ -62,10 +65,10 @@ final class SweepMetrics {
     // TODO this will obviously change when we have many metrics.
     // Will probably end up passing in a SweepProgressRowResult object.
     void recordMetrics(TableReference tableRef, long cellsDeleted) {
-        String deletesMetric = MetricRegistry.name(SweepMetrics.class, "deletes", tableRef.getQualifiedName());
+        String deletesMetric = MetricRegistry.name(SweepMetrics.class, PER_TABLE_DELETES, tableRef.getQualifiedName());
         metricRegistry.histogram(deletesMetric).update(cellsDeleted);
 
-        String totalDeletes = MetricRegistry.name(SweepMetrics.class, "totalDeletes");
+        String totalDeletes = MetricRegistry.name(SweepMetrics.class, AGGREGATE_DELETES);
         metricRegistry.histogram(totalDeletes).update(cellsDeleted);
     }
 
