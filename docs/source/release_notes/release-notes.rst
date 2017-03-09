@@ -52,6 +52,10 @@ develop
          - Fixed an issue where we excessively log after successful transactions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1687>`__)
 
+    *    - |new|
+         - AtlasDB now instruments services to expose aggregate response time and service call metrics for key value, timestamp, and lock services.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1685>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -117,9 +121,11 @@ v0.35.0
            ``PaxosLeaderElectionServiceBuilder`` should be used instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1681>`__)
 
-    *    - |new|
-         - AtlasDB now instruments services to expose aggregate response time and service call metrics for key value, timestamp, and lock services.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1685>`__)
+    *    - |devbreak| |improved|
+         - ``TransactionManager`` now explicitly declares a ``close`` method that does not throw exceptions.
+           This makes ``TransactionManager``s significantly easier to develop against.
+           Clients who have implemented a concrete ``TransactionManager`` throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1677>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
