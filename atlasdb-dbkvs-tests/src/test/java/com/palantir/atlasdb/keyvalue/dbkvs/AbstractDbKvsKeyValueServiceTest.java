@@ -44,6 +44,26 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
     }
 
     @Test
+    public void getRangeOfTimestampsMaxRangeOfTimestampsBatchSizeBatchingTest() {
+        setupTestTable();
+        setMaxRangeOfTimestampsBatchSize(7);
+        try (ClosableIterator<RowResult<Set<Long>>> rowResults = keyValueService.getRangeOfTimestamps(
+                TEST_TABLE,
+                normalRange(10),
+                61)) {
+            EquivalenceCountingIterator<RowResult<Set<Long>>> iterator =
+                    new EquivalenceCountingIterator<>(rowResults, 10, SweepTaskRunnerImpl.sameRowEquivalence());
+            assertRowColumnsTimestamps(iterator.next(), 1, ImmutableSet.of(1, 2, 3, 4),
+                    10L, 20L, 21L, 30L, 31L, 32L, 40L, 41L, 42L, 43L);
+            assertRowColumnsTimestamps(iterator.next(), 1, ImmutableSet.of(5, 6), 50L, 51L, 52L, 53L, 54L, 60L);
+            assertRowColumnsTimestamps(iterator.next(), 2, ImmutableSet.of(2, 3, 4),
+                    20L, 21L, 30L, 31L, 32L, 40L, 41L, 42L, 43L);
+            exhaustIterator(iterator);
+            assertThat(iterator.size()).isEqualTo(6);
+        }
+    }
+
+    @Test
     public void getRangeOfTimestampsWithReverseRangeOrdersTimestampsAndRepeatsWhenNecessary() {
         setupTestTable();
         setMaxRangeOfTimestampsBatchSize(8);
@@ -61,12 +81,16 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
                     90L, 91L, 92L, 93L, 94L, 95L, 96L, 97L, 98L);
             assertRowColumnsTimestamps(iterator.next(), 7, ImmutableSet.of(7, 8),
                     70L, 71L, 72L, 73L, 74L, 75L, 76L, 80L, 81L, 82L, 83L, 84L, 85L, 86L, 87L);
-            while (iterator.hasNext()) {
-                iterator.next();
-            }
+            exhaustIterator(iterator);
             assertThat(iterator.size()).isEqualTo(5);
             assertRowColumnsTimestamps(iterator.lastItem(), 5, ImmutableSet.of(9),
                     90L, 91L, 92L, 93L, 94L, 95L, 96L, 97L, 98L);
+        }
+    }
+
+    private void exhaustIterator(EquivalenceCountingIterator<RowResult<Set<Long>>> iterator) {
+        while (iterator.hasNext()) {
+            iterator.next();
         }
     }
 
@@ -80,9 +104,17 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
         assertThat(timestamps).containsExactlyInAnyOrder(values);
     }
 
+    private RangeRequest normalRange(int rowBatchSize) {
+        return getRangeRequest(false, new byte[0], rowBatchSize);
+    }
+
     private RangeRequest reverseRange(int rowBatchSize) {
-        return RangeRequest.builder(true)
-                .startRowInclusive(PtBytes.toBytes(Long.MAX_VALUE))
+        return getRangeRequest(true, PtBytes.toBytes(Long.MAX_VALUE), rowBatchSize);
+    }
+
+    private RangeRequest getRangeRequest(boolean reverse, byte[] firstRow, int rowBatchSize) {
+        return RangeRequest.builder(reverse)
+                .startRowInclusive(firstRow)
                 .batchHint(rowBatchSize)
                 .build();
     }
