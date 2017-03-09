@@ -38,10 +38,10 @@ import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        DbkvsPostgresKeyValueServiceTest.class,
-        DbkvsPostgresSerializableTransactionTest.class,
+//        DbkvsPostgresKeyValueServiceTest.class,
+//        DbkvsPostgresSerializableTransactionTest.class,
         DbkvsPostgresSweeperTest.class,
-        PostgresDbTimestampBoundStoreTest.class
+//        PostgresDbTimestampBoundStoreTest.class
         })
 public final class DbkvsPostgresTestSuite {
     private static final int POSTGRES_PORT_NUMBER = 5432;

@@ -684,9 +684,10 @@ public class DbKvs extends AbstractKeyValueService {
             cellsByRow = cellsByRow.descendingMap();
         }
         List<RowResult<Set<Long>>> finalResults = cellsByRow.entrySet().stream()
-                .map(entry -> RowResult.create(entry.getKey(), entry.getValue())).collect(Collectors.toList());
+                .map(entry -> RowResult.create(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
 
-        return SimpleTokenBackedResultsPage.create(result.token, finalResults, result.mayHaveMoreResults);
+        return SimpleTokenBackedResultsPage.create(result.getToken(), finalResults, result.mayHaveMoreResults());
     }
 
     private TimestampsByCellResultWithToken getTimestampsByCell(

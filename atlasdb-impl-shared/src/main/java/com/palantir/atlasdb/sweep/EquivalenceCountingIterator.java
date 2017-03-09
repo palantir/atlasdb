@@ -80,6 +80,6 @@ public class EquivalenceCountingIterator<T> extends CountingIterator<T> {
 
     @Override
     public void remove() {
-        throw new RuntimeException("Method remove() is not implemented.");
+        throw new UnsupportedOperationException("Method remove() is not implemented.");
     }
 }

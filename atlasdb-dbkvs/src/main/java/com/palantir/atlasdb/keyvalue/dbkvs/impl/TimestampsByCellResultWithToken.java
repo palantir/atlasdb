@@ -27,18 +27,14 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 
 final class TimestampsByCellResultWithToken {
-    private static final String ROW = "row_name";
-    private static final String COL = "col_name";
-    private static final String TIMESTAMP = "ts";
-
     private byte[] currentRow = null;
     private byte[] currentCol = null;
     private Long currentTimestamp = null;
     private PeekingIterator<AgnosticLightResultRow> iterator;
 
     final SetMultimap<Cell, Long> entries;
-    boolean mayHaveMoreResults = false;
-    Token token = Token.INITIAL;
+    private boolean moreResults = false;
+    private Token token = Token.INITIAL;
 
     private TimestampsByCellResultWithToken(ClosableIterator<AgnosticLightResultRow> iterator) {
         entries = HashMultimap.create();
@@ -62,11 +58,11 @@ final class TimestampsByCellResultWithToken {
      *  2. In a greater column
      *  3. In the same column, with higher or equal timestamp (to repeat the last timestamp for sweep)
      */
-    TimestampsByCellResultWithToken moveForward(Token oldToken) {
+    private TimestampsByCellResultWithToken moveForward(Token oldToken) {
         boolean skipping = oldToken.shouldSkip();
         while (skipping && iterator.hasNext()) {
             AgnosticLightResultRow nextResult = iterator.peek();
-            if (finishedForwarding(oldToken, nextResult)) {
+            if (finishedSkipping(oldToken, nextResult)) {
                 skipping = false;
             } else {
                 iterator.next();
@@ -75,17 +71,17 @@ final class TimestampsByCellResultWithToken {
         return this;
     }
 
-    private boolean finishedForwarding(Token oldToken, AgnosticLightResultRow next) {
-        return !Arrays.equals(next.getBytes(ROW), oldToken.row())
+    private boolean finishedSkipping(Token oldToken, AgnosticLightResultRow next) {
+        return !Arrays.equals(next.getBytes(DbKvs.ROW), oldToken.row())
                 || compareColumns(oldToken, next) > 0
-                || (compareColumns(oldToken, next) == 0 && next.getLong(TIMESTAMP) >= oldToken.timestamp());
+                || (compareColumns(oldToken, next) == 0 && next.getLong(DbKvs.TIMESTAMP) >= oldToken.timestamp());
     }
 
     private static int compareColumns(Token oldToken, AgnosticLightResultRow nextResult) {
-        return UnsignedBytes.lexicographicalComparator().compare(nextResult.getBytes(COL), oldToken.col());
+        return UnsignedBytes.lexicographicalComparator().compare(nextResult.getBytes(DbKvs.COL), oldToken.col());
     }
 
-    TimestampsByCellResultWithToken getBatchOfTimestamps(long batchSize) {
+    private TimestampsByCellResultWithToken getBatchOfTimestamps(long batchSize) {
         while (iterator.hasNext() && entries.size() < batchSize) {
             AgnosticLightResultRow cellResult = iterator.next();
             store(cellResult);
@@ -94,18 +90,18 @@ final class TimestampsByCellResultWithToken {
     }
 
     private void store(AgnosticLightResultRow cellResult) {
-        currentRow = cellResult.getBytes(ROW);
-        currentCol = cellResult.getBytes(COL);
-        currentTimestamp = cellResult.getLong(TIMESTAMP);
+        currentRow = cellResult.getBytes(DbKvs.ROW);
+        currentCol = cellResult.getBytes(DbKvs.COL);
+        currentTimestamp = cellResult.getLong(DbKvs.TIMESTAMP);
         Cell cell = Cell.create(currentRow, currentCol);
         entries.put(cell, currentTimestamp);
     }
 
-    TimestampsByCellResultWithToken checkNextEntryAndCreateToken() {
+    private TimestampsByCellResultWithToken checkNextEntryAndCreateToken() {
         if (iterator.hasNext()) {
-            mayHaveMoreResults = true;
+            moreResults = true;
             AgnosticLightResultRow nextEntry = iterator.peek();
-            if (Arrays.equals(nextEntry.getBytes(ROW), currentRow)) {
+            if (Arrays.equals(nextEntry.getBytes(DbKvs.ROW), currentRow)) {
                 token = ImmutableToken.builder()
                         .row(currentRow)
                         .col(currentCol)
@@ -113,9 +109,17 @@ final class TimestampsByCellResultWithToken {
                         .shouldSkip(true)
                         .build();
             } else {
-                token = ImmutableToken.builder().row(nextEntry.getBytes(ROW)).shouldSkip(false).build();
+                token = ImmutableToken.builder().row(nextEntry.getBytes(DbKvs.ROW)).shouldSkip(false).build();
             }
         }
         return this;
+    }
+
+    public boolean mayHaveMoreResults() {
+        return moreResults;
+    }
+
+    public Token getToken() {
+        return token;
     }
 }

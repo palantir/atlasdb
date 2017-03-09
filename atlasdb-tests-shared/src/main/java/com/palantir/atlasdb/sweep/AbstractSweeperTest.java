@@ -576,6 +576,27 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(10000L, results.getCellsDeleted());
     }
 
+    @Test
+    public void wideRowTest() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        Map<Cell, byte[]> toPut = new HashMap<>();
+        for (int col = 0; col < 10000; ++col) {
+            Cell cell = Cell.create(
+                    "1".getBytes(),
+                    Integer.toString(col).getBytes());
+            toPut.put(cell, "foo".getBytes());
+        }
+        for (int timestamp = 1; timestamp < 1001; ++timestamp) {
+            kvs.put(TABLE_NAME, toPut, timestamp);
+            txService.putUnlessExists(timestamp, timestamp);
+            System.out.println("inserted timestamp " + timestamp);
+        }
+        System.out.println("starting sweep");
+        SweepResults results = sweep(TABLE_NAME, 30000, 1000, 1000);
+        Assert.assertFalse(results.getNextStartRow().isPresent());
+        Assert.assertEquals(999 * 10000L, results.getCellsDeleted());
+    }
+
     private void testSweepManyRows(SweepStrategy strategy) {
         createTable(strategy);
         putIntoDefaultColumn("foo", "bar1", 5);
