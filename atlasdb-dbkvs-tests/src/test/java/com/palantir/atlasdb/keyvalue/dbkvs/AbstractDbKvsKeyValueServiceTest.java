@@ -50,14 +50,25 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
         try (ClosableIterator<RowResult<Set<Long>>> rowResults = keyValueService.getRangeOfTimestamps(
                 TEST_TABLE,
                 normalRange(10),
-                61)) {
+                62)) {
             EquivalenceCountingIterator<RowResult<Set<Long>>> iterator =
                     new EquivalenceCountingIterator<>(rowResults, 10, SweepTaskRunnerImpl.sameRowEquivalence());
             assertRowColumnsTimestamps(iterator.next(), 1, ImmutableSet.of(1, 2, 3, 4),
                     10L, 20L, 21L, 30L, 31L, 32L, 40L, 41L, 42L, 43L);
-            assertRowColumnsTimestamps(iterator.next(), 1, ImmutableSet.of(5, 6), 50L, 51L, 52L, 53L, 54L, 60L);
+            assertRowColumnsTimestamps(iterator.next(), 1, ImmutableSet.of(5, 6),
+                    50L, 51L, 52L, 53L, 54L, 60L, 61L);
             assertRowColumnsTimestamps(iterator.next(), 2, ImmutableSet.of(2, 3, 4),
                     20L, 21L, 30L, 31L, 32L, 40L, 41L, 42L, 43L);
+            assertRowColumnsTimestamps(iterator.next(), 2, ImmutableSet.of(5, 6),
+                    50L, 51L, 52L, 53L, 54L, 60L, 61L);
+            assertRowColumnsTimestamps(iterator.next(), 3, ImmutableSet.of(3, 4),
+                    30L, 31L, 32L, 40L, 41L, 42L, 43L);
+            assertRowColumnsTimestamps(iterator.next(), 3, ImmutableSet.of(5, 6),
+                    50L, 51L, 52L, 53L, 54L, 60L, 61L);
+            assertRowColumnsTimestamps(iterator.next(), 4, ImmutableSet.of(4, 5),
+                    40L, 41L, 42L, 43L, 50L, 51L, 52L, 53L, 54L);
+            assertRowColumnsTimestamps(iterator.next(), 4, ImmutableSet.of(6),
+                    60L, 61L);
             exhaustIterator(iterator);
             assertThat(iterator.size()).isEqualTo(6);
         }

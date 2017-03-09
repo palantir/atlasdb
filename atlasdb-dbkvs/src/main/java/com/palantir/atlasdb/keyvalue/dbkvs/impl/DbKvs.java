@@ -581,10 +581,12 @@ public class DbKvs extends AbstractKeyValueService {
      * @param rangeRequest the range to load.
      * @param timestamp the maximum timestamp to load.
      *
-     * @return Each RowResult that is returned contains at most maxRangeOfTimestampsBatchSize associated timestamps. It
-     * is guaranteed that all timestamps for a row will be returned in successive RowResults, sorted in ascending order
-     * by column name and timestamp. In addition, the last column and timestamp of each RowResult will be repeated to
-     * ensure sweep does not miss timestamps.
+     * @return Each row that has fewer than maxRangeOfTimestampsBatchSize entries is guaranteed to be returned in a
+     * single RowResult. If a row has more than maxRangeOfTimestampsBatchSize results, it will potentially be split
+     * into multiple RowResults, by finishing the current column; see example below. Note that:
+     *  1) this may cause a RowResult to have more than maxRangeOfTimestampsBatchSize entries
+     *  2) this may still finish a row, in which case there is going to be only one RowResult for that row.
+     * It is, furthermore,  guaranteed that the columns will be read in ascending order
      *
      * E.g., for the following table, rangeRequest taking all rows in ascending order,
      * maxRangeOfTimestampsBatchSize == 5, and timestamp 10:
@@ -593,15 +595,27 @@ public class DbKvs extends AbstractKeyValueService {
      *     ------------------------------------------------
      *   a | (1, 2, 3) | (1, 2, 3) | (4, 5, 6) | (4, 5, 6)|
      *     ------------------------------------------------
-     *   b | (1, 3, 5) |     -     | (1, 2, 3) |     -    |
+     *   b | (1, 3, 5) |     -     | (1)       |     -    |
+     *     ------------------------------------------------
+     *   c | (1, 2)    | (1, 2)    | (4, 5, 6) | (4, 5, 6)|
+     *     ------------------------------------------------
+     *   d | (1, 3, 5) |     -     | (1, 2, 3) |     -    |
+     *     ------------------------------------------------
+     *   e | (1, 3)    |     -     |     -     |     -    |
      *     ------------------------------------------------
      *
      * The RowResults will be:
-     *   1. (a, (a -> 1, 2, 3; b -> 1, 2))
-     *   2. (a, (b -> 2, 3; c -> 4, 5, 6))
-     *   3. (a, (c -> 6; d -> 4, 5, 6))
-     *   4. (b, (a -> 1, 3, 5; b -> 1, 2))
-     *   5. (b, (b -> 2, 3))
+     *   1. (a, (a -> 1, 2, 3; b -> 1, 2, 3))
+     *   2. (a, (c -> 4, 5, 6; d -> 4, 5, 6))
+     *
+     *   3. (b, (a -> 1, 3, 5; b -> 1))
+     *
+     *   4. (c, (a -> 1, 2, b -> 1, 2; c -> 4, 5, 6))
+     *   5. (c, (d -> 4, 5, 6))
+     *
+     *   6. (d, (a -> 1, 3, 5, c -> 1, 2, 3))
+     *
+     *   7. (e, (a -> 1, 3))
      */
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(

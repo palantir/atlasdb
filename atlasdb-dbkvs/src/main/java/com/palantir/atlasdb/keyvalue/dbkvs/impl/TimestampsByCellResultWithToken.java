@@ -57,7 +57,6 @@ final class TimestampsByCellResultWithToken {
      * result that is either:
      *  1. In another row
      *  2. In a greater column
-     *  3. In the same column, with higher or equal timestamp (to repeat the last timestamp for sweep)
      */
     private TimestampsByCellResultWithToken moveForward(Token oldToken) {
         boolean skipping = oldToken.shouldSkip();
