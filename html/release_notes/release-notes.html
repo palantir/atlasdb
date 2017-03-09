@@ -275,6 +275,12 @@ Previously, any consumer using http-remoting would have to deal with deserializa
 <code class="docutils literal"><span class="pre">PaxosLeaderElectionServiceBuilder</span></code> should be used instead.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1681">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">TransactionManager</span></code> now explicitly declares a <code class="docutils literal"><span class="pre">close</span></code> method that does not throw exceptions.
+This makes <code class="docutils literal"><span class="pre">TransactionManager``s</span> <span class="pre">significantly</span> <span class="pre">easier</span> <span class="pre">to</span> <span class="pre">develop</span> <span class="pre">against.</span>
+<span class="pre">Clients</span> <span class="pre">who</span> <span class="pre">have</span> <span class="pre">implemented</span> <span class="pre">a</span> <span class="pre">concrete</span> <span class="pre">``TransactionManager</span></code> throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1677">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
