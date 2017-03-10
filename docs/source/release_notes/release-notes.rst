@@ -52,6 +52,10 @@ develop
          - Fixed an issue where we excessively log after successful transactions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1687>`__)
 
+    *    - |fixed|
+         - Fixed an issue where the ``_persisted_locks`` table was erroneously reported not to have persisted metadata.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1696>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
