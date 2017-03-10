@@ -29,6 +29,7 @@ import org.immutables.value.Value;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -165,9 +166,9 @@ public final class Leaders {
             Optional<SSLSocketFactory> sslSocketFactory,
             Class<T> clazz,
             String userAgent) {
-        List<T> objects = AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz, userAgent);
-        objects.add(localObject);
-        return objects;
+        return ImmutableList.copyOf(Iterables.concat(
+                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz, userAgent),
+                ImmutableList.of(localObject)));
     }
 
     public static Map<PingableLeader, HostAndPort> generatePingables(

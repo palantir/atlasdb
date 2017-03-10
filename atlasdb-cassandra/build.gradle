@@ -22,6 +22,7 @@ dependencies {
 
   compile group: 'com.google.code.findbugs', name: 'annotations'
 
+  testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'

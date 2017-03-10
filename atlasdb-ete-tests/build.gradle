@@ -16,6 +16,7 @@ dependencies {
     compile project(':atlasdb-hikari')
     compile project(':atlasdb-rocksdb')
 
+    compile group: 'com.palantir.tritium', name: 'tritium-lib'
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 
     runtime project(':atlasdb-dbkvs')

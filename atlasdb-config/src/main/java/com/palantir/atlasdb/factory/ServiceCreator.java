@@ -19,10 +19,12 @@ import java.util.Set;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.remoting.ssl.SslSocketFactories;
 
@@ -53,6 +55,10 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
             Set<String> uris,
             Class<T> serviceClass,
             String userAgent) {
-        return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent);
+        return AtlasDbMetrics.instrument(
+                serviceClass,
+                AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent),
+                MetricRegistry.name(serviceClass, userAgent));
     }
+
 }
