@@ -26,6 +26,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 final class SweepMetrics {
     private static final String AGGREGATE_DELETES = "totalDeletesInLastDay";
+    private static final String AGGREGATE_DELETES_METRIC = MetricRegistry.name(SweepMetrics.class, AGGREGATE_DELETES);
     private static final String PER_TABLE_DELETES = "deletesInLastWeek";
 
     private final MetricRegistry metricRegistry;
@@ -36,24 +37,36 @@ final class SweepMetrics {
         return sweepMetrics;
     }
 
+    private SweepMetrics() {
+        this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
+    }
+
     private void registerAggregateMetrics() {
         SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(1, TimeUnit.DAYS);
         Histogram slidingWeek = new Histogram(reservoir);
-        String deletes = MetricRegistry.name(SweepMetrics.class, AGGREGATE_DELETES);
 
-        registerMetricIfNotExists(deletes, slidingWeek);
-    }
-
-    private SweepMetrics() {
-        this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
+        registerMetricIfNotExists(AGGREGATE_DELETES_METRIC, slidingWeek);
     }
 
     void registerMetricsIfNecessary(TableReference tableRef) {
         SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(7, TimeUnit.DAYS);
         Histogram slidingWeek = new Histogram(reservoir);
-        String deletesMetric = MetricRegistry.name(SweepMetrics.class, PER_TABLE_DELETES, tableRef.getQualifiedName());
+        String deletesMetric = getPerTableDeletesMetric(tableRef);
 
         registerMetricIfNotExists(deletesMetric, slidingWeek);
+    }
+
+    // TODO this will obviously change when we have many metrics.
+    // Will probably end up passing in a SweepProgressRowResult object.
+    void recordMetrics(TableReference tableRef, long cellsDeleted) {
+        String deletesMetric = getPerTableDeletesMetric(tableRef);
+        metricRegistry.histogram(deletesMetric).update(cellsDeleted);
+
+        metricRegistry.histogram(AGGREGATE_DELETES_METRIC).update(cellsDeleted);
+    }
+
+    private String getPerTableDeletesMetric(TableReference tableRef) {
+        return MetricRegistry.name(SweepMetrics.class, PER_TABLE_DELETES, tableRef.getQualifiedName());
     }
 
     private void registerMetricIfNotExists(String name, Metric metric) {
@@ -61,15 +74,4 @@ final class SweepMetrics {
             metricRegistry.register(name, metric);
         }
     }
-
-    // TODO this will obviously change when we have many metrics.
-    // Will probably end up passing in a SweepProgressRowResult object.
-    void recordMetrics(TableReference tableRef, long cellsDeleted) {
-        String deletesMetric = MetricRegistry.name(SweepMetrics.class, PER_TABLE_DELETES, tableRef.getQualifiedName());
-        metricRegistry.histogram(deletesMetric).update(cellsDeleted);
-
-        String totalDeletes = MetricRegistry.name(SweepMetrics.class, AGGREGATE_DELETES);
-        metricRegistry.histogram(totalDeletes).update(cellsDeleted);
-    }
-
 }
