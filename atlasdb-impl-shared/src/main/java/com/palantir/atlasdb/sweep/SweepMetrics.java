@@ -32,13 +32,13 @@ final class SweepMetrics {
     private final MetricRegistry metricRegistry;
 
     public static SweepMetrics create() {
-        SweepMetrics sweepMetrics = new SweepMetrics();
+        SweepMetrics sweepMetrics = new SweepMetrics(AtlasDbMetrics.getMetricRegistry());
         sweepMetrics.registerAggregateMetrics();
         return sweepMetrics;
     }
 
-    private SweepMetrics() {
-        this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
+    private SweepMetrics(MetricRegistry metricRegistry) {
+        this.metricRegistry = metricRegistry;
     }
 
     private void registerAggregateMetrics() {
