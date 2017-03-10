@@ -52,6 +52,10 @@ develop
          - Fixed an issue where we excessively log after successful transactions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1687>`__)
 
+    *    - |new|
+         - AtlasDB now instruments services to expose aggregate response time and service call metrics for key value, timestamp, and lock services.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1685>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
