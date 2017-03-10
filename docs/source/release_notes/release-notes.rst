@@ -48,18 +48,44 @@ develop
          - Actions run by the `ReadOnlyTransactionManager` can no longer bypass necessary protections when using `getRowsColumnRange()`
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1521>`__)
 
-    *    - |new|
-         - Cassandra now attempts to truncate when performing a ``deleteRange(RangeRequest.All())`` in an effort to build up less garbage.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1617>`__)
+    *    - |fixed|
+         - Fixed an unnecessarily long-held connection in Oracle table name mapping code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1593>`__)
 
     *    - |fixed|
+         - Fixed an issue where we excessively log after successful transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1687>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.35.0
+=======
+
+3 Mar 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
          - Timelock server now specifies minimum and maximum heap size of 512 MB.
+           This should improve GC performance per the comments in `#1594 <https://github.com/palantir/atlasdb/pull/1594#discussion_r102255336>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1647>`__)
 
     *    - |fixed|
          - The background sweeper now uses deleteRange instead of truncate when clearing the ``sweep.progress`` table.
-           This prevents the operation from interfering with concurrently running Postgres backups.
+           This allows users with Postgres to perform backups via the normal pg_dump command while running background sweep.
+           Previous it was possible for a backup to fail if sweep were performing a truncate at the same time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1616>`__)
+
+    *    - |improved|
+         - Cassandra now attempts to truncate when performing a ``deleteRange(RangeRequest.All())`` in an effort to build up less garbage.
+           This is relevant for when sweep is operating on its own sweep tables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1617>`__)
 
     *    - |new|
          - Users can now create a Docker image and run containers of the Timelock Server, by running ``./gradlew timelock-server:dockerTag``.
@@ -79,14 +105,27 @@ develop
 
     *    - |devbreak|
          - The persistent lock endpoints now use ``PersistentLockId`` instead of ``LockEntry``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1665>`__)
 
-    *    - |improved|
-         - The ``CheckAndSetException`` now gets mapped to the correct response for compatibility.
-           with `http-remoting <https://github.com/palantir/http-remoting>`__ whereas previously, any consumer using http-remoting would have to deal with deserialization errors.
+    *    - |fixed|
+         - The ``CheckAndSetException`` now gets mapped to the correct response for compatibility with `http-remoting <https://github.com/palantir/http-remoting>`__.
+           Previously, any consumer using http-remoting would have to deal with deserialization errors.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1665>`__)
 
     *    - |devbreak|
          - The persistent lock release endpoint has now been renamed to ``releaseBackupLock`` since it is currently only supposed to be used for the backup lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1674>`__)
+
+    *    - |deprecated|
+         - The public ``PaxosLeaderElectionService`` constructor is now deprecated, to mitigate risks of users supplying parameters in the wrong order.
+           ``PaxosLeaderElectionServiceBuilder`` should be used instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1681>`__)
+
+    *    - |devbreak| |improved|
+         - ``TransactionManager`` now explicitly declares a ``close`` method that does not throw exceptions.
+           This makes ``TransactionManager``s significantly easier to develop against.
+           Clients who have implemented a concrete ``TransactionManager`` throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1677>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -266,10 +305,6 @@ v0.32.0
     *    - |fixed|
          - Fixed multiple scenarios where DBKVS can run into deadlocks due to unnecessary connections.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
-
-    *    - |fixed|
-         - Fixed a long-held connection in Oracle table name mapping code
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1593>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
