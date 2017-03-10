@@ -45,7 +45,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1678>`__)
 
     *    - |fixed|
-         - Actions run by the `ReadOnlyTransactionManager` can no longer bypass necessary protections when using `getRowsColumnRange()`
+         - Actions run by the ``ReadOnlyTransactionManager`` can no longer bypass necessary protections when using ``getRowsColumnRange()``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1521>`__)
 
     *    - |fixed|
