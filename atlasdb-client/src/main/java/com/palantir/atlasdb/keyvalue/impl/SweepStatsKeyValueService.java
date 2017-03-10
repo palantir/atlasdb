@@ -93,8 +93,9 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         this.flushExecutor.scheduleWithFixedDelay(createFlushTask(), FLUSH_DELAY_SECONDS, FLUSH_DELAY_SECONDS, TimeUnit.SECONDS);
     }
 
+    @VisibleForTesting
     @Override
-    protected KeyValueService delegate() {
+    public KeyValueService delegate() {
         return delegate;
     }
 

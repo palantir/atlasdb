@@ -41,12 +41,16 @@ develop
          - Change
 
     *    - |fixed|
-         - Fixed an unnecessarily long-held connection in Oracle table name mapping code.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1593>`__)
+         - Fixed DbKvs sweep OOM issue (`#982 <https://github.com/palantir/atlasdb/issues/982>`__) caused by very wide rows. ``DbKvs.getRangeOfTimestamps`` now uses an adjustable cell batch size to avoid loading too many timestamps. In case of a single row that is too wide, this may result in ``getRangeOfTimestamps`` returning multiple ``RowResult`` to include all timestamps. It is, however, guaranteed that each ``RowResult`` will contain all timestamps for each included column.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1678>`__)
 
     *    - |fixed|
          - Actions run by the ``ReadOnlyTransactionManager`` can no longer bypass necessary protections when using ``getRowsColumnRange()``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1521>`__)
+
+    *    - |fixed|
+         - Fixed an unnecessarily long-held connection in Oracle table name mapping code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1593>`__)
 
     *    - |fixed|
          - Fixed an issue where we excessively log after successful transactions.
