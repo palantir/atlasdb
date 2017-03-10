@@ -222,7 +222,7 @@ public final class TransactionManagers {
                 transactionService,
                 sweepStrategyManager,
                 cellsSweeper);
-        BackgroundSweeper backgroundSweeper = new BackgroundSweeperImpl(
+        BackgroundSweeper backgroundSweeper = BackgroundSweeperImpl.create(
                 transactionManager,
                 kvs,
                 sweepRunner,

@@ -91,7 +91,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final double MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT =
             100_000.0 / TimeUnit.MILLISECONDS.convert(30, TimeUnit.DAYS);
 
-    private BackgroundSweeperImpl(
+    @VisibleForTesting
+    BackgroundSweeperImpl(
             LockAwareTransactionManager txManager,
             KeyValueService kvs,
             SweepTaskRunner sweepRunner,
