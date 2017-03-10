@@ -17,10 +17,14 @@ package com.palantir.atlasdb.sweep;
 
 import static org.junit.Assert.assertArrayEquals;
 
+import java.util.concurrent.TimeUnit;
+
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -62,6 +66,19 @@ public class SweepMetricsTest {
         Histogram deleteMetric = METRIC_REGISTRY.histogram(DELETES_METRIC);
 
         assertArrayEquals(new long[] {10L, 15L}, deleteMetric.getSnapshot().getValues());
+    }
+
+    @Ignore // This is just for me to run locally and check out what the metrics reports look like
+    @Test
+    public void testReporting() throws InterruptedException {
+        sweepMetrics.recordMetrics(TABLE, 10); // cells deleted
+        sweepMetrics.recordMetrics(TABLE, 15);
+
+        ConsoleReporter reporter = ConsoleReporter.forRegistry(METRIC_REGISTRY)
+                .build();
+        reporter.start(1, TimeUnit.SECONDS);
+
+        Thread.sleep(4000);
     }
 
 }
