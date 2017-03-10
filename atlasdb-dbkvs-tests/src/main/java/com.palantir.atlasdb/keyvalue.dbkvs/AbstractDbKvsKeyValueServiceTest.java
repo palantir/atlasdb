@@ -53,6 +53,7 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
                 62)) {
             EquivalenceCountingIterator<RowResult<Set<Long>>> iterator =
                     new EquivalenceCountingIterator<>(rowResults, 10, SweepTaskRunnerImpl.sameRowEquivalence());
+
             assertRowColumnsTimestamps(iterator.next(), 1, ImmutableSet.of(1, 2, 3, 4),
                     10L, 20L, 21L, 30L, 31L, 32L, 40L, 41L, 42L, 43L);
             assertRowColumnsTimestamps(iterator.next(), 1, ImmutableSet.of(5, 6),
@@ -84,6 +85,7 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
                 100)) {
             EquivalenceCountingIterator<RowResult<Set<Long>>> iterator =
                     new EquivalenceCountingIterator<>(rowResults, 5, SweepTaskRunnerImpl.sameRowEquivalence());
+
             assertRowColumnsTimestamps(iterator.next(), 9, ImmutableSet.of(9),
                     90L, 91L, 92L, 93L, 94L, 95L, 96L, 97L, 98L);
             assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(8),
@@ -105,6 +107,13 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
         }
     }
 
+    /**
+     * Asserts that the specified RowResult contains the expected entries:
+     * @param entry The RowResult to check
+     * @param row expected row name (row names are expected to be integers converted to bytes)
+     * @param cols expected set of columns in the RowResult (set of integers)
+     * @param values expected timestamps as an union of timestamps for all the columns, order-invariant
+     */
     private void assertRowColumnsTimestamps(RowResult<Set<Long>> entry, int row, Set<Integer> cols, Long... values) {
         assertThat(entry.getRowName()).isEqualTo(PtBytes.toBytes(row));
         SortedMap<byte[], Set<Long>> columns = entry.getColumns();
