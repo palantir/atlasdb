@@ -108,7 +108,7 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
     }
 
     /**
-     * Asserts that the specified RowResult contains the expected entries:
+     * Asserts that the specified RowResult contains the expected entries.
      * @param entry The RowResult to check
      * @param row expected row name (row names are expected to be integers converted to bytes)
      * @param cols expected set of columns in the RowResult (set of integers)
