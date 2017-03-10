@@ -206,10 +206,17 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void returnsNotFoundOnQueryingClientWithInvalidName() {
+    public void returnsNotFoundOnQueryingTimestampWithNonexistentClient() {
+        TimestampService nonExistentTimestampService = getTimestampService(NONEXISTENT_CLIENT);
+        assertThatThrownBy(nonExistentTimestampService::getFreshTimestamp)
+                .hasMessageContaining(NOT_FOUND_CODE);
+    }
+
+    @Test
+    public void throwsOnQueryingTimestampWithWithInvalidClientName() {
         TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
         assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
-                .hasMessageContaining(NOT_FOUND_CODE);
+                .hasMessageContaining("Unexpected char 0x08 at 5 in header value: test");
     }
 
     @Test
@@ -259,7 +266,8 @@ public class PaxosTimeLockServerIntegrationTest {
         return AtlasDbHttpClients.createProxy(
                 NO_SSL,
                 getRootUriForClient(client),
-                clazz);
+                clazz,
+                client);
     }
 
     private static String getRootUriForClient(String client) {
