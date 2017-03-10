@@ -1,6 +1,34 @@
-jepsen:
-  image: tjake/jepsen:latest
-  volumes:
-    - ./:/jepsen/atlasdb
-    - /var/run/docker.sock:/var/run/docker.sock
-  command: "bash -lc 'cd /jepsen/atlasdb && lein test'"
+version: '2'
+services:
+  jepsen:
+    build: ./docker/master
+    environment:
+      - SSH_KEY=ssh-rsa blah blah blah
+    links:
+      - n1
+      - n2
+      - n3
+      - n4
+      - n5
+    volumes:
+      - ./:/jepsen/atlasdb
+    command: [bash, -c, mkdir ~/.ssh/ && echo $SSH_KEY > ~/.ssh/id_rsa.pub && cd /jepsen/atlasdb && sleep 9999 && env LEIN_ROOT=true lein test]
+
+  n1:
+    build: ./docker/node
+    environment:
+      - SSH_KEY=ssh-rsa blah blah blah
+    ports:
+      - 22:22
+
+  n2:
+    build: ./docker/node
+
+  n3:
+    build: ./docker/node
+
+  n4:
+    build: ./docker/node
+
+  n5:
+    build: ./docker/node
