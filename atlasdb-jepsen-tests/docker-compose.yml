@@ -4,7 +4,6 @@ services:
     build:
       context: ./docker
       dockerfile: Dockerfile-control
-    env_file: ./docker/control.env
     links:
       - n1
       - n2
@@ -12,14 +11,14 @@ services:
       - n4
       - n5
     volumes:
-      - ./:/jepsen/atlasdb
-    command: [bash, -c, initialize_known_hosts.sh && cd /jepsen/atlasdb && env LEIN_ROOT=true lein test]
+      - ./:/atlasdb
+    command: [bash, -c, initialize_known_hosts.sh && cd /atlasdb && LEIN_ROOT=true lein test]
 
   n1:
     build:
       context: ./docker
       dockerfile: Dockerfile-node
-    env_file: ./docker/node.env
+    privileged: true
 
   n2:
     extends: n1

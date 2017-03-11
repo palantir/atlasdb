@@ -4,8 +4,6 @@
             [jepsen.client :as client]
             [jepsen.generator :as gen]
             [jepsen.nemesis :as nemesis]
-            [jepsen.os.debian :as debian]
-            [jepsen.tests :as tests]
             [jepsen.util :refer [timeout]]
             [knossos.history :as history])
     ;; We can import any Java objects, since Clojure runs on the JVM
@@ -59,17 +57,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn timestamp-test
   []
-  (assoc tests/noop-test
-    :os debian/os
+  (assoc timelock/partition-test
     :client (create-client nil)
-    :nemesis (nemesis/partition-random-halves)
     :generator (->> read-operation
-                    (gen/stagger 0.05)
-                    (gen/nemesis
-                    (gen/seq (cycle [(gen/sleep 5)
-                                     {:type :info, :f :start}
-                                     (gen/sleep 85)
-                                     {:type :info, :f :stop}])))
-                    (gen/time-limit 360))
-    :db (timelock/create-db)
+                (gen/stagger 0.05)
+                (gen/nemesis
+                (gen/seq (cycle [(gen/sleep 5)
+                                 {:type :info, :f :start}
+                                 (gen/sleep 85)
+                                 {:type :info, :f :stop}])))
+                (gen/time-limit 360))
     :checker checker))

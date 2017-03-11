@@ -3,7 +3,6 @@
             [jepsen.checker :as checker]
             [jepsen.client :as client]
             [jepsen.generator :as gen]
-            [jepsen.tests :as tests]
             [jepsen.os.debian :as debian]
             [jepsen.util :refer [timeout]]
             [knossos.history :as history]
@@ -98,11 +97,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn lock-test
   []
-  (assoc tests/noop-test
+  (assoc timelock/partition-test
     :client (create-client nil nil nil)
     :generator (->> generator
                     (gen/stagger 0.1)
                     (gen/clients)
                     (gen/time-limit 30))
-    :db (timelock/create-db)
     :checker checker))

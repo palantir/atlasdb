@@ -1,17 +1,30 @@
-FROM debian:jessie-slim
+FROM tutum/debian:jessie
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive \
+# install java
+
+RUN echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" > /etc/apt/sources.list.d/webupd8.list && \
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 && \
+    apt-get update && \
+    echo "debconf shared/accepted-oracle-license-v1-1 select true" | debconf-set-selections && \
+    echo "debconf shared/accepted-oracle-license-v1-1 seen true" | debconf-set-selections && \
+    apt-get install -y oracle-java8-installer oracle-java8-set-default
+
+ENV JAVA_HOME /usr/lib/jvm/java-8-oracle
+
+# tools for Jepsen
+
+RUN DEBIAN_FRONTEND=noninteractive \
         apt-get install -y openssh-server vim net-tools sysvinit-core sysvinit \
                            sysvinit-utils faketime unzip iptables iputils-ping \
+                           iproute man-db curl rsyslog libzip2 bzip2 wget sudo \
                            logrotate && \
     apt-get remove -y --purge --auto-remove systemd
 
+# ssh setup
+
 COPY id_rsa.pub /root/.ssh/authorized_keys
 
-RUN chmod 600 /root/.ssh/authorized_keys && \
-    mkdir /var/run/sshd && \
-    chmod 0755 /var/run/sshd
+RUN chmod 600 /root/.ssh/authorized_keys
 
 EXPOSE 22
 

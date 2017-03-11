@@ -2,16 +2,13 @@ FROM anapsix/alpine-java
 
 RUN apk update && apk add openssl openssh
 
-COPY id_rsa id_rsa.pub config /root/.ssh/
+COPY id_rsa id_rsa.pub /root/.ssh/
+COPY project.clj /
 
 RUN wget https://raw.githubusercontent.com/technomancy/leiningen/2.7.1/bin/lein && \
-    mv /lein /usr/bin && chmod +x /usr/bin/lein
-
-RUN wget https://github.com/jepsen-io/jepsen/archive/0.1.4.zip && \
-    unzip -d / 0.1.4.zip && mv /jepsen-0.1.4 /jepsen && \
-    cd /jepsen/jepsen && \
-    lein install
-
-RUN rm /root/.ssh/config
+    mv /lein /usr/bin && \
+    chmod +x /usr/bin/lein && \
+    lein install && \
+    rm project.clj
 
 COPY initialize_known_hosts.sh /usr/bin

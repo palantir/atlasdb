@@ -2,7 +2,9 @@
   (:require [clojure.tools.logging :refer :all]
             [jepsen.control :as c]
             [jepsen.db :as db]
-            [jepsen.os.debian :as debian]))
+            [jepsen.nemesis :as nemesis]
+            [jepsen.os.debian :as debian]
+            [jepsen.tests :as tests]))
 
 (defn create-db
   "Creates an object that implements the db/DB protocol.
@@ -34,3 +36,10 @@
     db/LogFiles
     (log-files [_ test node]
       ["/timelock-server/var/log/timelock-server-startup.log"])))
+
+(def partition-test
+  (assoc tests/noop-test
+    :os debian/os
+    :nemesis (nemesis/partition-random-halves)
+    :db (create-db)
+    :ssh {:private-key-path "/root/.ssh/id_rsa"}))
