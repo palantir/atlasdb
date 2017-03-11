@@ -1,9 +1,10 @@
 version: '2'
 services:
   jepsen:
-    build: ./docker/master
-    environment:
-      - SSH_KEY=ssh-rsa blah blah blah
+    build:
+      context: ./docker
+      dockerfile: Dockerfile-control
+    env_file: ./docker/control.env
     links:
       - n1
       - n2
@@ -12,23 +13,22 @@ services:
       - n5
     volumes:
       - ./:/jepsen/atlasdb
-    command: [bash, -c, mkdir ~/.ssh/ && echo $SSH_KEY > ~/.ssh/id_rsa.pub && cd /jepsen/atlasdb && sleep 9999 && env LEIN_ROOT=true lein test]
+    command: [bash, -c, initialize_known_hosts.sh && cd /jepsen/atlasdb && env LEIN_ROOT=true lein test]
 
   n1:
-    build: ./docker/node
-    environment:
-      - SSH_KEY=ssh-rsa blah blah blah
-    ports:
-      - 22:22
+    build:
+      context: ./docker
+      dockerfile: Dockerfile-node
+    env_file: ./docker/node.env
 
   n2:
-    build: ./docker/node
+    extends: n1
 
   n3:
-    build: ./docker/node
+    extends: n1
 
   n4:
-    build: ./docker/node
+    extends: n1
 
   n5:
-    build: ./docker/node
+    extends: n1

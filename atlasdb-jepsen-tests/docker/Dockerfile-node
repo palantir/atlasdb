@@ -1,0 +1,18 @@
+FROM debian:jessie-slim
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive \
+        apt-get install -y openssh-server vim net-tools sysvinit-core sysvinit \
+                           sysvinit-utils faketime unzip iptables iputils-ping \
+                           logrotate && \
+    apt-get remove -y --purge --auto-remove systemd
+
+COPY id_rsa.pub /root/.ssh/authorized_keys
+
+RUN chmod 600 /root/.ssh/authorized_keys && \
+    mkdir /var/run/sshd && \
+    chmod 0755 /var/run/sshd
+
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D"]
