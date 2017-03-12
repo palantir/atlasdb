@@ -17,6 +17,7 @@ External Timelock Service
     migration
     manual-migration
     product-changes
+    paxos
 
 The AtlasDB Timelock Service is an external implementation of the :ref:`Timestamp <timestamp-service>` and
 :ref:`Lock <lock-service>` services. Running an external Timelock Service (as opposed to running timestamp and lock
