@@ -25,7 +25,7 @@ services embedded within one's clients) provides several benefits:
 - Additional reliability; we have subjected our new implementation to Jepsen testing, and do not rely on the
   consistency of the user's key-value services.
 - The number of AtlasDB clients can scale independently of AtlasDB's timestamp and lock services, and an odd number of
-  AtlasDB clients is no longer required. An odd number of Timelock servers is still required.
+  AtlasDB clients is no longer necessarily preferred. An odd number of Timelock servers is still preferred.
 - Resource contention between your AtlasDB clients and the timestamp and lock services can be better managed,
   because external timestamp services may be run on separate servers and/or JVMs (while the old embedded services
   had to be run on the same server, and within the same JVM).
