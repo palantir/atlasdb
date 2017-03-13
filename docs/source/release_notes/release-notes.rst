@@ -135,6 +135,10 @@ v0.35.0
            Clients who have implemented a concrete ``TransactionManager`` throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1677>`__)
 
+    *    - |new|
+         - Added benchmarks for paging over columns of a very wide row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1684>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
