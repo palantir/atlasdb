@@ -20,9 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
 
-import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
 import com.google.common.collect.Maps;
@@ -39,7 +37,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 /**
  * State class for creating a single Atlas table with one wide row.
  */
-@State(Scope.Benchmark)
 public abstract class WideRowTable {
     private AtlasDbServicesConnector connector;
     private AtlasDbServices services;
