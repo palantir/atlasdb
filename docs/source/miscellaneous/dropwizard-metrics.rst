@@ -5,8 +5,8 @@ Dropwizard Metrics
 ==================
 
 AtlasDB makes use of the Dropwizard `Metrics library <http://metrics.dropwizard.io/>`__ to
-expose a global ``MetricRegistry`` called ``AtlasDbRegistry``. Users of AtlasDB should use ``AtlasDbMetrics.setMetricsRegistry``
-to make use of our ``MetricRegistry``.
+expose a global ``MetricRegistry`` called ``AtlasDbRegistry``. Users of AtlasDB should use ``AtlasDbMetrics.setMetricRegistry``
+to inject their own ``MetricRegistry`` for their application prior to initializing the AtlasDB transaction manager.
 
 We expose the metrics below. For the Cassandra client metrics with ``<host>``, we will expose metrics specific to every
 Cassandra node in your cluster. For more details on what information each type of metric provides, we recommend reading
@@ -38,17 +38,15 @@ the Metrics `Getting Started Guide <http://metrics.dropwizard.io/3.1.0/getting-s
 - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestExceptions``
 - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requests``
 - ``com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.runTaskReadOnly.failures``
-- ``com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.runTaskReadOnly.failures.java.lang.IllegalArgumentException``
 - ``com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.runTaskWithRetry.failures``
-- ``com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.runTaskWithRetry.failures.feign.FeignException``
-- ``com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.runTaskWithRetry.failures.java.lang.IllegalArgumentException``
+
+Additional failure counts will be dynamically generated based on the returned exceptions, so you may see metrics like
+the following:
+
 - ``com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.runTaskWithRetry.failures.java.lang.IllegalStateException``
 
 **Timers**
 
-- ``com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.getLockService``
-- ``com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.runTaskReadOnly``
-- ``com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.runTaskWithRetry``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitAcquireLocks``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitCheckingForConflicts``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitPutCommitTs``
@@ -57,5 +55,3 @@ the Metrics `Getting Started Guide <http://metrics.dropwizard.io/3.1.0/getting-s
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.getRows``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.millisForPunch``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.processedRangeMillis``
-- ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.transactionMillis``
-- ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.waitForCommitTsMillis``
