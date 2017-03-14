@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -353,16 +354,15 @@ public abstract class OracleQueryFactory extends AbstractDbQueryFactory {
             BatchColumnRangeSelection columnRangeSelection) {
         String query = " /* GET_ROWS_COLUMN_RANGE (" + tableName + ") */ "
                 + "SELECT * FROM ( SELECT m.row_name, m.col_name, max(m.ts) as ts"
+                + getValueSubselectForGroupBy("m", true)
                 + "   FROM " + tableName + " m"
                 + "  WHERE m.row_name = ?"
                 + "    AND m.ts < ? "
                 + (columnRangeSelection.getStartCol().length > 0 ? " AND m.col_name >= ?" : "")
                 + (columnRangeSelection.getEndCol().length > 0 ? " AND m.col_name < ?" : "")
                 + " GROUP BY m.row_name, m.col_name"
-                + " ORDER BY m.col_name ASC ) WHERE rownum <= " + columnRangeSelection.getBatchHint();
-        FullQuery fullQuery = new FullQuery(wrapQueryWithIncludeValue("GET_ROWS_COLUMN_RANGE", query, true))
-                .withArg(row)
-                .withArg(ts);
+                + " ORDER BY m.row_name ASC, m.col_name ASC ) WHERE rownum <= " + columnRangeSelection.getBatchHint();
+        FullQuery fullQuery = new FullQuery(query).withArg(row).withArg(ts);
         if (columnRangeSelection.getStartCol().length > 0) {
             fullQuery = fullQuery.withArg(columnRangeSelection.getStartCol());
         }
@@ -412,7 +412,54 @@ public abstract class OracleQueryFactory extends AbstractDbQueryFactory {
                 + "   AND wrap.ts = i.ts ";
     }
 
-    abstract String getValueSubselect(String tableAlias, boolean includeValue);
+    private String getValueSubselect(String tableAlias, boolean includeValue) {
+        if (includeValue) {
+            List<String> colNames = getValueColumnNames();
+            StringBuilder ret = new StringBuilder(10 * colNames.size());
+            for (String colName : colNames) {
+                // e.g., ", m.val"
+                ret.append(", ").append(tableAlias).append('.').append(colName);
+            }
+            return ret.toString();
+        } else {
+            return "";
+        }
+    }
+
+    private String getValueSubselectForGroupBy(String tableAlias, boolean includeValue) {
+        if (includeValue) {
+            List<String> colNames = getValueColumnNames();
+            StringBuilder ret = new StringBuilder(70 * colNames.size());
+            for (String colName : colNames) {
+                // E.g., ", MAX(m.val) KEEP (DENSE_RANK LAST ORDER BY m.ts ASC) AS val".
+                // How this works, assuming we have a "GROUP BY row_name, col_name" clause:
+                //  1) Among each group of rows with the same (row_name, col_name) pair,
+                //     "KEEP (DENSE_RANK LAST ORDER BY m.ts ASC)" will select the subset
+                //     of rows with the biggest 'ts' value. Since (row_name, col_name, ts)
+                //     is the primary key, that subset will always contain exactly one
+                //     element in our case.
+                //  2) For that subset of rows, we take an aggregate function "MAX(m.val)".
+                //     It doesn't make a difference which function we use since our subset
+                //     is a singleton, so MAX will simply return the only element in that set.
+                //  To sum it up: for each (row_name, col_name) group, this will select
+                //  the value of the row that has the largest 'ts' value within that group.
+                ret.append(", MAX(").append(tableAlias).append('.').append(colName)
+                        .append(") KEEP (DENSE_RANK LAST ORDER BY ")
+                        .append(tableAlias).append(".ts ASC) AS ").append(colName);
+            }
+            return ret.toString();
+        } else {
+            return "";
+        }
+    }
+
+    private List<String> getValueColumnNames() {
+        if (hasOverflowValues()) {
+            return VAL_AND_OVERFLOW;
+        } else {
+            return VAL_ONLY;
+        }
+    }
 
     private ArrayHandler rowsToOracleArray(Iterable<byte[]> rows) {
         List<Object[]> oraRows = Lists.newArrayListWithCapacity(Iterables.size(rows));
@@ -454,4 +501,7 @@ public abstract class OracleQueryFactory extends AbstractDbQueryFactory {
     private String structArrayPrefix() {
         return config.tablePrefix().toUpperCase();
     }
+
+    private static final List<String> VAL_ONLY = ImmutableList.of("val");
+    private static final List<String> VAL_AND_OVERFLOW = ImmutableList.of("val", "overflow");
 }
