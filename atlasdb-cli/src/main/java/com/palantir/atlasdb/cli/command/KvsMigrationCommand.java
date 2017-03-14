@@ -21,6 +21,7 @@ import java.util.concurrent.Callable;
 
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -172,7 +173,8 @@ public class KvsMigrationCommand implements Callable<Integer> {
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
-    private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices)
+    @VisibleForTesting
+    KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices)
             throws IOException {
         //TODO: this timestamp will have to be stored for online migration
         long migrationStartTimestamp = fromServices.getTimestampService().getFreshTimestamp();
@@ -215,7 +217,8 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 ImmutableSet.of());
     }
 
-    private TimestampManagementService getTimestampManagementService(AtlasDbServices toServices) {
+    @VisibleForTesting
+    static TimestampManagementService getTimestampManagementService(AtlasDbServices toServices) {
         TimestampService toTimestampService = toServices.getTimestampService();
         if (toTimestampService instanceof TimestampManagementService) {
             return (TimestampManagementService) toTimestampService;

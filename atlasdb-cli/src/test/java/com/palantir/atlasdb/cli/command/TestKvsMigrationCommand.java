@@ -15,6 +15,11 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -35,8 +40,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.timestamp.TimestampRange;
+import com.palantir.timestamp.TimestampService;
 
 public class TestKvsMigrationCommand {
+    private static final long FUTURE_TIMESTAMP = 314159265L;
 
     private KvsMigrationCommand getCommand(String[] args) throws URISyntaxException {
         String filePath = AbstractTestRunner.getResourcePath(InMemoryTestRunner.CONFIG_LOCATION);
@@ -47,20 +55,53 @@ public class TestKvsMigrationCommand {
 
     @Test
     public void canMigrateZeroTables() throws Exception {
-        runTestWithParameters(0, 0);
+        runTestWithTableSpecs(0, 0);
     }
 
     @Test
     public void canMigrateOneTable() throws Exception {
-        runTestWithParameters(1, 1);
+        runTestWithTableSpecs(1, 1);
     }
 
     @Test
     public void canMigrateMultipleTables() throws Exception {
-        runTestWithParameters(10, 257);
+        runTestWithTableSpecs(10, 257);
     }
 
-    private void runTestWithParameters(int numTables, int numEntriesPerTable) throws Exception {
+    @Test
+    public void getMigratorMigratesTimestampBound() throws Exception {
+        KvsMigrationCommand cmd = getCommand(new String[] { "-smv" });
+        AtlasDbServices fromServices = cmd.connectFromServices();
+
+        KvsMigrationCommand.getTimestampManagementService(fromServices).fastForwardTimestamp(FUTURE_TIMESTAMP);
+        long oldTimestamp = fromServices.getTimestampService().getFreshTimestamp();
+
+        AtlasDbServices toServices = cmd.connectToServices();
+        cmd.getMigrator(fromServices, toServices);
+
+        long newTimestamp = toServices.getTimestampService().getFreshTimestamp();
+        assertThat(newTimestamp).isGreaterThan(oldTimestamp);
+    }
+
+    @Test
+    public void getTimestampManagementServiceThrowsOnNonManagementService() {
+        AtlasDbServices fakeServices = mock(AtlasDbServices.class);
+        when(fakeServices.getTimestampService()).thenReturn(new TimestampService() {
+            @Override
+            public long getFreshTimestamp() {
+                return 0;
+            }
+
+            @Override
+            public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+                return null;
+            }
+        });
+        assertThatThrownBy(() -> KvsMigrationCommand.getTimestampManagementService(fakeServices))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private void runTestWithTableSpecs(int numTables, int numEntriesPerTable) throws Exception {
         KvsMigrationCommand cmd = getCommand(new String[] { "-smv" });
         AtlasDbServices fromServices = cmd.connectFromServices();
 
