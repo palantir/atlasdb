@@ -64,6 +64,10 @@ develop
          - AtlasDB now instruments services to expose aggregate response time and service call metrics for key value, timestamp, and lock services.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1685>`__)
 
+    *    - |improved|
+         - Improved performance of paging over dynamic columns on Oracle DbKvs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1702>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
