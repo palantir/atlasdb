@@ -35,7 +35,7 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
-import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 import io.airlift.airline.Command;
@@ -178,16 +178,10 @@ public class KvsMigrationCommand implements Callable<Integer> {
         long migrationStartTimestamp = fromServices.getTimestampService().getFreshTimestamp();
         long migrationCommitTimestamp = fromServices.getTimestampService().getFreshTimestamp();
 
-        TimestampService toTimestampService = toServices.getTimestampService();
-        if (!(toTimestampService instanceof PersistentTimestampService)) {
-            printer.error("Timestamp service must be of type {}, but yours is {}.  Exiting.",
-                    PersistentTimestampService.class.toString(), toTimestampService.getClass().toString());
-            throw new IllegalArgumentException("Timestamp service was the wrong type");
-        }
-        PersistentTimestampService toPersistentTimestampService = (PersistentTimestampService) toTimestampService;
+        TimestampManagementService toTimestampManagementService = getTimestampManagementService(toServices);
 
         toServices.getTransactionService().putUnlessExists(migrationStartTimestamp, migrationCommitTimestamp);
-        toPersistentTimestampService.fastForwardTimestamp(migrationCommitTimestamp + 1);
+        toTimestampManagementService.fastForwardTimestamp(migrationCommitTimestamp + 1);
 
         return new KeyValueServiceMigrator(
                 CHECKPOINT_NAMESPACE,
@@ -219,5 +213,17 @@ public class KvsMigrationCommand implements Callable<Integer> {
                     }
                 },
                 ImmutableSet.of());
+    }
+
+    private TimestampManagementService getTimestampManagementService(AtlasDbServices toServices) {
+        TimestampService toTimestampService = toServices.getTimestampService();
+        if (toTimestampService instanceof TimestampManagementService) {
+            return (TimestampManagementService) toTimestampService;
+        }
+        String errorMessage = String.format("Timestamp service must be of type %s, but yours is %s. Exiting.",
+                TimestampManagementService.class.toString(),
+                toTimestampService.getClass().toString());
+        printer.error(errorMessage);
+        throw new IllegalArgumentException(errorMessage);
     }
 }
