@@ -4,12 +4,12 @@
 Paxos
 =====
 
-Paxos is an algorithm for *distributed consensus* - that is, getting servers to agree on a value that some server
+`Paxos <https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/paxos-simple-Copy.pdf>`__ is an algorithm for *distributed consensus* - that is, getting servers to agree on a value that some server
 *proposes*, in the presence of communication and server failures. Its guarantees include:
 
 #. Safety: All servers will agree on the same value.
 #. Nontriviality: The value must have been *proposed* by at least one of the servers.
-#. Liveness: If a majority of servers is up and able to communicate, then the protocol can make progress.
+#. Liveness: If a majority of servers are up and able to communicate, then the protocol can make progress.
 
 If the Timelock Server is configured to use Paxos, it will actually use separate instances of Paxos to agree on the
 current cluster leader (which is the only node allowed to give out timestamps and locks), as well as the timestamp

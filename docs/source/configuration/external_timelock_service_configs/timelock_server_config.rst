@@ -143,15 +143,7 @@ may be useful if, for example, one needs to change the application and/or admin 
 Configuring HTTP/2
 ~~~~~~~~~~~~~~~~~~
 
-.. warning::
-
-   Although HTTP/2 does offer a performance boost with connection multiplexing, it also mandates that the Galois/Counter
-   Mode (GCM) cipher-suites are used, which suffer from a relatively unperformant implementation in the Oracle JDK.
-   Thus, clients that are unable to use HTTP/2 may see a significant slowdown when the Timelock Server switches from an
-   ``https`` connector to an ``h2`` connector. It may be possible to get around this by exposing multiple application
-   connectors, though the AtlasDB team has not tested this approach.
-
-HTTP/2 is a newer version of the HTTP protocol that supports, among other features, connection multiplexing. This is
+`HTTP/2 <https://http2.github.io/>`__ is a newer version of the HTTP protocol that supports, among other features, connection multiplexing. This is
 extremely useful in improving the latency of timestamp and lock requests, which are usually fairly small.
 Timelock Server is compatible with HTTP/2 as of AtlasDB v0.34.0; to configure this, one should change the protocol
 used by the Dropwizard application and admin connectors to ``h2`` instead of ``https``. For example, this block can be
@@ -169,3 +161,11 @@ added to the root of the Timelock server configuration:
 
 Note that because Timelock Server uses the OkHttp library, it is currently not compatible with HTTP/2 via cleartext
 (the ``h2c`` protocol).
+
+.. warning::
+
+   Although HTTP/2 does offer a performance boost with connection multiplexing, it also mandates that the Galois/Counter
+   Mode (GCM) cipher-suites are used, which suffer from a relatively unperformant implementation in the Oracle JDK.
+   Thus, clients that are unable to use HTTP/2 may see a significant slowdown when the Timelock Server switches from an
+   ``https`` connector to an ``h2`` connector. It may be possible to get around this by exposing multiple application
+   connectors, though the AtlasDB team has not tested this approach.
