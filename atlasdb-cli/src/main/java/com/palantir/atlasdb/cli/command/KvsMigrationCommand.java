@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.services.AtlasDbServices;
@@ -98,8 +97,6 @@ public class KvsMigrationCommand implements Callable<Integer> {
             type = OptionType.GLOBAL,
             description = "inline configuration file for atlasdb")
     private String inlineConfig;
-
-    private static final Namespace CHECKPOINT_NAMESPACE = Namespace.create("kvs_migrate");
 
     @Override
     public Integer call() throws Exception {
