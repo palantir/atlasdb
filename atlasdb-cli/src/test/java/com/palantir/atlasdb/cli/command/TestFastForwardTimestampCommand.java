@@ -37,6 +37,8 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import io.airlift.airline.Command;
 
 public class TestFastForwardTimestampCommand {
+    private static final String TIMESTAMP_GROUP = "timestamp";
+    private static final String FETCH_COMMAND = FetchTimestamp.class.getAnnotation(Command.class).name();
     private static final String FAST_FORWARD_COMMAND = FastForwardTimestamp.class.getAnnotation(Command.class).name();
     private static final long POSITIVE_OFFSET = 777L;
     private static final long NEGATIVE_OFFSET = -1 * POSITIVE_OFFSET;
@@ -62,7 +64,7 @@ public class TestFastForwardTimestampCommand {
     }
 
     private static long fetchCurrentTimestamp() throws Exception {
-        InMemoryTestRunner fetchRunner = new InMemoryTestRunner(FetchTimestamp.class, "timestamp", "fetch");
+        InMemoryTestRunner fetchRunner = new InMemoryTestRunner(FetchTimestamp.class, TIMESTAMP_GROUP, FETCH_COMMAND);
         AtlasDbServices services = fetchRunner.connect(moduleFactory);
         return services.getTimestampService().getFreshTimestamp();
     }
@@ -78,7 +80,7 @@ public class TestFastForwardTimestampCommand {
     }
 
     private static InMemoryTestRunner makeRunnerWithTargetTimestamp(long targetTimestamp) {
-        return makeRunner("timestamp", "-t", String.valueOf(targetTimestamp), FAST_FORWARD_COMMAND);
+        return makeRunner(TIMESTAMP_GROUP, "-t", String.valueOf(targetTimestamp), FAST_FORWARD_COMMAND);
     }
 
     private static InMemoryTestRunner makeRunner(String... args) {
