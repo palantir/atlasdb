@@ -23,7 +23,7 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public class AvailableTimestamps {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
-    private static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
+    static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
     private static final long MAX_TIMESTAMPS_TO_HAND_OUT = 10 * 1000;
 
     @GuardedBy("this")
@@ -76,7 +76,7 @@ public class AvailableTimestamps {
             buffer = currentUpperLimit - lastHandedOut;
             needsRefresh = buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, TimeUnit.MINUTES);
             if (needsRefresh) {
-                allocateEnoughTimestampsToHandOut(lastHandedOut + ALLOCATION_BUFFER_SIZE);
+                allocateEnoughTimestampsToHandOut(lastHandedOut + ALLOCATION_BUFFER_SIZE, 0L);
             }
         }
 
@@ -98,7 +98,7 @@ public class AvailableTimestamps {
 
     public synchronized void fastForwardTo(long newMinimum) {
         lastReturnedTimestamp.increaseToAtLeast(newMinimum);
-        upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
+        upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE, 0L);
     }
 
     private synchronized long lastHandedOut() {
@@ -124,16 +124,16 @@ public class AvailableTimestamps {
 
     private synchronized TimestampRange handOutTimestamp(long targetTimestamp) {
         TimestampRange rangeToHandOut = getRangeToHandOut(targetTimestamp);
-        allocateEnoughTimestampsToHandOut(targetTimestamp);
+        allocateEnoughTimestampsToHandOut(targetTimestamp, MINIMUM_BUFFER);
         lastReturnedTimestamp.increaseToAtLeast(targetTimestamp);
 
         return rangeToHandOut;
     }
 
-    private synchronized void allocateEnoughTimestampsToHandOut(long timestamp) {
+    private synchronized void allocateEnoughTimestampsToHandOut(long timestamp, long buffer) {
         // synchronizing for semantic consistency and avoid `assert Thread.holdsLock(this);` overhead
         DebugLogger.logger.trace("Increasing limit to at least {}.", timestamp);
-        long newLimit = upperLimit.increaseToAtLeast(timestamp);
+        long newLimit = upperLimit.increaseToAtLeast(timestamp, buffer);
         if (DebugLogger.logger.isTraceEnabled()) {
             DebugLogger.logger.trace("Increased to at least {}. Limit is now {}.", timestamp, newLimit);
         }
