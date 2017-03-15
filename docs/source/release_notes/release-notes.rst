@@ -40,6 +40,24 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.36.0
+=======
+
+15 Mar 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
          - Fixed DbKvs sweep OOM issue (`#982 <https://github.com/palantir/atlasdb/issues/982>`__) caused by very wide rows. ``DbKvs.getRangeOfTimestamps`` now uses an adjustable cell batch size to avoid loading too many timestamps.
            In case of a single row that is too wide, this may result in ``getRangeOfTimestamps`` returning multiple ``RowResult`` to include all timestamps.
@@ -136,7 +154,6 @@ v0.35.0
          - The public ``PaxosLeaderElectionService`` constructor is now deprecated, to mitigate risks of users supplying parameters in the wrong order.
            ``PaxosLeaderElectionServiceBuilder`` should be used instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1681>`__)
-
 
     *    - |new|
          - Added benchmarks for paging over columns of a very wide row.
