@@ -52,6 +52,9 @@ the following:
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitPutCommitTs``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitTotalTimeSinceTxCreation``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitWrite``
+- ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.get``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.getRows``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.millisForPunch``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.processedRangeMillis``
+- ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.transactionMillis``
+- ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.waitForCommitTsMillis``
