@@ -24,6 +24,16 @@ the Metrics `Getting Started Guide <http://metrics.dropwizard.io/3.1.0/getting-s
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.meanIdleTimeMillis``
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.proportionDestroyedByBorrower``
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.proportionDestroyedByEvictor``
+ - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.estimated.size``
+ - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.eviction.count``
+ - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.hit.count``
+ - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.hit.ratio``
+ - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.load.average.millis``
+ - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.load.failure.count``
+ - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.load.success.count``
+ - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.miss.count``
+ - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.miss.ratio``
+ - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.request.count``
 
 **Histograms**
 
@@ -47,6 +57,37 @@ the following:
 
 **Timers**
 
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.addGarbageCollectionSentinelValues``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.checkAndSet``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.close``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.compactInternally``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.createTable``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.createTables``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.delete``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.deleteRange``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.dropTable``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.dropTables``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.get``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getAllTableNames``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getAllTimestamps``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getDelegates``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getFirstBatchForRanges``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getLatestTimestamps``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getMetadataForTable``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getMetadataForTables``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getRange``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getRangeOfTimestamps``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getRows``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getRowsColumnRange``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.multiPut``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.put``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.putMetadataForTable``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.putMetadataForTables``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.putUnlessExists``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.putWithTimestamps``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.supportsCheckAndSet``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.truncateTable``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.truncateTables``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitAcquireLocks``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitCheckingForConflicts``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitPutCommitTs``
