@@ -66,7 +66,10 @@ follows (where ``test`` is the namespace you want your client to use).
    Make sure that ``TS`` has been entered correctly.
 
     - If ``TS`` entered is too large, there will generally not be adverse consequences (apart from risks of ``long``
-      overflow), but...
+      overflow). If this is indeed a concern (e.g. there was an accidental fast-forward to ``Long.MAX_VALUE``), then
+      one can proceed by shutting down the Timelock server, deleting the Paxos data directories for the client
+      concerned (which resets the client timestamp to zero), restarting the Timelock server and attempting the
+      fast-forward again.
     - If ``TS`` entered is too small and AtlasDB clients are restarted without rectifying this, this can result in
       **SEVERE DATA CORRUPTION** because we lose the guarantee that timestamps are monotonically increasing.
       As fast-forward is idempotent (it sets the timestamp to be the maximum of its current value and the
@@ -92,16 +95,21 @@ The steps for invalidating the old AtlasDB timestamp will vary, depending on you
 
         ALTER TABLE atlasdb_timestamp RENAME last_allocated TO LEGACY_last_allocated;
 
-- If using Cassandra, one method of invalidating the table is to overwrite the timestamp bound record with the
-  empty byte array (consider using ``cqlsh`` to do this). This table is stored in the same keyspace that your
+- If using Cassandra, one method of invalidating the table is to overwrite the timestamp bound record with an invalid
+  byte array. We recommend using a bogus one-byte array for this; the zero byte array is a deletion sentinel, and
+  if supplying byte arrays longer than 8 bytes, we will interpret the first 8 bytes as the timestamp bound.
+  Automated migration is implemented in this way as well (though we use Cassandra's lightweight transactions for
+  the automated migration, to be resilient to server lag when restarting an AtlasDB client's cluster with a Timelock
+  block for the first time).
+  This can be done easily using ``cqlsh``. The timestamp table is stored in the same keyspace that your
   AtlasDB client uses for its key-value service.
 
      .. code:: bash
 
         SELECT * FROM atlasdb."_timestamp";
         <note the value returned by this - call this K>
-        INSERT INTO atlasdb."_timestamp" (key, column1, column2, value) VALUES (0x7472, 0x7472, -1, K);
-        INSERT INTO atlasdb."_timestamp" (key, column1, column2, value) VALUES (0x7473, 0x7473, -1, 0x);
+        INSERT INTO atlasdb."_timestamp" (key, column1, column2, value) VALUES (0x7473, 0x7472, -1, K);
+        INSERT INTO atlasdb."_timestamp" (key, column1, column2, value) VALUES (0x7473, 0x7473, -1, 0x00);
 
 - Dropping the table, generally speaking, will *not* work (on the next startup of an embedded Timestamp Service,
   AtlasDB will believe it is starting up the Timestamp Service for the first time, and thus start again from 1).

@@ -4,15 +4,15 @@
 Transaction Protocol
 ====================
 
-NOTE: the AtlasDB transaction protocol is inspired by (but different
-from) google's percolator transaction protocol. For additional reading
-please see
-`Percolator <http://research.google.com/pubs/pub36726.html>`__.
+.. note::
+   The AtlasDB transaction protocol is inspired by, but different from
+   Google's Percolator transaction protocol. For additional reading,
+   please see `Percolator <http://research.google.com/pubs/pub36726.html>`__.
 
-AtlasDB is a standard MVCC Snapshot Isolation protocol. Each transaction
-has a start timestamp and a commit timestamp. You can view all rows that
+AtlasDB is a standard multi-version concurrency control (MVCC) Snapshot Isolation
+protocol. Each transaction has a start timestamp and a commit timestamp. You can view all rows that
 have a commit timestamp less than your start timestamp. You will get a
-write-write conflict for any cells that you write that were modified and
+write-write conflict for any cells that you write that were modified in transactions
 that committed at a timestamp between your start timestamp and your
 commit timestamp.
 
@@ -30,7 +30,7 @@ Write Protocol
 
 3. Now that we have our locks we check for write/write conflicts. If any
    cell has been modified by a transaction that committed after our
-   startTS then we have a write conflict.
+   startTs then we have a write conflict.
 
 4. Write the data to the KV store with TS = startTs.
 
@@ -43,12 +43,12 @@ Write Protocol
 7. Then we atomically do a "putUnlessExists" into the transaction table
    with our commit timestamp.
 
-8. Unlock the locks
+8. Unlock the locks.
 
 Read Protocol
 -------------
 
-Lets assume we are reading Cell c.
+Let's assume we are reading Cell c.
 
 1. Read from the KV store and get the most recent data with TS <
    startTs.
@@ -72,7 +72,7 @@ Immutable Timestamp
 -------------------
 
 The point in time right before the oldest currently executing
-transaction is referred to as the Immutable timestamp. This is because
+transaction is referred to as the immutable timestamp. This is because
 nothing before this point in time will change. (All writes are available
 to read and are either committed or pending commit.)
 
@@ -82,7 +82,7 @@ recent TS for which this is true.
 
 To implement this we grab a new TS (PRE\_START\_TS) and lock that before
 we begin our transaction. We have a feature in the lock server to return
-the minLockedInVersion. if PRE\_START\_TS is the oldest, then lock
+the minLockedInVersion. If PRE\_START\_TS is the oldest, then lock
 server will return this as the minLockedVersion. The write protocol
 ensures that this lock is still held after writes are done to the
 underlying store. This is the only part of the lock server that doesn't
@@ -90,13 +90,13 @@ shard well because we have to get the global min. However we can just
 ask each lock server what its min is and take the global min. We can
 also cache this value for a bit and we don't have to recompute it each
 time. Normally clients don't need the absolute most recent
-Immutable\_TS, but just a relatively modern one.
+ImmutableTs, but just a relatively modern one.
 
 Tricky points regarding the immutable timestamp:
 
--  A transaction with start\_ts < immutable\_ts may be stuck on the
+-  A transaction with startTs < immutableTs may be stuck on the
    putUnlessExists part of its commit (its locks are timed out,
-   otherwise immutable\_ts < start\_ts). This is ok because if we read
+   otherwise immutableTs < startTs). This is ok because if we read
    any of its values we will try to roll back their transaction and we
    will either see it as committed or failed, but either way it will be
    complete.
@@ -105,10 +105,10 @@ Tricky points regarding the immutable timestamp:
    of locking it are not performed together atomically. This doesn't
    cause correctness issues, though, since we wait until we have locked
    PRE\_START\_TS before grabbing our start timestamp. For example, if
-   the current immutable timestamp is immutable\_ts\_1 and transaction T
-   locks in a lower value immutable\_ts\_0, then T's start\_ts must be
-   greater than immutable\_ts\_1, so any readers who grabbed
-   immutable\_ts\_1 will still grab locks when trying to read rows
+   the current immutable timestamp is immutableTs1 and transaction T
+   locks in a lower value immutableTs0, then T's startTs must be
+   greater than immutableTs1, so any readers who grabbed
+   immutableTs1 will still grab locks when trying to read rows
    written by T.
 
 Cleaning Up Old Values
@@ -127,7 +127,7 @@ impose a small relationship to "time" but we will mitigate it in the
 next paragraph.
 
 What if we have a reader that is still reading but is very old (before
-10 days ago (or so we think)). We solve this case by writing a dummy
+10 days ago (or so we think))? We solve this case by writing a dummy
 value for a Cell we are going to clean up with a negative timestamp and
 then cleaning up old rows from oldest to newest. This means that if you
 are still reading and stumble on a row that has been cleaned that you
@@ -207,14 +207,19 @@ get CAS semantics. This isn't a big deal because using a counter is the
 most common way to use this type of exclusion anyway.
 
 Proof of Correctness
-====================
+--------------------
 
 If we want to prove that this protocol works this means that we need to
-show that if a transaction commits before our start timestamp then we
-will read that data.
+show that we read precisely the data committed before the start of our
+transaction. We proceed by showing that:
+
+1. We read data from any writes that committed before our transaction started.
+2. We do not read any writes that commit after our transaction started
+   (even if the relevant transactions started before our transaction started).
+3. We do not read any writes from a failed transaction.
 
 Reading All Writes Before Transaction Start
--------------------------------------------
+===========================================
 
 We must ensure writes committed before our start are read. If we look at
 the write protocol then we know that all writes are complete to the KV
@@ -226,7 +231,7 @@ will already have these rows written. We require that the underlying KV
 store has durable writes so these rows will be read.
 
 Lock Timeouts After Validation
-------------------------------
+==============================
 
 What if locks time out after we do the check that they are still valid?
 If locks time out while writing to the transaction table we depend on
@@ -242,7 +247,7 @@ to use a write ahead log to know what has/hasn't been committed.
 Bookkeeper is an example of a project that implements this kind of log.
 
 Ignoring Writes Committed After Transaction Start
--------------------------------------------------
+=================================================
 
 We need to ensure that writes committed after our startTs are not read.
 If we get back a row from the KV store then we know that the txn that
@@ -257,17 +262,17 @@ usually we just throw and retry the current transaction if there is a
 remoting failure.
 
 Ignoring Failed Transactions
-----------------------------
+============================
 
 This is achieved because we post-filter all reads through the
 transaction table. If we find that transaction is rolled back, then we
 just delete it and retry the read.
 
 Non-Obvious Semantics
-=====================
+---------------------
 
 Read Rollbacks
---------------
+==============
 
 Reads must rollback transactions they find that are uncommitted. If a
 read doesn't go out of its way to roll back an uncommitted row and just
@@ -280,7 +285,7 @@ have to make sure this transaction will be failed for sure before we can
 skip past it.
 
 Serializable Isolation
-======================
+----------------------
 
 AtlasDB can be extended to have serializable isolation semantics.
 Basically instead of looking at your write set and detecting writes that
@@ -302,7 +307,7 @@ Serializable should also check for write-write conflict so they are
 compatible with SI transactions.
 
 One of the best features of Serializable Isolation is that you get true
-Linearizability. Each transaction can be treated like it is just
+linearizability. Each transaction can be treated like it is just
 happened instantaneously at its commit timestamp and all invariants hold
 at all times.
 
