@@ -16,14 +16,11 @@
 package com.palantir.atlasdb.cli.command;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
 import com.palantir.atlasdb.cli.command.timestamp.FastForwardTimestamp;
+import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.factory.ImmutableLockAndTimestampServices;
 import com.palantir.atlasdb.factory.TransactionManagers;
@@ -36,28 +33,52 @@ import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
 import com.palantir.atlasdb.services.test.TestAtlasDbServices;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.PersistentTimestampService;
 
 import io.airlift.airline.Command;
 
 public class TestFastForwardTimestampCommand {
     private static final String FAST_FORWARD_COMMAND = FastForwardTimestamp.class.getAnnotation(Command.class).name();
-    private static final Long TEST_TIMESTAMP = 400L;
+    private static final long POSITIVE_OFFSET = 777L;
+    private static final long NEGATIVE_OFFSET = -1 * POSITIVE_OFFSET;
 
     private static AtlasDbServicesFactory moduleFactory = createModuleFactory();
 
     @Test
-    public void testFastForwardTimestamp() throws Exception {
-        InMemoryTestRunner runner = makeRunner("timestamp", "-t", Long.toString(TEST_TIMESTAMP), FAST_FORWARD_COMMAND);
+    public void canFastForwardTimestamp() throws Exception {
+        long currentTimestamp = fetchCurrentTimestamp();
+        checkFastForward(currentTimestamp + POSITIVE_OFFSET, currentTimestamp + POSITIVE_OFFSET);
+    }
+
+    @Test
+    public void fastForwardToThePastIsANoOp() throws Exception {
+        long currentTimestamp = fetchCurrentTimestamp();
+        checkFastForward(currentTimestamp + NEGATIVE_OFFSET, currentTimestamp);
+    }
+
+    @Test
+    public void fastForwardToMinValueIsANoOp() throws Exception {
+        long currentTimestamp = fetchCurrentTimestamp();
+        checkFastForward(Long.MIN_VALUE, currentTimestamp);
+    }
+
+    private static long fetchCurrentTimestamp() throws Exception {
+        InMemoryTestRunner fetchRunner = new InMemoryTestRunner(FetchTimestamp.class, "timestamp", "fetch");
+        AtlasDbServices services = fetchRunner.connect(moduleFactory);
+        return services.getTimestampService().getFreshTimestamp();
+    }
+
+    private static void checkFastForward(long target, long expected) throws Exception {
+        InMemoryTestRunner runner = makeRunnerWithTargetTimestamp(target);
         AtlasDbServices atlasDbServices = runner.connect(moduleFactory);
 
-        long currentTimestamp = atlasDbServices.getTimestampService().getFreshTimestamp();
-        assertThat(currentTimestamp).isLessThan(TEST_TIMESTAMP);
-
         String response = runner.run();
-        assertThat(response).contains("Timestamp successfully fast-forwarded to 400");
+        // Unintuitive, but is consistent with existing CLI behaviour.
+        assertThat(response).contains("Timestamp successfully fast-forwarded to " + target);
+        assertThat(atlasDbServices.getTimestampService().getFreshTimestamp()).isEqualTo(expected + 1);
+    }
 
-        assertThat(atlasDbServices.getTimestampService().getFreshTimestamp()).isEqualTo(TEST_TIMESTAMP + 1);
+    private static InMemoryTestRunner makeRunnerWithTargetTimestamp(long targetTimestamp) {
+        return makeRunner("timestamp", "-t", String.valueOf(targetTimestamp), FAST_FORWARD_COMMAND);
     }
 
     private static InMemoryTestRunner makeRunner(String... args) {
@@ -77,19 +98,7 @@ public class TestFastForwardTimestampCommand {
     }
 
     private static class FakeLockAndTimestampModule extends LockAndTimestampModule {
-        private PersistentTimestampService timestampService = mock(PersistentTimestampService.class);
-
-        FakeLockAndTimestampModule() {
-            InMemoryTimestampService inMemoryTimestampService = new InMemoryTimestampService();
-            when(timestampService.getFreshTimestamp()).then(inv -> inMemoryTimestampService.getFreshTimestamp());
-            doAnswer(inv -> {
-                long fastForwardArg = (Long) inv.getArguments()[0];
-                long currentTimestamp = inMemoryTimestampService.getFreshTimestamp();
-                long amountToIncreaseBy = fastForwardArg - currentTimestamp;
-                inMemoryTimestampService.getFreshTimestamps((int) amountToIncreaseBy);
-                return null;
-            }).when(timestampService).fastForwardTimestamp(anyLong());
-        }
+        private static InMemoryTimestampService timestampService = new InMemoryTimestampService();
 
         @Override
         public TransactionManagers.LockAndTimestampServices provideLockAndTimestampServices(ServicesConfig config) {

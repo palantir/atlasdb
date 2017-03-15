@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
-import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 import io.airlift.airline.Command;
@@ -43,14 +43,14 @@ public class FastForwardTimestamp extends AbstractTimestampCommand {
     @Override
     protected int executeTimestampCommand(AtlasDbServices services) {
         TimestampService ts = services.getTimestampService();
-        if (!(ts instanceof PersistentTimestampService)) {
+        if (!(ts instanceof TimestampManagementService)) {
             printer.error("Timestamp service must be of type {}, but yours is {}.  Exiting.",
-                    PersistentTimestampService.class.toString(), ts.getClass().toString());
+                    TimestampManagementService.class.toString(), ts.getClass().toString());
             return 1;
         }
-        PersistentTimestampService pts = (PersistentTimestampService) ts;
+        TimestampManagementService tms = (TimestampManagementService) ts;
 
-        pts.fastForwardTimestamp(timestamp);
+        tms.fastForwardTimestamp(timestamp);
         printer.info("Timestamp successfully fast-forwarded to {}", timestamp);
         return 0;
     }
