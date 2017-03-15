@@ -8,3 +8,4 @@ Miscellaneous
 
    contributing
    doc/adr/index
+   dropwizard-metrics
