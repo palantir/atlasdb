@@ -90,6 +90,15 @@ v0.36.0
            Clients who have implemented a concrete ``TransactionManager`` throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1677>`__)
 
+    *    - |new|
+         - Added benchmarks for paging over columns of a very wide row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1684>`__)
+
+    *    - |deprecated|
+         - The public ``PaxosLeaderElectionService`` constructor is now deprecated, to mitigate risks of users supplying parameters in the wrong order.
+           ``PaxosLeaderElectionServiceBuilder`` should be used instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1681>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -149,15 +158,6 @@ v0.35.0
     *    - |devbreak|
          - The persistent lock release endpoint has now been renamed to ``releaseBackupLock`` since it is currently only supposed to be used for the backup lock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1674>`__)
-
-    *    - |deprecated|
-         - The public ``PaxosLeaderElectionService`` constructor is now deprecated, to mitigate risks of users supplying parameters in the wrong order.
-           ``PaxosLeaderElectionServiceBuilder`` should be used instead.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1681>`__)
-
-    *    - |new|
-         - Added benchmarks for paging over columns of a very wide row.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1684>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
