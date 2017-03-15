@@ -30,12 +30,14 @@ import com.palantir.nexus.db.DBType;
 
 public class OracleDbTableFactory implements DbTableFactory {
     private final OracleDdlConfig config;
-    private OracleTableNameGetter oracleTableNameGetter;
-    private TableValueStyleCache valueStyleCache;
+    private final OracleTableNameGetter oracleTableNameGetter;
+    private final OraclePrefixedTableNames oraclePrefixedTableNames;
+    private final TableValueStyleCache valueStyleCache;
 
     public OracleDbTableFactory(OracleDdlConfig config) {
         this.config = config;
         oracleTableNameGetter = new OracleTableNameGetter(config);
+        oraclePrefixedTableNames = new OraclePrefixedTableNames(oracleTableNameGetter);
         valueStyleCache = new TableValueStyleCache();
     }
 
@@ -95,9 +97,10 @@ public class OracleDbTableFactory implements DbTableFactory {
         TableValueStyle tableValueStyle = valueStyleCache.getTableType(conns, tableRef, config.metadataTable());
         switch (tableValueStyle) {
             case OVERFLOW:
-                return OracleOverflowWriteTable.create(config, conns, oracleTableNameGetter, tableRef);
+                return OracleOverflowWriteTable.create(
+                        config, conns, oracleTableNameGetter, oraclePrefixedTableNames, tableRef);
             case RAW:
-                return new OracleWriteTable(config, conns, oracleTableNameGetter, tableRef);
+                return new OracleWriteTable(config, conns, oraclePrefixedTableNames, tableRef);
             default:
                 throw new EnumConstantNotPresentException(TableValueStyle.class, tableValueStyle.name());
         }
@@ -108,8 +111,9 @@ public class OracleDbTableFactory implements DbTableFactory {
         return DBType.ORACLE;
     }
 
-    public OracleTableNameGetter getOracleTableNameGetter() {
-        return oracleTableNameGetter;
+    @Override
+    public PrefixedTableNames getPrefixedTableNames() {
+        return oraclePrefixedTableNames;
     }
 
     @Override

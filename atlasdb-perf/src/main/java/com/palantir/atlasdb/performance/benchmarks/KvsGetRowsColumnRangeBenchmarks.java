@@ -18,6 +18,7 @@
 package com.palantir.atlasdb.performance.benchmarks;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -29,20 +30,23 @@ import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.Blackhole;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.performance.benchmarks.table.Tables;
+import com.palantir.atlasdb.performance.benchmarks.table.VeryWideRowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.WideRowsTable;
 
 @State(Scope.Benchmark)
 public class KvsGetRowsColumnRangeBenchmarks {
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsAligned(WideRowsTable table) {
         List<byte[]> rows =
                 IntStream.rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
@@ -66,8 +70,8 @@ public class KvsGetRowsColumnRangeBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsUnaligned(WideRowsTable table) {
         List<byte[]> rows =
                 IntStream.rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
@@ -89,4 +93,26 @@ public class KvsGetRowsColumnRangeBenchmarks {
                 "Should be %s cells, but were: %s", expectedNumCells, loadedCells.size());
         return loadedCells;
     }
+
+    @Benchmark
+    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
+    public Object getAllColumnsSingleBigRow(VeryWideRowTable table,
+                                            Blackhole blackhole) {
+        RowColumnRangeIterator iter = table.getKvs().getRowsColumnRange(
+                table.getTableRef(),
+                Collections.singleton(Tables.ROW_BYTES.array()),
+                new ColumnRangeSelection(null, null),
+                10000,
+                Long.MAX_VALUE);
+        int count = 0;
+        while (iter.hasNext()) {
+            blackhole.consume(iter.next());
+            ++count;
+        }
+        Preconditions.checkState(count == table.getNumCols(),
+                "Should be %s cells, but were: %s", table.getNumCols(), count);
+        return count;
+    }
+
 }

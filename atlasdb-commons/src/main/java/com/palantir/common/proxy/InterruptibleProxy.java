@@ -27,7 +27,6 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.PalantirInterruptedException;
-import com.palantir.remoting1.tracing.Tracers;
 
 /**
  * Proxy that calls the requested method in another thread waits on a Future.
@@ -48,8 +47,8 @@ public final class InterruptibleProxy implements DelegatingInvocationHandler {
     }
 
     private final Object delegate;
-    private static final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory("Interruptible Proxy", true /* isDaemon */ )));
+    private static final ExecutorService executor = PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory("Interruptible Proxy", true /* isDaemon */ ));
 
     private InterruptibleProxy(Object delegate, CancelDelegate cancel) {
         this.delegate = delegate;

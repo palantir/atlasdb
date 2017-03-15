@@ -109,6 +109,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        try {
+            delegate().deleteRange(tableMapper.getMappedTableName(tableRef), range);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
     public void dropTable(TableReference tableRef) {
         dropTables(ImmutableSet.of(tableRef));
     }
@@ -345,6 +354,11 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    @Override
+    public boolean supportsCheckAndSet() {
+        return delegate().supportsCheckAndSet();
     }
 
     @Override

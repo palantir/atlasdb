@@ -63,4 +63,9 @@ public class ParallelTaskRunner implements BatchingTaskRunner {
         }
     }
 
+    @Override
+    public void close() {
+        executor.shutdown();
+    }
+
 }

@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class SweepPriorityTable implements
         AtlasDbMutablePersistentTable<SweepPriorityTable.SweepPriorityRow,
                                          SweepPriorityTable.SweepPriorityNamedColumnValue<?>,
@@ -1016,7 +1017,7 @@ public final class SweepPriorityTable implements
     }
 
     @Override
-    public void delete(Iterable<? extends SweepPriorityRow> rows) {
+    public void delete(Iterable<SweepPriorityRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 5);
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("d")));
@@ -1094,7 +1095,7 @@ public final class SweepPriorityTable implements
     }
 
     @Override
-    public Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getRowsMultimap(Iterable<? extends SweepPriorityRow> rows) {
+    public Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getRowsMultimap(Iterable<SweepPriorityRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -1120,7 +1121,7 @@ public final class SweepPriorityTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends SweepPriorityRow> rows, ColumnSelection columns) {
+    private Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getRowsMultimapInternal(Iterable<SweepPriorityRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -1273,5 +1274,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "uFAsbtFcwZvbKKbo+LobGg==";
+    static String __CLASS_HASH = "2HFf2/0ZpwH6FqoyKkQa2A==";
 }

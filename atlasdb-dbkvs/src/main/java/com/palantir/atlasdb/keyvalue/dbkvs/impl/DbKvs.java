@@ -40,6 +40,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -54,7 +55,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -64,7 +64,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Atomics;
@@ -114,10 +113,17 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class DbKvs extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(DbKvs.class);
 
+    public static final String ROW = "row_name";
+    public static final String COL = "col_name";
+    public static final String TIMESTAMP = "ts";
+    public static final String VAL = "val";
+    public static final long DEFAULT_GET_RANGE_OF_TS_BATCH = 1_000_000L;
+
+    private long maxRangeOfTimestampsBatchSize = DEFAULT_GET_RANGE_OF_TS_BATCH;
+
     private final DdlConfig config;
     private final DbTableFactory dbTables;
     private final SqlConnectionSupplier connections;
-    private final PrefixedTableNames prefixedTableNames;
     private final BatchingTaskRunner batchingQueryRunner;
 
     public static DbKvs create(DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier) {
@@ -138,14 +144,10 @@ public class DbKvs extends AbstractKeyValueService {
         this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
+
         if (DBType.ORACLE.equals(dbTables.getDbType())) {
-            prefixedTableNames = new OraclePrefixedTableNames(
-                    config,
-                    new ConnectionSupplier(connections),
-                    ((OracleDbTableFactory) dbTables).getOracleTableNameGetter());
             batchingQueryRunner = new ImmediateSingleBatchTaskRunner();
         } else {
-            prefixedTableNames = new PrefixedTableNames(config);
             batchingQueryRunner = new ParallelTaskRunner(
                     newFixedThreadPool(config.poolSize()),
                     config.fetchBatchSize());
@@ -192,6 +194,7 @@ public class DbKvs extends AbstractKeyValueService {
         super.close();
         dbTables.close();
         connections.close();
+        batchingQueryRunner.close();
     }
 
     @Override
@@ -241,16 +244,16 @@ public class DbKvs extends AbstractKeyValueService {
             boolean hasOverflow = table.hasOverflowValues();
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
-                Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
+                Cell cell = Cell.create(row.getBytes(ROW), row.getBytes(COL));
                 Long overflowId = hasOverflow ? row.getLongObject("overflow") : null;
                 if (overflowId == null) {
-                    Value value = Value.create(row.getBytes("val"), row.getLong("ts"));
+                    Value value = Value.create(row.getBytes(VAL), row.getLong(TIMESTAMP));
                     Value oldValue = results.put(cell, value);
                     if (oldValue != null && oldValue.getTimestamp() > value.getTimestamp()) {
                         results.put(cell, oldValue);
                     }
                 } else {
-                    OverflowValue ov = ImmutableOverflowValue.of(row.getLong("ts"), overflowId);
+                    OverflowValue ov = ImmutableOverflowValue.of(row.getLong(TIMESTAMP), overflowId);
                     OverflowValue oldOv = overflowResults.put(cell, ov);
                     if (oldOv != null && oldOv.ts() > ov.ts()) {
                         overflowResults.put(cell, oldOv);
@@ -276,8 +279,8 @@ public class DbKvs extends AbstractKeyValueService {
             Map<Cell, Long> results = Maps.newHashMap();
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
-                Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
-                long ts = row.getLong("ts");
+                Cell cell = Cell.create(row.getBytes(ROW), row.getBytes(COL));
+                long ts = row.getLong(TIMESTAMP);
                 Long oldTs = results.put(cell, ts);
                 if (oldTs != null && oldTs > ts) {
                     results.put(cell, oldTs);
@@ -303,22 +306,19 @@ public class DbKvs extends AbstractKeyValueService {
                 tableRef,
                 getByteSizingFunction());
 
-        runWrite(tableRef, new Function<DbWriteTable, Void>() {
-            @Override
-            public Void apply(DbWriteTable table) {
-                for (List<Entry<Cell, byte[]>> batch : batches) {
-                    try {
-                        table.put(batch, timestamp);
-                    } catch (KeyAlreadyExistsException e) {
-                        if (idempotent) {
-                            putIfNotUpdate(tableRef, table, batch, timestamp, e);
-                        } else {
-                            throw e;
-                        }
+        runReadWrite(tableRef, (readTable, writeTable) -> {
+            for (List<Entry<Cell, byte[]>> batch : batches) {
+                try {
+                    writeTable.put(batch, timestamp);
+                } catch (KeyAlreadyExistsException e) {
+                    if (idempotent) {
+                        putIfNotUpdate(readTable, writeTable, batch, timestamp, e);
+                    } else {
+                        throw e;
                     }
                 }
-                return null;
             }
+            return null;
         });
     }
 
@@ -329,15 +329,16 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     private void putIfNotUpdate(
-            TableReference tableRef,
-            DbWriteTable table,
+            DbReadTable readTable,
+            DbWriteTable writeTable,
             List<Entry<Cell, Value>> batch,
             KeyAlreadyExistsException ex) {
         Map<Cell, Long> timestampByCell = Maps.newHashMap();
         for (Entry<Cell, Value> entry : batch) {
             timestampByCell.put(entry.getKey(), entry.getValue().getTimestamp() + 1);
         }
-        Map<Cell, Value> results = get(tableRef, timestampByCell);
+
+        Map<Cell, Value> results = extractResults(readTable, readTable.getLatestCells(timestampByCell, true));
 
         ListIterator<Entry<Cell, Value>> iter = batch.listIterator();
         while (iter.hasNext()) {
@@ -354,19 +355,19 @@ public class DbKvs extends AbstractKeyValueService {
                 }
             }
         }
-        table.put(batch);
+        writeTable.put(batch);
     }
 
     private void putIfNotUpdate(
-            TableReference tableRef,
-            DbWriteTable table,
+            DbReadTable readTable,
+            DbWriteTable writeTable,
             List<Entry<Cell, byte[]>> batch,
             long timestamp,
             KeyAlreadyExistsException ex) {
         List<Entry<Cell, Value>> batchValues =
                 Lists.transform(batch,
                         input -> Maps.immutableEntry(input.getKey(), Value.create(input.getValue(), timestamp)));
-        putIfNotUpdate(tableRef, table, batchValues, ex);
+        putIfNotUpdate(readTable, writeTable, batchValues, ex);
     }
 
     @Override
@@ -379,18 +380,15 @@ public class DbKvs extends AbstractKeyValueService {
                 tableRef,
                 getValueSizingFunction());
 
-        runWrite(tableRef, new Function<DbWriteTable, Void>() {
-            @Override
-            public Void apply(DbWriteTable table) {
-                for (List<Entry<Cell, Value>> batch : batches) {
-                    try {
-                        table.put(batch);
-                    } catch (KeyAlreadyExistsException e) {
-                        putIfNotUpdate(tableRef, table, batch, e);
-                    }
+        runReadWrite(tableRef, (readTable, writeTable) -> {
+            for (List<Entry<Cell, Value>> batch : batches) {
+                try {
+                    writeTable.put(batch);
+                } catch (KeyAlreadyExistsException e) {
+                    putIfNotUpdate(readTable, writeTable, batch, e);
                 }
-                return null;
             }
+            return null;
         });
     }
 
@@ -460,11 +458,22 @@ public class DbKvs extends AbstractKeyValueService {
     });
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        runWriteForceAutocommit(tableRef, new Function<DbWriteTable, Void>() {
+            @Override
+            public Void apply(DbWriteTable table) {
+                table.delete(range);
+                return null;
+            }
+        });
+    }
+
+    @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             long timestamp) {
-        return new DbKvsGetRanges(this, dbTables.getDbType(), connections, prefixedTableNames)
+        return new DbKvsGetRanges(this, dbTables.getDbType(), connections, dbTables.getPrefixedTableNames())
                 .getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
@@ -550,7 +559,7 @@ public class DbKvs extends AbstractKeyValueService {
         SortedSet<byte[]> rows = Sets.newTreeSet(comp);
         try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {
             while (rows.size() < maxRows && rangeResults.hasNext()) {
-                byte[] rowName = rangeResults.next().getBytes("row_name");
+                byte[] rowName = rangeResults.next().getBytes(ROW);
                 if (rowName != null) {
                     rows.add(rowName);
                 }
@@ -559,6 +568,55 @@ public class DbKvs extends AbstractKeyValueService {
         return rows;
     }
 
+    public void setMaxRangeOfTimestampsBatchSize(long newValue) {
+        maxRangeOfTimestampsBatchSize = newValue;
+    }
+
+    public long getMaxRangeOfTimestampsBatchSize() {
+        return maxRangeOfTimestampsBatchSize;
+    }
+
+    /**
+     * @param tableRef the name of the table to read from.
+     * @param rangeRequest the range to load.
+     * @param timestamp the maximum timestamp to load.
+     *
+     * @return Each row that has fewer than maxRangeOfTimestampsBatchSize entries is guaranteed to be returned in a
+     * single RowResult. If a row has more than maxRangeOfTimestampsBatchSize results, it will potentially be split
+     * into multiple RowResults, by finishing the current column; see example below. Note that:
+     *  1) this may cause a RowResult to have more than maxRangeOfTimestampsBatchSize entries
+     *  2) this may still finish a row, in which case there is going to be only one RowResult for that row.
+     * It is, furthermore,  guaranteed that the columns will be read in ascending order
+     *
+     * E.g., for the following table, rangeRequest taking all rows in ascending order,
+     * maxRangeOfTimestampsBatchSize == 5, and timestamp 10:
+     *
+     *           a     |     b     |     c     |     d
+     *     ------------------------------------------------
+     *   a | (1, 2, 3) | (1, 2, 3) | (4, 5, 6) | (4, 5, 6)|
+     *     ------------------------------------------------
+     *   b | (1, 3, 5) |     -     | (1)       |     -    |
+     *     ------------------------------------------------
+     *   c | (1, 2)    | (1, 2)    | (4, 5, 6) | (4, 5, 6)|
+     *     ------------------------------------------------
+     *   d | (1, 3, 5) |     -     | (1, 2, 3) |     -    |
+     *     ------------------------------------------------
+     *   e | (1, 3)    |     -     |     -     |     -    |
+     *     ------------------------------------------------
+     *
+     * The RowResults will be:
+     *   1. (a, (a -> 1, 2, 3; b -> 1, 2, 3))
+     *   2. (a, (c -> 4, 5, 6; d -> 4, 5, 6))
+     *
+     *   3. (b, (a -> 1, 3, 5; b -> 1))
+     *
+     *   4. (c, (a -> 1, 2, b -> 1, 2; c -> 4, 5, 6))
+     *   5. (c, (d -> 4, 5, 6))
+     *
+     *   6. (d, (a -> 1, 3, 5, c -> 1, 2, 3))
+     *
+     *   7. (e, (a -> 1, 3))
+     */
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef,
@@ -566,48 +624,54 @@ public class DbKvs extends AbstractKeyValueService {
             long timestamp) {
         Iterable<RowResult<Set<Long>>> rows = new AbstractPagingIterable<
                 RowResult<Set<Long>>,
-                TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]>>() {
+                TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token>>() {
             @Override
-            protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getFirstPage() {
-                return getTimestampsPage(tableRef, rangeRequest, timestamp);
+            protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> getFirstPage() {
+                return getTimestampsPage(tableRef,
+                        rangeRequest,
+                        timestamp,
+                        maxRangeOfTimestampsBatchSize,
+                        Token.INITIAL);
             }
 
             @Override
-            protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getNextPage(
-                    TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> previous) {
-                byte[] newStartRow = previous.getTokenForNextPage();
-                RangeRequest newRange = rangeRequest.getBuilder().startRowInclusive(newStartRow).build();
-                return getTimestampsPage(tableRef, newRange, timestamp);
+            protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> getNextPage(
+                    TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> previous) {
+                Token token = previous.getTokenForNextPage();
+                RangeRequest newRange = rangeRequest.getBuilder().startRowInclusive(token.row()).build();
+                return getTimestampsPage(tableRef, newRange, timestamp, maxRangeOfTimestampsBatchSize, token);
             }
         };
         return ClosableIterators.wrap(rows.iterator());
     }
 
-    private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getTimestampsPage(
+    private TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> getTimestampsPage(
             TableReference tableRef,
             RangeRequest range,
-            long timestamp) {
+            long timestamp,
+            long batchSize,
+            Token token) {
         Stopwatch watch = Stopwatch.createStarted();
         try {
-            return runRead(tableRef, table -> getTimestampsPageInternal(table, range, timestamp));
+            return runRead(tableRef, table -> getTimestampsPageInternal(table, range, timestamp, batchSize, token));
         } finally {
             log.debug("Call to KVS.getTimestampsPage on table {} took {} ms.",
                     tableRef, watch.elapsed(TimeUnit.MILLISECONDS));
         }
     }
 
-    @SuppressWarnings("deprecation")
-    private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getTimestampsPageInternal(DbReadTable table,
-                                                                                                RangeRequest range,
-                                                                                                long timestamp) {
-        Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
-        SortedSet<byte[]> rows = Sets.newTreeSet(comp);
+    private TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> getTimestampsPageInternal(
+            DbReadTable table,
+            RangeRequest range,
+            long timestamp,
+            long batchSize,
+            Token token) {
+        Set<byte[]> rows = Sets.newHashSet();
         int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
-
 
         try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {
             while (rows.size() < maxRows && rangeResults.hasNext()) {
-                byte[] rowName = rangeResults.next().getBytes("row_name");
+                byte[] rowName = rangeResults.next().getBytes(ROW);
                 if (rowName != null) {
                     rows.add(rowName);
                 }
@@ -617,46 +681,41 @@ public class DbKvs extends AbstractKeyValueService {
             }
         }
 
-        ColumnSelection columns = ColumnSelection.all();
-        if (!range.getColumnNames().isEmpty()) {
-            columns = ColumnSelection.create(range.getColumnNames());
-        }
+        ColumnSelection cols = range.getColumnNames().isEmpty()
+                ? ColumnSelection.all() : ColumnSelection.create(range.getColumnNames());
 
-        SetMultimap<Cell, Long> results = getTimestampsByCell(table, rows, columns, timestamp);
+        TimestampsByCellResultWithToken result = getTimestampsByCell(table,
+                rows,
+                cols,
+                timestamp,
+                batchSize,
+                range.isReverse(),
+                token);
 
         NavigableMap<byte[], SortedMap<byte[], Set<Long>>> cellsByRow =
-                Cells.breakCellsUpByRow(Multimaps.asMap(results));
+                Cells.breakCellsUpByRow(Multimaps.asMap(result.entries));
         if (range.isReverse()) {
             cellsByRow = cellsByRow.descendingMap();
         }
-        List<RowResult<Set<Long>>> finalResults = Lists.newArrayListWithCapacity(results.size());
-        for (Entry<byte[], SortedMap<byte[], Set<Long>>> entry : cellsByRow.entrySet()) {
-            finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
-        }
-        byte[] nextRow = null;
-        boolean mayHaveMoreResults = false;
-        byte[] lastRow = range.isReverse() ? rows.first() : rows.last();
-        if (!RangeRequests.isTerminalRow(range.isReverse(), lastRow)) {
-            nextRow = RangeRequests.getNextStartRow(range.isReverse(), lastRow);
-            mayHaveMoreResults = rows.size() == maxRows;
-        }
-        return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
+        List<RowResult<Set<Long>>> finalResults = cellsByRow.entrySet().stream()
+                .map(entry -> RowResult.create(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
+
+        return SimpleTokenBackedResultsPage.create(result.getToken(), finalResults, result.mayHaveMoreResults());
     }
 
-    private SetMultimap<Cell, Long> getTimestampsByCell(DbReadTable table,
-                                                        Iterable<byte[]> rows,
-                                                        ColumnSelection columns,
-                                                        long timestamp) {
-        SetMultimap<Cell, Long> results = HashMultimap.create();
-        try (ClosableIterator<AgnosticLightResultRow> rowResults = table.getAllRows(rows, columns, timestamp, false)) {
-            while (rowResults.hasNext()) {
-                AgnosticLightResultRow row = rowResults.next();
-                Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
-                long ts = row.getLong("ts");
-                results.put(cell, ts);
-            }
+    private TimestampsByCellResultWithToken getTimestampsByCell(
+            DbReadTable table,
+            Iterable<byte[]> rows,
+            ColumnSelection columns,
+            long timestamp,
+            long batchSize,
+            boolean isReverse,
+            Token token) {
+        try (ClosableIterator<AgnosticLightResultRow> iterator = table
+                .getAllRows(rows, columns, timestamp, false, DbReadTable.Order.fromBoolean(isReverse))) {
+            return TimestampsByCellResultWithToken.create(iterator, token, batchSize);
         }
-        return results;
     }
 
     @Override
@@ -916,18 +975,18 @@ public class DbKvs extends AbstractKeyValueService {
         try (ClosableIterator<AgnosticLightResultRow> iter = rowLoader.get()) {
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
-                Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
+                Cell cell = Cell.create(row.getBytes(ROW), row.getBytes(COL));
                 Sha256Hash rowHash = Sha256Hash.computeHash(cell.getRowName());
                 cellsByRow.get(rowHash).add(cell);
                 Long overflowId = hasOverflow ? row.getLongObject("overflow") : null;
                 if (overflowId == null) {
-                    Value value = Value.create(row.getBytes("val"), row.getLong("ts"));
+                    Value value = Value.create(row.getBytes(VAL), row.getLong(TIMESTAMP));
                     Value oldValue = values.put(cell, value);
                     if (oldValue != null && oldValue.getTimestamp() > value.getTimestamp()) {
                         values.put(cell, oldValue);
                     }
                 } else {
-                    OverflowValue ov = ImmutableOverflowValue.of(row.getLong("ts"), overflowId);
+                    OverflowValue ov = ImmutableOverflowValue.of(row.getLong(TIMESTAMP), overflowId);
                     OverflowValue oldOv = overflowValues.put(cell, ov);
                     if (oldOv != null && oldOv.ts() > ov.ts()) {
                         overflowValues.put(cell, oldOv);
@@ -969,7 +1028,7 @@ public class DbKvs extends AbstractKeyValueService {
                     AgnosticLightResultRow row = overflowIter.next();
                     // QA-94468 LONG RAW typed columns ("val" in this case) must be retrieved first from the result set
                     // see https://docs.oracle.com/cd/B19306_01/java.102/b14355/jstreams.htm#i1007581
-                    byte[] val = row.getBytes("val");
+                    byte[] val = row.getBytes(VAL);
                     long id = row.getLong("id");
                     resolvedOverflowValues.put(id, val);
                 }
@@ -1012,7 +1071,7 @@ public class DbKvs extends AbstractKeyValueService {
                     dbReadTable.getRowsColumnRangeCounts(rowList, timestamp, columnRangeSelection)) {
                 while (iter.hasNext()) {
                     AgnosticLightResultRow row = iter.next();
-                    Sha256Hash rowHash = Sha256Hash.computeHash(row.getBytes("row_name"));
+                    Sha256Hash rowHash = Sha256Hash.computeHash(row.getBytes(ROW));
                     counts.put(rowHash, row.getInteger("column_count"));
                 }
             }
@@ -1135,8 +1194,8 @@ public class DbKvs extends AbstractKeyValueService {
             Multimap<Cell, Long> results = ArrayListMultimap.create();
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
-                Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
-                long ts = row.getLong("ts");
+                Cell cell = Cell.create(row.getBytes(ROW), row.getBytes(COL));
+                long ts = row.getLong(TIMESTAMP);
                 results.put(cell, ts);
             }
             return results;
@@ -1228,6 +1287,17 @@ public class DbKvs extends AbstractKeyValueService {
         }
     }
 
+    private <T> T runReadWrite(TableReference tableRef, ReadWriteTask<T> runner) {
+        ConnectionSupplier conns = new ConnectionSupplier(connections);
+        try {
+            return runner.run(
+                    dbTables.createRead(tableRef, conns),
+                    dbTables.createWrite(tableRef, conns));
+        } finally {
+            conns.close();
+        }
+    }
+
     private <T> T runWriteForceAutocommit(TableReference tableRef, Function<DbWriteTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
@@ -1290,5 +1360,9 @@ public class DbKvs extends AbstractKeyValueService {
         return Optional.ofNullable(batchHint)
                 .map(x -> (int) (1.1 * x))
                 .orElse(100);
+    }
+
+    private interface ReadWriteTask<T> {
+        T run(DbReadTable readTable, DbWriteTable writeTable);
     }
 }

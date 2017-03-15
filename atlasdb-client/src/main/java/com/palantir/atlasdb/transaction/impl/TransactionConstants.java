@@ -39,7 +39,6 @@ public class TransactionConstants {
     public static final long FAILED_COMMIT_TS = -1L;
 
     public static final long WARN_LEVEL_FOR_QUEUED_BYTES = 10*1024*1024;
-    public static final long ERROR_LEVEL_FOR_QUEUED_BYTES = 10*WARN_LEVEL_FOR_QUEUED_BYTES;
 
     public static final long APPROX_IN_MEM_CELL_OVERHEAD_BYTES = 16;
 

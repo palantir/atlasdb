@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class TwoColumnsTable implements
         AtlasDbMutablePersistentTable<TwoColumnsTable.TwoColumnsRow,
                                          TwoColumnsTable.TwoColumnsNamedColumnValue<?>,
@@ -667,7 +668,7 @@ public final class TwoColumnsTable implements
     }
 
     @Override
-    public void delete(Iterable<? extends TwoColumnsRow> rows) {
+    public void delete(Iterable<TwoColumnsRow> rows) {
         Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> result = getRowsMultimap(rows);
         deleteFooToIdCondIdx(result);
         deleteFooToIdIdx(result);
@@ -745,7 +746,7 @@ public final class TwoColumnsTable implements
     }
 
     @Override
-    public Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getRowsMultimap(Iterable<? extends TwoColumnsRow> rows) {
+    public Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getRowsMultimap(Iterable<TwoColumnsRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -771,7 +772,7 @@ public final class TwoColumnsTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends TwoColumnsRow> rows, ColumnSelection columns) {
+    private Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getRowsMultimapInternal(Iterable<TwoColumnsRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -891,6 +892,7 @@ public final class TwoColumnsTable implements
     }
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+    @SuppressWarnings("all")
     public static final class FooToIdCondIdxTable implements
             AtlasDbDynamicMutablePersistentTable<FooToIdCondIdxTable.FooToIdCondIdxRow,
                                                     FooToIdCondIdxTable.FooToIdCondIdxColumn,
@@ -1442,7 +1444,7 @@ public final class TwoColumnsTable implements
         }
 
         @Override
-        public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getRowsMultimap(Iterable<? extends FooToIdCondIdxRow> rows) {
+        public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getRowsMultimap(Iterable<FooToIdCondIdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -1468,7 +1470,7 @@ public final class TwoColumnsTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getRowsMultimapInternal(Iterable<? extends FooToIdCondIdxRow> rows, ColumnSelection columns) {
+        private Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getRowsMultimapInternal(Iterable<FooToIdCondIdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -1544,6 +1546,7 @@ public final class TwoColumnsTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+    @SuppressWarnings("all")
     public static final class FooToIdIdxTable implements
             AtlasDbDynamicMutablePersistentTable<FooToIdIdxTable.FooToIdIdxRow,
                                                     FooToIdIdxTable.FooToIdIdxColumn,
@@ -2104,7 +2107,7 @@ public final class TwoColumnsTable implements
         }
 
         @Override
-        public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getRowsMultimap(Iterable<? extends FooToIdIdxRow> rows) {
+        public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getRowsMultimap(Iterable<FooToIdIdxRow> rows) {
             return getRowsMultimapInternal(rows, allColumns);
         }
 
@@ -2130,7 +2133,7 @@ public final class TwoColumnsTable implements
             return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
-        private Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getRowsMultimapInternal(Iterable<? extends FooToIdIdxRow> rows, ColumnSelection columns) {
+        private Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getRowsMultimapInternal(Iterable<FooToIdIdxRow> rows, ColumnSelection columns) {
             SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
@@ -2291,5 +2294,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lEHDqlc+AZAiVBpItKn3Sw==";
+    static String __CLASS_HASH = "XlnDML5kDOS0MZI8cpul2g==";
 }

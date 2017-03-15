@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class StreamTestMaxMemStreamHashAidxTable implements
         AtlasDbDynamicMutablePersistentTable<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow,
                                                 StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxColumn,
@@ -581,7 +582,7 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
     }
 
     @Override
-    public Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> getRowsMultimap(Iterable<? extends StreamTestMaxMemStreamHashAidxRow> rows) {
+    public Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> getRowsMultimap(Iterable<StreamTestMaxMemStreamHashAidxRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -607,7 +608,7 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> getRowsMultimapInternal(Iterable<? extends StreamTestMaxMemStreamHashAidxRow> rows, ColumnSelection columns) {
+    private Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> getRowsMultimapInternal(Iterable<StreamTestMaxMemStreamHashAidxRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -766,5 +767,5 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "4oOKtcl+yNpeqCk6gZwZwA==";
+    static String __CLASS_HASH = "MHr7UG3rpK2+515x39xa0A==";
 }

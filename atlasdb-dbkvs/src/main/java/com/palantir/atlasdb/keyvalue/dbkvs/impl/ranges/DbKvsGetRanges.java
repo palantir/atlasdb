@@ -42,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.PrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
@@ -116,11 +117,9 @@ public class DbKvsGetRanges {
         Object[] args = argsList.toArray();
 
         TimingState timer = logTimer.begin("Table: " + tableRef.getQualifiedName() + " get_page");
-        final SqlConnection conn = connectionSupplier.get();
         try {
-            return getFirstPagesFromDb(tableRef, requests, timestamp, conn, query, args);
+            return getFirstPagesFromDb(tableRef, requests, timestamp, query, args);
         } finally {
-            closeSql(conn);
             timer.end();
         }
     }
@@ -129,10 +128,9 @@ public class DbKvsGetRanges {
             TableReference tableRef,
             List<RangeRequest> requests,
             long timestamp,
-            final SqlConnection conn,
             String query,
             Object[] args) {
-        SortedSetMultimap<Integer, byte[]> rowsForBatches = getRowsForBatches(conn, query, args);
+        SortedSetMultimap<Integer, byte[]> rowsForBatches = getRowsForBatches(connectionSupplier, query, args);
         Map<Cell, Value> cells = kvs.getRows(tableRef, rowsForBatches.values(),
                 ColumnSelection.all(), timestamp);
         NavigableMap<byte[], SortedMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(cells);
@@ -141,22 +139,27 @@ public class DbKvsGetRanges {
     }
 
     private static SortedSetMultimap<Integer, byte[]> getRowsForBatches(
-            SqlConnection connection,
+            Supplier<SqlConnection> connectionSupplier,
             String query,
             Object[] args) {
-        AgnosticResultSet results = connection.selectResultSetUnregisteredQuery(query, args);
-        SortedSetMultimap<Integer, byte[]> ret = TreeMultimap.create(
-                Ordering.natural(),
-                UnsignedBytes.lexicographicalComparator());
-        for (AgnosticResultRow row : results.rows()) {
-            @SuppressWarnings("deprecation")
-            byte[] rowName = row.getBytes("row_name");
-            int batchNum = row.getInteger("batch_num");
-            if (rowName != null) {
-                ret.put(batchNum, rowName);
+        SqlConnection connection = connectionSupplier.get();
+        try {
+            AgnosticResultSet results = connection.selectResultSetUnregisteredQuery(query, args);
+            SortedSetMultimap<Integer, byte[]> ret = TreeMultimap.create(
+                    Ordering.natural(),
+                    UnsignedBytes.lexicographicalComparator());
+            for (AgnosticResultRow row : results.rows()) {
+                @SuppressWarnings("deprecation")
+                byte[] rowName = row.getBytes("row_name");
+                int batchNum = row.getInteger("batch_num");
+                if (rowName != null) {
+                    ret.put(batchNum, rowName);
+                }
             }
+            return ret;
+        } finally {
+            closeSql(connection);
         }
-        return ret;
     }
 
     private Pair<String, List<Object>> getRangeQueryAndArgs(
@@ -190,23 +193,25 @@ public class DbKvsGetRanges {
         }
 
         String order = reverse ? "DESC" : "ASC";
-        if (numRowsToGet == 1) {
-            String minMax = reverse ? "max" : "min";
-            // QA-69854 Special case 1 row reads because oracle is terrible at optimizing queries
-            String query = dbType == DBType.ORACLE
-                    ? getSimpleRowSelectOneQueryOracle(tableRef, minMax, extraWhere)
-                    : getSimpleRowSelectOneQueryPostgres(tableRef, extraWhere, order);
-            return Pair.create(query, args);
-        } else {
-            String query = String.format(
-                    SIMPLE_ROW_SELECT_TEMPLATE,
-                    DbKvs.internalTableName(tableRef),
-                    getPrimaryKeyConstraintName(tableRef),
-                    getPrefixedTableName(tableRef),
-                    extraWhere,
-                    order);
-            String limitQuery = BasicSQLUtils.limitQuery(query, numRowsToGet, args, dbType);
-            return Pair.create(limitQuery, args);
+        try (ConnectionSupplier conns = new ConnectionSupplier(connectionSupplier)) {
+            if (numRowsToGet == 1) {
+                String minMax = reverse ? "max" : "min";
+                // QA-69854 Special case 1 row reads because oracle is terrible at optimizing queries
+                String query = dbType == DBType.ORACLE
+                        ? getSimpleRowSelectOneQueryOracle(tableRef, minMax, extraWhere, conns)
+                        : getSimpleRowSelectOneQueryPostgres(tableRef, extraWhere, order, conns);
+                return Pair.create(query, args);
+            } else {
+                String query = String.format(
+                        SIMPLE_ROW_SELECT_TEMPLATE,
+                        DbKvs.internalTableName(tableRef),
+                        getPrimaryKeyConstraintName(tableRef, conns),
+                        getPrefixedTableName(tableRef, conns),
+                        extraWhere,
+                        order);
+                String limitQuery = BasicSQLUtils.limitQuery(query, numRowsToGet, args, dbType);
+                return Pair.create(limitQuery, args);
+            }
         }
     }
     /**
@@ -301,11 +306,12 @@ public class DbKvsGetRanges {
     private String getSimpleRowSelectOneQueryPostgres(
             TableReference tableRef,
             String extraWhere,
-            String order) {
+            String order,
+            ConnectionSupplier conns) {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE,
                 DbKvs.internalTableName(tableRef),
-                getPrefixedTableName(tableRef),
+                getPrefixedTableName(tableRef, conns),
                 extraWhere,
                 order);
     }
@@ -313,22 +319,23 @@ public class DbKvsGetRanges {
     private String getSimpleRowSelectOneQueryOracle(
             TableReference tableRef,
             String minMax,
-            String extraWhere) {
+            String extraWhere,
+            ConnectionSupplier conns) {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_ORACLE_TEMPLATE,
                 DbKvs.internalTableName(tableRef),
-                getPrimaryKeyConstraintName(tableRef),
+                getPrimaryKeyConstraintName(tableRef, conns),
                 minMax,
-                getPrefixedTableName(tableRef),
+                getPrefixedTableName(tableRef, conns),
                 extraWhere);
     }
 
-    private String getPrimaryKeyConstraintName(TableReference tableRef) {
-        return PrimaryKeyConstraintNames.get(getPrefixedTableName(tableRef));
+    private String getPrimaryKeyConstraintName(TableReference tableRef, ConnectionSupplier conns) {
+        return PrimaryKeyConstraintNames.get(getPrefixedTableName(tableRef, conns));
     }
 
-    private String getPrefixedTableName(TableReference tableRef) {
-        return prefixedTableNames.get(tableRef);
+    private String getPrefixedTableName(TableReference tableRef, ConnectionSupplier conns) {
+        return prefixedTableNames.get(tableRef, conns);
     }
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =

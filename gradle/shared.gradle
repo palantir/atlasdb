@@ -18,6 +18,9 @@ repositories {
     maven {
         url 'http://dl.bintray.com/palantir/releases/'
     }
+    maven {
+        url 'https://dl.bintray.com/marshallpierce/maven/'
+    }
 }
 
 checkstyle {
@@ -27,6 +30,15 @@ checkstyle {
 
 jacoco {
     toolVersion = libVersions.jacoco
+}
+
+jar {
+    manifest {
+        attributes(
+                "Implementation-Title"   : project.name,
+                "Implementation-Version" : project.version,
+                "Implementation-Vendor"  : "Palantir Technologies, Inc.")
+    }
 }
 
 libsDirName = file('build/artifacts')

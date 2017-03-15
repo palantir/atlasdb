@@ -88,10 +88,7 @@
             ]
         },
         "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
+            "locked": "1.0.3"
         },
         "commons-io:commons-io": {
             "locked": "2.1"
@@ -220,10 +217,7 @@
             ]
         },
         "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
+            "locked": "1.0.3"
         },
         "commons-io:commons-io": {
             "locked": "2.1"

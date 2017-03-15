@@ -17,18 +17,18 @@ package com.palantir.atlasdb.keyvalue.remoting;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.Collection;
 
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
-import com.google.common.collect.Iterables;
+import com.palantir.common.remoting.HeaderAccessUtils;
 
 import feign.FeignException;
-import feign.codec.DecodeException;
 import feign.codec.Decoder;
 
 public final class OctetStreamDelegateDecoder implements Decoder {
+    private static final String CONTENT_TYPE = HttpHeaders.CONTENT_TYPE.toLowerCase();
+
     private final Decoder delegate;
 
     public OctetStreamDelegateDecoder(Decoder delegate) {
@@ -36,11 +36,11 @@ public final class OctetStreamDelegateDecoder implements Decoder {
     }
 
     @Override
-    public Object decode(feign.Response response, Type type) throws IOException, DecodeException, FeignException {
-        Collection<String> contentTypes = response.headers().get(HttpHeaders.CONTENT_TYPE);
-        if (contentTypes != null
-                && contentTypes.size() == 1
-                && Iterables.getOnlyElement(contentTypes, "").equals(MediaType.APPLICATION_OCTET_STREAM)) {
+    public Object decode(feign.Response response, Type type) throws IOException, FeignException {
+        if (HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(
+                response.headers(),
+                CONTENT_TYPE,
+                MediaType.APPLICATION_OCTET_STREAM)) {
             if (response.body() == null || response.body().length() == null) {
                 return null;
             }

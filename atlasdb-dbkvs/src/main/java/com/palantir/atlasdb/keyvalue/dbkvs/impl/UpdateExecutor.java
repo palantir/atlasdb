@@ -44,9 +44,9 @@ public class UpdateExecutor {
                 oldValue
         };
 
-        String tableName = prefixedTableNames.get(tableRef);
-        String sqlString = "/* UPDATE (" + tableName + ") */"
-                + " UPDATE " + tableName + ""
+        String prefixedTableName = prefixedTableNames.get(tableRef, conns);
+        String sqlString = "/* UPDATE (" + prefixedTableName + ") */"
+                + " UPDATE " + prefixedTableName + ""
                 + " SET row_name = ?, col_name = ?, ts = ?, val = ?"
                 + " WHERE row_name = ?"
                 + " AND col_name = ?"
@@ -55,7 +55,7 @@ public class UpdateExecutor {
         int updated = ((PalantirSqlConnection) conns.get()).updateCountRowsUnregisteredQuery(sqlString,
                 args);
         if (updated == 0) {
-            // TODO use RETURNING syntax above to get the actual value back
+            // right now we don't know what's actually in the db :-(
             throw new CheckAndSetException(cell, tableRef, oldValue, ImmutableList.of());
         }
     }

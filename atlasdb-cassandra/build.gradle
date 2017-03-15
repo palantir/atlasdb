@@ -18,11 +18,14 @@ dependencies {
   compile 'org.apache.commons:commons-pool2:2.4.2'
 
   compile group: 'com.palantir.remoting', name: 'ssl-config'
+  compile group: 'com.palantir.remoting1', name: 'tracing'
 
   compile group: 'com.google.code.findbugs', name: 'annotations'
 
+  testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
+  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'

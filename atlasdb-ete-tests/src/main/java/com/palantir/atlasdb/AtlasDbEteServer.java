@@ -33,6 +33,7 @@ import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
@@ -56,6 +57,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void initialize(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
+        bootstrap.setMetricRegistry(MetricRegistries.createWithHdrHistogramReservoirs());
         enableEnvironmentVariablesInConfig(bootstrap);
         bootstrap.addBundle(new AtlasDbBundle<>());
     }

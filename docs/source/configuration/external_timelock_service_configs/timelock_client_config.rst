@@ -3,11 +3,6 @@
 Timelock Client Configuration
 =============================
 
-.. danger::
-
-   Improperly configuring one's cluster to use external timestamp and lock services can result in **SEVERE DATA
-   CORRUPTION**! Please contact the AtlasDB team before you configure your clients to use this.
-
 You will need to update your AtlasDB configuration in order to have said clients request timestamps and locks from
 external Timelock Servers as opposed to their embedded services. This is an extension of the leader block configuration
 options discussed at :ref:`leader-config`.

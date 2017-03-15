@@ -1177,27 +1177,31 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void truncateTables(final Set<TableReference> tablesToTruncate) {
         if (!tablesToTruncate.isEmpty()) {
             try {
-                clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
-                    @Override
-                    public Void apply(Client client) throws Exception {
-                        for (TableReference tableRef : tablesToTruncate) {
-                            truncateInternal(client, tableRef);
-                        }
-                        return null;
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "truncateTables(" + tablesToTruncate.size() + " tables)";
-                    }
-                });
+                runTruncateInternal(tablesToTruncate);
             } catch (UnavailableException e) {
                 throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
-            } catch (Exception e) {
+            } catch (TException e) {
                 throw Throwables.throwUncheckedException(e);
             }
         }
+    }
+
+    private void runTruncateInternal(final Set<TableReference> tablesToTruncate) throws TException {
+        clientPool.run(new FunctionCheckedException<Client, Void, TException>() {
+            @Override
+            public Void apply(Client client) throws TException {
+                for (TableReference tableRef : tablesToTruncate) {
+                    truncateInternal(client, tableRef);
+                }
+                return null;
+            }
+
+            @Override
+            public String toString() {
+                return "truncateTables(" + tablesToTruncate.size() + " tables)";
+            }
+        });
     }
 
     private void truncateInternal(Client client, TableReference tableRef) throws TException {
@@ -1898,6 +1902,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 ts);
 
         delete(AtlasDbConstants.DEFAULT_METADATA_TABLE, oldVersions);
+    }
+
+
+    @Override
+    public void deleteRange(final TableReference tableRef, final RangeRequest range) {
+        if (range.equals(RangeRequest.all())) {
+            try {
+                runTruncateInternal(ImmutableSet.of(tableRef));
+            } catch (TException e) {
+                log.info("Tried to make a deleteRange({}, RangeRequest.all())"
+                        + " into a more garbage-cleanup friendly truncate(), but this failed.", tableRef, e);
+
+                super.deleteRange(tableRef, range);
+            }
+        } else {
+            super.deleteRange(tableRef, range);
+        }
     }
 
     /**

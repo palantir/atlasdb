@@ -34,8 +34,8 @@ import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.performance.benchmarks.table.ModeratelyWideRowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.Tables;
-import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 
 /**
  * Performance benchmarks for KVS get with dynamic columns.
@@ -47,28 +47,28 @@ import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 public class TransactionGetDynamicBenchmarks {
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
-    public Object getAllColumnsExplicitly(WideRowTable table) {
+    @Warmup(time = 25, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 180, timeUnit = TimeUnit.SECONDS)
+    public Object getAllColumnsExplicitly(ModeratelyWideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), table.getAllCells());
-            Preconditions.checkState(result.values().size() == WideRowTable.NUM_COLS,
-                    "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, result.values().size());
+            Preconditions.checkState(result.values().size() == table.getNumCols(),
+                    "Should be %s columns, but were: %s", table.getNumCols(), result.values().size());
             return result;
         });
     }
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
-    public Object getAllColumnsImplicitly(WideRowTable table) {
+    @Warmup(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 65, timeUnit = TimeUnit.SECONDS)
+    public Object getAllColumnsImplicitly(ModeratelyWideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(table.getTableRef(),
                     Collections.singleton(Tables.ROW_BYTES.array()),
                     ColumnSelection.all());
             int count = Iterables.getOnlyElement(result.values()).getColumns().size();
-            Preconditions.checkState(count == WideRowTable.NUM_COLS,
-                    "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, count);
+            Preconditions.checkState(count == table.getNumCols(),
+                    "Should be %s columns, but were: %s", table.getNumCols(), count);
             return result;
         });
     }
@@ -76,7 +76,7 @@ public class TransactionGetDynamicBenchmarks {
     @Benchmark
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
-    public Object getFirstColumnExplicitly(WideRowTable table) {
+    public Object getFirstColumnExplicitly(ModeratelyWideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), table.getFirstCellAsSet());
             Preconditions.checkState(result.values().size() == 1,
@@ -90,7 +90,7 @@ public class TransactionGetDynamicBenchmarks {
     @Benchmark
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
-    public Object getFirstColumnExplicitlyGetRows(WideRowTable table) {
+    public Object getFirstColumnExplicitlyGetRows(ModeratelyWideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(table.getTableRef(),
                     Collections.singleton(Tables.ROW_BYTES.array()),

@@ -71,10 +71,7 @@
             "project": true
         },
         "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
+            "locked": "1.0.3"
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
@@ -94,15 +91,6 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
-        },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
-            "transitive": [
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3"
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
@@ -185,10 +173,7 @@
             "project": true
         },
         "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
+            "locked": "1.0.3"
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
@@ -208,15 +193,6 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
-        },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
-            "transitive": [
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3"
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",

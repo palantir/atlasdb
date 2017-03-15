@@ -376,12 +376,12 @@ public final class TableTasks {
         };
     }
 
-    private static Iterable<Cell> asCells(final Iterable<? extends RowResult<byte[]>> results) {
+    private static Iterable<Cell> asCells(final Iterable<RowResult<byte[]>> results) {
         return new Iterable<Cell>() {
             @Override
             public Iterator<Cell> iterator() {
                 return new AbstractIterator<Cell>() {
-                    private final Iterator<? extends RowResult<byte[]>> outerIter = results.iterator();
+                    private final Iterator<RowResult<byte[]>> outerIter = results.iterator();
                     private byte[] row = null;
                     private Iterator<byte[]> innerIter = null;
                     @Override

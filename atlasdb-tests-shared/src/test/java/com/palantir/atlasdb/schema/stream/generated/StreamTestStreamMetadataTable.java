@@ -87,6 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class StreamTestStreamMetadataTable implements
         AtlasDbMutablePersistentTable<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow,
                                          StreamTestStreamMetadataTable.StreamTestStreamMetadataNamedColumnValue<?>,
@@ -488,7 +489,7 @@ public final class StreamTestStreamMetadataTable implements
     }
 
     @Override
-    public void delete(Iterable<? extends StreamTestStreamMetadataRow> rows) {
+    public void delete(Iterable<StreamTestStreamMetadataRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("md")));
@@ -562,7 +563,7 @@ public final class StreamTestStreamMetadataTable implements
     }
 
     @Override
-    public Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<? extends StreamTestStreamMetadataRow> rows) {
+    public Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestStreamMetadataRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
@@ -588,7 +589,7 @@ public final class StreamTestStreamMetadataTable implements
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<? extends StreamTestStreamMetadataRow> rows, ColumnSelection columns) {
+    private Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<StreamTestStreamMetadataRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
@@ -741,5 +742,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "xj5jbxU9xwb6ECyXymcWTQ==";
+    static String __CLASS_HASH = "Qx7obXOkxtXCYfdkwXoVkw==";
 }

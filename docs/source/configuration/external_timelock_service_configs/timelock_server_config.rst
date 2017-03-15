@@ -10,6 +10,8 @@ these may be configured in turn, as well as additional configuration parameters.
 .. contents::
    :local:
 
+.. _timelock-server-clients:
+
 Clients
 -------
 
@@ -133,5 +135,37 @@ Further Configuration Parameters
 --------------------------------
 
 The Timelock Server is implemented as a Dropwizard application, and may thus be suitably configured with a ``server``
-block following `Dropwizard's configuration <http://www.dropwizard.io/0.9.3/docs/manual/configuration.html>`__. This
+block following `Dropwizard's configuration <http://www.dropwizard.io/1.0.6/docs/manual/configuration.html>`__. This
 may be useful if, for example, one needs to change the application and/or admin ports for the Timelock Server.
+
+.. _timelock-server-config-http2:
+
+Configuring HTTP/2
+~~~~~~~~~~~~~~~~~~
+
+`HTTP/2 <https://http2.github.io/>`__ is a newer version of the HTTP protocol that supports, among other features, connection multiplexing. This is
+extremely useful in improving the latency of timestamp and lock requests, which are usually fairly small.
+Timelock Server is compatible with HTTP/2 as of AtlasDB v0.34.0; to configure this, one should change the protocol
+used by the Dropwizard application and admin connectors to ``h2`` instead of ``https``. For example, this block can be
+added to the root of the Timelock server configuration:
+
+.. code:: yaml
+
+   server:
+     applicationConnectors:
+       - type: h2
+         port: 8421
+     adminConnectors:
+       - type: h2
+         port: 8422
+
+Note that because Timelock Server uses the OkHttp library, it is currently not compatible with HTTP/2 via cleartext
+(the ``h2c`` protocol).
+
+.. warning::
+
+   Although HTTP/2 does offer a performance boost with connection multiplexing, it also mandates that the Galois/Counter
+   Mode (GCM) cipher-suites are used, which suffer from a relatively unperformant implementation in the Oracle JDK.
+   Thus, clients that are unable to use HTTP/2 may see a significant slowdown when the Timelock Server switches from an
+   ``https`` connector to an ``h2`` connector. It may be possible to get around this by exposing multiple application
+   connectors, though the AtlasDB team has not tested this approach.
