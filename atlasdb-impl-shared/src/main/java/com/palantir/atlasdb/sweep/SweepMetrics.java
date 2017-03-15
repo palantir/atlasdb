@@ -24,7 +24,7 @@ import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
-final class SweepMetrics {
+class SweepMetrics {
     private static final String AGGREGATE_DELETES = "totalDeletesInLastDay";
     private static final String AGGREGATE_DELETES_METRIC = MetricRegistry.name(SweepMetrics.class, AGGREGATE_DELETES);
     private static final String PER_TABLE_DELETES = "deletesInLastWeek";
@@ -37,7 +37,7 @@ final class SweepMetrics {
         return sweepMetrics;
     }
 
-    private SweepMetrics(MetricRegistry metricRegistry) {
+    protected SweepMetrics(MetricRegistry metricRegistry) {
         this.metricRegistry = metricRegistry;
     }
 

@@ -82,7 +82,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private final Supplier<Integer> sweepCellBatchSize;
     private final SweepTableFactory tableFactory;
     private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
-    private final SweepMetrics sweepMetrics = SweepMetrics.create();
+    private final SweepMetrics sweepMetrics;
 
     private volatile float batchSizeMultiplier = 1.0f;
     private Thread daemon;
@@ -101,7 +101,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Integer> sweepBatchSize,
             Supplier<Integer> sweepCellBatchSize,
             SweepTableFactory tableFactory,
-            BackgroundSweeperPerformanceLogger sweepPerfLogger) {
+            BackgroundSweeperPerformanceLogger sweepPerfLogger,
+            SweepMetrics sweepMetrics) {
         this.txManager = txManager;
         this.kvs = kvs;
         this.sweepRunner = sweepRunner;
@@ -111,6 +112,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         this.sweepCellBatchSize = sweepCellBatchSize;
         this.tableFactory = tableFactory;
         this.sweepPerfLogger = sweepPerfLogger;
+        this.sweepMetrics = sweepMetrics;
     }
 
     public static BackgroundSweeperImpl create(
@@ -124,8 +126,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger) {
 
-
-        BackgroundSweeperImpl sweeper = new BackgroundSweeperImpl(txManager,
+        SweepMetrics sweepMetrics = SweepMetrics.create();
+        return new BackgroundSweeperImpl(txManager,
                 kvs,
                 sweepRunner,
                 isSweepEnabled,
@@ -133,8 +135,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 sweepBatchSize,
                 sweepCellBatchSize,
                 tableFactory,
-                sweepPerfLogger);
-        return sweeper;
+                sweepPerfLogger,
+                sweepMetrics);
     }
 
     @Override

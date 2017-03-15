@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import static org.mockito.Mockito.atLeastOnce;
+
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -23,6 +25,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -82,6 +85,7 @@ public abstract class AbstractSweeperTest {
     protected BackgroundSweeperImpl backgroundSweeper;
     protected LockService lockService;
     protected TransactionService txService;
+    protected SweepMetrics sweepMetrics = Mockito.mock(SweepMetrics.class);
 
     @Before
     public void setup() {
@@ -127,9 +131,10 @@ public abstract class AbstractSweeperTest {
         Supplier<Long> sweepNoPause = () -> 0L;
         Supplier<Integer> batchSizeSupplier = () -> batchSize;
         Supplier<Integer> cellBatchSizeSupplier = () -> DEFAULT_CELL_BATCH_SIZE;
+
         backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause,
                 batchSizeSupplier, cellBatchSizeSupplier, SweepTableFactory.of(),
-                new NoOpBackgroundSweeperPerformanceLogger());
+                new NoOpBackgroundSweeperPerformanceLogger(), sweepMetrics);
     }
 
     @After
@@ -523,6 +528,18 @@ public abstract class AbstractSweeperTest {
         for (SweepPriorityRowResult result : results) {
             Assert.assertEquals(Long.valueOf(Long.MIN_VALUE), result.getMinimumSweptTimestamp());
         }
+    }
+
+    @Test
+    public void testBackgroundSweeperSendsMetrics() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        putIntoDefaultColumn("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "bang", 75);
+        putIntoDefaultColumn("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "buzz", 125);
+        runBackgroundSweep(150, 3);
+
+        Mockito.verify(sweepMetrics, atLeastOnce()).recordMetrics(TABLE_NAME, 3);
     }
 
     @Test
