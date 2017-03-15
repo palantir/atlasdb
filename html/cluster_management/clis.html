@@ -190,7 +190,8 @@ tasks as well as help resolve problems encountered during operation.</p>
 </div>
 <div class="section" id="download-the-cli">
 <h2>Download The CLI<a class="headerlink" href="#download-the-cli" title="Permalink to this headline">¶</a></h2>
-<p>The CLI now comes prebuild as an SLS distribution to be used with any AtlasDB back product.  You can find the versions <a class="reference external" href="https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/">here</a> for download.
+<p>The CLI now comes prebuilt as an SLS distribution to be used with any AtlasDB-backed product.
+You can find the versions <a class="reference external" href="https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/">here</a> for download.
 You can use the CLI by unpacking the tar ball and running the executable in <code class="docutils literal"><span class="pre">service/bin/atlasdb-cli</span></code>.</p>
 </div>
 <div class="section" id="compiling-the-cli">
@@ -230,7 +231,7 @@ For more information run <code class="docutils literal"><span class="pre">./bin/
 </div>
 <div class="section" id="offline-clis">
 <span id="id1"></span><h2>Offline CLIs<a class="headerlink" href="#offline-clis" title="Permalink to this headline">¶</a></h2>
-<p>Due to their potentially destructive nature if run concurrently with active AtlasDB services, there a number of CLIs which can only be run when AtlasDB is offline. These are:</p>
+<p>Due to their potentially destructive nature if run concurrently with active AtlasDB services, there are a number of CLIs which can only be run when AtlasDB is offline. These are:</p>
 <blockquote>
 <div><ul class="simple">
 <li><code class="docutils literal"><span class="pre">clean-cass-locks-state</span></code></li>
@@ -241,11 +242,16 @@ For more information run <code class="docutils literal"><span class="pre">./bin/
 </div></blockquote>
 <p>To run these CLIs, first ensure that all of your AtlasDB clients are shut down, and then run the CLI with the <code class="docutils literal"><span class="pre">--offline</span></code> flag.</p>
 <p>For example, to run the <code class="docutils literal"><span class="pre">fast-forward</span></code> command with default settings, run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">--offline</span> <span class="pre">-c</span> <span class="pre">&lt;path/to/atlasConfig.yaml&gt;</span> <span class="pre">timestamp</span> <span class="pre">-t</span> <span class="pre">&lt;targetTimestamp&gt;</span> <span class="pre">fast-forward</span></code>.</p>
-<p>The <code class="docutils literal"><span class="pre">--offline</span></code> flag will make the CLI ignore the leader, timestamp, and lock configuration blocks, and start an embedded timestamp and lock server.
+<p>The <code class="docutils literal"><span class="pre">--offline</span></code> flag will make the CLI ignore the leader, timestamp, and lock configuration blocks.
+If using <a class="reference internal" href="../services/timelock_service/index.html#external-timelock-service"><span class="std std-ref">external Timelock Services</span></a>, the Timelock Servers must be up even when running offline CLIs.
+Otherwise, offline CLIs will start an embedded timestamp and lock server.
 Once the CLI has completed, you can resume your AtlasDB clients.</p>
 <div class="section" id="running-commands-without-any-servers-being-up">
 <h3>Running commands without any servers being up<a class="headerlink" href="#running-commands-without-any-servers-being-up" title="Permalink to this headline">¶</a></h3>
-<p>If you want a command to run without any servers being up, you can either use the <code class="docutils literal"><span class="pre">--offline</span></code> flag, or pass in a configuration file without leader, lock, or timestamp blocks. Either option will start an embedded timestamp and lock server.</p>
+<p>If you want a command to run without any servers being up, you can either use the <code class="docutils literal"><span class="pre">--offline</span></code> flag, or pass in a configuration file without leader, lock, or timestamp blocks.
+Either option will start an embedded timestamp and lock server.
+Note that if you are using external Timelock Services, as stated above we require the Timelock Services to be up when running offline CLIs.
+We do not support running CLIs with Timelock down, as we will not have enough information from the key-value services to determine timestamps.</p>
 </div>
 </div>
 <div class="section" id="writing-your-own">

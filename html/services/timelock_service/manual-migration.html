@@ -110,6 +110,7 @@
 <li class="toctree-l3"><a class="reference internal" href="migration.html">Migration to Timelock Server</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Manual Migration to Timelock Server</a></li>
 <li class="toctree-l3"><a class="reference internal" href="product-changes.html">Developing a product to use the timelock service</a></li>
+<li class="toctree-l3"><a class="reference internal" href="paxos.html">Paxos and AtlasDB</a></li>
 </ul>
 </li>
 </ul>
@@ -255,7 +256,10 @@ follows (where <code class="docutils literal"><span class="pre">test</span></cod
 <blockquote class="last">
 <div><ul class="simple">
 <li>If <code class="docutils literal"><span class="pre">TS</span></code> entered is too large, there will generally not be adverse consequences (apart from risks of <code class="docutils literal"><span class="pre">long</span></code>
-overflow), but...</li>
+overflow). If this is indeed a concern (e.g. there was an accidental fast-forward to <code class="docutils literal"><span class="pre">Long.MAX_VALUE</span></code>), then
+one can proceed by shutting down the Timelock server, deleting the Paxos data directories for the client
+concerned (which resets the client timestamp to zero), restarting the Timelock server and attempting the
+fast-forward again.</li>
 <li>If <code class="docutils literal"><span class="pre">TS</span></code> entered is too small and AtlasDB clients are restarted without rectifying this, this can result in
 <strong>SEVERE DATA CORRUPTION</strong> because we lose the guarantee that timestamps are monotonically increasing.
 As fast-forward is idempotent (it sets the timestamp to be the maximum of its current value and the
@@ -283,14 +287,19 @@ For example, for Postgres:</p>
 </div>
 </div></blockquote>
 </li>
-<li><p class="first">If using Cassandra, one method of invalidating the table is to overwrite the timestamp bound record with the
-empty byte array (consider using <code class="docutils literal"><span class="pre">cqlsh</span></code> to do this). This table is stored in the same keyspace that your
+<li><p class="first">If using Cassandra, one method of invalidating the table is to overwrite the timestamp bound record with an invalid
+byte array. We recommend using a bogus one-byte array for this; the zero byte array is a deletion sentinel, and
+if supplying byte arrays longer than 8 bytes, we will interpret the first 8 bytes as the timestamp bound.
+Automated migration is implemented in this way as well (though we use Cassandra&#8217;s lightweight transactions for
+the automated migration, to be resilient to server lag when restarting an AtlasDB client&#8217;s cluster with a Timelock
+block for the first time).
+This can be done easily using <code class="docutils literal"><span class="pre">cqlsh</span></code>. The timestamp table is stored in the same keyspace that your
 AtlasDB client uses for its key-value service.</p>
 <blockquote>
 <div><div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">SELECT</span> <span class="o">*</span> <span class="n">FROM</span> <span class="n">atlasdb</span><span class="o">.</span><span class="s2">&quot;_timestamp&quot;</span><span class="p">;</span>
 <span class="o">&lt;</span><span class="n">note</span> <span class="n">the</span> <span class="n">value</span> <span class="n">returned</span> <span class="n">by</span> <span class="n">this</span> <span class="o">-</span> <span class="n">call</span> <span class="n">this</span> <span class="n">K</span><span class="o">&gt;</span>
-<span class="n">INSERT</span> <span class="n">INTO</span> <span class="n">atlasdb</span><span class="o">.</span><span class="s2">&quot;_timestamp&quot;</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">column1</span><span class="p">,</span> <span class="n">column2</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="n">VALUES</span> <span class="p">(</span><span class="mh">0x7472</span><span class="p">,</span> <span class="mh">0x7472</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">K</span><span class="p">);</span>
-<span class="n">INSERT</span> <span class="n">INTO</span> <span class="n">atlasdb</span><span class="o">.</span><span class="s2">&quot;_timestamp&quot;</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">column1</span><span class="p">,</span> <span class="n">column2</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="n">VALUES</span> <span class="p">(</span><span class="mh">0x7473</span><span class="p">,</span> <span class="mh">0x7473</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="n">x</span><span class="p">);</span>
+<span class="n">INSERT</span> <span class="n">INTO</span> <span class="n">atlasdb</span><span class="o">.</span><span class="s2">&quot;_timestamp&quot;</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">column1</span><span class="p">,</span> <span class="n">column2</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="n">VALUES</span> <span class="p">(</span><span class="mh">0x7473</span><span class="p">,</span> <span class="mh">0x7472</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">K</span><span class="p">);</span>
+<span class="n">INSERT</span> <span class="n">INTO</span> <span class="n">atlasdb</span><span class="o">.</span><span class="s2">&quot;_timestamp&quot;</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">column1</span><span class="p">,</span> <span class="n">column2</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="n">VALUES</span> <span class="p">(</span><span class="mh">0x7473</span><span class="p">,</span> <span class="mh">0x7473</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mh">0x00</span><span class="p">);</span>
 </pre></div>
 </div>
 </div></blockquote>

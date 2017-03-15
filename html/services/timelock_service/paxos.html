@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>External Timelock Service &mdash; OSS AtlasDB develop documentation</title>
+  <title>Paxos and AtlasDB &mdash; OSS AtlasDB develop documentation</title>
   
 
   
@@ -40,9 +40,9 @@
               href="../../genindex.html"/>
         <link rel="search" title="Search" href="../../search.html"/>
     <link rel="top" title="OSS AtlasDB develop documentation" href="../../index.html"/>
-        <link rel="up" title="Services" href="../index.html"/>
-        <link rel="next" title="Timelock Server Installation" href="installation.html"/>
-        <link rel="prev" title="Service Management" href="../timestamp_service/management.html"/> 
+        <link rel="up" title="External Timelock Service" href="index.html"/>
+        <link rel="next" title="Performance Testing" href="../../performance/index.html"/>
+        <link rel="prev" title="Developing a product to use the timelock service" href="product-changes.html"/> 
 
   
   <script src="../../_static/js/modernizr.min.js"></script>
@@ -105,12 +105,12 @@
 <li class="toctree-l2"><a class="reference internal" href="../key_value_services/index.html">Key Value Services</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../lock_service/index.html">Lock Service</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../timestamp_service/index.html">Timestamp Service</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">External Timelock Service</a><ul>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">External Timelock Service</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="installation.html">Timelock Server Installation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="migration.html">Migration to Timelock Server</a></li>
 <li class="toctree-l3"><a class="reference internal" href="manual-migration.html">Manual Migration to Timelock Server</a></li>
 <li class="toctree-l3"><a class="reference internal" href="product-changes.html">Developing a product to use the timelock service</a></li>
-<li class="toctree-l3"><a class="reference internal" href="paxos.html">Paxos and AtlasDB</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Paxos and AtlasDB</a></li>
 </ul>
 </li>
 </ul>
@@ -165,14 +165,16 @@
         
           <li><a href="../index.html">Services</a> &raquo;</li>
         
-      <li>External Timelock Service</li>
+          <li><a href="index.html">External Timelock Service</a> &raquo;</li>
+        
+      <li>Paxos and AtlasDB</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
             
-              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/timelock_service/index.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/timelock_service/paxos.rst" class="fa fa-github"> Edit on GitHub</a>
             
           
         
@@ -186,39 +188,47 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="external-timelock-service">
-<span id="id1"></span><h1>External Timelock Service<a class="headerlink" href="#external-timelock-service" title="Permalink to this headline">¶</a></h1>
-<div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">Running external timestamp and lock services is currently an experimental feature.
-Improperly configuring one&#8217;s cluster to use external timestamp and lock services can result in <strong>SEVERE DATA
-CORRUPTION</strong>! Please contact the AtlasDB team if you wish to try this feature.</p>
+  <div class="section" id="paxos-and-atlasdb">
+<span id="timelock-paxos"></span><h1>Paxos and AtlasDB<a class="headerlink" href="#paxos-and-atlasdb" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="the-paxos-algorithm">
+<h2>The Paxos Algorithm<a class="headerlink" href="#the-paxos-algorithm" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/paxos-simple-Copy.pdf">Paxos</a> is an algorithm
+for <em>distributed consensus</em> - that is, getting servers to agree on a value that some server <em>proposes</em>, in the presence
+of communication and server failures. Its guarantees include:</p>
+<ol class="arabic simple">
+<li>Safety: All servers will agree on the same value.</li>
+<li>Nontriviality: The value must have been <em>proposed</em> by at least one of the servers.</li>
+<li>Liveness: If a majority of servers are up and able to communicate, then the protocol can make progress.</li>
+</ol>
+<p>Paxos is a symmetric consensus protocol; technically speaking, each server (which plays all of the proposer, acceptor
+and learner roles) behaves in the same way. However, this can potentially lead to a situation known as the
+<em>dueling proposers</em> problem, where servers behave as follows:</p>
+<ol class="arabic simple">
+<li>Server A proposes a value V1, with term (1, A)</li>
+<li>It receives a majority of promises not to accept values with terms greater than (1, A)</li>
+<li>Server B proposes a value V2, with term (1, B)</li>
+<li>It receives a majority of promises for (1, B)</li>
+<li>Server A requests servers to accept V1; servers reject</li>
+<li>Server A proposes V1 with term (2, A)</li>
+<li>It receives a majority of promises for (2, A)</li>
+<li>Server B requests servers to accept V2; servers reject</li>
+</ol>
+<p>This can be (and is in AtlasDB) mitigated by having a random backoff between proposals.</p>
 </div>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Timelock Server Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="migration.html">Migration to Timelock Server</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual-migration.html">Manual Migration to Timelock Server</a></li>
-<li class="toctree-l1"><a class="reference internal" href="product-changes.html">Developing a product to use the timelock service</a></li>
-<li class="toctree-l1"><a class="reference internal" href="paxos.html">Paxos and AtlasDB</a></li>
-</ul>
+<div class="section" id="how-we-use-paxos">
+<h2>How we use Paxos<a class="headerlink" href="#how-we-use-paxos" title="Permalink to this headline">¶</a></h2>
+<p>The Timelock servers uses a Paxos based algorithm for two purposes:</p>
+<ol class="arabic simple">
+<li><strong>Leadership election:</strong> We choose who will be the leader in the Timelock cluster. The leader is the only server capable
+of responding to lock and timestamp requests. Leader election is often preferable for performance reasons confirming
+you are the leader is more efficient than choosing the value to respond with.</li>
+<li><strong>Timestamp bound:</strong> Timelock has an asynchronous process to increase the upper bound of timestamps that the leader is
+allowed to hand out, and we choose this bound via Paxos.</li>
+</ol>
+<p>It is worth noting that the Paxos implementations differ slightly for choosing a leader and choosing a timestamp bound.
+When choosing a leader, all servers can propose leadership and have the potential to be elected. However, once a leader
+is established, only that server is allowed to propose timestamp bounds.</p>
 </div>
-<p>The AtlasDB Timelock Service is an external implementation of the <a class="reference internal" href="../timestamp_service/index.html#timestamp-service"><span class="std std-ref">Timestamp</span></a> and
-<a class="reference internal" href="../lock_service/index.html#lock-service"><span class="std std-ref">Lock</span></a> services. Running an external Timelock Service (as opposed to running timestamp and lock
-services embedded within one&#8217;s clients) provides several benefits:</p>
-<ul class="simple">
-<li>Additional reliability; we have subjected our new implementation to Jepsen testing, and do not rely on the
-consistency of the user&#8217;s key-value services.</li>
-<li>The number of AtlasDB clients can scale independently of AtlasDB&#8217;s timestamp and lock services, and an odd number of
-AtlasDB clients is no longer necessarily preferred. An odd number of Timelock servers is still preferred.</li>
-<li>Resource contention between your AtlasDB clients and the timestamp and lock services can be better managed,
-because external timestamp services may be run on separate servers and/or JVMs (while the old embedded services
-had to be run on the same server, and within the same JVM).</li>
-<li>Timestamp and Lock endpoints are no longer mounted on AtlasDB clients and can be hidden from users, making abuse more
-difficult.</li>
-<li>Timelock Services can be run in clustered mode, allowing for high availability as long as a majority quorum of nodes
-exists.</li>
-</ul>
 </div>
 
 
@@ -231,10 +241,10 @@ exists.</li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="installation.html" class="btn btn-neutral float-right" title="Timelock Server Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../../performance/index.html" class="btn btn-neutral float-right" title="Performance Testing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="../timestamp_service/management.html" class="btn btn-neutral" title="Service Management" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="product-changes.html" class="btn btn-neutral" title="Developing a product to use the timelock service" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
