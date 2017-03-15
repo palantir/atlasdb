@@ -35,15 +35,15 @@ migration occurred correctly.
    ``ts`` (a bogus one byte array indicating that the timestamp table has been invalidated). The ``oldTs`` value
    should match the ``currentTimestamp`` values in the request logs.
 
-.. code-block:: none
+   .. code-block:: none
 
-   cqlsh> USE keyspace;
-   cqlsh:keyspace> SELECT * FROM "_timestamp";
+      cqlsh> USE keyspace;
+      cqlsh:keyspace> SELECT * FROM "_timestamp";
 
-    key    | column1      | column2 | value
-   --------+--------------+---------+---------------------
-    0x7473 | 0x6f6c645473 |      -1 | 0x0001020304050607
-    0x7473 |       0x7473 |      -1 |               0x00
+       key    | column1      | column2 | value
+      --------+--------------+---------+---------------------
+       0x7473 | 0x6f6c645473 |      -1 | 0x0001020304050607
+       0x7473 |       0x7473 |      -1 |               0x00
 
 Reverse Migration
 -----------------
