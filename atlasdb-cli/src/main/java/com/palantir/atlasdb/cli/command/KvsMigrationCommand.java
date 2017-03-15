@@ -21,8 +21,6 @@ import java.util.concurrent.Callable;
 
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
@@ -31,13 +29,10 @@ import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceValidator;
-import com.palantir.atlasdb.schema.TaskProgress;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -173,60 +168,13 @@ public class KvsMigrationCommand implements Callable<Integer> {
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
-    @VisibleForTesting
-    KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices)
+    private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices)
             throws IOException {
-        //TODO: this timestamp will have to be stored for online migration
-        long migrationStartTimestamp = fromServices.getTimestampService().getFreshTimestamp();
-        long migrationCommitTimestamp = fromServices.getTimestampService().getFreshTimestamp();
-
-        TimestampManagementService toTimestampManagementService = getTimestampManagementService(toServices);
-
-        toServices.getTransactionService().putUnlessExists(migrationStartTimestamp, migrationCommitTimestamp);
-        toTimestampManagementService.fastForwardTimestamp(migrationCommitTimestamp + 1);
-
-        return new KeyValueServiceMigrator(
-                CHECKPOINT_NAMESPACE,
-                fromServices.getTransactionManager(),
-                toServices.getTransactionManager(),
-                fromServices.getKeyValueService(),
-                toServices.getKeyValueService(),
-                Suppliers.ofInstance(migrationStartTimestamp),
-                threads,
-                batchSize,
-                ImmutableMap.of(),
-                (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
-                    printer.info(level.toString() + ": " + message);
-                },
-                new TaskProgress() {
-                    @Override
-                    public void beginTask(String message, int tasks) {
-                        printer.info(message);
-                    }
-
-                    @Override
-                    public void subTaskComplete() {
-                        //
-                    }
-
-                    @Override
-                    public void taskComplete() {
-                        //
-                    }
-                },
-                ImmutableSet.of());
-    }
-
-    @VisibleForTesting
-    static TimestampManagementService getTimestampManagementService(AtlasDbServices toServices) {
-        TimestampService toTimestampService = toServices.getTimestampService();
-        if (toTimestampService instanceof TimestampManagementService) {
-            return (TimestampManagementService) toTimestampService;
-        }
-        String errorMessage = String.format("Timestamp service must be of type %s, but yours is %s. Exiting.",
-                TimestampManagementService.class.toString(),
-                toTimestampService.getClass().toString());
-        printer.error(errorMessage);
-        throw new IllegalArgumentException(errorMessage);
+        return KeyValueServiceMigrators.setupMigrator(ImmutableMigratorSpec.builder()
+                .fromServices(fromServices)
+                .toServices(toServices)
+                .threads(threads)
+                .batchSize(batchSize)
+                .build());
     }
 }
