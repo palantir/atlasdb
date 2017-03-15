@@ -41,7 +41,9 @@ develop
          - Change
 
     *    - |fixed|
-         - Fixed DbKvs sweep OOM issue (`#982 <https://github.com/palantir/atlasdb/issues/982>`__) caused by very wide rows. ``DbKvs.getRangeOfTimestamps`` now uses an adjustable cell batch size to avoid loading too many timestamps. In case of a single row that is too wide, this may result in ``getRangeOfTimestamps`` returning multiple ``RowResult`` to include all timestamps. It is, however, guaranteed that each ``RowResult`` will contain all timestamps for each included column.
+         - Fixed DbKvs sweep OOM issue (`#982 <https://github.com/palantir/atlasdb/issues/982>`__) caused by very wide rows. ``DbKvs.getRangeOfTimestamps`` now uses an adjustable cell batch size to avoid loading too many timestamps.
+           In case of a single row that is too wide, this may result in ``getRangeOfTimestamps`` returning multiple ``RowResult`` to include all timestamps.
+           It is, however, guaranteed that each ``RowResult`` will contain all timestamps for each included column.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1678>`__)
 
     *    - |fixed|
@@ -63,6 +65,12 @@ develop
     *    - |new|
          - AtlasDB now instruments services to expose aggregate response time and service call metrics for key value, timestamp, and lock services.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1685>`__)
+
+    *    - |devbreak| |improved|
+         - ``TransactionManager`` now explicitly declares a ``close`` method that does not throw exceptions.
+           This makes ``TransactionManager``'s significantly easier to develop against.
+           Clients who have implemented a concrete ``TransactionManager`` throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1677>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -129,11 +137,6 @@ v0.35.0
            ``PaxosLeaderElectionServiceBuilder`` should be used instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1681>`__)
 
-    *    - |devbreak| |improved|
-         - ``TransactionManager`` now explicitly declares a ``close`` method that does not throw exceptions.
-           This makes ``TransactionManager``s significantly easier to develop against.
-           Clients who have implemented a concrete ``TransactionManager`` throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1677>`__)
 
     *    - |new|
          - Added benchmarks for paging over columns of a very wide row.
