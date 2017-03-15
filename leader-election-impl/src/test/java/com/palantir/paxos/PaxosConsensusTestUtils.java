@@ -30,6 +30,7 @@ import com.google.common.net.HostAndPort;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
+import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
@@ -79,14 +80,17 @@ public final class PaxosConsensusTestUtils {
                     ImmutableList.<PaxosLearner> copyOf(learners),
                     quorumSize,
                     executor);
-            PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
-                    proposer,
-                    learners.get(i),
-                    ImmutableMap.<PingableLeader, HostAndPort>of(),
-                    ImmutableList.<PaxosAcceptor> copyOf(acceptors),
-                    ImmutableList.<PaxosLearner> copyOf(learners),
-                    executor,
-                    0L, 0L, 0L);
+            PaxosLeaderElectionService leader = new PaxosLeaderElectionServiceBuilder()
+                    .proposer(proposer)
+                    .knowledge(learners.get(i))
+                    .potentialLeadersToHosts(ImmutableMap.<PingableLeader, HostAndPort>of())
+                    .acceptors(acceptors)
+                    .learners(learners)
+                    .executor(executor)
+                    .pingRateMs(0L)
+                    .randomWaitBeforeProposingLeadershipMs(0L)
+                    .leaderPingResponseWaitMs(0L)
+                    .build();
             leaders.add(SimulatingFailingServerProxy.newProxyInstance(
                     LeaderElectionService.class,
                     leader,

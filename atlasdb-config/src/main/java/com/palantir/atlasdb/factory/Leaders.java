@@ -29,6 +29,7 @@ import org.immutables.value.Value;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -39,6 +40,7 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
+import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
@@ -116,16 +118,17 @@ public final class Leaders {
 
         PaxosProposer proposer = createPaxosProposer(ourLearner, acceptors, learners, config.quorumSize(), executor);
 
-        PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
-                proposer,
-                ourLearner,
-                otherLeaders,
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners),
-                executor,
-                config.pingRateMs(),
-                config.randomWaitBeforeProposingLeadershipMs(),
-                config.leaderPingResponseWaitMs());
+        PaxosLeaderElectionService leader = new PaxosLeaderElectionServiceBuilder()
+                .proposer(proposer)
+                .knowledge(ourLearner)
+                .potentialLeadersToHosts(otherLeaders)
+                .acceptors(acceptors)
+                .learners(learners)
+                .executor(executor)
+                .pingRateMs(config.pingRateMs())
+                .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
+                .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
+                .build();
 
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
@@ -163,9 +166,9 @@ public final class Leaders {
             Optional<SSLSocketFactory> sslSocketFactory,
             Class<T> clazz,
             String userAgent) {
-        List<T> objects = AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz, userAgent);
-        objects.add(localObject);
-        return objects;
+        return ImmutableList.copyOf(Iterables.concat(
+                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz, userAgent),
+                ImmutableList.of(localObject)));
     }
 
     public static Map<PingableLeader, HostAndPort> generatePingables(

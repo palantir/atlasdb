@@ -26,6 +26,7 @@ dependencies {
     compile group: 'com.palantir.remoting1', name: 'jersey-servers'
     compile group: 'com.palantir.remoting1', name: 'ssl-config'
     compile group: 'com.palantir.remoting1', name: 'tracing'
+    compile group: 'com.palantir.tritium', name: 'tritium-lib'
     compile group: 'io.atomix', name: 'atomix'
     compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
     compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard

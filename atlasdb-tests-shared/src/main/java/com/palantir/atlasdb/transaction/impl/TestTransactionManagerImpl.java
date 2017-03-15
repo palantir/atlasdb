@@ -75,8 +75,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @Override
-    public Transaction commitAndStartNewTransaction(Transaction t) {
-        t.commit();
+    public Transaction commitAndStartNewTransaction(Transaction tx) {
+        tx.commit();
         return createNewTransaction();
     }
 
