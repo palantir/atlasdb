@@ -197,11 +197,39 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed DbKvs sweep OOM issue (<a class="reference external" href="https://github.com/palantir/atlasdb/issues/982">#982</a>) caused by very wide rows. <code class="docutils literal"><span class="pre">DbKvs.getRangeOfTimestamps</span></code> now uses an adjustable cell batch size to avoid loading too many timestamps. In case of a single row that is too wide, this may result in <code class="docutils literal"><span class="pre">getRangeOfTimestamps</span></code> returning multiple <code class="docutils literal"><span class="pre">RowResult</span></code> to include all timestamps. It is, however, guaranteed that each <code class="docutils literal"><span class="pre">RowResult</span></code> will contain all timestamps for each included column.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1678">Pull Request</a>)</td>
+<td>KVS migrations where timestamp data was co-located with AtlasDB data now respect the timestamp service contract.
+Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1199">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-36-0">
+<h2>v0.36.0<a class="headerlink" href="#v0-36-0" title="Permalink to this headline">¶</a></h2>
+<p>15 Mar 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><p class="first">Fixed DBKVS sweep OOM issue (<a class="reference external" href="https://github.com/palantir/atlasdb/issues/982">#982</a>) caused by very wide rows.
+<code class="docutils literal"><span class="pre">DbKvs.getRangeOfTimestamps</span></code> uses an adjustable cell batch size to avoid loading too many timestamps.
+One can set the batch size by calling <code class="docutils literal"><span class="pre">DbKvs.setMaxRangeOfTimestampsBatchSize</span></code>.</p>
+<p class="last">In case of a single row that is too wide, this may result in <code class="docutils literal"><span class="pre">getRangeOfTimestamps</span></code> returning multiple <code class="docutils literal"><span class="pre">RowResult</span></code> to include all timestamps.
+It is, however, guaranteed that each <code class="docutils literal"><span class="pre">RowResult</span></code> will contain all timestamps for each included column.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1678">Pull Request</a>)</p>
+</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Actions run by the <code class="docutils literal"><span class="pre">ReadOnlyTransactionManager</span></code> can no longer bypass necessary protections when using <code class="docutils literal"><span class="pre">getRowsColumnRange()</span></code>.
+These protections disallow reads against <code class="docutils literal"><span class="pre">THOROUGH</span></code> swept tables as read only transactions do not acquire the appropriate locks to guarantee transactionality.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1521">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
@@ -213,17 +241,35 @@
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1687">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed an issue where the <code class="docutils literal"><span class="pre">_persisted_locks</span></code> table was erroneously reported not to have persisted metadata.
+<td>Fixed an issue where the <code class="docutils literal"><span class="pre">_persisted_locks</span></code> table was unnecessarily logged as not having persisted metadata.
+The <code class="docutils literal"><span class="pre">_persisted_locks</span></code> table is a hidden table, and thus it does not need to have persisted metadata.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1696">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td>AtlasDB now instruments services to expose aggregate response time and service call metrics for key value, timestamp, and lock services.
+<td>AtlasDB now instruments services to expose aggregate response time and service call metrics for keyvalue, timestamp, and lock services.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1685">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>KVS migrations where timestamp data was co-located with AtlasDB data now respect the timestamp service contract.
-Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1199">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">TransactionManager</span></code> now explicitly declares a <code class="docutils literal"><span class="pre">close</span></code> method that does not throw exceptions.
+This makes the <code class="docutils literal"><span class="pre">TransactionManager</span></code> significantly easier to develop against.
+Clients who have implemented a concrete <code class="docutils literal"><span class="pre">TransactionManager</span></code> throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1677">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td><p class="first">Added the following benchmarks for paging over columns of a very wide row:</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">TransactionGetRowsColumnRangeBenchmarks</span></code></li>
+<li><code class="docutils literal"><span class="pre">KvsGetRowsColumnRangeBenchmarks</span></code></li>
+</ul>
+</div></blockquote>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1684">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<td>The public <code class="docutils literal"><span class="pre">PaxosLeaderElectionService</span></code> constructor is now deprecated to mitigate risks of users supplying parameters in the wrong order.
+<code class="docutils literal"><span class="pre">PaxosLeaderElectionServiceBuilder</span></code> should be used instead.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1681">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -286,21 +332,6 @@ Previously, any consumer using http-remoting would have to deal with deserializa
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The persistent lock release endpoint has now been renamed to <code class="docutils literal"><span class="pre">releaseBackupLock</span></code> since it is currently only supposed to be used for the backup lock.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1674">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
-<td>The public <code class="docutils literal"><span class="pre">PaxosLeaderElectionService</span></code> constructor is now deprecated, to mitigate risks of users supplying parameters in the wrong order.
-<code class="docutils literal"><span class="pre">PaxosLeaderElectionServiceBuilder</span></code> should be used instead.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1681">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
-<td><code class="docutils literal"><span class="pre">TransactionManager</span></code> now explicitly declares a <code class="docutils literal"><span class="pre">close</span></code> method that does not throw exceptions.
-This makes <code class="docutils literal"><span class="pre">TransactionManager``s</span> <span class="pre">significantly</span> <span class="pre">easier</span> <span class="pre">to</span> <span class="pre">develop</span> <span class="pre">against.</span>
-<span class="pre">Clients</span> <span class="pre">who</span> <span class="pre">have</span> <span class="pre">implemented</span> <span class="pre">a</span> <span class="pre">concrete</span> <span class="pre">``TransactionManager</span></code> throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1677">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td>Added benchmarks for paging over columns of a very wide row.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1684">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
