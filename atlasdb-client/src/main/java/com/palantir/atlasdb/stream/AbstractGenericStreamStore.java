@@ -79,7 +79,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             return Optional.empty();
         }
 
-        StreamMetadata metadata = Iterables.getOnlyElement(idToMetadata.values());
+        StreamMetadata metadata = getOnlyStreamMetadata(idToMetadata);
         return Optional.of(getStream(transaction, id, metadata));
     }
 
@@ -224,6 +224,10 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     protected abstract Map<ID, StreamMetadata> getMetadata(Transaction tx, Set<ID> streamIds);
 
     private StreamMetadata getMetadata(Transaction transaction, ID id) {
-        return Iterables.getOnlyElement(getMetadata(transaction, ImmutableSet.of(id)).entrySet()).getValue();
+        return getOnlyStreamMetadata(getMetadata(transaction, ImmutableSet.of(id)));
+    }
+
+    private StreamMetadata getOnlyStreamMetadata(Map<ID, StreamMetadata> idToMetadata) {
+        return Iterables.getOnlyElement(idToMetadata.values());
     }
 }

@@ -104,7 +104,6 @@ public class ProfileStoreTest {
         runWithRetry(store -> {
             InputStream image = store.getImageForUser(userId);
             assertThat(image, nullValue());
-            System.out.println("null");
             return null;
         });
     }
