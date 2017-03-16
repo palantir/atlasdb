@@ -25,8 +25,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 class SweepMetrics {
-    private static final String AGGREGATE_DELETES = "totalDeletes";
-    private static final String AGGREGATE_DELETES_METRIC = MetricRegistry.name(SweepMetrics.class, AGGREGATE_DELETES);
+    private static final String AGGREGATE_DELETES_METRIC = MetricRegistry.name(SweepMetrics.class, "totalDeletes");
+    private static final String TOTAL_CELLS_EXAMINED = MetricRegistry.name(SweepMetrics.class, "totalCellsExamined");
     private static final String PER_TABLE_DELETES = "deletes";
     private static final String CELLS_EXAMINED = "cellsExamined";
 
@@ -61,6 +61,7 @@ class SweepMetrics {
 
         String examinedMetric = MetricRegistry.name(SweepMetrics.class, CELLS_EXAMINED, tableRef.getQualifiedName());
         metricRegistry.histogram(examinedMetric).update(results.getCellsExamined());
+        metricRegistry.histogram(TOTAL_CELLS_EXAMINED).update(results.getCellsExamined());
     }
 
     private void recordDeletes(TableReference tableRef, long cellsDeleted) {

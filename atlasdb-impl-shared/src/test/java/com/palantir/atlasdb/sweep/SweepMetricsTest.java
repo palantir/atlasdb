@@ -33,12 +33,18 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 public class SweepMetricsTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
+    private static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName("test.other_table");
     private static final String DELETES_METRIC = MetricRegistry.name(SweepMetrics.class, "deletes",
             TABLE.getQualifiedName());
-    private static final SweepResults DEFAULT_SWEEP_RESULTS = SweepResults.builder()
+    private static final SweepResults SWEEP_RESULTS_FOR_TABLE = SweepResults.builder()
             .cellsDeleted(10L)
             .cellsExamined(15L)
             .sweptTimestamp(1337L)
+            .build();
+    private static final SweepResults SWEEP_RESULTS_FOR_OTHER_TABLE = SweepResults.builder()
+            .cellsDeleted(12L)
+            .cellsExamined(4L)
+            .sweptTimestamp(1338L)
             .build();
 
     private static final MetricRegistry METRIC_REGISTRY = AtlasDbMetrics.getMetricRegistry();
@@ -57,12 +63,31 @@ public class SweepMetricsTest {
 
     @Test
     public void cellsExaminedAreRecorded() {
-        sweepMetrics.recordMetrics(TABLE, DEFAULT_SWEEP_RESULTS);
+        sweepMetrics.recordMetrics(TABLE, SWEEP_RESULTS_FOR_TABLE);
 
         Histogram examinedMetric = METRIC_REGISTRY.histogram(MetricRegistry.name(SweepMetrics.class, "cellsExamined",
                 TABLE.getQualifiedName()));
 
         assertArrayEquals(new long[] {15L}, examinedMetric.getSnapshot().getValues());
+    }
+
+    @Test
+    public void cellsExaminedAreRecordedSeparatelyAndAggregated() {
+        sweepMetrics.recordMetrics(TABLE, SWEEP_RESULTS_FOR_TABLE);
+        sweepMetrics.recordMetrics(OTHER_TABLE, SWEEP_RESULTS_FOR_OTHER_TABLE);
+
+        Histogram tableExamined = METRIC_REGISTRY.histogram(MetricRegistry.name(SweepMetrics.class, "cellsExamined",
+                TABLE.getQualifiedName()));
+        assertArrayEquals(new long[] {15L}, tableExamined.getSnapshot().getValues());
+
+        Histogram otherTableExamined = METRIC_REGISTRY.histogram(MetricRegistry.name(SweepMetrics.class,
+                "cellsExamined",
+                OTHER_TABLE.getQualifiedName()));
+        assertArrayEquals(new long[] {4L}, otherTableExamined.getSnapshot().getValues());
+
+        Histogram totalExamined = METRIC_REGISTRY.histogram(MetricRegistry.name(SweepMetrics.class,
+                "totalCellsExamined"));
+        assertArrayEquals(new long[] {4L, 15L}, totalExamined.getSnapshot().getValues());
     }
 
     @Test
