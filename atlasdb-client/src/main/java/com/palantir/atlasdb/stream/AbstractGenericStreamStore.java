@@ -23,16 +23,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
@@ -71,14 +73,23 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     }
 
     @Override
-    public Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
-        Map<ID, InputStream> ret = Maps.newHashMap();
-        Map<ID, StreamMetadata> idsToMetadata = getMetadata(transaction, ids);
-        for (Map.Entry<ID, StreamMetadata> entry : idsToMetadata.entrySet()) {
-            ID id = entry.getKey();
-            ret.put(id, getStream(transaction, id, entry.getValue()));
+    public Optional<InputStream> loadSingleStream(Transaction transaction, final ID id) {
+        Map<ID, StreamMetadata> idToMetadata = getMetadata(transaction, ImmutableSet.of(id));
+        if (idToMetadata.isEmpty()) {
+            return Optional.empty();
         }
-        return ret;
+
+        StreamMetadata metadata = getOnlyStreamMetadata(idToMetadata);
+        return Optional.of(getStream(transaction, id, metadata));
+    }
+
+    @Override
+    public Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
+        Map<ID, StreamMetadata> idsToMetadata = getMetadata(transaction, ids);
+
+        return idsToMetadata.entrySet().stream()
+                .map(e -> Maps.immutableEntry(e.getKey(), getStream(transaction, e.getKey(), e.getValue())))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private InputStream getStream(Transaction transaction, ID id, StreamMetadata metadata) {
@@ -213,6 +224,10 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     protected abstract Map<ID, StreamMetadata> getMetadata(Transaction tx, Set<ID> streamIds);
 
     private StreamMetadata getMetadata(Transaction transaction, ID id) {
-        return Iterables.getOnlyElement(getMetadata(transaction, Sets.newHashSet(id)).entrySet()).getValue();
+        return getOnlyStreamMetadata(getMetadata(transaction, ImmutableSet.of(id)));
+    }
+
+    private StreamMetadata getOnlyStreamMetadata(Map<ID, StreamMetadata> idToMetadata) {
+        return Iterables.getOnlyElement(idToMetadata.values());
     }
 }

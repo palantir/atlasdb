@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -207,6 +208,12 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     @Override
     public InputStream loadStream(Transaction t, final Long id) {
         return new LZ4BlockInputStream(super.loadStream(t, id));
+    }
+
+    @Override
+    public Optional<InputStream> loadSingleStream(Transaction t, final Long id) {
+        Optional<InputStream> inputStream = super.loadSingleStream(t, id);
+        return inputStream.map(LZ4BlockInputStream::new);
     }
 
     @Override
@@ -465,6 +472,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link MessageDigest}
      * {@link Multimap}
      * {@link Multimaps}
+     * {@link Optional}
      * {@link OutputStream}
      * {@link Pair}
      * {@link PersistentStreamStore}
