@@ -83,7 +83,7 @@ public class SweepMetricsTest {
 
         assertCellsDeleted(TABLE, DELETED);
         assertCellsDeleted(OTHER_TABLE, OTHER_DELETED);
-        assertValuesRecorded("aggregateCellsDeleted", DELETED, OTHER_DELETED);
+        assertValuesRecorded("staleValuesDeleted", DELETED, OTHER_DELETED);
     }
 
     @Test
@@ -100,7 +100,7 @@ public class SweepMetricsTest {
 
         assertCellsExamined(TABLE, EXAMINED);
         assertCellsExamined(OTHER_TABLE, OTHER_EXAMINED);
-        assertValuesRecorded("aggregateCellsExamined", EXAMINED, OTHER_EXAMINED);
+        assertValuesRecorded("cellsExamined", EXAMINED, OTHER_EXAMINED);
     }
 
     @Ignore // This is just for me to run locally and check out what the metrics reports look like
@@ -122,7 +122,7 @@ public class SweepMetricsTest {
     }
 
     private void assertCellsDeleted(TableReference table, long deleted) {
-        Histogram deleteMetric = METRIC_REGISTRY.histogram(MetricRegistry.name(SweepMetrics.class, "cellsDeleted",
+        Histogram deleteMetric = METRIC_REGISTRY.histogram(MetricRegistry.name(SweepMetrics.class, "staleValuesDeleted",
                 table.getQualifiedName()));
         assertArrayEquals(new long[] { deleted }, deleteMetric.getSnapshot().getValues());
     }

@@ -25,12 +25,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 class SweepMetrics {
-    private static final String AGGREGATE_CELLS_DELETED = MetricRegistry.name(SweepMetrics.class,
-            "aggregateCellsDeleted");
-    private static final String AGGREGATE_CELLS_EXAMINED = MetricRegistry.name(SweepMetrics.class,
-            "aggregateCellsExamined");
-    private static final String CELLS_DELETED = "cellsDeleted";
+    private static final String STALE_VALUES_DELETED = "staleValuesDeleted";
     private static final String CELLS_EXAMINED = "cellsExamined";
+    private static final String AGGREGATE_CELLS_DELETED = MetricRegistry.name(SweepMetrics.class,
+            STALE_VALUES_DELETED);
+    private static final String AGGREGATE_CELLS_EXAMINED = MetricRegistry.name(SweepMetrics.class,
+            CELLS_EXAMINED);
 
     private final MetricRegistry metricRegistry;
 
@@ -78,7 +78,7 @@ class SweepMetrics {
     }
 
     private String getCellsDeletedMetric(TableReference tableRef) {
-        return MetricRegistry.name(SweepMetrics.class, CELLS_DELETED, tableRef.getQualifiedName());
+        return MetricRegistry.name(SweepMetrics.class, STALE_VALUES_DELETED, tableRef.getQualifiedName());
     }
 
     private void registerMetricWithHdrHistogram(String deletesMetric) {
