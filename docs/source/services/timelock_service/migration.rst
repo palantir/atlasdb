@@ -43,7 +43,9 @@ migration occurred correctly.
        0x7473 |  0x7473 |      -1 | 0x0001020304050607
 
    Otherwise, if using Cassandra we can attempt to determine this bound, by finding the most recent occurrence of
-   ``[CAS] Setting cached limit to {}.`` in the AtlasDB client logs (across all AtlasDB clients).
+   ``[CAS] Setting cached limit to {}.`` in the AtlasDB client logs (across all AtlasDB clients). Note that this is
+   logged at INFO level by the :ref:`DebugLogger<debug-logging>`, so if you have directed that to a separate
+   appender you will need to search in those logs instead.
 
 2. **Key-Value Service table state**: Check the state of the key-value service. For Cassandra, you should expect
    to see two rows: ``oldTs`` (the backed up value of the timestamp bound) and
