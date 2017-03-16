@@ -15,6 +15,9 @@
  */
 package com.palantir.example.profile;
 
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -91,6 +94,16 @@ public class ProfileStoreTest {
             } finally {
                 Closeables.closeQuietly(image);
             }
+            return null;
+        });
+    }
+
+    @Test
+    public void testGetImageBehaviourWhenNoImage() {
+        final UUID userId = UUID.randomUUID();
+        runWithRetry(store -> {
+            InputStream image = store.getImageForUser(userId);
+            assertThat(image, nullValue());
             return null;
         });
     }

@@ -16,6 +16,8 @@ the logging, simply enable ``TRACE`` logging for
 If you are using ``CassandraKeyValueService``, you can use additional tracing for deeper analysis.
 For more information, see :ref:`enabling-cassandra-tracing`.
 
+.. _debug-logging:
+
 Debug Logging for Multiple Timestamp Services Error
 ===================================================
 
