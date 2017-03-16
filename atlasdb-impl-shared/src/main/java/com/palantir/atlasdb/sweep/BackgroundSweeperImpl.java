@@ -417,7 +417,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         txManager.runTaskWithRetry((TxTask) tx -> {
             SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(tx);
             SweepPriorityRow row = SweepPriorityRow.of(progress.getFullTableName());
-            // TODO getting this mixed up does not fail any tests
             priorityTable.putCellsDeleted(row, sweepResults.getCellsDeleted());
             priorityTable.putCellsExamined(row, sweepResults.getCellsExamined());
             priorityTable.putLastSweepTime(row, System.currentTimeMillis());

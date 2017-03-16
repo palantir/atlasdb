@@ -77,8 +77,8 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweeperTest {
-    protected static final TableReference TABLE_NAME = TableReference.createFromFullyQualifiedName(
-            "test_table.xyz_atlasdb_sweeper_test");
+    private static final String FULL_TABLE_NAME = "test_table.xyz_atlasdb_sweeper_test";
+    protected static final TableReference TABLE_NAME = TableReference.createFromFullyQualifiedName(FULL_TABLE_NAME);
     private static final String COL = "c";
     protected static final int DEFAULT_BATCH_SIZE = 1000;
     protected static final int DEFAULT_CELL_BATCH_SIZE = 1_000_000;
@@ -403,7 +403,7 @@ public abstract class AbstractSweeperTest {
                             Long.valueOf(110L),
                             result.getMinimumSweptTimestamp());
                     break;
-                case "test_table":
+                case FULL_TABLE_NAME:
                     Assert.assertEquals("table has wrong sweep timestamp",
                             Long.valueOf(120L),
                             result.getMinimumSweptTimestamp());
@@ -472,7 +472,7 @@ public abstract class AbstractSweeperTest {
                 case "sweep.progress":
                     Assert.assertEquals(Long.valueOf(150L), result.getMinimumSweptTimestamp());
                     break;
-                case "table":
+                case FULL_TABLE_NAME:
                     Assert.assertNull(result.getMinimumSweptTimestamp());
                     Assert.assertNull(result.getCellsDeleted());
                     Assert.assertNull(result.getCellsExamined());
@@ -504,7 +504,7 @@ public abstract class AbstractSweeperTest {
                 case "sweep.progress":
                     Assert.assertEquals(Long.valueOf(150L), result.getMinimumSweptTimestamp());
                     break;
-                case "test_table":
+                case FULL_TABLE_NAME:
                     Assert.assertEquals(Long.valueOf(150L), result.getMinimumSweptTimestamp());
                     Assert.assertEquals(Long.valueOf(0L), result.getCellsDeleted());
                     Assert.assertEquals(Long.valueOf(4L), result.getCellsExamined());
