@@ -351,21 +351,22 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private void saveSweepResults(final SweepProgressRowResult progress,
-            final SweepResults results) {
-        final long cellsDeleted = fromNullable(progress.getCellsDeleted()) + results.getCellsDeleted();
-        final long cellsExamined = fromNullable(progress.getCellsExamined()) + results.getCellsExamined();
-        final long minimumSweptTimestamp = results.getSweptTimestamp();
-        if (results.getNextStartRow().isPresent()) {
-            saveIntermediateSweepResults(
-                    progress,
-                    results.getNextStartRow().get(),
-                    cellsDeleted,
-                    cellsExamined,
-                    minimumSweptTimestamp);
+            final SweepResults currentIteration) {
+        final long cellsDeleted = fromNullable(progress.getCellsDeleted()) + currentIteration.getCellsDeleted();
+        final long cellsExamined = fromNullable(progress.getCellsExamined()) + currentIteration.getCellsExamined();
+        final long minimumSweptTimestamp = currentIteration.getSweptTimestamp();
+        final SweepResults results = SweepResults.builder()
+                .cellsDeleted(cellsDeleted)
+                .cellsExamined(cellsExamined)
+                .sweptTimestamp(minimumSweptTimestamp)
+                .nextStartRow(currentIteration.getNextStartRow())
+                .build();
+        if (currentIteration.getNextStartRow().isPresent()) {
+            saveIntermediateSweepResults(progress, results);
             return;
         }
 
-        saveFinalSweepResults(progress, cellsDeleted, cellsExamined, minimumSweptTimestamp);
+        saveFinalSweepResults(progress, results);
 
         log.debug("Finished sweeping {}, examined {} unique cells, deleted {} cells.",
                 progress.getFullTableName(), cellsExamined, cellsDeleted);
@@ -389,55 +390,49 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private void saveIntermediateSweepResults(final SweepProgressRowResult progress,
-            final byte[] nextStartRow,
-            final long cellsDeleted,
-            final long cellsExamined,
-            final long minimumSweptTimestamp) {
-        txManager.runTaskWithRetry(new TxTask() {
-            @Override
-            public Void execute(Transaction tx) {
-                SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
-                SweepProgressRow row = SweepProgressRow.of(0);
-                progressTable.putFullTableName(row, progress.getFullTableName());
-                progressTable.putStartRow(row, nextStartRow);
-                progressTable.putCellsDeleted(row, cellsDeleted);
-                progressTable.putCellsExamined(row, cellsExamined);
-                if (!progress.hasStartRow()) {
-                    // This is the first set of results being written for this table.
-                    progressTable.putMinimumSweptTimestamp(row, minimumSweptTimestamp);
+            final SweepResults results) {
+        Preconditions.checkArgument(results.getNextStartRow().isPresent(),
+                "Next start row should be present when saving intermediate results!");
+        txManager.runTaskWithRetry((TxTask) tx -> {
+            SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
+            SweepProgressRow row = SweepProgressRow.of(0);
+            progressTable.putFullTableName(row, progress.getFullTableName());
+            //noinspection OptionalGetWithoutIsPresent // covered by precondition above
+            progressTable.putStartRow(row, results.getNextStartRow().get());
+            progressTable.putCellsDeleted(row, results.getCellsDeleted());
+            progressTable.putCellsExamined(row, results.getCellsExamined());
+            if (!progress.hasStartRow()) {
+                // This is the first set of results being written for this table.
+                progressTable.putMinimumSweptTimestamp(row, results.getSweptTimestamp());
 
-                    SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(tx);
-                    SweepPriorityRow priorityRow = SweepPriorityRow.of(progress.getFullTableName());
-                    priorityTable.putWriteCount(priorityRow, 0L);
-                }
-                return null;
+                SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(tx);
+                SweepPriorityRow priorityRow = SweepPriorityRow.of(progress.getFullTableName());
+                priorityTable.putWriteCount(priorityRow, 0L);
             }
+            return null;
         });
     }
 
-    private void saveFinalSweepResults(final SweepProgressRowResult progress,
-            final long cellsDeleted,
-            final long cellsExamined,
-            final long minimumSweptTimestamp) {
-        txManager.runTaskWithRetry(new TxTask() {
-            @Override
-            public Void execute(Transaction tx) {
-                SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(tx);
-                SweepPriorityRow row = SweepPriorityRow.of(progress.getFullTableName());
-                priorityTable.putCellsDeleted(row, cellsDeleted);
-                priorityTable.putCellsExamined(row, cellsExamined);
-                priorityTable.putLastSweepTime(row, System.currentTimeMillis());
-                if (!progress.hasStartRow()) {
-                    // This is the first (and only) set of results being written for this table.
-                    priorityTable.putWriteCount(row, 0L);
-                    priorityTable.putMinimumSweptTimestamp(row, minimumSweptTimestamp);
-                } else {
-                    priorityTable.putMinimumSweptTimestamp(row, fromNullable(progress.getMinimumSweptTimestamp()));
-                }
-                return null;
+    private void saveFinalSweepResults(SweepProgressRowResult progress, SweepResults sweepResults) {
+        txManager.runTaskWithRetry((TxTask) tx -> {
+            SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(tx);
+            SweepPriorityRow row = SweepPriorityRow.of(progress.getFullTableName());
+            // TODO getting this mixed up does not fail any tests
+            priorityTable.putCellsDeleted(row, sweepResults.getCellsDeleted());
+            priorityTable.putCellsExamined(row, sweepResults.getCellsExamined());
+            priorityTable.putLastSweepTime(row, System.currentTimeMillis());
+            if (!progress.hasStartRow()) {
+                // This is the first (and only) set of results being written for this table.
+                priorityTable.putWriteCount(row, 0L);
+                priorityTable.putMinimumSweptTimestamp(row, sweepResults.getSweptTimestamp());
+            } else {
+                priorityTable.putMinimumSweptTimestamp(row, fromNullable(progress.getMinimumSweptTimestamp()));
             }
+            return null;
         });
-        sweepMetrics.recordMetrics(TableReference.createUnsafe(progress.getFullTableName()), cellsDeleted);
+        sweepMetrics.recordMetrics(
+                TableReference.createUnsafe(progress.getFullTableName()),
+                sweepResults.getCellsDeleted());
     }
 
     /**
