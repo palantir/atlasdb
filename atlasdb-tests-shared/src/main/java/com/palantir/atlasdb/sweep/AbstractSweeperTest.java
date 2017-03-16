@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 
 import java.util.HashMap;
@@ -542,7 +544,7 @@ public abstract class AbstractSweeperTest {
         putIntoDefaultColumn("foo", "buzz", 125);
         runBackgroundSweep(150, 3);
 
-        Mockito.verify(sweepMetrics, atLeastOnce()).recordMetrics(TABLE_NAME, 3);
+        Mockito.verify(sweepMetrics, atLeastOnce()).recordMetrics(eq(TABLE_NAME), any(SweepResults.class));
     }
 
     @Test

@@ -27,6 +27,7 @@ import org.junit.Test;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
@@ -51,17 +52,26 @@ public class SweepMetricsTest {
 
     @Test
     public void singleDeleteIsRecorded() {
-        sweepMetrics.recordMetrics(TABLE, 10); // cells deleted
+        recordCellsDeleted(10);
 
         Histogram deleteMetric = METRIC_REGISTRY.histogram(DELETES_METRIC);
 
         assertArrayEquals(new long[] {10L}, deleteMetric.getSnapshot().getValues());
     }
 
+    private void recordCellsDeleted(int cellsDeleted) {
+        SweepResults sweepResults = SweepResults.builder()
+                .cellsDeleted(cellsDeleted)
+                .cellsExamined(0)
+                .sweptTimestamp(0)
+                .build();
+        sweepMetrics.recordMetrics(TABLE, sweepResults);
+    }
+
     @Test
     public void multipleDeletesAreRecorded() {
-        sweepMetrics.recordMetrics(TABLE, 10); // cells deleted
-        sweepMetrics.recordMetrics(TABLE, 15);
+        recordCellsDeleted(10);
+        recordCellsDeleted(15);
 
         Histogram deleteMetric = METRIC_REGISTRY.histogram(DELETES_METRIC);
 
@@ -71,8 +81,8 @@ public class SweepMetricsTest {
     @Ignore // This is just for me to run locally and check out what the metrics reports look like
     @Test
     public void testReporting() throws InterruptedException {
-        sweepMetrics.recordMetrics(TABLE, 10); // cells deleted
-        sweepMetrics.recordMetrics(TABLE, 15);
+        recordCellsDeleted(10);
+        recordCellsDeleted(15);
 
         ConsoleReporter reporter = ConsoleReporter.forRegistry(METRIC_REGISTRY)
                 .build();

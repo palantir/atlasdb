@@ -20,6 +20,7 @@ import org.mpierce.metrics.reservoir.hdrhistogram.HdrHistogramReservoir;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
@@ -53,9 +54,8 @@ class SweepMetrics {
         registerMetricIfNotExists(deletesMetric, histogram);
     }
 
-    // TODO this will obviously change when we have many metrics.
-    // Will probably end up passing in a SweepProgressRowResult object.
-    void recordMetrics(TableReference tableRef, long cellsDeleted) {
+    void recordMetrics(TableReference tableRef, SweepResults results) {
+        long cellsDeleted = results.getCellsDeleted();
         String deletesMetric = getPerTableDeletesMetric(tableRef);
         metricRegistry.histogram(deletesMetric).update(cellsDeleted);
 

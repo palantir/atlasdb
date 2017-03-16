@@ -430,9 +430,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             }
             return null;
         });
-        sweepMetrics.recordMetrics(
-                TableReference.createUnsafe(progress.getFullTableName()),
-                sweepResults.getCellsDeleted());
+
+        sweepMetrics.recordMetrics(TableReference.createUnsafe(progress.getFullTableName()), sweepResults);
     }
 
     /**
