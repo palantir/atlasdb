@@ -117,8 +117,8 @@ Clear with cURL
 
    $ curl -X POST --header 'content-type: application/json' '<product-base-url>/persistent-lock/release' -d '"427eb02a-f017-40cd-8d08-0a163315029a"'
 
-Clear with CQL (for Cassandra)
-------------------------------
+Clear with CQL
+--------------
 
 .. warning::
 
@@ -162,10 +162,15 @@ AtlasDB interprets a specific ``LockEntry`` value as meaning that the lock is av
                .reason("Available")
                .build();
 
-Thus, we can set the relevant cell to be the serialised value of the backup lock.
+Thus, we can set the relevant cell to be the serialised value of the backup lock. To be safe, we recommend using a
+compare-and-set operation here.
 
 .. code-block:: none
 
-   cqlsh:keyspace> UPDATE "_persisted_locks" SET value=0x7b226c6f636b4e616d65223a224261636b75704c6f636b222c22696e7374616e63654964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303030222c22726561736f6e223a22417661696c61626c65227d WHERE key=0x4261636b75704c6f636b AND column1=0x6c6f636b AND column2=-1 ;
+   cqlsh:keyspace> UPDATE "_persisted_locks" SET value=0x7b226c6f636b4e616d65223a224261636b75704c6f636b222c22696e7374616e63654964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303030222c22726561736f6e223a22417661696c61626c65227d WHERE key=0x4261636b75704c6f636b AND column1=0x6c6f636b AND column2=-1 IF value=0x7b226c6f636b4e616d65223a224261636b75704c6f636b222c22696e7374616e63654964223a2234323765623032612d663031372d343063642d386430382d306131363333313530323961222c22726561736f6e223a22666f6f227d;
+
+    [applied]
+   -----------
+         True
 
 Clients should be able to take the backup lock again after this step.
