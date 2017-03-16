@@ -45,16 +45,13 @@ class SweepMetrics {
     }
 
     private void registerAggregateMetrics() {
-        Histogram histogram = new Histogram(new HdrHistogramReservoir());
-
-        registerMetricIfNotExists(AGGREGATE_CELLS_DELETED, histogram);
+        registerMetricWithHdrHistogram(AGGREGATE_CELLS_DELETED);
+        registerMetricWithHdrHistogram(AGGREGATE_CELLS_EXAMINED);
     }
 
     void registerMetricsIfNecessary(TableReference tableRef) {
-        Histogram histogram = new Histogram(new HdrHistogramReservoir());
-        String deletesMetric = getPerTableDeletesMetric(tableRef);
-
-        registerMetricIfNotExists(deletesMetric, histogram);
+        registerMetricWithHdrHistogram(getCellsDeletedMetric(tableRef));
+        registerMetricWithHdrHistogram(getCellsExaminedMetric(tableRef));
     }
 
     void recordMetrics(TableReference tableRef, SweepResults results) {
@@ -63,21 +60,29 @@ class SweepMetrics {
     }
 
     private void recordCellsDeleted(TableReference tableRef, long cellsDeleted) {
-        String deletesMetric = getPerTableDeletesMetric(tableRef);
+        String deletesMetric = getCellsDeletedMetric(tableRef);
 
         metricRegistry.histogram(deletesMetric).update(cellsDeleted);
         metricRegistry.histogram(AGGREGATE_CELLS_DELETED).update(cellsDeleted);
     }
 
     private void recordCellsExamined(TableReference tableRef, long cellsExamined) {
-        String examinedMetric = MetricRegistry.name(SweepMetrics.class, CELLS_EXAMINED, tableRef.getQualifiedName());
+        String examinedMetric = getCellsExaminedMetric(tableRef);
 
         metricRegistry.histogram(examinedMetric).update(cellsExamined);
         metricRegistry.histogram(AGGREGATE_CELLS_EXAMINED).update(cellsExamined);
     }
 
-    private String getPerTableDeletesMetric(TableReference tableRef) {
+    private String getCellsExaminedMetric(TableReference tableRef) {
+        return MetricRegistry.name(SweepMetrics.class, CELLS_EXAMINED, tableRef.getQualifiedName());
+    }
+
+    private String getCellsDeletedMetric(TableReference tableRef) {
         return MetricRegistry.name(SweepMetrics.class, CELLS_DELETED, tableRef.getQualifiedName());
+    }
+
+    private void registerMetricWithHdrHistogram(String deletesMetric) {
+        registerMetricIfNotExists(deletesMetric, new Histogram(new HdrHistogramReservoir()));
     }
 
     private void registerMetricIfNotExists(String name, Metric metric) {
