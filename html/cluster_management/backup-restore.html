@@ -204,7 +204,7 @@ The lock must be obtained prior to obtaining the backup timestamp, and released 
 <div class="section" id="obtain-the-backup-lock">
 <h3>1. Obtain the Backup Lock<a class="headerlink" href="#obtain-the-backup-lock" title="Permalink to this headline">¶</a></h3>
 <p>Call the <code class="docutils literal"><span class="pre">persistent-lock/acquire-backup-lock</span></code> endpoint, supplying your reason as a string:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ curl -X GET --header &#39;Accept: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/acquire-backup-lock?reason=manual-backup&#39;
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ curl -X POST --header &#39;Accept: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/acquire-backup-lock?reason=manual-backup&#39;
 </pre></div>
 </div>
 <p>If the request succeeds, you will receive a <code class="docutils literal"><span class="pre">PersistentLockId</span></code> back. It is essential that you save this lock somewhere, so that you can release it later in the process.</p>
