@@ -64,6 +64,11 @@ develop
          - AtlasDB now instruments services to expose aggregate response time and service call metrics for key value, timestamp, and lock services.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1685>`__)
 
+    *    - |fixed|
+         - KVS migrations where timestamp data was co-located with AtlasDB data now respect the timestamp service contract.
+           Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1199>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
