@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.table.api;
 
-import java.util.concurrent.ExecutorService;
-
 import com.google.common.collect.Multimap;
 
 /*
