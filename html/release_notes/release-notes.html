@@ -205,6 +205,11 @@ Previously, doing a KVS migration with an embedded timestamp service whose times
 <td>Improved performance of paging over dynamic columns on Oracle DbKvs: the time required to page through a large wide row is now linear rather than quadratic in the length of the row.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1702">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<td><code class="docutils literal"><span class="pre">GenericStreamStore.loadStream</span></code> has been deprecated. Use <code class="docutils literal"><span class="pre">loadSingleStream</span></code>, which returns an
+<code class="docutils literal"><span class="pre">Optional&lt;InputStream&gt;</span></code>, instead.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1265">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
