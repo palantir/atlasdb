@@ -31,10 +31,10 @@ Reasons to Sweep
 Ways to Sweep
 -------------
 
-- :ref:`Background sweep process<background_sweep>` scheduled periodically:
+- :ref:`Background sweep process<background-sweep>` scheduled periodically:
   Under normal use, the sweep job is intended to run at a constant interval as a background sweep process that does not consume significant system resources.
 
-- :ref:`Sweep CLI<atlas-sweep-cli>` triggered manually:
+- :ref:`Sweep CLI<atlasdb-sweep-cli>` triggered manually:
   You may trigger the sweep job on demand via the sweep CLI. This could be useful in order to address any one-off performance issues.
   Long-running AtlasDB instances with large data scale may want to manually sweep specific tables before enabling the background sweeper.
   Given that the background sweep job chooses which tables it sweeps, you can ensure that a one-off large sweep job occurs during non-peak usage hours.
@@ -45,7 +45,7 @@ Tunable Configuration Options
 -----------------------------
 
 The following optional parameters can be tuned to optimize Sweep performance for a specific AtlasDB instance.
-You may set them as part of your :ref:`AtlasDB configuration <atlas_config>`, or as a CLI option if you are running sweep using the CLI.
+You may set them as part of your :ref:`AtlasDB configuration <atlas-config>`, or as a CLI option if you are running sweep using the CLI.
 
 .. csv-table::
    :header: "AtlasDB Config", "CLI Option", "Default", "Description"

@@ -38,14 +38,14 @@ public class KvsDeleteBenchmarks {
 
     @Benchmark
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 6, timeUnit = TimeUnit.SECONDS)
     public Object singleDelete(RegeneratingTable.KvsRowRegeneratingTable table) {
         return doDelete(table);
     }
 
     @Benchmark
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 22, timeUnit = TimeUnit.SECONDS)
     public Object batchDelete(RegeneratingTable.KvsBatchRegeneratingTable table) {
         return doDelete(table);
     }

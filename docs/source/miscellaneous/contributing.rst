@@ -27,7 +27,7 @@ The easiest way to contribute to docs is to edit them directly on GitHub using t
 If you would like to build the docs locally follow these steps:
 
 1. Clone the git repository:``git clone git@github.com:palantir/atlasdb.git; cd atlasdb``.
-2. Install sphinx and sphinx_rtd_theme if you don't have it.  Instructions can be found `here <http://www.sphinx-doc.org/en/stab/install.html>`__.  The easiest option for Mac users will be using pip.  Please be sure to update sphinx if you haven't used it in a while.  Also please be aware the exact commands to build the docs can be found in ``scripts/circle-ci/publish-github-pages.sh``.
+2. Install sphinx, sphinx_rtd_theme, and recommonmark if you don't have it.  Instructions can be found `here <http://www.sphinx-doc.org/en/stab/install.html>`__.  The easiest option for Mac users will be using pip.  Please be sure to update sphinx if you haven't used it in a while.  Also please be aware the exact commands to build the docs can be found in ``scripts/circle-ci/publish-github-pages.sh``.
 3. Confirm you installation is working by running ``cd docs && make html``.  The freshly built documentation will be in ``docs/build/html``.
 4. Existing pages can be found in ``docs/source``. Create new pages by adding an .rst file to ``docs/source`` and then adding the file name to the appropriate .toctree in the parent file.
 5. Commit any changes to a ``docs/*`` branch and push them up to github for review.

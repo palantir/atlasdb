@@ -13,9 +13,9 @@ Timelock Server Installation
 
    .. code:: bash
 
-      ./gradlew atlasdb-timelock-server:distTar
+      ./gradlew timelock-server:distTar
 
-  This will place a tar file in the ``build/distributions`` directory of the ``atlasdb-timelock-server`` project. The
+  This will place a tar file in the ``build/distributions`` directory of the ``timelock-server`` project. The
   tar file follows semantic versioning.
 
 3. Copy this tar file to the server on which you want to deploy Timelock Server.
@@ -25,7 +25,7 @@ Timelock Server Installation
 
    .. code:: bash
 
-      tar -zxvf atlasdb-timelock-server-0.25.0.sls.tgz; cd atlasdb-timelock-server-0.25.0
+      tar -zxvf timelock-server-0.25.0.sls.tgz; cd timelock-server-0.25.0
 
 5. Configure the Timelock Server - see :ref:`timelock-server-configuration` for a guide on this. The configuration file
    is at ``var/conf/timelock.yml`` relative to the root directory of the Timelock Server.

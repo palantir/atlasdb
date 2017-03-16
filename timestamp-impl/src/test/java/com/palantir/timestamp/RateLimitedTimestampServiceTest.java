@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Test;
 
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting1.tracing.Tracers;
 
 public class RateLimitedTimestampServiceTest {
     @Test
@@ -38,7 +39,7 @@ public class RateLimitedTimestampServiceTest {
         final AtomicLong timestampsGenerated = new AtomicLong(0);
         final long startMillis = System.currentTimeMillis();
 
-        ExecutorService executor = PTExecutors.newCachedThreadPool();
+        ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool());
         try {
             for (int i = 0; i < NUM_THREADS; ++i) {
                 executor.submit(new Callable<Void>() {

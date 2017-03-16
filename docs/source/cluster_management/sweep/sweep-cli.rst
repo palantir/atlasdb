@@ -1,4 +1,4 @@
-.. _atlas-sweep-cli:
+.. _atlasdb-sweep-cli:
 
 AtlasDB Sweep CLI
 =================
@@ -19,6 +19,7 @@ The CLI has the following arguments:
    ``-n``, ``--namespace <namespace name>``, "A namespace name to sweep, for instance ``-n product``"
    ``-t``, ``--table <table name>``, "A fully qualified table name to sweep. For example, to sweep the accounts table in the bank namespace, you would use ``-t bank.accounts``."
    ``-r``, ``--row <row name>``, "A row name encoded in hexadecimal to start sweeping from. The CLI prints out row names as it runs, so you can use this to easily resume a manual sweep job without unnecessarily processing rows that have already been recently swept. If this option is omitted, sweeping will process all rows of the table."
+   , ``--dry-run``, "Perform a dry run of sweep. Instead of actually deleting cells, this will tell you how many cells would be deleted. Note that running a dry run and then running a regular sweep may produce slightly different results, as more data may have been added to the database in the meantime."
 
 You must specify exactly one of ``-a``, ``-n``, and ``-t``. If you are sweeping a specific table with ``-t``, you may additionally specify the start row with ``-r``. This is useful for resuming failed jobs.
 

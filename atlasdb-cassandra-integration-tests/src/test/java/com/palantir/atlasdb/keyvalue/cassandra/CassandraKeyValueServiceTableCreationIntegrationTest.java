@@ -120,7 +120,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
 
     @Test
     public void describeVersionBehavesCorrectly() throws Exception {
-        kvs.clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
+        kvs.getClientPool().runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
     }
 
 

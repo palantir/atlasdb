@@ -15,13 +15,16 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
@@ -542,6 +545,59 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(sweepResults.getCellsDeleted(), 1);
     }
 
+    /**
+     * Test case causing the sweep DbKvs OOM #982. Takes about an hour to run, so should be @Ignored unless specifically
+     * needed
+     */
+    @Ignore
+    @Test
+    public void testOom() {
+        createTable(SweepStrategy.CONSERVATIVE);
+
+        for (int col = 0; col < 10000; ++col) {
+            Map<Cell, byte[]> toPut = new HashMap<>();
+            for (int row = 0; row < 1000; ++row) {
+                Cell cell = Cell.create(
+                        Integer.toString(row).getBytes(),
+                        Integer.toString(col).getBytes());
+                toPut.put(cell, "foo".getBytes());
+            }
+            kvs.put(TABLE_NAME, toPut, col + 1000);
+            txService.putUnlessExists(col + 1000, col + 1000);
+            if (col % 1000 == 0) {
+                kvs.put(TABLE_NAME, toPut, col + 11000);
+                txService.putUnlessExists(col + 11000, col + 11000);
+            }
+            System.out.println("inserted col " + col);
+        }
+        System.out.println("starting sweep");
+        SweepResults results = sweep(TABLE_NAME, 30000, 1000, 1000);
+        Assert.assertFalse(results.getNextStartRow().isPresent());
+        Assert.assertEquals(10000L, results.getCellsDeleted());
+    }
+
+    @Ignore
+    @Test
+    public void wideRowTest() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        Map<Cell, byte[]> toPut = new HashMap<>();
+        for (int col = 0; col < 10000; ++col) {
+            Cell cell = Cell.create(
+                    "1".getBytes(),
+                    Integer.toString(col).getBytes());
+            toPut.put(cell, "foo".getBytes());
+        }
+        for (int timestamp = 1; timestamp < 1001; ++timestamp) {
+            kvs.put(TABLE_NAME, toPut, timestamp);
+            txService.putUnlessExists(timestamp, timestamp);
+            System.out.println("inserted timestamp " + timestamp);
+        }
+        System.out.println("starting sweep");
+        SweepResults results = sweep(TABLE_NAME, 30000, 1000, 1000);
+        Assert.assertFalse(results.getNextStartRow().isPresent());
+        Assert.assertEquals(999 * 10000L, results.getCellsDeleted());
+    }
+
     private void testSweepManyRows(SweepStrategy strategy) {
         createTable(strategy);
         putIntoDefaultColumn("foo", "bar1", 5);
@@ -591,8 +647,12 @@ public abstract class AbstractSweeperTest {
     }
 
     private SweepResults sweep(TableReference tableReference, long ts, int batchSize) {
+        return sweep(tableReference, ts, batchSize, DEFAULT_CELL_BATCH_SIZE);
+    }
+
+    protected SweepResults sweep(TableReference tableReference, long ts, int batchSize, int cellBatchSize) {
         sweepTimestamp.set(ts);
-        return sweepRunner.run(tableReference, batchSize, DEFAULT_CELL_BATCH_SIZE, new byte[0]);
+        return sweepRunner.run(tableReference, batchSize, cellBatchSize, new byte[0]);
     }
 
     private SweepResults partialSweep(long ts, int batchSize) {

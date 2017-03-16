@@ -14,11 +14,14 @@ dependencies {
   compile (group: 'com.netflix.feign', name: 'feign-jaxrs') {
     exclude module: 'jsr311-api'
   }
+  compile group: 'com.palantir.remoting1', name: 'tracing'
+  compile group: 'com.palantir.tritium', name: 'tritium-lib'
 
   compile group: 'junit', name: 'junit'
   compile group: 'org.hamcrest', name: 'hamcrest-core'
   compile group: 'org.hamcrest', name: 'hamcrest-library'
   compile group: 'org.assertj', name: 'assertj-core'
 
+  testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
   testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
 }

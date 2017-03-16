@@ -28,13 +28,21 @@ public class AtlasDbConstants {
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub");
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
+    public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
+            "_persisted_locks");
 
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace("atlasdb_metadata");
 
+    public static final String PRIMARY_KEY_CONSTRAINT_PREFIX = "pk_";
+
+    private static final int ORACLE_NAME_LENGTH_LIMIT = 30;
+    public static final int ATLASDB_ORACLE_TABLE_NAME_LIMIT = AtlasDbConstants.ORACLE_NAME_LENGTH_LIMIT - PRIMARY_KEY_CONSTRAINT_PREFIX.length();
     public static final String ORACLE_NAME_MAPPING_TABLE = "atlasdb_table_names";
-    public static final String ORACLE_NAME_MAPPING_PK_CONSTRAINT = "pk_" + ORACLE_NAME_MAPPING_TABLE;
+    public static final String ORACLE_NAME_MAPPING_PK_CONSTRAINT = PRIMARY_KEY_CONSTRAINT_PREFIX
+            + ORACLE_NAME_MAPPING_TABLE;
     public static final String ORACLE_OVERFLOW_SEQUENCE = "overflow_seq";
+    public static final int ORACLE_OVERFLOW_THRESHOLD = 2000;
 
     public static final String NAMESPACE_PREFIX = "_n_";
     public static final String NAMESPACE_SHORT_COLUMN_NAME = "s";
@@ -50,20 +58,24 @@ public class AtlasDbConstants {
     public static final int DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB = 64;
 
     public static final long TRANSACTION_TS = 0L;
+    public static final long MAX_TS = Long.MAX_VALUE;
+
 
     public static final Set<TableReference> hiddenTables = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             PUNCH_TABLE,
             SCRUB_TABLE,
             NAMESPACE_TABLE,
-            PARTITION_MAP_TABLE);
+            PARTITION_MAP_TABLE,
+            PERSISTED_LOCKS_TABLE);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
      */
     public static final Set<TableReference> ATOMIC_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
-            NAMESPACE_TABLE);
+            NAMESPACE_TABLE,
+            PERSISTED_LOCKS_TABLE);
 
     public static final Set<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED = ImmutableSet.of(TableReference.createWithEmptyNamespace("resync_object"));
 
@@ -80,6 +92,7 @@ public class AtlasDbConstants {
 
     public static final boolean DEFAULT_ENABLE_SWEEP = false;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
+    public static final long DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS = 30_000L;
     public static final int DEFAULT_SWEEP_BATCH_SIZE = 1000;
     public static final int DEFAULT_SWEEP_CELL_BATCH_SIZE = 10_000;
 
