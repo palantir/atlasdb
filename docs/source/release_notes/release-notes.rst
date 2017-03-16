@@ -79,7 +79,7 @@ v0.36.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1687>`__)
 
     *    - |fixed|
-         - Fixed an issue where the ``_persisted_locks`` table was unnecessarily logged as not have persisted metadata.
+         - Fixed an issue where the ``_persisted_locks`` table was unnecessarily logged as not having persisted metadata.
            The ``_persisted_locks`` table is a hidden table, and thus it does not need to have persisted metadata.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1696>`__)
 
