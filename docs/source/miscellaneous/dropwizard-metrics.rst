@@ -8,9 +8,10 @@ AtlasDB makes use of the Dropwizard `Metrics library <http://metrics.dropwizard.
 expose a global ``MetricRegistry`` called ``AtlasDbRegistry``. Users of AtlasDB should use ``AtlasDbMetrics.setMetricRegistry``
 to inject their own ``MetricRegistry`` for their application prior to initializing the AtlasDB transaction manager.
 
-We expose the metrics below. For the Cassandra client metrics with ``<host>``, we will expose metrics specific to every
-Cassandra node in your cluster. For more details on what information each type of metric provides, we recommend reading
-the Metrics `Getting Started Guide <http://metrics.dropwizard.io/3.1.0/getting-started/#>`__.
+For the Cassandra, we will expose client metrics for every Cassandra node in your cluster. For more details on what
+information each type of metric provides, we recommend reading the Metrics `Getting Started Guide <http://metrics.dropwizard.io/3.1.0/getting-started/#>`__.
+
+The full list of metrics exposed by AtlasDB can be found below.
 
 **Gauges**
 
