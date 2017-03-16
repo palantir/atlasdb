@@ -27,7 +27,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 class SweepMetrics {
     private static final String STALE_VALUES_DELETED = "staleValuesDeleted";
     private static final String CELLS_EXAMINED = "cellsExamined";
-    private static final String AGGREGATE_CELLS_DELETED = MetricRegistry.name(SweepMetrics.class,
+    private static final String AGGREGATE_STALE_VALUES_DELETED = MetricRegistry.name(SweepMetrics.class,
             STALE_VALUES_DELETED);
     private static final String AGGREGATE_CELLS_EXAMINED = MetricRegistry.name(SweepMetrics.class,
             CELLS_EXAMINED);
@@ -45,7 +45,7 @@ class SweepMetrics {
     }
 
     private void registerAggregateMetrics() {
-        registerMetricWithHdrHistogram(AGGREGATE_CELLS_DELETED);
+        registerMetricWithHdrHistogram(AGGREGATE_STALE_VALUES_DELETED);
         registerMetricWithHdrHistogram(AGGREGATE_CELLS_EXAMINED);
     }
 
@@ -63,7 +63,7 @@ class SweepMetrics {
         String deletesMetric = getCellsDeletedMetric(tableRef);
 
         metricRegistry.histogram(deletesMetric).update(cellsDeleted);
-        metricRegistry.histogram(AGGREGATE_CELLS_DELETED).update(cellsDeleted);
+        metricRegistry.histogram(AGGREGATE_STALE_VALUES_DELETED).update(cellsDeleted);
     }
 
     private void recordCellsExamined(TableReference tableRef, long cellsExamined) {
@@ -81,8 +81,8 @@ class SweepMetrics {
         return MetricRegistry.name(SweepMetrics.class, STALE_VALUES_DELETED, tableRef.getQualifiedName());
     }
 
-    private void registerMetricWithHdrHistogram(String deletesMetric) {
-        registerMetricIfNotExists(deletesMetric, new Histogram(new HdrHistogramReservoir()));
+    private void registerMetricWithHdrHistogram(String metric) {
+        registerMetricIfNotExists(metric, new Histogram(new HdrHistogramReservoir()));
     }
 
     private void registerMetricIfNotExists(String name, Metric metric) {

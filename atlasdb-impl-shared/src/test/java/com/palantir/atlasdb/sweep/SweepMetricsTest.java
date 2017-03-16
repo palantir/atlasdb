@@ -70,7 +70,7 @@ public class SweepMetricsTest {
     }
 
     @Test
-    public void singleDeleteIsRecorded() {
+    public void cellsDeletedAreRecorded() {
         sweepMetrics.recordMetrics(TABLE, SWEEP_RESULTS_FOR_TABLE);
 
         assertCellsDeleted(TABLE, DELETED);
