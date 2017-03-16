@@ -35,7 +35,7 @@ Call the ``persistent-lock/acquire-backup-lock`` endpoint, supplying your reason
 
 .. code:: bash
 
-  $ curl -X GET --header 'Accept: application/json' '<product-base-url>/persistent-lock/acquire-backup-lock?reason=manual-backup'
+  $ curl -X POST --header 'Accept: application/json' '<product-base-url>/persistent-lock/acquire-backup-lock?reason=manual-backup'
 
 If the request succeeds, you will receive a ``PersistentLockId`` back. It is essential that you save this lock somewhere, so that you can release it later in the process.
 
