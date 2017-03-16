@@ -94,14 +94,17 @@ def main(argv):
                      'stacktraces and will be ommitted.'))
     parser.add_argument('file', type=argparse.FileType('r'), nargs='*',
                         help='Input log files on disk')
-    parser.add_argument('--skip-tests', action='store_true',
-                        help='Do not run unit tests')
+    parser.add_argument('--tests-only', action='store_true',
+                        help='Just run unit tests, then exit')
     args = parser.parse_args(argv[1:])
 
     # run tests
-    if not args.skip_tests and not run_tests_silently():
+    if not run_tests_silently():
         sys.stderr.write('Tests failed. Fix them or run with --skip-tests\n')
         return 1
+    if args.tests_only:
+        print 'Tests passed'
+        return 0
 
     # make the filenames shorter
     filenames = [f.name for f in args.file]

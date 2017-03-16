@@ -16,7 +16,7 @@ apply plugin: 'org.inferred.processors'
 apply plugin: 'org.unbroken-dome.test-sets'
 
 task runUnitTestsForPrintLogsInChronologicalOrderScript(type: Exec) {
-   commandLine 'python', 'scripts/print_logs_in_chronological_order.py'
+   commandLine 'python', 'scripts/print_logs_in_chronological_order.py', '--tests-only'
 }
 
 testSets {
