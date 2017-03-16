@@ -15,19 +15,18 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.concurrent.TimeUnit;
+import org.mpierce.metrics.reservoir.hdrhistogram.HdrHistogramReservoir;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 class SweepMetrics {
-    private static final String AGGREGATE_DELETES = "totalDeletesInLastDay";
+    private static final String AGGREGATE_DELETES = "totalDeletes";
     private static final String AGGREGATE_DELETES_METRIC = MetricRegistry.name(SweepMetrics.class, AGGREGATE_DELETES);
-    private static final String PER_TABLE_DELETES = "deletesInLastWeek";
+    private static final String PER_TABLE_DELETES = "deletes";
 
     private final MetricRegistry metricRegistry;
 
@@ -42,14 +41,14 @@ class SweepMetrics {
     }
 
     private void registerAggregateMetrics() {
-        SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(1, TimeUnit.DAYS);
+        HdrHistogramReservoir reservoir = new HdrHistogramReservoir();
         Histogram slidingWeek = new Histogram(reservoir);
 
         registerMetricIfNotExists(AGGREGATE_DELETES_METRIC, slidingWeek);
     }
 
     void registerMetricsIfNecessary(TableReference tableRef) {
-        SlidingTimeWindowReservoir reservoir = new SlidingTimeWindowReservoir(7, TimeUnit.DAYS);
+        HdrHistogramReservoir reservoir = new HdrHistogramReservoir();
         Histogram slidingWeek = new Histogram(reservoir);
         String deletesMetric = getPerTableDeletesMetric(tableRef);
 
