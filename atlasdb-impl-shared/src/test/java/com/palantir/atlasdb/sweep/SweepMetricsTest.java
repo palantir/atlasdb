@@ -35,8 +35,13 @@ public class SweepMetricsTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
     private static final String DELETES_METRIC = MetricRegistry.name(SweepMetrics.class, "deletes",
             TABLE.getQualifiedName());
-    private static final MetricRegistry METRIC_REGISTRY = AtlasDbMetrics.getMetricRegistry();
+    private static final SweepResults DEFAULT_SWEEP_RESULTS = SweepResults.builder()
+            .cellsDeleted(10L)
+            .cellsExamined(15L)
+            .sweptTimestamp(1337L)
+            .build();
 
+    private static final MetricRegistry METRIC_REGISTRY = AtlasDbMetrics.getMetricRegistry();
     private SweepMetrics sweepMetrics;
 
     @Before
@@ -47,7 +52,17 @@ public class SweepMetricsTest {
 
     @After
     public void tearDown() {
-        METRIC_REGISTRY.remove(DELETES_METRIC);
+        METRIC_REGISTRY.removeMatching((name, metric) -> true);
+    }
+
+    @Test
+    public void cellsExaminedAreRecorded() {
+        sweepMetrics.recordMetrics(TABLE, DEFAULT_SWEEP_RESULTS);
+
+        Histogram examinedMetric = METRIC_REGISTRY.histogram(MetricRegistry.name(SweepMetrics.class, "cellsExamined",
+                TABLE.getQualifiedName()));
+
+        assertArrayEquals(new long[] {15L}, examinedMetric.getSnapshot().getValues());
     }
 
     @Test
