@@ -25,6 +25,7 @@ public class AvailableTimestamps {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
     static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
     private static final long MAX_TIMESTAMPS_TO_HAND_OUT = 10 * 1000;
+    private final Object lock;
 
     @GuardedBy("this")
     private final LastReturnedTimestamp lastReturnedTimestamp;
@@ -36,6 +37,7 @@ public class AvailableTimestamps {
                 Thread.currentThread().getName());
         this.lastReturnedTimestamp = lastReturnedTimestamp;
         this.upperLimit = upperLimit;
+        this.lock = new Object();
     }
 
     private static void checkValidTimestampRangeRequest(long numberToHandOut) {
@@ -52,7 +54,7 @@ public class AvailableTimestamps {
         long targetTimestamp;
         TimestampRange timestampRange;
 
-        synchronized (this) {
+        synchronized (lock) {
             /*
              * Under high concurrent load, this will be a hot critical section as clients request timestamps.
              * It is important to minimize contention as much as possible on this path.
@@ -101,8 +103,8 @@ public class AvailableTimestamps {
         upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE, 0L);
     }
 
-    private synchronized long lastHandedOut() {
-        // synchronizing for semantic consistency and avoid `assert Thread.holdsLock(this);` overhead
+    private long lastHandedOut() {
+        // de-synchronized
         return lastReturnedTimestamp.get();
     }
 
@@ -111,23 +113,30 @@ public class AvailableTimestamps {
      * @return timestamp range to hand out
      * @throws IllegalArgumentException if targetTimestamp is less than or equal to last handed out timestamp
      */
-    private synchronized TimestampRange getRangeToHandOut(long targetTimestamp) {
-        long lastHandedOut = lastHandedOut();
-        if (targetTimestamp <= lastHandedOut) {
-            // explicitly not using Preconditions to optimize hot success path and avoid allocations
-            throw new IllegalArgumentException(String.format(
-                    "Could not hand out timestamp '%s' as it was earlier than the last handed out timestamp: %s",
-                    targetTimestamp, lastHandedOut));
+    private TimestampRange getRangeToHandOut(long targetTimestamp) {
+        synchronized (lock) {
+            long lastHandedOut = lastHandedOut();
+            if (targetTimestamp <= lastHandedOut) {
+                // explicitly not using Preconditions to optimize hot success path and avoid allocations
+                throw new IllegalArgumentException(String.format(
+                        "Could not hand out timestamp '%s' as it was earlier than the last handed out timestamp: %s",
+                        targetTimestamp, lastHandedOut));
+            }
+            return TimestampRange.createInclusiveRange(lastHandedOut + 1, targetTimestamp);
         }
-        return TimestampRange.createInclusiveRange(lastHandedOut + 1, targetTimestamp);
     }
 
-    private synchronized TimestampRange handOutTimestamp(long targetTimestamp) {
-        TimestampRange rangeToHandOut = getRangeToHandOut(targetTimestamp);
-        allocateEnoughTimestampsToHandOut(targetTimestamp, MINIMUM_BUFFER);
-        lastReturnedTimestamp.increaseToAtLeast(targetTimestamp);
+    private TimestampRange handOutTimestamp(long targetTimestamp) {
+        synchronized (lock) {
+            TimestampRange rangeToHandOut = getRangeToHandOut(targetTimestamp);
+            if (targetTimestamp > upperLimit.get()) {
+                //this is the only situation where we actually need to block gets to wait for CAS
+                allocateEnoughTimestampsToHandOut(targetTimestamp, ALLOCATION_BUFFER_SIZE);
+            }
+            lastReturnedTimestamp.increaseToAtLeast(targetTimestamp);
 
-        return rangeToHandOut;
+            return rangeToHandOut;
+        }
     }
 
     private synchronized void allocateEnoughTimestampsToHandOut(long timestamp, long buffer) {
