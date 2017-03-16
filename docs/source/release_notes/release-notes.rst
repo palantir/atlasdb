@@ -49,6 +49,11 @@ develop
          - Improved performance of paging over dynamic columns on Oracle DbKvs: the time required to page through a large wide row is now linear rather than quadratic in the length of the row.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1702>`__)
 
+    *    - |deprecated|
+         - ``GenericStreamStore.loadStream`` has been deprecated. Use ``loadSingleStream``, which returns an
+           ``Optional<InputStream>``, instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1265>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -455,11 +460,6 @@ v0.30.0
          - Updated our dependency on ``gradle-java-distribution`` from 1.2.0 to 1.3.0.
            See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1500>`__)
-
-    *    - |deprecated|
-         - ``GenericStreamStore.loadStream`` has been deprecated. Use ``loadSingleStream``, which returns an
-           ``Optional<InputStream>``, instead.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1265>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
