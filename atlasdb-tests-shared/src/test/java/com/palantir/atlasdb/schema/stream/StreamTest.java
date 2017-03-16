@@ -128,12 +128,15 @@ public class StreamTest extends AtlasDbTestCase {
     @Test
     public void testLoadStreamWithWrongId() throws Exception {
         final byte[] data = PtBytes.toBytes("streamed");
-        txManager.runTaskWithRetry((TransactionTask<Void, Exception>) t -> {
+        long streamId = txManager.runTaskWithRetry((TransactionTask<Long, Exception>) t -> {
             Sha256Hash hash = Sha256Hash.computeHash(data);
             byte[] reference = "ref".getBytes();
-            defaultStore.getByHashOrStoreStreamAndMarkAsUsed(t, hash, new ByteArrayInputStream(data), reference);
 
-            assertThat(defaultStore.loadSingleStream(t, 1L), is(Optional.empty()));
+            return defaultStore.getByHashOrStoreStreamAndMarkAsUsed(t, hash,
+                    new ByteArrayInputStream(data), reference);
+        });
+        txManager.runTaskWithRetry((TransactionTask<Void, Exception>) t -> {
+            assertThat(defaultStore.loadSingleStream(t, streamId ^ 1L), is(Optional.empty()));
             return null;
         });
     }
