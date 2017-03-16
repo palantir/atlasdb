@@ -27,11 +27,6 @@ public class OracleRawQueryFactory extends OracleQueryFactory {
     }
 
     @Override
-    String getValueSubselect(String tableAlias, boolean includeValue) {
-        return includeValue ? ", " + tableAlias + ".val " : " ";
-    }
-
-    @Override
     public boolean hasOverflowValues() {
         return false;
     }
