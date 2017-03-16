@@ -41,18 +41,16 @@ class SweepMetrics {
     }
 
     private void registerAggregateMetrics() {
-        HdrHistogramReservoir reservoir = new HdrHistogramReservoir();
-        Histogram slidingWeek = new Histogram(reservoir);
+        Histogram histogram = new Histogram(new HdrHistogramReservoir());
 
-        registerMetricIfNotExists(AGGREGATE_DELETES_METRIC, slidingWeek);
+        registerMetricIfNotExists(AGGREGATE_DELETES_METRIC, histogram);
     }
 
     void registerMetricsIfNecessary(TableReference tableRef) {
-        HdrHistogramReservoir reservoir = new HdrHistogramReservoir();
-        Histogram slidingWeek = new Histogram(reservoir);
+        Histogram histogram = new Histogram(new HdrHistogramReservoir());
         String deletesMetric = getPerTableDeletesMetric(tableRef);
 
-        registerMetricIfNotExists(deletesMetric, slidingWeek);
+        registerMetricIfNotExists(deletesMetric, histogram);
     }
 
     // TODO this will obviously change when we have many metrics.
