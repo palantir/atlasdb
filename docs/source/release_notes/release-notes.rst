@@ -66,7 +66,8 @@ v0.36.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1678>`__)
 
     *    - |fixed|
-         - Actions run by the ``ReadOnlyTransactionManager`` can no longer bypass necessary protections when using ``getRowsColumnRange()``.
+         - Actions run by the ``ReadOnlyTransactionManager`` can no longer bypass necessary protections when using ``getRowsColumnRange()``.  
+           These protections disallow reads against ``THOROUGH`` swept tables as ``ReadOnlyTransaction``s do not acquire the appropriate locks to guarantee transactionality.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1521>`__)
 
     *    - |fixed|
