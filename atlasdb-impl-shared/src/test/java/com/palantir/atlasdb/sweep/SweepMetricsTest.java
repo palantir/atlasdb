@@ -32,7 +32,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 public class SweepMetricsTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
-    private static final String DELETES_METRIC = MetricRegistry.name(SweepMetrics.class, "deletes",
+    private static final String DELETES_METRIC = MetricRegistry.name(SweepMetrics.class, "deletesInLastWeek",
             TABLE.getQualifiedName());
     private static final MetricRegistry METRIC_REGISTRY = AtlasDbMetrics.getMetricRegistry();
 
@@ -40,7 +40,7 @@ public class SweepMetricsTest {
 
     @Before
     public void setUp() {
-        sweepMetrics = SweepMetrics.create();
+        sweepMetrics = new SweepMetrics(METRIC_REGISTRY);
         sweepMetrics.registerMetricsIfNecessary(TABLE);
     }
 
