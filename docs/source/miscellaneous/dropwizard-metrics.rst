@@ -8,8 +8,11 @@ AtlasDB makes use of the Dropwizard `Metrics library <http://metrics.dropwizard.
 expose a global ``MetricRegistry`` called ``AtlasDbRegistry``. Users of AtlasDB should use ``AtlasDbMetrics.setMetricRegistry``
 to inject their own ``MetricRegistry`` for their application prior to initializing the AtlasDB transaction manager.
 
-We expose the metrics below. For the Cassandra client metrics with ``<host>``, we will expose metrics specific to every
-Cassandra node in your cluster. For more details on what information each type of metric provides, we recommend reading
+We expose the metrics below.
+For the Cassandra client metrics with ``<host>``, we will expose metrics specific to every Cassandra node in your cluster.
+For sweep metrics with ``<table>``, we will expose metrics specific to every table that has been swept.
+
+For more details on what information each type of metric provides, we recommend reading
 the Metrics `Getting Started Guide <http://metrics.dropwizard.io/3.1.0/getting-started/#>`__.
 
 **Gauges**
@@ -38,6 +41,10 @@ the Metrics `Getting Started Guide <http://metrics.dropwizard.io/3.1.0/getting-s
 **Histograms**
 
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.byteSizeTx``
+- ``com.palantir.atlasdb.sweep.SweepMetrics.cellsExamined``
+- ``com.palantir.atlasdb.sweep.SweepMetrics.staleValuesDeleted``
+- ``com.palantir.atlasdb.sweep.SweepMetrics.cellsExamined.<table>``
+- ``com.palantir.atlasdb.sweep.SweepMetrics.staleValuesDeleted.<table>``
 
 **Meters**
 
