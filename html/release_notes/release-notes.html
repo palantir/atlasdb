@@ -201,6 +201,10 @@
 Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1199">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Improved performance of paging over dynamic columns on Oracle DbKvs: the time required to page through a large wide row is now linear rather than quadratic in the length of the row.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1702">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
