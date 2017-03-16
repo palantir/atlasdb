@@ -51,13 +51,14 @@ public class PersistentUpperLimit {
      * @return upper limit timestamp
      */
     public long get() {
+        allocationFailures.verifyWeShouldIssueMoreTimestamps();
         return cachedValue;
     }
 
-    public synchronized long increaseToAtLeast(long minimum) {
+    public synchronized long increaseToAtLeast(long minimum, long buffer) {
         long currentValue = get();
         if (currentValue < minimum) {
-            return store(minimum);
+            return store(minimum + buffer);
         } else {
             DebugLogger.logger.trace(
                     "Not storing upper limit of {}, as the cached value {} was higher.",
@@ -88,7 +89,7 @@ public class PersistentUpperLimit {
     private synchronized long store(long upperLimit) {
         DebugLogger.logger.trace("Storing new upper limit of {}.", upperLimit);
         checkWeHaveNotBeenInterrupted();
-        allocationFailures.verifyWeShouldTryToAllocateMoreTimestamps();
+        allocationFailures.verifyWeShouldIssueMoreTimestamps();
         persistNewUpperLimit(upperLimit);
         cachedValue = upperLimit;
         lastIncreasedTime = clock.getTimeMillis();
