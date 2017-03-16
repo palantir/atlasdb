@@ -13,7 +13,7 @@ about tracing itself check out DataStax's `Request tracing in Cassandra
 1.2 <http://www.datastax.com/dev/blog/tracing-in-cassandra-1-2>`__ and `TRACING <https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tracing_r.html>`__.
 
 To enable tracing you need to provide a configuration file called
-``atlasdb_tracing.prefs`` and place it in the ``user.dir`` directory of your
+``atlas_tracing.prefs`` and place it in the ``user.dir`` directory of your
 Java process, which is the directory from which java was executed.
 
 When a query is traced, you will see the following line your log file:
