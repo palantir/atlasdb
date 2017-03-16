@@ -21,17 +21,13 @@ import java.util.concurrent.Callable;
 
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceValidator;
-import com.palantir.atlasdb.schema.TaskProgress;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
@@ -102,8 +98,6 @@ public class KvsMigrationCommand implements Callable<Integer> {
             description = "inline configuration file for atlasdb")
     private String inlineConfig;
 
-    private static final Namespace CHECKPOINT_NAMESPACE = Namespace.create("kvs_migrate");
-
     @Override
     public Integer call() throws Exception {
         if (inlineConfig == null && toConfigFile == null) {
@@ -173,42 +167,11 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
     private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices)
             throws IOException {
-        //TODO: this timestamp will have to be stored for online migration
-        Supplier<Long> migrationTimestampSupplier = Suppliers.ofInstance(toServices
-                .getTimestampService()
-                .getFreshTimestamp());
-        toServices.getTransactionService().putUnlessExists(migrationTimestampSupplier.get(), toServices
-                .getTimestampService()
-                .getFreshTimestamp());
-        return new KeyValueServiceMigrator(
-                CHECKPOINT_NAMESPACE,
-                fromServices.getTransactionManager(),
-                toServices.getTransactionManager(),
-                fromServices.getKeyValueService(),
-                toServices.getKeyValueService(),
-                migrationTimestampSupplier,
-                threads,
-                batchSize,
-                ImmutableMap.of(),
-                (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
-                    printer.info(level.toString() + ": " + message);
-                },
-                new TaskProgress() {
-                    @Override
-                    public void beginTask(String message, int tasks) {
-                        printer.info(message);
-                    }
-
-                    @Override
-                    public void subTaskComplete() {
-                        //
-                    }
-
-                    @Override
-                    public void taskComplete() {
-                        //
-                    }
-                },
-                ImmutableSet.of());
+        return KeyValueServiceMigrators.setupMigrator(ImmutableMigratorSpec.builder()
+                .fromServices(fromServices)
+                .toServices(toServices)
+                .threads(threads)
+                .batchSize(batchSize)
+                .build());
     }
 }
