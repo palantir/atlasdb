@@ -210,6 +210,12 @@ Previously, doing a KVS migration with an embedded timestamp service whose times
 <code class="docutils literal"><span class="pre">Optional&lt;InputStream&gt;</span></code>, instead.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1265">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>&#8216;getAsyncRows&#8217; and &#8216;getAsyncRowsMultimap&#8217; methods have been removed from generated code.  They do not appear valuable to the API and use a nonintuitive and custom &#8216;AsyncProxy&#8217; (also removed).
+We believe they are unused by upstream applications, but if you do encounter breaks due to this
+removal please file a ticket with the dev team for immediate support (as we did not take the time to properly deprecate the methods).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1689">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

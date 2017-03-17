@@ -54,6 +54,12 @@ develop
            ``Optional<InputStream>``, instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1265>`__)
 
+    *    - |devbreak|
+         - 'getAsyncRows' and 'getAsyncRowsMultimap' methods have been removed from generated code.  They do not appear valuable to the API and use a nonintuitive and custom 'AsyncProxy' (also removed).
+           We believe they are unused by upstream applications, but if you do encounter breaks due to this
+           removal please file a ticket with the dev team for immediate support (as we did not take the time to properly deprecate the methods).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1689>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
