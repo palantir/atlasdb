@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,7 +81,6 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -1058,23 +1056,6 @@ public final class SweepPriorityTable implements
     }
 
     @Override
-    public List<SweepPriorityRowResult> getAsyncRows(Iterable<SweepPriorityRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, allColumns, exec);
-    }
-
-    @Override
-    public List<SweepPriorityRowResult> getAsyncRows(final Iterable<SweepPriorityRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<SweepPriorityRowResult>> c =
-                new Callable<List<SweepPriorityRowResult>>() {
-            @Override
-            public List<SweepPriorityRowResult> call() {
-                return getRows(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), List.class);
-    }
-
-    @Override
     public List<SweepPriorityNamedColumnValue<?>> getRowColumns(SweepPriorityRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -1102,23 +1083,6 @@ public final class SweepPriorityTable implements
     @Override
     public Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getRowsMultimap(Iterable<SweepPriorityRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<SweepPriorityRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<SweepPriorityRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>>> c =
-                new Callable<Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>>>() {
-            @Override
-            public Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getRowsMultimapInternal(Iterable<SweepPriorityRow> rows, ColumnSelection columns) {
@@ -1195,7 +1159,6 @@ public final class SweepPriorityTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -1227,7 +1190,6 @@ public final class SweepPriorityTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -1274,5 +1236,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "2HFf2/0ZpwH6FqoyKkQa2A==";
+    static String __CLASS_HASH = "cEj9HVFv+/ezr8Ev9GdSTQ==";
 }
