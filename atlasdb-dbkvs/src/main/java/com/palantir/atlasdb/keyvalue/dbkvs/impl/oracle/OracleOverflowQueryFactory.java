@@ -35,11 +35,6 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
     }
 
     @Override
-    protected String getValueSubselect(String tableAlias, boolean includeValue) {
-        return includeValue ? ", " + tableAlias + ".val, " + tableAlias + ".overflow " : " ";
-    }
-
-    @Override
     public boolean hasOverflowValues() {
         return true;
     }

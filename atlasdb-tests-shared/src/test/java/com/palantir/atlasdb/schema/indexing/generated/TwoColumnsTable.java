@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,7 +81,6 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -709,23 +707,6 @@ public final class TwoColumnsTable implements
     }
 
     @Override
-    public List<TwoColumnsRowResult> getAsyncRows(Iterable<TwoColumnsRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, allColumns, exec);
-    }
-
-    @Override
-    public List<TwoColumnsRowResult> getAsyncRows(final Iterable<TwoColumnsRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<TwoColumnsRowResult>> c =
-                new Callable<List<TwoColumnsRowResult>>() {
-            @Override
-            public List<TwoColumnsRowResult> call() {
-                return getRows(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), List.class);
-    }
-
-    @Override
     public List<TwoColumnsNamedColumnValue<?>> getRowColumns(TwoColumnsRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -753,23 +734,6 @@ public final class TwoColumnsTable implements
     @Override
     public Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getRowsMultimap(Iterable<TwoColumnsRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<TwoColumnsRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<TwoColumnsRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>>> c =
-                new Callable<Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>>>() {
-            @Override
-            public Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getRowsMultimapInternal(Iterable<TwoColumnsRow> rows, ColumnSelection columns) {
@@ -1410,18 +1374,6 @@ public final class TwoColumnsTable implements
         }
 
         @Override
-        public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getAsync(final Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> cells, ExecutorService exec) {
-            Callable<Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>> c =
-                    new Callable<Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>>() {
-                @Override
-                public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> call() {
-                    return get(cells);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
-        }
-
-        @Override
         public List<FooToIdCondIdxColumnValue> getRowColumns(FooToIdCondIdxRow row) {
             return getRowColumns(row, allColumns);
         }
@@ -1451,23 +1403,6 @@ public final class TwoColumnsTable implements
         @Override
         public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getRowsMultimap(Iterable<FooToIdCondIdxRow> rows, ColumnSelection columns) {
             return getRowsMultimapInternal(rows, columns);
-        }
-
-        @Override
-        public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getAsyncRowsMultimap(Iterable<FooToIdCondIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, allColumns, exec);
-        }
-
-        @Override
-        public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getAsyncRowsMultimap(final Iterable<FooToIdCondIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-            Callable<Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>> c =
-                    new Callable<Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>>() {
-                @Override
-                public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> call() {
-                    return getRowsMultimapInternal(rows, columns);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
         private Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getRowsMultimapInternal(Iterable<FooToIdCondIdxRow> rows, ColumnSelection columns) {
@@ -2073,18 +2008,6 @@ public final class TwoColumnsTable implements
         }
 
         @Override
-        public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getAsync(final Multimap<FooToIdIdxRow, FooToIdIdxColumn> cells, ExecutorService exec) {
-            Callable<Multimap<FooToIdIdxRow, FooToIdIdxColumnValue>> c =
-                    new Callable<Multimap<FooToIdIdxRow, FooToIdIdxColumnValue>>() {
-                @Override
-                public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> call() {
-                    return get(cells);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
-        }
-
-        @Override
         public List<FooToIdIdxColumnValue> getRowColumns(FooToIdIdxRow row) {
             return getRowColumns(row, allColumns);
         }
@@ -2114,23 +2037,6 @@ public final class TwoColumnsTable implements
         @Override
         public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getRowsMultimap(Iterable<FooToIdIdxRow> rows, ColumnSelection columns) {
             return getRowsMultimapInternal(rows, columns);
-        }
-
-        @Override
-        public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getAsyncRowsMultimap(Iterable<FooToIdIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, allColumns, exec);
-        }
-
-        @Override
-        public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getAsyncRowsMultimap(final Iterable<FooToIdIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-            Callable<Multimap<FooToIdIdxRow, FooToIdIdxColumnValue>> c =
-                    new Callable<Multimap<FooToIdIdxRow, FooToIdIdxColumnValue>>() {
-                @Override
-                public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> call() {
-                    return getRowsMultimapInternal(rows, columns);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
         private Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getRowsMultimapInternal(Iterable<FooToIdIdxRow> rows, ColumnSelection columns) {
@@ -2215,7 +2121,6 @@ public final class TwoColumnsTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -2247,7 +2152,6 @@ public final class TwoColumnsTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -2294,5 +2198,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "XlnDML5kDOS0MZI8cpul2g==";
+    static String __CLASS_HASH = "cd+whj4Gr111pBt3IF93sA==";
 }

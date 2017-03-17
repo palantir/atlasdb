@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,7 +81,6 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -1040,23 +1038,6 @@ public final class UserProfileTable implements
     }
 
     @Override
-    public List<UserProfileRowResult> getAsyncRows(Iterable<UserProfileRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, allColumns, exec);
-    }
-
-    @Override
-    public List<UserProfileRowResult> getAsyncRows(final Iterable<UserProfileRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<UserProfileRowResult>> c =
-                new Callable<List<UserProfileRowResult>>() {
-            @Override
-            public List<UserProfileRowResult> call() {
-                return getRows(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), List.class);
-    }
-
-    @Override
     public List<UserProfileNamedColumnValue<?>> getRowColumns(UserProfileRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -1084,23 +1065,6 @@ public final class UserProfileTable implements
     @Override
     public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimap(Iterable<UserProfileRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<UserProfileRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<UserProfileRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<UserProfileRow, UserProfileNamedColumnValue<?>>> c =
-                new Callable<Multimap<UserProfileRow, UserProfileNamedColumnValue<?>>>() {
-            @Override
-            public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimapInternal(Iterable<UserProfileRow> rows, ColumnSelection columns) {
@@ -1759,18 +1723,6 @@ public final class UserProfileTable implements
         }
 
         @Override
-        public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getAsync(final Multimap<CookiesIdxRow, CookiesIdxColumn> cells, ExecutorService exec) {
-            Callable<Multimap<CookiesIdxRow, CookiesIdxColumnValue>> c =
-                    new Callable<Multimap<CookiesIdxRow, CookiesIdxColumnValue>>() {
-                @Override
-                public Multimap<CookiesIdxRow, CookiesIdxColumnValue> call() {
-                    return get(cells);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
-        }
-
-        @Override
         public List<CookiesIdxColumnValue> getRowColumns(CookiesIdxRow row) {
             return getRowColumns(row, allColumns);
         }
@@ -1800,23 +1752,6 @@ public final class UserProfileTable implements
         @Override
         public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimap(Iterable<CookiesIdxRow> rows, ColumnSelection columns) {
             return getRowsMultimapInternal(rows, columns);
-        }
-
-        @Override
-        public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getAsyncRowsMultimap(Iterable<CookiesIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, allColumns, exec);
-        }
-
-        @Override
-        public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getAsyncRowsMultimap(final Iterable<CookiesIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-            Callable<Multimap<CookiesIdxRow, CookiesIdxColumnValue>> c =
-                    new Callable<Multimap<CookiesIdxRow, CookiesIdxColumnValue>>() {
-                @Override
-                public Multimap<CookiesIdxRow, CookiesIdxColumnValue> call() {
-                    return getRowsMultimapInternal(rows, columns);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
         private Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimapInternal(Iterable<CookiesIdxRow> rows, ColumnSelection columns) {
@@ -2447,18 +2382,6 @@ public final class UserProfileTable implements
         }
 
         @Override
-        public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getAsync(final Multimap<CreatedIdxRow, CreatedIdxColumn> cells, ExecutorService exec) {
-            Callable<Multimap<CreatedIdxRow, CreatedIdxColumnValue>> c =
-                    new Callable<Multimap<CreatedIdxRow, CreatedIdxColumnValue>>() {
-                @Override
-                public Multimap<CreatedIdxRow, CreatedIdxColumnValue> call() {
-                    return get(cells);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
-        }
-
-        @Override
         public List<CreatedIdxColumnValue> getRowColumns(CreatedIdxRow row) {
             return getRowColumns(row, allColumns);
         }
@@ -2488,23 +2411,6 @@ public final class UserProfileTable implements
         @Override
         public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimap(Iterable<CreatedIdxRow> rows, ColumnSelection columns) {
             return getRowsMultimapInternal(rows, columns);
-        }
-
-        @Override
-        public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getAsyncRowsMultimap(Iterable<CreatedIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, allColumns, exec);
-        }
-
-        @Override
-        public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getAsyncRowsMultimap(final Iterable<CreatedIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-            Callable<Multimap<CreatedIdxRow, CreatedIdxColumnValue>> c =
-                    new Callable<Multimap<CreatedIdxRow, CreatedIdxColumnValue>>() {
-                @Override
-                public Multimap<CreatedIdxRow, CreatedIdxColumnValue> call() {
-                    return getRowsMultimapInternal(rows, columns);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
         private Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimapInternal(Iterable<CreatedIdxRow> rows, ColumnSelection columns) {
@@ -3135,18 +3041,6 @@ public final class UserProfileTable implements
         }
 
         @Override
-        public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getAsync(final Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> cells, ExecutorService exec) {
-            Callable<Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>> c =
-                    new Callable<Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>>() {
-                @Override
-                public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> call() {
-                    return get(cells);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
-        }
-
-        @Override
         public List<UserBirthdaysIdxColumnValue> getRowColumns(UserBirthdaysIdxRow row) {
             return getRowColumns(row, allColumns);
         }
@@ -3176,23 +3070,6 @@ public final class UserProfileTable implements
         @Override
         public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimap(Iterable<UserBirthdaysIdxRow> rows, ColumnSelection columns) {
             return getRowsMultimapInternal(rows, columns);
-        }
-
-        @Override
-        public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getAsyncRowsMultimap(Iterable<UserBirthdaysIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, allColumns, exec);
-        }
-
-        @Override
-        public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getAsyncRowsMultimap(final Iterable<UserBirthdaysIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-            Callable<Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>> c =
-                    new Callable<Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>>() {
-                @Override
-                public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> call() {
-                    return getRowsMultimapInternal(rows, columns);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
         }
 
         private Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimapInternal(Iterable<UserBirthdaysIdxRow> rows, ColumnSelection columns) {
@@ -3311,7 +3188,6 @@ public final class UserProfileTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -3343,7 +3219,6 @@ public final class UserProfileTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -3390,5 +3265,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Yrbc9BJH9QduFOQYBCrcWw==";
+    static String __CLASS_HASH = "cIwNLcXkK+Bu7Li9MpRLvw==";
 }
