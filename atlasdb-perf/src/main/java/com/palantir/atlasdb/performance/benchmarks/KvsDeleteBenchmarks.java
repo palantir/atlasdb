@@ -40,12 +40,11 @@ public class KvsDeleteBenchmarks {
     }
 
     private Object doDeleteRange(ConsecutiveNarrowTable table, int numBatches) {
-        Iterable<RangeRequest> rangeRequests;
-        if (numBatches == 1) {
-            rangeRequests = ImmutableList.of(RangeRequest.all());
-        } else {
-            rangeRequests = table.getRangeRequests(1, table.getNumRows() / numBatches);
-        }
+        Iterable<RangeRequest> rangeRequests =
+                numBatches == 1
+                        ? ImmutableList.of(RangeRequest.all())
+                        : table.getRangeRequests(1, table.getNumRows() / numBatches);
+
         rangeRequests.forEach(rangeRequest -> table.getKvs().deleteRange(table.getTableRef(), rangeRequest));
 
         return rangeRequests;
