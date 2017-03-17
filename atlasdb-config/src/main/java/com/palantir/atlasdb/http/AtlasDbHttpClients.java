@@ -231,6 +231,12 @@ public final class AtlasDbHttpClients {
     private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory, String userAgent) {
         com.squareup.okhttp.OkHttpClient client = new com.squareup.okhttp.OkHttpClient();
 
+        // Debugging: Prevent OkHttp connection retries. This may help us isolate the problem somewhat
+        // Alternatively we could perform this filtering to be if we know we're trying to make a lock client
+        // But I think for preliminary debugging this is safer
+        // See issue #1715
+        client.setRetryOnConnectionFailure(false);
+
         client.setConnectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES);
         client.setConnectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS));
         client.setSslSocketFactory(sslSocketFactory.orNull());
