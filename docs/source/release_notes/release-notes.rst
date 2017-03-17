@@ -45,6 +45,15 @@ develop
            Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1199>`__)
 
+    *    - |improved|
+         - Improved performance of paging over dynamic columns on Oracle DbKvs: the time required to page through a large wide row is now linear rather than quadratic in the length of the row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1702>`__)
+
+    *    - |deprecated|
+         - ``GenericStreamStore.loadStream`` has been deprecated. Use ``loadSingleStream``, which returns an
+           ``Optional<InputStream>``, instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1265>`__)
+
     *    - |devbreak|
          - 'getAsyncRows' and 'getAsyncRowsMultimap' methods have been removed from generated code.  They do not appear valuable to the API and use a nonintuitive and custom 'AsyncProxy' (also removed).
            We believe they are unused by upstream applications, but if you do encounter breaks due to this
