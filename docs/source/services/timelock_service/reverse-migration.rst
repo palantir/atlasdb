@@ -1,4 +1,4 @@
-.. _timelock-migration:
+.. _timelock-reverse-migration:
 
 Reverse Migration
 =================
@@ -21,6 +21,7 @@ Throughout this document, we assume the AtlasDB client you are trying to reverse
 #. Update your key-value service to the restore timestamp.
 #. Revert your AtlasDB client configuration.
 #. Shut down the TimeLock servers.
+#. Remove your client from the list of TimeLock clients.
 #. Restart your AtlasDB clients.
 #. Restart the TimeLock servers.
 
@@ -43,21 +44,97 @@ node that was not the leader; please try the other nodes.
 .. code-block:: none
 
    $ curl localhost:8421/client/timestamp/fresh-timestamp
-   314159265
+   123456789
 
 Note down the value returned from this call; we'll refer to it as ``TS`` from here on.
 
 Step 3: Update your Key-Value Service
 -------------------------------------
 
+Update the timestamp table in your key value service, such that it is valid and has the bound set to ``TS`` .
+This will vary depending on your choice of key-value service.
+
+- If you are rolling back an automated migration with Cassandra or a migration using the steps outlined in
+  :ref:`Manual TimeLock Migration <manual-timelock-migration>`, then you can carry out the following steps.
+  We suppose that your clients have the keyspace ``client`` in the examples below; at a high level, we want to truncate
+  the timestamp table to remove all entries, and then add a single entry with row and column names ``ts`` and a blob
+  value indicating the actual timestamp.
+
+  .. code-block:: none
+
+     cqlsh> USE client;
+     cqlsh:client> SELECT * FROM "_timestamp" ;
+
+      key    | column1      | column2 | value
+     --------+--------------+---------+--------------------
+      0x7473 | 0x6f6c645473 |      -1 | 0x0000000006d30af4
+      0x7473 |       0x7473 |      -1 |               0x00
+
+     (2 rows)
+
+     cqlsh:client> TRUNCATE "_timestamp";
+     cqlsh:client> SELECT * FROM "_timestamp" ;
+
+      key | column1 | column2 | value
+     -----+---------+---------+-------
+
+     (0 rows)
+
+     cqlsh:client> INSERT INTO "_timestamp" (key, column1, column2, value) VALUES (0x7473, 0x7473, -1, 0x00000000075bcd15);
+     cqlsh:client> SELECT * FROM "_timestamp" ;
+
+      key    | column1 | column2 | value
+     --------+---------+---------+--------------------
+      0x7473 |  0x7473 |      -1 | 0x00000000075bcd15
+
+  You will need to encode ``TS`` into an 8-byte hex representation; this can be done using the ``printf`` command:
+
+  .. code-block:: none
+
+     $ printf '0x%016x\n' 123456789
+     0x00000000075bcd15
+
+- If you are using DBKVS and have followed the steps outlined in :ref:`Manual TimeLock Migration<manual-timelock-migration>`,
+  it suffices to rename the column back:
+
+  .. code:: sql
+
+     ALTER TABLE atlasdb_timestamp RENAME LEGACY_last_allocated TO last_allocated;
+
 Step 4: Revert AtlasDB Client Configurations
 --------------------------------------------
+
+Change the configuration on your AtlasDB clients to not reference TimeLock any longer. For more detail on options
+for using embedded timestamp and lock services, please consult :ref:`Leader Config<leader-config>`.
 
 Step 5: Shut Down TimeLock Servers
 ----------------------------------
 
-Step 6: Restart your AtlasDB Clients
+Shut down your TimeLock servers. The purpose of this step is to verify that clients indeed no longer rely on TimeLock.
+
+Step 6: Reconfigure TimeLock
+----------------------------
+
+Remove ``client`` from the ``clients`` block of your TimeLock server configuration.
+
+Step 7: Restart your AtlasDB Clients
 ------------------------------------
 
-Step 7: Restart your TimeLock Servers
+Restart your AtlasDB clients. At this point, it may be useful to perform a simple smoke test to verify that your
+clients work properly (even while TimeLock is down).
+
+Step 8: Restart your TimeLock Servers
 -------------------------------------
+
+Finally, restart your TimeLock servers. Other services that were still dependent on TimeLock (if any) should now
+work normally. To verify that your client no longer uses TimeLock, it may be useful to curl the fresh-timestamp
+endpoint for your node, expecting a ``NotFoundException`` :
+
+.. code-block:: none
+
+   $ curl -XPOST localhost:8421/client/timestamp/fresh-timestamp
+   {
+     "message" : "d37a5956-c492-4a3b-a057-b7b4ea557043",
+     "exceptionClass" : "javax.ws.rs.NotFoundException",
+     "stackTrace" : null
+   }
