@@ -3,7 +3,6 @@
 from datetime import datetime, timedelta
 from dateutil import parser as date_parser
 import argparse
-import pytz
 import re
 import os
 import sys
