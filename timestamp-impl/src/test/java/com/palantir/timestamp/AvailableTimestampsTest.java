@@ -99,7 +99,7 @@ public class AvailableTimestampsTest {
                 availableTimestamps.handOut(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound(),
                 is(UPPER_LIMIT + 10));
 
-        verify(persistentUpperLimit).increaseToAtLeast(UPPER_LIMIT + 10, AvailableTimestamps.MINIMUM_BUFFER);
+        verify(persistentUpperLimit).increaseToAtLeast(UPPER_LIMIT + 10, AvailableTimestamps.ALLOCATION_BUFFER_SIZE);
     }
 
     @Test public void
