@@ -27,9 +27,7 @@ public class AvailableTimestamps {
     private static final long MAX_TIMESTAMPS_TO_HAND_OUT = 10 * 1000;
     private final Object issueTimestampLock;
 
-    @GuardedBy("this")
     private final LastReturnedTimestamp lastReturnedTimestamp;
-    @GuardedBy("this")
     private final PersistentUpperLimit upperLimit;
 
     public AvailableTimestamps(LastReturnedTimestamp lastReturnedTimestamp, PersistentUpperLimit upperLimit) {
