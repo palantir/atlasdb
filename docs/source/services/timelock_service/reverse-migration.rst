@@ -78,7 +78,7 @@ This will vary depending on your choice of key-value service:
 
      (0 rows)
 
-  You will need to encode ``TS`` into an 8-byte hex representation; this can be done using the ``printf`` command:
+  You will need to encode ``TS`` into an 8-byte hex representation; this can be done using the ``printf`` shell command:
 
   .. code-block:: none
 
