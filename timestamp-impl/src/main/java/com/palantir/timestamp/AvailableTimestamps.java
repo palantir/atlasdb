@@ -23,7 +23,7 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public class AvailableTimestamps {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
-    static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
+    private final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
     private static final long MAX_TIMESTAMPS_TO_HAND_OUT = 10 * 1000;
 
     @GuardedBy("this")
@@ -124,7 +124,7 @@ public class AvailableTimestamps {
 
     private synchronized TimestampRange handOutTimestamp(long targetTimestamp) {
         TimestampRange rangeToHandOut = getRangeToHandOut(targetTimestamp);
-        allocateEnoughTimestampsToHandOut(targetTimestamp, MINIMUM_BUFFER);
+        allocateEnoughTimestampsToHandOut(targetTimestamp, ALLOCATION_BUFFER_SIZE);
         lastReturnedTimestamp.increaseToAtLeast(targetTimestamp);
 
         return rangeToHandOut;
