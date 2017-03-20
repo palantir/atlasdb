@@ -24,8 +24,11 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.RegeneratingTable;
 
 @State(Scope.Benchmark)
@@ -34,6 +37,17 @@ public class KvsDeleteBenchmarks {
     private Object doDelete(RegeneratingTable<Multimap<Cell, Long>> table) {
         table.getKvs().delete(table.getTableRef(), table.getTableCells());
         return table.getTableCells();
+    }
+
+    private Object doDeleteRange(ConsecutiveNarrowTable table, int numBatches) {
+        Iterable<RangeRequest> rangeRequests =
+                numBatches == 1
+                        ? ImmutableList.of(RangeRequest.all())
+                        : table.getRangeRequests(1, table.getNumRows() / numBatches);
+
+        rangeRequests.forEach(rangeRequest -> table.getKvs().deleteRange(table.getTableRef(), rangeRequest));
+
+        return rangeRequests;
     }
 
     @Benchmark
@@ -48,6 +62,20 @@ public class KvsDeleteBenchmarks {
     @Measurement(time = 22, timeUnit = TimeUnit.SECONDS)
     public Object batchDelete(RegeneratingTable.KvsBatchRegeneratingTable table) {
         return doDelete(table);
+    }
+
+    @Benchmark
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
+    public Object batchRangeDelete(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return doDeleteRange(table, 4);
+    }
+
+    @Benchmark
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
+    public Object allRangeDelete(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return doDeleteRange(table, 1);
     }
 
 }

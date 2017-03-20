@@ -45,11 +45,52 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1704>`__)
 
     *    - |fixed|
-         - Fixed DbKvs sweep OOM issue (`#982 <https://github.com/palantir/atlasdb/issues/982>`__) caused by very wide rows. ``DbKvs.getRangeOfTimestamps`` now uses an adjustable cell batch size to avoid loading too many timestamps. In case of a single row that is too wide, this may result in ``getRangeOfTimestamps`` returning multiple ``RowResult`` to include all timestamps. It is, however, guaranteed that each ``RowResult`` will contain all timestamps for each included column.
+         - KVS migrations where timestamp data was co-located with AtlasDB data now respect the timestamp service contract.
+           Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1199>`__)
+
+    *    - |improved|
+         - Improved performance of paging over dynamic columns on Oracle DbKvs: the time required to page through a large wide row is now linear rather than quadratic in the length of the row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1702>`__)
+
+    *    - |deprecated|
+         - ``GenericStreamStore.loadStream`` has been deprecated. Use ``loadSingleStream``, which returns an
+           ``Optional<InputStream>``, instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1265>`__)
+
+    *    - |devbreak|
+         - 'getAsyncRows' and 'getAsyncRowsMultimap' methods have been removed from generated code.  They do not appear valuable to the API and use a nonintuitive and custom 'AsyncProxy' (also removed).
+           We believe they are unused by upstream applications, but if you do encounter breaks due to this
+           removal please file a ticket with the dev team for immediate support (as we did not take the time to properly deprecate the methods).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1689>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.36.0
+=======
+
+15 Mar 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed DBKVS sweep OOM issue (`#982 <https://github.com/palantir/atlasdb/issues/982>`__) caused by very wide rows.
+           ``DbKvs.getRangeOfTimestamps`` uses an adjustable cell batch size to avoid loading too many timestamps.
+           One can set the batch size by calling ``DbKvs.setMaxRangeOfTimestampsBatchSize``.
+
+           In case of a single row that is too wide, this may result in ``getRangeOfTimestamps`` returning multiple ``RowResult`` to include all timestamps.
+           It is, however, guaranteed that each ``RowResult`` will contain all timestamps for each included column.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1678>`__)
 
     *    - |fixed|
          - Actions run by the ``ReadOnlyTransactionManager`` can no longer bypass necessary protections when using ``getRowsColumnRange()``.
+           These protections disallow reads against ``THOROUGH`` swept tables as read only transactions do not acquire the appropriate locks to guarantee transactionality.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1521>`__)
 
     *    - |fixed|
@@ -61,12 +102,32 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1687>`__)
 
     *    - |fixed|
-         - Fixed an issue where the ``_persisted_locks`` table was erroneously reported not to have persisted metadata.
+         - Fixed an issue where the ``_persisted_locks`` table was unnecessarily logged as not having persisted metadata.
+           The ``_persisted_locks`` table is a hidden table, and thus it does not need to have persisted metadata.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1696>`__)
 
     *    - |new|
-         - AtlasDB now instruments services to expose aggregate response time and service call metrics for key value, timestamp, and lock services.
+         - AtlasDB now instruments services to expose aggregate response time and service call metrics for keyvalue, timestamp, and lock services.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1685>`__)
+
+    *    - |devbreak| |improved|
+         - ``TransactionManager`` now explicitly declares a ``close`` method that does not throw exceptions.
+           This makes the ``TransactionManager`` significantly easier to develop against.
+           Clients who have implemented a concrete ``TransactionManager`` throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1677>`__)
+
+    *    - |new|
+         - Added the following benchmarks for paging over columns of a very wide row:
+
+             - ``TransactionGetRowsColumnRangeBenchmarks``
+             - ``KvsGetRowsColumnRangeBenchmarks``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1684>`__)
+
+    *    - |deprecated|
+         - The public ``PaxosLeaderElectionService`` constructor is now deprecated to mitigate risks of users supplying parameters in the wrong order.
+           ``PaxosLeaderElectionServiceBuilder`` should be used instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1681>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -127,21 +188,6 @@ v0.35.0
     *    - |devbreak|
          - The persistent lock release endpoint has now been renamed to ``releaseBackupLock`` since it is currently only supposed to be used for the backup lock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1674>`__)
-
-    *    - |deprecated|
-         - The public ``PaxosLeaderElectionService`` constructor is now deprecated, to mitigate risks of users supplying parameters in the wrong order.
-           ``PaxosLeaderElectionServiceBuilder`` should be used instead.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1681>`__)
-
-    *    - |devbreak| |improved|
-         - ``TransactionManager`` now explicitly declares a ``close`` method that does not throw exceptions.
-           This makes ``TransactionManager``s significantly easier to develop against.
-           Clients who have implemented a concrete ``TransactionManager`` throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1677>`__)
-
-    *    - |new|
-         - Added benchmarks for paging over columns of a very wide row.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1684>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
