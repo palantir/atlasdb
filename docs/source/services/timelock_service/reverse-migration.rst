@@ -20,10 +20,9 @@ Throughout this document, we assume the AtlasDB client you are trying to reverse
 #. Take a restore timestamp.
 #. Update your key-value service to the restore timestamp.
 #. Revert your AtlasDB client configuration.
-#. Shut down the TimeLock servers.
 #. Remove your client from the list of TimeLock clients.
+#. Restart the TimeLock servers.
 #. Start your AtlasDB clients.
-#. Start the TimeLock servers.
 
 Step 1: Shut Down AtlasDB Clients
 ---------------------------------
@@ -106,23 +105,12 @@ Step 4: Revert AtlasDB Client Configurations
 Remove the ``timelock`` block from your AtlasDB client configurations. For more detail on options
 for using embedded timestamp and lock services, please consult :ref:`Leader Config<leader-config>`.
 
-Step 5: Shut Down TimeLock Servers
-----------------------------------
-
-Shut down your TimeLock servers. The purpose of this step is to verify that clients indeed no longer rely on TimeLock.
-
-Step 6: Reconfigure TimeLock
+Step 5: Reconfigure TimeLock
 ----------------------------
 
 Remove ``client`` from the ``clients`` block of your TimeLock server configuration.
 
-Step 7: Start your AtlasDB Clients
-----------------------------------
-
-Start your AtlasDB clients. At this point, it may be useful to perform a simple smoke test to verify that your
-clients work properly (even while TimeLock is down).
-
-Step 8: Start your TimeLock Servers
+Step 6: Start your TimeLock Servers
 -----------------------------------
 
 Finally, start your TimeLock servers. Other services that were still dependent on TimeLock (if any) should now
@@ -137,3 +125,9 @@ endpoint for your node, expecting a ``NotFoundException`` :
      "exceptionClass" : "javax.ws.rs.NotFoundException",
      "stackTrace" : null
    }
+
+Step 7: Start your AtlasDB Clients
+----------------------------------
+
+Finally, start your AtlasDB clients. At this point, it may be useful to perform a simple smoke test to verify that your
+clients work properly. This completes the reverse migration process.
