@@ -23,7 +23,7 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public class AvailableTimestamps {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
-    private final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
+    private static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
     private static final long MAX_TIMESTAMPS_TO_HAND_OUT = 10 * 1000;
 
     @GuardedBy("this")
