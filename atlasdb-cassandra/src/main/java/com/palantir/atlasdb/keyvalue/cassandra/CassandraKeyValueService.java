@@ -189,7 +189,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = new CassandraClientPool(configManager.getConfig());
+        this.clientPool = new CassandraClientPool(configManager.getConfig(), tracingPrefs);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();

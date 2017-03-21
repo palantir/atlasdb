@@ -66,6 +66,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
+import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -100,6 +101,7 @@ public class CassandraClientPool {
     static final int MAX_TRIES_SAME_HOST = 3;
     @VisibleForTesting
     static final int MAX_TRIES_TOTAL = 6;
+    private TracingPrefsConfig tracingPrefsConfig;
 
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
     Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
@@ -190,15 +192,22 @@ public class CassandraClientPool {
 
     @VisibleForTesting
     static CassandraClientPool createWithoutChecksForTesting(CassandraKeyValueServiceConfig config) {
-        return new CassandraClientPool(config, StartupChecks.DO_NOT_RUN);
+        return new CassandraClientPool(config, new TracingPrefsConfig(), StartupChecks.DO_NOT_RUN);
     }
 
     public CassandraClientPool(CassandraKeyValueServiceConfig config) {
-        this(config, StartupChecks.RUN);
+        this(config, new TracingPrefsConfig());
     }
 
-    private CassandraClientPool(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
+    public CassandraClientPool(CassandraKeyValueServiceConfig config, TracingPrefsConfig tracingPrefsConfig) {
+        this(config, tracingPrefsConfig, StartupChecks.RUN);
+    }
+
+    private CassandraClientPool(CassandraKeyValueServiceConfig config,
+            TracingPrefsConfig tracingPrefsConfig,
+            StartupChecks startupChecks) {
         this.config = config;
+        this.tracingPrefsConfig = tracingPrefsConfig;
         config.servers().forEach(this::addPool);
         refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
@@ -596,7 +605,8 @@ public class CassandraClientPool {
                 numTries++;
                 triedHosts.add(hostPool.getHost());
                 this.<K>handleException(numTries, hostPool.getHost(), e);
-                if (isRetriableWithBackoffException(e)) {
+                if (isRetriableWithBackoffException(
+                        tracingPrefsConfig.shouldRetryOnDifferentHostOnThriftTimedOutExceptions(), e)) {
                     log.warn("Retrying with backoff a query intended for host {}.", hostPool.getHost(), e);
                     try {
                         // And value between -500 and +500ms to backoff to better spread load on failover
@@ -663,7 +673,7 @@ public class CassandraClientPool {
 
     @SuppressWarnings("unchecked")
     private <K extends Exception> void handleException(int numTries, InetSocketAddress host, Exception ex) throws K {
-        if (isRetriableException(ex) || isRetriableWithBackoffException(ex)) {
+        if (isRetriableException(ex) || isRetriableWithBackoffException(false, ex)) {
             if (numTries >= MAX_TRIES_TOTAL) {
                 if (ex instanceof TTransportException
                         && ex.getCause() != null
@@ -768,7 +778,13 @@ public class CassandraClientPool {
     }
 
     @VisibleForTesting
-    static boolean isRetriableWithBackoffException(Throwable ex) {
+    static boolean isRetriableWithBackoffException(
+            boolean shouldRetryOnDifferentHostOnThriftTimedOutExceptions,
+            Throwable ex) {
+        if (shouldRetryOnDifferentHostOnThriftTimedOutExceptions && ex instanceof TimedOutException) {
+            return true;
+        }
+
         return ex != null
                 // pool for this node is fully in use
                 && (ex instanceof NoSuchElementException
@@ -776,7 +792,8 @@ public class CassandraClientPool {
                 || ex instanceof UnavailableException
                 // tcp socket timeout, possibly indicating network flake, long GC, or restarting server
                 || isConnectionException(ex)
-                || isRetriableWithBackoffException(ex.getCause()));
+                || isRetriableWithBackoffException(
+                        shouldRetryOnDifferentHostOnThriftTimedOutExceptions, ex.getCause()));
     }
 
     final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner =
