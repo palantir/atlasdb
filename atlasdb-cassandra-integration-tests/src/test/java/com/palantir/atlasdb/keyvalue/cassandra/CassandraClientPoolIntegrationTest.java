@@ -133,6 +133,21 @@ public class CassandraClientPoolIntegrationTest {
                 new TTransportException(new SocketTimeoutException())));
         assertTrue(CassandraClientPool.isRetriableWithBackoffException(false,
                 new TTransportException(new UnavailableException())));
+        assertFalse(CassandraClientPool.isRetriableWithBackoffException(false,
+                new TimedOutException()));
+    }
+
+    @Test
+    public void testIsRetriableWithBackoffExceptionWhenshouldRetryOnDifferentHostOnThriftTimedOutExceptions() {
+        assertTrue(CassandraClientPool.isRetriableWithBackoffException(true, new NoSuchElementException()));
+        assertTrue(CassandraClientPool.isRetriableWithBackoffException(true, new UnavailableException()));
+        assertTrue(CassandraClientPool.isRetriableWithBackoffException(true,
+                new TTransportException(new SocketTimeoutException())));
+        assertTrue(CassandraClientPool.isRetriableWithBackoffException(true,
+                new TTransportException(new UnavailableException())));
+        assertTrue(CassandraClientPool.isRetriableWithBackoffException(true,
+                new TimedOutException()));
+
     }
 
     @Test
