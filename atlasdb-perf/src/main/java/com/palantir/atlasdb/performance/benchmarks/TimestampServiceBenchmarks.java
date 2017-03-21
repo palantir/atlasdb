@@ -21,6 +21,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.Blackhole;
 
 import com.palantir.atlasdb.performance.benchmarks.endpoint.TimestampServiceEndpoint;
 import com.palantir.timestamp.TimestampRange;
@@ -28,17 +29,42 @@ import com.palantir.timestamp.TimestampRange;
 public class TimestampServiceBenchmarks {
     @Benchmark
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 25, timeUnit = TimeUnit.SECONDS)
-    @Threads(128)
-    public long parallelGetFreshTimestamp(TimestampServiceEndpoint timestampService) {
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Threads(4)
+    public long fewThreadsGetFreshTimestamp(TimestampServiceEndpoint timestampService) {
         return timestampService.getFreshTimestamp();
     }
 
     @Benchmark
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Threads(64)
+    public long manyThreadsGetFreshTimestamp(TimestampServiceEndpoint timestampService) {
+        return timestampService.getFreshTimestamp();
+    }
+
+    @Benchmark
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 120, timeUnit = TimeUnit.SECONDS)
+    @Threads(64)
+    public long manyThreadsGetFreshTimestampWithBackoff(TimestampServiceEndpoint timestampService) {
+        Blackhole.consumeCPU(20000);
+        return timestampService.getFreshTimestamp();
+    }
+
+    @Benchmark
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Threads(4)
+    public TimestampRange fewThreadsGetBatchOfTimestamps(TimestampServiceEndpoint timestampService) {
+        return timestampService.getFreshTimestamps(10000);
+    }
+
+    @Benchmark
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     @Threads(32)
-    public TimestampRange parallelGetFreshTimestamps(TimestampServiceEndpoint timestampService) {
+    public TimestampRange manyThreadsGetBatchOfTimestamps(TimestampServiceEndpoint timestampService) {
         return timestampService.getFreshTimestamps(10000);
     }
 }
