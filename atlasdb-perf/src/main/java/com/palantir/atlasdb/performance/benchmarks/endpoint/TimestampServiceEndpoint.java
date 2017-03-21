@@ -22,25 +22,27 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
 import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
-import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 @State(Scope.Benchmark)
 public class TimestampServiceEndpoint {
 
     private AtlasDbServicesConnector connector;
-    private AtlasDbServices services;
     private TimestampService timestampService;
 
     public long getFreshTimestamp() {
         return timestampService.getFreshTimestamp();
     }
 
+    public TimestampRange getFreshTimestamps(int num) {
+        return timestampService.getFreshTimestamps(num);
+    }
+
     @Setup(Level.Trial)
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
-        this.services = conn.connect();
-        this.timestampService = services.getTimestampService();
+        this.timestampService = conn.connect().getTimestampService();
     }
 
     @TearDown(Level.Trial)

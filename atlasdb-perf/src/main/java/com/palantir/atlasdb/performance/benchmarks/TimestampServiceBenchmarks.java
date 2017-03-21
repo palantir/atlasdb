@@ -23,13 +23,22 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.palantir.atlasdb.performance.benchmarks.endpoint.TimestampServiceEndpoint;
+import com.palantir.timestamp.TimestampRange;
 
 public class TimestampServiceBenchmarks {
     @Benchmark
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 25, timeUnit = TimeUnit.SECONDS)
-    @Threads(512)
+    @Threads(128)
     public long parallelGetFreshTimestamp(TimestampServiceEndpoint timestampService) {
         return timestampService.getFreshTimestamp();
+    }
+
+    @Benchmark
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Threads(32)
+    public TimestampRange parallelGetFreshTimestamps(TimestampServiceEndpoint timestampService) {
+        return timestampService.getFreshTimestamps(10000);
     }
 }
