@@ -44,6 +44,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 
 public class SchemaMutationLockTablesIntegrationTest {
     @ClassRule
@@ -58,7 +59,7 @@ public class SchemaMutationLockTablesIntegrationTest {
     public void setupKvs() throws TException, InterruptedException {
         config = ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
                 .withKeyspace(UUID.randomUUID().toString().replace('-', '_')); // Hyphens not allowed in C* schema
-        clientPool = new CassandraClientPool(config);
+        clientPool = new CassandraClientPool(config, new TracingPrefsConfig());
         clientPool.runOneTimeStartupChecks();
         lockTables = new SchemaMutationLockTables(clientPool, config);
     }
