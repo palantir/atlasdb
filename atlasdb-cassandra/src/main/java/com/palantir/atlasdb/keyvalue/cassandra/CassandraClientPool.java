@@ -602,7 +602,8 @@ public class CassandraClientPool {
                 triedHosts.add(hostPool.getHost());
                 this.<K>handleException(numTries, hostPool.getHost(), e);
                 tracingPrefsConfig.run();
-                if (isRetriableWithBackoffException(tracingPrefsConfig.shouldRetryOnDifferentHostOnThriftTimedOutExceptions(), e)) {
+                if (isRetriableWithBackoffException(
+                        tracingPrefsConfig.shouldRetryOnDifferentHostOnThriftTimedOutExceptions(), e)) {
                     log.warn("Retrying with backoff a query intended for host {}.", hostPool.getHost(), e);
                     try {
                         // And value between -500 and +500ms to backoff to better spread load on failover
@@ -788,7 +789,8 @@ public class CassandraClientPool {
                 || ex instanceof UnavailableException
                 // tcp socket timeout, possibly indicating network flake, long GC, or restarting server
                 || isConnectionException(ex)
-                || isRetriableWithBackoffException(shouldRetryOnDifferentHostOnThriftTimedOutExceptions, ex.getCause()));
+                || isRetriableWithBackoffException(
+                        shouldRetryOnDifferentHostOnThriftTimedOutExceptions, ex.getCause()));
     }
 
     final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner =
