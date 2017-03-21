@@ -66,7 +66,7 @@ public class HeartbeatServiceIntegrationTest {
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
 
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
-        clientPool = new CassandraClientPool(simpleManager.getConfig(), new TracingPrefsConfig());
+        clientPool = new CassandraClientPool(simpleManager.getConfig());
         lockTable = new UniqueSchemaMutationLockTable(
                 new SchemaMutationLockTables(clientPool, CassandraContainer.KVS_CONFIG),
                 LockLeader.I_AM_THE_LOCK_LEADER);

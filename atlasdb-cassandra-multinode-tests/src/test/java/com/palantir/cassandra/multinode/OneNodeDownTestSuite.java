@@ -39,7 +39,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.docker.compose.connection.Container;
 
 @RunWith(Suite.class)
@@ -141,7 +140,7 @@ public final class OneNodeDownTestSuite {
                 ThreeNodeCassandraCluster.KVS_CONFIG);
         try {
             // startup checks are done implicitly in the constructor
-            new CassandraClientPool(manager.getConfig(), new TracingPrefsConfig());
+            new CassandraClientPool(manager.getConfig());
         } catch (Exception e) {
             return false;
         }

@@ -195,6 +195,10 @@ public class CassandraClientPool {
         return new CassandraClientPool(config, new TracingPrefsConfig(), StartupChecks.DO_NOT_RUN);
     }
 
+    public CassandraClientPool(CassandraKeyValueServiceConfig config) {
+        this(config, new TracingPrefsConfig());
+    }
+
     public CassandraClientPool(CassandraKeyValueServiceConfig config, TracingPrefsConfig tracingPrefsConfig) {
         this(config, tracingPrefsConfig, StartupChecks.RUN);
     }
@@ -601,7 +605,6 @@ public class CassandraClientPool {
                 numTries++;
                 triedHosts.add(hostPool.getHost());
                 this.<K>handleException(numTries, hostPool.getHost(), e);
-                tracingPrefsConfig.run();
                 if (isRetriableWithBackoffException(
                         tracingPrefsConfig.shouldRetryOnDifferentHostOnThriftTimedOutExceptions(), e)) {
                     log.warn("Retrying with backoff a query intended for host {}.", hostPool.getHost(), e);
