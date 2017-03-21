@@ -28,7 +28,7 @@ public class TimestampServiceBenchmarks {
     @Benchmark
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 25, timeUnit = TimeUnit.SECONDS)
-    @Threads(8)
+    @Threads(512)
     public long parallelGetFreshTimestamp(TimestampServiceEndpoint timestampService) {
         return timestampService.getFreshTimestamp();
     }
