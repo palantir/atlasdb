@@ -22,6 +22,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.collect.ImmutableList;
@@ -51,6 +52,7 @@ public class KvsDeleteBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 6, timeUnit = TimeUnit.SECONDS)
     public Object singleDelete(RegeneratingTable.KvsRowRegeneratingTable table) {
@@ -58,6 +60,7 @@ public class KvsDeleteBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 22, timeUnit = TimeUnit.SECONDS)
     public Object batchDelete(RegeneratingTable.KvsBatchRegeneratingTable table) {
@@ -65,6 +68,7 @@ public class KvsDeleteBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
     public Object batchRangeDelete(ConsecutiveNarrowTable.CleanNarrowTable table) {
@@ -72,6 +76,7 @@ public class KvsDeleteBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
     public Object allRangeDelete(ConsecutiveNarrowTable.CleanNarrowTable table) {
