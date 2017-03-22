@@ -60,6 +60,13 @@ develop
            removal please file a ticket with the dev team for immediate support (as we did not take the time to properly deprecate the methods).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1689>`__)
 
+    *    - |fixed|
+         - RemoteLockService clients will no longer silently retry on connection failures.
+           This is used to mitigate issues with frequent leadership changes owing to `#1680 <https://github.com/palantir/atlasdb/issues/1680>`__.
+           Previously, because of Jetty's idle timeout and OkHttp's silent connection retrying, we would generate an endless stream of lock requests if using HTTP/2 and blocking for more than the Jetty idle timeout for a single lock.
+           This would lead to starvation of other requests on the TimeLock server, since a lock request blocked on acquiring a lock consumes a server thread.
+           (Pull Request)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
