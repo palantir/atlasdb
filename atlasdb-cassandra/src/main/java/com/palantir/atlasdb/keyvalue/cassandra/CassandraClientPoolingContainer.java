@@ -270,5 +270,43 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 CassandraClientPoolingContainer.class,
                 metricPrefix, "proportionDestroyedByBorrower",
                 () -> ((double) pool.getDestroyedByBorrowValidationCount()) / ((double) pool.getCreatedCount()));
+
+        // Count of active or idle threads in the pool
+        metricsManager.registerMetric(
+                CassandraClientPoolingContainer.class,
+                metricPrefix, "numActive",
+                pool::getNumActive);
+        metricsManager.registerMetric(
+                CassandraClientPoolingContainer.class,
+                metricPrefix, "numIdle",
+                pool::getNumIdle);
+
+        // Proportion of active and idle threads in the pool
+        metricsManager.registerMetric(
+                CassandraClientPoolingContainer.class,
+                metricPrefix, "proportionActiveThreads",
+                () -> ((double) pool.getNumActive()) / ((double) pool.getCreatedCount()));
+        metricsManager.registerMetric(
+                CassandraClientPoolingContainer.class,
+                metricPrefix, "proportionIdleThreads",
+                () -> ((double) pool.getNumIdle()) / ((double) pool.getCreatedCount()));
+
+        // Metrics for the state of the cassandra client pool
+        metricsManager.registerMetric(
+                CassandraClientPoolingContainer.class,
+                metricPrefix, "borrowedCount",
+                pool::getBorrowedCount);
+        metricsManager.registerMetric(
+                CassandraClientPoolingContainer.class,
+                metricPrefix, "returnedCount",
+                pool::getReturnedCount);
+        metricsManager.registerMetric(
+                CassandraClientPoolingContainer.class,
+                metricPrefix, "createdCount",
+                pool::getCreatedCount);
+        metricsManager.registerMetric(
+                CassandraClientPoolingContainer.class,
+                metricPrefix, "destroyedByEvictorCount",
+                pool::getDestroyedCount);
     }
 }
