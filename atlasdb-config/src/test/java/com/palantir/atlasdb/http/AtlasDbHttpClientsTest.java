@@ -92,7 +92,7 @@ public class AtlasDbHttpClientsTest {
 
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
         availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
-                .withHeader(AtlasDbHttpClients.USER_AGENT_HEADER, WireMock.equalTo(defaultUserAgent)));
+                .withHeader(FeignOkHttpClients.USER_AGENT_HEADER, WireMock.equalTo(defaultUserAgent)));
     }
 
     private static String getUriForPort(int port) {
