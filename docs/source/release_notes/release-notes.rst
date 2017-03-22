@@ -40,6 +40,10 @@ develop
     *    - Type
          - Change
 
+    *    - |changed|
+         - Default 'gc_grace_seconds' set by AtlasDB for Cassandra tables has been changed from four days to an hour.  This will allow Cassandra to start cleaning up swept data sooner after sweeping.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1726>`__)
+
     *    - |fixed|
          - KVS migrations where timestamp data was co-located with AtlasDB data now respect the timestamp service contract.
            Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.

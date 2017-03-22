@@ -50,9 +50,9 @@ public final class CassandraConstants {
     static final String DEFAULT_RACK = "rack1";
     static final String SIMPLE_RF_TEST_KEYSPACE = "__simple_rf_test_keyspace__";
     static final String REPLICATION_FACTOR_OPTION = "replication_factor";
-    // 4 days; Hinted-Handoffs MUST expire well within this period for delete correctness
+    // 1 hour; Hinted-Handoffs MUST expire well within this period for delete correctness
     // (I believe we will be expiring hints in half this period)
-    static final int GC_GRACE_SECONDS = 4 * 24 * 60 * 60;
+    static final int GC_GRACE_SECONDS = 60 * 60;
     static final float TOMBSTONE_THRESHOLD_RATIO = 0.2f;
 
     // JMX compaction related
