@@ -65,6 +65,6 @@ public class TimestampServiceBenchmarks {
     @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     @Threads(32)
     public TimestampRange manyThreadsGetBatchOfTimestamps(TimestampServiceEndpoint timestampService) {
-        return timestampService.getFreshTimestamps(10000);
+        return timestampService.getFreshTimestamps(500);
     }
 }
