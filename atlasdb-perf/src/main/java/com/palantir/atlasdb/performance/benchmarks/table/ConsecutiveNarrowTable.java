@@ -77,6 +77,7 @@ public abstract class ConsecutiveNarrowTable {
 
     @TearDown(Level.Trial)
     public void cleanup() throws Exception {
+        this.services.getKeyValueService().dropTable(getTableRef());
         this.connector.close();
     }
 
@@ -84,10 +85,8 @@ public abstract class ConsecutiveNarrowTable {
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         services = conn.connect();
-        if (!services.getKeyValueService().getAllTableNames().contains(getTableRef())) {
-            Benchmarks.createTable(getKvs(), getTableRef(), Tables.ROW_COMPONENT, Tables.COLUMN_NAME);
-            setupData();
-        }
+        Benchmarks.createTable(getKvs(), getTableRef(), Tables.ROW_COMPONENT, Tables.COLUMN_NAME);
+        setupData();
     }
 
     @State(Scope.Benchmark)
