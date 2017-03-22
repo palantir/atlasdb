@@ -41,6 +41,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Creating a postgres table with a long name throws if the truncated name(first sixty characters) is the same as that of a different existing table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
+
+    *    - |fixed|
          - KVS migrations where timestamp data was co-located with AtlasDB data now respect the timestamp service contract.
            Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1199>`__)
