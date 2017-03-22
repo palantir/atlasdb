@@ -44,7 +44,8 @@ public final class FeignOkHttpClients {
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
 
     // See internal ticket PDS-50301, and/or #1680
-    private static final Set<Class<?>> CLASSES_TO_NOT_RETRY = ImmutableSet.of(RemoteLockService.class);
+    @VisibleForTesting
+    static final Set<Class<?>> CLASSES_TO_NOT_RETRY = ImmutableSet.of(RemoteLockService.class);
 
     private static final ImmutableList<ConnectionSpec> CONNECTION_SPEC_WITH_CYPHER_SUITES = ImmutableList.of(
             new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
@@ -114,9 +115,10 @@ public final class FeignOkHttpClients {
         return new OkHttpClient(client);
     }
 
-    private static <T> boolean shouldAllowRetrying(Class<T> clazz) {
+    @VisibleForTesting
+    static <T> boolean shouldAllowRetrying(Class<T> clazz) {
         // Subclasses of this class should NOT be considered for retrying.
-        return CLASSES_TO_NOT_RETRY.contains(clazz);
+        return !CLASSES_TO_NOT_RETRY.contains(clazz);
     }
 
     private static final class UserAgentAddingInterceptor implements Interceptor {
