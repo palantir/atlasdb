@@ -33,6 +33,8 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.util.VersionStrings;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class PostgresDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(PostgresDdlTable.class);
     private static final String MIN_POSTGRES_VERSION = "9.2";
@@ -50,6 +52,7 @@ public class PostgresDdlTable implements DbDdlTable {
     }
 
     @Override
+    @SuppressFBWarnings("SLF4J_FORMAT_SHOULD_BE_CONST")
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
                 "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
