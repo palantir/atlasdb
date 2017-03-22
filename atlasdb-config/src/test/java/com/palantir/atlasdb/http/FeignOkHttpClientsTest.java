@@ -32,6 +32,11 @@ public class FeignOkHttpClientsTest {
     }
 
     @Test
+    public void remoteLockServiceIsNotRetriable() {
+        assertThat(FeignOkHttpClients.shouldAllowRetrying(RemoteLockService.class)).isFalse();
+    }
+
+    @Test
     public void subclassesOfClassesSpecifiedNotToRetryAreRetriable() {
         assertThat(FeignOkHttpClients.shouldAllowRetrying(ExtendedRemoteLockService.class)).isTrue();
         assertThat(FeignOkHttpClients.shouldAllowRetrying(LockRefreshingRemoteLockService.class)).isTrue();
