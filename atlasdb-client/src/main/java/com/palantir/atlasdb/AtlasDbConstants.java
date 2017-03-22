@@ -36,8 +36,10 @@ public class AtlasDbConstants {
 
     public static final String PRIMARY_KEY_CONSTRAINT_PREFIX = "pk_";
 
+    private static final int POSTGRES_NAME_LENGTH_LIMIT = 63;
     private static final int ORACLE_NAME_LENGTH_LIMIT = 30;
     public static final int ATLASDB_ORACLE_TABLE_NAME_LIMIT = AtlasDbConstants.ORACLE_NAME_LENGTH_LIMIT - PRIMARY_KEY_CONSTRAINT_PREFIX.length();
+    public static final int ATLASDB_POSTGRES_TABLE_NAME_LIMIT = AtlasDbConstants.POSTGRES_NAME_LENGTH_LIMIT - PRIMARY_KEY_CONSTRAINT_PREFIX.length();
     public static final String ORACLE_NAME_MAPPING_TABLE = "atlasdb_table_names";
     public static final String ORACLE_NAME_MAPPING_PK_CONSTRAINT = PRIMARY_KEY_CONSTRAINT_PREFIX
             + ORACLE_NAME_MAPPING_TABLE;

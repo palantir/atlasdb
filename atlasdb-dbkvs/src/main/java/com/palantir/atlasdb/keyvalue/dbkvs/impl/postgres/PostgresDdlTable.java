@@ -20,6 +20,7 @@ import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
@@ -56,16 +57,34 @@ public class PostgresDdlTable implements DbDdlTable {
             return;
         }
 
-        executeIgnoringError(
-                String.format("CREATE TABLE %s ("
-                        + "  row_name   BYTEA NOT NULL,"
-                        + "  col_name   BYTEA NOT NULL,"
-                        + "  ts         INT8 NOT NULL,"
-                        + "  val        BYTEA,"
-                        + "  CONSTRAINT %s PRIMARY KEY (row_name, col_name, ts) ",
-                        prefixedTableName(), PrimaryKeyConstraintNames.get(prefixedTableName()))
-                + ")",
-                "already exists");
+        String prefixedTableName = prefixedTableName();
+        try {
+            conns.get().executeUnregisteredQuery(
+                    String.format("CREATE TABLE %s ("
+                                    + "  row_name   BYTEA NOT NULL,"
+                                    + "  col_name   BYTEA NOT NULL,"
+                                    + "  ts         INT8 NOT NULL,"
+                                    + "  val        BYTEA,"
+                                    + "  CONSTRAINT %s PRIMARY KEY (row_name, col_name, ts) ",
+                            prefixedTableName, PrimaryKeyConstraintNames.get(prefixedTableName)) + ")");
+        } catch (PalantirSqlException e) {
+            if (!e.getMessage().contains("already exists")) {
+                log.error("Error occurred trying to create the table", e);
+                throw e;
+            } else if (prefixedTableName.length() > AtlasDbConstants.ATLASDB_POSTGRES_TABLE_NAME_LIMIT) {
+                String msg = String.format("The table name is longer than the postgres limit of %d characters. "
+                                + "Attempted to truncate the name but the truncated table name or truncated primary "
+                                + "key constraint name already exists. Please ensure all your table names have unique "
+                                + "first %d characters.",
+                        AtlasDbConstants.ATLASDB_POSTGRES_TABLE_NAME_LIMIT,
+                        AtlasDbConstants.ATLASDB_POSTGRES_TABLE_NAME_LIMIT);
+
+                String logMessage = "Failed to create the table {}. " + msg;
+
+                log.error(logMessage, prefixedTableName, e);
+                throw new RuntimeException("Failed to create the table" + prefixedTableName + "." + msg, e);
+            }
+        }
 
         ignoringError(() -> {
             conns.get().insertOneUnregisteredQuery(
