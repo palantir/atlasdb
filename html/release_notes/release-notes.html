@@ -216,6 +216,10 @@ We believe they are unused by upstream applications, but if you do encounter bre
 removal please file a ticket with the dev team for immediate support (as we did not take the time to properly deprecate the methods).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1689">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Cassandra depedencies have been bumped to newer versions; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1524">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
