@@ -47,6 +47,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
+        AtlasDbMetrics.setMetricRegistry(environment.metrics());
         TimeLockServer serverImpl = configuration.algorithm().createServerImpl(environment);
         try {
             serverImpl.onStartup(configuration);

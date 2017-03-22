@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 
 public class MetricsManager {
 
@@ -35,6 +36,11 @@ public class MetricsManager {
     public MetricsManager() {
         this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
         this.registeredMetrics = new HashSet<>();
+    }
+
+
+    public Timer registerTimer(Class clazz, String timerName) {
+        return metricRegistry.timer(MetricRegistry.name(clazz, timerName));
     }
 
     public void registerMetric(Class clazz, String metricPrefix, String metricName, Gauge gauge) {
