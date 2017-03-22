@@ -67,6 +67,10 @@ develop
            This would lead to starvation of other requests on the TimeLock server, since a lock request blocked on acquiring a lock consumes a server thread.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1727>`__)
 
+    *    - |fixed| |improved|
+         - Cassandra depedencies have been bumped to newer versions; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1524>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

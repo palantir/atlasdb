@@ -37,14 +37,6 @@ public class TimestampCache {
         return timestampCache;
     }
 
-    /**
-     * @deprecated Use {@link #create()}
-     */
-    @Deprecated
-    public TimestampCache() {
-        this(createDefaultCache());
-    }
-
     @VisibleForTesting
     TimestampCache(Cache<Long, Long> cache) {
         this.startToCommitTimestampCache = cache;
