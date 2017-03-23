@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -65,11 +66,20 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
     public FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type) {
+        this(servers, maxBackoffMillis, type, RetrySemantics.getSemanticsFor(type));
+    }
+
+    @VisibleForTesting
+    FailoverFeignTarget(
+            Collection<String> servers,
+            int maxBackoffMillis,
+            Class<T> type,
+            RetrySemantics retrySemantics) {
         Preconditions.checkArgument(maxBackoffMillis > 0);
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
         this.maxBackoffMillis = maxBackoffMillis;
-        this.retrySemantics = RetrySemantics.getSemanticsFor(type);
+        this.retrySemantics = retrySemantics;
     }
 
     public void successfulCall() {
@@ -84,6 +94,8 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         synchronized (this) {
             if (!isFastFailoverException && retrySemantics == RetrySemantics.NEVER_EXCEPT_ON_NON_LEADERS) {
                 // Failure on a leader
+                log.error("This connection has failed on a leader when its semantics instruct it not to retry"
+                        + " except on a non-leader.", ex);
                 throw ex == null ? new IllegalStateException("continueOrPropagate a null") : ex;
             }
             // Only fail over if this failure was to the current server.
