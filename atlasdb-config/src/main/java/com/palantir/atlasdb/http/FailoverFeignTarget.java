@@ -52,6 +52,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private final int numServersToTryBeforeFailing = 14;
     private final int fastFailoverTimeoutMillis = 10000;
     private final int maxBackoffMillis;
+    private final RetrySemantics retrySemantics;
 
     private final AtomicLong failuresSinceLastSwitch = new AtomicLong();
     private final AtomicLong numSwitches = new AtomicLong();
@@ -68,6 +69,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
         this.maxBackoffMillis = maxBackoffMillis;
+        this.retrySemantics = RetrySemantics.getSemanticsFor(type);
     }
 
     public void successfulCall() {
@@ -80,6 +82,10 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     public void continueOrPropagate(RetryableException ex) {
         boolean isFastFailoverException = RetrySemantics.isFastFailoverException(ex);
         synchronized (this) {
+            if (!isFastFailoverException && retrySemantics == RetrySemantics.NEVER_EXCEPT_ON_NON_LEADERS) {
+                // Failure on a leader
+                throw ex == null ? new IllegalStateException("continueOrPropagate a null") : ex;
+            }
             // Only fail over if this failure was to the current server.
             // This means that no one on another thread has failed us over already.
             if (mostRecentServerIndex.get() != null && mostRecentServerIndex.get() == failoverCount.get()) {
