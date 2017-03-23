@@ -92,7 +92,6 @@ public abstract class ConsecutiveNarrowTable {
 
     @State(Scope.Benchmark)
     public static class CleanNarrowTable extends ConsecutiveNarrowTable {
-
         @Override
         public void cleanup() throws Exception {
             getKvs().dropTable(getTableRef());
