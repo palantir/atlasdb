@@ -90,13 +90,10 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     @Override
     public void continueOrPropagate(RetryableException ex) {
-        boolean isFastFailoverException = RetrySemantics.isFastFailoverException(ex);
+        boolean isFastFailoverException = isFastFailoverException(ex);
         synchronized (this) {
             if (!isFastFailoverException && retrySemantics == RetrySemantics.NEVER_EXCEPT_ON_NON_LEADERS) {
-                // Failure on a leader
-                log.error("This connection has failed on a leader when its semantics instruct it not to retry"
-                        + " except on a non-leader.", ex);
-                throw ex == null ? new IllegalStateException("continueOrPropagate a null") : ex;
+                throw hardFailOwingToFailureOnLeader(ex);
             }
             // Only fail over if this failure was to the current server.
             // This means that no one on another thread has failed us over already.
@@ -124,6 +121,13 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
     }
 
+    private RuntimeException hardFailOwingToFailureOnLeader(RetryableException ex) {
+        // Failure on a leader
+        log.error("This connection has failed on a leader when its semantics instruct it not to retry"
+                + " except on a non-leader.", ex);
+        return ex == null ? new IllegalStateException("continueOrPropagate a null") : ex;
+    }
+
     private void checkAndHandleFailure(RetryableException ex) {
         final long fastFailoverStartTime = startTimeOfFastFailover.get();
         final long currentTime = System.currentTimeMillis();
@@ -146,6 +150,11 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
     }
 
+    private static boolean isFastFailoverException(RetryableException ex) {
+        // If this is not-null, then we interpret this to mean that the server has thrown a 503 (so it might
+        // not have been the leader).
+        return ex.retryAfter() != null;
+    }
 
     private void pauseForBackOff(RetryableException ex) {
         double pow = Math.pow(

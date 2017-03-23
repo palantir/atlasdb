@@ -21,8 +21,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.RemoteLockService;
 
-import feign.RetryableException;
-
 public enum RetrySemantics {
     DEFAULT (true),
     NEVER_EXCEPT_ON_NON_LEADERS (false);
@@ -46,12 +44,6 @@ public enum RetrySemantics {
 
     public static <T> boolean shouldRetryHttpConnections(Class<T> clazz) {
         return shouldRetryHttpConnections(getSemanticsFor(clazz));
-    }
-
-    public static boolean isFastFailoverException(RetryableException ex) {
-        // If this is not-null, then we interpret this to mean that the server has thrown a 503 (so it might
-        // not have been the leader).
-        return ex.retryAfter() != null;
     }
 
     private static boolean shouldRetryHttpConnections(RetrySemantics retrySemantics) {
