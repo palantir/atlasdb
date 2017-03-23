@@ -64,7 +64,7 @@ public class TracingPrefsConfig implements Runnable {
                     tracedTables = ImmutableSet.copyOf(Splitter.on(",").trimResults().split(tableString));
                     retryOnDifferentHostOnThriftTimedOutExceptions = Boolean.parseBoolean(
                             tracingPrefConfig.getProperty("retryOnDifferentHostOnThriftTimedOutExceptions", "false"));
-                    if (tracingEnabled && !loadedConfig) { // only log leading edge event
+                    if (!loadedConfig) { // only log leading edge event
                         log.error("Successfully loaded an {} file."
                                 + " This incurs a large performance hit and"
                                 + " should only be used for short periods of debugging."
