@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.http;
 
 import java.io.IOException;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -28,8 +27,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.palantir.lock.RemoteLockService;
 import com.squareup.okhttp.CipherSuite;
 import com.squareup.okhttp.ConnectionPool;
 import com.squareup.okhttp.ConnectionSpec;
@@ -46,10 +43,6 @@ public final class FeignOkHttpClients {
     static final String USER_AGENT_HEADER = "User-Agent";
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
-
-    // See internal ticket PDS-50301, and/or #1680
-    @VisibleForTesting
-    static final Set<Class<?>> CLASSES_TO_NOT_RETRY = ImmutableSet.of(RemoteLockService.class);
 
     private static final ImmutableList<ConnectionSpec> CONNECTION_SPEC_WITH_CYPHER_SUITES = ImmutableList.of(
             new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
@@ -102,8 +95,7 @@ public final class FeignOkHttpClients {
             Optional<SSLSocketFactory> sslSocketFactory,
             String userAgent,
             Class<T> clazz) {
-        log.error("Creating an OkHttp client for class {}, with retryability {}", clazz, shouldAllowRetrying(clazz));
-        return newOkHttpClient(sslSocketFactory, userAgent, shouldAllowRetrying(clazz));
+        return newOkHttpClient(sslSocketFactory, userAgent, RetrySemantics.shouldRetryHttpConnections(clazz));
     }
 
     private static Client newOkHttpClient(
@@ -118,12 +110,6 @@ public final class FeignOkHttpClients {
         client.setRetryOnConnectionFailure(retryOnConnectionFailure);
         client.interceptors().add(new UserAgentAddingInterceptor(userAgent));
         return new OkHttpClient(client);
-    }
-
-    @VisibleForTesting
-    static <T> boolean shouldAllowRetrying(Class<T> clazz) {
-        // Subclasses of this class should NOT be considered for retrying.
-        return !CLASSES_TO_NOT_RETRY.contains(clazz);
     }
 
     private static final class UserAgentAddingInterceptor implements Interceptor {

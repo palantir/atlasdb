@@ -70,7 +70,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         this.maxBackoffMillis = maxBackoffMillis;
     }
 
-    public void sucessfulCall() {
+    public void successfulCall() {
         numSwitches.set(0);
         failuresSinceLastSwitch.set(0);
         startTimeOfFastFailover.set(0);
@@ -78,15 +78,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     @Override
     public void continueOrPropagate(RetryableException ex) {
-        boolean isFastFailoverException;
-        if (ex.retryAfter() == null) {
-            // This is the case where we have failed due to networking or other IOException error.
-            isFastFailoverException = false;
-        } else {
-            // This is the case where the server has returned a 503.
-            // This is done when we want to do fast failover because we aren't the leader or we are shutting down.
-            isFastFailoverException = true;
-        }
+        boolean isFastFailoverException = RetrySemantics.isFastFailoverException(ex);
         synchronized (this) {
             // Only fail over if this failure was to the current server.
             // This means that no one on another thread has failed us over already.
@@ -191,7 +183,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             public Response execute(Request request, Options options) throws IOException {
                 Response response = client.execute(request, options);
                 if (response.status() >= 200 && response.status() < 300) {
-                    sucessfulCall();
+                    successfulCall();
                 }
                 return response;
             }
