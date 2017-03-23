@@ -21,6 +21,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -38,6 +41,7 @@ import feign.Client;
 import feign.okhttp.OkHttpClient;
 
 public final class FeignOkHttpClients {
+    private static final Logger log = LoggerFactory.getLogger(FeignOkHttpClients.class);
     @VisibleForTesting
     static final String USER_AGENT_HEADER = "User-Agent";
     private static final int CONNECTION_POOL_SIZE = 100;
@@ -98,6 +102,7 @@ public final class FeignOkHttpClients {
             Optional<SSLSocketFactory> sslSocketFactory,
             String userAgent,
             Class<T> clazz) {
+        log.error("Creating an OkHttp client for class {}, with retryability {}", clazz, shouldAllowRetrying(clazz));
         return newOkHttpClient(sslSocketFactory, userAgent, shouldAllowRetrying(clazz));
     }
 
