@@ -38,6 +38,7 @@ dependencies {
 
 shadowJar {
   mergeServiceFiles()
+  classifier ''
 
   relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
   relocate('jflex', atlasdb_shaded + 'jflex')
