@@ -93,12 +93,6 @@ public abstract class ConsecutiveNarrowTable {
     @State(Scope.Benchmark)
     public static class CleanNarrowTable extends ConsecutiveNarrowTable {
         @Override
-        public void cleanup() throws Exception {
-            getKvs().dropTable(getTableRef());
-            super.cleanup();
-        }
-
-        @Override
         public TableReference getTableRef() {
             return TableReference.createFromFullyQualifiedName("performance.persistent_table_clean");
         }
@@ -106,6 +100,21 @@ public abstract class ConsecutiveNarrowTable {
         @Override
         protected void setupData() {
             storeDataInTable(this, 1);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class RegeneratingCleanNarrowTable extends CleanNarrowTable {
+        @Override
+        public void cleanup() throws Exception {
+            getKvs().dropTable(getTableRef());
+            super.cleanup();
+        }
+
+        @TearDown(Level.Invocation)
+        public void regenerateTable() {
+            getKvs().truncateTable(getTableRef());
+            setupData();
         }
     }
 

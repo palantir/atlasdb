@@ -67,14 +67,14 @@ public class KvsDeleteBenchmarks {
     @Benchmark
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
-    public Object batchRangeDelete(ConsecutiveNarrowTable.CleanNarrowTable table) {
+    public Object batchRangeDelete(ConsecutiveNarrowTable.RegeneratingCleanNarrowTable table) {
         return doDeleteRange(table, 4);
     }
 
     @Benchmark
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
-    public Object allRangeDelete(ConsecutiveNarrowTable.CleanNarrowTable table) {
+    public Object allRangeDelete(ConsecutiveNarrowTable.RegeneratingCleanNarrowTable table) {
         return doDeleteRange(table, 1);
     }
 
