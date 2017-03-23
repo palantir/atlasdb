@@ -40,6 +40,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Refactored ``AvailableTimestamps`` reducing overzealous synchronization. Giving out timestamps is no longer blocking in refreshing the timestamp bound if there enough timestamps to give out with the current bound.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+
     *    - |fixed|
          - Fixed an issue where a ``MultipleRunningTimestampServicesError`` would be ignored, resulting in a state where two timestamp services would be able to simultaneously hand out timestamps. Also changed the logic for increasing the timestamp bound when the allocation buffer is exhausted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1718>`__)
