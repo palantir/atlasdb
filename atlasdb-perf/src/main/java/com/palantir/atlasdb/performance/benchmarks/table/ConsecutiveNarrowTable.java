@@ -49,6 +49,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 public abstract class ConsecutiveNarrowTable {
 
     private static final int DEFAULT_NUM_ROWS = 10000;
+    private static final int REGENERATING_NUM_ROWS = 500;
 
     private Random random = new Random(Tables.RANDOM_SEED);
 
@@ -105,16 +106,21 @@ public abstract class ConsecutiveNarrowTable {
 
     @State(Scope.Benchmark)
     public static class RegeneratingCleanNarrowTable extends CleanNarrowTable {
+        @TearDown(Level.Invocation)
+        public void regenerateTable() {
+            getKvs().truncateTable(getTableRef());
+            setupData();
+        }
+
         @Override
         public void cleanup() throws Exception {
             getKvs().dropTable(getTableRef());
             super.cleanup();
         }
 
-        @TearDown(Level.Invocation)
-        public void regenerateTable() {
-            getKvs().truncateTable(getTableRef());
-            setupData();
+        @Override
+        public int getNumRows() {
+            return REGENERATING_NUM_ROWS;
         }
     }
 
