@@ -41,11 +41,7 @@ public class AtlasDbErrorDecoder implements ErrorDecoder {
         Exception exception = defaultErrorDecoder.decode(methodKey, response);
         log.error("Decode({}, {}) yields......", methodKey, response, exception);
         if (response503ButExceptionIsNotRetryable(response, exception)) {
-            log.error("503, but exception is not retryable. Proceeding");
-            return new RetryableException(exception.getMessage(), exception, null);
-        }
-        if (response.status() == 503) {
-            log.error("503, and exception is retryable. Proceeding");
+            return new PotentialFollowerException(exception.getMessage(), exception, null);
         }
         return exception;
     }

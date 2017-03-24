@@ -154,7 +154,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private static boolean isFastFailoverException(RetryableException ex) {
         // If this is not-null, then we interpret this to mean that the server has thrown a 503 (so it might
         // not have been the leader).
-        return ex.retryAfter() != null;
+        return ex.retryAfter() != null || ex instanceof PotentialFollowerException;
     }
 
     private void pauseForBackOff(RetryableException ex) {
