@@ -22,12 +22,12 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.RemoteLockService;
 
 public enum RetrySemantics {
-    DEFAULT (true),
-    NEVER_EXCEPT_ON_NON_LEADERS (false);
+    DEFAULT(true),
+    NEVER_EXCEPT_ON_NON_LEADERS(false);
 
     private final boolean shouldRetryHttpConnections;
 
-    private RetrySemantics(boolean shouldRetryHttpConnections) {
+    RetrySemantics(boolean shouldRetryHttpConnections) {
         this.shouldRetryHttpConnections = shouldRetryHttpConnections;
     }
 
