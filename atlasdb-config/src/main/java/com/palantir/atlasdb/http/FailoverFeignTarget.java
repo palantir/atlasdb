@@ -91,6 +91,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     @Override
     public void continueOrPropagate(RetryableException ex) {
         boolean isFastFailoverException = isFastFailoverException(ex);
+        log.error("{} is fast failover? {}", ex, isFastFailoverException);
         synchronized (this) {
             if (!isFastFailoverException && retrySemantics == RetrySemantics.NEVER_EXCEPT_ON_NON_LEADERS) {
                 throw hardFailOwingToFailureOnLeader(ex);

@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.http;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 
 import feign.Response;
@@ -22,6 +25,7 @@ import feign.RetryableException;
 import feign.codec.ErrorDecoder;
 
 public class AtlasDbErrorDecoder implements ErrorDecoder {
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbErrorDecoder.class);
     private ErrorDecoder defaultErrorDecoder = new ErrorDecoder.Default();
 
     public AtlasDbErrorDecoder() {
@@ -35,8 +39,13 @@ public class AtlasDbErrorDecoder implements ErrorDecoder {
     @Override
     public Exception decode(String methodKey, Response response) {
         Exception exception = defaultErrorDecoder.decode(methodKey, response);
+        log.error("Decode({}, {}) yields......", methodKey, response, exception);
         if (response503ButExceptionIsNotRetryable(response, exception)) {
+            log.error("503, but exception is not retryable. Proceeding");
             return new RetryableException(exception.getMessage(), exception, null);
+        }
+        if (response.status() == 503) {
+            log.error("503, and exception is retryable. Proceeding");
         }
         return exception;
     }
