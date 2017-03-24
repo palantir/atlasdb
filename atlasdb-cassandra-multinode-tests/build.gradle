@@ -10,7 +10,13 @@ dependencies {
     testCompile project(":atlasdb-docker-test-utils")
     testCompile project(":atlasdb-ete-test-utils")
 
-    testCompile 'org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra
+    testCompile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
+       exclude module: 'junit'
+
+       // override ant to a newer one that is shared with the version in jmock-->cglib
+       exclude module: 'ant'
+       compile 'org.apache.ant:ant:' + libVersions.ant
+    }
     testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
 
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'

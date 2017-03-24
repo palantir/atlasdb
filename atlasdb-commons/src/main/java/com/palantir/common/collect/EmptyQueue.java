@@ -18,7 +18,7 @@ package com.palantir.common.collect;
 import java.util.AbstractQueue;
 import java.util.Iterator;
 
-import com.google.common.collect.Iterators;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * This queue is empty and will neither return nor accept any elements
@@ -45,7 +45,7 @@ public class EmptyQueue<E> extends AbstractQueue<E> {
 
     @Override
     public Iterator<E> iterator() {
-        return Iterators.emptyIterator();
+        return ImmutableSet.<E>of().iterator();
     }
 
     @Override

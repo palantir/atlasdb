@@ -82,7 +82,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
-    protected final TimestampCache timestampCache = new TimestampCache();
+    protected final TimestampCache timestampCache = TimestampCache.create();
     protected boolean supportsReverse() {
         return true;
     }
