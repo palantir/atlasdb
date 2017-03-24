@@ -45,8 +45,8 @@ v0.35.1
            This is used to mitigate issues with frequent leadership changes owing to `#1680 <https://github.com/palantir/atlasdb/issues/1680>`__.
            Previously, because of Jetty's idle timeout and OkHttp's silent connection retrying, we would generate an endless stream of lock requests if using HTTP/2 and blocking for more than the Jetty idle timeout for a single lock.
            This would lead to starvation of other requests on the TimeLock server, since a lock request blocked on acquiring a lock consumes a server thread.
-           (`Pull Request 1<https://github.com/palantir/atlasdb/pull/1727>`__,
-            `Pull Request 2<https://github.com/palantir/atlasdb/pull/1737>`__)
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1727>`__,
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1737>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
