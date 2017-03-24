@@ -113,6 +113,11 @@ public abstract class ConsecutiveNarrowTable {
         }
 
         @Override
+        public TableReference getTableRef() {
+            return TableReference.createFromFullyQualifiedName("performance.regenerating_table_clean");
+        }
+
+        @Override
         public void cleanup() throws Exception {
             getKvs().dropTable(getTableRef());
             super.cleanup();
