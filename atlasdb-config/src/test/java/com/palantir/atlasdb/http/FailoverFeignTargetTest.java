@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.sql.Date;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -41,6 +42,7 @@ public class FailoverFeignTargetTest {
 
     private static final RetryableException FAST_FAILOVER_EXCEPTION = mock(RetryableException.class);
     private static final RetryableException NON_FAST_FAILOVER_EXCEPTION = mock(RetryableException.class);
+    public static final String MESSAGE = "foo";
 
     private final FailoverFeignTarget<Object> defaultSemanticsTarget = new FailoverFeignTarget<>(
             SERVERS, 1, Object.class, RetrySemantics.DEFAULT);
@@ -50,6 +52,25 @@ public class FailoverFeignTargetTest {
     static {
         when(FAST_FAILOVER_EXCEPTION.retryAfter()).thenReturn(Date.valueOf(LocalDate.MAX));
         when(NON_FAST_FAILOVER_EXCEPTION.retryAfter()).thenReturn(null);
+    }
+
+    @Test
+    public void retryableExceptionWithoutRetryAfterIsNotFastFailover() {
+        assertThat(FailoverFeignTarget.isFastFailoverException(new RetryableException(MESSAGE, null, null)))
+                .isFalse();
+    }
+
+    @Test
+    public void retryableExceptionWithRetryAfterIsFastFailover() {
+        assertThat(FailoverFeignTarget.isFastFailoverException(
+                new RetryableException(MESSAGE, null, Date.from(Instant.EPOCH))))
+                .isTrue();
+    }
+
+    @Test
+    public void potentialFollowerExceptionWithoutRetryIsFastFailover() {
+        assertThat(FailoverFeignTarget.isFastFailoverException(new PotentialFollowerException(MESSAGE, null, null)))
+                .isTrue();
     }
 
     @Test

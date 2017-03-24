@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 
 import feign.Response;
@@ -25,7 +22,6 @@ import feign.RetryableException;
 import feign.codec.ErrorDecoder;
 
 public class AtlasDbErrorDecoder implements ErrorDecoder {
-    private static final Logger log = LoggerFactory.getLogger(AtlasDbErrorDecoder.class);
     private ErrorDecoder defaultErrorDecoder = new ErrorDecoder.Default();
 
     public AtlasDbErrorDecoder() {

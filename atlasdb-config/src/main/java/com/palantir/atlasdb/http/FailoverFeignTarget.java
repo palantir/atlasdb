@@ -91,7 +91,6 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     @Override
     public void continueOrPropagate(RetryableException ex) {
         boolean isFastFailoverException = isFastFailoverException(ex);
-        log.error("{} is fast failover? {}", ex, isFastFailoverException);
         synchronized (this) {
             if (!isFastFailoverException && retrySemantics == RetrySemantics.NEVER_EXCEPT_ON_NON_LEADERS) {
                 throw hardFailOwingToFailureOnLeader(ex);
@@ -151,7 +150,8 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
     }
 
-    private static boolean isFastFailoverException(RetryableException ex) {
+    @VisibleForTesting
+    static boolean isFastFailoverException(RetryableException ex) {
         // If this is not-null, then we interpret this to mean that the server has thrown a 503 (so it might
         // not have been the leader).
         return ex.retryAfter() != null || ex instanceof PotentialFollowerException;
