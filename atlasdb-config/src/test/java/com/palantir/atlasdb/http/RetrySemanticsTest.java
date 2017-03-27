@@ -24,27 +24,27 @@ import org.junit.Test;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 
-public class FeignOkHttpClientsTest {
+public class RetrySemanticsTest {
     @Test
     public void classesSpecifiedNotToRetryAreNotRetriable() {
-        FeignOkHttpClients.CLASSES_TO_NOT_RETRY.forEach(
-                clazz -> assertThat(FeignOkHttpClients.shouldAllowRetrying(clazz)).isFalse());
+        RetrySemantics.CLASSES_TO_NOT_RETRY.forEach(
+                clazz -> assertThat(RetrySemantics.shouldRetryHttpConnections(clazz)).isFalse());
     }
 
     @Test
     public void remoteLockServiceIsNotRetriable() {
-        assertThat(FeignOkHttpClients.shouldAllowRetrying(RemoteLockService.class)).isFalse();
+        assertThat(RetrySemantics.shouldRetryHttpConnections(RemoteLockService.class)).isFalse();
     }
 
     @Test
     public void subclassesOfClassesSpecifiedNotToRetryAreRetriable() {
-        assertThat(FeignOkHttpClients.shouldAllowRetrying(ExtendedRemoteLockService.class)).isTrue();
-        assertThat(FeignOkHttpClients.shouldAllowRetrying(LockRefreshingRemoteLockService.class)).isTrue();
+        assertThat(RetrySemantics.shouldRetryHttpConnections(ExtendedRemoteLockService.class)).isTrue();
+        assertThat(RetrySemantics.shouldRetryHttpConnections(LockRefreshingRemoteLockService.class)).isTrue();
     }
 
     @Test
     public void classesNotSpecifiedNotToRetryAreRetriable() {
-        assertThat(FeignOkHttpClients.shouldAllowRetrying(AtomicReference.class)).isTrue();
+        assertThat(RetrySemantics.shouldRetryHttpConnections(AtomicReference.class)).isTrue();
     }
 
     private interface ExtendedRemoteLockService extends RemoteLockService {

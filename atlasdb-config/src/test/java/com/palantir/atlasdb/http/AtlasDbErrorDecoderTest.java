@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertNull;
@@ -61,6 +62,7 @@ public class AtlasDbErrorDecoderTest {
         Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_503, NON_RETRYABLE_EXCEPTION);
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
         assertNull(((RetryableException) exception).retryAfter());
+        assertThat(exception, is(instanceOf(PotentialFollowerException.class)));
     }
 
     @Test
