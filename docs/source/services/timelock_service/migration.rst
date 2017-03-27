@@ -72,16 +72,3 @@ migration occurred correctly.
 
 3. **AtlasDB Client Logs**: Search for ``[BACKUP] Backed up the value {}`` in the AtlasDB client logs. This should
    occur precisely once, and the value should match that as retrieved by the aforementioned methods.
-
-Reverse Migration
------------------
-
-.. danger::
-
-   AtlasDB does not support reverse migrations. Improperly executing reverse migration from external timestamp
-   and lock services can result in **SEVERE DATA CORRUPTION**! Please contact the AtlasDB team before attempting a
-   reverse migration.
-
-If one wishes to downgrade from an external Timelock Server to embedded timestamp and lock services, one can perform
-the inverse of the database migrations mentioned in :ref:`manual-timelock-migration`. It is also important to update the
-embedded timestamp bound to account for any timestamps issued since the original migration.
