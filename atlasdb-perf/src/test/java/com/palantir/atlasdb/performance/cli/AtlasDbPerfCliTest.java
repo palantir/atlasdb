@@ -19,13 +19,13 @@ import org.junit.Test;
 
 public class AtlasDbPerfCliTest {
     @Test
-    public void benchmarksMustRunSuccessfullyInPostgres() throws Exception{
+    public void benchmarksMustRunSuccessfullyInPostgres() throws Exception {
         String[] args = {"-b", "POSTGRES", "--test-run"};
         AtlasDbPerfCli.main(args);
     }
 
     @Test
-    public void benchmarksMustRunSuccessfullyInCassandra() throws Exception{
+    public void benchmarksMustRunSuccessfullyInCassandra() throws Exception {
         String[] args = {"-b", "CASSANDRA", "--test-run"};
         AtlasDbPerfCli.main(args);
     }
