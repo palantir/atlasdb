@@ -109,6 +109,7 @@
 <li class="toctree-l3"><a class="reference internal" href="installation.html">Timelock Server Installation</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Migration to Timelock Server</a></li>
 <li class="toctree-l3"><a class="reference internal" href="manual-migration.html">Manual Migration to Timelock Server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reverse-migration.html">Reverse Migration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="product-changes.html">Developing a product to use the timelock service</a></li>
 <li class="toctree-l3"><a class="reference internal" href="paxos.html">Paxos and AtlasDB</a></li>
 </ul>
@@ -255,18 +256,6 @@ occur precisely once, and the value should match that as retrieved by the aforem
 </li>
 </ol>
 </div>
-</div>
-<div class="section" id="reverse-migration">
-<h2>Reverse Migration<a class="headerlink" href="#reverse-migration" title="Permalink to this headline">¶</a></h2>
-<div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">AtlasDB does not support reverse migrations. Improperly executing reverse migration from external timestamp
-and lock services can result in <strong>SEVERE DATA CORRUPTION</strong>! Please contact the AtlasDB team before attempting a
-reverse migration.</p>
-</div>
-<p>If one wishes to downgrade from an external Timelock Server to embedded timestamp and lock services, one can perform
-the inverse of the database migrations mentioned in <a class="reference internal" href="manual-migration.html#manual-timelock-migration"><span class="std std-ref">Manual Migration to Timelock Server</span></a>. It is also important to update the
-embedded timestamp bound to account for any timestamps issued since the original migration.</p>
 </div>
 </div>
 
