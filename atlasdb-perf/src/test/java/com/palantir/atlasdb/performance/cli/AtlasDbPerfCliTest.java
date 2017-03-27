@@ -19,8 +19,14 @@ import org.junit.Test;
 
 public class AtlasDbPerfCliTest {
     @Test
-    public void benchmarksMustRunSuccessfullyInDocker() throws Exception{
-        String[] args = {"TransactionGetRowsColumnRangeBenchmarks.getAllColumnsSingleBigRow", "-b", "CASSANDRA", "--test-run"};
+    public void benchmarksMustRunSuccessfullyInPostgres() throws Exception{
+        String[] args = {"-b", "POSTGRES", "--test-run"};
+        AtlasDbPerfCli.main(args);
+    }
+
+    @Test
+    public void benchmarksMustRunSuccessfullyInCassandra() throws Exception{
+        String[] args = {"-b", "CASSANDRA", "--test-run"};
         AtlasDbPerfCli.main(args);
     }
 }
