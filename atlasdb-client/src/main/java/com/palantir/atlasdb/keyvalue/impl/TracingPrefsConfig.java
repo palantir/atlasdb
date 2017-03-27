@@ -64,23 +64,26 @@ public class TracingPrefsConfig implements Runnable {
                     tracedTables = ImmutableSet.copyOf(Splitter.on(",").trimResults().split(tableString));
                     retryOnDifferentHostOnThriftTimedOutExceptions = Boolean.parseBoolean(
                             tracingPrefConfig.getProperty("retryOnDifferentHostOnThriftTimedOutExceptions", "false"));
-                    if (tracingEnabled && !loadedConfig) { // only log leading edge event
+                    if (!loadedConfig) { // only log leading edge event
                         log.error("Successfully loaded an {} file."
                                 + " This incurs a large performance hit and"
                                 + " should only be used for short periods of debugging."
                                 + " [tracing_enabled = {}, trace_probability = {}, min_duration_to_log_ms = {}, "
-                                + "tables_to_trace = {}]",
+                                + "tables_to_trace = {}, retryOnDifferentHostOnThriftTimedOutExceptions = {}]",
                                 TRACING_PREF_FILENAME,
                                 tracingEnabled,
                                 tracingProbability,
                                 tracingMinDurationToTraceMillis,
-                                tracedTables);
+                                tracedTables,
+                                retryOnDifferentHostOnThriftTimedOutExceptions);
                     }
                 } catch (IOException e) {
                     log.error("Could not load a malformed " + TRACING_PREF_FILENAME + ".");
                     loadedConfig = false;
                 }
                 loadedConfig = true;
+            } else {
+                loadedConfig = false;
             }
         } catch (Throwable t) {
             log.error("Error occurred while refreshing {}: {}", TRACING_PREF_FILENAME, t, t);
