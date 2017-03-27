@@ -175,7 +175,7 @@ public class IteratorUtils {
                 if (!a.hasNext()) {
                     T ret =  b.next();
                     if (b.hasNext()) {
-//                        assert ordering.compare(ret, b.peek()) < 0;
+                        assert ordering.compare(ret, b.peek()) < 0;
                     }
                     return ret;
                 }
