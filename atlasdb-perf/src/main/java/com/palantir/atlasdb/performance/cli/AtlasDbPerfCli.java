@@ -32,6 +32,7 @@ import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 
@@ -74,6 +75,10 @@ public class AtlasDbPerfCli {
 
     @Option(name = {"-l", "--list-tests"}, description = "Lists all available benchmarks.")
     private boolean listTests;
+
+    @Option(name = {"--test-run"},
+            description = "Runs each benchmark once only with no warmup. Use for testing purposes only.")
+    private boolean testRun;
 
     @Option(name = {"-o", "--output"},
             description = "The file in which to store the test results. "
@@ -120,8 +125,8 @@ public class AtlasDbPerfCli {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
                 .threads(1)
-                .warmupIterations(1)
                 .measurementIterations(1)
+                .timeout(TimeValue.seconds(10))
                 .mode(Mode.SampleTime)
                 .timeUnit(TimeUnit.MICROSECONDS)
                 .shouldFailOnError(true)
@@ -130,6 +135,13 @@ public class AtlasDbPerfCli {
                                 .map(DockerizedDatabaseUri::toString)
                                 .collect(Collectors.toList())
                                 .toArray(new String[uris.size()]));
+        if (cli.testRun) {
+            optBuilder.measurementTime(TimeValue.milliseconds(1))
+                    .warmupIterations(0);
+        } else {
+            optBuilder.warmupIterations(1);
+        }
+
         if (cli.tests == null) {
             getAllBenchmarks().forEach(b -> optBuilder.include(".*" + b));
         } else {
