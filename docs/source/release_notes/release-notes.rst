@@ -40,6 +40,10 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - Added a benchmark ``TimestampServiceBenchmarks`` for parallel requesting of fresh timestamps from the TimestampService.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1720>`__)
+
     *    - |fixed|
          - KVS migrations where timestamp data was co-located with AtlasDB data now respect the timestamp service contract.
            Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.
