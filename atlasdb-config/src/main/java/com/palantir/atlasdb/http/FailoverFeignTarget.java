@@ -122,10 +122,9 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
     private RuntimeException hardFailOwingToFailureOnLeader(RetryableException ex) {
-        // Failure on a leader
         log.error("This connection has failed on a leader when its semantics instruct it not to retry"
                 + " except on a non-leader.", ex);
-        return ex == null ? new IllegalStateException("continueOrPropagate a null") : ex;
+        return ex == null ? new IllegalStateException("continueOrPropagate called on null") : ex;
     }
 
     private void checkAndHandleFailure(RetryableException ex) {
@@ -154,7 +153,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     static boolean isFastFailoverException(RetryableException ex) {
         // If this is not-null, then we interpret this to mean that the server has thrown a 503 (so it might
         // not have been the leader).
-        return ex.retryAfter() != null || ex instanceof PotentialFollowerException;
+        return ex.retryAfter() != null;
     }
 
     private void pauseForBackOff(RetryableException ex) {

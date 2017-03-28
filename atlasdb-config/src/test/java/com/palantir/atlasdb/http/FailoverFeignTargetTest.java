@@ -42,7 +42,7 @@ public class FailoverFeignTargetTest {
 
     private static final RetryableException FAST_FAILOVER_EXCEPTION = mock(RetryableException.class);
     private static final RetryableException NON_FAST_FAILOVER_EXCEPTION = mock(RetryableException.class);
-    public static final String MESSAGE = "foo";
+    private static final String MESSAGE = "foo";
 
     private final FailoverFeignTarget<Object> defaultSemanticsTarget = new FailoverFeignTarget<>(
             SERVERS, 1, Object.class, RetrySemantics.DEFAULT);
@@ -64,12 +64,6 @@ public class FailoverFeignTargetTest {
     public void retryableExceptionWithRetryAfterIsFastFailover() {
         assertThat(FailoverFeignTarget.isFastFailoverException(
                 new RetryableException(MESSAGE, null, Date.from(Instant.EPOCH))))
-                .isTrue();
-    }
-
-    @Test
-    public void potentialFollowerExceptionWithoutRetryIsFastFailover() {
-        assertThat(FailoverFeignTarget.isFastFailoverException(new PotentialFollowerException(MESSAGE, null, null)))
                 .isTrue();
     }
 

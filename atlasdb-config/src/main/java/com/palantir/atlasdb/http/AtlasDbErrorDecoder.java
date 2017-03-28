@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.util.Date;
+
 import com.google.common.annotations.VisibleForTesting;
 
 import feign.Response;
@@ -36,9 +38,15 @@ public class AtlasDbErrorDecoder implements ErrorDecoder {
     public Exception decode(String methodKey, Response response) {
         Exception exception = defaultErrorDecoder.decode(methodKey, response);
         if (response503ButExceptionIsNotRetryable(response, exception)) {
-            return new PotentialFollowerException(exception.getMessage(), exception, null);
+            Date retryAfter = parseRetryAfter(response);
+            return new RetryableException(exception.getMessage(), exception, null);
         }
         return exception;
+    }
+
+    private Date parseRetryAfter(Response response) {
+//        HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(response.headers(), )
+        return null;
     }
 
     private boolean response503ButExceptionIsNotRetryable(Response response, Exception exception) {
