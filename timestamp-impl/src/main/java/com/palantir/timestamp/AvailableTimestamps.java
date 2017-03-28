@@ -130,6 +130,12 @@ public class AvailableTimestamps {
         return rangeToHandOut;
     }
 
+    /**
+     * Ensure the upper limit is at least timestamp. If an update is required, increase it by an additional amount,
+     * specified by buffer.
+     * @param timestamp minimal upper limit for the timestamp bound.
+     * @param buffer additional buffer to use in case an update is necessary.
+     */
     private synchronized void allocateEnoughTimestampsToHandOut(long timestamp, long buffer) {
         // synchronizing for semantic consistency and avoid `assert Thread.holdsLock(this);` overhead
         DebugLogger.logger.trace("Increasing limit to at least {}.", timestamp);
