@@ -15,8 +15,6 @@
  */
 package com.palantir.common.proxy;
 
-import com.palantir.common.supplier.RemoteContextHolder;
-
 /**
  * A static method to return a proxy which simulates a remote server. The
  * returned proxy is a combination of {@link SerializingProxy},
@@ -27,11 +25,10 @@ import com.palantir.common.supplier.RemoteContextHolder;
 public final class SimulatingServerProxy {
 
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, long sleep) {
-        return RemoteContextHolder.newProxyCopyingOutboxToInbox(interfaceClass,
-            SerializingProxy.newProxyInstance(interfaceClass,
+        return SerializingProxy.newProxyInstance(interfaceClass,
                 InterruptibleProxy.newProxyInstance(interfaceClass,
                     DelayProxy.newProxyInstance(interfaceClass, delegate, sleep),
-                    CancelDelegate.CANCEL)));
+                    CancelDelegate.CANCEL));
     }
 
     private SimulatingServerProxy() {
