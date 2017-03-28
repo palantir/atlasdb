@@ -45,6 +45,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1720>`__)
 
     *    - |fixed|
+         - Fixed an issue where a ``MultipleRunningTimestampServicesError`` would be ignored, resulting in a state where two timestamp services would be able to simultaneously hand out timestamps. Also changed the logic for increasing the timestamp bound when the allocation buffer is exhausted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1718>`__)
+
+    *    - |fixed|
          - KVS migrations where timestamp data was co-located with AtlasDB data now respect the timestamp service contract.
            Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1199>`__)
