@@ -18,6 +18,8 @@ package com.palantir.common.remoting;
 import java.util.Collection;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * This class is useful for accessing HTTP headers in a case-insensitive manner.
  * This is necessary for compatibility with OkHttp 3.3.0+, as that lower-cases header names whereas we use constants
@@ -55,7 +57,7 @@ public final class HeaderAccessUtils {
     /**
      * Compares the keys of the map to the header in a case-insensitive manner.
      * Upon finding a match, returns the associated collection of strings.
-     * Returns null if the key does not exist.
+     * Returns an empty collection if the key is not present in the map.
      */
     public static Collection<String> shortcircuitingCaseInsensitiveGet(
             Map<String, Collection<String>> headers,
@@ -65,6 +67,6 @@ public final class HeaderAccessUtils {
                 return entry.getValue();
             }
         }
-        return null;
+        return ImmutableList.of();
     }
 }

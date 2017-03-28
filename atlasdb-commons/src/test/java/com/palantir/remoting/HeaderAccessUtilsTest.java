@@ -79,7 +79,7 @@ public class HeaderAccessUtilsTest {
 
     @Test
     public void caseInsensitiveGetReturnsNullIfNoKeyMatches() {
-        assertCaseInsensitiveGet("Diffie-Hellman", null);
+        assertCaseInsensitiveGet("Diffie-Hellman", ImmutableList.<String>of());
     }
 
     @Test
