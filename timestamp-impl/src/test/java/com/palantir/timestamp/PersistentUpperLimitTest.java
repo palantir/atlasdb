@@ -34,6 +34,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.time.Clock;
 import com.palantir.exception.PalantirInterruptedException;
 
@@ -75,26 +76,50 @@ public class PersistentUpperLimitTest {
 
     @Test
     public void shouldIncreaseTheUpperLimitIfTheNewLimitIsBigger() {
-        upperLimit.increaseToAtLeast(TIMESTAMP);
+        upperLimit.increaseToAtLeast(TIMESTAMP, 0);
 
-        upperLimit.increaseToAtLeast(TIMESTAMP + 1000);
+        upperLimit.increaseToAtLeast(TIMESTAMP + 1000, 0);
         assertThat(upperLimit.get(), is(TIMESTAMP + 1000));
     }
 
     @Test
-    public void shouldNotIncreaseTheUpperLimitIfTheNewLimitIsSmaller() {
-        upperLimit.increaseToAtLeast(TIMESTAMP);
+    public void shouldIncreaseTheUpperLimitWithBufferIfTheNewLimitIsBigger() {
+        upperLimit.increaseToAtLeast(TIMESTAMP, 0);
 
-        upperLimit.increaseToAtLeast(TIMESTAMP - 1000);
+        upperLimit.increaseToAtLeast(TIMESTAMP + 1000, 1000);
+        assertThat(upperLimit.get(), is(TIMESTAMP + 2000));
+    }
+
+    @Test
+    public void shouldNotIncreaseTheUpperLimitWithBufferIfTheNewLimitIsEqual() {
+        upperLimit.increaseToAtLeast(TIMESTAMP, 0);
+
+        upperLimit.increaseToAtLeast(TIMESTAMP, 1000);
+        assertThat(upperLimit.get(), is(TIMESTAMP));
+    }
+
+    @Test
+    public void shouldNotIncreaseTheUpperLimitIfTheNewLimitIsSmaller() {
+        upperLimit.increaseToAtLeast(TIMESTAMP, 0);
+
+        upperLimit.increaseToAtLeast(TIMESTAMP - 1000, 0);
+        assertThat(upperLimit.get(), is(TIMESTAMP));
+    }
+
+    @Test
+    public void shouldNotIncreaseTheUpperLimitIfTheNewLimitIsSmallerRegardlessOfBuffer() {
+        upperLimit.increaseToAtLeast(TIMESTAMP, 0);
+
+        upperLimit.increaseToAtLeast(TIMESTAMP - 1000, 2000);
         assertThat(upperLimit.get(), is(TIMESTAMP));
     }
 
     @Test
     public void shouldPersistAnIncreasedTimestamp() {
-        upperLimit.increaseToAtLeast(TIMESTAMP);
+        upperLimit.increaseToAtLeast(TIMESTAMP, 0);
 
-        upperLimit.increaseToAtLeast(TIMESTAMP + 1000);
-        verify(boundStore).storeUpperLimit(TIMESTAMP + 1000);
+        upperLimit.increaseToAtLeast(TIMESTAMP + 1000, 1000);
+        verify(boundStore).storeUpperLimit(TIMESTAMP + 2000);
     }
 
     @Test
@@ -102,7 +127,7 @@ public class PersistentUpperLimitTest {
         doThrow(RuntimeException.class).when(boundStore).storeUpperLimit(anyLong());
 
         try {
-            upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
+            upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10, 0);
         } catch (Exception e) {
             // We expect this to throw
         }
@@ -114,7 +139,7 @@ public class PersistentUpperLimitTest {
     public void shouldKnowIfItWasUpdateWithinACertainTimeframe() {
         whenTheTimeIs(1, MINUTES);
 
-        upperLimit.increaseToAtLeast(TIMESTAMP);
+        upperLimit.increaseToAtLeast(TIMESTAMP, 0);
 
         whenTheTimeIs(4, MINUTES);
 
@@ -125,7 +150,7 @@ public class PersistentUpperLimitTest {
     public void shouldKnowIfItWasNotUpdateWithinACertainTimeframe() {
         whenTheTimeIs(1, MINUTES);
 
-        upperLimit.increaseToAtLeast(TIMESTAMP);
+        upperLimit.increaseToAtLeast(TIMESTAMP, 0);
 
         whenTheTimeIs(2, MINUTES);
 
@@ -142,20 +167,29 @@ public class PersistentUpperLimitTest {
 
         exception.expect(is(expectedException));
 
-        upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
+        upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10, 0);
     }
 
     @Test
     public void shouldNotAllocateTimestampsIfAllocationFailuresDisallowsIt() {
-        doThrow(RuntimeException.class).when(allocationFailures).verifyWeShouldTryToAllocateMoreTimestamps();
+        doThrow(RuntimeException.class).when(allocationFailures).verifyWeShouldIssueMoreTimestamps();
 
         try {
-            upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
+            upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10, 0);
         } catch (Exception e) {
             // ignore expected exception
         }
 
         verify(boundStore, never()).storeUpperLimit(anyLong());
+    }
+
+    @Test
+    public void shouldNotIssueTimestampsIfAllocationFailuresDisallowsIt() {
+        doThrow(ServiceNotAvailableException.class).when(allocationFailures).verifyWeShouldIssueMoreTimestamps();
+
+        exception.expect(ServiceNotAvailableException.class);
+
+        upperLimit.get();
     }
 
     @Test
@@ -165,7 +199,7 @@ public class PersistentUpperLimitTest {
 
             Thread.currentThread().interrupt();
 
-            upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
+            upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10, 0);
         } finally {
             // Clear the interrupt
             Thread.interrupted();
@@ -176,7 +210,7 @@ public class PersistentUpperLimitTest {
     public void shouldNotTryToPersistANewLimitIfInterrupted() {
         try {
             Thread.currentThread().interrupt();
-            upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
+            upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10, 0);
         } catch (Exception e) {
             // Ingnore expected exception
         } finally {

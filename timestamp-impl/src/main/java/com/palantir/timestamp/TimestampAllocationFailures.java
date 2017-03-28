@@ -32,6 +32,7 @@ public class TimestampAllocationFailures {
     private final Logger log;
 
     private volatile Throwable previousAllocationFailure;
+    private volatile boolean encounteredMultipleRunningTimestamps = false;
 
     @VisibleForTesting
     TimestampAllocationFailures(Logger log) {
@@ -49,17 +50,17 @@ public class TimestampAllocationFailures {
         }
 
         if (newFailure instanceof MultipleRunningTimestampServiceError) {
+            encounteredMultipleRunningTimestamps = true;
             return wrapMultipleRunningTimestampServiceError(newFailure);
         }
 
         return new RuntimeException("Could not allocate more timestamps", newFailure);
     }
 
-    public void verifyWeShouldTryToAllocateMoreTimestamps() {
+    public void verifyWeShouldIssueMoreTimestamps() {
         // perform only single volatile load on hot path
-        Throwable failure = this.previousAllocationFailure;
-        if (failure instanceof MultipleRunningTimestampServiceError) {
-            throw wrapMultipleRunningTimestampServiceError(failure);
+        if (encounteredMultipleRunningTimestamps) {
+            throw wrapMultipleRunningTimestampServiceError(this.previousAllocationFailure);
         }
     }
 
