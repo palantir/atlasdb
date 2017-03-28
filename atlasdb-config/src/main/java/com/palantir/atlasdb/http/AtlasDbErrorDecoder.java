@@ -19,7 +19,6 @@ import java.util.Collection;
 import java.util.Date;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
 import com.google.common.net.HttpHeaders;
 import com.palantir.common.remoting.HeaderAccessUtils;
 
@@ -53,7 +52,7 @@ public class AtlasDbErrorDecoder implements ErrorDecoder {
         if (retryAfterValues.isEmpty()) {
             return null;
         }
-        String retryAfterValue = Iterables.getOnlyElement(retryAfterValues);
+        String retryAfterValue = retryAfterValues.iterator().next();
         return new Date(Long.parseLong(retryAfterValue));
     }
 
