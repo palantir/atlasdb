@@ -55,10 +55,21 @@ public class PersistentUpperLimit {
         return cachedValue;
     }
 
-    public synchronized long increaseToAtLeast(long minimum, long buffer) {
+    /**
+     * Increases the stored upper limit to at least the minimum value. The store is only performed if the cached value
+     * is lower than the minimum. If the check is successful, the value stored will be equal to
+     * minimum + additionalBuffer. This way we can avoid persisting a new limit if not necessary, but also add a buffer
+     * when the CAS is necessary.
+     * @param minimum minimum upper limit to be persisted. The CAS will only be invoked if the current cached value
+     * is lower than minimum.
+     * @param additionalBuffer if a CAS is necessary, this value determines the additional buffer on top of minimum to
+     * be persisted.
+     * @return currently cached value
+     */
+    public synchronized long increaseToAtLeast(long minimum, long additionalBuffer) {
         long currentValue = get();
         if (currentValue < minimum) {
-            return store(minimum + buffer);
+            return store(minimum + additionalBuffer);
         } else {
             DebugLogger.logger.trace(
                     "Not storing upper limit of {}, as the cached value {} was higher.",

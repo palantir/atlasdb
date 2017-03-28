@@ -42,7 +42,11 @@ develop
 
     *    - |improved|
          - Refactored ``AvailableTimestamps`` reducing overzealous synchronization. Giving out timestamps is no longer blocking in refreshing the timestamp bound if there enough timestamps to give out with the current bound.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1735>`__)
+
+    *    - |new|
+         - Added a benchmark ``TimestampServiceBenchmarks`` for parallel requesting of fresh timestamps from the TimestampService.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1720>`__)
 
     *    - |fixed|
          - Fixed an issue where a ``MultipleRunningTimestampServicesError`` would be ignored, resulting in a state where two timestamp services would be able to simultaneously hand out timestamps. Also changed the logic for increasing the timestamp bound when the allocation buffer is exhausted.
@@ -67,6 +71,17 @@ develop
            We believe they are unused by upstream applications, but if you do encounter breaks due to this
            removal please file a ticket with the dev team for immediate support (as we did not take the time to properly deprecate the methods).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1689>`__)
+
+    *    - |fixed|
+         - RemoteLockService clients will no longer silently retry on connection failures.
+           This is used to mitigate issues with frequent leadership changes owing to `#1680 <https://github.com/palantir/atlasdb/issues/1680>`__.
+           Previously, because of Jetty's idle timeout and OkHttp's silent connection retrying, we would generate an endless stream of lock requests if using HTTP/2 and blocking for more than the Jetty idle timeout for a single lock.
+           This would lead to starvation of other requests on the TimeLock server, since a lock request blocked on acquiring a lock consumes a server thread.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1727>`__)
+
+    *    - |fixed| |improved|
+         - Cassandra depedencies have been bumped to newer versions; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1524>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

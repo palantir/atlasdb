@@ -34,8 +34,7 @@ public class TimestampAllocationFailures {
     private final Logger log;
 
     private volatile Throwable previousAllocationFailure;
-    @Contended
-    private volatile boolean encounteredMultipleRunningTimestamps = false;
+    @Contended private volatile boolean encounteredMultipleRunningTimestamps = false;
 
     @VisibleForTesting
     TimestampAllocationFailures(Logger log) {

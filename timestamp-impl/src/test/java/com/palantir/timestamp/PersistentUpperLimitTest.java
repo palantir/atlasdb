@@ -91,6 +91,14 @@ public class PersistentUpperLimitTest {
     }
 
     @Test
+    public void shouldNotIncreaseTheUpperLimitWithBufferIfTheNewLimitIsEqual() {
+        upperLimit.increaseToAtLeast(TIMESTAMP, 0);
+
+        upperLimit.increaseToAtLeast(TIMESTAMP, 1000);
+        assertThat(upperLimit.get(), is(TIMESTAMP));
+    }
+
+    @Test
     public void shouldNotIncreaseTheUpperLimitIfTheNewLimitIsSmaller() {
         upperLimit.increaseToAtLeast(TIMESTAMP, 0);
 

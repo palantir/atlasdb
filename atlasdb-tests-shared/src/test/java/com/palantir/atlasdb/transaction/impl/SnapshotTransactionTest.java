@@ -114,7 +114,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.remoting1.tracing.Tracers;
 
 public class SnapshotTransactionTest extends AtlasDbTestCase {
-    protected final TimestampCache timestampCache = new TimestampCache();
+    protected final TimestampCache timestampCache = TimestampCache.create();
 
     private class UnstableKeyValueService extends ForwardingKeyValueService {
         private final KeyValueService delegate;
