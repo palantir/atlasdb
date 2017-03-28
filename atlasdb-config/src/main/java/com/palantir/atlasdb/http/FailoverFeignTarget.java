@@ -91,10 +91,10 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     @Override
     public void continueOrPropagate(RetryableException ex) {
         boolean isFastFailoverException = isFastFailoverException(ex);
+        if (!isFastFailoverException && retrySemantics == RetrySemantics.NEVER_EXCEPT_ON_NON_LEADERS) {
+            throw hardFailOwingToFailureOnLeader(ex);
+        }
         synchronized (this) {
-            if (!isFastFailoverException && retrySemantics == RetrySemantics.NEVER_EXCEPT_ON_NON_LEADERS) {
-                throw hardFailOwingToFailureOnLeader(ex);
-            }
             // Only fail over if this failure was to the current server.
             // This means that no one on another thread has failed us over already.
             if (mostRecentServerIndex.get() != null && mostRecentServerIndex.get() == failoverCount.get()) {
@@ -121,7 +121,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
     }
 
-    private RuntimeException hardFailOwingToFailureOnLeader(RetryableException ex) {
+    private static RuntimeException hardFailOwingToFailureOnLeader(RetryableException ex) {
         log.error("This connection has failed on a leader when its semantics instruct it not to retry"
                 + " except on a non-leader.", ex);
         return ex == null ? new IllegalStateException("continueOrPropagate called on null") : ex;
