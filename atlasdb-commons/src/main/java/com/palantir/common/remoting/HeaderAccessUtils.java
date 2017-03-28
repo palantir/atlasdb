@@ -34,6 +34,9 @@ public final class HeaderAccessUtils {
      * the associated collection of strings from the map with the value, returning true iff this contains a match.
      * If no key matches, this method returns false.
      *
+     * This can be implemented in terms of shortcircuitingCaseInsensitiveGet, but suffered a performance regression
+     * in benchmarking.
+     *
      * As a precondition: the headers map should NOT contain distinct keys differing only in case.
      * (This is true as far as our use-case is concerned.)
      */
@@ -47,5 +50,21 @@ public final class HeaderAccessUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * Compares the keys of the map to the header in a case-insensitive manner.
+     * Upon finding a match, returns the associated collection of strings.
+     * Returns null if the key does not exist.
+     */
+    public static Collection<String> shortcircuitingCaseInsensitiveGet(
+            Map<String, Collection<String>> headers,
+            String header) {
+        for (Map.Entry<String, Collection<String>> entry : headers.entrySet()) {
+            if (header.equalsIgnoreCase(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 }
