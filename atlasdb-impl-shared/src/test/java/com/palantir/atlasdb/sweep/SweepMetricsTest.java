@@ -83,7 +83,7 @@ public class SweepMetricsTest {
 
         assertCellsDeleted(TABLE, DELETED);
         assertCellsDeleted(OTHER_TABLE, OTHER_DELETED);
-        assertValuesRecorded("staleValuesDeleted", DELETED, OTHER_DELETED);
+        assertValuesRecorded(SweepMetrics.STALE_VALUES_DELETED, DELETED, OTHER_DELETED);
     }
 
     @Test
@@ -100,7 +100,7 @@ public class SweepMetricsTest {
 
         assertCellsExamined(TABLE, EXAMINED);
         assertCellsExamined(OTHER_TABLE, OTHER_EXAMINED);
-        assertValuesRecorded("cellsExamined", EXAMINED, OTHER_EXAMINED);
+        assertValuesRecorded(SweepMetrics.CELLS_EXAMINED, EXAMINED, OTHER_EXAMINED);
     }
 
     @Ignore // This is just for me to run locally and check out what the metrics reports look like

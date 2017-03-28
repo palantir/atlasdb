@@ -25,8 +25,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 class SweepMetrics {
-    private static final String STALE_VALUES_DELETED = "staleValuesDeleted";
-    private static final String CELLS_EXAMINED = "cellsExamined";
+    static final String STALE_VALUES_DELETED = "staleValuesDeleted";
+    static final String CELLS_EXAMINED = "cellsExamined";
     private static final String AGGREGATE_STALE_VALUES_DELETED = MetricRegistry.name(SweepMetrics.class,
             STALE_VALUES_DELETED);
     private static final String AGGREGATE_CELLS_EXAMINED = MetricRegistry.name(SweepMetrics.class,
