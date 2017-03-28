@@ -60,7 +60,7 @@ public class SweepMetricsTest {
 
     @Before
     public void setUp() {
-        sweepMetrics = new SweepMetrics(METRIC_REGISTRY);
+        sweepMetrics = new SweepMetrics();
         sweepMetrics.registerMetricsIfNecessary(TABLE);
     }
 

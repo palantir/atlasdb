@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.Arrays;
+import java.util.function.Consumer;
+
 import org.mpierce.metrics.reservoir.hdrhistogram.HdrHistogramReservoir;
 
 import com.codahale.metrics.Histogram;
@@ -25,7 +28,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 class SweepMetrics {
-    class TableAndAggregateMetric {
+    enum TableAndAggregateMetric {
+        STALE_VALUES_DELETED_METRIC(STALE_VALUES_DELETED),
+        CELLS_EXAMINED_METRIC(CELLS_EXAMINED);
+
         private final String name;
 
         TableAndAggregateMetric(String name) {
@@ -69,33 +75,33 @@ class SweepMetrics {
     static final String STALE_VALUES_DELETED = "staleValuesDeleted";
     static final String CELLS_EXAMINED = "cellsExamined";
 
-    private final TableAndAggregateMetric cellsExaminedMetric = new TableAndAggregateMetric(CELLS_EXAMINED);
-    private final TableAndAggregateMetric staleValuesDeletedMetric = new TableAndAggregateMetric(STALE_VALUES_DELETED);
-
-    private final MetricRegistry metricRegistry;
+    private static final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
 
     public static SweepMetrics create() {
-        SweepMetrics sweepMetrics = new SweepMetrics(AtlasDbMetrics.getMetricRegistry());
+        SweepMetrics sweepMetrics = new SweepMetrics();
         sweepMetrics.registerAggregateMetrics();
         return sweepMetrics;
     }
 
-    protected SweepMetrics(MetricRegistry metricRegistry) {
-        this.metricRegistry = metricRegistry;
+    protected SweepMetrics() {
+        // To prevent instantiation
     }
 
     private void registerAggregateMetrics() {
-        cellsExaminedMetric.registerAggregateMetric();
-        staleValuesDeletedMetric.registerAggregateMetric();
+        forAllMetrics(TableAndAggregateMetric::registerAggregateMetric);
     }
 
     void registerMetricsIfNecessary(TableReference tableRef) {
-        cellsExaminedMetric.registerForTable(tableRef);
-        staleValuesDeletedMetric.registerForTable(tableRef);
+        forAllMetrics(metric -> metric.registerForTable(tableRef));
     }
 
     void recordMetrics(TableReference tableRef, SweepResults results) {
-        cellsExaminedMetric.recordMetric(tableRef, results.getCellsExamined());
-        staleValuesDeletedMetric.recordMetric(tableRef, results.getCellsDeleted());
+        TableAndAggregateMetric.CELLS_EXAMINED_METRIC.recordMetric(tableRef, results.getCellsExamined());
+        TableAndAggregateMetric.STALE_VALUES_DELETED_METRIC.recordMetric(tableRef, results.getCellsDeleted());
+    }
+
+    private void forAllMetrics(Consumer<TableAndAggregateMetric> action) {
+        Arrays.asList(TableAndAggregateMetric.values()).stream().forEach(
+                action);
     }
 }
