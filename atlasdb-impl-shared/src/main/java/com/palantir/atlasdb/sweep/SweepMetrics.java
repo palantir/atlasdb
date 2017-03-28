@@ -25,12 +25,52 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 class SweepMetrics {
+    class TableAndAggregateMetric {
+        private final String name;
+
+        TableAndAggregateMetric(String name) {
+            this.name = name;
+        }
+
+        void registerAggregateMetric() {
+            registerMetricWithHdrHistogram(aggregateMetric());
+        }
+
+        void registerForTable(TableReference tableRef) {
+            registerMetricWithHdrHistogram(getTableSpecificName(name, tableRef));
+        }
+
+        void recordMetric(TableReference tableRef, long value) {
+            String tableSpecificMetric = getTableSpecificName(name, tableRef);
+
+            metricRegistry.histogram(tableSpecificMetric).update(value);
+            metricRegistry.histogram(aggregateMetric()).update(value);
+        }
+
+        private String aggregateMetric() {
+            return MetricRegistry.name(SweepMetrics.class, name);
+        }
+
+        private String getTableSpecificName(String root, TableReference tableRef) {
+            return MetricRegistry.name(SweepMetrics.class, root, tableRef.getQualifiedName());
+        }
+
+        private void registerMetricWithHdrHistogram(String metric) {
+            registerMetricIfNotExists(metric, new Histogram(new HdrHistogramReservoir()));
+        }
+
+        private void registerMetricIfNotExists(String metricName, Metric metric) {
+            if (!metricRegistry.getMetrics().containsKey(metricName)) {
+                metricRegistry.register(metricName, metric);
+            }
+        }
+    }
+
     static final String STALE_VALUES_DELETED = "staleValuesDeleted";
     static final String CELLS_EXAMINED = "cellsExamined";
-    private static final String AGGREGATE_STALE_VALUES_DELETED = MetricRegistry.name(SweepMetrics.class,
-            STALE_VALUES_DELETED);
-    private static final String AGGREGATE_CELLS_EXAMINED = MetricRegistry.name(SweepMetrics.class,
-            CELLS_EXAMINED);
+
+    private final TableAndAggregateMetric cellsExaminedMetric = new TableAndAggregateMetric(CELLS_EXAMINED);
+    private final TableAndAggregateMetric staleValuesDeletedMetric = new TableAndAggregateMetric(STALE_VALUES_DELETED);
 
     private final MetricRegistry metricRegistry;
 
@@ -45,49 +85,17 @@ class SweepMetrics {
     }
 
     private void registerAggregateMetrics() {
-        registerMetricWithHdrHistogram(AGGREGATE_STALE_VALUES_DELETED);
-        registerMetricWithHdrHistogram(AGGREGATE_CELLS_EXAMINED);
+        cellsExaminedMetric.registerAggregateMetric();
+        staleValuesDeletedMetric.registerAggregateMetric();
     }
 
     void registerMetricsIfNecessary(TableReference tableRef) {
-        registerMetricWithHdrHistogram(getCellsDeletedMetric(tableRef));
-        registerMetricWithHdrHistogram(getCellsExaminedMetric(tableRef));
+        cellsExaminedMetric.registerForTable(tableRef);
+        staleValuesDeletedMetric.registerForTable(tableRef);
     }
 
     void recordMetrics(TableReference tableRef, SweepResults results) {
-        recordCellsDeleted(tableRef, results.getCellsDeleted());
-        recordCellsExamined(tableRef, results.getCellsExamined());
-    }
-
-    private void recordCellsDeleted(TableReference tableRef, long cellsDeleted) {
-        String deletesMetric = getCellsDeletedMetric(tableRef);
-
-        metricRegistry.histogram(deletesMetric).update(cellsDeleted);
-        metricRegistry.histogram(AGGREGATE_STALE_VALUES_DELETED).update(cellsDeleted);
-    }
-
-    private void recordCellsExamined(TableReference tableRef, long cellsExamined) {
-        String examinedMetric = getCellsExaminedMetric(tableRef);
-
-        metricRegistry.histogram(examinedMetric).update(cellsExamined);
-        metricRegistry.histogram(AGGREGATE_CELLS_EXAMINED).update(cellsExamined);
-    }
-
-    private String getCellsExaminedMetric(TableReference tableRef) {
-        return MetricRegistry.name(SweepMetrics.class, CELLS_EXAMINED, tableRef.getQualifiedName());
-    }
-
-    private String getCellsDeletedMetric(TableReference tableRef) {
-        return MetricRegistry.name(SweepMetrics.class, STALE_VALUES_DELETED, tableRef.getQualifiedName());
-    }
-
-    private void registerMetricWithHdrHistogram(String metric) {
-        registerMetricIfNotExists(metric, new Histogram(new HdrHistogramReservoir()));
-    }
-
-    private void registerMetricIfNotExists(String name, Metric metric) {
-        if (!metricRegistry.getMetrics().containsKey(name)) {
-            metricRegistry.register(name, metric);
-        }
+        cellsExaminedMetric.recordMetric(tableRef, results.getCellsExamined());
+        staleValuesDeletedMetric.recordMetric(tableRef, results.getCellsDeleted());
     }
 }
