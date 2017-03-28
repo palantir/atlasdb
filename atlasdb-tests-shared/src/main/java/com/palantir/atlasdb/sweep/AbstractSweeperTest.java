@@ -15,9 +15,11 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
 
 import java.util.HashMap;
 import java.util.List;
@@ -548,6 +550,56 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
+    public void testMetricsAndBatching() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        long sweepTs = 150L;
+
+        // put many rows
+        int numberOfRows = DEFAULT_BATCH_SIZE * 2 - 1;
+        for (int i = 0; i < numberOfRows; i++) {
+            String row = "foo" + i;
+            putUncommitted(row, "bar", 50);
+            putUncommitted(row, "baz", 75);
+        }
+        putTimestampIntoTransactionTable(50);
+        putTimestampIntoTransactionTable(75);
+
+        runBackgroundSweep(sweepTs, 3);
+        // check that TABLE_NAME has been partially swept by this point, but metrics were not recorded
+        List<SweepProgressTable.SweepProgressRowResult> progressResults = getProgressTable();
+        boolean tableSwept = false;
+        for (SweepProgressTable.SweepProgressRowResult result : progressResults) {
+            String fullTableName = result.getFullTableName();
+            if (fullTableName == null) {
+                continue;
+            }
+            switch (fullTableName) {
+                case FULL_TABLE_NAME:
+                    tableSwept = true;
+                    Assert.assertEquals(Long.valueOf(sweepTs), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals(Long.valueOf(DEFAULT_BATCH_SIZE), result.getCellsDeleted());
+                    Assert.assertEquals(Long.valueOf(DEFAULT_BATCH_SIZE), result.getCellsExamined());
+                    break;
+                default:
+                    // Cruft table; nothing to check
+                    break;
+            }
+        }
+        assertTrue(tableSwept);
+        Mockito.verify(sweepMetrics, never()).recordMetrics(eq(TABLE_NAME), any(SweepResults.class));
+
+        runBackgroundSweep(sweepTs, 1);
+
+        // now metrics should have been recorded
+        SweepResults sweepResults = SweepResults.builder()
+                .cellsDeleted(numberOfRows)
+                .cellsExamined(numberOfRows)
+                .sweptTimestamp(sweepTs)
+                .build();
+        Mockito.verify(sweepMetrics).recordMetrics(TABLE_NAME, sweepResults);
+    }
+
+    @Test
     public void testSweeperFailsHalfwayThroughOnDeleteTable() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -605,10 +657,10 @@ public abstract class AbstractSweeperTest {
                 toPut.put(cell, "foo".getBytes());
             }
             kvs.put(TABLE_NAME, toPut, col + 1000);
-            txService.putUnlessExists(col + 1000, col + 1000);
+            putTimestampIntoTransactionTable(col + 1000);
             if (col % 1000 == 0) {
                 kvs.put(TABLE_NAME, toPut, col + 11000);
-                txService.putUnlessExists(col + 11000, col + 11000);
+                putTimestampIntoTransactionTable(col + 11000);
             }
             System.out.println("inserted col " + col);
         }
@@ -631,7 +683,7 @@ public abstract class AbstractSweeperTest {
         }
         for (int timestamp = 1; timestamp < 1001; ++timestamp) {
             kvs.put(TABLE_NAME, toPut, timestamp);
-            txService.putUnlessExists(timestamp, timestamp);
+            putTimestampIntoTransactionTable(timestamp);
             System.out.println("inserted timestamp " + timestamp);
         }
         System.out.println("starting sweep");
@@ -699,7 +751,7 @@ public abstract class AbstractSweeperTest {
 
     private SweepResults partialSweep(long ts, int batchSize) {
         SweepResults results = sweep(ts, batchSize);
-        Assert.assertTrue(results.getNextStartRow().isPresent());
+        assertTrue(results.getNextStartRow().isPresent());
         return results;
     }
 
@@ -729,6 +781,10 @@ public abstract class AbstractSweeperTest {
             final long ts) {
         Cell cell = Cell.create(row.getBytes(), column.getBytes());
         kvs.put(tableRef, ImmutableMap.of(cell, val.getBytes()), ts);
+        putTimestampIntoTransactionTable(ts);
+    }
+
+    private void putTimestampIntoTransactionTable(long ts) {
         txService.putUnlessExists(ts, ts);
     }
 
