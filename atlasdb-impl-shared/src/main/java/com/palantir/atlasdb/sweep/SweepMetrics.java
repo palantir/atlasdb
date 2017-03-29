@@ -27,8 +27,8 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
-class SweepMetrics {
-    enum TableAndAggregateMetric {
+final class SweepMetrics {
+    private enum TableAndAggregateMetric {
         STALE_VALUES_DELETED_METRIC(STALE_VALUES_DELETED),
         CELLS_EXAMINED_METRIC(CELLS_EXAMINED);
 
@@ -47,9 +47,7 @@ class SweepMetrics {
         }
 
         void recordMetric(TableReference tableRef, long value) {
-            String tableSpecificMetric = getTableSpecificName(name, tableRef);
-
-            metricRegistry.histogram(tableSpecificMetric).update(value);
+            metricRegistry.histogram(getTableSpecificName(name, tableRef)).update(value);
             metricRegistry.histogram(aggregateMetric()).update(value);
         }
 
@@ -83,7 +81,7 @@ class SweepMetrics {
         return sweepMetrics;
     }
 
-    protected SweepMetrics() {
+    private SweepMetrics() {
         // To prevent instantiation
     }
 
