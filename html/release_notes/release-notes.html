@@ -196,47 +196,75 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-37-0">
+<h2>v0.37.0<a class="headerlink" href="#v0-37-0" title="Permalink to this headline">¶</a></h2>
+<p>29 Mar 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed an issue where a <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code> would not be propagated from the asynchronous refresh job that increases the timestamp bound.
+This could result in a state where two timestamp services are simultaneously handing out timestamps until the older service&#8217;s buffer of 1M timestamps is exhausted and fails.
+Now we immediately fail, alerting users much sooner that a <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code> has occurred.
+Note that users would still see the error prior to the fix, we now just ensure it is discovered sooner.
+This failure does not affect the Timelock server.
+Furthermore, we improved the logic for increasing the timestamp bound when the allocation buffer is exhausted.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1718">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Added <a class="reference internal" href="../miscellaneous/dropwizard-metrics.html#dropwizard-metrics"><span class="std std-ref">Dropwizard metrics</span></a> for sweep, exposing aggregate and table-specific counts of cells examined and stale values deleted.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1695">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Added a benchmark <code class="docutils literal"><span class="pre">TimestampServiceBenchmarks</span></code> for parallel requesting of fresh timestamps from the TimestampService.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1720">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed an issue where a <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code> would be ignored, resulting in a state where two timestamp services would be able to simultaneously hand out timestamps. Also changed the logic for increasing the timestamp bound when the allocation buffer is exhausted.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1718">Pull Request</a>)</td>
-</tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>KVS migrations where timestamp data was co-located with AtlasDB data now respect the timestamp service contract.
-Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.
+<td>KVS migrations now maintain the guarantee of the timestamp service to hand out monotonically increasing timestamps.
+Previously, we would reset the timestamp service to 0 after a migration, but now we use the correct logical timestamp.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1199">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Improved performance of paging over dynamic columns on Oracle DbKvs: the time required to page through a large wide row is now linear rather than quadratic in the length of the row.
+<td>Improved performance of paging over dynamic columns on Oracle DBKVS: the time required to page through a large wide row is now linear rather than quadratic in the length of the row.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1702">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
-<td><code class="docutils literal"><span class="pre">GenericStreamStore.loadStream</span></code> has been deprecated. Use <code class="docutils literal"><span class="pre">loadSingleStream</span></code>, which returns an
-<code class="docutils literal"><span class="pre">Optional&lt;InputStream&gt;</span></code>, instead.
+<td><code class="docutils literal"><span class="pre">GenericStreamStore.loadStream</span></code> has been deprecated.
+Use <code class="docutils literal"><span class="pre">loadSingleStream</span></code>, which returns an <code class="docutils literal"><span class="pre">Optional&lt;InputStream&gt;</span></code>, instead.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1265">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>&#8216;getAsyncRows&#8217; and &#8216;getAsyncRowsMultimap&#8217; methods have been removed from generated code.  They do not appear valuable to the API and use a nonintuitive and custom &#8216;AsyncProxy&#8217; (also removed).
-We believe they are unused by upstream applications, but if you do encounter breaks due to this
-removal please file a ticket with the dev team for immediate support (as we did not take the time to properly deprecate the methods).
+<td><code class="docutils literal"><span class="pre">getAsyncRows</span></code> and <code class="docutils literal"><span class="pre">getAsyncRowsMultimap</span></code> methods have been removed from generated code.
+They do not appear valuable to the API and use an unintuitive and custom <code class="docutils literal"><span class="pre">AsyncProxy</span></code> that was also removed.
+We believe they are unused by upstream applications, but if you do encounter breaks due to this removal please file a ticket with the dev team for immediate support.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1689">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>RemoteLockService clients will no longer silently retry on connection failures.
+<td>RemoteLockService clients will no longer silently retry on connection failures to the Timelock server.
 This is used to mitigate issues with frequent leadership changes owing to <a class="reference external" href="https://github.com/palantir/atlasdb/issues/1680">#1680</a>.
 Previously, because of Jetty&#8217;s idle timeout and OkHttp&#8217;s silent connection retrying, we would generate an endless stream of lock requests if using HTTP/2 and blocking for more than the Jetty idle timeout for a single lock.
 This would lead to starvation of other requests on the TimeLock server, since a lock request blocked on acquiring a lock consumes a server thread.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1727">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Cassandra depedencies have been bumped to newer versions; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Cassandra dependencies have been bumped to newer versions.
+This should fix a bug (<a class="reference external" href="https://github.com/palantir/atlasdb/issues/1654">#1654</a>) that caused
+AtlasDB probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
+building up leaked connections, due to a bug in the underlying driver.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1524">Pull Request</a>)</td>
 </tr>
 </tbody>
