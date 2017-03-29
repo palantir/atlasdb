@@ -27,7 +27,8 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
-final class SweepMetrics {
+@SuppressWarnings("checkstyle:FinalClass")
+class SweepMetrics {
     private enum TableAndAggregateMetric {
         STALE_VALUES_DELETED_METRIC(STALE_VALUES_DELETED),
         CELLS_EXAMINED_METRIC(CELLS_EXAMINED);
