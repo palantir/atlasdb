@@ -25,6 +25,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.base.Preconditions;
@@ -108,6 +109,7 @@ public class TransactionGetBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getCells(ConsecutiveNarrowTable.CleanNarrowTable table) {
@@ -115,6 +117,7 @@ public class TransactionGetBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getCellsDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
@@ -123,6 +126,7 @@ public class TransactionGetBenchmarks {
 
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getSingleRowWithRangeQuery(ConsecutiveNarrowTable.CleanNarrowTable table) {
@@ -130,6 +134,7 @@ public class TransactionGetBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getSingleRowWithRangeQueryDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
@@ -138,6 +143,7 @@ public class TransactionGetBenchmarks {
 
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
@@ -145,6 +151,7 @@ public class TransactionGetBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 8, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
     public Object getRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
@@ -153,6 +160,7 @@ public class TransactionGetBenchmarks {
 
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getSingleCell(ConsecutiveNarrowTable.CleanNarrowTable table) {
@@ -160,6 +168,7 @@ public class TransactionGetBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getSingleCellDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
@@ -168,6 +177,7 @@ public class TransactionGetBenchmarks {
 
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 8, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 40, timeUnit = TimeUnit.SECONDS)
     public Object getRanges(ConsecutiveNarrowTable.CleanNarrowTable table) {
@@ -175,6 +185,7 @@ public class TransactionGetBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 15, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 70, timeUnit = TimeUnit.SECONDS)
     public Object getRangesDirty(

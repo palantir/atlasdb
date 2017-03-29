@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,7 +81,6 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -502,23 +500,6 @@ public final class KeyValueTable implements
     }
 
     @Override
-    public List<KeyValueRowResult> getAsyncRows(Iterable<KeyValueRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, allColumns, exec);
-    }
-
-    @Override
-    public List<KeyValueRowResult> getAsyncRows(final Iterable<KeyValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<KeyValueRowResult>> c =
-                new Callable<List<KeyValueRowResult>>() {
-            @Override
-            public List<KeyValueRowResult> call() {
-                return getRows(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), List.class);
-    }
-
-    @Override
     public List<KeyValueNamedColumnValue<?>> getRowColumns(KeyValueRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -546,23 +527,6 @@ public final class KeyValueTable implements
     @Override
     public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getRowsMultimap(Iterable<KeyValueRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<KeyValueRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<KeyValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<KeyValueRow, KeyValueNamedColumnValue<?>>> c =
-                new Callable<Multimap<KeyValueRow, KeyValueNamedColumnValue<?>>>() {
-            @Override
-            public Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<KeyValueRow> rows, ColumnSelection columns) {
@@ -639,7 +603,6 @@ public final class KeyValueTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -671,7 +634,6 @@ public final class KeyValueTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -718,5 +680,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "V2DqcozmPcaclrewTg2zTA==";
+    static String __CLASS_HASH = "VVF42SuaX14lLpPisB1hkw==";
 }

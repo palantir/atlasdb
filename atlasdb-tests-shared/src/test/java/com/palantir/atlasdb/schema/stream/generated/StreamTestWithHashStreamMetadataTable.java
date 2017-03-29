@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,7 +81,6 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -535,23 +533,6 @@ public final class StreamTestWithHashStreamMetadataTable implements
     }
 
     @Override
-    public List<StreamTestWithHashStreamMetadataRowResult> getAsyncRows(Iterable<StreamTestWithHashStreamMetadataRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, allColumns, exec);
-    }
-
-    @Override
-    public List<StreamTestWithHashStreamMetadataRowResult> getAsyncRows(final Iterable<StreamTestWithHashStreamMetadataRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<StreamTestWithHashStreamMetadataRowResult>> c =
-                new Callable<List<StreamTestWithHashStreamMetadataRowResult>>() {
-            @Override
-            public List<StreamTestWithHashStreamMetadataRowResult> call() {
-                return getRows(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), List.class);
-    }
-
-    @Override
     public List<StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowColumns(StreamTestWithHashStreamMetadataRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -579,23 +560,6 @@ public final class StreamTestWithHashStreamMetadataTable implements
     @Override
     public Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestWithHashStreamMetadataRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<StreamTestWithHashStreamMetadataRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<StreamTestWithHashStreamMetadataRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>>> c =
-                new Callable<Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>>>() {
-            @Override
-            public Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<StreamTestWithHashStreamMetadataRow> rows, ColumnSelection columns) {
@@ -672,7 +636,6 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -704,7 +667,6 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -751,5 +713,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "V+qcy0WjCuk+M+aZBn/uyw==";
+    static String __CLASS_HASH = "c/cTT5PKiP2GKKO3ZgKOXw==";
 }

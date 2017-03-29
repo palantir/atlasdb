@@ -14,6 +14,12 @@ The test will take a while to run. After it completes you can find the Jepsen lo
 
 You will also find five containers---`n1` through `n5`---that are left running. Feel free to kill these, although you can also leave them be and it will make your next `jepsenTest` slightly faster.
 
+If something goes wrong, it can be difficult to consume logs from five servers to figure out why. To help with this there is a handy python script that can combine all five logs together in one chronological view:
+
+```
+atlasdb-jepsen-tests/scripts/print_logs_in_chronological_order.py atlasdb-jepsen-tests/store/latest/n*/*.log
+```
+
 ## Structure and walkthrough
 
 Here are the important pieces of the project:

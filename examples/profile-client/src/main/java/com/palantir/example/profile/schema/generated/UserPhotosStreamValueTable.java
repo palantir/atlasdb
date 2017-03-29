@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,7 +81,6 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -514,23 +512,6 @@ public final class UserPhotosStreamValueTable implements
     }
 
     @Override
-    public List<UserPhotosStreamValueRowResult> getAsyncRows(Iterable<UserPhotosStreamValueRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, allColumns, exec);
-    }
-
-    @Override
-    public List<UserPhotosStreamValueRowResult> getAsyncRows(final Iterable<UserPhotosStreamValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<UserPhotosStreamValueRowResult>> c =
-                new Callable<List<UserPhotosStreamValueRowResult>>() {
-            @Override
-            public List<UserPhotosStreamValueRowResult> call() {
-                return getRows(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), List.class);
-    }
-
-    @Override
     public List<UserPhotosStreamValueNamedColumnValue<?>> getRowColumns(UserPhotosStreamValueRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -558,23 +539,6 @@ public final class UserPhotosStreamValueTable implements
     @Override
     public Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<UserPhotosStreamValueRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<UserPhotosStreamValueRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<UserPhotosStreamValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>>> c =
-                new Callable<Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>>>() {
-            @Override
-            public Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<UserPhotosStreamValueRow> rows, ColumnSelection columns) {
@@ -651,7 +615,6 @@ public final class UserPhotosStreamValueTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -683,7 +646,6 @@ public final class UserPhotosStreamValueTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -730,5 +692,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "JwpwiRWW0XO/h/70dkfRFA==";
+    static String __CLASS_HASH = "LjGmrYTrfFkNoyz4SYnMVA==";
 }

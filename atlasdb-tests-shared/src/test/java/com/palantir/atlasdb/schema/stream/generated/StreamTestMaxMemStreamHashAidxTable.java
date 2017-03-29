@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,7 +81,6 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -548,18 +546,6 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
     }
 
     @Override
-    public Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> getAsync(final Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> cells, ExecutorService exec) {
-        Callable<Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue>> c =
-                new Callable<Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue>>() {
-            @Override
-            public Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> call() {
-                return get(cells);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
-    }
-
-    @Override
     public List<StreamTestMaxMemStreamHashAidxColumnValue> getRowColumns(StreamTestMaxMemStreamHashAidxRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -589,23 +575,6 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
     @Override
     public Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> getRowsMultimap(Iterable<StreamTestMaxMemStreamHashAidxRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> getAsyncRowsMultimap(Iterable<StreamTestMaxMemStreamHashAidxRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> getAsyncRowsMultimap(final Iterable<StreamTestMaxMemStreamHashAidxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue>> c =
-                new Callable<Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue>>() {
-            @Override
-            public Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> getRowsMultimapInternal(Iterable<StreamTestMaxMemStreamHashAidxRow> rows, ColumnSelection columns) {
@@ -688,7 +657,6 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -720,7 +688,6 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -767,5 +734,5 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "MHr7UG3rpK2+515x39xa0A==";
+    static String __CLASS_HASH = "pWhLoZvcGceWqNIWOktJhg==";
 }

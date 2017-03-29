@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,7 +81,6 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -502,23 +500,6 @@ public final class RangeScanTestTable implements
     }
 
     @Override
-    public List<RangeScanTestRowResult> getAsyncRows(Iterable<RangeScanTestRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, allColumns, exec);
-    }
-
-    @Override
-    public List<RangeScanTestRowResult> getAsyncRows(final Iterable<RangeScanTestRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<RangeScanTestRowResult>> c =
-                new Callable<List<RangeScanTestRowResult>>() {
-            @Override
-            public List<RangeScanTestRowResult> call() {
-                return getRows(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), List.class);
-    }
-
-    @Override
     public List<RangeScanTestNamedColumnValue<?>> getRowColumns(RangeScanTestRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -546,23 +527,6 @@ public final class RangeScanTestTable implements
     @Override
     public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimap(Iterable<RangeScanTestRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<RangeScanTestRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<RangeScanTestRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>>> c =
-                new Callable<Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>>>() {
-            @Override
-            public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimapInternal(Iterable<RangeScanTestRow> rows, ColumnSelection columns) {
@@ -669,7 +633,6 @@ public final class RangeScanTestTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -701,7 +664,6 @@ public final class RangeScanTestTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -748,5 +710,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "LfvbIZWxLhlEc8kaHH3FRg==";
+    static String __CLASS_HASH = "alt49Cpv8pXByJA4vI0iIQ==";
 }

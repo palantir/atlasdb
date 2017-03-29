@@ -24,6 +24,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.base.Preconditions;
@@ -45,6 +46,7 @@ public class KvsPutBenchmarks {
     private static final int BATCH_SIZE = 250;
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 6, timeUnit = TimeUnit.SECONDS)
     public Object singleRandomPut(EmptyTables tables) {
@@ -54,6 +56,7 @@ public class KvsPutBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomPut(EmptyTables tables) {
@@ -63,6 +66,7 @@ public class KvsPutBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 25, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomMultiPut(EmptyTables tables) {
@@ -74,6 +78,7 @@ public class KvsPutBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Map<Cell, byte[]> putUnlessExistsAndExists(EmptyTables tables) {
@@ -89,6 +94,7 @@ public class KvsPutBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Map<Cell, byte[]> putUnlessExistsDoesNotExist(EmptyTables tables) {

@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,7 +81,6 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -548,18 +546,6 @@ public final class StreamTestMaxMemStreamIdxTable implements
     }
 
     @Override
-    public Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> getAsync(final Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumn> cells, ExecutorService exec) {
-        Callable<Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue>> c =
-                new Callable<Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue>>() {
-            @Override
-            public Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> call() {
-                return get(cells);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
-    }
-
-    @Override
     public List<StreamTestMaxMemStreamIdxColumnValue> getRowColumns(StreamTestMaxMemStreamIdxRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -589,23 +575,6 @@ public final class StreamTestMaxMemStreamIdxTable implements
     @Override
     public Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> getRowsMultimap(Iterable<StreamTestMaxMemStreamIdxRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> getAsyncRowsMultimap(Iterable<StreamTestMaxMemStreamIdxRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> getAsyncRowsMultimap(final Iterable<StreamTestMaxMemStreamIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue>> c =
-                new Callable<Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue>>() {
-            @Override
-            public Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> getRowsMultimapInternal(Iterable<StreamTestMaxMemStreamIdxRow> rows, ColumnSelection columns) {
@@ -688,7 +657,6 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -720,7 +688,6 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -767,5 +734,5 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/1k/EGc0l4nw9SjPA66TzQ==";
+    static String __CLASS_HASH = "wBdYm8Uxi74rKMxc27zaVA==";
 }
