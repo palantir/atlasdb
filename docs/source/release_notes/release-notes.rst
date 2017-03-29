@@ -47,6 +47,10 @@ v0.37.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1718>`__)
 
     *    - |new|
+         - Added :ref:`Dropwizard metrics <dropwizard-metrics>` for sweep, exposing aggregate and table-specific counts of cells examined and stale values deleted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1695>`__)
+
+    *    - |new|
          - Added a benchmark ``TimestampServiceBenchmarks`` for parallel requesting of fresh timestamps from the TimestampService.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1720>`__)
 
