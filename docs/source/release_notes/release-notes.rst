@@ -30,6 +30,22 @@ Changelog
   :hidden:
 
 =======
+develop
+=======
+
+.. replace this with the release date
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    -
+         -
+
+=======
 v0.37.0
 =======
 
@@ -41,9 +57,11 @@ v0.37.0
 
     *    - Type
          - Change
+
     *    - |fixed|
          - Fixed an issue where a ``MultipleRunningTimestampServicesError`` would be ignored, resulting in a state where two timestamp services would be able to simultaneously hand out timestamps.
-           The new behaviour is that, once the error is encountered, requesting a fresh timestamp throws. Also improved the logic for increasing the timestamp bound when the allocation buffer is exhausted.
+           The new behaviour is that, once the error is encountered, requesting a fresh timestamp throws.
+           Also improved the logic for increasing the timestamp bound when the allocation buffer is exhausted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1718>`__)
 
     *    - |new|
@@ -64,14 +82,14 @@ v0.37.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1702>`__)
 
     *    - |deprecated|
-         - ``GenericStreamStore.loadStream`` has been deprecated. Use ``loadSingleStream``, which returns an
-           ``Optional<InputStream>``, instead.
+         - ``GenericStreamStore.loadStream`` has been deprecated.
+           Use ``loadSingleStream``, which returns an ``Optional<InputStream>``, instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1265>`__)
 
     *    - |devbreak|
-         - ``getAsyncRows`` and ``getAsyncRowsMultimap`` methods have been removed from generated code.  They do not appear valuable to the API and use an unintuitive and custom ``AsyncProxy`` that was also removed.
-           We believe they are unused by upstream applications, but if you do encounter breaks due to this
-           removal please file a ticket with the dev team for immediate support since the methods were not properly deprecated.
+         - ``getAsyncRows`` and ``getAsyncRowsMultimap`` methods have been removed from generated code.
+           They do not appear valuable to the API and use an unintuitive and custom ``AsyncProxy`` that was also removed.
+           We believe they are unused by upstream applications, but if you do encounter breaks due to this removal please file a ticket with the dev team for immediate support since the methods were not properly deprecated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1689>`__)
 
     *    - |fixed|
@@ -82,8 +100,9 @@ v0.37.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1727>`__)
 
     *    - |fixed| |improved|
-         - Cassandra depedencies have been bumped to newer versions; should fix a bug (`#1654 <https://github.com/palantir/atlasdb/issues/1654>`__) that caused
-           Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
+         - Cassandra dependencies have been bumped to newer versions.
+           This should fix a bug (`#1654 <https://github.com/palantir/atlasdb/issues/1654>`__) that caused
+           AtlasDB probing owned Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
            building up leaked connections, due to a bug in the underlying driver.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1524>`__)
 
