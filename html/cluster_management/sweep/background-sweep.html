@@ -209,6 +209,11 @@ The Background Sweep Job determines which table to sweep by estimating which wou
 <p>The background sweeper can be enabled by setting the <code class="docutils literal"><span class="pre">enableSweep</span></code> property in the <a class="reference internal" href="../../configuration/index.html#atlas-config"><span class="std std-ref">AtlasDB configuration</span></a> to true.
 For other configuration options, see <a class="reference internal" href="../sweep.html#sweep-tunable-parameters"><span class="std std-ref">Tunable Sweep Configuration Options</span></a>.</p>
 </div>
+<div class="section" id="metrics">
+<h2>Metrics<a class="headerlink" href="#metrics" title="Permalink to this headline">¶</a></h2>
+<p>We now expose Dropwizard metrics to allow easier tracking of the background sweeper&#8217;s actions.
+For more information, see <a class="reference internal" href="../../miscellaneous/dropwizard-metrics.html#dropwizard-metrics"><span class="std std-ref">Dropwizard Metrics</span></a>.</p>
+</div>
 <div class="section" id="additional-logging-for-background-sweep">
 <h2>Additional logging for Background Sweep<a class="headerlink" href="#additional-logging-for-background-sweep" title="Permalink to this headline">¶</a></h2>
 <p>By default, the background sweeper only logs errors. If you&#8217;d like to watch the background sweeper&#8217;s progress, add the following in <code class="docutils literal"><span class="pre">atlasdb.log.properties</span></code>:</p>
