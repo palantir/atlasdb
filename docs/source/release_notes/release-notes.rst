@@ -30,8 +30,10 @@ Changelog
   :hidden:
 
 =======
-develop
+v0.37.0
 =======
+
+29 Mar 2017
 
 .. list-table::
     :widths: 5 40
@@ -39,18 +41,18 @@ develop
 
     *    - Type
          - Change
+    *    - |fixed|
+         - Fixed an issue where a ``MultipleRunningTimestampServicesError`` would be ignored, resulting in a state where two timestamp services would be able to simultaneously hand out timestamps.
+           The new behaviour is that, once the error is encountered, requesting a fresh timestamp throws. Also improved the logic for increasing the timestamp bound when the allocation buffer is exhausted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1718>`__)
 
     *    - |new|
          - Added a benchmark ``TimestampServiceBenchmarks`` for parallel requesting of fresh timestamps from the TimestampService.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1720>`__)
 
     *    - |fixed|
-         - Fixed an issue where a ``MultipleRunningTimestampServicesError`` would be ignored, resulting in a state where two timestamp services would be able to simultaneously hand out timestamps. Also changed the logic for increasing the timestamp bound when the allocation buffer is exhausted.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1718>`__)
-
-    *    - |fixed|
          - KVS migrations where timestamp data was co-located with AtlasDB data now respect the timestamp service contract.
-           Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.
+           Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data was causing timestamps to reset to the logical beginning of time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1199>`__)
 
     *    - |improved|
@@ -63,9 +65,9 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1265>`__)
 
     *    - |devbreak|
-         - 'getAsyncRows' and 'getAsyncRowsMultimap' methods have been removed from generated code.  They do not appear valuable to the API and use a nonintuitive and custom 'AsyncProxy' (also removed).
+         - ``getAsyncRows`` and ``getAsyncRowsMultimap`` methods have been removed from generated code.  They do not appear valuable to the API and use an unintuitive and custom ``AsyncProxy`` that was also removed.
            We believe they are unused by upstream applications, but if you do encounter breaks due to this
-           removal please file a ticket with the dev team for immediate support (as we did not take the time to properly deprecate the methods).
+           removal please file a ticket with the dev team for immediate support since the methods were not properly deprecated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1689>`__)
 
     *    - |fixed|
@@ -76,7 +78,9 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1727>`__)
 
     *    - |fixed| |improved|
-         - Cassandra depedencies have been bumped to newer versions; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
+         - Cassandra depedencies have been bumped to newer versions; should fix a bug (`#1654 <https://github.com/palantir/atlasdb/issues/1654>`__) that caused
+           Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
+           building up leaked connections, due to a bug in the underlying driver.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1524>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
