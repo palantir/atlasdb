@@ -9,8 +9,11 @@ expose a global ``MetricRegistry`` called ``AtlasDbRegistry``. Users of AtlasDB 
 to inject their own ``MetricRegistry`` for their application prior to initializing the AtlasDB transaction manager.
 
 Each AtlasDB client will expose their own KeyValueService.<useragent> metrics, as well as CassandraClientPool metrics
-for every Cassandra host. For more details on what information each type of metric provides, we recommend reading the
-Metrics `Getting Started Guide <http://metrics.dropwizard.io/3.1.0/getting-started/#>`__.
+for every Cassandra host.
+We expose sweep metrics specific to every table that has been swept, as well as aggregate metrics.
+
+For more details on what information each type of metric provides, we recommend reading
+the Metrics `Getting Started Guide <http://metrics.dropwizard.io/3.1.0/getting-started/#>`__.
 
 The full list of metrics exposed by AtlasDB can be found below.
 
@@ -40,6 +43,10 @@ The full list of metrics exposed by AtlasDB can be found below.
 **Histograms**
 
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.byteSizeTx``
+- ``com.palantir.atlasdb.sweep.SweepMetrics.cellsExamined``
+- ``com.palantir.atlasdb.sweep.SweepMetrics.staleValuesDeleted``
+- ``com.palantir.atlasdb.sweep.SweepMetrics.cellsExamined.<table>``
+- ``com.palantir.atlasdb.sweep.SweepMetrics.staleValuesDeleted.<table>``
 
 **Meters**
 
