@@ -2299,6 +2299,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "org.jboss.marshalling:jboss-marshalling": {
+            "locked": "1.4.11.Final",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
         "org.jooq:jooq": {
             "locked": "3.6.4",
             "transitive": [
