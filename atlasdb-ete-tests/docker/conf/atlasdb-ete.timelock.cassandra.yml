@@ -12,6 +12,7 @@ server:
 atlasdb:
   keyValueService:
     type: cassandra
+    startWithoutCassandraUp: true
     servers:
       - cassandra:9160
     poolSize: 20
