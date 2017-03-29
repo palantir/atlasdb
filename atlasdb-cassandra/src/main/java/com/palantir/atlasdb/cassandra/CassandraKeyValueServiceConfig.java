@@ -89,6 +89,11 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 2 * 60;
     }
 
+    @Value.Default
+    public boolean startWithoutCassandraUp() {
+        return false;
+    }
+
     public abstract String keyspace();
 
     public abstract Optional<CassandraCredentialsConfig> credentials();

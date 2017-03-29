@@ -19,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.timestamp.TimestampService;
@@ -30,6 +32,12 @@ public interface AtlasDbFactory {
     String getType();
 
     KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig);
+
+    default Supplier<KeyValueService> createRawKeyValueServiceSupplier(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig) {
+        return Suppliers.memoize(() -> createRawKeyValueService(config, leaderConfig));
+    }
 
     TimestampService createTimestampService(KeyValueService rawKvs);
 

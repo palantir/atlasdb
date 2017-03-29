@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -64,7 +63,7 @@ public class ServiceDiscoveringAtlasSupplier {
                         "No atlas provider for KeyValueService type " + config.type() + " could be found."
                         + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
-        keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
+        keyValueService = atlasFactory.createRawKeyValueServiceSupplier(config, leaderConfig);
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }

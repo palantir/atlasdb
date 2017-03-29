@@ -49,6 +49,8 @@ import com.palantir.common.collect.Maps2;
 
 public final class CassandraVerifier {
     private static final Logger log = LoggerFactory.getLogger(CassandraVerifier.class);
+    public static final String KEYSPACE_CREATION_FAILED_MESSAGE =
+            "No host tried was able to create the keyspace requested.";
 
     private CassandraVerifier() {
         // Utility class
@@ -73,7 +75,7 @@ public final class CassandraVerifier {
                             ImmutableList.of())
                             .setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1")));
         }
-        List<TokenRange> ring =  client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE);
+        List<TokenRange> ring = client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE);
 
         for (TokenRange tokenRange : ring) {
             for (EndpointDetails details : tokenRange.getEndpoint_details()) {
@@ -140,7 +142,7 @@ public final class CassandraVerifier {
     private static void createKeyspace(CassandraKeyValueServiceConfig config) throws TException {
         // We can't use the pool yet because it does things like setting the connection's keyspace for us
         if (!attemptToCreateKeyspace(config)) {
-            throw new TException("No host tried was able to create the keyspace requested.");
+            throw new TException(KEYSPACE_CREATION_FAILED_MESSAGE);
         }
     }
 

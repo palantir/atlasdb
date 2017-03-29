@@ -15,14 +15,19 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import org.apache.thrift.TException;
+
 import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidator;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
@@ -42,6 +47,22 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 "CassandraAtlasDbFactory expects a configuration of type"
                 + " CassandraKeyValueServiceConfig, found %s", config.getClass());
         return createKv((CassandraKeyValueServiceConfig) config, leaderConfig);
+    }
+
+    @Override
+    public Supplier<KeyValueService> createRawKeyValueServiceSupplier(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig) {
+        AtlasDbVersion.ensureVersionReported();
+        Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
+                "CassandraAtlasDbFactory expects a configuration of type"
+                        + " CassandraKeyValueServiceConfig, found %s", config.getClass());
+        CassandraKeyValueServiceConfig cassandraKeyValueServiceConfig = (CassandraKeyValueServiceConfig) config;
+        if (cassandraKeyValueServiceConfig.startWithoutCassandraUp()) {
+            return new CassandraKeyValueServiceSupplier(cassandraKeyValueServiceConfig, leaderConfig);
+        } else {
+            return Suppliers.memoize(() -> createRawKeyValueService(config, leaderConfig));
+        }
     }
 
     private static CassandraKeyValueService createKv(
@@ -73,5 +94,32 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @Override
     public TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
         return CassandraTimestampStoreInvalidator.create(rawKvs);
+    }
+
+    static class CassandraKeyValueServiceSupplier implements Supplier<KeyValueService> {
+        private final CassandraKeyValueServiceConfig config;
+        private final Optional<LeaderConfig> leaderConfig;
+        private CassandraKeyValueService kvs;
+
+        CassandraKeyValueServiceSupplier(CassandraKeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+            this.config = config;
+            this.leaderConfig = leaderConfig;
+        }
+
+        @Override
+        public KeyValueService get() {
+            if (kvs != null) {
+                return kvs;
+            }
+            try {
+                kvs = createKv(config, leaderConfig);
+            } catch (RuntimeException ex) {
+                if (ex.getCause() instanceof TException
+                        && ex.getCause().getMessage().equals(CassandraVerifier.KEYSPACE_CREATION_FAILED_MESSAGE)) {
+                    kvs = null;
+                }
+            }
+            return kvs;
+        }
     }
 }
