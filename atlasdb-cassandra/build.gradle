@@ -27,6 +27,8 @@ dependencies {
 
   compile group: 'com.google.code.findbugs', name: 'annotations'
 
+  compile group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
+
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
@@ -47,6 +49,7 @@ shadowJar {
   relocate('org.objectweb.asm', atlasdb_shaded + 'asm')
   relocate('jnr', atlasdb_shaded + 'jnr')
   relocate('io.netty', atlasdb_shaded + 'netty')
+  relocate('org.jboss', atlasdb_shaded + 'jboss')
 }
 
 jar.dependsOn shadowJar
