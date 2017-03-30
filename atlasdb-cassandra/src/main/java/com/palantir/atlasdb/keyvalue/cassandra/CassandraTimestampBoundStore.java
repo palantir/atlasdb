@@ -116,7 +116,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     return PtBytes.toLong(column.getValue());
                 } catch (IllegalArgumentException e) {
                     String msg = "Caught an IllegalArgumentException trying to convert the stored value to a long. "
-                            + "This can happen if you attempt to run AtlasDB with a leader block after having "
+                            + "This can happen if you attempt to run AtlasDB without a timelock block after having "
                             + "previously migrated to the TimeLock server. Please contact AtlasDB support. "
                             + "If you are attempting a reverse migration, please consult the documentation here: "
                             + "https://palantir.github.io/atlasdb/html/services/timelock_service/"
