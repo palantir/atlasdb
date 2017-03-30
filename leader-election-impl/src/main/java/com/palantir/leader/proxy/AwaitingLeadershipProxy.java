@@ -110,7 +110,7 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
 
     private void gainLeadership() {
         try {
-            leaderLog.info("Quiescing");
+            leaderLog.info("Not the leader. Going to sleep.");
             LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
             // We are now the leader, we should create a delegate so we can service calls
             Object delegate = null;
@@ -157,6 +157,8 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
         }
 
         if (method.getName().equals("close") && args.length == 0) {
+            log.warn("Shutting down now");
+            leaderLog.warn("Shutting down now");
             isClosed = true;
             executor.shutdownNow();
             clearDelegate();

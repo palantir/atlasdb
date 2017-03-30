@@ -169,21 +169,21 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             Future<Boolean> pingFuture = pingCompletionService.poll(
                     leaderPingResponseWaitMs,
                     TimeUnit.MILLISECONDS);
-            if (pingFuture != null) {
-                if (pingFuture.get()) {
-                    leaderLog.trace("Successfully pinged " + leaderName);
-                        return true;
-                } else {
-                    leaderLog.info("Pinged " + leaderName + " and it reported that it is no longer the leader");
-                    return false;
-                }
-            } else {
+            if (pingFuture == null) {
                 leaderLog.warn("Timed out pinging " + leaderName + " after " + leaderPingResponseWaitMs + "ms");
                 return false;
             }
+            else if (pingFuture.get()) {
+                leaderLog.trace("Successfully pinged " + leaderName);
+                return true;
+            }
+            else {
+                leaderLog.info("Pinged " + leaderName + " and it reported that it is no longer the leader");
+                return false;
+            }
         } catch (InterruptedException e) {
-            leaderLog.warn("Interrupted while pinging " + leaderName);
             log.warn("Interrupted while pinging " + leaderName);
+            leaderLog.warn("Interrupted while pinging " + leaderName);
             return false;
         } catch (ExecutionException e) {
             log.warn("Cannot ping " + leaderName, e);
