@@ -20,6 +20,7 @@ import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
@@ -32,7 +33,12 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.util.VersionStrings;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class PostgresDdlTable implements DbDdlTable {
+    private static final int POSTGRES_NAME_LENGTH_LIMIT = 63;
+    public static final int ATLASDB_POSTGRES_TABLE_NAME_LIMIT = POSTGRES_NAME_LENGTH_LIMIT
+            - AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX.length();
     private static final Logger log = LoggerFactory.getLogger(PostgresDdlTable.class);
     private static final String MIN_POSTGRES_VERSION = "9.2";
 
@@ -49,6 +55,7 @@ public class PostgresDdlTable implements DbDdlTable {
     }
 
     @Override
+    @SuppressFBWarnings("SLF4J_FORMAT_SHOULD_BE_CONST")
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
                 "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
@@ -56,16 +63,34 @@ public class PostgresDdlTable implements DbDdlTable {
             return;
         }
 
-        executeIgnoringError(
-                String.format("CREATE TABLE %s ("
-                        + "  row_name   BYTEA NOT NULL,"
-                        + "  col_name   BYTEA NOT NULL,"
-                        + "  ts         INT8 NOT NULL,"
-                        + "  val        BYTEA,"
-                        + "  CONSTRAINT %s PRIMARY KEY (row_name, col_name, ts) ",
-                        prefixedTableName(), PrimaryKeyConstraintNames.get(prefixedTableName()))
-                + ")",
-                "already exists");
+        String prefixedTableName = prefixedTableName();
+        try {
+            conns.get().executeUnregisteredQuery(
+                    String.format("CREATE TABLE %s ("
+                                    + "  row_name   BYTEA NOT NULL,"
+                                    + "  col_name   BYTEA NOT NULL,"
+                                    + "  ts         INT8 NOT NULL,"
+                                    + "  val        BYTEA,"
+                                    + "  CONSTRAINT %s PRIMARY KEY (row_name, col_name, ts) ",
+                            prefixedTableName, PrimaryKeyConstraintNames.get(prefixedTableName)) + ")");
+        } catch (PalantirSqlException e) {
+            if (!e.getMessage().contains("already exists")) {
+                log.error("Error occurred trying to create the table", e);
+                throw e;
+            } else if (prefixedTableName.length() > ATLASDB_POSTGRES_TABLE_NAME_LIMIT) {
+                String msg = String.format("The table name is longer than the postgres limit of %d characters. "
+                                + "Attempted to truncate the name but the truncated table name or truncated primary "
+                                + "key constraint name already exists. Please ensure all your table names have unique "
+                                + "first %d characters.",
+                        ATLASDB_POSTGRES_TABLE_NAME_LIMIT,
+                        ATLASDB_POSTGRES_TABLE_NAME_LIMIT);
+
+                String logMessage = "Failed to create the table {}. " + msg;
+                log.error(logMessage, prefixedTableName, e);
+
+                throw new RuntimeException("Failed to create the table" + prefixedTableName + "." + msg, e);
+            }
+        }
 
         ignoringError(() -> {
             conns.get().insertOneUnregisteredQuery(
