@@ -37,7 +37,7 @@ if (!blacklistedBaselineProjects.contains(project.name)) {
     apply plugin: 'com.palantir.baseline-checkstyle'
     apply plugin: 'com.palantir.baseline-findbugs'
     dependencies {
-        findbugsPlugins group: 'jp.skypencil.findbugs.slf4j', name: 'bug-pattern', ext: 'jar'
+        findbugsPlugins group: 'jp.skypencil.findbugs.slf4j', name: 'bug-pattern', version: '1.2.4', ext: 'jar'
     }
 }
 
