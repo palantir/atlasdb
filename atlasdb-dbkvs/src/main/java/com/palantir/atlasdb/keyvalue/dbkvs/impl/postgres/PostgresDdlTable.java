@@ -37,7 +37,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class PostgresDdlTable implements DbDdlTable {
     private static final int POSTGRES_NAME_LENGTH_LIMIT = 63;
-    public static final int ATLASDB_POSTGRES_TABLE_NAME_LIMIT = POSTGRES_NAME_LENGTH_LIMIT - AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX.length();
+    public static final int ATLASDB_POSTGRES_TABLE_NAME_LIMIT = POSTGRES_NAME_LENGTH_LIMIT
+            - AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX.length();
     private static final Logger log = LoggerFactory.getLogger(PostgresDdlTable.class);
     private static final String MIN_POSTGRES_VERSION = "9.2";
 
@@ -85,8 +86,8 @@ public class PostgresDdlTable implements DbDdlTable {
                         ATLASDB_POSTGRES_TABLE_NAME_LIMIT);
 
                 String logMessage = "Failed to create the table {}. " + msg;
-
                 log.error(logMessage, prefixedTableName, e);
+
                 throw new RuntimeException("Failed to create the table" + prefixedTableName + "." + msg, e);
             }
         }

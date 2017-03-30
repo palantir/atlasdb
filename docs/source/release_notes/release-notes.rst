@@ -41,7 +41,7 @@ develop
          - Change
 
     *    - |fixed|
-         - Creating a postgres table with a long name throws if the truncated name(first sixty characters) is the same as that of a different existing table.
+         - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
 
     *    - |fixed|
