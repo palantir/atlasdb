@@ -8,10 +8,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -20,7 +20,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -82,11 +81,11 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class UserPhotosStreamValueTable implements
         AtlasDbMutablePersistentTable<UserPhotosStreamValueTable.UserPhotosStreamValueRow,
                                          UserPhotosStreamValueTable.UserPhotosStreamValueNamedColumnValue<?>,
@@ -483,17 +482,15 @@ public final class UserPhotosStreamValueTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<UserPhotosStreamValueRowResult> getRow(UserPhotosStreamValueRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<UserPhotosStreamValueRowResult> getRow(UserPhotosStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
-            return Optional.absent();
+            return Optional.empty();
         } else {
             return Optional.of(UserPhotosStreamValueRowResult.of(rowResult));
         }
@@ -512,23 +509,6 @@ public final class UserPhotosStreamValueTable implements
             rowResults.add(UserPhotosStreamValueRowResult.of(row));
         }
         return rowResults;
-    }
-
-    @Override
-    public List<UserPhotosStreamValueRowResult> getAsyncRows(Iterable<UserPhotosStreamValueRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, allColumns, exec);
-    }
-
-    @Override
-    public List<UserPhotosStreamValueRowResult> getAsyncRows(final Iterable<UserPhotosStreamValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<UserPhotosStreamValueRowResult>> c =
-                new Callable<List<UserPhotosStreamValueRowResult>>() {
-            @Override
-            public List<UserPhotosStreamValueRowResult> call() {
-                return getRows(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), List.class);
     }
 
     @Override
@@ -559,23 +539,6 @@ public final class UserPhotosStreamValueTable implements
     @Override
     public Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<UserPhotosStreamValueRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<UserPhotosStreamValueRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<UserPhotosStreamValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>>> c =
-                new Callable<Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>>>() {
-            @Override
-            public Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<UserPhotosStreamValueRow> rows, ColumnSelection columns) {
@@ -652,7 +615,6 @@ public final class UserPhotosStreamValueTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -684,7 +646,6 @@ public final class UserPhotosStreamValueTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -731,5 +692,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "OO3xJ1Ch3BBeCGrTup0MCQ==";
+    static String __CLASS_HASH = "LjGmrYTrfFkNoyz4SYnMVA==";
 }

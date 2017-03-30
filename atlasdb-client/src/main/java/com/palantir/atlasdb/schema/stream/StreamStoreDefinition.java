@@ -29,18 +29,29 @@ import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
 import com.palantir.common.base.Throwables;
 
 public class StreamStoreDefinition {
+    // from ArrayList.MAX_ARRAY_SIZE on 64-bit systems
+    public static final int MAX_IN_MEMORY_THRESHOLD = Integer.MAX_VALUE - 8;
+
     private final Map<String, TableDefinition> streamStoreTables;
     private final String shortName, longName;
     private final ValueType idType;
+    private final boolean compressStream;
 
     private int inMemoryThreshold;
 
-    StreamStoreDefinition(Map<String, TableDefinition> streamStoreTables, String shortName, String longName, ValueType idType, int inMemoryThreshold) {
+    StreamStoreDefinition(
+            Map<String, TableDefinition> streamStoreTables,
+            String shortName,
+            String longName,
+            ValueType idType,
+            int inMemoryThreshold,
+            boolean compressStream) {
         this.streamStoreTables = streamStoreTables;
         this.shortName = shortName;
         this.longName = longName;
         this.idType = idType;
         this.inMemoryThreshold = inMemoryThreshold;
+        this.compressStream = compressStream;
     }
 
     public Map<String, TableDefinition> getTables() {
@@ -48,13 +59,19 @@ public class StreamStoreDefinition {
     }
 
     public StreamStoreRenderer getRenderer(String packageName, String name) {
-        return new StreamStoreRenderer(Renderers.CamelCase(longName), idType, packageName, name, inMemoryThreshold);
+        String renderedLongName = Renderers.CamelCase(longName);
+        return new StreamStoreRenderer(renderedLongName, idType, packageName, name, inMemoryThreshold, compressStream);
     }
 
-    public Multimap<String, Supplier<OnCleanupTask>> getCleanupTasks(String packageName, String name, StreamStoreRenderer renderer, Namespace namespace) {
+    public Multimap<String, Supplier<OnCleanupTask>> getCleanupTasks(
+            String packageName,
+            String name,
+            StreamStoreRenderer renderer,
+            Namespace namespace) {
         Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
 
-        // We use reflection and wrap these in suppliers because these classes are generated classes that might not always exist.
+        // We use reflection and wrap these in suppliers because these classes are generated classes that
+        // might not always exist.
         cleanupTasks.put(StreamTableType.METADATA.getTableName(shortName), new Supplier<OnCleanupTask>() {
             @Override
             public OnCleanupTask get() {

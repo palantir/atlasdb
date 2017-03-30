@@ -15,10 +15,21 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -26,11 +37,12 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
 
 public class ServiceDiscoveringAtlasSupplier {
+    private static final Logger log = LoggerFactory.getLogger(ServiceDiscoveringAtlasSupplier.class);
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
 
     private static String timestampServiceCreationInfo = null;
@@ -39,6 +51,7 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
+    private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         this.config = config;
@@ -53,35 +66,86 @@ public class ServiceDiscoveringAtlasSupplier {
                 ));
         keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
+        timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 
     public KeyValueService getKeyValueService() {
         return keyValueService.get();
     }
 
-    public TimestampService getTimestampService() {
-        DebugLogger.logger.info("Fetching timestamp service from thread {}. This should only happen once.",
-                Thread.currentThread().getName());
+    public synchronized TimestampService getTimestampService() {
+        log.info("[timestamp-service-creation] Fetching timestamp service from "
+                        + "thread {}. This should only happen once.", Thread.currentThread().getName());
 
-        String threadDump = ThreadDumps.programmaticThreadDump();
         if (timestampServiceCreationInfo == null) {
-            timestampServiceCreationInfo = threadDump;
+            timestampServiceCreationInfo = ThreadDumps.programmaticThreadDump();
         } else {
-            if (!leaderConfig.isPresent()) {
-                DebugLogger.logger.error("Timestamp service fetched for a second time, and there is no leader config."
-                        + "This means that you may soon encounter the MultipleRunningTimestampServices error."
-                        + "Now outputting thread dumps from both fetches of the timestamp service...");
-            } else {
-                DebugLogger.logger.warn("Timestamp service fetched for a second time. This is only OK if you are "
-                        + "running in an HA configuration and have just had a leadership election. "
-                        + "You do have a leader config, but we're printing thread dumps from both fetches of the "
-                        + "timestamp service, in case this second service was created in error.");
-            }
-            DebugLogger.logger.error("First thread dump: " + timestampServiceCreationInfo);
-            DebugLogger.logger.error("Second thread dump: " + threadDump);
+            handleMultipleTimestampFetch();
         }
 
         return timestampService.get();
+    }
+
+    public synchronized TimestampStoreInvalidator getTimestampStoreInvalidator() {
+        return timestampStoreInvalidator.get();
+    }
+
+    private void handleMultipleTimestampFetch() {
+        try {
+            String threadDumpFile = saveThreadDumps();
+            reportMultipleTimestampFetch(threadDumpFile);
+        } catch (IOException e) {
+            log.error("[timestamp-service-creation] The timestamp service was fetched for a second time. "
+                    + "We tried to output thread dumps to a temporary file, but encountered an error.", e);
+        }
+    }
+
+    @VisibleForTesting
+    String saveThreadDumps() throws IOException {
+        File file = getTempFile();
+        return saveThreadDumpsToFile(file);
+    }
+
+    private static File getTempFile() throws IOException {
+        String tempDir = System.getProperty("java.io.tmpdir");
+        Path path = Paths.get(tempDir, "atlas-timestamp-service-creation.log");
+        if (!Files.exists(path)) {
+            Files.createFile(path);
+        }
+        return path.toFile();
+    }
+
+    private String saveThreadDumpsToFile(File file) throws IOException {
+        try (FileOutputStream outputStream = new FileOutputStream(file)) {
+            writeStringToStream(outputStream,
+                    "This file contains thread dumps that will be useful for the AtlasDB Dev team, in case you hit a "
+                            + "MultipleRunningTimestampServices error. In this case, please send this file to them.\n");
+            writeStringToStream(outputStream, "First thread dump: " + timestampServiceCreationInfo + "\n");
+            writeStringToStream(outputStream, "Second thread dump: " + ThreadDumps.programmaticThreadDump() + "\n");
+            return file.getPath();
+        }
+    }
+
+    private void reportMultipleTimestampFetch(String path) {
+        if (!leaderConfig.isPresent()) {
+            log.warn("[timestamp-service-creation] Timestamp service fetched for a second time, and there is no leader "
+                    + "config. This means that you may soon encounter the MultipleRunningTimestampServices error. "
+                    + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "
+                    + "If you encounter a MultipleRunningTimestampServices error, please send this file to "
+                    + "support.", path);
+        } else {
+            log.warn("[timestamp-service-creation] Timestamp service fetched for a second time. This is only OK if "
+                    + "you are running in an HA configuration and have just had a leadership election. "
+                    + "You do have a leader config, but we're outputting thread dumps from both fetches of the "
+                    + "timestamp service, in case this second service was created in error. "
+                    + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "
+                    + "If you encounter a MultipleRunningTimestampServices error, please send this file to "
+                    + "support.", path);
+        }
+    }
+
+    private void writeStringToStream(FileOutputStream outputStream, String stringToWrite) throws IOException {
+        outputStream.write(stringToWrite.getBytes(StandardCharsets.UTF_8));
     }
 
     private Predicate<AtlasDbFactory> producesCorrectType() {

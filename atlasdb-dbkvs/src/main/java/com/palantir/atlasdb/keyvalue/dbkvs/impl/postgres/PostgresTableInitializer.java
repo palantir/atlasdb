@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
 
 public class PostgresTableInitializer implements DbTableInitializer {
@@ -51,9 +52,9 @@ public class PostgresTableInitializer implements DbTableInitializer {
                         + "  table_name VARCHAR(2000) NOT NULL,"
                         + "  table_size BIGINT NOT NULL,"
                         + "  value      BYTEA NULL,"
-                        + "  CONSTRAINT pk_%s PRIMARY KEY (table_name) "
+                        + "  CONSTRAINT %s PRIMARY KEY (table_name) "
                         + ")",
-                        metadataTableName, metadataTableName),
+                        metadataTableName, PrimaryKeyConstraintNames.get(metadataTableName)),
                 "already exists");
 
         executeIgnoringError(
@@ -68,7 +69,7 @@ public class PostgresTableInitializer implements DbTableInitializer {
             connectionSupplier.get().executeUnregisteredQuery(sql);
         } catch (PalantirSqlException e) {
             if (!e.getMessage().contains(errorToIgnore)) {
-                log.error(e.getMessage(), e);
+                log.error("Error occurred trying to execute the Postgres query {}", sql, e);
                 throw e;
             }
         }

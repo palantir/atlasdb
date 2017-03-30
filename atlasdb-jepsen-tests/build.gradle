@@ -1,27 +1,74 @@
+apply from: "../gradle/publish-jars.gradle"
+apply from: "${rootProject.projectDir}/gradle/shared.gradle"
+
 buildscript {
     repositories {
         jcenter()
     }
     dependencies {
-        classpath "com.avast.gradle:docker-compose-gradle-plugin:0.3.5"
+        classpath 'com.avast.gradle:docker-compose-gradle-plugin:0.3.5'
     }
 }
 
+apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'docker-compose'
+apply plugin: 'org.inferred.processors'
+apply plugin: 'org.unbroken-dome.test-sets'
 
-task prepareForJepsen(type: Copy, dependsOn: ':atlasdb-ete-tests:distTar') {
-    from project(':atlasdb-ete-tests').distTar.outputs
+task runUnitTestsForPrintLogsInChronologicalOrderScript(type: Exec) {
+   commandLine 'python', 'scripts/print_logs_in_chronological_order.py', '--tests-only'
+}
+
+testSets {
+    integTest
+}
+
+jacocoTestReport {
+    executionData test, integTest
+}
+
+check.dependsOn integTest
+check.dependsOn runUnitTestsForPrintLogsInChronologicalOrderScript
+
+dependencies {
+    compile project(':atlasdb-config')
+
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
+    compile group: 'com.google.guava', name: 'guava'
+    compile group: 'one.util', name: 'streamex'
+    compile group: 'org.clojure', name: 'clojure'
+    compile group: 'org.slf4j', name: 'slf4j-api'
+
+    processor group: 'org.immutables', name: 'value'
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.hamcrest', name: 'hamcrest-library'
+    testCompile group: 'org.mockito', name: 'mockito-core'
+}
+
+shadowJar {
+    dependencies {
+        exclude(dependency(group: 'org.clojure', name: 'clojure'))
+    }
+}
+
+task copyShadowJar(type: Copy, dependsOn: 'shadowJar') {
+    from tasks.getByPath('shadowJar').outputs
     into 'resources/atlasdb/'
-
-    rename { filename -> 'atlasdb-ete.tgz' }
+    rename { filename -> 'atlasdb-jepsen-tests-all.jar' }
 }
 
-task composeBuild(type: Exec, dependsOn: 'prepareForJepsen') {
-    environment = project.dockerCompose.environment
-    commandLine project.dockerCompose.composeCommand('build', '--force-rm')
+task copyTimelockServer(type: Copy, dependsOn: ':timelock-server:distTar') {
+    from tasks.getByPath(':timelock-server:distTar').outputs
+    into 'resources/atlasdb/'
+    rename { filename -> 'timelock-server.tgz' }
 }
 
-task test(type: Exec, dependsOn: 'composeBuild') {
+task jepsenTest(type: Exec, dependsOn: ['copyShadowJar', 'copyTimelockServer']) {
     environment = project.dockerCompose.environment
     commandLine project.dockerCompose.composeCommand('run', '--rm', 'jepsen')
 }
+
+check.dependsOn jepsenTest

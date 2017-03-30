@@ -34,6 +34,8 @@ public abstract class AtlasDbConfig {
 
     public abstract Optional<LeaderConfig> leader();
 
+    public abstract Optional<TimeLockClientConfig> timelock();
+
     public abstract Optional<ServerListConfig> lock();
 
     public abstract Optional<ServerListConfig> timestamp();
@@ -143,6 +145,15 @@ public abstract class AtlasDbConfig {
     }
 
     /**
+     * The number of milliseconds to wait between retries when the background sweeper can't delete data, due to the
+     * persistent lock being taken.
+     */
+    @Value.Default
+    public long getSweepPersistentLockWaitMillis() {
+        return AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS;
+    }
+
+    /**
      * The number of rows to process per batch by the background
      * sweeper.
      */
@@ -163,12 +174,23 @@ public abstract class AtlasDbConfig {
     @Value.Check
     protected final void check() {
         if (leader().isPresent()) {
-            Preconditions.checkState(!lock().isPresent() && !timestamp().isPresent(),
+            Preconditions.checkState(areTimeAndLockConfigsAbsent(),
                     "If the leader block is present, then the lock and timestamp server blocks must both be absent.");
+            Preconditions.checkState(!timelock().isPresent(),
+                    "If the leader block is present, then the timelock block must be absent.");
+        }
+
+        if (timelock().isPresent()) {
+            Preconditions.checkState(areTimeAndLockConfigsAbsent(),
+                    "If the timelock block is present, then the lock and timestamp blocks must both be absent.");
         }
 
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
                 "Lock and timestamp server blocks must either both be present or both be absent.");
+    }
+
+    private boolean areTimeAndLockConfigsAbsent() {
+        return !lock().isPresent() && !timestamp().isPresent();
     }
 
     @JsonIgnore

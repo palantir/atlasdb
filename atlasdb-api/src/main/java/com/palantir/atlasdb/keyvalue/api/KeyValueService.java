@@ -290,6 +290,41 @@ public interface KeyValueService extends AutoCloseable {
                          Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
+     * Check whether CAS is supported. This check can go away when Rocks and JDBC KVS's are deleted.
+     *
+     * @return true iff checkAndSet is supported (for all delegates/tables, if applicable)
+     */
+    @POST
+    @Path("supports-check-and-set")
+    @Consumes(MediaType.APPLICATION_JSON)
+    boolean supportsCheckAndSet();
+
+    /**
+     * Performs a check-and-set into the key-value store.
+     * Please see {@link CheckAndSetRequest} for information about how to create this request.
+     * <p>
+     * Note that this call <i>does not</i> guarantee atomicity across Cells.
+     * If you attempt to achieve this guarantee by performing multiple checkAndSet calls in a single transaction,
+     * and one of the calls fails, then you will need to manually roll back successful checkAndSet operations,
+     * as data will have been overwritten.
+     * It is therefore not recommended to attempt to perform checkAndSet operations alongside other operations in a
+     * single transaction.
+     * <p>
+     * If the call completes successfully, then you know that the Cell initially had the value you expected,
+     * although the Cell could have taken on another value and then been written back to the expected value since
+     * said value was obtained.
+     * If a {@link CheckAndSetException} is thrown, it is likely that the value stored was not as you expected.
+     * In this case, you may want to check the stored value and determine why it was different from the expected value.
+     *
+     * @param checkAndSetRequest the request, including table, cell, old value and new value.
+     * @throws CheckAndSetException if the stored value for the cell was not as expected.
+     */
+    @POST
+    @Path("check-and-set")
+    @Consumes(MediaType.APPLICATION_JSON)
+    void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException;
+
+    /**
      * Deletes values from the key-value store.
      * <p>
      * This call <i>does not</i> guarantee atomicity for deletes across (Cell, ts) pairs. However it
@@ -316,6 +351,25 @@ public interface KeyValueService extends AutoCloseable {
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     void delete(@QueryParam("tableRef") TableReference tableRef, Multimap<Cell, Long> keys);
+
+    /**
+     * Deletes values in a range from the key-value store.
+     *
+     * Does not guarantee an atomic delete throughout the entire range.
+     *
+     * Currently does not allow a column selection to mean only delete certain columns in a range.
+     *
+     * Some systems may require more nodes to be up to ensure that a delete is successful. If this
+     * is the case then this method may throw if the delete can't be completed on all nodes.
+     *
+     * @param tableRef the name of the table to delete values from.
+     * @param range the range to delete
+     */
+    @POST
+    @Path("delete-range")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Idempotent
+    void deleteRange(@QueryParam("tableRef") TableReference tableRef, RangeRequest range);
 
     /**
      * Truncate a table in the key-value store.
@@ -510,7 +564,7 @@ public interface KeyValueService extends AutoCloseable {
     @Path("put-metadata-for-tables")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata);
+    void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata);
 
     ////////////////////////////////////////////////////////////
     // METHODS TO SUPPORT GARBAGE COLLECTION

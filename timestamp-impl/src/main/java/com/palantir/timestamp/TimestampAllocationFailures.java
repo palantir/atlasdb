@@ -15,23 +15,27 @@
  */
 package com.palantir.timestamp;
 
-import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 
+@ThreadSafe
 public class TimestampAllocationFailures {
-    private static final String SERVICE_UNAVAILABLE_ERROR =
+
+    private static final String MULTIPLE_RUNNING_TIMESTAMP_SERVICES_MESSAGE =
             "This server is no longer usable as there appears to be another timestamp server running.";
-    private static final String MULTIPLE_RUNNING_TIMESTAMP_SERVICES_MESSAGE = "This server is no longer usable as there appears to be another timestamp server running.";
+
     private final Logger log;
 
-    @GuardedBy("this")
-    private Throwable previousAllocationFailure;
+    private volatile Throwable previousAllocationFailure;
+    private volatile boolean encounteredMultipleRunningTimestamps = false;
 
-    public TimestampAllocationFailures(Logger log) {
+    @VisibleForTesting
+    TimestampAllocationFailures(Logger log) {
         this.log = log;
     }
 
@@ -39,42 +43,44 @@ public class TimestampAllocationFailures {
         this(LoggerFactory.getLogger(TimestampAllocationFailures.class));
     }
 
-
-    public synchronized RuntimeException responseTo(Throwable newFailure) {
-        logNewFailure(newFailure);
-        previousAllocationFailure = newFailure;
+    public RuntimeException responseTo(Throwable newFailure) {
+        synchronized (this) {
+            logNewFailure(newFailure);
+            previousAllocationFailure = newFailure;
+        }
 
         if (newFailure instanceof MultipleRunningTimestampServiceError) {
-            return wrapMultipleRunningTImestampServiceError(newFailure);
+            encounteredMultipleRunningTimestamps = true;
+            return wrapMultipleRunningTimestampServiceError(newFailure);
         }
 
         return new RuntimeException("Could not allocate more timestamps", newFailure);
-   }
+    }
 
-    public synchronized void verifyWeShouldTryToAllocateMoreTimestamps() {
-        if(previousAllocationFailure instanceof MultipleRunningTimestampServiceError) {
-            throw wrapMultipleRunningTImestampServiceError(previousAllocationFailure);
+    public void verifyWeShouldIssueMoreTimestamps() {
+        // perform only single volatile load on hot path
+        if (encounteredMultipleRunningTimestamps) {
+            throw wrapMultipleRunningTimestampServiceError(this.previousAllocationFailure);
         }
     }
 
     private void logNewFailure(Throwable newFailure) {
-        String message = "We encountered an error while trying to allocate more timestamps. ";
-        if(isSameAsPreviousFailure(newFailure)) {
-            log.info(message + "This is a repeat of the previous failure", newFailure);
+        if (isSameAsPreviousFailure(newFailure)) {
+            log.info("We encountered an error while trying to allocate more timestamps. "
+                    + "This is a repeat of the previous failure", newFailure);
         } else {
-            log.error(message + "If this failure repeats it will be logged at the INFO level", newFailure);
+            log.error("We encountered an error while trying to allocate more timestamps. "
+                    + "If this failure repeats it will be logged at the INFO level", newFailure);
         }
     }
 
     private boolean isSameAsPreviousFailure(Throwable newFailure) {
-        if(previousAllocationFailure == null) {
-            return false;
-        }
-
-        return newFailure.getClass().equals(previousAllocationFailure.getClass());
+        // perform only single volatile load on hot path
+        Throwable failure = this.previousAllocationFailure;
+        return failure != null && failure.getClass().equals(newFailure.getClass());
     }
 
-    private ServiceNotAvailableException wrapMultipleRunningTImestampServiceError(Throwable newFailure) {
+    private static ServiceNotAvailableException wrapMultipleRunningTimestampServiceError(Throwable newFailure) {
         return new ServiceNotAvailableException(MULTIPLE_RUNNING_TIMESTAMP_SERVICES_MESSAGE, newFailure);
     }
 }

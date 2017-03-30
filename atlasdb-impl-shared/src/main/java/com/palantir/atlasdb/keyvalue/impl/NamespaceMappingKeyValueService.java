@@ -26,6 +26,7 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.NamespacedKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -62,6 +63,11 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         delegate().delete(tableRef, keys);
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        delegate().deleteRange(tableRef, range);
     }
 
     @Override
@@ -165,6 +171,16 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         delegate().putUnlessExists(tableRef, values);
+    }
+
+    @Override
+    public boolean supportsCheckAndSet() {
+        return delegate().supportsCheckAndSet();
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
+        delegate().checkAndSet(checkAndSetRequest);
     }
 
     @Override

@@ -93,21 +93,7 @@ Failure to specify a leader configuration could lead to data corruption.
     atlasdb:
       keyValueService:
         type: cassandra
-        servers:
-          - cassandra:9160
-        poolSize: 20
-        keyspace: yourapp
-        credentials:
-          username: cassandra
-          password: cassandra
-        sslConfiguration:
-          trustStorePath: var/security/truststore.jks
-        replicationFactor: 1
-        mutationBatchCount: 10000
-        mutationBatchSizeBytes: 10000000
-        fetchBatchCount: 1000
-        safetyDisabled: false
-        autoRefreshNodes: false
+        # omitted for brevity
 
       leader:
         # This should be at least half the number of nodes in your cluster
@@ -115,7 +101,7 @@ Failure to specify a leader configuration could lead to data corruption.
         learnerLogDir: var/data/paxosLogs
         acceptorLogDir: var/data/paxosLogs
         # This should be different for every node. If ssl is not enabled, then the host must be specified as http
-        localServer: https://<yourhost>:3828
+        localServer: https://host1:3828
         # This should be the same for every node. If ssl is not enabled, then the host must be specified as http
         lockCreator: https://host1:3828
         # This should be the same for every node
@@ -139,7 +125,7 @@ To run an :ref:`offline CLI <offline-clis>`, you also need to specify a leader b
     atlasdb:
       keyValueService:
         type: cassandra
-        # continues as above - omitted for brevity
+        # omitted for brevity
 
       leader:
         # This should be at least half the number of nodes in your cluster
@@ -165,21 +151,7 @@ An example configuration is below.
     atlasdb:
       keyValueService:
         type: cassandra
-        servers:
-          - cassandra:9160
-        poolSize: 20
-        keyspace: yourapp
-        credentials:
-          username: cassandra
-          password: cassandra
-        sslConfiguration:
-          trustStorePath: var/security/truststore.jks
-        replicationFactor: 1
-        mutationBatchCount: 10000
-        mutationBatchSizeBytes: 10000000
-        fetchBatchCount: 1000
-        safetyDisabled: false
-        autoRefreshNodes: false
+        # omitted for brevity
 
       # no leader block
 
@@ -195,8 +167,10 @@ If you are running an :ref:`offline CLI <offline-clis>` then you must specify a 
     atlasdb:
       keyValueService:
         type: cassandra
-        # continues as above - omitted for brevity
+        # omitted for brevity
+
       # no leader block
+
       lock:
         servers:
           - "http://host1:3828/api"
@@ -204,6 +178,7 @@ If you are running an :ref:`offline CLI <offline-clis>` then you must specify a 
           - "http://host3:3828/api"
         sslConfiguration:
           trustStorePath: var/security/truststore.jks
+
       timestamp:
         servers:
           - "http://host1:3828/api"

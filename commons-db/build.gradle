@@ -1,3 +1,4 @@
+apply from: "../gradle/publish-jars.gradle"
 apply plugin: "org.inferred.processors"
 
 apply from: "../gradle/shared.gradle"
@@ -13,6 +14,7 @@ dependencies {
     transitive = false
   }
   compile group: 'com.mchange', name: 'c3p0', version: libVersions.c3p0
+  compile group: 'com.palantir.remoting1', name: 'tracing'
 
   // Danger, Will Robinson!
   //

@@ -56,9 +56,11 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.visitor.Visitor;
+import com.palantir.remoting1.tracing.Tracers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public final class CQLKeyValueServices {
     private static final Logger log = LoggerFactory.getLogger(CQLKeyValueService.class); // not a typo
 
@@ -81,7 +83,7 @@ public final class CQLKeyValueServices {
         LIGHTWEIGHT_TRANSACTION_REQUIRED
     }
 
-    private final ExecutorService traceRetrievalExec = PTExecutors.newFixedThreadPool(8);
+    private final ExecutorService traceRetrievalExec = Tracers.wrap(PTExecutors.newFixedThreadPool(8));
 
     private static final int MAX_TRIES = 20;
     private static final long TRACE_RETRIEVAL_MS_BETWEEN_TRIES = 500;
@@ -100,7 +102,7 @@ public final class CQLKeyValueServices {
                     continue;
                 }
                 final UUID traceId = info.getQueryTrace().getTraceId();
-                log.info("Traced query " + tracedQuery + " with trace uuid " + traceId);
+                log.info("Traced query {} with trace uuid {}", tracedQuery, traceId);
                 traceRetrievalExec.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
@@ -152,7 +154,7 @@ public final class CQLKeyValueServices {
                         if (!success) {
                             sb.append(" (retrieval timed out)");
                         }
-                        log.info(sb.toString());
+                        log.info("Query trace: {}", sb);
                         return null;
                     }
                 });

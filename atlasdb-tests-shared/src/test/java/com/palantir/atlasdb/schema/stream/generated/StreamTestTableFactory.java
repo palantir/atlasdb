@@ -38,6 +38,26 @@ public final class StreamTestTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
+    public KeyValueTable getKeyValueTable(Transaction t, KeyValueTable.KeyValueTrigger... triggers) {
+        return KeyValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public StreamTestMaxMemStreamHashAidxTable getStreamTestMaxMemStreamHashAidxTable(Transaction t, StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxTrigger... triggers) {
+        return StreamTestMaxMemStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public StreamTestMaxMemStreamIdxTable getStreamTestMaxMemStreamIdxTable(Transaction t, StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxTrigger... triggers) {
+        return StreamTestMaxMemStreamIdxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public StreamTestMaxMemStreamMetadataTable getStreamTestMaxMemStreamMetadataTable(Transaction t, StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataTrigger... triggers) {
+        return StreamTestMaxMemStreamMetadataTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public StreamTestMaxMemStreamValueTable getStreamTestMaxMemStreamValueTable(Transaction t, StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueTrigger... triggers) {
+        return StreamTestMaxMemStreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public StreamTestStreamHashAidxTable getStreamTestStreamHashAidxTable(Transaction t, StreamTestStreamHashAidxTable.StreamTestStreamHashAidxTrigger... triggers) {
         return StreamTestStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
@@ -71,6 +91,11 @@ public final class StreamTestTableFactory {
     }
 
     public interface SharedTriggers extends
+            KeyValueTable.KeyValueTrigger,
+            StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxTrigger,
+            StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxTrigger,
+            StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataTrigger,
+            StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueTrigger,
             StreamTestStreamHashAidxTable.StreamTestStreamHashAidxTrigger,
             StreamTestStreamIdxTable.StreamTestStreamIdxTrigger,
             StreamTestStreamMetadataTable.StreamTestStreamMetadataTrigger,
@@ -83,6 +108,31 @@ public final class StreamTestTableFactory {
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
+        @Override
+        public void putKeyValue(Multimap<KeyValueTable.KeyValueRow, ? extends KeyValueTable.KeyValueNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putStreamTestMaxMemStreamHashAidx(Multimap<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow, ? extends StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxColumnValue> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putStreamTestMaxMemStreamIdx(Multimap<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow, ? extends StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxColumnValue> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putStreamTestMaxMemStreamMetadata(Multimap<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, ? extends StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putStreamTestMaxMemStreamValue(Multimap<StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRow, ? extends StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
         @Override
         public void putStreamTestStreamHashAidx(Multimap<StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow, ? extends StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumnValue> newRows) {
             // do nothing

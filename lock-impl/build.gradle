@@ -1,8 +1,10 @@
+apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
   compile project(":lock-api")
   compile project(":atlasdb-commons")
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
+  compile group: 'com.palantir.remoting1', name: 'tracing'
   compile group: 'joda-time', name: 'joda-time'
 }

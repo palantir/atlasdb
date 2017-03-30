@@ -21,6 +21,8 @@ import com.google.common.base.Preconditions;
 import com.palantir.common.persist.Persistable;
 
 public final class ColumnRangeSelections implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private ColumnRangeSelections() {
         // Utility class
     }

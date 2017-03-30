@@ -1,0 +1,85 @@
+apply plugin: 'java'
+apply plugin: 'com.jfrog.artifactory'
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'maven-publish'
+apply plugin: 'nebula.maven-resolved-dependencies'
+
+// If you modify bintray or artifactory publishing you also need to modify publish-dists.gradle
+
+task sourceJar(type: Jar) {
+    from project.sourceSets.main.allSource
+    classifier 'sources'
+}
+
+task testJar(type: Jar) {
+    from project.sourceSets.test.output
+    classifier 'tests'
+}
+
+publishing {
+    publications {
+        artifactory(MavenPublication) {
+            from components.hasProperty('shadow') ? components.shadow : components.java
+            artifact(sourceJar) {
+                classifier 'sources'
+            }
+            artifact(testJar) {
+                classifier 'tests'
+            }
+            pom.withXml {
+                def scm = asNode().appendNode('scm')
+                scm.appendNode('url', 'https://github.com/palantir/atlasdb')
+                def licenses = asNode().appendNode('licenses')
+                def license = licenses.appendNode('license')
+                license.appendNode('name', 'BSD-3')
+                license.appendNode('url', 'http://opensource.org/licenses/BSD-3-Clause')
+            }
+        }
+    }
+}
+
+// Bintray publish
+bintray {
+    user = System.getenv('BINTRAY_USERNAME')
+    key = System.getenv('BINTRAY_PASSWORD')
+    publish = true
+    pkg {
+        userOrg = 'palantir'
+        repo = 'releases'
+        name = 'atlasdb'
+        licenses = ['BSD-3-Clause']
+        publications = ['artifactory']
+    }
+}
+
+bintrayUpload.onlyIf {
+    System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ releaseVersionRegex
+}
+
+bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
+
+// Artifactory publish
+artifactory {
+    publish {
+        contextUrl = System.env.ARTIFACTORY_URL
+        repository {
+            repoKey = System.env.ARTIFACTORY_JAR_REPO
+            username = System.env.ARTIFACTORY_USERNAME
+            password = System.env.ARTIFACTORY_PASSWORD
+            maven = true
+        }
+        defaults {
+            publications ('artifactory')
+            properties = ['git': project.version.toString()]
+        }
+    }
+}
+
+artifactoryPublish.onlyIf {
+    System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && System.getenv('ARTIFACTORY_JAR_REPO') && System.getenv('ARTIFACTORY_URL') && !(project.version ==~ releaseVersionRegex)
+}
+artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
+
+ext {
+    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
+}

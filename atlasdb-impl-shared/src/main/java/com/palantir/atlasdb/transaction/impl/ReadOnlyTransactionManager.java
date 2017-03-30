@@ -87,7 +87,8 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 startTimestamp.get(),
                 constraintCheckingMode,
                 readSentinelBehavior,
-                allowHiddenTableAccess);
+                allowHiddenTableAccess,
+                timestampValidationReadCache);
         return runTaskThrowOnConflict(task, new ReadTransaction(txn, txn.sweepStrategyManager));
     }
 

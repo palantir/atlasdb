@@ -17,16 +17,11 @@ package com.palantir.atlasdb.jdbc;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
-import com.palantir.atlasdb.keyvalue.jdbc.JdbcKeyValueService;
 
 public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
-    private JdbcKeyValueService db = null;
-
-
     @Override
-    public void setUp() throws Exception {
-        db = JdbcTests.createEmptyKvs();
-        super.setUp();
+    protected KeyValueService getKeyValueService() {
+        return JdbcTests.createEmptyKvs();
     }
 
     @Override
@@ -35,16 +30,7 @@ public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
     }
 
     @Override
-    protected KeyValueService getKeyValueService() {
-        return db;
-    }
-
-    @Override
-    public void tearDown() throws Exception {
-        super.tearDown();
-        if (db != null) {
-            db.close();
-            db = null;
-        }
+    protected boolean checkAndSetSupported() {
+        return false;
     }
 }

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.google.common.base.Preconditions;
+import com.google.common.math.IntMath;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -24,28 +25,26 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleTableNameMapper {
-    public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
-    public static final int SUFFIX_NUMBER_LENGTH = 6;
+    public static final int SUFFIX_NUMBER_LENGTH = 4;
     public static final int MAX_NAMESPACE_LENGTH = 2;
-    private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - SUFFIX_NUMBER_LENGTH;
+    private static final int ONE_UNDERSCORE = 1;
+    private static final int NAMESPACED_TABLE_NAME_LENGTH = AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT
+            - (ONE_UNDERSCORE + SUFFIX_NUMBER_LENGTH);
 
-    private final ConnectionSupplier conns;
-
-    public OracleTableNameMapper(ConnectionSupplier conns) {
-        this.conns = conns;
-    }
-
-    public String getShortPrefixedTableName(String tablePrefix, TableReference tableRef) {
+    public String getShortPrefixedTableName(
+            ConnectionSupplier connectionSupplier,
+            String tablePrefix,
+            TableReference tableRef) {
         Preconditions.checkState(tablePrefix.length() <= AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH,
                 "The tablePrefix can be at most %s characters long", AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
 
         TableReference shortenedNamespaceTableRef = truncateNamespace(tableRef);
 
         String prefixedTableName = tablePrefix + DbKvs.internalTableName(shortenedNamespaceTableRef);
-        String truncatedTableName = truncate(prefixedTableName, PREFIXED_TABLE_NAME_LENGTH);
+        String truncatedTableName = truncate(prefixedTableName, NAMESPACED_TABLE_NAME_LENGTH);
 
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
-        return truncatedTableName + getTableNumberSuffix(fullTableName, truncatedTableName);
+        return truncatedTableName + "_" + getTableNumber(connectionSupplier, fullTableName, truncatedTableName);
     }
 
     private TableReference truncateNamespace(TableReference tableRef) {
@@ -61,21 +60,29 @@ public class OracleTableNameMapper {
         return name.substring(0, Math.min(name.length(), length));
     }
 
-    private String getTableNumberSuffix(String fullTableName, String truncatedTableName) {
-        int tableSuffixNumber = getNextTableNumber(truncatedTableName);
-        if (tableSuffixNumber >= 100_000) {
+    private String getTableNumber(
+            ConnectionSupplier connectionSupplier,
+            String fullTableName,
+            String truncatedTableName) {
+        int tableSuffixNumber = getNextTableNumber(connectionSupplier, truncatedTableName);
+        long maxTablesWithSamePrefix = IntMath.checkedPow(10, SUFFIX_NUMBER_LENGTH);
+        if (tableSuffixNumber >= maxTablesWithSamePrefix) {
             throw new IllegalArgumentException(
-                    "Cannot create any more tables with name starting with " + truncatedTableName
-                    + ". 100,000 tables might have already been created. Please rename the table." + fullTableName);
+                    String.format("Cannot create any more tables with name starting with %s. "
+                            + "%d tables might have already been created. "
+                            + "Please rename the table %s.",
+                            truncatedTableName,
+                            maxTablesWithSamePrefix,
+                            fullTableName));
         }
-        return "_" + String.format("%05d", tableSuffixNumber);
+        return String.format("%0" + SUFFIX_NUMBER_LENGTH + "d", tableSuffixNumber);
     }
 
-    private int getNextTableNumber(String truncatedTableName) {
-        AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
+    private int getNextTableNumber(ConnectionSupplier connectionSupplier, String truncatedTableName) {
+        AgnosticResultSet results = connectionSupplier.get().selectResultSetUnregisteredQuery(
                 "SELECT short_table_name "
                 + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                + " WHERE LOWER(short_table_name) LIKE LOWER(?||'\\______%') ESCAPE '\\'"
+                + " WHERE LOWER(short_table_name) LIKE LOWER(?||'\\_____%') ESCAPE '\\'"
                 + " ORDER BY short_table_name DESC", truncatedTableName);
         return getTableNumberFromTableNames(truncatedTableName, results);
     }

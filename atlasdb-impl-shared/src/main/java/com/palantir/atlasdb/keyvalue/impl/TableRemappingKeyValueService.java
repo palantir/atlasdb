@@ -22,7 +22,6 @@ import java.util.Set;
 
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -31,8 +30,10 @@ import com.palantir.atlasdb.keyvalue.NamespacedKeyValueService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.ImmutableCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -108,6 +109,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        try {
+            delegate().deleteRange(tableMapper.getMappedTableName(tableRef), range);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
     public void dropTable(TableReference tableRef) {
         dropTables(ImmutableSet.of(tableRef));
     }
@@ -150,7 +160,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return tableMapper.mapToFullTableNames(delegate().getAllTableNames());
+        return ImmutableSet.copyOf(tableMapper.generateMapToFullTableNames(delegate().getAllTableNames()).values());
     }
 
     @Override
@@ -207,13 +217,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
-        Map<TableReference, byte[]> tableRefToBytes = Maps.newHashMap();
-        for (Entry<TableReference, byte[]> entry : delegate().getMetadataForTables().entrySet()) {
-            tableRefToBytes.put(
-                    Iterables.getOnlyElement(tableMapper.mapToFullTableNames(ImmutableSet.of(entry.getKey()))),
-                    entry.getValue());
+        Map<TableReference, byte[]> tableMetadata = delegate().getMetadataForTables();
+        Map<TableReference, TableReference> metadataNamesToFullTableNames = tableMapper.generateMapToFullTableNames(
+                tableMetadata.keySet());
+        Map<TableReference, byte[]> fullTableNameToBytes = Maps.newHashMapWithExpectedSize(
+                metadataNamesToFullTableNames.size());
+        for (Entry<TableReference, byte[]> entry : tableMetadata.entrySet()) {
+            fullTableNameToBytes.put(metadataNamesToFullTableNames.get(entry.getKey()), entry.getValue());
         }
-        return tableRefToBytes;
+        return fullTableNameToBytes;
     }
 
     @Override
@@ -339,6 +351,24 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
             throws KeyAlreadyExistsException {
         try {
             delegate().putUnlessExists(tableMapper.getMappedTableName(tableRef), values);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public boolean supportsCheckAndSet() {
+        return delegate().supportsCheckAndSet();
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
+        try {
+            CheckAndSetRequest request = ImmutableCheckAndSetRequest.builder()
+                    .from(checkAndSetRequest)
+                    .table(tableMapper.getMappedTableName(checkAndSetRequest.table()))
+                    .build();
+            delegate().checkAndSet(request);
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }

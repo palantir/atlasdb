@@ -42,6 +42,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting1.tracing.Tracers;
 
 public class KeyValueServiceValidator {
     private final TransactionManager validationFromTransactionManager;
@@ -97,7 +98,7 @@ public class KeyValueServiceValidator {
     }
 
     private void validateTables(Set<TableReference> tables) {
-        ExecutorService executor = PTExecutors.newFixedThreadPool(threads);
+        ExecutorService executor = Tracers.wrap(PTExecutors.newFixedThreadPool(threads));
         List<Future<Void>> futures = Lists.newArrayList();
         for (final TableReference table : tables) {
             Future<Void> future = executor.submit(new Callable<Void>() {
@@ -120,7 +121,8 @@ public class KeyValueServiceValidator {
 
     private void validateTable(final TableReference table) {
         final int limit = getBatchSize(table);
-        validationFromTransactionManager.runTaskReadOnly(
+        // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
+        validationFromTransactionManager.runTaskWithRetry(
                 new TransactionTask<Map<Cell, byte[]>, RuntimeException>() {
                     @Override
                     public Map<Cell, byte[]> execute(Transaction t1) {
@@ -132,7 +134,8 @@ public class KeyValueServiceValidator {
     }
 
     private void validateTable(final TableReference table, final int limit, final Transaction t1) {
-        validationToTransactionManager.runTaskReadOnly(
+        // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
+        validationToTransactionManager.runTaskWithRetry(
                 new TransactionTask<Map<Cell, byte[]>, RuntimeException>() {
                     @Override
                     public Map<Cell, byte[]> execute(Transaction t2) {

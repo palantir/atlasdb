@@ -1,14 +1,12 @@
-buildscript {
-    repositories { jcenter() }
-    dependencies {
-        classpath 'com.palantir.gradle.javadist:gradle-java-distribution:1.0.1'
-    }
-}
-
+apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
 apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
+
+schemas = [
+        'com.palantir.atlasdb.cas.CheckAndSetSchema'
+]
 
 dependencies {
     compile project(':lock-impl')
@@ -18,6 +16,7 @@ dependencies {
     compile project(':atlasdb-hikari')
     compile project(':atlasdb-rocksdb')
 
+    compile group: 'com.palantir.tritium', name: 'tritium-lib'
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 
     runtime project(':atlasdb-dbkvs')
@@ -28,11 +27,13 @@ dependencies {
 
     processor group: 'org.immutables', name: 'value'
 
-    testCompile project(':atlasdb-ete-test-utils')
+    testCompile project(':atlasdb-container-test-utils')
     testCompile project(':atlasdb-docker-test-utils')
+    testCompile project(':atlasdb-ete-test-utils')
 
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
-    testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
+    testCompile group: 'org.assertj', name: 'assertj-core'
 }
 
 task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
@@ -47,9 +48,15 @@ task longTest(type: Test) {
     include '**/MultiCassandraTestSuite.class'
 }
 
+task timeLockTest(type: Test) {
+    dependsOn prepareForEteTests, ':timelock-server:dockerTag'
+    include '**/*TimeLock*.class'
+}
+
 test {
-    dependsOn longTest, prepareForEteTests
+    dependsOn longTest, prepareForEteTests, timeLockTest
     exclude '**/MultiCassandraTestSuite.class'
+    exclude '**/*TimeLock*.class'
     exclude '**/*EteTest.class'
 }
 

@@ -7,3 +7,5 @@ Miscellaneous
    :titlesonly:
 
    contributing
+   doc/adr/index
+   dropwizard-metrics

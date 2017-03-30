@@ -27,13 +27,15 @@ import org.junit.runners.Suite;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.jayway.awaitility.Awaitility;
+import com.palantir.atlasdb.containers.CassandraVersion;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
-        DropwizardEteTest.class,
+        CommandLineEteTest.class,
+        ServiceExposureEteTest.class,
         MultiCassandraSingleNodeDownEteTest.class,
         MultiCassandraDoubleNodeDownEteTest.class
         })
@@ -45,7 +47,8 @@ public class MultiCassandraTestSuite extends EteSetup {
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
             MultiCassandraTestSuite.class,
             "docker-compose.multiple-cassandra.yml",
-            CLIENTS);
+            CLIENTS,
+            CassandraVersion.getEnvironment());
 
     public static void killCassandraContainer(String containerName) {
         Container container = EteSetup.getContainer(containerName);

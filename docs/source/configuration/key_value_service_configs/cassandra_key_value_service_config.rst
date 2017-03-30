@@ -24,7 +24,9 @@ e.g.
 Configuring a Running Application to Use Cassandra
 ==================================================
 
-A minimal AtlasDB configuration for running against cassandra will look like the below.
+An example AtlasDB configuration for running against cassandra will look like the below.
+
+For a complete list and description of the below parameters, see `CassandraKeyValueServiceConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-cassandra/src/main/java/com/palantir/atlasdb/cassandra/CassandraKeyValueServiceConfig.java>`__.
 
 Importantly - your lock creator must be consistent across all nodes. If you do not provide a lock creator, it will default to the first host
 in the leaders list. If you do not specify a lock creator, the leaders block should be exactly the same across all nodes.
@@ -37,6 +39,7 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
         servers:
           - cassandra:9160
         poolSize: 20
+        maxConnectionBurstSize: 100 # defaults to 5x poolSize if not set
         keyspace: yourapp
         credentials:
           username: cassandra

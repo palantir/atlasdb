@@ -1,3 +1,4 @@
+apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
 apply plugin: 'java'
@@ -9,9 +10,14 @@ repositories {
 
 schemas = [
     'com.palantir.atlasdb.schema.SweepSchema',
+    'com.palantir.atlasdb.table.description.GenericTestSchema'
 ]
 
 libsDirName = file('build/artifacts')
+
+configurations {
+    testArtifacts.extendsFrom testRuntime
+}
 
 dependencies {
   compile project(":atlasdb-commons")
@@ -31,8 +37,14 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
   compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
+  compile group: 'com.palantir.remoting1', name: 'tracing'
+  compile group: 'com.palantir.tritium', name: 'tritium-lib'
+
   testCompile group: 'junit', name: 'junit'
+  testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
+
+  testArtifacts sourceSets.test.output
 }

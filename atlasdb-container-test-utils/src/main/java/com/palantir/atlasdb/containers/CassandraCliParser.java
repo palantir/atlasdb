@@ -24,27 +24,31 @@ import org.slf4j.LoggerFactory;
 public final class CassandraCliParser {
     private static final Logger log = LoggerFactory.getLogger(CassandraCliParser.class);
 
-    private CassandraCliParser() {
+    private final CassandraVersion cassandraVersion;
+
+    public CassandraCliParser(CassandraVersion cassandraVersion) {
+        this.cassandraVersion = cassandraVersion;
     }
 
-    public static int parseSystemAuthReplicationFromCqlsh(String output) throws IllegalArgumentException {
+    public int parseSystemAuthReplicationFromCqlsh(String output) throws IllegalArgumentException {
         try {
             for (String line : output.split("\n")) {
                 if (line.contains("system_auth")) {
-                    Matcher matcher = Pattern.compile("^.*\\{\"replication_factor\":\"(\\d+)\"\\}$").matcher(line);
+                    Pattern replicationRegex = cassandraVersion.replicationFactorRegex();
+                    Matcher matcher = replicationRegex.matcher(line);
                     matcher.find();
                     return Integer.parseInt(matcher.group(1));
                 }
             }
         } catch (Exception e) {
-            log.error("Failed parsing system_auth keyspace RF: " + e);
+            log.error("Failed parsing system_auth keyspace RF", e);
             throw new IllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
         }
 
         throw new IllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
     }
 
-    public static int parseNumberOfUpNodesFromNodetoolStatus(String output) {
+    public int parseNumberOfUpNodesFromNodetoolStatus(String output) {
         Pattern pattern = Pattern.compile("^UN.*");
         int upNodes = 0;
         for (String line : output.split("\n")) {

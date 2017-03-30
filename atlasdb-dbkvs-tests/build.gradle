@@ -1,13 +1,14 @@
+apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  testCompile project(":atlasdb-dbkvs")
-  testCompile project(":atlasdb-tests-shared")
+  compile project(":atlasdb-dbkvs")
+  compile project(":atlasdb-tests-shared")
 
   testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
+  testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
   testCompile group: 'junit', name: 'junit'
 }
 

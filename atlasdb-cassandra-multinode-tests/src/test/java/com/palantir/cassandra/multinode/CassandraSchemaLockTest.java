@@ -16,6 +16,7 @@
 package com.palantir.cassandra.multinode;
 
 import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -81,6 +82,10 @@ public class CassandraSchemaLockTest {
             executorService.shutdown();
             assertTrue(executorService.awaitTermination(4, TimeUnit.MINUTES));
         }
+
+        CassandraKeyValueService kvs =
+                CassandraKeyValueService.create(configManager, Optional.absent());
+        assertThat(kvs.getAllTableNames(), hasItem(table1));
 
         assertThat(new File(CONTAINERS.getLogDirectory()),
                 containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));

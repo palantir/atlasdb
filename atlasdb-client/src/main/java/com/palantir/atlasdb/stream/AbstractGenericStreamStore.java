@@ -23,16 +23,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
@@ -40,7 +42,6 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.ByteArrayIOStream;
-import com.palantir.util.file.DeleteOnCloseFileInputStream;
 
 public abstract class AbstractGenericStreamStore<ID> implements GenericStreamStore<ID> {
     protected static final Logger log = LoggerFactory.getLogger(AbstractGenericStreamStore.class);
@@ -66,20 +67,29 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     protected abstract long getInMemoryThreshold();
 
     @Override
-    public final InputStream loadStream(Transaction transaction, final ID id) {
+    public InputStream loadStream(Transaction transaction, final ID id) {
         StreamMetadata metadata = getMetadata(transaction, id);
         return getStream(transaction, id, metadata);
     }
 
     @Override
-    public final Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
-        Map<ID, InputStream> ret = Maps.newHashMap();
-        Map<ID, StreamMetadata> idsToMetadata = getMetadata(transaction, ids);
-        for (Map.Entry<ID, StreamMetadata> entry : idsToMetadata.entrySet()) {
-            ID id = entry.getKey();
-            ret.put(id, getStream(transaction, id, entry.getValue()));
+    public Optional<InputStream> loadSingleStream(Transaction transaction, final ID id) {
+        Map<ID, StreamMetadata> idToMetadata = getMetadata(transaction, ImmutableSet.of(id));
+        if (idToMetadata.isEmpty()) {
+            return Optional.empty();
         }
-        return ret;
+
+        StreamMetadata metadata = getOnlyStreamMetadata(idToMetadata);
+        return Optional.of(getStream(transaction, id, metadata));
+    }
+
+    @Override
+    public Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
+        Map<ID, StreamMetadata> idsToMetadata = getMetadata(transaction, ids);
+
+        return idsToMetadata.entrySet().stream()
+                .map(e -> Maps.immutableEntry(e.getKey(), getStream(transaction, e.getKey(), e.getValue())))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private InputStream getStream(Transaction transaction, ID id, StreamMetadata metadata) {
@@ -101,9 +111,44 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             loadSingleBlockToOutputStream(transaction, id, 0, ios);
             return ios.getInputStream();
         } else {
-            File file = loadToNewTempFile(transaction, id, metadata);
-            return new DeleteOnCloseFileInputStream(file);
+            return makeStream(transaction, id, metadata);
         }
+    }
+
+    private InputStream makeStream(Transaction parent, ID id, StreamMetadata metadata) {
+        long totalBlocks = getNumberOfBlocksFromMetadata(metadata);
+        int blocksInMemory = getNumberOfBlocksThatFitInMemory();
+
+        BlockGetter pageRefresher = new BlockGetter() {
+            @Override
+            public void get(long firstBlock, long numBlocks, OutputStream destination) {
+                if (parent.isUncommitted()) {
+                    loadNBlocksToOutputStream(parent, id, firstBlock, numBlocks, destination);
+                } else {
+                    txnMgr.runTaskReadOnly(txn -> {
+                        loadNBlocksToOutputStream(txn, id, firstBlock, numBlocks, destination);
+                        return null;
+                    });
+                }
+            }
+
+            @Override
+            public int expectedBlockLength() {
+                return BLOCK_SIZE_IN_BYTES;
+            }
+        };
+
+        try {
+            return BlockConsumingInputStream.create(pageRefresher, totalBlocks, blocksInMemory);
+        } catch (IOException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    protected int getNumberOfBlocksThatFitInMemory() {
+        int inMemoryThreshold = (int) getInMemoryThreshold(); // safe; actually defined as an int in generated code.
+        int blocksInMemory = inMemoryThreshold / BLOCK_SIZE_IN_BYTES;
+        return Math.max(1, blocksInMemory);
     }
 
     @Override
@@ -151,7 +196,19 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    private void tryWriteStreamToFile(Transaction transaction, ID id, StreamMetadata metadata, FileOutputStream fos)
+    private void loadNBlocksToOutputStream(
+            Transaction tx,
+            ID streamId,
+            long firstBlock,
+            long numBlocks,
+            OutputStream os) {
+        for (long i = 0; i < numBlocks; i++) {
+            loadSingleBlockToOutputStream(tx, streamId, firstBlock + i, os);
+        }
+    }
+
+    // This method is overridden in generated code. Changes to this method may have unintended consequences.
+    protected void tryWriteStreamToFile(Transaction transaction, ID id, StreamMetadata metadata, FileOutputStream fos)
             throws IOException {
         long numBlocks = getNumberOfBlocksFromMetadata(metadata);
         for (long i = 0; i < numBlocks; i++) {
@@ -167,6 +224,10 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     protected abstract Map<ID, StreamMetadata> getMetadata(Transaction tx, Set<ID> streamIds);
 
     private StreamMetadata getMetadata(Transaction transaction, ID id) {
-        return Iterables.getOnlyElement(getMetadata(transaction, Sets.newHashSet(id)).entrySet()).getValue();
+        return getOnlyStreamMetadata(getMetadata(transaction, ImmutableSet.of(id)));
+    }
+
+    private StreamMetadata getOnlyStreamMetadata(Map<ID, StreamMetadata> idToMetadata) {
+        return Iterables.getOnlyElement(idToMetadata.values());
     }
 }

@@ -75,8 +75,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @Override
-    public Transaction commitAndStartNewTransaction(Transaction t) {
-        t.commit();
+    public Transaction commitAndStartNewTransaction(Transaction tx) {
+        tx.commit();
         return createNewTransaction();
     }
 
@@ -91,6 +91,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 timestampService.getFreshTimestamp(),
                 conflictDetectionManager.get(),
                 constraintModeSupplier.get(),
-                TransactionReadSentinelBehavior.THROW_EXCEPTION);
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                timestampValidationReadCache);
     }
 }

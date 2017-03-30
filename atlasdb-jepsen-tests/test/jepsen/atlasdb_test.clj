@@ -1,9 +1,14 @@
 (ns jepsen.atlasdb-test
   (:require [clojure.test :refer :all]
-            [jepsen.core :as jepsen]
-            [jepsen.atlasdb :as atlasdb]))
+            [jepsen.atlasdb.lock :as lock]
+            [jepsen.atlasdb.timestamp :as timestamp]
+            [jepsen.core :as jepsen]))
 
-(deftest atlasdb-test
-  (let [test (atlasdb/atlasdb-test)]
-    (atlasdb/with-cassandra test
-      (is (:valid? (:results (jepsen/run! test)))))))
+;; Using Clojure's testing framework, we initiate our test runs
+;; Tests successful iff the value for the key ":valid?" is truthy
+
+(deftest timestamp-test
+   (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test))))))
+
+(deftest lock-test
+   (is (:valid? (:results (jepsen/run! (lock/lock-test))))))

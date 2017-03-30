@@ -55,7 +55,7 @@ public class ConnectionSupplier implements SqlConnectionSupplier {
             try {
                 sharedConnection.getUnderlyingConnection().close();
             } catch (SQLException e) {
-                log.error(e.getMessage(), e);
+                log.error("Error occurred closing the underlying connection", e);
             } finally {
                 sharedConnection = null;
             }

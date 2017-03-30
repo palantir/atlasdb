@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Equivalence;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -96,9 +98,42 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         this.cellsSweeper = cellsSweeper;
     }
 
+    /**
+     * Represents the type of run to be conducted by the sweep runner.
+     */
+    private enum RunType {
+        /**
+         * A DRY run is expect to not mutate any tables (with the exception of the sweep.progress table)
+         * but will determine and report back all the values that *would* have been swept.
+         */
+        DRY,
+
+        /**
+         * A FULL run will execute all followers / sentinel additions / and deletions on the
+         * cells that qualify for sweeping.
+         */
+        FULL
+    }
+
     @Override
-    public SweepResults run(
-            TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] nullableStartRow) {
+    public SweepResults dryRun(TableReference tableRef,
+            int rowBatchSize,
+            int cellBatchSize,
+            @Nullable byte[] startRow) {
+        return run(tableRef, rowBatchSize, cellBatchSize, startRow, RunType.DRY);
+    }
+
+    @Override
+    public SweepResults run(TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] startRow) {
+        return run(tableRef, rowBatchSize, cellBatchSize, startRow, RunType.FULL);
+    }
+
+    private SweepResults run(
+            TableReference tableRef,
+            int rowBatchSize,
+            int cellBatchSize,
+            @Nullable byte[] nullableStartRow,
+            RunType runType) {
         Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
         Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
@@ -140,8 +175,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
         try (ClosableIterator<RowResult<Value>> valueResults = sweeper.getValues(tableRef, range, sweepTs);
              ClosableIterator<RowResult<Set<Long>>> rowResults = sweeper.getCellTimestamps(tableRef, range, sweepTs)) {
-            CountingIterator<RowResult<Set<Long>>> rowResultTimestamps =
-                    new CountingIterator<>(Iterators.limit(rowResults, rowBatchSize));
+            EquivalenceCountingIterator<RowResult<Set<Long>>> rowResultTimestamps =
+                    new EquivalenceCountingIterator<>(rowResults, rowBatchSize, sameRowEquivalence());
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults);
 
             BatchingVisitable<CellAndTimestamps> cellsAndTimestamps = BatchingVisitableFromIterable
@@ -152,7 +187,12 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                     cellBatchSize,
                     thisBatch -> {
                         CellsAndTimestamps thisBatchCells = CellsAndTimestamps.fromCellAndTimestampsList(thisBatch);
-                        int cellsSwept = sweepForCells(thisBatchCells, tableRef, sweeper, sweepTs, peekingValues);
+                        int cellsSwept = sweepForCells(thisBatchCells,
+                                tableRef,
+                                sweeper,
+                                sweepTs,
+                                peekingValues,
+                                runType);
                         totalCellsSwept.addAndGet(cellsSwept);
                         return true;
                     });
@@ -167,6 +207,20 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                     .sweptTimestamp(sweepTs)
                     .build();
         }
+    }
+
+    public static Equivalence<RowResult<Set<Long>>> sameRowEquivalence() {
+        return new Equivalence<RowResult<Set<Long>>>() {
+            @Override
+            protected boolean doEquivalent(RowResult<Set<Long>> fst, RowResult<Set<Long>> snd) {
+                return Arrays.equals(fst.getRowName(), snd.getRowName());
+            }
+
+            @Override
+            protected int doHash(RowResult<Set<Long>> setRowResult) {
+                return 0;
+            }
+        };
     }
 
     private Sweeper getSweeperFor(SweepStrategy sweepStrategy) {
@@ -192,7 +246,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             TableReference tableRef,
             Sweeper sweeper,
             long sweepTs,
-            PeekingIterator<RowResult<Value>> peekingValues) {
+            PeekingIterator<RowResult<Value>> peekingValues,
+            RunType runType) {
         CellsAndTimestamps currentBatchWithoutIgnoredTimestamps =
                 currentBatch.withoutIgnoredTimestamps(sweeper.getTimestampsToIgnore());
 
@@ -200,7 +255,10 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                 currentBatchWithoutIgnoredTimestamps, peekingValues, sweepTs, sweeper);
 
         Multimap<Cell, Long> startTimestampsToSweepPerCell = cellsToSweep.timestampsAsMultimap();
-        cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, cellsToSweep.allSentinels());
+
+        if (runType == RunType.FULL) {
+            cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, cellsToSweep.allSentinels());
+        }
 
         return startTimestampsToSweepPerCell.size();
     }

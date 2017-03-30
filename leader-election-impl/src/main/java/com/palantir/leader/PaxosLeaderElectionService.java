@@ -86,6 +86,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
 
+    @Deprecated // Use PaxosLeaderElectionServiceBuilder instead.
     public PaxosLeaderElectionService(PaxosProposer proposer,
                                       PaxosLearner knowledge,
                                       Map<PingableLeader, HostAndPort> potentialLeadersToHosts,
@@ -341,7 +342,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 seq = Defaults.defaultValue(long.class);
             }
 
-            leaderLog.info("Proposing leadership with sequence number " + seq);
+            leaderLog.info("Proposing leadership with sequence number {}", seq);
             proposer.propose(seq, null);
         } catch (PaxosRoundFailureException e) {
             // We have failed trying to become the leader.

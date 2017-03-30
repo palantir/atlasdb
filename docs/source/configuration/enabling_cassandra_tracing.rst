@@ -13,15 +13,17 @@ about tracing itself check out DataStax's `Request tracing in Cassandra
 1.2 <http://www.datastax.com/dev/blog/tracing-in-cassandra-1-2>`__ and `TRACING <https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tracing_r.html>`__.
 
 To enable tracing you need to provide a configuration file called
-``atlasdb_tracing.prefs`` and place it in the ``user.dir`` directory of your
+``atlas_tracing.prefs`` and place it in the ``user.dir`` directory of your
 Java process, which is the directory from which java was executed.
 
 When a query is traced, you will see the following line your log file:
 ``Traced a call to <table-name> that took <duration> ms. It will appear in system_traces with UUID=<session-id-of-trace>``
 
-Generally, it is important to note that tracing is expensive and can have
-performance implications when reading/writing to Cassandra, and thus the
-use of it should be minimized.
+.. warning::
+
+   Trace logging is meant to be a temporary tool for performance analysis.
+   Leaving tracing enabled on a production instance is not recommended due to performance implications.
+   Ensure you disable tracing after your performance profiling is completed.
 
 The Prefs File
 ==============
@@ -31,7 +33,9 @@ the following parameters:
 
 .. code:: properties
 
-    # self explanatory
+    # enables tracing
+    # this will cause a significant performance hit while enabled
+    # ensure you disable tracing after your performance profiling is completed
     tracing_enabled: true
 
     # the probability we trace an eligible query

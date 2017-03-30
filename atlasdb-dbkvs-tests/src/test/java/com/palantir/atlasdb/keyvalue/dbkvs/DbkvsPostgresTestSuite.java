@@ -28,6 +28,7 @@ import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.logging.LogDirectory;
@@ -39,7 +40,8 @@ import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 @SuiteClasses({
         DbkvsPostgresKeyValueServiceTest.class,
         DbkvsPostgresSerializableTransactionTest.class,
-        DbkvsPostgresSweeperTest.class
+        DbkvsPostgresSweeperTest.class,
+        PostgresDbTimestampBoundStoreTest.class
         })
 public final class DbkvsPostgresTestSuite {
     private static final int POSTGRES_PORT_NUMBER = 5432;
@@ -53,6 +55,7 @@ public final class DbkvsPostgresTestSuite {
             .file("src/test/resources/docker-compose.yml")
             .waitingForService("postgres", Container::areAllPortsOpen)
             .saveLogsTo(LogDirectory.circleAwareLogDirectory(DbkvsPostgresTestSuite.class))
+            .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
 
     @BeforeClass

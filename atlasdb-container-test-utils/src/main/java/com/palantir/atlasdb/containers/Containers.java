@@ -31,6 +31,7 @@ import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
@@ -38,6 +39,8 @@ import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.DockerComposeFiles;
 import com.palantir.docker.compose.configuration.ProjectName;
+import com.palantir.docker.compose.configuration.ShutdownStrategy;
+import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.logging.LogCollector;
 import com.palantir.docker.compose.logging.LogDirectory;
 
@@ -60,7 +63,7 @@ public class Containers extends ExternalResource {
     private final String logDirectory;
 
     public Containers(Class<?> classToSaveLogsFor) {
-        logDirectory = LogDirectory.circleAwareLogDirectory(Paths.get(
+        this.logDirectory = LogDirectory.circleAwareLogDirectory(Paths.get(
                 "atlasdbcontainers",
                 classToSaveLogsFor.getSimpleName()).toString());
     }
@@ -110,10 +113,19 @@ public class Containers extends ExternalResource {
                 .map(dockerComposeFilesToTemporaryCopies::getUnchecked)
                 .collect(Collectors.toSet());
 
+        ImmutableMap.Builder<String, String> environment = ImmutableMap.builder();
+        containersToStart.forEach(c -> environment.putAll(c.getEnvironment()));
+
+        DockerMachine machine = DockerMachine.localMachine()
+                .withEnvironment(environment.build())
+                .build();
+
         dockerComposeRule = DockerComposeRule.builder()
                 .files(DockerComposeFiles.from(containerDockerComposeFiles.toArray(new String[0])))
                 .projectName(PROJECT_NAME)
+                .machine(machine)
                 .logCollector(currentLogCollector)
+                .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
                 .build();
 
         dockerComposeRule.before();
@@ -137,7 +149,7 @@ public class Containers extends ExternalResource {
     private static void waitForContainersToStart() {
         for (Container container : Sets.difference(containersToStart, containersStarted)) {
             Awaitility.await()
-                    .atMost(Duration.TWO_MINUTES)
+                    .atMost(Duration.FIVE_MINUTES)
                     .pollInterval(Duration.ONE_SECOND)
                     .until(() -> container.isReady(dockerComposeRule).succeeded());
         }

@@ -1,4 +1,22 @@
+apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
+
+apply plugin: 'com.google.protobuf'
+
+protobuf {
+  protoc {
+    artifact = 'com.google.protobuf:protoc:2.6.1'
+  }
+  generatedFilesBaseDir = "$projectDir/src"
+}
+
+sourceSets {
+  main {
+    proto {
+      srcDir '../leader-election-api/src/main/java'
+    }
+  }
+}
 
 dependencies {
   compile(group: "com.google.protobuf", name: "protobuf-java", version: "2.6.0") {

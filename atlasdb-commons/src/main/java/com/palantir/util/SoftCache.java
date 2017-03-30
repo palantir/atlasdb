@@ -96,7 +96,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
             // (it could have already been replaced by a new entry)
             if (entry != null && entry.valueRef == ref){
                 if (log.isDebugEnabled()){
-                    log.debug("Removing from cache reference with key: " + key);
+                    log.debug("Removing from cache reference with key: {}", key);
                 }
 
                 cacheEntries.remove(key);
@@ -181,7 +181,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         if(entry == null) {
             mbean.misses.incrementAndGet();
             if (log.isTraceEnabled()) {
-                log.trace("Cache miss (not cached) on " + key);
+                log.trace("Cache miss (not cached) on {}", key);
             }
             return null;
         }
@@ -193,7 +193,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         if(!entry.isValid()) {
             mbean.misses.incrementAndGet();
             if (log.isTraceEnabled()) {
-                log.trace("Cache miss (stale entry) on " + key);
+                log.trace("Cache miss (stale entry) on {}", key);
             }
             cacheEntries.remove(key);
             return null;
@@ -201,7 +201,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
         // c) fresh and valid, return value
         if (log.isTraceEnabled()) {
-            log.trace("Cache hit on " + key);
+            log.trace("Cache hit on {}", key);
         }
         mbean.hits.incrementAndGet();
         return ret;
@@ -262,7 +262,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
     public final void cleanup() {
         mbean.cleanups.incrementAndGet();
         if(log.isTraceEnabled()) {
-            log.trace("cleanup() called on " + getName() + " of size: " + cacheEntries.size());
+            log.trace("cleanup() called on {} of size: {}", getName(), cacheEntries.size());
         }
 
         int i = 0;
@@ -275,7 +275,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         }
 
         if(log.isTraceEnabled()) {
-            log.trace("cleanup() finished on " + getName() + ".  " + i + " keys were cleaned up. ");
+            log.trace("cleanup() finished on {}.  {} keys were cleaned up. ", getName(), i);
         }
     }
 

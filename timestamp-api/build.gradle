@@ -1,6 +1,9 @@
+apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+    compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
 }

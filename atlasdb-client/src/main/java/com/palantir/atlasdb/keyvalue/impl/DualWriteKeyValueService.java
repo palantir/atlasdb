@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -104,9 +105,25 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        return delegate1.supportsCheckAndSet();
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
+        delegate1.checkAndSet(checkAndSetRequest);
+    }
+
+    @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         delegate1.delete(tableRef, keys);
         delegate2.delete(tableRef, keys);
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        delegate1.deleteRange(tableRef, range);
+        delegate2.deleteRange(tableRef, range);
     }
 
     @Override

@@ -22,10 +22,14 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.RegeneratingTable;
 
 @State(Scope.Benchmark)
@@ -36,18 +40,47 @@ public class KvsDeleteBenchmarks {
         return table.getTableCells();
     }
 
+    private Object doDeleteRange(ConsecutiveNarrowTable table, int numBatches) {
+        Iterable<RangeRequest> rangeRequests =
+                numBatches == 1
+                        ? ImmutableList.of(RangeRequest.all())
+                        : table.getRangeRequests(1, table.getNumRows() / numBatches);
+
+        rangeRequests.forEach(rangeRequest -> table.getKvs().deleteRange(table.getTableRef(), rangeRequest));
+
+        return rangeRequests;
+    }
+
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 6, timeUnit = TimeUnit.SECONDS)
     public Object singleDelete(RegeneratingTable.KvsRowRegeneratingTable table) {
         return doDelete(table);
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 22, timeUnit = TimeUnit.SECONDS)
     public Object batchDelete(RegeneratingTable.KvsBatchRegeneratingTable table) {
         return doDelete(table);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 6, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 60, timeUnit = TimeUnit.SECONDS)
+    public Object batchRangeDelete(ConsecutiveNarrowTable.RegeneratingCleanNarrowTable table) {
+        return doDeleteRange(table, 4);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
+    public Object allRangeDelete(ConsecutiveNarrowTable.RegeneratingCleanNarrowTable table) {
+        return doDeleteRange(table, 1);
     }
 
 }

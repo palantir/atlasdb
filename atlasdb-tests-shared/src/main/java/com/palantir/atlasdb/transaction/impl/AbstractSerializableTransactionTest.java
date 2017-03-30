@@ -58,6 +58,7 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.remoting1.tracing.Tracers;
 
 
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
@@ -97,7 +98,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                true) {
+                true,
+                timestampCache) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, new Function<byte[], byte[]>() {
@@ -108,6 +110,23 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 });
             }
         };
+    }
+
+    @Test
+    public void testReadOnlySerializableTransactionsIgnoreReadWriteConflicts() {
+        Transaction t0 = startTransaction();
+        put(t0, "row1", "col1", "100");
+        t0.commit();
+
+        Transaction t1 = startTransaction();
+        get(t1, "row1", "col1");
+
+        Transaction t2 = startTransaction();
+        put(t2, "row1", "col1", "101");
+        t2.commit();
+
+        // Succeeds, even though t1 is serializable, because it's read-only.
+        t1.commit();
     }
 
     @Test
@@ -152,7 +171,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         }
     }
 
-    @Test(expected=TransactionFailedRetriableException.class)
+    @Test(expected = TransactionFailedRetriableException.class)
     public void testConcurrentWriteSkew() throws InterruptedException, BrokenBarrierException {
         Transaction t0 = startTransaction();
         put(t0, "row1", "col1", "100");
@@ -162,8 +181,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         final CyclicBarrier barrier = new CyclicBarrier(2);
 
         final Transaction t1 = startTransaction();
-        ExecutorService exec = PTExecutors.newCachedThreadPool();
-        Future<?> f = exec.submit( new Callable<Void>() {
+        ExecutorService exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
+        Future<?> f = exec.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 withdrawMoney(t1, true, false);

@@ -1,39 +1,29 @@
 machine:
-  pre:
-    - curl -sSL https://s3.amazonaws.com/circle-downloads/install-circleci-docker.sh | bash -s -- 1.10.0
   java:
     version:
       oraclejdk8
   environment:
-    _JAVA_OPTIONS: "-Xmx512M"
-    GRADLE_OPTS: '-Xss1024K -XX:+CMSClassUnloadingEnabled -XX:InitialCodeCacheSize=32M -XX:CodeCacheExpansionSize=1M -XX:CodeCacheMinimumFreeSpace=1M -XX:ReservedCodeCacheSize=150M -XX:MinMetaspaceExpansion=1M -XX:MaxMetaspaceExpansion=8M -XX:MaxMetaspaceSize=128M -XX:MaxDirectMemorySize=96M -XX:CompressedClassSpaceSize=32M'
+    _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
     TERM: dumb
-  services:
-    - docker
+  post: # install-docker.sh and starting Docker depend on environment variables to deduce whether they're running on external or internal CircleCI, which are not visible in 'pre'.
+    - ./scripts/circle-ci/install-docker.sh:
+        pwd: $CIRCLE_PROJECT_REPONAME
+    - sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m`
+    - sudo chmod +x /usr/local/bin/docker-compose
+    - docker info >/dev/null 2>&1 || sudo service docker start
 
 checkout:
   post:
-    - sudo service clamav-freshclam stop
-    - sudo service couchdb stop
-    - sudo service memcached stop
-    - sudo service mongodb stop
-    - sudo service mysql stop
-    - sudo service postgresql stop
-    - sudo service rabbitmq-server stop
-    - sudo service redis-server stop
-    - sudo service zookeeper stop
-
-general:
-  artifacts:
-    - "build/reports/profile"
+    - ./scripts/circle-ci/pull-all-images.sh:
+        background: true
+    - ./scripts/circle-ci/stop-services.sh:
+        background: true
 
 dependencies:
   pre:
     - ./scripts/circle-ci/download-moreutils.sh
-    - sudo pip install docker-compose
   override:
     - ./scripts/time-cmd.sh ./gradlew --profile --parallel resolveConfigurations
-    - sudo pip install sphinx sphinx_rtd_theme
     - scripts/circle-ci/pr-changelog-status-check.sh
 
 test:
@@ -42,10 +32,9 @@ test:
         background: true
         parallel: true
   override:
-    - ./scripts/time-cmd.sh ./gradlew --profile --continue --parallel compileJava compileTestJava:
-        parallel: true
     - ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
+        timeout: 300
   post:
     - ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
     - ./scripts/time-cmd.sh ./gradlew --profile jacocoFullReport -x classes:
@@ -58,9 +47,17 @@ test:
         parallel: true
     - mkdir -p $CIRCLE_ARTIFACTS/checkstyle $CIRCLE_ARTIFACTS/findbugs:
         parallel: true
+    - "if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi":
+        parallel: true
     - find . -type d -regex ".*/build/reports/checkstyle" | sed 's#\./\(\(.*\)/build/reports/checkstyle\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/checkstyle/\2#' | bash:
         parallel: true
     - find . -type d -regex ".*/build/reports/findbugs" | sed 's#\./\(\(.*\)/build/reports/findbugs\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/findbugs/\2#' | bash:
+        parallel: true
+    - rsync -uav "build/reports/profile" "$CIRCLE_ARTIFACTS/":
+        parallel: true
+    - mkdir -p $CIRCLE_ARTIFACTS/heapdumps:
+        parallel: true
+    - find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;:
         parallel: true
 
 deployment:

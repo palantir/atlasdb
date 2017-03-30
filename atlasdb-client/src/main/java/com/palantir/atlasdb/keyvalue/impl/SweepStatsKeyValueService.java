@@ -17,12 +17,10 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,6 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
@@ -43,10 +42,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.SweepSchema;
@@ -76,7 +75,9 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     private final KeyValueService delegate;
     private final TimestampService timestampService;
     private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
+
     private final Set<TableReference> clearedTables = Collections.newSetFromMap(new ConcurrentHashMap<TableReference, Boolean>());
+
     private final AtomicInteger totalModifications = new AtomicInteger();
     private final Lock flushLock = new ReentrantLock();
     private final ScheduledExecutorService flushExecutor = PTExecutors.newSingleThreadScheduledExecutor();
@@ -92,8 +93,9 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         this.flushExecutor.scheduleWithFixedDelay(createFlushTask(), FLUSH_DELAY_SECONDS, FLUSH_DELAY_SECONDS, TimeUnit.SECONDS);
     }
 
+    @VisibleForTesting
     @Override
-    protected KeyValueService delegate() {
+    public KeyValueService delegate() {
         return delegate;
     }
 
@@ -123,10 +125,18 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        delegate().deleteRange(tableRef, range);
+        if (RangeRequest.all().equals(range)) {
+            // This is equivalent to truncate.
+            recordClear(tableRef);
+        }
+    }
+
+    @Override
     public void truncateTable(TableReference tableRef) {
         delegate().truncateTable(tableRef);
-        clearedTables.add(tableRef);
-        recordModifications(CLEAR_WEIGHT);
+        recordClear(tableRef);
     }
 
     @Override
@@ -139,50 +149,18 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     @Override
     public void dropTable(TableReference tableRef) {
         delegate().dropTable(tableRef);
-        clearedTables.add(tableRef);
-        recordModifications(CLEAR_WEIGHT);
+        recordClear(tableRef);
     }
 
     @Override
     public void close() {
-        terminateExecutor(new Runnable() {
-            @Override
-            public void run() {
-                delegate.close();
-            }
-        });
+        flushExecutor.shutdownNow();
+        delegate.close();
     }
 
-    private void forceFlush() {
-        recordModifications(WRITE_THRESHOLD);
-        if (flushExecutor.isShutdown()) {
-            log.warn("Cannot flush stats while shutting down");
-        } else {
-            flushExecutor.execute(createFlushTask());
-        }
-    }
-
-    private void terminateExecutor(Runnable cleanupTask) {
-        forceFlush();
-        flushExecutor.shutdown();
-        try {
-            if (flushExecutor.awaitTermination(1, TimeUnit.MINUTES)) {
-                log.debug("Successfully terminated flush executor");
-            } else {
-                log.warn("Timed out while waiting for flush executor termination");
-                List<Runnable> pendingTasks = flushExecutor.shutdownNow();
-                log.info("Attempting to complete flushing {} pending tasks", pendingTasks.size());
-                Executor directExecutor = MoreExecutors.directExecutor();
-                for (Runnable pendingTask : pendingTasks) {
-                    directExecutor.execute(pendingTask);
-                }
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Interrupted while terminating flush executor", e);
-        } finally {
-            cleanupTask.run();
-        }
+    @VisibleForTesting
+    boolean hasBeenCleared(TableReference tableRef) {
+        return clearedTables.contains(tableRef);
     }
 
     // This way of recording the number of writes to tables is obviously not
@@ -190,9 +168,13 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     // updates could be clobbered), and it makes little effort to ensure that
     // all updates are flushed. It is intended only to be "good enough" for
     // determining what tables have been written to a lot.
-
     private void recordModifications(int newWrites) {
         totalModifications.addAndGet(newWrites);
+    }
+
+    private void recordClear(TableReference tableRef) {
+        clearedTables.add(tableRef);
+        recordModifications(CLEAR_WEIGHT);
     }
 
     private Runnable createFlushTask() {
@@ -218,7 +200,9 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
                         }
                     }
                 } catch (Throwable t) {
-                    log.error("Error occurred while flushing sweep stats: {}", t, t);
+                    if (!Thread.interrupted()) {
+                        log.error("Error occurred while flushing sweep stats: {}", t, t);
+                    }
                 }
             }
         };
@@ -262,14 +246,17 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             commit(timestamp);
             delegate().put(SWEEP_PRIORITY_TABLE, newWriteCounts, timestamp);
         } catch (RuntimeException e) {
+            if (Thread.interrupted()) {
+                return;
+            }
             Set<TableReference> allTableNames = delegate().getAllTableNames();
             if (!allTableNames.contains(SWEEP_PRIORITY_TABLE)
                     || !allTableNames.contains(TransactionConstants.TRANSACTION_TABLE)) {
                 // ignore problems when sweep or transaction tables don't exist
-                log.warn("Ignoring failed sweep stats flush due to {}", e.getMessage(), e);
+                log.warn("Ignoring failed sweep stats flush due to ", e);
             }
-            log.error("Unable to flush sweep stats for writes {} and clears {}: {}",
-                    writes, clears, e.getMessage(), e);
+            log.error("Unable to flush sweep stats for writes {} and clears {}: ",
+                    writes, clears, e);
             throw e;
         }
     }

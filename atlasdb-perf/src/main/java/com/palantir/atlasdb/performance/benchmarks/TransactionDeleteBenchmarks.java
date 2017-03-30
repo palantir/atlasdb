@@ -23,6 +23,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -39,15 +40,17 @@ public class TransactionDeleteBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    @Threads(1)
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object singleDelete(RegeneratingTable.TransactionRowRegeneratingTable table) {
         return doDelete(table);
     }
 
     @Benchmark
-    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    @Threads(1)
+    @Warmup(time = 4, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 20, timeUnit = TimeUnit.SECONDS)
     public Object batchDelete(RegeneratingTable.TransactionBatchRegeneratingTable table) {
         return doDelete(table);
     }

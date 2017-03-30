@@ -1,0 +1,12 @@
+apply plugin: 'com.palantir.docker'
+
+def imageVersion = "${project.version.toString().replaceAll('\\+', '-')}"
+
+docker {
+    name "palantirtechnologies/${project.name}:${imageVersion}"
+    tags 'latest', 'snapshot'
+    dependsOn distTar
+}
+
+// We disable pushing for the time being
+dockerPush.onlyIf { false }

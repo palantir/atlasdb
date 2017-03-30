@@ -8,10 +8,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -20,7 +20,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -82,11 +81,11 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class UserPhotosStreamHashAidxTable implements
         AtlasDbDynamicMutablePersistentTable<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow,
                                                 UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumn,
@@ -547,18 +546,6 @@ public final class UserPhotosStreamHashAidxTable implements
     }
 
     @Override
-    public Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> getAsync(final Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumn> cells, ExecutorService exec) {
-        Callable<Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>> c =
-                new Callable<Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>>() {
-            @Override
-            public Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> call() {
-                return get(cells);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
-    }
-
-    @Override
     public List<UserPhotosStreamHashAidxColumnValue> getRowColumns(UserPhotosStreamHashAidxRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -588,23 +575,6 @@ public final class UserPhotosStreamHashAidxTable implements
     @Override
     public Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> getRowsMultimap(Iterable<UserPhotosStreamHashAidxRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> getAsyncRowsMultimap(Iterable<UserPhotosStreamHashAidxRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> getAsyncRowsMultimap(final Iterable<UserPhotosStreamHashAidxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>> c =
-                new Callable<Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>>() {
-            @Override
-            public Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> getRowsMultimapInternal(Iterable<UserPhotosStreamHashAidxRow> rows, ColumnSelection columns) {
@@ -687,7 +657,6 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -719,7 +688,6 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -766,5 +734,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "WO7sUdURgoIbJTeCMGXAQw==";
+    static String __CLASS_HASH = "xCy5bWaUF/rgrMJgqWl5Nw==";
 }

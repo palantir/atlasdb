@@ -16,6 +16,7 @@
 package com.palantir.nexus.db.pool;
 
 import java.sql.Connection;
+import java.util.Arrays;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -78,7 +79,8 @@ public class CloseTracking {
 
         public synchronized void check() {
             if (!closed) {
-                log.error(typeName + " never closed!", createTrace);
+                log.error("{} never closed!", typeName, createTrace);
+                assert false : typeName + " never closed!" + "\n" + Arrays.toString(createTrace.getStackTrace());
             }
         }
     }

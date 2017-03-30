@@ -91,27 +91,24 @@ public class KvsRangeMigrator implements RangeMigrator {
         return row == null || RangeRequests.isLastRowName(row);
     }
 
-    /**
-     * The write transaction wraps the read transaction because the write transaction can be
-     * aborted, and the read transaction should be new.
-     */
     private byte[] copyOneTransaction(final RangeRequest range, final long rangeId) {
         return txManager.runTaskWithRetry(new TransactionTask<byte[], RuntimeException>() {
             @Override
             public byte[] execute(final Transaction writeT) {
-                return copyOneTransactionWithReadTransaction(range, rangeId, writeT);
+                return copyOneTransactionFromReadTxManager(range, rangeId, writeT);
             }
         });
     }
 
-    private byte[] copyOneTransactionWithReadTransaction(final RangeRequest range,
-                                                         final long rangeId,
-                                                         final Transaction writeT) {
+    private byte[] copyOneTransactionFromReadTxManager(final RangeRequest range,
+                                                       final long rangeId,
+                                                       final Transaction writeT) {
         if (readTxManager == txManager) {
             // don't wrap
             return copyOneTransactionInternal(range, rangeId, writeT, writeT);
         } else {
-            return readTxManager.runTaskReadOnly(new TransactionTask<byte[], RuntimeException>() {
+            // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
+            return readTxManager.runTaskWithRetry(new TransactionTask<byte[], RuntimeException>() {
                 @Override
                 public byte[] execute(Transaction readT) {
                     return copyOneTransactionInternal(range, rangeId, readT, writeT);
@@ -135,7 +132,9 @@ public class KvsRangeMigrator implements RangeMigrator {
         }
         RangeRequest rangeToUse = builder.build();
         if (log.isTraceEnabled()) {
-            log.trace("Copying table " + srcTable + " range " + rangeId + " from "+ BaseEncoding.base16().lowerCase().encode(rangeToUse.getStartInclusive()) + "  to " + BaseEncoding.base16().lowerCase().encode(rangeToUse.getEndExclusive()));
+            log.trace("Copying table {} range {} from {}  to {}", srcTable, rangeId,
+                    BaseEncoding.base16().lowerCase().encode(rangeToUse.getStartInclusive()),
+                    BaseEncoding.base16().lowerCase().encode(rangeToUse.getEndExclusive()));
         }
 
         BatchingVisitable<RowResult<byte[]>> bv = readT.getRange(srcTable, rangeToUse);
@@ -143,7 +142,7 @@ public class KvsRangeMigrator implements RangeMigrator {
         Map<Cell, byte[]> writeMap = Maps.newHashMap();
         byte[] lastRow = internalCopyRange(bv, maxBytes, writeMap);
         if (log.isTraceEnabled() && (lastRow != null)) {
-            log.trace("Copying " + lastRow.length + " bytes for range " + rangeId + " on table " + srcTable);
+            log.trace("Copying {} bytes for range {} on table {}", lastRow.length, rangeId, srcTable);
         }
         writeToKvs(writeMap);
 

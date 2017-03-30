@@ -22,6 +22,7 @@ import java.util.Set;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -112,8 +113,24 @@ public class ThrowingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        throw throwEx();
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
+        throw throwEx();
+    }
+
+    @Override
     @Idempotent
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+        throw throwEx();
+    }
+
+    @Override
+    @Idempotent
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
         throw throwEx();
     }
 

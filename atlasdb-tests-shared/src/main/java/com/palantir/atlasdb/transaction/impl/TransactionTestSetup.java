@@ -51,7 +51,7 @@ public abstract class TransactionTestSetup {
     protected static LockClient lockClient = null;
     protected static LockServiceImpl lockService = null;
 
-    protected KeyValueService keyValueService;
+    protected static KeyValueService keyValueService;
     protected TimestampService timestampService;
     protected TransactionService transactionService;
     protected ConflictDetectionManager conflictDetectionManager;
@@ -82,12 +82,17 @@ public abstract class TransactionTestSetup {
 
     @Before
     public void setUp() throws Exception {
-        keyValueService = getKeyValueService();
+        if (keyValueService == null) {
+            keyValueService = getKeyValueService();
+
+            keyValueService.createTables(ImmutableMap.of(
+                    TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
+                    TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
+            keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
+        }
+
         timestampService = new InMemoryTimestampService();
-        keyValueService.createTables(ImmutableMap.of(
-                TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
-                TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
-        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
+
         transactionService = TransactionServices.createTransactionService(keyValueService);
         conflictDetectionManager = ConflictDetectionManagers.createDefault(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
@@ -96,8 +101,15 @@ public abstract class TransactionTestSetup {
 
     @After
     public void tearDown() {
-        keyValueService.dropTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
-        keyValueService.close();
+        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
+    }
+
+    @AfterClass
+    public static void tearDownKvs() {
+        if (keyValueService != null) {
+            keyValueService.close();
+            keyValueService = null;
+        }
     }
 
     @AfterClass

@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
 import com.palantir.exception.PalantirSqlException;
@@ -27,7 +28,6 @@ import com.palantir.exception.PalantirSqlException;
 public class OracleTableInitializer implements DbTableInitializer {
     private static final Logger log = LoggerFactory.getLogger(OracleTableInitializer.class);
 
-    private static final String ORACLE_ALREADY_EXISTS_ERROR = "name is already used by an existing object";
     private final ConnectionSupplier connectionSupplier;
     private final OracleDdlConfig config;
 
@@ -44,30 +44,31 @@ public class OracleTableInitializer implements DbTableInitializer {
                         + "col_name   RAW(2000),"
                         + "max_ts     NUMBER(20)"
                         + ")",
-                ORACLE_ALREADY_EXISTS_ERROR);
+                OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
 
         executeIgnoringError(
                 "CREATE TYPE " + config.tablePrefix() + "CELL_TS_TABLE AS TABLE OF " + config.tablePrefix() + "CELL_TS",
-                ORACLE_ALREADY_EXISTS_ERROR
+                OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR
         );
 
         executeIgnoringError(
                 String.format(
                         "CREATE TABLE %s ("
                                 + "table_name varchar(2000) NOT NULL,"
-                                + "short_table_name varchar(30) NOT NULL,"
-                                + "CONSTRAINT pk_%s PRIMARY KEY (table_name),"
+                                + "short_table_name varchar(%d) NOT NULL,"
+                                + "CONSTRAINT %s PRIMARY KEY (table_name),"
                                 + "CONSTRAINT unique_%s UNIQUE (short_table_name)"
                                 + ")",
                         AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE,
-                        AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE,
+                        AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT,
+                        AtlasDbConstants.ORACLE_NAME_MAPPING_PK_CONSTRAINT,
                         AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE),
-                ORACLE_ALREADY_EXISTS_ERROR);
+                OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
 
         executeIgnoringError(
                 "CREATE SEQUENCE " + config.tablePrefix() + AtlasDbConstants.ORACLE_OVERFLOW_SEQUENCE + " INCREMENT BY "
                         + OverflowSequenceSupplier.OVERFLOW_ID_CACHE_SIZE,
-                ORACLE_ALREADY_EXISTS_ERROR);
+                OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
     }
 
     @Override
@@ -78,16 +79,16 @@ public class OracleTableInitializer implements DbTableInitializer {
                                 + "table_name varchar(2000) NOT NULL,"
                                 + "table_size NUMBER(38) NOT NULL,"
                                 + "value      LONG RAW NULL,"
-                                + "CONSTRAINT pk_%s PRIMARY KEY (table_name)"
+                                + "CONSTRAINT %s PRIMARY KEY (table_name)"
                                 + ")",
-                        metadataTableName, metadataTableName),
-                ORACLE_ALREADY_EXISTS_ERROR);
+                        metadataTableName, PrimaryKeyConstraintNames.get(metadataTableName)),
+                OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
 
         executeIgnoringError(
                 String.format(
                         "CREATE UNIQUE INDEX unique_%s_index ON %s (lower(table_name))",
                         metadataTableName, metadataTableName),
-                ORACLE_ALREADY_EXISTS_ERROR);
+                OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
     }
 
     private void executeIgnoringError(String sql, String errorToIgnore) {
@@ -95,7 +96,7 @@ public class OracleTableInitializer implements DbTableInitializer {
             connectionSupplier.get().executeUnregisteredQuery(sql);
         } catch (PalantirSqlException e) {
             if (!e.getMessage().contains(errorToIgnore)) {
-                log.error(e.getMessage(), e);
+                log.error("Error occurred trying to execute the query {}", sql, e);
                 throw e;
             }
         }

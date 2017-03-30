@@ -35,11 +35,6 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
     }
 
     @Override
-    protected String getValueSubselect(String tableAlias, boolean includeValue) {
-        return includeValue ? ", " + tableAlias + ".val, " + tableAlias + ".overflow " : " ";
-    }
-
-    @Override
     public boolean hasOverflowValues() {
         return true;
     }
@@ -70,7 +65,8 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
     private FullQuery getOldOverflowQuery(ArrayHandler arg) {
         String query = " /* SELECT_OVERFLOW */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_" + config.singleOverflowTable() + ") */ "
+                + "   /*+ USE_NL(t o) LEADING(t o) INDEX(o "
+                + PrimaryKeyConstraintNames.get(config.singleOverflowTable()) + ") */ "
                 + "   o.id, o.val "
                 + " FROM " + config.singleOverflowTable() + " o, "
                 + "   TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
@@ -81,7 +77,8 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
     private FullQuery getNewOverflowQuery(ArrayHandler arg) {
         String query = " /* SELECT_OVERFLOW (" + overflowTableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_" + overflowTableName + ") */ "
+                + "   /*+ USE_NL(t o) LEADING(t o) INDEX(o "
+                + PrimaryKeyConstraintNames.get(overflowTableName) + ") */ "
                 + "   o.id, o.val "
                 + " FROM " + overflowTableName + " o,"
                 + "   TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "

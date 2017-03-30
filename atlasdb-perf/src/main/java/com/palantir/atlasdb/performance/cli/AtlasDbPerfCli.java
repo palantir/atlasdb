@@ -19,7 +19,6 @@ package com.palantir.atlasdb.performance.cli;
 
 import java.io.File;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -41,7 +40,7 @@ import com.palantir.atlasdb.performance.PerformanceResults;
 import com.palantir.atlasdb.performance.backend.DatabasesContainer;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
-import com.palantir.atlasdb.performance.backend.KeyValueServiceType;
+import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
 
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
@@ -106,10 +105,7 @@ public class AtlasDbPerfCli {
         } else {
             Set<String> backends = cli.backends != null
                     ? cli.backends
-                    : EnumSet.allOf(KeyValueServiceType.class)
-                            .stream()
-                            .map(Enum::toString)
-                            .collect(Collectors.toSet());
+                    : KeyValueServiceInstrumentation.getBackends();
             try (DatabasesContainer container = startupDatabase(backends)) {
                 runJmh(cli,
                         container.getDockerizedDatabases()
@@ -123,7 +119,6 @@ public class AtlasDbPerfCli {
     private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
-                .threads(1)
                 .warmupIterations(1)
                 .measurementIterations(1)
                 .mode(Mode.SampleTime)
@@ -149,7 +144,7 @@ public class AtlasDbPerfCli {
     private static DatabasesContainer startupDatabase(Set<String> backends) {
         return DatabasesContainer.startup(
                 backends.stream()
-                        .map(KeyValueServiceType::valueOf)
+                        .map(KeyValueServiceInstrumentation::forDatabase)
                         .collect(Collectors.toList()));
     }
 
@@ -165,11 +160,9 @@ public class AtlasDbPerfCli {
         }
         if (cli.backends != null) {
             cli.backends.forEach(backend -> {
-                try {
-                    KeyValueServiceType.valueOf(backend.toUpperCase());
-                } catch (IllegalArgumentException e) {
+                if (isInvalidBackend(backend)) {
                     throw new RuntimeException("Invalid backend specified. Valid options: "
-                            + EnumSet.allOf(KeyValueServiceType.class) + " You provided: " + backend, e);
+                            + KeyValueServiceInstrumentation.getBackends() + " You provided: " + backend);
                 }
             });
         }
@@ -196,4 +189,7 @@ public class AtlasDbPerfCli {
                 .collect(Collectors.toSet());
     }
 
+    private static boolean isInvalidBackend(String backend) {
+        return !KeyValueServiceInstrumentation.getBackends().contains(backend);
+    }
 }

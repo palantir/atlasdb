@@ -31,6 +31,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -91,6 +92,11 @@ public class ProfilingKeyValueService implements KeyValueService {
                 method, tableCount, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
+    private static void logTimeAndTableRange(String method, String tableName, RangeRequest range, Stopwatch stopwatch) {
+        log.trace("Call to KVS.{} on table {} with range {} took {} ms.",
+                method, tableName, range, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+    }
+
     private final KeyValueService delegate;
 
     private ProfilingKeyValueService(KeyValueService delegate) {
@@ -139,6 +145,17 @@ public class ProfilingKeyValueService implements KeyValueService {
             logCellsAndSize("delete", tableRef.getQualifiedName(), keys.keySet().size(), byteSize(keys), stopwatch);
         } else {
             delegate.delete(tableRef, keys);
+        }
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        if (log.isTraceEnabled()) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            delegate.deleteRange(tableRef, range);
+            logTimeAndTableRange("deleteRange", tableRef.getQualifiedName(), range, stopwatch);
+        } else {
+            delegate.deleteRange(tableRef, range);
         }
     }
 
@@ -263,7 +280,7 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             ClosableIterator<RowResult<Value>> result = delegate.getRange(tableRef, rangeRequest, timestamp);
-            logTimeAndTable("getRange", tableRef.getQualifiedName(), stopwatch);
+            logTimeAndTableRange("getRange", tableRef.getQualifiedName(), rangeRequest, stopwatch);
             return result;
         } else {
             return delegate.getRange(tableRef, rangeRequest, timestamp);
@@ -275,7 +292,7 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             ClosableIterator<RowResult<Set<Long>>> result = delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
-            logTimeAndTable("getRangeOfTimestamps", tableRef.getQualifiedName(), stopwatch);
+            logTimeAndTableRange("getRangeOfTimestamps", tableRef.getQualifiedName(), rangeRequest, stopwatch);
             return result;
         } else {
             return delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
@@ -362,6 +379,22 @@ public class ProfilingKeyValueService implements KeyValueService {
             logCellsAndSize("putUnlessExists", tableRef.getQualifiedName(), values.keySet().size(), byteSize(values), stopwatch);
         } else {
             delegate.putUnlessExists(tableRef, values);
+        }
+    }
+
+    @Override
+    public boolean supportsCheckAndSet() {
+        return delegate.supportsCheckAndSet();
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest request) {
+        if (log.isTraceEnabled()) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            delegate.checkAndSet(request);
+            logCellsAndSize("checkAndSet", request.table().getQualifiedName(), 1, request.newValue().length, stopwatch);
+        } else {
+            delegate.checkAndSet(request);
         }
     }
 

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.ete;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,7 @@ import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
@@ -35,11 +37,15 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
+import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.DockerComposeRunOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 
+// **** Important: Some internal tests depend on this class,
+// please recompile them if any breaking changes are made to the setup ***
 public class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
@@ -48,14 +54,45 @@ public class EteSetup {
 
     private static DockerComposeRule docker;
     private static List<String> availableClients;
+    private static Duration waitDuration;
 
     static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES);
+    }
+
+    static RuleChain setupComposition(
+            Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames,
+            Duration waitTime) {
+        return setupComposition(eteClass, composeFile, availableClientNames, waitTime, ImmutableMap.of());
+    }
+
+    static RuleChain setupComposition(
+            Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames,
+            Map<String, String> environment) {
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment);
+    }
+
+    static RuleChain setupComposition(
+            Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames,
+            Duration waitTime,
+            Map<String, String> environment) {
+        waitDuration = waitTime;
         availableClients = ImmutableList.copyOf(availableClientNames);
 
+        DockerMachine machine = DockerMachine.localMachine().withEnvironment(environment).build();
         String logDirectory = EteSetup.class.getSimpleName() + "-" + eteClass.getSimpleName();
+
         docker = DockerComposeRule.builder()
                 .file(composeFile)
+                .machine(machine)
                 .saveLogsTo(LogDirectory.circleAwareLogDirectory(logDirectory))
+                .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
                 .build();
 
         DockerProxyRule dockerProxyRule = new DockerProxyRule(docker.projectName(), eteClass);
@@ -92,7 +129,7 @@ public class EteSetup {
             protected void before() throws Throwable {
                 Awaitility.await()
                         .ignoreExceptions()
-                        .atMost(Duration.TWO_MINUTES)
+                        .atMost(waitDuration)
                         .pollInterval(Duration.ONE_SECOND)
                         .until(serversAreReady());
             }

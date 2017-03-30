@@ -1,13 +1,5 @@
+apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
-
-buildscript {
-  repositories {
-    mavenCentral()
-  }
-  dependencies {
-    classpath 'com.google.protobuf:protobuf-gradle-plugin:0.7.6'
-  }
-}
 
 apply plugin: 'com.google.protobuf'
 
@@ -16,6 +8,14 @@ protobuf {
     artifact = 'com.google.protobuf:protoc:2.6.1'
   }
   generatedFilesBaseDir = "$projectDir/src"
+}
+
+sourceSets {
+  main {
+    proto {
+      srcDir '../atlasdb-client/src'
+    }
+  }
 }
 
 dependencies {

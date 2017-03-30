@@ -15,39 +15,23 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresPrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresTableInitializer;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresWriteTable;
 import com.palantir.nexus.db.DBType;
 
 public class PostgresDbTableFactory implements DbTableFactory {
 
     private final PostgresDdlConfig config;
-    private final ExecutorService exec;
+    private final PostgresPrefixedTableNames prefixedTableNames;
 
     public PostgresDbTableFactory(PostgresDdlConfig config) {
         this.config = config;
-        int poolSize = config.poolSize();
-        this.exec = newFixedThreadPool(poolSize);
-    }
-
-    private static ThreadPoolExecutor newFixedThreadPool(int maxPoolSize) {
-        ThreadPoolExecutor pool = PTExecutors.newThreadPoolExecutor(maxPoolSize, maxPoolSize,
-                15L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<Runnable>(),
-                new NamedThreadFactory("Atlas postgres reader", true /* daemon */));
-
-        pool.allowCoreThreadTimeOut(false);
-        return pool;
+        this.prefixedTableNames = new PostgresPrefixedTableNames(config);
     }
 
     @Override
@@ -67,16 +51,14 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
-        return new BatchedDbReadTable(
+        return new DbReadTable(
                 conns,
-                new PostgresQueryFactory(DbKvs.internalTableName(tableRef), config),
-                exec,
-                config);
+                new PostgresQueryFactory(DbKvs.internalTableName(tableRef), config));
     }
 
     @Override
     public DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns) {
-        return new SimpleDbWriteTable(config, conns, tableRef);
+        return new PostgresWriteTable(config, conns, tableRef, prefixedTableNames);
     }
 
     @Override
@@ -85,7 +67,11 @@ public class PostgresDbTableFactory implements DbTableFactory {
     }
 
     @Override
+    public PrefixedTableNames getPrefixedTableNames() {
+        return prefixedTableNames;
+    }
+
+    @Override
     public void close() {
-        exec.shutdown();
     }
 }
