@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 public class PaxosAcceptorImpl implements PaxosAcceptor {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
+    private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
 
     /**
      * @param logDir string path for directory to place durable logs
@@ -51,9 +52,12 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
 
     @Override
     public PaxosPromise prepare(long seq, PaxosProposalId pid) {
+        leaderLog.debug("Received proposal request for seq #" + seq + " with ID " + pid.getNumber() + " from node " + pid.getProposerUUID());
+
         try {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
+            leaderLog.error("log read failed for request: " + seq + " during prepare phase; rejecting proposal request", e);
             logger.error("log read failed for request: " + seq, e);
             return new PaxosPromise(pid); // nack
         }
@@ -63,11 +67,15 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
 
             // nack
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) < 0) {
+                leaderLog.debug("Refused proposal request for seq #" + seq + " with ID " + pid.getNumber() +
+                        " as we've already made a promise with a greater pid (" + oldState.lastPromisedId + ")");
                 return new PaxosPromise(oldState.lastPromisedId);
             }
 
             // allow for the same propose to be repeated and return the same result.
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) == 0) {
+                leaderLog.debug("Refused proposal request for seq #" + seq + " with ID " + pid.getNumber() +
+                        " as we've already made a promise with the same pid (" + oldState.lastPromisedId + ")");
                 return new PaxosPromise(
                         oldState.lastPromisedId,
                         oldState.lastAcceptedId,
@@ -80,6 +88,7 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
                     : PaxosAcceptorState.newState(pid);
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
+                leaderLog.debug("Promised to accept proposal for seq #" + seq + " with ID " + pid.getNumber());
                 log.writeRound(seq, newState);
                 return new PaxosPromise(
                         newState.lastPromisedId,
@@ -91,9 +100,13 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
 
     @Override
     public BooleanPaxosResponse accept(long seq, PaxosProposal proposal) {
+        leaderLog.debug("Asked to accept proposal for seq #" + seq + " with ID " + proposal.getId().getNumber() +
+                " from node " + proposal.getId().getProposerUUID());
+
         try {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
+            leaderLog.error("log read failed for request: " + seq + " during accept phase; rejecting proposal", e);
             logger.error("log read failed for request: " + seq, e);
             return new BooleanPaxosResponse(false); // nack
         }
@@ -103,6 +116,8 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
 
             // nack
             if (oldState != null && proposal.id.compareTo(oldState.lastPromisedId) < 0) {
+                leaderLog.debug("Rejected proposal for seq #" + seq + " with ID " + proposal.getId().getNumber() +
+                        " as we already promised to accept ID " + oldState.lastPromisedId);
                 return new BooleanPaxosResponse(false);
             }
 
@@ -112,6 +127,8 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
                     : PaxosAcceptorState.newState(proposal.id);
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
+                leaderLog.info("Accepted proposal for seq #" + seq + " with ID " + proposal.getId().getNumber() +
+                        "; proposed leader UUID is " + proposal.getValue().getLeaderUUID());
                 log.writeRound(seq, newState);
                 return new BooleanPaxosResponse(true);
             }

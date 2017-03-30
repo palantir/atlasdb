@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 public class PaxosLearnerImpl implements PaxosLearner {
 
     private static final Logger logger = LoggerFactory.getLogger(PaxosLearnerImpl.class);
+    private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
 
     /**
      * @param logDir string path for directory to place durable logs
@@ -57,6 +58,7 @@ public class PaxosLearnerImpl implements PaxosLearner {
 
     @Override
     public void learn(long seq, PaxosValue val) {
+        leaderLog.info("Learned about new leader (seq #" + seq + ") with UUID " + val.getLeaderUUID());
         state.put(seq, val);
         log.writeRound(seq, val);
     }

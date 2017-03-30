@@ -22,6 +22,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
@@ -44,8 +45,7 @@ import com.palantir.leader.NotCurrentLeaderException;
 
 public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
-    private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
+    private static final AtomicInteger numProxies = new AtomicInteger();
 
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass,
@@ -59,6 +59,9 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
         return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(), new Class<?>[] {
                 interfaceClass, Closeable.class }, proxy);
     }
+
+    private final TaggedLogger log;
+    private final TaggedLogger leaderLog;
 
     final Supplier<?> delegateSupplier;
     final LeaderElectionService leaderElectionService;
@@ -84,6 +87,10 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
         this.delegateRef = new AtomicReference<Object>();
         this.interfaceClass = interfaceClass;
         this.isClosed = false;
+
+        String logTag = "Proxy #" + numProxies.getAndIncrement() + " - " + interfaceClass.getSimpleName();
+        log = new TaggedLogger(AwaitingLeadershipProxy.class, logTag);
+        leaderLog = new TaggedLogger("leadership", logTag);
     }
 
     private void tryToGainLeadership() {
@@ -103,6 +110,7 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
 
     private void gainLeadership() {
         try {
+            leaderLog.info("Quiescing");
             LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
             // We are now the leader, we should create a delegate so we can service calls
             Object delegate = null;
@@ -196,7 +204,7 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
     }
 
     private void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
-        leaderLog.warn("Lost leadership", cause);
+        leaderLog.warn("Noticed that we lost leadership", cause);
         if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
             try {
                 clearDelegate();
@@ -208,4 +216,61 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
         throw notCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
     }
 
+    /**
+     * Wraps a delegate Logger, prepending the specified string to the start of each log message.
+     */
+    private static class TaggedLogger {
+        private final Logger delegate;
+        private final String tag;
+
+        public TaggedLogger(Class clazz, String tag) {
+            this.delegate = LoggerFactory.getLogger(clazz);
+            this.tag = "[" + tag + "] ";
+        }
+
+        public TaggedLogger(String name, String tag) {
+            this.delegate = LoggerFactory.getLogger(name);
+            this.tag = "[" + tag + "] ";
+        }
+
+        public void trace(String s, Throwable t) {
+            delegate.trace(tag + s, t);
+        }
+
+        public void debug(String s, Throwable t) {
+            delegate.debug(tag + s, t);
+        }
+
+        public void info(String s, Throwable t) {
+            delegate.info(tag + s, t);
+        }
+
+        public void warn(String s, Throwable t) {
+            delegate.warn(tag + s, t);
+        }
+
+        public void error(String s, Throwable t) {
+            delegate.error(tag + s, t);
+        }
+
+        public void trace(String s, Object... args) {
+            delegate.trace(tag + s, args);
+        }
+
+        public void debug(String s, Object... args) {
+            delegate.debug(tag + s, args);
+        }
+
+        public void info(String s, Object... args) {
+            delegate.info(tag + s, args);
+        }
+
+        public void warn(String s, Object... args) {
+            delegate.warn(tag + s, args);
+        }
+
+        public void error(String s, Object... args) {
+            delegate.error(tag + s, args);
+        }
+    }
 }
