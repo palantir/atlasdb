@@ -74,8 +74,9 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
 
             // allow for the same propose to be repeated and return the same result.
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) == 0) {
-                leaderLog.debug("Refused proposal request for seq #" + seq + " with ID " + pid.getNumber() +
-                        " as we've already made a promise with the same pid (" + oldState.lastPromisedId + ")");
+                leaderLog.debug("Accepted proposal request for seq #" + seq + " with ID " + pid.getNumber() +
+                        " as we've already made a promise with the same pid (" + oldState.lastPromisedId + ")" +
+                        " for leader UUID " + oldState.lastAcceptedValue.getLeaderUUID());
                 return new PaxosPromise(
                         oldState.lastPromisedId,
                         oldState.lastAcceptedId,
