@@ -64,8 +64,8 @@ public class ServiceDiscoveringAtlasSupplier {
                         + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
         keyValueService = atlasFactory.createRawKeyValueServiceSupplier(config, leaderConfig);
-        timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
-        timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
+        timestampService = atlasFactory.createTimestampServiceSupplier(keyValueService);
+        timestampStoreInvalidator = atlasFactory.createTimestampStoreInvalidatorSupplier(keyValueService);
     }
 
     public KeyValueService getKeyValueService() {

@@ -1,12 +1,12 @@
 /**
  * Copyright 2015 Palantir Technologies
- *
+ * <p>
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://opensource.org/licenses/BSD-3-Clause
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -45,7 +45,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
                 "CassandraAtlasDbFactory expects a configuration of type"
-                + " CassandraKeyValueServiceConfig, found %s", config.getClass());
+                        + " CassandraKeyValueServiceConfig, found %s", config.getClass());
         return createKv((CassandraKeyValueServiceConfig) config, leaderConfig);
     }
 
@@ -65,6 +65,18 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         }
     }
 
+    @Override
+    public Supplier<TimestampService> createTimestampServiceSupplier(Supplier<KeyValueService> kvsSupplier) {
+        return () -> (kvsSupplier.get() != null) ? createTimestampService(kvsSupplier.get()) : null;
+    }
+
+    @Override
+    public Supplier<TimestampStoreInvalidator> createTimestampStoreInvalidatorSupplier(
+            Supplier<KeyValueService> kvsSupplier) {
+        return () -> (kvsSupplier.get() != null) ? createTimestampStoreInvalidator(kvsSupplier.get()) : null;
+    }
+
+
     private static CassandraKeyValueService createKv(
             CassandraKeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig) {
@@ -81,7 +93,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
                 "TimestampService must be created from an instance of"
-                + " CassandraKeyValueService, found %s", rawKvs.getClass());
+                        + " CassandraKeyValueService, found %s", rawKvs.getClass());
         return PersistentTimestampService.create(
                 CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs));
     }
