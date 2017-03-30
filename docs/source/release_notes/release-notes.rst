@@ -46,6 +46,10 @@ develop
          - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
 
+    *    - |devbreak|
+         - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
+
 =======
 v0.37.0
 =======
