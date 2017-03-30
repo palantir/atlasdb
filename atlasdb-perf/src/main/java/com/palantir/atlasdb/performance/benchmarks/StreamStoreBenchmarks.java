@@ -17,6 +17,7 @@ package com.palantir.atlasdb.performance.benchmarks;
 
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -31,7 +32,9 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
+import com.google.common.base.Optional;
 import com.palantir.atlasdb.performance.benchmarks.table.StreamingTable;
+import com.palantir.atlasdb.performance.schema.generated.KeyValueTable;
 import com.palantir.atlasdb.performance.schema.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.performance.schema.generated.ValueStreamStore;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -47,8 +50,16 @@ public class StreamStoreBenchmarks {
         StreamTestTableFactory tables = StreamTestTableFactory.of();
         ValueStreamStore store = ValueStreamStore.of(transactionManager, tables);
 
+        long id = transactionManager.runTaskThrowOnConflict(txn -> {
+            KeyValueTable kvTable = tables.getKeyValueTable(txn);
 
-        try (InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, 1L));
+            KeyValueTable.KeyValueRow row = KeyValueTable.KeyValueRow.of("row");
+            Optional<KeyValueTable.KeyValueRowResult> result = kvTable.getRow(row);
+            assertTrue(result.isPresent());
+            return result.get().getStreamId();
+        });
+
+        try (InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, id));
                 InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
                 BufferedReader bufferedReader = new BufferedReader(reader)) {
             String line = bufferedReader.readLine();
