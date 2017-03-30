@@ -13,7 +13,7 @@ dependencies {
   compile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
     exclude module: 'junit'
 
-    // override ant to a newer one that is shared with the version in jmock-->cglib
+    // override ant to a newer one that is shared with the version inside jmock-->cglib
     exclude module: 'ant'
     compile 'org.apache.ant:ant:' + libVersions.ant
   }
