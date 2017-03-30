@@ -40,6 +40,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -127,8 +129,13 @@ public abstract class AbstractSweeperTest {
     }
 
     private static void tearDownTables(KeyValueService kvs) {
-        kvs.getAllTableNames().stream()
-                .forEach(tableRef -> kvs.dropTable(tableRef));
+        Awaitility.await()
+                .timeout(Duration.FIVE_MINUTES)
+                .until(() -> {
+                    kvs.getAllTableNames().stream()
+                            .forEach(tableRef -> kvs.dropTable(tableRef));
+                    return true;
+                });
         TransactionTables.deleteTables(kvs);
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
