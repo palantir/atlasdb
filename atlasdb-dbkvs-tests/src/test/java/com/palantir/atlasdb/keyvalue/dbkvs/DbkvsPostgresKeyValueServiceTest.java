@@ -39,16 +39,6 @@ public class DbkvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServi
         return kvs;
     }
 
-    @Test
-    public void dontThrowWhenCreatingTheSameLongTable() throws Exception {
-        TableReference longTableName = TableReference.create(TEST_NAMESPACE, TEST_LONG_TABLE_NAME);
-
-        keyValueService.createTable(longTableName, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        keyValueService.createTable(longTableName, AtlasDbConstants.GENERIC_TABLE_METADATA);
-
-        keyValueService.dropTable(longTableName);
-    }
-
     @Test(expected = RuntimeException.class)
     public void throwWhenCreatingDifferentLongTablesWithSameFirstCharactersUntilTheTableNameLimit() {
         String tableNameForFirstSixtyCharactersToBeSame = StringUtils.left(TEST_LONG_TABLE_NAME,
