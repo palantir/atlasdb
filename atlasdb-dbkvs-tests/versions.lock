@@ -422,7 +422,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-tests-shared",
                 "junit:junit",
-                "org.hamcrest:hamcrest-library"
+                "org.hamcrest:hamcrest-library",
+                "org.mockito:mockito-core"
             ]
         },
         "org.hamcrest:hamcrest-library": {
@@ -438,10 +439,22 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "org.mockito:mockito-core": {
+            "locked": "1.10.17",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-tests-shared"
+            ]
+        },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
+            ]
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.2",
+            "transitive": [
+                "org.mockito:mockito-core"
             ]
         },
         "org.postgresql:postgresql": {
@@ -894,7 +907,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-tests-shared",
                 "junit:junit",
-                "org.hamcrest:hamcrest-library"
+                "org.hamcrest:hamcrest-library",
+                "org.mockito:mockito-core"
             ]
         },
         "org.hamcrest:hamcrest-library": {
@@ -910,10 +924,22 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "org.mockito:mockito-core": {
+            "locked": "1.10.17",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-tests-shared"
+            ]
+        },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
+            ]
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.2",
+            "transitive": [
+                "org.mockito:mockito-core"
             ]
         },
         "org.postgresql:postgresql": {
