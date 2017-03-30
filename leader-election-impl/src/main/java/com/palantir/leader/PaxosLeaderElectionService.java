@@ -151,6 +151,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             return false;
         }
         final PingableLeader leader = maybeLeader.get();
+        final HostAndPort leaderName = potentialLeadersToHosts.get(leader);
 
         CompletionService<Boolean> pingCompletionService = new ExecutorCompletionService<Boolean>(
                 executor);
@@ -159,6 +160,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         pingCompletionService.submit(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
+                leaderLog.trace("Pinging suspected leader " + leaderName);
                 return leader.ping();
             }
         });
@@ -167,11 +169,25 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             Future<Boolean> pingFuture = pingCompletionService.poll(
                     leaderPingResponseWaitMs,
                     TimeUnit.MILLISECONDS);
-            return pingFuture != null && pingFuture.get();
+            if (pingFuture != null) {
+                if (pingFuture.get()) {
+                    leaderLog.trace("Successfully pinged " + leaderName);
+                        return true;
+                } else {
+                    leaderLog.info("Pinged " + leaderName + " and it reported that it is no longer the leader");
+                    return false;
+                }
+            } else {
+                leaderLog.warn("Timed out pinging " + leaderName + " after " + leaderPingResponseWaitMs + "ms");
+                return false;
+            }
         } catch (InterruptedException e) {
+            leaderLog.warn("Interrupted while pinging " + leaderName);
+            log.warn("Interrupted while pinging " + leaderName);
             return false;
         } catch (ExecutionException e) {
-            log.warn("cannot ping leader", e);
+            log.warn("Cannot ping " + leaderName, e);
+            leaderLog.warn("Cannot ping " + leaderName, e);
             return false;
         }
     }
@@ -339,7 +355,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 seq = Defaults.defaultValue(long.class);
             }
 
-            leaderLog.info("Proposing leadership with sequence number " + seq);
+            leaderLog.info("Proposing leadership with sequence number " + seq + " (our UUID: " + getUUID() + ")");
             proposer.propose(seq, null);
         } catch (PaxosRoundFailureException e) {
             // We have failed trying to become the leader.
@@ -602,6 +618,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             for (PaxosValue value : values) {
                 PaxosValue currentLearnedValue = knowledge.getLearnedValue(value.getRound());
                 if (currentLearnedValue == null) {
+                    leaderLog.info("Peers taught us about leader #" + value.getRound() + ", with UUID " + value.getLeaderUUID());
                     knowledge.learn(value.getRound(), value);
                     learned = true;
                 }
