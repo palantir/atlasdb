@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 
 public class DbkvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
     private static final Namespace TEST_NAMESPACE = Namespace.create("ns");
@@ -51,7 +52,7 @@ public class DbkvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServi
     @Test(expected = RuntimeException.class)
     public void throwWhenCreatingDifferentLongTablesWithSameFirstCharactersUntilTheTableNameLimit() {
         String tableNameForFirstSixtyCharactersToBeSame = StringUtils.left(TEST_LONG_TABLE_NAME,
-                AtlasDbConstants.ATLASDB_POSTGRES_TABLE_NAME_LIMIT - TEST_NAMESPACE.getName().length()
+                PostgresDdlTable.ATLASDB_POSTGRES_TABLE_NAME_LIMIT - TEST_NAMESPACE.getName().length()
                         - TWO_UNDERSCORES);
         createTwoTablesWithSamePrefix(tableNameForFirstSixtyCharactersToBeSame);
     }
@@ -59,7 +60,7 @@ public class DbkvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServi
     @Test
     public void shouldNotThrowWhenCreatingDifferentLongTablesWithSameFirstCharactersUntilOneLessThanTableNameLimit() {
         String tableNameForFirstFiftyNineCharactersToBeSame = StringUtils.left(TEST_LONG_TABLE_NAME,
-                AtlasDbConstants.ATLASDB_POSTGRES_TABLE_NAME_LIMIT - TEST_NAMESPACE.getName().length()
+                PostgresDdlTable.ATLASDB_POSTGRES_TABLE_NAME_LIMIT - TEST_NAMESPACE.getName().length()
                         - TWO_UNDERSCORES - 1);
         createTwoTablesWithSamePrefix(tableNameForFirstFiftyNineCharactersToBeSame);
     }
