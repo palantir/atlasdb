@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,11 +81,11 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class ValueStreamMetadataTable implements
         AtlasDbMutablePersistentTable<ValueStreamMetadataTable.ValueStreamMetadataRow,
                                          ValueStreamMetadataTable.ValueStreamMetadataNamedColumnValue<?>,
@@ -495,12 +494,10 @@ public final class ValueStreamMetadataTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<ValueStreamMetadataRowResult> getRow(ValueStreamMetadataRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<ValueStreamMetadataRowResult> getRow(ValueStreamMetadataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -524,23 +521,6 @@ public final class ValueStreamMetadataTable implements
             rowResults.add(ValueStreamMetadataRowResult.of(row));
         }
         return rowResults;
-    }
-
-    @Override
-    public List<ValueStreamMetadataRowResult> getAsyncRows(Iterable<ValueStreamMetadataRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, allColumns, exec);
-    }
-
-    @Override
-    public List<ValueStreamMetadataRowResult> getAsyncRows(final Iterable<ValueStreamMetadataRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<ValueStreamMetadataRowResult>> c =
-                new Callable<List<ValueStreamMetadataRowResult>>() {
-            @Override
-            public List<ValueStreamMetadataRowResult> call() {
-                return getRows(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), List.class);
     }
 
     @Override
@@ -571,23 +551,6 @@ public final class ValueStreamMetadataTable implements
     @Override
     public Multimap<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<ValueStreamMetadataRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<ValueStreamMetadataRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<ValueStreamMetadataRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>>> c =
-                new Callable<Multimap<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>>>() {
-            @Override
-            public Multimap<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<ValueStreamMetadataRow> rows, ColumnSelection columns) {
@@ -664,7 +627,6 @@ public final class ValueStreamMetadataTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -696,7 +658,6 @@ public final class ValueStreamMetadataTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -743,5 +704,5 @@ public final class ValueStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "av+yiDPY1HaPPeQJ70aQ2Q==";
+    static String __CLASS_HASH = "kEK3lzUCQ/RYFvGU6Ry0oQ==";
 }
