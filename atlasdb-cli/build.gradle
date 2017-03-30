@@ -4,9 +4,12 @@ apply from: '../gradle/shared.gradle'
 apply plugin: 'org.inferred.processors'
 
 dependencies {
-    compile project(':atlasdb-cassandra')
+    compile project(path: ':atlasdb-cassandra', configuration: 'shadow')
     compile project(path: ':atlasdb-dagger', configuration: 'shadow')
     compile 'io.airlift:airline:0.7'
 
-    testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
+    processor group: 'org.immutables', name: 'value'
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
 }

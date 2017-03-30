@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
 public interface DbWriteTable {
@@ -29,4 +30,5 @@ public interface DbWriteTable {
     void putSentinels(Iterable<Cell> cells);
     void update(Cell cell, long ts, byte[] oldValue, byte[] newValue);
     void delete(List<Entry<Cell, Long>> partition);
+    void delete(RangeRequest range);
 }

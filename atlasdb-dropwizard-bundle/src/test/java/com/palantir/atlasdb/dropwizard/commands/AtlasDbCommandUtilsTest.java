@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -35,6 +35,10 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
+import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.remoting.ssl.SslConfiguration;
 
@@ -49,6 +53,17 @@ public class AtlasDbCommandUtilsTest {
             .keyValueService(mock(KeyValueServiceConfig.class))
             .build();
     private static final AtlasDbConfig MINIMAL_EMBEDDED_CONFIG = ImmutableAtlasDbConfig.builder()
+            .keyValueService(mock(KeyValueServiceConfig.class))
+            .build();
+    private static final ServerListConfig LOCAL_SERVER_LIST_CONFIG = ImmutableServerListConfig.builder()
+            .addServers(LOCAL_SERVER_NAME)
+            .build();
+    private static final TimeLockClientConfig TIME_LOCK_CLIENT_CONFIG = ImmutableTimeLockClientConfig.builder()
+            .client(LOCAL_SERVER_NAME)
+            .serversList(LOCAL_SERVER_LIST_CONFIG)
+            .build();
+    private static final AtlasDbConfig TIME_LOCK_CONFIG = ImmutableAtlasDbConfig.builder()
+            .timelock(TIME_LOCK_CLIENT_CONFIG)
             .keyValueService(mock(KeyValueServiceConfig.class))
             .build();
 
@@ -78,6 +93,13 @@ public class AtlasDbCommandUtilsTest {
         AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(MINIMAL_LEADER_CONFIG);
 
         assertThat(clientConfig.lock().get().servers()).containsExactly(LOCAL_SERVER_NAME);
+    }
+
+    @Test
+    public void clientConfigMatchesServerConfigForTimelock() {
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(TIME_LOCK_CONFIG);
+
+        assertThat(clientConfig).isEqualTo(TIME_LOCK_CONFIG);
     }
 
     @Test(expected = IllegalArgumentException.class)

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -40,6 +40,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.SimulatingServerProxy;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.remoting1.tracing.Tracers;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 
@@ -49,8 +50,8 @@ import com.palantir.util.Mutables;
  * @author jtamer, ddoan
  */
 public abstract class LockServiceTest {
-    private static final ExecutorService executor = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(LockServiceTest.class.getName(), true));
+    private static final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory(LockServiceTest.class.getName(), true)));
 
     private LockService server;
     private LockClient client;

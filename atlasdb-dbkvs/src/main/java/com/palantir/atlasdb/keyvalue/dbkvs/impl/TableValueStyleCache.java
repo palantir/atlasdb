@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.sql.SQLException;
 import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
@@ -41,37 +40,22 @@ public final class TableValueStyleCache {
             TableReference metadataTable) {
         try {
             return valueStyleByTableRef.get(tableRef, () -> {
-                SqlConnection conn = null;
-                try {
-                    conn = connectionSupplier.getNewUnsharedConnection();
-                    AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                            String.format(
-                                    "SELECT table_size FROM %s WHERE table_name = ?",
-                                    metadataTable.getQualifiedName()),
-                            tableRef.getQualifiedName());
-                    Preconditions.checkArgument(
-                            !results.rows().isEmpty(),
-                            "table %s not found",
-                            tableRef.getQualifiedName());
+                SqlConnection conn = connectionSupplier.get();
+                AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
+                        String.format(
+                                "SELECT table_size FROM %s WHERE table_name = ?",
+                                metadataTable.getQualifiedName()),
+                        tableRef.getQualifiedName());
+                Preconditions.checkArgument(
+                        !results.rows().isEmpty(),
+                        "table %s not found",
+                        tableRef.getQualifiedName());
 
-                    return TableValueStyle.byId(Iterables.getOnlyElement(results.rows()).getInteger("table_size"));
-                } finally {
-                    closeUnderlyingConnection(conn);
-                }
+                return TableValueStyle.byId(Iterables.getOnlyElement(results.rows()).getInteger("table_size"));
             });
         } catch (ExecutionException e) {
             log.error("TableValueStyle for the table {} could not be retrieved.", tableRef.getQualifiedName());
             throw Throwables.propagate(e);
-        }
-    }
-
-    private static void closeUnderlyingConnection(SqlConnection connection) {
-        if (connection != null) {
-            try {
-                connection.getUnderlyingConnection().close();
-            } catch (SQLException e) {
-                log.error("Couldn't cleanup SQL connection while retrieving table size.", e);
-            }
         }
     }
 

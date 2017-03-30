@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -16,21 +16,33 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.Map;
-import java.util.Set;
 
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
+import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
 public class TimeLockServerLauncher extends Application<TimeLockServerConfiguration> {
     public static void main(String[] args) throws Exception {
         new TimeLockServerLauncher().run(args);
+    }
+
+    @Override
+    public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
+        MetricRegistry metricRegistry = MetricRegistries.createWithHdrHistogramReservoirs();
+        AtlasDbMetrics.setMetricRegistry(metricRegistry);
+        bootstrap.setMetricRegistry(metricRegistry);
+        super.initialize(bootstrap);
     }
 
     @Override
@@ -56,21 +68,12 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
             TimeLockServerConfiguration configuration,
             Environment environment,
             TimeLockServer serverImpl) {
-        Map<String, TimeLockServices> clientToServices = createTimeLockServicesForClients(
-                serverImpl,
-                configuration.clients());
+        Map<String, TimeLockServices> clientToServices = ImmutableMap.copyOf(Maps.asMap(
+                configuration.clients(),
+                serverImpl::createInvalidatingTimeLockServices));
 
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));
     }
 
-    private static Map<String, TimeLockServices> createTimeLockServicesForClients(
-            TimeLockServer serverImpl,
-            Set<String> clients) {
-        ImmutableMap.Builder<String, TimeLockServices> clientToServices = ImmutableMap.builder();
-        for (String client : clients) {
-            clientToServices.put(client, serverImpl.createInvalidatingTimeLockServices(client));
-        }
-        return clientToServices.build();
-    }
 }

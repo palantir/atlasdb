@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -63,6 +63,11 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         delegate().delete(tableRef, keys);
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        delegate().deleteRange(tableRef, range);
     }
 
     @Override
@@ -166,6 +171,11 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         delegate().putUnlessExists(tableRef, values);
+    }
+
+    @Override
+    public boolean supportsCheckAndSet() {
+        return delegate().supportsCheckAndSet();
     }
 
     @Override

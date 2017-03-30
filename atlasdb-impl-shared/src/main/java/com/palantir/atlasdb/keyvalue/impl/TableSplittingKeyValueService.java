@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -124,6 +124,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         getDelegate(tableRef).delete(tableRef, keys);
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        getDelegate(tableRef).deleteRange(tableRef, range);
     }
 
     @Override
@@ -305,6 +310,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         getDelegate(tableRef).putUnlessExists(tableRef, values);
+    }
+
+    @Override
+    public boolean supportsCheckAndSet() {
+        return getDelegates().stream().allMatch(KeyValueService::supportsCheckAndSet);
     }
 
     @Override

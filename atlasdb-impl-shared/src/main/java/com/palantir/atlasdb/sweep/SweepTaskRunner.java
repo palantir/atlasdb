@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -22,6 +22,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 
 public interface SweepTaskRunner {
+    /**
+     * Performs a dry run of sweep, doing all of the reading, but not deleting data.
+     */
+    SweepResults dryRun(TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] startRow);
+
     SweepResults run(TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] startRow);
+
     long getSweepTimestamp(SweepStrategy sweepStrategy);
 }

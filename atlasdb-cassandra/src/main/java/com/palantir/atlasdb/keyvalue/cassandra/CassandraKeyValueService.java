@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  * <p>
  * Licensed under the BSD-3 License (the "License");
@@ -145,7 +145,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected final CassandraKeyValueServiceConfigManager configManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
-    protected final CassandraClientPool clientPool;
+    private final CassandraClientPool clientPool;
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
     private final HiddenTables hiddenTables;
@@ -349,9 +349,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
         List<Map<Cell, Value>> perHostResults = runAllTasksCancelOnFailure(tasks);
         Map<Cell, Value> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
-        for (Map<Cell, Value> perHostResult : perHostResults) {
-            result.putAll(perHostResult);
-        }
+        perHostResults.forEach(result::putAll);
         return result;
     }
 
@@ -472,7 +470,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             }
 
             SetMultimap<Long, Cell> cellsByTs = Multimaps.invertFrom(
-                    Multimaps.forMap(timestampByCell), HashMultimap.<Long, Cell>create());
+                    Multimaps.forMap(timestampByCell), HashMultimap.create());
             Builder<Cell, Value> builder = ImmutableMap.builder();
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(ts);
@@ -1081,13 +1079,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
             Map<String, List<Mutation>> rowPuts = map.get(rowName);
             if (rowPuts == null) {
-                rowPuts = Maps.<String, List<Mutation>>newHashMap();
+                rowPuts = Maps.newHashMap();
                 map.put(rowName, rowPuts);
             }
 
             List<Mutation> tableMutations = rowPuts.get(internalTableName(tableCellAndValue.tableRef));
             if (tableMutations == null) {
-                tableMutations = Lists.<Mutation>newArrayList();
+                tableMutations = Lists.newArrayList();
                 rowPuts.put(internalTableName(tableCellAndValue.tableRef), tableMutations);
             }
 
@@ -1177,27 +1175,31 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void truncateTables(final Set<TableReference> tablesToTruncate) {
         if (!tablesToTruncate.isEmpty()) {
             try {
-                clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
-                    @Override
-                    public Void apply(Client client) throws Exception {
-                        for (TableReference tableRef : tablesToTruncate) {
-                            truncateInternal(client, tableRef);
-                        }
-                        return null;
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "truncateTables(" + tablesToTruncate.size() + " tables)";
-                    }
-                });
+                runTruncateInternal(tablesToTruncate);
             } catch (UnavailableException e) {
                 throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
-            } catch (Exception e) {
+            } catch (TException e) {
                 throw Throwables.throwUncheckedException(e);
             }
         }
+    }
+
+    private void runTruncateInternal(final Set<TableReference> tablesToTruncate) throws TException {
+        clientPool.run(new FunctionCheckedException<Client, Void, TException>() {
+            @Override
+            public Void apply(Client client) throws TException {
+                for (TableReference tableRef : tablesToTruncate) {
+                    truncateInternal(client, tableRef);
+                }
+                return null;
+            }
+
+            @Override
+            public String toString() {
+                return "truncateTables(" + tablesToTruncate.size() + " tables)";
+            }
+        });
     }
 
     private void truncateInternal(Client client, TableReference tableRef) throws TException {
@@ -1265,7 +1267,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         int mapIndex = 0;
                         for (long ts : Ordering.natural().immutableSortedCopy(cellVersions.getValue())) {
                             if (!maps.containsKey(mapIndex)) {
-                                maps.put(mapIndex, Maps.<ByteBuffer, Map<String, List<Mutation>>>newHashMap());
+                                maps.put(mapIndex, Maps.newHashMap());
                             }
                             Map<ByteBuffer, Map<String, List<Mutation>>> map = maps.get(mapIndex);
                             ByteBuffer colName = CassandraKeyValueServices.makeCompositeBuffer(
@@ -1280,11 +1282,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             mutation.setDeletion(del);
                             ByteBuffer rowName = ByteBuffer.wrap(cellVersions.getKey().getRowName());
                             if (!map.containsKey(rowName)) {
-                                map.put(rowName, Maps.<String, List<Mutation>>newHashMap());
+                                map.put(rowName, Maps.newHashMap());
                             }
                             Map<String, List<Mutation>> rowPuts = map.get(rowName);
                             if (!rowPuts.containsKey(internalTableName(tableRef))) {
-                                rowPuts.put(internalTableName(tableRef), Lists.<Mutation>newArrayList());
+                                rowPuts.put(internalTableName(tableRef), Lists.newArrayList());
                             }
                             rowPuts.get(internalTableName(tableRef)).add(mutation);
                             mapIndex++;
@@ -1563,9 +1565,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         boolean putMetadataWillNeedASchemaChange = !onlyMetadataChangesAreForNewTables;
 
         if (!tablesToActuallyCreate.isEmpty()) {
-            schemaMutationLock.runWithLock(() -> {
-                createTablesInternal(tablesToActuallyCreate);
-            });
+            schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate));
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
@@ -1900,6 +1900,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         delete(AtlasDbConstants.DEFAULT_METADATA_TABLE, oldVersions);
     }
 
+
+    @Override
+    public void deleteRange(final TableReference tableRef, final RangeRequest range) {
+        if (range.equals(RangeRequest.all())) {
+            try {
+                runTruncateInternal(ImmutableSet.of(tableRef));
+            } catch (TException e) {
+                log.info("Tried to make a deleteRange({}, RangeRequest.all())"
+                        + " into a more garbage-cleanup friendly truncate(), but this failed.", tableRef, e);
+
+                super.deleteRange(tableRef, range);
+            }
+        } else {
+            super.deleteRange(tableRef, range);
+        }
+    }
+
     /**
      * Performs non-destructive cleanup when the KVS is no longer needed.
      */
@@ -1926,12 +1943,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
         try {
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
-            putInternal(tableRef, Iterables.transform(cells, new Function<Cell, Map.Entry<Cell, Value>>() {
-                @Override
-                public Entry<Cell, Value> apply(Cell cell) {
-                    return Maps.immutableEntry(cell, value);
-                }
-            }));
+            putInternal(tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -2158,6 +2170,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
+    public CassandraClientPool getClientPool() {
+        return clientPool;
+    }
+
+    public TracingQueryRunner getTracingQueryRunner() {
+        return queryRunner;
+    }
+
+    public CassandraTables getCassandraTables() {
+        return cassandraTables;
+    }
+
     /**
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      */
@@ -2179,12 +2203,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
         Map<InetSocketAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
-                partitionByHost(cells, new Function<Map.Entry<Cell, V>, byte[]>() {
-                    @Override
-                    public byte[] apply(Entry<Cell, V> entry) {
-                        return entry.getKey().getRowName();
-                    }
-                });
+                partitionByHost(cells, entry -> entry.getKey().getRowName());
         Map<InetSocketAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
         for (Map.Entry<InetSocketAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
             Map<Cell, V> cellsForHost = Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());

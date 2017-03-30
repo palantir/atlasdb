@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -57,6 +57,15 @@ public class CassandraTimestampIntegrationTest {
         Assert.assertEquals(limit + 20, ts.getUpperLimit());
         ts.storeUpperLimit(limit + 30);
         Assert.assertEquals(limit + 30, ts.getUpperLimit());
+    }
+
+    @Test
+    public void resilientToMultipleStoreUpperLimitBeforeGet() {
+        TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv);
+        long limit = ts.getUpperLimit();
+        ts.storeUpperLimit(limit + 10);
+        ts.storeUpperLimit(limit + 20);
+        Assert.assertEquals(limit + 20, ts.getUpperLimit());
     }
 
     @Test

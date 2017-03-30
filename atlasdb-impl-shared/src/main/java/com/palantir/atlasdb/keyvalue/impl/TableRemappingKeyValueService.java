@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -22,7 +22,6 @@ import java.util.Set;
 
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -110,6 +109,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        try {
+            delegate().deleteRange(tableMapper.getMappedTableName(tableRef), range);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
     public void dropTable(TableReference tableRef) {
         dropTables(ImmutableSet.of(tableRef));
     }
@@ -152,7 +160,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return tableMapper.mapToFullTableNames(delegate().getAllTableNames());
+        return ImmutableSet.copyOf(tableMapper.generateMapToFullTableNames(delegate().getAllTableNames()).values());
     }
 
     @Override
@@ -209,13 +217,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
-        Map<TableReference, byte[]> tableRefToBytes = Maps.newHashMap();
-        for (Entry<TableReference, byte[]> entry : delegate().getMetadataForTables().entrySet()) {
-            tableRefToBytes.put(
-                    Iterables.getOnlyElement(tableMapper.mapToFullTableNames(ImmutableSet.of(entry.getKey()))),
-                    entry.getValue());
+        Map<TableReference, byte[]> tableMetadata = delegate().getMetadataForTables();
+        Map<TableReference, TableReference> metadataNamesToFullTableNames = tableMapper.generateMapToFullTableNames(
+                tableMetadata.keySet());
+        Map<TableReference, byte[]> fullTableNameToBytes = Maps.newHashMapWithExpectedSize(
+                metadataNamesToFullTableNames.size());
+        for (Entry<TableReference, byte[]> entry : tableMetadata.entrySet()) {
+            fullTableNameToBytes.put(metadataNamesToFullTableNames.get(entry.getKey()), entry.getValue());
         }
-        return tableRefToBytes;
+        return fullTableNameToBytes;
     }
 
     @Override
@@ -344,6 +354,11 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    @Override
+    public boolean supportsCheckAndSet() {
+        return delegate().supportsCheckAndSet();
     }
 
     @Override

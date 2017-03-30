@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -22,12 +22,14 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBoundStore;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidator;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.TimestampStoreInvalidator;
 
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
@@ -68,4 +70,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         return CassandraKeyValueServiceConfig.TYPE;
     }
 
+    @Override
+    public TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
+        return CassandraTimestampStoreInvalidator.create(rawKvs);
+    }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -28,7 +28,8 @@ import com.palantir.atlasdb.containers.CassandraVersion;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
-        DropwizardEteTest.class
+        ServiceExposureEteTest.class,
+        CommandLineEteTest.class
 })
 public class CassandraNoLeaderTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");

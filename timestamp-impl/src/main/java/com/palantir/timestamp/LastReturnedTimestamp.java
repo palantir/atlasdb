@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -15,7 +15,13 @@
  */
 package com.palantir.timestamp;
 
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.ThreadSafe;
+
+@ThreadSafe
 public class LastReturnedTimestamp {
+
+    @GuardedBy("this")
     private long timestamp;
 
     public LastReturnedTimestamp(long timestamp) {
@@ -23,10 +29,12 @@ public class LastReturnedTimestamp {
     }
 
     public synchronized void increaseToAtLeast(long newTimestamp) {
-        this.timestamp = Math.max(this.timestamp, newTimestamp);
+        if (newTimestamp > this.timestamp) {
+            this.timestamp = newTimestamp;
+        }
     }
 
-    public long get() {
+    public synchronized long get() {
         return this.timestamp;
     }
 }

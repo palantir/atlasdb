@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -31,7 +31,7 @@ import com.palantir.common.base.Throwables;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
     public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
-    protected final TimestampCache timestampValidationReadCache = new TimestampCache();
+    protected final TimestampCache timestampValidationReadCache = TimestampCache.create();
     private volatile boolean closed = false;
 
     @Override

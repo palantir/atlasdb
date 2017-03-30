@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -27,5 +27,5 @@ public interface TableMappingService {
     TableReference getMappedTableName(TableReference tableRef) throws TableMappingNotFoundException;
     <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> tableMap)
             throws TableMappingNotFoundException;
-    Set<TableReference> mapToFullTableNames(Set<TableReference> tableNames);
+    Map<TableReference, TableReference> generateMapToFullTableNames(Set<TableReference> tableNames);
 }

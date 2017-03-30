@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -24,11 +24,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValue;
 public class OracleRawQueryFactory extends OracleQueryFactory {
     public OracleRawQueryFactory(String tableName, OracleDdlConfig config) {
         super(config, tableName);
-    }
-
-    @Override
-    String getValueSubselect(String tableAlias, boolean includeValue) {
-        return includeValue ? ", " + tableAlias + ".val " : " ";
     }
 
     @Override

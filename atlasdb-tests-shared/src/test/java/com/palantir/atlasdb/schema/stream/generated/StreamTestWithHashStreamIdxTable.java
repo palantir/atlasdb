@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,11 +81,11 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class StreamTestWithHashStreamIdxTable implements
         AtlasDbDynamicMutablePersistentTable<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow,
                                                 StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumn,
@@ -556,18 +555,6 @@ public final class StreamTestWithHashStreamIdxTable implements
     }
 
     @Override
-    public Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue> getAsync(final Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumn> cells, ExecutorService exec) {
-        Callable<Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue>> c =
-                new Callable<Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue>>() {
-            @Override
-            public Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue> call() {
-                return get(cells);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
-    }
-
-    @Override
     public List<StreamTestWithHashStreamIdxColumnValue> getRowColumns(StreamTestWithHashStreamIdxRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -597,23 +584,6 @@ public final class StreamTestWithHashStreamIdxTable implements
     @Override
     public Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue> getRowsMultimap(Iterable<StreamTestWithHashStreamIdxRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue> getAsyncRowsMultimap(Iterable<StreamTestWithHashStreamIdxRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue> getAsyncRowsMultimap(final Iterable<StreamTestWithHashStreamIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue>> c =
-                new Callable<Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue>>() {
-            @Override
-            public Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue> getRowsMultimapInternal(Iterable<StreamTestWithHashStreamIdxRow> rows, ColumnSelection columns) {
@@ -696,7 +666,6 @@ public final class StreamTestWithHashStreamIdxTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -728,7 +697,6 @@ public final class StreamTestWithHashStreamIdxTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -775,5 +743,5 @@ public final class StreamTestWithHashStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "TTJpdgTnyp3pKJMSGWzMEw==";
+    static String __CLASS_HASH = "f1j0VTFFPWNn7lPXgCKTVw==";
 }

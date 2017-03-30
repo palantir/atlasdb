@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,11 +81,11 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class UserPhotosStreamIdxTable implements
         AtlasDbDynamicMutablePersistentTable<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow,
                                                 UserPhotosStreamIdxTable.UserPhotosStreamIdxColumn,
@@ -547,18 +546,6 @@ public final class UserPhotosStreamIdxTable implements
     }
 
     @Override
-    public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getAsync(final Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumn> cells, ExecutorService exec) {
-        Callable<Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>> c =
-                new Callable<Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>>() {
-            @Override
-            public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> call() {
-                return get(cells);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
-    }
-
-    @Override
     public List<UserPhotosStreamIdxColumnValue> getRowColumns(UserPhotosStreamIdxRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -588,23 +575,6 @@ public final class UserPhotosStreamIdxTable implements
     @Override
     public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimap(Iterable<UserPhotosStreamIdxRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getAsyncRowsMultimap(Iterable<UserPhotosStreamIdxRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getAsyncRowsMultimap(final Iterable<UserPhotosStreamIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>> c =
-                new Callable<Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>>() {
-            @Override
-            public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimapInternal(Iterable<UserPhotosStreamIdxRow> rows, ColumnSelection columns) {
@@ -687,7 +657,6 @@ public final class UserPhotosStreamIdxTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -719,7 +688,6 @@ public final class UserPhotosStreamIdxTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -766,5 +734,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "0BCwlfLHYV5Htu8FCwnBXA==";
+    static String __CLASS_HASH = "RXJAPCOhfaPsp0WfYf+KAQ==";
 }

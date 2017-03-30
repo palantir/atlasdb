@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockAlgorithmConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
@@ -68,6 +69,7 @@ public class TimeLockServerLauncherTest {
 
     private void setUpEnvironment() {
         when(environment.jersey()).thenReturn(mock(JerseyEnvironment.class));
+        when(environment.metrics()).thenReturn(MetricRegistries.createWithHdrHistogramReservoirs());
 
         LifecycleEnvironment lifecycle = mock(LifecycleEnvironment.class);
         when(environment.lifecycle()).thenReturn(lifecycle);

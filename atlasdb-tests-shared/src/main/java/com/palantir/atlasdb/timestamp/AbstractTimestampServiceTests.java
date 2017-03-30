@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -102,9 +102,9 @@ public abstract class AbstractTimestampServiceTests {
             throws InterruptedException, TimeoutException {
         Set<Long> uniqueTimestamps = new ConcurrentSkipListSet<>();
 
-        repeat(TWO_MILLION, () -> uniqueTimestamps.add(timestampService.getFreshTimestamp()));
+        repeat(ONE_MILLION, () -> uniqueTimestamps.add(timestampService.getFreshTimestamp()));
 
-        Assertions.assertThat(uniqueTimestamps.size()).isEqualTo((int) TWO_MILLION);
+        Assertions.assertThat(uniqueTimestamps.size()).isEqualTo((int) ONE_MILLION);
     }
 
     @Test(expected = IllegalArgumentException.class)

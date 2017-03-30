@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -126,4 +126,7 @@ public interface TransactionManager extends AutoCloseable {
      * the cache, although this can also be used to free up some memory.
      */
     void clearTimestampCache();
+
+    @Override
+    void close();
 }

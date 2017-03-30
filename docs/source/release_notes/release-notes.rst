@@ -29,11 +29,11 @@ Changelog
 .. toctree::
   :hidden:
 
-.. <<<<------------------------------------------------------------------------------------------------------------->>>>
-
 =======
 develop
 =======
+
+.. replace this with the release date
 
 .. list-table::
     :widths: 5 40
@@ -42,31 +42,434 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
+
     *    - |devbreak|
-         - Removed the unused `TieredKeyValueService` which offered the ability to spread tables across multiple KVSs that
-           exist in a stacked hierarchy (primary & secondary).  If you require this KVS please file a ticket to have it reinstated.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1553>`__)
+         - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
+
+=======
+v0.37.0
+=======
+
+29 Mar 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed an issue where a ``MultipleRunningTimestampServicesError`` would not be propagated from the asynchronous refresh job that increases the timestamp bound.
+           This could result in a state where two timestamp services are simultaneously handing out timestamps until the older service's buffer of 1M timestamps is exhausted and fails.
+           Now we immediately fail, alerting users much sooner that a ``MultipleRunningTimestampServicesError`` has occurred.
+           Note that users would still see the error prior to the fix, we now just ensure it is discovered sooner.
+           This failure does not affect the Timelock server.
+           Furthermore, we improved the logic for increasing the timestamp bound when the allocation buffer is exhausted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1718>`__)
+
+    *    - |new|
+         - Added :ref:`Dropwizard metrics <dropwizard-metrics>` for sweep, exposing aggregate and table-specific counts of cells examined and stale values deleted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1695>`__)
+
+    *    - |new|
+         - Added a benchmark ``TimestampServiceBenchmarks`` for parallel requesting of fresh timestamps from the TimestampService.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1720>`__)
+
+    *    - |fixed|
+         - KVS migrations now maintain the guarantee of the timestamp service to hand out monotonically increasing timestamps.
+           Previously, we would reset the timestamp service to 0 after a migration, but now we use the correct logical timestamp.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1199>`__)
+
+    *    - |improved|
+         - Improved performance of paging over dynamic columns on Oracle DBKVS: the time required to page through a large wide row is now linear rather than quadratic in the length of the row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1702>`__)
+
+    *    - |deprecated|
+         - ``GenericStreamStore.loadStream`` has been deprecated.
+           Use ``loadSingleStream``, which returns an ``Optional<InputStream>``, instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1265>`__)
+
+    *    - |devbreak|
+         - ``getAsyncRows`` and ``getAsyncRowsMultimap`` methods have been removed from generated code.
+           They do not appear valuable to the API and use an unintuitive and custom ``AsyncProxy`` that was also removed.
+           We believe they are unused by upstream applications, but if you do encounter breaks due to this removal please file a ticket with the dev team for immediate support.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1689>`__)
+
+    *    - |fixed|
+         - RemoteLockService clients will no longer silently retry on connection failures to the Timelock server.
+           This is used to mitigate issues with frequent leadership changes owing to `#1680 <https://github.com/palantir/atlasdb/issues/1680>`__.
+           Previously, because of Jetty's idle timeout and OkHttp's silent connection retrying, we would generate an endless stream of lock requests if using HTTP/2 and blocking for more than the Jetty idle timeout for a single lock.
+           This would lead to starvation of other requests on the TimeLock server, since a lock request blocked on acquiring a lock consumes a server thread.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1727>`__)
+
+    *    - |improved|
+         - Cassandra dependencies have been bumped to newer versions.
+           This should fix a bug (`#1654 <https://github.com/palantir/atlasdb/issues/1654>`__) that caused
+           AtlasDB probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
+           building up leaked connections, due to a bug in the underlying driver.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1524>`__)
+
+    *    - |fixed|
+         - Correctness issue fixed in the ``clean-transactions-range`` CLI. This CLI is responsible for deleting potentially inconsistent transactions in the KVS upon restore from backup.
+           The CLI was not reading the entire ``_transactions`` table, and as a result was missing deleting transactions whose start timestamp was before the backup timestamp and commit timestamp was after the backup timestamp.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1759>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.36.0
+=======
+
+15 Mar 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed DBKVS sweep OOM issue (`#982 <https://github.com/palantir/atlasdb/issues/982>`__) caused by very wide rows.
+           ``DbKvs.getRangeOfTimestamps`` uses an adjustable cell batch size to avoid loading too many timestamps.
+           One can set the batch size by calling ``DbKvs.setMaxRangeOfTimestampsBatchSize``.
+
+           In case of a single row that is too wide, this may result in ``getRangeOfTimestamps`` returning multiple ``RowResult`` to include all timestamps.
+           It is, however, guaranteed that each ``RowResult`` will contain all timestamps for each included column.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1678>`__)
+
+    *    - |fixed|
+         - Actions run by the ``ReadOnlyTransactionManager`` can no longer bypass necessary protections when using ``getRowsColumnRange()``.
+           These protections disallow reads against ``THOROUGH`` swept tables as read only transactions do not acquire the appropriate locks to guarantee transactionality.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1521>`__)
+
+    *    - |fixed|
+         - Fixed an unnecessarily long-held connection in Oracle table name mapping code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1593>`__)
+
+    *    - |fixed|
+         - Fixed an issue where we excessively log after successful transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1687>`__)
+
+    *    - |fixed|
+         - Fixed an issue where the ``_persisted_locks`` table was unnecessarily logged as not having persisted metadata.
+           The ``_persisted_locks`` table is a hidden table, and thus it does not need to have persisted metadata.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1696>`__)
+
+    *    - |new|
+         - AtlasDB now instruments services to expose aggregate response time and service call metrics for keyvalue, timestamp, and lock services.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1685>`__)
 
     *    - |devbreak| |improved|
-         - Fast forwarding a persistent timestamp service to ``Long.MIN_VALUE`` will now throw an exception; previously
-           it would be a no-op. This is especially relevant for safety of remote requests; if a user does not
-           supply the ``currentTimestamp`` query parameter, we would previously treat this as a fast-forward to zero
-           and silently accept the request (returning 204) even though this is highly unlikely to be the user's
-           intention, while we now fail loudly (returning a 400).
+         - ``TransactionManager`` now explicitly declares a ``close`` method that does not throw exceptions.
+           This makes the ``TransactionManager`` significantly easier to develop against.
+           Clients who have implemented a concrete ``TransactionManager`` throwing checked exceptions are encouraged to wrap said exceptions as unchecked exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1677>`__)
+
+    *    - |new|
+         - Added the following benchmarks for paging over columns of a very wide row:
+
+             - ``TransactionGetRowsColumnRangeBenchmarks``
+             - ``KvsGetRowsColumnRangeBenchmarks``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1684>`__)
+
+    *    - |deprecated|
+         - The public ``PaxosLeaderElectionService`` constructor is now deprecated to mitigate risks of users supplying parameters in the wrong order.
+           ``PaxosLeaderElectionServiceBuilder`` should be used instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1681>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.35.0
+=======
+
+3 Mar 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Timelock server now specifies minimum and maximum heap size of 512 MB.
+           This should improve GC performance per the comments in `#1594 <https://github.com/palantir/atlasdb/pull/1594#discussion_r102255336>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1647>`__)
+
+    *    - |fixed|
+         - The background sweeper now uses deleteRange instead of truncate when clearing the ``sweep.progress`` table.
+           This allows users with Postgres to perform backups via the normal pg_dump command while running background sweep.
+           Previous it was possible for a backup to fail if sweep were performing a truncate at the same time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1616>`__)
+
+    *    - |improved|
+         - Cassandra now attempts to truncate when performing a ``deleteRange(RangeRequest.All())`` in an effort to build up less garbage.
+           This is relevant for when sweep is operating on its own sweep tables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1617>`__)
+
+    *    - |new|
+         - Users can now create a Docker image and run containers of the Timelock Server, by running ``./gradlew timelock-server:dockerTag``.
+           This can be useful for quickly spinning up a Timelock instance (e.g. for testing purposes).
+           Note that we are not yet publishing this image.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
+
+    *    - |fixed|
+         - AtlasDB :ref:`CLIs <clis>` run via the :ref:`Dropwizard bundle <dropwizard-bundle>` can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
+           Previously, these CLIs would throw an error that a leader block was not specified.
+           Note that CLIs will not perform automated migrations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
+
+    *    - |improved|
+         - Cassandra truncates that are going to fail will do so faster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1660>`__)
+
+    *    - |devbreak|
+         - The persistent lock endpoints now use ``PersistentLockId`` instead of ``LockEntry``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1665>`__)
+
+    *    - |fixed|
+         - The ``CheckAndSetException`` now gets mapped to the correct response for compatibility with `http-remoting <https://github.com/palantir/http-remoting>`__.
+           Previously, any consumer using http-remoting would have to deal with deserialization errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1665>`__)
+
+    *    - |devbreak|
+         - The persistent lock release endpoint has now been renamed to ``releaseBackupLock`` since it is currently only supposed to be used for the backup lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1674>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.34.0
+=======
+
+23 Feb 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - Timelock server now supports `HTTP/2 <https://http2.github.io/>`__, and the AtlasDB HTTP clients enable a required GCM cipher suite.
+           This feature improves performance of the Timelock server.
+           Any client that wishes to connect to the timelock server via HTTP/2 must add jetty_alpn_agent as a javaAgent JVM argument, otherwise connections will fall back to HTTP/1.1 and performance will be considerably slower.
+
+           For an example of how to add this dependency, see our `timelock-server/build.gradle <https://github.com/palantir/atlasdb/pull/1594/files#diff-e7db4468f37a8004be3c399d791c323eR57>`__ file.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1594>`__)
+
+    *    - |fixed|
+         - AtlasDB :ref:`Perf CLI <perf-cli>` can now output KVS-agnostic benchmark data (such as ``HttpBenchmarks``) to a file.
+           Previously running these benchmarks whilst attempting to write output to a file would fail.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1635>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.33.0
+=======
+
+22 Feb 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - AtlasDB HTTP clients are now compatible with OkHttp 3.3.0+, and no longer assume that header names are specified in Train-Case.
+           This fix enables the Timelock server and AtlasDB clients to use HTTP/2.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1613>`__)
+
+    *    - |fixed|
+         - Canonicalised SQL strings will now have contiguous whitespace rendered as a single space as opposed to the first character of said whitespace.
+           This is important for backwards compatibility with an internal product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1603>`__)
+
+    *    - |new|
+         - Added the option to perform a dry run of sweep via the :ref:`Sweep CLI <atlasdb-sweep-cli>`.
+           When ``--dry-run`` is set, sweep will tell you how many cells would have been deleted, but will not actually delete any cells.
+
+           This feature was introduced to avoid accidentally generating more tombstones than the Cassandra tombstone threshold (default 100k) introduced in `CASSANDRA-6117 <https://issues.apache.org/jira/browse/CASSANDRA-6117>`__.
+           If you delete more than 100k cells and thus cross the Cassandra threshold, then Cassandra may reject read requests until the tombstones have been compacted away.
+           Customers wishing to run Sweep should first run with the ``--dry-run`` option and only continue if the number of cells to be deleted is fewer than 100k.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1598>`__)
+
+    *    - |fixed|
+         - Fixed atlasdb-commons Java 1.6 compatibility by removing tracing from ``InterruptibleProxy``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1599>`__)
+
+    *    - |fixed|
+         - Persisted locks table is now considered an Atomic Table.
+
+           ``ATOMIC_TABLES`` are those that must always exist on KVSs that support check-and-set (CAS) operations.
+           This is particularly relevant for AtlasDB clients that make use of the TableSplittingKVS and want to keep tables on different KVSs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1610>`__)
+
+    *    - |fixed|
+         - Reverted PR #1577 in 0.32.0 because this change prevents AtlasDB clients from downgrading to earlier versions of AtlasDB.
+           We will merge a fix for MRTSE once we have a solution that allows a seamless rollback process.
+           This change is also reverted on 0.32.1.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1622>`__)
+
+    *    - |improved|
+         - Reduced contention on ``PersistentTimestampService.getFreshTimestamps`` to provide performance improvements to the Timestamp service under heavy request load.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1618>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.32.1
+=======
+
+21 Feb 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Reverted PR #1577 in 0.32.0 because this change prevents AtlasDB clients from downgrading to earlier versions of AtlasDB.
+           We will merge a fix for MRTSE once we have a solution that allows a seamless rollback process.
+           This change is also reverted on develop.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1622>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.32.0
+=======
+
+16 Feb 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed erroneous occurrence of ``MultipleRunningTimestampServicesError`` (see `#1000 <https://github.com/palantir/atlasdb/issues/1000>`__) where the timestamp service was unaware of successfully writing the new timestamp limit to the DB.
+           This fix only applies to Cassandra backed AtlasDB clients who are not using the external Timelock service.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1577>`__)
+
+    *    - |improved|
+         - AtlasDB HTTP clients will now have a user agent of ``<project.name>-atlasdb (project.version)`` as opposed to ``okhttp/2.5.0``.
+           This should make distinguishing AtlasDB request logs from application request logs much easier.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1535>`__)
+
+    *    - |new|
+         - Sweep now takes out a lock to ensure data is not corrupted during online backups.
+
+           Users performing :ref:`live backups <backup-restore>` should grab this lock before performing a backup of the underlying KVS, and then release the lock once the backup is complete.
+           This enables the backup to safely run alongside either the :ref:`background sweeper <background-sweep>` or the :ref:`sweep CLI <atlasdb-sweep-cli>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1509>`__)
+
+    *    - |new|
+         - Initial support for tracing Key Value Services integrating with `http-remoting tracing <https://github.com/palantir/http-remoting#tracing>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1385>`__)
+
+    *    - |improved|
+         - Improved heap usage during heavy DBKVS querying by reducing mallocs in ``SQLString.canonicalizeString()``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1560>`__)
+
+    *    - |improved|
+         - Removed an unused hamcrest import from the timestamp-impl project.
+           This should reduce the size of our transitive dependencies, and therefore the size of product binaries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1578>`__)
+
+    *    - |fixed|
+         - Fixed schema generation with Java 8 optionals.
+           To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
+
+    *    - |devbreak|
+         - Modified the type signature of ``BatchingVisitableView#of`` to no longer accept ``final BatchingVisitable<? extends T> underlyingVisitable`` and instead accept ``final BatchingVisitable<T> underlyingVisitable``.
+           This will resolve an issue where newer versions of Intellij fail to compile AtlasDB.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1582>`__)
+
+    *    - |improved|
+         - Reduced logging noise from large Cassandra gets and puts by removing ERROR messages and only providing stacktraces at DEBUG.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1590>`__)
+
+    *    - |new|
+         - Upon startup of an AtlasDB client with a ``timeblock`` :ref:`config block <timelock-client-configuration>`, the client will now automatically migrate its timestamp to the the :ref:`external Timelock cluster <external-timelock-service>`.
+
+           The client will fast-forward the Timelock Server's timestamp bound to that of the embedded service.
+           The client will now also *invalidate* the embedded service's bound, backing this up in a separate row in the timestamp table.
+
+           Automated migration is only supported for Cassandra KVS at the moment.
+           If using DBKVS or other key-value services, it remains the user's responsibility to ensure that they have performed the migration detailed in :ref:`Migration to External Timelock Services <timelock-migration>`.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1569>`__,
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1570>`__, and
+           `Pull Request 3 <https://github.com/palantir/atlasdb/pull/1579>`__)
+
+    *    - |fixed|
+         - Fixed multiple scenarios where DBKVS can run into deadlocks due to unnecessary connections.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1566>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.31.0
+=======
+
+8 Feb 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved| |devbreak|
+         - Improved Oracle performance on DBKVS by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
+           Replaced ``mapToFullTableNames()`` with ``generateMapToFullTableNames()`` in ``com.palantir.atlasdb.keyvalue.TableMappingService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
+
+    *    - |devbreak|
+         - Removed the unused ``TieredKeyValueService`` which offered the ability to spread tables across multiple KVSs that exist in a stacked hierarchy (primary & secondary).
+           If you require this KVS please file a ticket to have it reinstated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1553>`__)
+
+    *    - |devbreak|
+         - Fast forwarding a persistent timestamp service to ``Long.MIN_VALUE`` will now throw an exception, whereas previously it would be a no-op.
+           Calling the ``fast-forward`` endpoint without specifying the fast-forward timestamp parameter will now default to submitting ``Long.MIN_VALUE``, and thus return a HTTP 400 response.
+
+           We are introducing this break to prevent accidental corruption by forgetting to submit the fast-forward timestamp.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1538>`__)
 
     *    - |fixed|
-         - Oracle query now uses the right hints when generating the query plan. This will improve performance for OracleKVS.
+         - Oracle queries now use the correct hints when generating the query plan.
+           This will improve performance for Oracle on DB KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1549>`__)
 
     *    - |userbreak|
-         - Oracle table names can now have a maximum length of 27 characters instead of the previous limit of 30. This is to
-           ensure consistency in naming the primary key constraint which adds a prefix of ``pk_`` to the table name. This will
-           break any installation of Oracle with the ``useTableMapping`` flag set to ``true``.
+         - Oracle table names can now have a maximum length of 27 characters instead of the previous limit of 30.
+           This is to ensure consistency in naming the primary key constraint which adds a prefix of ``pk_`` to the table name.
+           This will break any installation of Oracle with the ``useTableMapping`` flag set to ``true``.
+
+           Since Oracle support is still in beta, we are not providing an automatic migration path from older versions of AtlasDB.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1552>`__)
 
     *    - |fixed|
-         - Better support Oracle 12c batch responses
+         - Support for Oracle 12c batch responses.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1540>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -74,6 +477,8 @@ develop
 =======
 v0.30.0
 =======
+
+27 Jan 2017
 
 .. list-table::
     :widths: 5 40
@@ -127,6 +532,8 @@ v0.30.0
 v0.29.0
 =======
 
+17 Jan 2017
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -165,6 +572,8 @@ v0.29.0
 =======
 v0.28.0
 =======
+
+13 Jan 2017
 
 .. list-table::
     :widths: 5 40
@@ -231,6 +640,8 @@ v0.28.0
 v0.27.2
 =======
 
+10 Jan 2017
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -250,6 +661,8 @@ v0.27.2
 =======
 v0.27.1
 =======
+
+6 Jan 2017
 
 .. list-table::
     :widths: 5 40
@@ -271,8 +684,10 @@ v0.27.1
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-0.27.0
+v0.27.0
 =======
+
+6 Jan 2017
 
 .. list-table::
     :widths: 5 40
@@ -332,11 +747,19 @@ v0.27.1
            See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
 
+    *     - |new|
+          - Add KeyValueStore.deleteRange(); makes large swathes of row deletions faster,
+            like transaction sweeping. Also can be used as a fallback option for people
+            having issues with their backup solutions not allowing truncate() during a backup
+            (`Pull Request <https://github.com/palantir/atlasdb/pull/1391>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.26.0
 =======
+
+5 Dec 2016
 
 .. list-table::
     :widths: 5 40
@@ -383,6 +806,8 @@ v0.26.0
 =======
 v0.25.0
 =======
+
+25 Nov 2016
 
 .. list-table::
     :widths: 5 40
@@ -451,6 +876,8 @@ v0.25.0
 v0.24.0
 =======
 
+15 Nov 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -514,6 +941,8 @@ v0.24.0
 =======
 v0.23.0
 =======
+
+8 Nov 2016
 
 .. list-table::
     :widths: 5 40
@@ -583,6 +1012,8 @@ v0.23.0
 v0.22.0
 =======
 
+28 Oct 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -614,6 +1045,8 @@ v0.22.0
 v0.21.1
 =======
 
+24 Oct 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -638,6 +1071,8 @@ v0.21.1
 v0.21.0
 =======
 
+21 Oct 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -648,7 +1083,7 @@ v0.21.0
     *    - |new|
          - Sweep now supports batching on a per-cell level via the ``sweepCellBatchSize`` parameter in your AtlasDB config.
            This can decrease Sweep memory consumption on the client side if your tables have large cells or many columns (i.e. wide rows).
-           For information on how to configure Sweep batching, see the :ref:`sweep documentation <atlas-sweep-cli>`.
+           For information on how to configure Sweep batching, see the :ref:`sweep documentation <atlasdb-sweep-cli>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1068>`__)
 
     *    - |fixed|
@@ -661,6 +1096,8 @@ v0.21.0
 =======
 v0.20.0
 =======
+
+19 Oct 2016
 
 .. list-table::
     :widths: 5 40
@@ -716,6 +1153,8 @@ v0.20.0
 =======
 v0.19.0
 =======
+
+11 Oct 2016
 
 .. list-table::
     :widths: 5 40
@@ -774,6 +1213,8 @@ v0.19.0
 v0.18.0
 =======
 
+3 Oct 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -803,6 +1244,8 @@ v0.18.0
 v0.17.0
 =======
 
+28 Sept 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -826,6 +1269,8 @@ v0.17.0
 =======
 v0.16.0
 =======
+
+26 Sept 2016
 
 .. list-table::
     :widths: 5 40
@@ -854,6 +1299,8 @@ v0.16.0
 =======
 v0.15.0
 =======
+
+14 Sept 2016
 
 .. list-table::
     :widths: 5 40
@@ -909,6 +1356,8 @@ v0.15.0
 v0.14.0
 =======
 
+8 Sept 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -947,6 +1396,8 @@ v0.14.0
 =======
 v0.13.0
 =======
+
+30 Aug 2016
 
 .. list-table::
     :widths: 5 40
@@ -991,6 +1442,8 @@ v0.13.0
 v0.12.0
 =======
 
+22 Aug 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -1026,6 +1479,8 @@ v0.12.0
 v0.11.4
 =======
 
+29 Jul 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -1043,6 +1498,8 @@ v0.11.4
 =======
 v0.11.2
 =======
+
+29 Jul 2016
 
 .. list-table::
     :widths: 5 40
@@ -1064,6 +1521,8 @@ v0.11.2
 =======
 v0.11.1
 =======
+
+28 Jul 2016
 
 .. list-table::
     :widths: 5 40
@@ -1087,6 +1546,8 @@ v0.11.1
 =======
 v0.11.0
 =======
+
+27 Jul 2016
 
 .. list-table::
     :widths: 5 40
@@ -1141,6 +1602,8 @@ v0.11.0
 v0.10.0
 =======
 
+13 Jul 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -1175,6 +1638,8 @@ v0.10.0
 ======
 v0.9.0
 ======
+
+11 Jul 2016
 
 .. list-table::
     :widths: 5 40
@@ -1231,6 +1696,8 @@ v0.9.0
 v0.8.0
 ======
 
+5 Jul 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -1247,6 +1714,8 @@ v0.8.0
 ======
 v0.7.0
 ======
+
+4 Jul 2016
 
 .. list-table::
     :widths: 5 40
@@ -1279,6 +1748,8 @@ v0.7.0
 v0.6.0
 ======
 
+26 May 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -1305,6 +1776,8 @@ v0.6.0
 v0.5.0
 ======
 
+16 May 2016
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -1320,6 +1793,8 @@ v0.5.0
 ======
 v0.4.1
 ======
+
+17 May 2016
 
 .. list-table::
     :widths: 5 40

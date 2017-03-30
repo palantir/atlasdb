@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting1.tracing.Tracers;
 
 public final class CassandraKeyValueServiceConfigManager {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueServiceConfigManager.class);
@@ -61,7 +62,7 @@ public final class CassandraKeyValueServiceConfigManager {
             long refreshInterval) {
         CassandraKeyValueServiceConfigManager ret = new CassandraKeyValueServiceConfigManager(
                 configSupplier,
-                PTExecutors.newScheduledThreadPool(1),
+                Tracers.wrap(PTExecutors.newScheduledThreadPool(1)),
                 initDelay,
                 refreshInterval);
         ret.init();

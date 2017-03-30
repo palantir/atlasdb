@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -19,8 +19,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.concurrent.GuardedBy;
-
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.exception.PalantirInterruptedException;
@@ -30,7 +28,6 @@ public class PersistentUpperLimit {
     private final Clock clock;
     private final TimestampAllocationFailures allocationFailures;
 
-    @GuardedBy("this")
     private volatile long cachedValue;
     private volatile long lastIncreasedTime;
 
@@ -49,21 +46,45 @@ public class PersistentUpperLimit {
         this(boundStore, new SystemClock(), new TimestampAllocationFailures());
     }
 
+    /**
+     * Gets the current upper limit timestamp.
+     * @return upper limit timestamp
+     */
     public long get() {
+        allocationFailures.verifyWeShouldIssueMoreTimestamps();
         return cachedValue;
     }
 
-    public synchronized void increaseToAtLeast(long minimum) {
-        if (cachedValue < minimum) {
-            store(minimum);
+    /**
+     * Increases the stored upper limit to at least the minimum value. The store is only performed if the cached value
+     * is lower than the minimum. If the check is successful, the value stored will be equal to
+     * minimum + additionalBuffer. This way we can avoid persisting a new limit if not necessary, but also add a buffer
+     * when the CAS is necessary.
+     * @param minimum minimum upper limit to be persisted. The CAS will only be invoked if the current cached value
+     * is lower than minimum.
+     * @param additionalBuffer if a CAS is necessary, this value determines the additional buffer on top of minimum to
+     * be persisted.
+     * @return currently cached value
+     */
+    public synchronized long increaseToAtLeast(long minimum, long additionalBuffer) {
+        long currentValue = get();
+        if (currentValue < minimum) {
+            return store(minimum + additionalBuffer);
         } else {
             DebugLogger.logger.trace(
                     "Not storing upper limit of {}, as the cached value {} was higher.",
                     minimum,
-                    cachedValue);
+                    currentValue);
+            return currentValue;
         }
     }
 
+    /**
+     * Determines if the upper limit has changed within the most recent specified period.
+     * @param time time
+     * @param unit time unit
+     * @return true if the upper limit has increased within the most recent specified period
+     */
     public boolean hasIncreasedWithin(int time, TimeUnit unit) {
         long durationInMillis = unit.toMillis(time);
         long timeSinceIncrease = clock.getTimeMillis() - lastIncreasedTime;
@@ -71,14 +92,20 @@ public class PersistentUpperLimit {
         return timeSinceIncrease < durationInMillis;
     }
 
-    private synchronized void store(long upperLimit) {
+    /**
+     * Stores the upper limit.
+     * @param upperLimit new upper limit
+     * @return the stored upper limit
+     */
+    private synchronized long store(long upperLimit) {
         DebugLogger.logger.trace("Storing new upper limit of {}.", upperLimit);
         checkWeHaveNotBeenInterrupted();
-        allocationFailures.verifyWeShouldTryToAllocateMoreTimestamps();
+        allocationFailures.verifyWeShouldIssueMoreTimestamps();
         persistNewUpperLimit(upperLimit);
         cachedValue = upperLimit;
         lastIncreasedTime = clock.getTimeMillis();
         DebugLogger.logger.trace("Stored; upper limit is now {}.", upperLimit);
+        return upperLimit;
     }
 
     private void checkWeHaveNotBeenInterrupted() {

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -17,10 +17,10 @@ package com.palantir.atlasdb.sweep;
 
 import java.util.Iterator;
 
-public class CountingIterator<T>  implements Iterator {
-    private final Iterator<T> delegate;
-    private T lastItem = null;
-    private int totalItems = 0;
+public class CountingIterator<T>  implements Iterator<T> {
+    protected final Iterator<T> delegate;
+    protected T lastItem = null;
+    protected int totalItems = 0;
 
     public CountingIterator(Iterator<T> delegate) {
         this.delegate = delegate;

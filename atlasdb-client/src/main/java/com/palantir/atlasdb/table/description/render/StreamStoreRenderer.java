@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -83,6 +84,7 @@ import com.palantir.util.file.TempFileUtils;
 
 import net.jpountz.lz4.LZ4BlockInputStream;
 
+@SuppressWarnings("CheckStyle")
 public class StreamStoreRenderer {
     private final String name;
     private final ValueType streamIdType;
@@ -147,6 +149,7 @@ public class StreamStoreRenderer {
                 line();
                 importRenderer.renderImports();
                 line("@Generated(\"",  StreamStoreRenderer.class.getName(), "\")");
+                line("@SuppressWarnings(\"all\")");
                 line("public final class ", StreamStore, " extends AbstractPersistentStreamStore", " {"); {
                     fields();
                     line();
@@ -172,6 +175,8 @@ public class StreamStoreRenderer {
                         storeBlocksAndGetFinalMetadata();
                         line();
                         loadStreamWithCompression();
+                        line();
+                        loadSingleStreamWithCompression();
                         line();
                         loadStreamsWithCompression();
                         line();
@@ -564,6 +569,14 @@ public class StreamStoreRenderer {
                 } line("}");
             }
 
+            private void loadSingleStreamWithCompression() {
+                line("@Override");
+                line("public Optional<InputStream> loadSingleStream(Transaction t, final ", StreamId, " id) {"); {
+                    line("Optional<InputStream> inputStream = super.loadSingleStream(t, id);");
+                    line("return inputStream.map(LZ4BlockInputStream::new);");
+                } line("}");
+            }
+
             private void loadStreamsWithCompression() {
                 line("@Override");
                 line("public Map<", StreamId, ", InputStream> loadStreams(Transaction t, Set<", StreamId, "> ids) {"); {
@@ -755,6 +768,7 @@ public class StreamStoreRenderer {
         DigestInputStream.class,
         MessageDigest.class,
         Collection.class,
+        Optional.class,
         Map.class,
         Entry.class,
         Set.class,

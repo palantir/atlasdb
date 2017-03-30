@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -15,9 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.batch;
 
+import java.io.Closeable;
 import java.util.function.Function;
 
-public interface BatchingTaskRunner {
+public interface BatchingTaskRunner extends Closeable {
 
     interface BatchingStrategy<InT> {
         Iterable<? extends InT> partitionIntoBatches(InT collection, int batchSizeHint);
@@ -33,4 +34,6 @@ public interface BatchingTaskRunner {
                              ResultAccumulatorStrategy<OutT> resultAccumulatingStrategy,
                              Function<InT, OutT> task);
 
+    @Override
+    void close();
 }

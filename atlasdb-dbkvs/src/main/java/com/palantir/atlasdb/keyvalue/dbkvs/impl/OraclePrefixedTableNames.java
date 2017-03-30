@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -17,25 +17,18 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 
-public class OraclePrefixedTableNames extends PrefixedTableNames {
-    private OracleTableNameGetter oracleTableNameGetter;
-    private ConnectionSupplier connectionSupplier;
+public class OraclePrefixedTableNames implements PrefixedTableNames {
+    private final OracleTableNameGetter oracleTableNameGetter;
 
-    public OraclePrefixedTableNames(
-            DdlConfig config,
-            ConnectionSupplier connectionSupplier,
-            OracleTableNameGetter oracleTableNameGetter) {
-        super(config);
-        this.connectionSupplier = connectionSupplier;
+    public OraclePrefixedTableNames(OracleTableNameGetter oracleTableNameGetter) {
         this.oracleTableNameGetter = oracleTableNameGetter;
     }
 
     @Override
-    public String get(TableReference tableRef) {
+    public String get(TableReference tableRef, ConnectionSupplier connectionSupplier) {
         try {
             return oracleTableNameGetter.getInternalShortTableName(connectionSupplier, tableRef);
         } catch (TableMappingNotFoundException e) {

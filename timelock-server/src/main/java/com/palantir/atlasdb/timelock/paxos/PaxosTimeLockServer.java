@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -35,12 +36,13 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
-import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -111,7 +113,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private void registerHealthCheck(TimeLockServerConfiguration configuration) {
         Set<PingableLeader> pingableLeaders = Leaders.generatePingables(
                 getAllServerPaths(configuration),
-                TransactionManagers.createSslSocketFactory(paxosConfiguration.sslConfiguration())).keySet();
+                ServiceCreator.createSslSocketFactory(paxosConfiguration.sslConfiguration())).keySet();
         environment.healthChecks().register("leader-ping", new LeaderPingHealthCheck(pingableLeaders));
     }
 
@@ -145,12 +147,22 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     @Override
     public TimeLockServices createInvalidatingTimeLockServices(String client) {
-        ManagedTimestampService timestampService = createPaxosBackedTimestampService(client);
-        LockService lockService = AwaitingLeadershipProxy.newProxyInstance(
+        ManagedTimestampService timestampService = instrument(
+                ManagedTimestampService.class,
+                createPaxosBackedTimestampService(client),
+                client);
+        LockService lockService = instrument(
                 LockService.class,
-                LockServiceImpl::create,
-                leaderElectionService);
+                AwaitingLeadershipProxy.newProxyInstance(
+                        LockService.class,
+                        LockServiceImpl::create,
+                        leaderElectionService),
+                client);
         return TimeLockServices.create(timestampService, lockService, timestampService);
+    }
+
+    private static <T> T instrument(Class<T> serviceClass, T service, String client) {
+        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass, client));
     }
 
     private ManagedTimestampService createPaxosBackedTimestampService(String client) {

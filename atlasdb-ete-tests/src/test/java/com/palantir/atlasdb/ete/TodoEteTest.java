@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -15,18 +15,14 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.core.IsNot.not;
-import static org.hamcrest.core.IsNull.nullValue;
 
 import org.junit.Test;
 
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.timestamp.TimestampService;
 
 public class TodoEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
@@ -37,12 +33,5 @@ public class TodoEteTest {
 
         todoClient.addTodo(TODO);
         assertThat(todoClient.getTodoList(), hasItem(TODO));
-    }
-
-    @Test
-    public void shouldExposeATimestampServer() {
-        TimestampService timestampClient = EteSetup.createClientToAllNodes(TimestampService.class);
-
-        assertThat(timestampClient.getFreshTimestamp(), is(not(nullValue())));
     }
 }

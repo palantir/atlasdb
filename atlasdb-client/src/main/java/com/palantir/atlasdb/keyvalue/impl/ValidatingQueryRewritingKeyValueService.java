@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -109,6 +109,15 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         delegate.delete(tableRef, keys);
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest rangeRequest) {
+        if (!rangeRequest.getColumnNames().isEmpty()) {
+            throw new UnsupportedOperationException(
+                    "We don't anticipate supporting deleting ranges with partial column selections.");
+        }
+        delegate.deleteRange(tableRef, rangeRequest);
     }
 
     @Override

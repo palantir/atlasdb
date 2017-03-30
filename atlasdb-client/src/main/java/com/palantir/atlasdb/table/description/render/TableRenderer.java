@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -113,7 +112,6 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -201,6 +199,7 @@ public class TableRenderer {
                 importRenderer.renderImports();
             }
             line("@Generated(\"",  TableRenderer.class.getName(), "\")");
+            line("@SuppressWarnings(\"all\")");
             line("public ", isNestedIndex ? "static " : "", "final class ", Table, " implements");
             if (isNamedSet(table)) {
                 if (isExpiring(table)) {
@@ -1081,23 +1080,6 @@ public class TableRenderer {
                 } line("}");
                 line("return rowResults;");
             } line("}");
-            line();
-            line("@Override");
-            line("public List<", RowResult, "> getAsyncRows(Iterable<", Row, "> rows, ExecutorService exec) {"); {
-                line("return getAsyncRows(rows, allColumns, exec);");
-            } line("}");
-            line();
-            line("@Override");
-            line("public List<", RowResult, "> getAsyncRows(final Iterable<", Row, "> rows, final ColumnSelection columns, ExecutorService exec) {"); {
-                line("Callable<List<", RowResult, ">> c =");
-                line("        new Callable<List<", RowResult, ">>() {"); {
-                    line("@Override");
-                    line("public List<", RowResult, "> call() {"); {
-                        line("return getRows(rows, columns);");
-                    } line("}");
-                } line("};");
-                line("return AsyncProxy.create(exec.submit(c), List.class);");
-            } line("}");
         }
 
         private void renderDynamicGet() {
@@ -1116,18 +1098,6 @@ public class TableRenderer {
                 line("}");
                 line("return rowMap;");
             } line("}");
-            line();
-            line("@Override");
-            line("public Multimap<", Row, ", ", ColumnValue, "> getAsync(final Multimap<", Row, ", ", Column, "> cells, ExecutorService exec) {"); {
-                line("Callable<Multimap<", Row, ", ", ColumnValue, ">> c =");
-                line("        new Callable<Multimap<", Row, ", ", ColumnValue, ">>() {"); {
-                    line("@Override");
-                    line("public Multimap<", Row, ", ", ColumnValue, "> call() {"); {
-                        line("return get(cells);");
-                    } line("}");
-                } line("};");
-                line("return AsyncProxy.create(exec.submit(c), Multimap.class);");
-            } line("}");
         }
 
         private void renderGetRowsMultimap(boolean isDynamic) {
@@ -1139,23 +1109,6 @@ public class TableRenderer {
             line("@Override");
             line("public Multimap<", Row, ", ", ColumnValue, "> getRowsMultimap(Iterable<", Row, "> rows, ColumnSelection columns) {"); {
                 line("return getRowsMultimapInternal(rows, columns);");
-            } line("}");
-            line();
-            line("@Override");
-            line("public Multimap<", Row, ", ", ColumnValue, "> getAsyncRowsMultimap(Iterable<", Row, "> rows, ExecutorService exec) {"); {
-                line("return getAsyncRowsMultimap(rows, allColumns, exec);");
-            } line("}");
-            line();
-            line("@Override");
-            line("public Multimap<", Row, ", ", ColumnValue, "> getAsyncRowsMultimap(final Iterable<", Row, "> rows, final ColumnSelection columns, ExecutorService exec) {"); {
-                line("Callable<Multimap<", Row, ", ", ColumnValue, ">> c =");
-                line("        new Callable<Multimap<", Row, ", ", ColumnValue, ">>() {"); {
-                    line("@Override");
-                    line("public Multimap<", Row, ", ", ColumnValue, "> call() {"); {
-                        line("return getRowsMultimapInternal(rows, columns);");
-                    } line("}");
-                } line("};");
-                line("return AsyncProxy.create(exec.submit(c), Multimap.class);");
             } line("}");
             line();
             line("private Multimap<", Row, ", ", ColumnValue, "> getRowsMultimapInternal(Iterable<", Row, "> rows, ColumnSelection columns) {"); {
@@ -1325,7 +1278,6 @@ public class TableRenderer {
         Map.class,
         SortedMap.class,
         Callable.class,
-        ExecutorService.class,
         Multimap.class,
         Multimaps.class,
         Collection.class,
@@ -1344,7 +1296,6 @@ public class TableRenderer {
         ColumnValues.class,
         RowResult.class,
         Persistables.class,
-        AsyncProxy.class,
         Maps.class,
         Lists.class,
         ImmutableMap.class,

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -26,6 +26,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.base.Preconditions;
@@ -86,6 +87,7 @@ public class KvsGetRangeBenchmarks {
 
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getSingleRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
@@ -93,6 +95,7 @@ public class KvsGetRangeBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getSingleRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
@@ -101,6 +104,7 @@ public class KvsGetRangeBenchmarks {
 
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getSingleLargeRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
@@ -108,14 +112,16 @@ public class KvsGetRangeBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Threads(1)
+    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 120, timeUnit = TimeUnit.SECONDS)
     public Object getSingleLargeRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
     }
 
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
     public Object getMultiRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
@@ -123,8 +129,9 @@ public class KvsGetRangeBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
+    @Threads(1)
+    @Warmup(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 60, timeUnit = TimeUnit.SECONDS)
     public Object getMultiRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getMultiRangeInner(table);
     }

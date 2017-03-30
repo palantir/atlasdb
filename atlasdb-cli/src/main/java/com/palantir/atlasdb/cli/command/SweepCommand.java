@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -77,6 +77,10 @@ public class SweepCommand extends SingleBackendCommand {
             description = "Time to wait in milliseconds after each sweep batch (throttles long-running sweep jobs, default: 0)")
     long sleepTimeInMs = 0;
 
+    @Option(name = {"--dry-run"},
+            description = "Run sweep in dry run mode to get how much would have been deleted and check safety.")
+    boolean dryRun = false;
+
     @Override
     public boolean isOnlineRunSupported() {
         return true;
@@ -97,7 +101,7 @@ public class SweepCommand extends SingleBackendCommand {
 
         Map<TableReference, byte[]> tableToStartRow = Maps.newHashMap();
 
-        if ((table != null)) {
+        if (table != null) {
             TableReference tableToSweep = TableReference.createUnsafe(table);
             if (!services.getKeyValueService().getAllTableNames().contains(tableToSweep)) {
                 printer.info("The table {} passed in to sweep does not exist", tableToSweep);
@@ -113,8 +117,8 @@ public class SweepCommand extends SingleBackendCommand {
                     .stream()
                     .filter(tableRef -> tableRef.getNamespace().getName().equals(namespace))
                     .collect(Collectors.toSet());
-            for (TableReference table : tablesInNamespace) {
-                tableToStartRow.put(table, new byte[0]);
+            for (TableReference tableInNamespace : tablesInNamespace) {
+                tableToStartRow.put(tableInNamespace, new byte[0]);
             }
         } else if (sweepAllTables) {
             tableToStartRow.putAll(
@@ -124,7 +128,7 @@ public class SweepCommand extends SingleBackendCommand {
         }
 
         for (Map.Entry<TableReference, byte[]> entry : tableToStartRow.entrySet()) {
-            final TableReference table = entry.getKey();
+            final TableReference tableToSweep = entry.getKey();
             Optional<byte[]> startRow = Optional.of(entry.getValue());
 
             final AtomicLong cellsExamined = new AtomicLong();
@@ -132,36 +136,51 @@ public class SweepCommand extends SingleBackendCommand {
 
             while (startRow.isPresent()) {
                 Stopwatch watch = Stopwatch.createStarted();
-                SweepResults results = sweepRunner.run(table, batchSize, cellBatchSize, startRow.get());
-                printer.info("Swept from {} to {} in table {} in {} ms, examined {} unique cells, deleted {} stale versions of those cells.",
-                        encodeStartRow(startRow), encodeEndRow(results.getNextStartRow()),
-                        table, watch.elapsed(TimeUnit.MILLISECONDS),
-                        results.getCellsExamined(), results.getCellsDeleted());
+
+                SweepResults results = dryRun
+                        ? sweepRunner.dryRun(tableToSweep, batchSize, cellBatchSize, startRow.get())
+                        : sweepRunner.run(tableToSweep, batchSize, cellBatchSize, startRow.get());
+                printer.info(
+                        "Swept from {} to {} in table {} in {} ms, examined {} unique cells, {}deleted {} stale versions of those cells.",
+                        encodeStartRow(startRow),
+                        encodeEndRow(results.getNextStartRow()),
+                        tableToSweep,
+                        watch.elapsed(TimeUnit.MILLISECONDS),
+                        results.getCellsExamined(),
+                        dryRun ? "would have " : "",
+                        results.getCellsDeleted());
                 startRow = results.getNextStartRow();
                 cellsDeleted.addAndGet(results.getCellsDeleted());
                 cellsExamined.addAndGet(results.getCellsExamined());
                 maybeSleep();
             }
 
-            services.getTransactionManager().runTaskWithRetry((TxTask) t -> {
-                SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
-                SweepPriorityTable.SweepPriorityRow row1 = SweepPriorityTable.SweepPriorityRow.of(table.getQualifiedName());
-                priorityTable.putWriteCount(row1, 0L);
-                priorityTable.putCellsDeleted(row1, cellsDeleted.get());
-                priorityTable.putCellsExamined(row1, cellsExamined.get());
-                priorityTable.putLastSweepTime(row1, System.currentTimeMillis());
+            if (!dryRun) {
+                services.getTransactionManager().runTaskWithRetry((TxTask) t -> {
+                    SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
+                    SweepPriorityTable.SweepPriorityRow row1 = SweepPriorityTable.SweepPriorityRow.of(
+                            tableToSweep.getQualifiedName());
+                    priorityTable.putWriteCount(row1, 0L);
+                    priorityTable.putCellsDeleted(row1, cellsDeleted.get());
+                    priorityTable.putCellsExamined(row1, cellsExamined.get());
+                    priorityTable.putLastSweepTime(row1, System.currentTimeMillis());
+                    return null;
+                });
+            }
 
-                printer.info("Finished sweeping {}, examined {} unique cells, deleted {} stale versions of those cells.",
-                        table, cellsExamined.get(), cellsDeleted.get());
+            printer.info(
+                    "Finished sweeping {}, examined {} unique cells, {}deleted {} stale versions of those cells.",
+                    tableToSweep,
+                    cellsExamined.get(),
+                    dryRun ? "would have " : "",
+                    cellsDeleted.get());
 
-                if (cellsDeleted.get() > 0) {
-                    Stopwatch watch = Stopwatch.createStarted();
-                    services.getKeyValueService().compactInternally(table);
-                    printer.info("Finished performing compactInternally on {} in {} ms.",
-                            table, watch.elapsed(TimeUnit.MILLISECONDS));
-                }
-                return null;
-            });
+            if (!dryRun && cellsDeleted.get() > 0) {
+                Stopwatch watch = Stopwatch.createStarted();
+                services.getKeyValueService().compactInternally(tableToSweep);
+                printer.info("Finished performing compactInternally on {} in {} ms.",
+                        tableToSweep, watch.elapsed(TimeUnit.MILLISECONDS));
+            }
         }
         return 0;
 	}

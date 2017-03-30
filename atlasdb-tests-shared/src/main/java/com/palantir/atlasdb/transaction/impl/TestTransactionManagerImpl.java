@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -75,8 +75,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @Override
-    public Transaction commitAndStartNewTransaction(Transaction t) {
-        t.commit();
+    public Transaction commitAndStartNewTransaction(Transaction tx) {
+        tx.commit();
         return createNewTransaction();
     }
 

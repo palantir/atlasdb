@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -35,14 +35,14 @@ import com.palantir.exception.PalantirInterruptedException;
  * @author dcohen
  *
  */
-public class InterruptibleProxy implements DelegatingInvocationHandler {
+public final class InterruptibleProxy implements DelegatingInvocationHandler {
 
     private final CancelDelegate cancel;
 
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate,
             CancelDelegate cancel) {
-        return (T)Proxy.newProxyInstance(interfaceClass.getClassLoader(),
+        return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(),
                 new Class<?>[] {interfaceClass}, new InterruptibleProxy(delegate, cancel));
     }
 

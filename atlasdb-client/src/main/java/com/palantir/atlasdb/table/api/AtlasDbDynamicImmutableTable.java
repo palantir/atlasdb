@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.table.api;
 
-import java.util.concurrent.ExecutorService;
-
 import com.google.common.collect.Multimap;
 
 /*
@@ -25,5 +23,4 @@ import com.google.common.collect.Multimap;
 public interface AtlasDbDynamicImmutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
     Multimap<ROW,COLUMN_VALUE> get(Multimap<ROW,COLUMN> cells);
-    Multimap<ROW,COLUMN_VALUE> getAsync(Multimap<ROW,COLUMN> cells, ExecutorService exec);
 }

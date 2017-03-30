@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -18,6 +18,7 @@ package com.palantir.atlasdb.stream;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -27,11 +28,35 @@ import com.palantir.util.crypto.Sha256Hash;
  * Interface for storing streams specifically for atlasdb.
  */
 public interface GenericStreamStore<ID> {
-    static int BLOCK_SIZE_IN_BYTES = 1000000; // 1MB. DO NOT CHANGE THIS WITHOUT AN UPGRADE TASK
+    int BLOCK_SIZE_IN_BYTES = 1000000; // 1MB. DO NOT CHANGE THIS WITHOUT AN UPGRADE TASK
 
+    /**
+     * Implemented in the generated StreamStore implementation.
+     * Use this to look up stream IDs, given a hash of the corresponding InputStream's content.
+     */
     Map<Sha256Hash, ID> lookupStreamIdsByHash(Transaction t, final Set<Sha256Hash> hashes);
 
+    /**
+     * @deprecated use #loadSingleStream instead.
+     *
+     * Returns an InputStream if such a stream exists, throwing an exception if no stream exists.
+     */
+    @Deprecated
     InputStream loadStream(Transaction t, ID id);
+
+    /**
+     * Loads the stream with ID id, returning {@code Optional.empty} if no such stream exists.
+     */
+    Optional<InputStream> loadSingleStream(Transaction t, ID id);
+
+    /**
+     * Loads the streams for each ID in ids.
+     * If an id has no corresponding stream, it will be omitted from the returned map.
+     */
     Map<ID, InputStream> loadStreams(Transaction t, Set<ID> ids);
+
+    /**
+     * Loads the whole stream, and saves it to a local temporary file.
+     */
     File loadStreamAsFile(Transaction t, ID id);
 }

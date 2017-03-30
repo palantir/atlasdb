@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -37,7 +37,6 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.table.description.Schemas;
 
 public class TestKvsMigrationCommand {
-
     private KvsMigrationCommand getCommand(String[] args) throws URISyntaxException {
         String filePath = AbstractTestRunner.getResourcePath(InMemoryTestRunner.CONFIG_LOCATION);
         String[] initArgs = new String[] { "migrate", "-fc", filePath, "-mc", filePath };
@@ -46,51 +45,32 @@ public class TestKvsMigrationCommand {
     }
 
     @Test
-    public void testEmptyMigration() throws Exception {
-        KvsMigrationCommand cmd = getCommand(new String[] { "-smv" });
-        AtlasDbServices fromServices = cmd.connectFromServices();
-        // CLIs don't currently reinitialize the KVS
-        Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), fromServices.getKeyValueService());
-        AtlasDbServices toServices = cmd.connectToServices();
-        try {
-            int result = cmd.execute(fromServices, toServices);
-            Assert.assertEquals(0, result);
-        } finally {
-            fromServices.close();
-            toServices.close();
-        }
+    public void canMigrateZeroTables() throws Exception {
+        runTestWithTableSpecs(0, 0);
     }
 
     @Test
-    public void testMigratedSingleTable() throws Exception {
-        KvsMigrationCommand cmd = getCommand(new String[] { "-smv" });
-        AtlasDbServices fromServices = cmd.connectFromServices();
-        // CLIs don't currently reinitialize the KVS
-        Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), fromServices.getKeyValueService());
-        AtlasDbServices toServices = cmd.connectToServices();
-        seedKvs(fromServices, 1, 1);
-        try {
-            int result = cmd.execute(fromServices, toServices);
-            Assert.assertEquals(0, result);
-            checkKvs(toServices, 1, 1);
-        } finally {
-            fromServices.close();
-            toServices.close();
-        }
+    public void canMigrateOneTable() throws Exception {
+        runTestWithTableSpecs(1, 1);
     }
 
     @Test
-    public void testMigratedMultipleLargeTables() throws Exception {
+    public void canMigrateMultipleTables() throws Exception {
+        runTestWithTableSpecs(10, 257);
+    }
+
+    private void runTestWithTableSpecs(int numTables, int numEntriesPerTable) throws Exception {
         KvsMigrationCommand cmd = getCommand(new String[] { "-smv" });
         AtlasDbServices fromServices = cmd.connectFromServices();
+
         // CLIs don't currently reinitialize the KVS
         Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), fromServices.getKeyValueService());
         AtlasDbServices toServices = cmd.connectToServices();
-        seedKvs(fromServices, 10, 257);
+        seedKvs(fromServices, numTables, numEntriesPerTable);
         try {
-            int result = cmd.execute(fromServices, toServices);
-            Assert.assertEquals(0, result);
-            checkKvs(toServices, 10, 257);
+            int exitCode = cmd.execute(fromServices, toServices);
+            Assert.assertEquals(0, exitCode);
+            checkKvs(toServices, numTables, numEntriesPerTable);
         } finally {
             fromServices.close();
             toServices.close();

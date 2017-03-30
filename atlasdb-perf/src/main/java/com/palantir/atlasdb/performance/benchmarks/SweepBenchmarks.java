@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  * <p>
  * Licensed under the BSD-3 License (the "License"); you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -53,36 +54,41 @@ public class SweepBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Threads(1)
+    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object singleSweepRun(RegeneratingTable.SweepRegeneratingTable table) {
         return runSingleSweep(table, 1);
     }
 
     @Benchmark
-    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Threads(1)
+    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object batchedUniformSingleSweepRun(RegeneratingTable.SweepBatchUniformMultipleRegeneratingTable table) {
         return runSingleSweep(table, BATCH_SIZE);
     }
 
     @Benchmark
-    @Warmup(time = 8, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 40, timeUnit = TimeUnit.SECONDS)
+    @Threads(1)
+    @Warmup(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 75, timeUnit = TimeUnit.SECONDS)
     public Object batchedSingleSweepRun(RegeneratingTable.SweepBatchNonUniformMultipleSeparateRegeneratingTable table) {
         return runSingleSweep(table, BATCH_SIZE);
     }
 
     @Benchmark
-    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    @Threads(1)
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 25, timeUnit = TimeUnit.SECONDS)
     public Object multipleUniformSweepRun(RegeneratingTable.SweepBatchUniformMultipleRegeneratingTable table) {
         return runMultiSweep(table);
     }
 
     @Benchmark
-    @Warmup(time = 8, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 40, timeUnit = TimeUnit.SECONDS)
+    @Threads(1)
+    @Warmup(time = 15, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 90, timeUnit = TimeUnit.SECONDS)
     public Object multipleSweepRun(RegeneratingTable.SweepBatchNonUniformMultipleSeparateRegeneratingTable table) {
         return runMultiSweep(table);
     }

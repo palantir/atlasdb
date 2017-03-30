@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -27,5 +27,15 @@ public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
     @Override
     public String type() {
         return TYPE;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return this == other || (other != null && this.getClass() == other.getClass());
+    }
+
+    @Override
+    public int hashCode() {
+        return InMemoryAtlasDbConfig.class.hashCode();
     }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -85,8 +85,8 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private void init() {
-        try {
-            createTimestampTable(connManager.getConnection());
+        try (Connection conn = connManager.getConnection()) {
+            createTimestampTable(conn);
         } catch (SQLException error) {
             throw PalantirSqlException.create(error);
         }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -86,6 +86,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
 
+    @Deprecated // Use PaxosLeaderElectionServiceBuilder instead.
     public PaxosLeaderElectionService(PaxosProposer proposer,
                                       PaxosLearner knowledge,
                                       Map<PingableLeader, HostAndPort> potentialLeadersToHosts,

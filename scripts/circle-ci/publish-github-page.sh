@@ -3,7 +3,7 @@
 set -x -e
 
 # Just-in-time install of sphinx so that docs build
-sudo -H pip install --upgrade sphinx sphinx_rtd_theme requests
+sudo -H pip install --upgrade sphinx sphinx_rtd_theme requests recommonmark
 
 # Clone gh-pages into build
 cd docs/

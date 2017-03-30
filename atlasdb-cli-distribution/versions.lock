@@ -17,15 +17,14 @@
                 "ch.qos.logback:logback-classic"
             ]
         },
-        "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2",
+        "com.carrotsearch:hppc": {
+            "locked": "0.5.4",
             "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core",
-                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "2.2.0-rc3",
+            "locked": "3.1.4",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
@@ -69,9 +68,11 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
+                "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
                 "io.dropwizard:dropwizard-jackson"
             ]
@@ -87,6 +88,7 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -105,7 +107,45 @@
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
             "locked": "2.6.7",
             "transitive": [
+                "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.github.jnr:jffi": {
+            "locked": "1.2.10",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
+            ]
+        },
+        "com.github.jnr:jnr-constants": {
+            "locked": "0.9.0",
+            "transitive": [
+                "com.github.jnr:jnr-posix"
+            ]
+        },
+        "com.github.jnr:jnr-ffi": {
+            "locked": "2.0.7",
+            "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
+                "com.github.jnr:jnr-posix"
+            ]
+        },
+        "com.github.jnr:jnr-posix": {
+            "locked": "3.0.27",
+            "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core"
+            ]
+        },
+        "com.github.jnr:jnr-x86asm": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
+            ]
+        },
+        "com.github.rholder:snowball-stemmer": {
+            "locked": "1.3.0.581.1",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.google.code.findbugs:annotations": {
@@ -123,6 +163,7 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-jdbc",
                 "com.palantir.atlasdb:atlasdb-lock-api",
+                "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:atlasdb-rocksdb",
                 "com.palantir.atlasdb:atlasdb-service",
                 "com.palantir.atlasdb:commons-annotations",
@@ -137,6 +178,11 @@
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl",
+                "com.palantir.tritium:tritium-api",
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-slf4j",
                 "io.airlift:airline"
             ]
         },
@@ -144,7 +190,8 @@
             "locked": "1.3.9",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "io.dropwizard:dropwizard-util"
+                "io.dropwizard:dropwizard-util",
+                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
         "com.google.guava:guava": {
@@ -156,7 +203,11 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
                 "io.airlift:airline",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-util"
@@ -169,6 +220,12 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:leader-election-api-protobufs",
                 "com.palantir.atlasdb:leader-election-impl"
+            ]
+        },
+        "com.googlecode.concurrent-trees:concurrent-trees": {
+            "locked": "2.4.0",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -311,6 +368,12 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
+        "com.palantir.atlasdb:atlasdb-persistent-lock-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
+        },
         "com.palantir.atlasdb:atlasdb-rocksdb": {
             "project": true
         },
@@ -423,11 +486,59 @@
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
+        "com.palantir.remoting1:tracing": {
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:commons-db",
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
         "com.palantir.remoting:ssl-config": {
             "locked": "0.13.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "com.palantir.tritium:tritium-api": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-slf4j"
+            ]
+        },
+        "com.palantir.tritium:tritium-core": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-slf4j"
+            ]
+        },
+        "com.palantir.tritium:tritium-lib": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.palantir.tritium:tritium-metrics": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.palantir.tritium:tritium-slf4j": {
+            "locked": "0.6.0-beta",
+            "transitive": [
+                "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.squareup.okhttp:okhttp": {
@@ -475,6 +586,12 @@
                 "com.palantir.atlasdb:leader-election-impl"
             ]
         },
+        "de.jflex:jflex": {
+            "locked": "1.6.0",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "io.airlift:airline": {
             "locked": "0.7",
             "transitive": [
@@ -484,7 +601,11 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.datastax.cassandra:cassandra-driver-core",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
+                "com.palantir.tritium:tritium-metrics",
+                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
         "io.dropwizard:dropwizard-jackson": {
@@ -500,32 +621,32 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.37.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.37.Final",
             "transitive": [
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.37.Final",
             "transitive": [
                 "io.netty:netty-buffer"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.37.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.37.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler"
@@ -550,6 +671,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-api"
@@ -575,8 +697,20 @@
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
+        "org.apache.ant:ant": {
+            "locked": "1.9.4",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "org.apache.ant:ant-launcher": {
+            "locked": "1.9.4",
+            "transitive": [
+                "org.apache.ant:ant"
+            ]
+        },
         "org.apache.cassandra:cassandra-thrift": {
-            "locked": "2.2.8",
+            "locked": "3.10",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
@@ -615,23 +749,69 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
+        "org.hdrhistogram:HdrHistogram": {
+            "locked": "2.1.9",
             "transitive": [
-                "com.palantir.atlasdb:timestamp-impl",
-                "org.hamcrest:hamcrest-library"
+                "com.palantir.tritium:tritium-metrics",
+                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
+        "org.jboss.marshalling:jboss-marshalling": {
+            "locked": "1.4.11.Final",
             "transitive": [
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "org.jooq:jooq": {
             "locked": "3.6.4",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-jdbc"
+            ]
+        },
+        "org.mortbay.jetty.alpn:jetty-alpn-agent": {
+            "locked": "2.0.6",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
+            "locked": "1.1.2",
+            "transitive": [
+                "com.palantir.tritium:tritium-metrics"
+            ]
+        },
+        "org.ow2.asm:asm": {
+            "locked": "5.0.4",
+            "transitive": [
+                "com.github.jnr:jnr-ffi",
+                "org.ow2.asm:asm-tree"
+            ]
+        },
+        "org.ow2.asm:asm-analysis": {
+            "locked": "5.0.3",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
+            ]
+        },
+        "org.ow2.asm:asm-commons": {
+            "locked": "5.0.3",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
+            ]
+        },
+        "org.ow2.asm:asm-tree": {
+            "locked": "5.0.3",
+            "transitive": [
+                "com.github.jnr:jnr-ffi",
+                "org.ow2.asm:asm-analysis",
+                "org.ow2.asm:asm-commons",
+                "org.ow2.asm:asm-util"
+            ]
+        },
+        "org.ow2.asm:asm-util": {
+            "locked": "5.0.3",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
             ]
         },
         "org.postgresql:postgresql": {
@@ -661,9 +841,13 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
+                "com.palantir.remoting1:tracing",
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-slf4j",
                 "com.zaxxer:HikariCP",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",

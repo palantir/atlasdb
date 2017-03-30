@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -40,7 +40,7 @@ public class ThreadLocalWrappingTransactionManager extends WrappingTransactionMa
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         wrapper.remove();
     }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -111,9 +111,10 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
+import com.palantir.remoting1.tracing.Tracers;
 
 public class SnapshotTransactionTest extends AtlasDbTestCase {
-    protected final TimestampCache timestampCache = new TimestampCache();
+    protected final TimestampCache timestampCache = TimestampCache.create();
 
     private class UnstableKeyValueService extends ForwardingKeyValueService {
         private final KeyValueService delegate;
@@ -181,7 +182,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void testConcurrentWriteChangedConflicts() throws InterruptedException, ExecutionException {
         conflictDetectionManager.setConflictDetectionMode(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
-        CompletionService<Void> executor = new ExecutorCompletionService<Void>(PTExecutors.newFixedThreadPool(8));
+        CompletionService<Void> executor = new ExecutorCompletionService<Void>(
+                Tracers.wrap(PTExecutors.newFixedThreadPool(8)));
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
@@ -213,7 +215,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void testConcurrentWriteWriteConflicts() throws InterruptedException, ExecutionException {
-        CompletionService<Void> executor = new ExecutorCompletionService<Void>(PTExecutors.newFixedThreadPool(8));
+        CompletionService<Void> executor = new ExecutorCompletionService<Void>(
+                Tracers.wrap(PTExecutors.newFixedThreadPool(8)));
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
@@ -370,7 +373,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 conflictDetectionManager,
                 sweepStrategyManager);
 
-        ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
+        ScheduledExecutorService service = Tracers.wrap(PTExecutors.newScheduledThreadPool(20));
 
         for (int i = 0; i < 30; i++) {
             final int threadNumber = i;

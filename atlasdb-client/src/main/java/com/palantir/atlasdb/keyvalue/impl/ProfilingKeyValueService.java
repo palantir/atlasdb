@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -92,6 +92,11 @@ public class ProfilingKeyValueService implements KeyValueService {
                 method, tableCount, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
+    private static void logTimeAndTableRange(String method, String tableName, RangeRequest range, Stopwatch stopwatch) {
+        log.trace("Call to KVS.{} on table {} with range {} took {} ms.",
+                method, tableName, range, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+    }
+
     private final KeyValueService delegate;
 
     private ProfilingKeyValueService(KeyValueService delegate) {
@@ -140,6 +145,17 @@ public class ProfilingKeyValueService implements KeyValueService {
             logCellsAndSize("delete", tableRef.getQualifiedName(), keys.keySet().size(), byteSize(keys), stopwatch);
         } else {
             delegate.delete(tableRef, keys);
+        }
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        if (log.isTraceEnabled()) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            delegate.deleteRange(tableRef, range);
+            logTimeAndTableRange("deleteRange", tableRef.getQualifiedName(), range, stopwatch);
+        } else {
+            delegate.deleteRange(tableRef, range);
         }
     }
 
@@ -264,7 +280,7 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             ClosableIterator<RowResult<Value>> result = delegate.getRange(tableRef, rangeRequest, timestamp);
-            logTimeAndTable("getRange", tableRef.getQualifiedName(), stopwatch);
+            logTimeAndTableRange("getRange", tableRef.getQualifiedName(), rangeRequest, stopwatch);
             return result;
         } else {
             return delegate.getRange(tableRef, rangeRequest, timestamp);
@@ -276,7 +292,7 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             ClosableIterator<RowResult<Set<Long>>> result = delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
-            logTimeAndTable("getRangeOfTimestamps", tableRef.getQualifiedName(), stopwatch);
+            logTimeAndTableRange("getRangeOfTimestamps", tableRef.getQualifiedName(), rangeRequest, stopwatch);
             return result;
         } else {
             return delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
@@ -364,6 +380,11 @@ public class ProfilingKeyValueService implements KeyValueService {
         } else {
             delegate.putUnlessExists(tableRef, values);
         }
+    }
+
+    @Override
+    public boolean supportsCheckAndSet() {
+        return delegate.supportsCheckAndSet();
     }
 
     @Override

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -15,11 +15,14 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -68,6 +71,20 @@ public class ReadTransaction extends ForwardingTransaction {
                                                                     Iterable<RangeRequest> rangeRequests) {
         checkTableName(tableRef);
         return delegate().getRanges(tableRef, rangeRequests);
+    }
+
+    @Override
+    public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
+            Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+        checkTableName(tableRef);
+        return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection);
+    }
+
+    @Override
+    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection, int batchHint) {
+        checkTableName(tableRef);
+        return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
     }
 
     private void checkTableName(TableReference tableRef) {

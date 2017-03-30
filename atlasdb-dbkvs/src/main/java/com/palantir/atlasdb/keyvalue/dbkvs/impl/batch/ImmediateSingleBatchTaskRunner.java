@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -24,5 +24,10 @@ public class ImmediateSingleBatchTaskRunner implements BatchingTaskRunner {
                                     ResultAccumulatorStrategy<OutT> resultAccumulatingStrategy,
                                     Function<InT, OutT> task) {
         return task.apply(input);
+    }
+
+    @Override
+    public void close() {
+        // nothing to do
     }
 }

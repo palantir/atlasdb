@@ -1,4 +1,4 @@
-.. _background_sweep:
+.. _background-sweep:
 
 Background Sweep
 ================
@@ -24,6 +24,12 @@ Configuration
 
 The background sweeper can be enabled by setting the ``enableSweep`` property in the :ref:`AtlasDB configuration <atlas-config>` to true.
 For other configuration options, see :ref:`Tunable Sweep Configuration Options<sweep_tunable_parameters>`.
+
+Metrics
+-------
+
+We now expose Dropwizard metrics to allow easier tracking of the background sweeper's actions.
+For more information, see :ref:`Dropwizard Metrics<dropwizard-metrics>`.
 
 Additional logging for Background Sweep
 ---------------------------------------

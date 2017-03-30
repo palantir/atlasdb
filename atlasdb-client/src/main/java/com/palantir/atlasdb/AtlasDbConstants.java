@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -58,6 +58,8 @@ public class AtlasDbConstants {
     public static final int DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB = 64;
 
     public static final long TRANSACTION_TS = 0L;
+    public static final long MAX_TS = Long.MAX_VALUE;
+
 
     public static final Set<TableReference> hiddenTables = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
@@ -72,7 +74,8 @@ public class AtlasDbConstants {
      */
     public static final Set<TableReference> ATOMIC_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
-            NAMESPACE_TABLE);
+            NAMESPACE_TABLE,
+            PERSISTED_LOCKS_TABLE);
 
     public static final Set<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED = ImmutableSet.of(TableReference.createWithEmptyNamespace("resync_object"));
 
@@ -89,6 +92,7 @@ public class AtlasDbConstants {
 
     public static final boolean DEFAULT_ENABLE_SWEEP = false;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
+    public static final long DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS = 30_000L;
     public static final int DEFAULT_SWEEP_BATCH_SIZE = 1000;
     public static final int DEFAULT_SWEEP_CELL_BATCH_SIZE = 10_000;
 

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -65,6 +65,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting1.tracing.Tracers;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -80,7 +81,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     public InMemoryKeyValueService(boolean createTablesAutomatically) {
         this(createTablesAutomatically,
-                PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true)));
+                Tracers.wrap(PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true))));
     }
 
     public InMemoryKeyValueService(boolean createTablesAutomatically,

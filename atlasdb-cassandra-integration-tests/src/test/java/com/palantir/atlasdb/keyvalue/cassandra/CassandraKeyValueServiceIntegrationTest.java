@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -140,7 +140,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         kvs.createTable(testTable, tableMetadata);
 
-        List<CfDef> knownCfs = kvs.clientPool.runWithRetry(client ->
+        List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
                 client.describe_keyspace("atlasdb").getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals("ns__never_seen"))
@@ -174,10 +174,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public void testLockTablesStateCleanUp() throws Exception {
         CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
-                ckvs.clientPool,
+                ckvs.getClientPool(),
                 CassandraContainer.KVS_CONFIG);
         SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
-                ckvs.clientPool,
+                ckvs.getClientPool(),
                 new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
 
         grabLock(lockTestTools);
@@ -212,6 +212,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 ImmutableSet.of(Cell.create(
                         tableRef.getQualifiedName().getBytes(StandardCharsets.UTF_8),
                         "m".getBytes(StandardCharsets.UTF_8))),
-                Long.MAX_VALUE).size();
+                AtlasDbConstants.MAX_TS).size();
     }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -142,6 +142,15 @@ public abstract class AtlasDbConfig {
     @Value.Default
     public long getSweepPauseMillis() {
         return AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS;
+    }
+
+    /**
+     * The number of milliseconds to wait between retries when the background sweeper can't delete data, due to the
+     * persistent lock being taken.
+     */
+    @Value.Default
+    public long getSweepPersistentLockWaitMillis() {
+        return AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS;
     }
 
     /**

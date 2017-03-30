@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -27,6 +27,7 @@ public interface DbTableFactory extends Closeable {
     DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns);
     DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns);
     DBType getDbType();
+    PrefixedTableNames getPrefixedTableNames();
     @Override
     void close();
 }

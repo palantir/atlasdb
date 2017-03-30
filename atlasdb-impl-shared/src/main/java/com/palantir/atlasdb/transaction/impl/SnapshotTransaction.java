@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -949,17 +949,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             bytes += e.getValue().getContents().length + Cells.getApproxSizeOfCell(e.getKey());
         }
-        if (bytes > TransactionConstants.ERROR_LEVEL_FOR_QUEUED_BYTES
-                && !AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(tableRef)) {
-            log.error("A single get had a lot of bytes: {} for table {}. The number of results was {}. "
-                            + "The first 10 results were {}. This can potentially cause out-of-memory errors.",
-                    bytes, tableRef.getQualifiedName(), rawResults.size(), Iterables.limit(rawResults.entrySet(), 10),
-                    new RuntimeException("This exception and stack trace are provided for debugging purposes."));
-        } else if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES && log.isWarnEnabled()) {
+        if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES && log.isWarnEnabled()) {
             log.warn("A single get had quite a few bytes: {} for table {}. The number of results was {}. "
-                            + "The first 10 results were {}.",
-                    bytes, tableRef.getQualifiedName(), rawResults.size(), Iterables.limit(rawResults.entrySet(), 10),
-                    new RuntimeException("This exception and stack trace are provided for debugging purposes."));
+                    + "Enable debug logging for more information.",
+                    bytes, tableRef.getQualifiedName(), rawResults.size());
+            if (log.isDebugEnabled()) {
+                log.debug("The first 10 results of your request were {}.", Iterables.limit(rawResults.entrySet(), 10),
+                        new RuntimeException("This exception and stack trace are provided for debugging purposes."));
+            }
         }
 
         Map<Cell, Value> remainingResultsToPostfilter = rawResults;
@@ -1125,14 +1122,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 long newVal = byteCount.addAndGet(toAdd);
                 if (newVal >= TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES
                         && newVal - toAdd < TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES) {
-                    log.warn("A single transaction has put quite a few bytes: {}", newVal, new RuntimeException(
-                            "This exception and stack trace are provided for debugging purposes."));
-                }
-                if (newVal >= TransactionConstants.ERROR_LEVEL_FOR_QUEUED_BYTES
-                        && newVal - toAdd < TransactionConstants.ERROR_LEVEL_FOR_QUEUED_BYTES) {
-                    log.warn("A single transaction has put too many bytes: {}. This can potentially cause"
-                            + " out-of-memory errors.", newVal, new RuntimeException(
-                            "This exception and stack trace are provided for debugging purposes."));
+                    log.warn("A single transaction has put quite a few bytes: {}. "
+                            + "Enable debug logging for more information", newVal);
+                    if (log.isDebugEnabled()) {
+                        log.debug("This exception and stack trace are provided for debugging purposes.",
+                                new RuntimeException());
+                    }
                 }
             }
         }

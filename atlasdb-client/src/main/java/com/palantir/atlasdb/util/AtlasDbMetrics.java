@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.util;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,9 +25,16 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.cache.Cache;
+import com.palantir.tritium.event.log.LoggingInvocationEventHandler;
+import com.palantir.tritium.event.log.LoggingLevel;
+import com.palantir.tritium.event.metrics.MetricsInvocationEventHandler;
+import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.proxy.Instrumentation;
 
 public final class AtlasDbMetrics {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbMetrics.class);
+
     @VisibleForTesting
     static final String DEFAULT_REGISTRY_NAME = "AtlasDb";
 
@@ -39,16 +49,47 @@ public final class AtlasDbMetrics {
 
     // Using this means that all atlasdb clients will report to the same registry, which may give confusing stats
     public static MetricRegistry getMetricRegistry() {
-        if (AtlasDbMetrics.metrics == null) {
+        MetricRegistry currentMetricRegistry = AtlasDbMetrics.metrics;
+        if (currentMetricRegistry == null) {
             synchronized (AtlasDbMetrics.class) {
-                if (AtlasDbMetrics.metrics == null) {
-                    AtlasDbMetrics.metrics = SharedMetricRegistries.getOrCreate(DEFAULT_REGISTRY_NAME);
-                    log.info("Metric Registry was not set, setting to default registry name of "
+                currentMetricRegistry = AtlasDbMetrics.metrics;
+                if (currentMetricRegistry == null) {
+                    currentMetricRegistry = SharedMetricRegistries.getOrCreate(DEFAULT_REGISTRY_NAME);
+                    log.warn("Metric Registry was not set, setting to shared default registry name of "
                             + DEFAULT_REGISTRY_NAME);
+                    AtlasDbMetrics.metrics = currentMetricRegistry;
                 }
             }
         }
 
-        return AtlasDbMetrics.metrics;
+        return currentMetricRegistry;
     }
+
+    public static <T, U extends T> T instrument(Class<T> serviceInterface, U service) {
+        return instrument(serviceInterface, service, serviceInterface.getName());
+    }
+
+    public static <T, U extends T> T instrument(Class<T> serviceInterface, U service, String name) {
+        return Instrumentation.builder(serviceInterface, service)
+                .withHandler(new MetricsInvocationEventHandler(getMetricRegistry(), name))
+                .withLogging(
+                        LoggerFactory.getLogger("performance." + name),
+                        LoggingLevel.TRACE,
+                        LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
+                .build();
+    }
+
+    public static void registerCache(Cache<?, ?> cache, String metricsPrefix) {
+        MetricRegistry metricRegistry = getMetricRegistry();
+        Set<String> existingMetrics = metricRegistry.getMetrics().keySet().stream()
+                .filter(name -> name.startsWith(metricsPrefix))
+                .collect(Collectors.toSet());
+        if (existingMetrics.isEmpty()) {
+            MetricRegistries.registerCache(metricRegistry, cache, metricsPrefix);
+        } else {
+            log.info("Not registering cache with prefix '{}' as metric registry already contains metrics: {}",
+                    metricsPrefix, existingMetrics);
+        }
+    }
+
 }

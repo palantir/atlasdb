@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -61,6 +61,11 @@ public class ParallelTaskRunner implements BatchingTaskRunner {
         } catch (ExecutionException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    @Override
+    public void close() {
+        executor.shutdown();
     }
 
 }

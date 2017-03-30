@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
@@ -82,11 +81,11 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
-import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+@SuppressWarnings("all")
 public final class UserPhotosStreamMetadataTable implements
         AtlasDbMutablePersistentTable<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow,
                                          UserPhotosStreamMetadataTable.UserPhotosStreamMetadataNamedColumnValue<?>,
@@ -525,23 +524,6 @@ public final class UserPhotosStreamMetadataTable implements
     }
 
     @Override
-    public List<UserPhotosStreamMetadataRowResult> getAsyncRows(Iterable<UserPhotosStreamMetadataRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, allColumns, exec);
-    }
-
-    @Override
-    public List<UserPhotosStreamMetadataRowResult> getAsyncRows(final Iterable<UserPhotosStreamMetadataRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<UserPhotosStreamMetadataRowResult>> c =
-                new Callable<List<UserPhotosStreamMetadataRowResult>>() {
-            @Override
-            public List<UserPhotosStreamMetadataRowResult> call() {
-                return getRows(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), List.class);
-    }
-
-    @Override
     public List<UserPhotosStreamMetadataNamedColumnValue<?>> getRowColumns(UserPhotosStreamMetadataRow row) {
         return getRowColumns(row, allColumns);
     }
@@ -569,23 +551,6 @@ public final class UserPhotosStreamMetadataTable implements
     @Override
     public Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<UserPhotosStreamMetadataRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<UserPhotosStreamMetadataRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<UserPhotosStreamMetadataRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>>> c =
-                new Callable<Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>>>() {
-            @Override
-            public Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
-        };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     private Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<UserPhotosStreamMetadataRow> rows, ColumnSelection columns) {
@@ -662,7 +627,6 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
-     * {@link AsyncProxy}
      * {@link AtlasDbConstraintCheckingMode}
      * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
@@ -694,7 +658,6 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link ExecutorService}
      * {@link Function}
      * {@link Generated}
      * {@link HashMultimap}
@@ -741,5 +704,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "pF65FiYhkVyYcSGzmQXwbQ==";
+    static String __CLASS_HASH = "BVBEHh+h+Y0tBKMjSMnU4g==";
 }

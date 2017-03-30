@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -67,7 +67,7 @@ public class OracleTableNameUnmapperTest {
         SqlConnection sqlConnection = mock(SqlConnection.class);
         Connection connection = mock(Connection.class);
         when(sqlConnection.getUnderlyingConnection()).thenReturn(connection);
-        when(connectionSupplier.getNewUnsharedConnection()).thenReturn(sqlConnection);
+        when(connectionSupplier.get()).thenReturn(sqlConnection);
 
         resultSet = mock(AgnosticResultSet.class);
         when(sqlConnection

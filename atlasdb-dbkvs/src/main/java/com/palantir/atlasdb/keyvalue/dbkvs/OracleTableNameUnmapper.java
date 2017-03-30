@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import java.sql.SQLException;
 import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
@@ -49,29 +48,18 @@ class OracleTableNameUnmapper {
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
         try {
             return unmappingCache.get(fullTableName, () -> {
-                SqlConnection conn = null;
-                try {
-                    conn = connectionSupplier.getNewUnsharedConnection();
-                    AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                            "SELECT short_table_name "
-                                    + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                                    + " WHERE table_name = ?", fullTableName);
-                    if (results.size() == 0) {
-                        throw new TableMappingNotFoundException(
-                                "The table " + fullTableName + " does not have a mapping."
-                                        + "This might be because the table does not exist.");
-                    }
-
-                    return Iterables.getOnlyElement(results.rows()).getString("short_table_name");
-                } finally {
-                    if (conn != null) {
-                        try {
-                            conn.getUnderlyingConnection().close();
-                        } catch (SQLException e) {
-                            log.error("Couldn't cleanup SQL connection while performing table name unmapping.", e);
-                        }
-                    }
+                SqlConnection conn = connectionSupplier.get();
+                AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
+                        "SELECT short_table_name "
+                                + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                                + " WHERE table_name = ?", fullTableName);
+                if (results.size() == 0) {
+                    throw new TableMappingNotFoundException(
+                            "The table " + fullTableName + " does not have a mapping."
+                                    + "This might be because the table does not exist.");
                 }
+
+                return Iterables.getOnlyElement(results.rows()).getString("short_table_name");
             });
         } catch (ExecutionException e) {
             throw new TableMappingNotFoundException(e.getCause());

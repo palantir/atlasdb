@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -16,16 +16,8 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.palantir.atlasdb.encoding.PtBytes;
 
 public class CheckAndSetException extends RuntimeException {
-    private static final Logger log = LoggerFactory.getLogger(CheckAndSetException.class);
-
     private static final long serialVersionUID = 1L;
 
     private final Cell key;
@@ -55,26 +47,13 @@ public class CheckAndSetException extends RuntimeException {
     }
 
     public CheckAndSetException(Cell key, TableReference table, byte[] expected, List<byte[]> actual) {
-        super(createAndLogExceptionMessage(key, table, expected, actual));
+        super(String.format(
+                "Unexpected value observed in table %s. "
+                        + "If this is happening repeatedly, your program may be out of sync with the database.",
+                table));
         this.key = key;
         this.expectedValue = expected;
         this.actualValues = actual;
-    }
-
-    private static String createAndLogExceptionMessage(
-            Cell key,
-            TableReference table,
-            byte[] expected,
-            List<byte[]> actual) {
-        String repeatWarning = "If this is happening repeatedly, your program may be out of sync with the database.";
-        String formatStr = "The cell {} in table {} has an unexpected value. Expected '{}' but got '{}'. "
-                + repeatWarning;
-        log.error(formatStr, key, table, PtBytes.encodeHexString(expected), encodeHexStrings(actual));
-        return String.format("Unexpected value observed in table %s. %s", table, repeatWarning);
-    }
-
-    private static List<String> encodeHexStrings(List<byte[]> values) {
-        return values.stream().map(PtBytes::encodeHexString).collect(Collectors.toList());
     }
 
     public Cell getKey() {

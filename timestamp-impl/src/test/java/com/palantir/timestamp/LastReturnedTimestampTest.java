@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -23,13 +23,19 @@ import static org.hamcrest.core.Is.is;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.junit.After;
 import org.junit.Test;
 
 public class LastReturnedTimestampTest {
     private static final long INITIAL_VALUE = 100;
 
-    LastReturnedTimestamp timestamp = new LastReturnedTimestamp(INITIAL_VALUE);
-    private ExecutorService executor = Executors.newFixedThreadPool(4);
+    private final LastReturnedTimestamp timestamp = new LastReturnedTimestamp(INITIAL_VALUE);
+    private final ExecutorService executor = Executors.newFixedThreadPool(4);
+
+    @After
+    public void after() throws Exception {
+        executor.shutdownNow();
+    }
 
     @Test
     public void shouldIncreaseTheValueToAHigherNumber() {
@@ -49,12 +55,7 @@ public class LastReturnedTimestampTest {
     public void handleConcurrentlyIncreasingTheValue() throws InterruptedException {
         for(int i = 0; i <= 100; i++) {
             final int value = i;
-            executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    timestamp.increaseToAtLeast(INITIAL_VALUE + value);
-                }
-            });
+            executor.submit(() -> timestamp.increaseToAtLeast(INITIAL_VALUE + value));
         }
 
         waitForExecutorToFinish();

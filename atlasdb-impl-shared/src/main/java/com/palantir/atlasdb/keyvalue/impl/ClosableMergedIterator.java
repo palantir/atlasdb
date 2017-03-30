@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -45,7 +46,7 @@ import com.palantir.util.Pair;
     private final RangeRequest request;
     private final ClosableIterator<RowResult<T>> primaryIter;
     private final Function<RangeRequest, ClosableIterator<RowResult<T>>> secondaryResultProducer;
-    private ClosableIterator<RowResult<T>> mergedIter = ClosableIterators.wrap(Iterators.<RowResult<T>>emptyIterator());
+    private ClosableIterator<RowResult<T>> mergedIter = ClosableIterators.wrap(Collections.emptyIterator());
     private byte[] nextSecondaryStart;
     private boolean primaryCompleted = false;
 

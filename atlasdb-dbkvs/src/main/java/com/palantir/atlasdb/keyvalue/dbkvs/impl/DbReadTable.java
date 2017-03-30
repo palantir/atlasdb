@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -62,14 +63,26 @@ public class DbReadTable {
 
     public ClosableIterator<AgnosticLightResultRow> getAllRows(
             Iterable<byte[]> rows, ColumnSelection columns, long ts, boolean includeValues) {
+        return getAllRows(rows, columns, ts, includeValues, Order.UNDEFINED);
+    }
+
+    public ClosableIterator<AgnosticLightResultRow> getAllRows(
+            Iterable<byte[]> rows, ColumnSelection columns, long ts, boolean includeValues, Order order) {
         if (columns.noColumnsSelected()) {
             return ClosableIterators.emptyImmutableClosableIterator();
-        } else if (isSingleton(rows)) {
-            byte[] row = Iterables.getOnlyElement(rows);
-            return run(queryFactory.getAllRowQuery(row, ts, columns, includeValues));
-        } else {
-            return run(queryFactory.getAllRowsQuery(rows, ts, columns, includeValues));
         }
+        FullQuery query;
+        if (isSingleton(rows)) {
+            byte[] row = Iterables.getOnlyElement(rows);
+            query = queryFactory.getAllRowQuery(row, ts, columns, includeValues);
+        } else {
+            query = queryFactory.getAllRowsQuery(rows, ts, columns, includeValues);
+        }
+        return run(addOrdering(order, query));
+    }
+
+    private FullQuery addOrdering(Order order, FullQuery query) {
+        return new FullQuery(query.getQuery() + order).withArgs(Arrays.asList(query.getArgs()));
     }
 
     public ClosableIterator<AgnosticLightResultRow> getLatestCells(Map<Cell, Long> cells, boolean includeValue) {
@@ -194,5 +207,26 @@ public class DbReadTable {
         AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(
                 query.getQuery(), query.getArgs());
         return ClosableIterators.wrap(results.iterator(), results);
+    }
+
+    public enum Order {
+        UNDEFINED(""),
+        ASCENDING(" ORDER BY m.row_name ASC, m.col_name, m.ts"),
+        DESCENDING(" ORDER BY m.row_name DESC, m.col_name, m.ts");
+
+        private final String stringValue;
+
+        Order(String value) {
+            stringValue = value;
+        }
+
+        static Order fromBoolean(boolean isReverse) {
+            return isReverse ? DESCENDING : ASCENDING;
+        }
+
+        @Override
+        public String toString() {
+            return stringValue;
+        }
     }
 }

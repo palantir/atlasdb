@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -62,6 +62,7 @@ public class CassandraClientPoolIntegrationTest {
     private CassandraKeyValueService kv = CassandraKeyValueService.create(
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
             CassandraContainer.LEADER_CONFIG);
+    private CassandraClientPool clientPool = kv.getClientPool();
 
     @Before
     public void setUp() {
@@ -77,8 +78,7 @@ public class CassandraClientPoolIntegrationTest {
     // Pretty legit test if run manually or if we go back to multi-node tests
     @Test
     public void testTokenMapping() {
-        CassandraClientPool clientPool = kv.clientPool;
-        Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges = kv.clientPool.tokenMap.asMapOfRanges();
+        Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges = clientPool.tokenMap.asMapOfRanges();
 
         for (Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry : mapOfRanges.entrySet()) {
             Range<LightweightOppToken> tokenRange = entry.getKey();
@@ -97,15 +97,15 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
-        kv.clientPool.blacklistedHosts.putAll(
-                Maps.transformValues(kv.clientPool.currentPools, clientPoolContainer -> Long.MAX_VALUE));
+        clientPool.blacklistedHosts.putAll(
+                Maps.transformValues(clientPool.currentPools, clientPoolContainer -> Long.MAX_VALUE));
         try {
-            kv.clientPool.run(describeRing);
+            clientPool.run(describeRing);
         } catch (Exception e) {
             fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
         }
 
-        kv.clientPool.blacklistedHosts.clear();
+        clientPool.blacklistedHosts.clear();
     }
 
     private FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception> describeRing =

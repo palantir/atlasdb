@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -32,11 +32,6 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
     public OracleOverflowQueryFactory(OracleDdlConfig config, String tableName, String overflowTableName) {
         super(config, tableName);
         this.overflowTableName = overflowTableName;
-    }
-
-    @Override
-    protected String getValueSubselect(String tableAlias, boolean includeValue) {
-        return includeValue ? ", " + tableAlias + ".val, " + tableAlias + ".overflow " : " ";
     }
 
     @Override

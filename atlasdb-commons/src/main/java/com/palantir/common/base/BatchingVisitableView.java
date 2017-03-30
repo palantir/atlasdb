@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -47,7 +47,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     @Override
     protected abstract BatchingVisitable<T> delegate();
 
-    public static <T> BatchingVisitableView<T> of(final BatchingVisitable<? extends T> underlyingVisitable) {
+    public static <T> BatchingVisitableView<T> of(final BatchingVisitable<T> underlyingVisitable) {
         Preconditions.checkNotNull(underlyingVisitable, "Cannot wrap a null visitable");
         return new BatchingVisitableView<T>() {
             @Override

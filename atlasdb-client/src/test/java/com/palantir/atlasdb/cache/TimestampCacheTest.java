@@ -1,0 +1,80 @@
+/*
+ * Copyright 2017 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.palantir.atlasdb.cache;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import java.util.SortedMap;
+
+import org.junit.Rule;
+import org.junit.Test;
+
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.MetricFilter;
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.cache.Cache;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsRule;
+
+public class TimestampCacheTest {
+
+    private static final String TEST_CACHE_NAME = MetricRegistry.name(TimestampCacheTest.class, "test");
+
+    @Rule
+    public MetricsRule metricsRule = new MetricsRule();
+
+    @Test
+    public void cacheExposesMetrics() throws Exception {
+        Cache<Long, Long> cache = TimestampCache.createDefaultCache();
+        AtlasDbMetrics.registerCache(cache, TEST_CACHE_NAME);
+
+        TimestampCache timestampCache = new TimestampCache(cache);
+
+        SortedMap<String, Gauge> gauges = metricsRule.metrics().getGauges(startsWith(TimestampCache.class.getName()));
+        assertThat(gauges.keySet(), hasItems(cacheMetricName("hit.count"), cacheMetricName("miss.ratio")));
+
+        assertThat(timestampCache.getCommitTimestampIfPresent(1L), is(nullValue()));
+
+        timestampCache.putAlreadyCommittedTransaction(1L, 2L);
+
+        assertThat(timestampCache.getCommitTimestampIfPresent(1L), is(2L));
+        assertThat(timestampCache.getCommitTimestampIfPresent(1L), is(2L));
+        assertThat(timestampCache.getCommitTimestampIfPresent(1L), is(2L));
+
+        timestampCache.clear();
+
+        assertThat(timestampCache.getCommitTimestampIfPresent(1L), is(nullValue()));
+
+        assertThat(gauges.get(cacheMetricName("hit.count")).getValue(), equalTo(3L));
+        assertThat(gauges.get(cacheMetricName("hit.ratio")).getValue(), equalTo(0.6d));
+        assertThat(gauges.get(cacheMetricName("miss.count")).getValue(), equalTo(2L));
+        assertThat(gauges.get(cacheMetricName("miss.ratio")).getValue(), equalTo(0.4d));
+        assertThat(gauges.get(cacheMetricName("request.count")).getValue(), equalTo(5L));
+    }
+
+    private static String cacheMetricName(String name) {
+        return TEST_CACHE_NAME + ".cache." + name;
+    }
+
+    private MetricFilter startsWith(String prefix) {
+        return (name, metric) -> name.startsWith(prefix);
+    }
+
+}

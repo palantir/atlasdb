@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -46,13 +46,6 @@ public class ConnectionSupplier implements SqlConnectionSupplier {
      */
     public SqlConnection getFresh() {
         close();
-        return delegate.get();
-    }
-
-    /**
-     * Responsibility of the consumer to close this connection when finished.
-     */
-    public SqlConnection getNewUnsharedConnection() {
         return delegate.get();
     }
 

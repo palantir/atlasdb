@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -18,7 +18,6 @@ package com.palantir.atlasdb.table.api;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -37,11 +36,6 @@ public interface AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends Co
     Multimap<ROW, COLUMN_VALUE> getRowsMultimap(Iterable<ROW> rows);
     Multimap<ROW, COLUMN_VALUE> getRowsMultimap(Iterable<ROW> rows,
                                                 ColumnSelection columnSelection);
-    Multimap<ROW, COLUMN_VALUE> getAsyncRowsMultimap(Iterable<ROW> rows,
-                                                     ExecutorService exec);
-    Multimap<ROW, COLUMN_VALUE> getAsyncRowsMultimap(Iterable<ROW> rows,
-                                                     ColumnSelection columnSelection,
-                                                     ExecutorService exec);
     Map<ROW, BatchingVisitable<COLUMN_VALUE>> getRowsColumnRange(Iterable<ROW> rows,
                                                                  BatchColumnRangeSelection columnRangeSelection);
 

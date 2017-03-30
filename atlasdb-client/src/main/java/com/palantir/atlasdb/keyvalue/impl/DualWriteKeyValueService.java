@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -105,6 +105,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean supportsCheckAndSet() {
+        return delegate1.supportsCheckAndSet();
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         delegate1.checkAndSet(checkAndSetRequest);
     }
@@ -113,6 +118,12 @@ public class DualWriteKeyValueService implements KeyValueService {
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         delegate1.delete(tableRef, keys);
         delegate2.delete(tableRef, keys);
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        delegate1.deleteRange(tableRef, range);
+        delegate2.deleteRange(tableRef, range);
     }
 
     @Override

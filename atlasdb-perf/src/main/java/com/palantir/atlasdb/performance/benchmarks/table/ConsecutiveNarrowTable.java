@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -49,6 +49,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 public abstract class ConsecutiveNarrowTable {
 
     private static final int DEFAULT_NUM_ROWS = 10000;
+    private static final int REGENERATING_NUM_ROWS = 500;
 
     private Random random = new Random(Tables.RANDOM_SEED);
 
@@ -75,11 +76,6 @@ public abstract class ConsecutiveNarrowTable {
 
     protected abstract void setupData();
 
-    @TearDown(Level.Trial)
-    public void cleanup() throws Exception {
-        this.connector.close();
-    }
-
     @Setup(Level.Trial)
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
@@ -88,6 +84,11 @@ public abstract class ConsecutiveNarrowTable {
             Benchmarks.createTable(getKvs(), getTableRef(), Tables.ROW_COMPONENT, Tables.COLUMN_NAME);
             setupData();
         }
+    }
+
+    @TearDown(Level.Trial)
+    public void cleanup() throws Exception {
+        this.connector.close();
     }
 
     @State(Scope.Benchmark)
@@ -100,6 +101,31 @@ public abstract class ConsecutiveNarrowTable {
         @Override
         protected void setupData() {
             storeDataInTable(this, 1);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class RegeneratingCleanNarrowTable extends CleanNarrowTable {
+        @TearDown(Level.Invocation)
+        public void regenerateTable() {
+            getKvs().truncateTable(getTableRef());
+            setupData();
+        }
+
+        @Override
+        public TableReference getTableRef() {
+            return TableReference.createFromFullyQualifiedName("performance.regenerating_table_clean");
+        }
+
+        @Override
+        public void cleanup() throws Exception {
+            getKvs().dropTable(getTableRef());
+            super.cleanup();
+        }
+
+        @Override
+        public int getNumRows() {
+            return REGENERATING_NUM_ROWS;
         }
     }
 

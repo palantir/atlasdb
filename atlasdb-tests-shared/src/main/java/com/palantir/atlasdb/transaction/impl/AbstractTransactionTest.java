@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -82,7 +82,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
-    protected final TimestampCache timestampCache = new TimestampCache();
+    protected final TimestampCache timestampCache = TimestampCache.create();
     protected boolean supportsReverse() {
         return true;
     }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -122,7 +122,7 @@ public class ExecutorInheritableThreadLocalTest extends Assert {
     @Test
     public void testSameThread() {
         local.set("whatup");
-        ListeningExecutorService sameThreadExecutor = MoreExecutors.sameThreadExecutor();
+        ListeningExecutorService sameThreadExecutor = MoreExecutors.newDirectExecutorService();
         sameThreadExecutor.submit(PTExecutors.wrap(Callables.returning(null)));
         Assert.assertEquals("whatup", local.get());
     }

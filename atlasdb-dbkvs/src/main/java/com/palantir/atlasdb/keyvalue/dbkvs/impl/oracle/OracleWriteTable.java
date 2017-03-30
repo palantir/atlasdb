@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.AbstractDbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OraclePrefixedTableNames;
@@ -26,8 +25,8 @@ public class OracleWriteTable extends AbstractDbWriteTable {
     public OracleWriteTable(
             DdlConfig config,
             ConnectionSupplier conns,
-            OracleTableNameGetter oracleTableNameGetter,
+            OraclePrefixedTableNames oraclePrefixedTableNames,
             TableReference tableRef) {
-        super(config, conns, tableRef, new OraclePrefixedTableNames(config, conns, oracleTableNameGetter));
+        super(config, conns, tableRef, oraclePrefixedTableNames);
     }
 }

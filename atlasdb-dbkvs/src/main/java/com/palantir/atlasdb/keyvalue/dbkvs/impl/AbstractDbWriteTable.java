@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -20,11 +20,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
@@ -38,7 +40,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
     protected final TableReference tableRef;
     private final PrefixedTableNames prefixedTableNames;
 
-    public AbstractDbWriteTable(
+    protected AbstractDbWriteTable(
             DdlConfig config,
             ConnectionSupplier conns,
             TableReference tableRef,
@@ -73,7 +75,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
 
     private void put(List<Object[]> args) {
         try {
-            String prefixedTableName = prefixedTableNames.get(tableRef);
+            String prefixedTableName = prefixedTableNames.get(tableRef, conns);
             conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + prefixedTableName + ") */"
                     + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
                     + " VALUES (?, ?, ?, ?) ",
@@ -98,7 +100,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
             }
             while (true) {
                 try {
-                    String prefixedTableName = prefixedTableNames.get(tableRef);
+                    String prefixedTableName = prefixedTableNames.get(tableRef, conns);
                     conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + prefixedTableName + ") */"
                             + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
                             + " SELECT ?, ?, ?, ? FROM DUAL"
@@ -132,7 +134,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
         }
 
-        String prefixedTableName = prefixedTableNames.get(tableRef);
+        String prefixedTableName = prefixedTableNames.get(tableRef, conns);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + prefixedTableName + ") */ "
                 + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(prefixedTableName) + ") */ "
                 + " FROM " + prefixedTableName + " m "
@@ -142,4 +144,24 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
                 args);
     }
 
+    @Override
+    public void delete(RangeRequest range) {
+        String prefixedTableName = prefixedTableNames.get(tableRef, conns);
+        StringBuilder query = new StringBuilder();
+        query.append(" /* DELETE_RANGE (").append(prefixedTableName).append(") */ ");
+        query.append(" DELETE FROM ").append(prefixedTableName).append(" m ");
+
+        WhereClauses whereClauses = WhereClauses.create("m", range);
+
+        List<Object> args = whereClauses.getArguments();
+        List<String> clauses = whereClauses.getClauses();
+
+        if (!clauses.isEmpty()) {
+            query.append(" WHERE ");
+            Joiner.on(" AND ").appendTo(query, clauses);
+        }
+
+        // execute the query
+        conns.get().updateUnregisteredQuery(query.toString(), args.toArray());
+    }
 }

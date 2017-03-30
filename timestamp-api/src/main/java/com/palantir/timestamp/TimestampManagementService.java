@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -15,7 +15,10 @@
  */
 package com.palantir.timestamp;
 
+import javax.annotation.CheckReturnValue;
+import javax.annotation.meta.When;
 import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -45,4 +48,12 @@ public interface TimestampManagementService {
     @Produces(MediaType.APPLICATION_JSON)
     void fastForwardTimestamp(
             @QueryParam("currentTimestamp") @DefaultValue(SENTINEL_TIMESTAMP_STRING) long currentTimestamp);
+
+    @GET
+    @Path("ping")
+    @Produces(MediaType.TEXT_PLAIN)
+    @CheckReturnValue(when = When.NEVER)
+    default String ping() {
+        return "pong";
+    }
 }

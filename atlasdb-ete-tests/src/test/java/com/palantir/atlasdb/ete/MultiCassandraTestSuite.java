@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -34,7 +34,8 @@ import com.palantir.docker.compose.connection.DockerPort;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
-        DropwizardEteTest.class,
+        CommandLineEteTest.class,
+        ServiceExposureEteTest.class,
         MultiCassandraSingleNodeDownEteTest.class,
         MultiCassandraDoubleNodeDownEteTest.class
         })

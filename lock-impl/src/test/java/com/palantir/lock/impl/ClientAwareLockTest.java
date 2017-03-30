@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -36,6 +36,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.remoting1.tracing.Tracers;
 
 /**
  * Tests for {@link ClientAwareReadWriteLockImpl}.
@@ -44,8 +45,8 @@ import com.palantir.lock.StringLockDescriptor;
  */
 public final class ClientAwareLockTest {
 
-    private static final ExecutorService executor = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(ClientAwareLockTest.class.getName(), true));
+    private static final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory(ClientAwareLockTest.class.getName(), true)));
 
     private final LockClient client = LockClient.of("client");
     private ClientAwareReadWriteLock readWriteLock;

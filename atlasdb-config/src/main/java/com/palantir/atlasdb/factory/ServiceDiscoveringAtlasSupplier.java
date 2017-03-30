@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -38,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
 
 public class ServiceDiscoveringAtlasSupplier {
@@ -50,6 +51,7 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
+    private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         this.config = config;
@@ -64,6 +66,7 @@ public class ServiceDiscoveringAtlasSupplier {
                 ));
         keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
+        timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 
     public KeyValueService getKeyValueService() {
@@ -81,6 +84,10 @@ public class ServiceDiscoveringAtlasSupplier {
         }
 
         return timestampService.get();
+    }
+
+    public synchronized TimestampStoreInvalidator getTimestampStoreInvalidator() {
+        return timestampStoreInvalidator.get();
     }
 
     private void handleMultipleTimestampFetch() {

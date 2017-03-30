@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  * <p>
  * Licensed under the BSD-3 License (the "License");
@@ -17,9 +17,8 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 
-public class DbkvsPostgresSweeperTest extends AbstractSweeperTest {
+public class DbkvsPostgresSweeperTest extends AbstractDbKvsSweeperTest {
     @Override
     protected KeyValueService getKeyValueService() {
         return ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());

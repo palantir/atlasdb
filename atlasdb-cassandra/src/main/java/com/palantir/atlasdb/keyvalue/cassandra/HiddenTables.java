@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -24,7 +24,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public class HiddenTables {
     private static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
             AtlasDbConstants.TIMESTAMP_TABLE,
-            AtlasDbConstants.DEFAULT_METADATA_TABLE);
+            AtlasDbConstants.DEFAULT_METADATA_TABLE,
+            AtlasDbConstants.PERSISTED_LOCKS_TABLE);
 
     public boolean isHidden(TableReference tableReference) {
         return HIDDEN_TABLES.contains(tableReference)
