@@ -65,7 +65,7 @@ public class EteSetup {
             String composeFile,
             List<String> availableClientNames,
             Duration waitTime) {
-        return setupComposition(eteClass, composeFile, availableClientNames, waitTime, ImmutableMap.of());
+        return setupComposition(eteClass, composeFile, availableClientNames, waitTime, ImmutableMap.of(), true);
     }
 
     static RuleChain setupComposition(
@@ -73,7 +73,17 @@ public class EteSetup {
             String composeFile,
             List<String> availableClientNames,
             Map<String, String> environment) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment);
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment, true);
+    }
+
+
+    public static RuleChain setupComposition(
+            Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames,
+            Map<String, String> environment,
+            boolean waitForKvsToBeUp) {
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment, waitForKvsToBeUp);
     }
 
     static RuleChain setupComposition(
@@ -81,7 +91,8 @@ public class EteSetup {
             String composeFile,
             List<String> availableClientNames,
             Duration waitTime,
-            Map<String, String> environment) {
+            Map<String, String> environment,
+            boolean waitForKvsToBeUp) {
         waitDuration = waitTime;
         availableClients = ImmutableList.copyOf(availableClientNames);
 
@@ -97,11 +108,14 @@ public class EteSetup {
 
         DockerProxyRule dockerProxyRule = new DockerProxyRule(docker.projectName(), eteClass);
 
-        return RuleChain
+        RuleChain ruleChain = RuleChain
                 .outerRule(GRADLE_PREPARE_TASK)
                 .around(docker)
-                .around(dockerProxyRule)
-                .around(waitForServersToBeReady());
+                .around(dockerProxyRule);
+        if (waitForKvsToBeUp) {
+            ruleChain = ruleChain.around(waitForServersToBeReady());
+        }
+        return ruleChain;
     }
 
     static String runCliCommand(String command) throws IOException, InterruptedException {

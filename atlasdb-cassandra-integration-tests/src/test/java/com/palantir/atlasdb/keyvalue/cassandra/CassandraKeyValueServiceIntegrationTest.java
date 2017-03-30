@@ -40,7 +40,6 @@ import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
-import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -52,7 +51,6 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -68,9 +66,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     private static final long LOCK_ID = 123456789;
 
-    @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
-            .with(new CassandraContainer());
+//    @ClassRule
+//    public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class);
 
     private final Logger logger = mock(Logger.class);
 

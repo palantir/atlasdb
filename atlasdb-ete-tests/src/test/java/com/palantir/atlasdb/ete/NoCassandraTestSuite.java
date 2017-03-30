@@ -33,12 +33,12 @@ import com.palantir.atlasdb.containers.CassandraVersion;
         })
 public class NoCassandraTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
-    private static final int CASSANDRA_PORT = 9160;
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
             NoCassandraTestSuite.class,
             "docker-compose.no-cassandra.yml",
             CLIENTS,
-            CassandraVersion.getEnvironment());
+            CassandraVersion.getEnvironment(),
+            false);
 }

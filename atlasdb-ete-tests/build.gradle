@@ -53,8 +53,15 @@ task timeLockTest(type: Test) {
     include '**/*TimeLock*.class'
 }
 
+task noCassandraTest(type: Test) {
+    dependsOn prepareForEteTests
+    include '**/*NoCassandra*.class'
+}
+
+
 test {
-    dependsOn longTest, prepareForEteTests, timeLockTest
+    dependsOn longTest, prepareForEteTests, timeLockTest, noCassandraTest
+    exclude '**/*NoCassandra*.class'
     exclude '**/MultiCassandraTestSuite.class'
     exclude '**/*TimeLock*.class'
     exclude '**/*EteTest.class'

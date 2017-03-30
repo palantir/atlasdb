@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
@@ -68,7 +69,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.remoting1.tracing.Tracers;
 
@@ -432,7 +432,7 @@ public class CassandraClientPool {
             CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, config);
         } catch (Exception e) {
             log.error("Startup checks failed, was not able to create the keyspace or ensure it already existed.");
-            throw new RuntimeException(e);
+            throw Throwables.propagate(e);
         }
 
         Map<InetSocketAddress, Exception> completelyUnresponsiveHosts = Maps.newHashMap();
@@ -497,7 +497,7 @@ public class CassandraClientPool {
         try {
             return getAddressForHost(host);
         } catch (UnknownHostException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
+            throw com.palantir.common.base.Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 

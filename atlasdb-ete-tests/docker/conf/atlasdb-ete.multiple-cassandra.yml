@@ -12,6 +12,7 @@ server:
 atlasdb:
   keyValueService:
     type: cassandra
+    startWithoutCassandraUp: true
     servers:
       - cassandra1:9160
       - cassandra2:9160
