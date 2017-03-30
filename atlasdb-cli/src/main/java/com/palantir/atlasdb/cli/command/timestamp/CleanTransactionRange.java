@@ -33,7 +33,7 @@ import io.airlift.airline.Command;
 
 @Command(name = "clean-transactions", description = "Clean a recently restored backup of a _transactions table "
         + "from an underlying database that lacks PITR backup semantics.  Deletes all transactions with a "
-        + "commit timestamp greater than the timestamp provided.")
+        + "commit timestamp greater than the backup timestamp provided.")
 public class CleanTransactionRange extends AbstractTimestampCommand {
 
     private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(CleanTransactionRange.class));
@@ -51,13 +51,11 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
     @Override
     protected int executeTimestampCommand(AtlasDbServices services) {
         KeyValueService kvs = services.getKeyValueService();
+        long backupTimestamp = timestamp;
 
-        byte[] startRowInclusive = TransactionConstants.getValueForTimestamp(timestamp);
         ClosableIterator<RowResult<Value>> range = kvs.getRange(
                 TransactionConstants.TRANSACTION_TABLE,
-                RangeRequest.builder()
-                        .startRowInclusive(startRowInclusive)
-                        .build(),
+                RangeRequest.all(),
                 Long.MAX_VALUE);
 
         Multimap<Cell, Long> toDelete = HashMultimap.create();
@@ -76,7 +74,7 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
             }
 
             long commitTs = TransactionConstants.getTimestampForValue(value.getContents());
-            if (commitTs <= timestamp) {
+            if (commitTs <= backupTimestamp) {
                 continue; // this is a valid transaction
             }
 
