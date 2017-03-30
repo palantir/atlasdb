@@ -51,7 +51,6 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
     @Override
     protected int executeTimestampCommand(AtlasDbServices services) {
         KeyValueService kvs = services.getKeyValueService();
-        long backupTimestamp = timestamp;
 
         ClosableIterator<RowResult<Value>> range = kvs.getRange(
                 TransactionConstants.TRANSACTION_TABLE,
@@ -74,7 +73,7 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
             }
 
             long commitTs = TransactionConstants.getTimestampForValue(value.getContents());
-            if (commitTs <= backupTimestamp) {
+            if (commitTs <= timestamp) {
                 continue; // this is a valid transaction
             }
 
