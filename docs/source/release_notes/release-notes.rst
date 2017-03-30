@@ -33,6 +33,8 @@ Changelog
 develop
 =======
 
+.. replace this with the release date
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -44,28 +46,68 @@ develop
          - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
 
+=======
+v0.37.0
+=======
+
+29 Mar 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
-         - KVS migrations where timestamp data was co-located with AtlasDB data now respect the timestamp service contract.
-           Previously, doing a KVS migration with an embedded timestamp service whose timestamp data is co-located with the AtlasDB data causes timestamps to reset to the logical beginning of time.
+         - Fixed an issue where a ``MultipleRunningTimestampServicesError`` would not be propagated from the asynchronous refresh job that increases the timestamp bound.
+           This could result in a state where two timestamp services are simultaneously handing out timestamps until the older service's buffer of 1M timestamps is exhausted and fails.
+           Now we immediately fail, alerting users much sooner that a ``MultipleRunningTimestampServicesError`` has occurred.
+           Note that users would still see the error prior to the fix, we now just ensure it is discovered sooner.
+           This failure does not affect the Timelock server.
+           Furthermore, we improved the logic for increasing the timestamp bound when the allocation buffer is exhausted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1718>`__)
+
+    *    - |new|
+         - Added :ref:`Dropwizard metrics <dropwizard-metrics>` for sweep, exposing aggregate and table-specific counts of cells examined and stale values deleted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1695>`__)
+
+    *    - |new|
+         - Added a benchmark ``TimestampServiceBenchmarks`` for parallel requesting of fresh timestamps from the TimestampService.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1720>`__)
+
+    *    - |fixed|
+         - KVS migrations now maintain the guarantee of the timestamp service to hand out monotonically increasing timestamps.
+           Previously, we would reset the timestamp service to 0 after a migration, but now we use the correct logical timestamp.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1199>`__)
 
     *    - |improved|
-         - Improved performance of paging over dynamic columns on Oracle DbKvs: the time required to page through a large wide row is now linear rather than quadratic in the length of the row.
+         - Improved performance of paging over dynamic columns on Oracle DBKVS: the time required to page through a large wide row is now linear rather than quadratic in the length of the row.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1702>`__)
 
     *    - |deprecated|
-         - ``GenericStreamStore.loadStream`` has been deprecated. Use ``loadSingleStream``, which returns an
-           ``Optional<InputStream>``, instead.
+         - ``GenericStreamStore.loadStream`` has been deprecated.
+           Use ``loadSingleStream``, which returns an ``Optional<InputStream>``, instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1265>`__)
 
     *    - |devbreak|
-         - 'getAsyncRows' and 'getAsyncRowsMultimap' methods have been removed from generated code.  They do not appear valuable to the API and use a nonintuitive and custom 'AsyncProxy' (also removed).
-           We believe they are unused by upstream applications, but if you do encounter breaks due to this
-           removal please file a ticket with the dev team for immediate support (as we did not take the time to properly deprecate the methods).
+         - ``getAsyncRows`` and ``getAsyncRowsMultimap`` methods have been removed from generated code.
+           They do not appear valuable to the API and use an unintuitive and custom ``AsyncProxy`` that was also removed.
+           We believe they are unused by upstream applications, but if you do encounter breaks due to this removal please file a ticket with the dev team for immediate support.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1689>`__)
 
-    *    - |fixed| |improved|
-         - Cassandra depedencies have been bumped to newer versions; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
+    *    - |fixed|
+         - RemoteLockService clients will no longer silently retry on connection failures to the Timelock server.
+           This is used to mitigate issues with frequent leadership changes owing to `#1680 <https://github.com/palantir/atlasdb/issues/1680>`__.
+           Previously, because of Jetty's idle timeout and OkHttp's silent connection retrying, we would generate an endless stream of lock requests if using HTTP/2 and blocking for more than the Jetty idle timeout for a single lock.
+           This would lead to starvation of other requests on the TimeLock server, since a lock request blocked on acquiring a lock consumes a server thread.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1727>`__)
+
+    *    - |improved|
+         - Cassandra dependencies have been bumped to newer versions.
+           This should fix a bug (`#1654 <https://github.com/palantir/atlasdb/issues/1654>`__) that caused
+           AtlasDB probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
+           building up leaked connections, due to a bug in the underlying driver.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1524>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

@@ -25,6 +25,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -51,6 +52,7 @@ public class HttpBenchmarks {
                     .build();
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public void parseHttpHeaders(Blackhole blackhole) {

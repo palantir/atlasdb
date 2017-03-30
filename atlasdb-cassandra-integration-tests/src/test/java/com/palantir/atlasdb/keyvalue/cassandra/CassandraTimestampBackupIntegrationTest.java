@@ -221,7 +221,7 @@ public class CassandraTimestampBackupIntegrationTest {
     }
 
     private void assertBoundNotReadable() {
-        assertThatThrownBy(timestampBoundStore::getUpperLimit).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(timestampBoundStore::getUpperLimit).isInstanceOf(IllegalStateException.class);
     }
 
     private void setupTwoReadableBoundsInKv() {

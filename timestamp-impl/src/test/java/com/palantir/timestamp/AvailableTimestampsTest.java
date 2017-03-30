@@ -68,7 +68,7 @@ public class AvailableTimestampsTest {
         availableTimestamps.refreshBuffer();
 
         verify(persistentUpperLimit).increaseToAtLeast(
-                UPPER_LIMIT - 10 + AvailableTimestamps.ALLOCATION_BUFFER_SIZE
+                UPPER_LIMIT - 10 + AvailableTimestamps.ALLOCATION_BUFFER_SIZE, 0
         );
     }
 
@@ -79,7 +79,7 @@ public class AvailableTimestampsTest {
         availableTimestamps.refreshBuffer();
 
         verify(persistentUpperLimit).increaseToAtLeast(
-                longThat(is(greaterThan(UPPER_LIMIT)))
+                longThat(is(greaterThan(UPPER_LIMIT))), longThat(is(0L))
         );
     }
 
@@ -90,7 +90,7 @@ public class AvailableTimestampsTest {
 
         availableTimestamps.refreshBuffer();
 
-        verify(persistentUpperLimit, never()).increaseToAtLeast(anyLong());
+        verify(persistentUpperLimit, never()).increaseToAtLeast(anyLong(), anyLong());
     }
 
     @Test public void
@@ -99,7 +99,7 @@ public class AvailableTimestampsTest {
                 availableTimestamps.handOut(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound(),
                 is(UPPER_LIMIT + 10));
 
-        verify(persistentUpperLimit).increaseToAtLeast(UPPER_LIMIT + 10);
+        verify(persistentUpperLimit).increaseToAtLeast(UPPER_LIMIT + 10, AvailableTimestamps.ALLOCATION_BUFFER_SIZE);
     }
 
     @Test public void
@@ -122,7 +122,7 @@ public class AvailableTimestampsTest {
         availableTimestamps.fastForwardTo(newMinimum);
 
         assertThat(lastReturnedTimestamp.get(), is(newMinimum));
-        verify(persistentUpperLimit).increaseToAtLeast(longGreaterThan(newMinimum));
+        verify(persistentUpperLimit).increaseToAtLeast(longGreaterThan(newMinimum), longThat(is(0L)));
     }
 
     private long longGreaterThan(long n) {
