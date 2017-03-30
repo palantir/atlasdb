@@ -17,7 +17,7 @@ package com.palantir.atlasdb.performance.benchmarks.table;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.Random;
+import java.nio.charset.StandardCharsets;
 
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
@@ -44,7 +44,7 @@ import com.palantir.common.persist.Persistable;
 
 @State(Scope.Benchmark)
 public class StreamingTable {
-    private Random random = new Random(Tables.RANDOM_SEED);
+//    private Random random = new Random(Tables.RANDOM_SEED);
 
     private AtlasDbServicesConnector connector;
     private AtlasDbServices services;
@@ -84,7 +84,7 @@ public class StreamingTable {
                 getTransactionManager(),
                 tableFactory
         );
-        byte[] data = "bytes".getBytes(); //new byte[6_000_000];
+        byte[] data = "bytes".getBytes(StandardCharsets.UTF_8); //new byte[6_000_000];
 
 //        random.nextBytes(data);
 
