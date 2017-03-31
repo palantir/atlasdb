@@ -41,6 +41,10 @@ develop
 
     *    - Type
          - Change
+         
+    *    - |new|
+         - ``InMemoryAtlasDbFactory`` now supports creating an in-memory transaction manager with multiple schemas.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1761>`__)
 
     *    - |fixed|
          - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
