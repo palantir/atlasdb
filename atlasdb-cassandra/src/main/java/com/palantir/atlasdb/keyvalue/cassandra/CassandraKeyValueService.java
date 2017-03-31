@@ -386,7 +386,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                         colFam,
                                         pred,
                                         readConsistency);
-                                Map<Cell, Value> ret = Maps.newHashMap();
+                                Map<Cell, Value> ret = Maps.newHashMapWithExpectedSize(batch.size());
                                 new ValueExtractor(ret).extractResults(results, startTs, ColumnSelection.all());
                                 return ret;
                             }
