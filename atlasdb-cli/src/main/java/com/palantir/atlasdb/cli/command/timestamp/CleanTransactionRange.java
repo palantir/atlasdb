@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -31,9 +31,10 @@ import com.palantir.common.base.ClosableIterator;
 
 import io.airlift.airline.Command;
 
-@Command(name = "clean-transactions", description = "Clean a recently restored backup of a _transactions table "
-        + "from an underlying database that lacks PITR backup semantics.  Deletes all transactions with a "
-        + "commit timestamp greater than the timestamp provided.")
+@Command(name = "clean-transactions", description = "Clean out the entries in a _transactions table for the "
+        + "purpose of deleting potentially inconsistent transactions from an underlying database that lacks "
+        + "PITR backup semantics.  Deletes all transactions with a commit timestamp greater than the timestamp "
+        + "provided.")
 public class CleanTransactionRange extends AbstractTimestampCommand {
 
     private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(CleanTransactionRange.class));
@@ -52,12 +53,9 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
     protected int executeTimestampCommand(AtlasDbServices services) {
         KeyValueService kvs = services.getKeyValueService();
 
-        byte[] startRowInclusive = TransactionConstants.getValueForTimestamp(timestamp);
         ClosableIterator<RowResult<Value>> range = kvs.getRange(
                 TransactionConstants.TRANSACTION_TABLE,
-                RangeRequest.builder()
-                        .startRowInclusive(startRowInclusive)
-                        .build(),
+                RangeRequest.all(),
                 Long.MAX_VALUE);
 
         Multimap<Cell, Long> toDelete = HashMultimap.create();

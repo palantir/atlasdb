@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -226,7 +226,7 @@ public final class TransactionManagers {
                 transactionService,
                 sweepStrategyManager,
                 cellsSweeper);
-        BackgroundSweeper backgroundSweeper = new BackgroundSweeperImpl(
+        BackgroundSweeper backgroundSweeper = BackgroundSweeperImpl.create(
                 transactionManager,
                 kvs,
                 sweepRunner,
