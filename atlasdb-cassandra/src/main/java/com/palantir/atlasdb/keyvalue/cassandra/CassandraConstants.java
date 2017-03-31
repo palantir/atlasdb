@@ -50,8 +50,8 @@ public final class CassandraConstants {
     static final String DEFAULT_RACK = "rack1";
     static final String SIMPLE_RF_TEST_KEYSPACE = "__simple_rf_test_keyspace__";
     static final String REPLICATION_FACTOR_OPTION = "replication_factor";
-    // 1 hour; Hinted-Handoffs MUST expire well within this period for delete correctness
-    // (I believe we will be expiring hints in half this period)
+    // 1 hour; AtlasDB only performs deletes with consistency ALL, so there is no need to ensure repairs
+    // complete within gc_grace_seconds.
     static final int GC_GRACE_SECONDS = 60 * 60;
     static final float TOMBSTONE_THRESHOLD_RATIO = 0.2f;
 

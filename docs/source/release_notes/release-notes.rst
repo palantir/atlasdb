@@ -50,6 +50,16 @@ develop
          - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
 
+    *    - |improved|
+         - Default ``gc_grace_seconds`` set by AtlasDB for Cassandra tables has been changed from four days to one hour, allowing Cassandra to start cleaning up swept data sooner after sweeping.
+
+           This parameter is set at table creation time, and it will only apply for future tables
+           We recommend existing customers update the ``gc_grace_seconds`` of existing tables to be one hour to receive this benefit.
+           There is no issue with having tables with different values for ``gc_grace_seconds``, and this can be updated at any time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1726>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
 =======
 v0.37.0
 =======
@@ -62,10 +72,6 @@ v0.37.0
 
     *    - Type
          - Change
-
-    *    - |changed|
-         - Default 'gc_grace_seconds' set by AtlasDB for Cassandra tables has been changed from four days to an hour.  This will allow Cassandra to start cleaning up swept data sooner after sweeping.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1726>`__)
 
     *    - |fixed|
          - Fixed an issue where a ``MultipleRunningTimestampServicesError`` would not be propagated from the asynchronous refresh job that increases the timestamp bound.
