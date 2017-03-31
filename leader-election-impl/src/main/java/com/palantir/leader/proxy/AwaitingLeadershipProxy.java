@@ -236,43 +236,63 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
         }
 
         public void trace(String s, Throwable t) {
-            delegate.trace(tag + s, t);
+            if (delegate.isTraceEnabled()) {
+                delegate.trace(tag + s, t);
+            }
         }
 
         public void debug(String s, Throwable t) {
-            delegate.debug(tag + s, t);
+            if (delegate.isDebugEnabled()) {
+                delegate.debug(tag + s, t);
+            }
         }
 
         public void info(String s, Throwable t) {
-            delegate.info(tag + s, t);
+            if (delegate.isInfoEnabled()) {
+                delegate.info(tag + s, t);
+            }
         }
 
         public void warn(String s, Throwable t) {
-            delegate.warn(tag + s, t);
+            if (delegate.isWarnEnabled()) {
+                delegate.warn(tag + s, t);
+            }
         }
 
         public void error(String s, Throwable t) {
-            delegate.error(tag + s, t);
+            if (delegate.isErrorEnabled()) {
+                delegate.error(tag + s, t);
+            }
         }
 
         public void trace(String s, Object... args) {
-            delegate.trace(tag + s, args);
+            if (delegate.isTraceEnabled()) {
+                delegate.trace(tag + s, args);
+            }
         }
 
         public void debug(String s, Object... args) {
-            delegate.debug(tag + s, args);
+            if (delegate.isDebugEnabled()) {
+                delegate.debug(tag + s, args);
+            }
         }
 
         public void info(String s, Object... args) {
-            delegate.info(tag + s, args);
+            if (delegate.isInfoEnabled()) {
+                delegate.info(tag + s, args);
+            }
         }
 
         public void warn(String s, Object... args) {
-            delegate.warn(tag + s, args);
+            if (delegate.isWarnEnabled()) {
+                delegate.warn(tag + s, args);
+            }
         }
 
         public void error(String s, Object... args) {
-            delegate.error(tag + s, args);
+            if (delegate.isErrorEnabled()) {
+                delegate.error(tag + s, args);
+            }
         }
     }
 }

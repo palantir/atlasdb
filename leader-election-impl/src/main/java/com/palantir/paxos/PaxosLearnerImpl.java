@@ -58,7 +58,7 @@ public class PaxosLearnerImpl implements PaxosLearner {
 
     @Override
     public void learn(long seq, PaxosValue val) {
-        leaderLog.info("Learned about new leader (seq #" + seq + ") with UUID " + val.getLeaderUUID());
+        leaderLog.info("Learned about new leader (seq #{}) with UUID {}", seq, val.getLeaderUUID());
         state.put(seq, val);
         log.writeRound(seq, val);
     }
