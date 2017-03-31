@@ -49,6 +49,12 @@ public class StreamingTable {
     private AtlasDbServicesConnector connector;
     private AtlasDbServices services;
 
+    public long getStreamId() {
+        return streamId;
+    }
+
+    private long streamId;
+
     public TransactionManager getTransactionManager() {
         return services.getTransactionManager();
     }
@@ -89,7 +95,7 @@ public class StreamingTable {
 //        random.nextBytes(data);
 
         InputStream inputStream = new ByteArrayInputStream(data);
-        long streamId = streamTestStreamStore.storeStream(inputStream).getLhSide();
+        streamId = streamTestStreamStore.storeStream(inputStream).getLhSide();
 
         getTransactionManager().runTaskThrowOnConflict(txn -> {
             KeyValueTable table = tableFactory.getKeyValueTable(txn);

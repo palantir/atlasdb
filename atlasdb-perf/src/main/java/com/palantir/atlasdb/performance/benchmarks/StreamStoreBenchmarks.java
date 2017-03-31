@@ -17,7 +17,6 @@ package com.palantir.atlasdb.performance.benchmarks;
 
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -30,11 +29,10 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.performance.benchmarks.table.StreamingTable;
-import com.palantir.atlasdb.performance.schema.generated.KeyValueTable;
 import com.palantir.atlasdb.performance.schema.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.performance.schema.generated.ValueStreamStore;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -43,22 +41,14 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 public class StreamStoreBenchmarks {
 
     @Benchmark
-    @Warmup(time = 10, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 50, timeUnit = TimeUnit.SECONDS)
+    @Threads(1)
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object loadStream(StreamingTable table) throws IOException {
+        long id = table.getStreamId();
         TransactionManager transactionManager = table.getTransactionManager();
         StreamTestTableFactory tables = StreamTestTableFactory.of();
         ValueStreamStore store = ValueStreamStore.of(transactionManager, tables);
-
-        long id = transactionManager.runTaskThrowOnConflict(txn -> {
-            KeyValueTable kvTable = tables.getKeyValueTable(txn);
-
-            KeyValueTable.KeyValueRow row = KeyValueTable.KeyValueRow.of("row");
-            Optional<KeyValueTable.KeyValueRowResult> result = kvTable.getRow(row);
-            assertTrue(result.isPresent());
-            return result.get().getStreamId();
-        });
-
         try (InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, id));
                 InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
                 BufferedReader bufferedReader = new BufferedReader(reader)) {
