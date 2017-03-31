@@ -59,7 +59,7 @@ public class AvailableTimestamps {
      * exit the method without performing an unnecessary cas.
      *
      * @param numberToHandOut number of timestamps
-     * @return
+     * @return timestamp range handed out
      */
     public TimestampRange handOut(long numberToHandOut) {
         checkValidTimestampRangeRequest(numberToHandOut);
@@ -75,7 +75,7 @@ public class AvailableTimestamps {
             targetTimestamp = lastHandedOut + numberToHandOut;
             timestampRange = TimestampRange.createInclusiveRange(lastHandedOut + 1, targetTimestamp);
             if (targetTimestamp > upperLimit.get()) {
-                //this is the only situation where we actually must block and wait for CAS
+                // this is the only situation where we actually must block and wait for CAS
                 allocateEnoughTimestampsToHandOut(targetTimestamp, ALLOCATION_BUFFER_SIZE);
             }
             lastReturnedTimestamp.increaseToAtLeast(targetTimestamp);

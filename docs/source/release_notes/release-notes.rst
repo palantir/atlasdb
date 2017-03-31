@@ -43,7 +43,7 @@ develop
          - Change
 
     *    - |improved|
-         - Refactored ``AvailableTimestamps`` reducing overzealous synchronization. Giving out timestamps is no longer blocking in refreshing the timestamp bound if there enough timestamps to give out with the current bound.
+         - Refactored ``AvailableTimestamps`` reducing overzealous synchronization. Giving out timestamps is no longer blocking on refreshing the timestamp bound if there are enough timestamps to give out with the current bound.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1735>`__)
 
     *    - |fixed|
