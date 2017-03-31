@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -76,7 +76,7 @@ public class AvailableTimestamps {
             buffer = currentUpperLimit - lastHandedOut;
             needsRefresh = buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, TimeUnit.MINUTES);
             if (needsRefresh) {
-                allocateEnoughTimestampsToHandOut(lastHandedOut + ALLOCATION_BUFFER_SIZE);
+                allocateEnoughTimestampsToHandOut(lastHandedOut + ALLOCATION_BUFFER_SIZE, 0L);
             }
         }
 
@@ -98,7 +98,7 @@ public class AvailableTimestamps {
 
     public synchronized void fastForwardTo(long newMinimum) {
         lastReturnedTimestamp.increaseToAtLeast(newMinimum);
-        upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
+        upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE, 0L);
     }
 
     private synchronized long lastHandedOut() {
@@ -124,16 +124,22 @@ public class AvailableTimestamps {
 
     private synchronized TimestampRange handOutTimestamp(long targetTimestamp) {
         TimestampRange rangeToHandOut = getRangeToHandOut(targetTimestamp);
-        allocateEnoughTimestampsToHandOut(targetTimestamp);
+        allocateEnoughTimestampsToHandOut(targetTimestamp, ALLOCATION_BUFFER_SIZE);
         lastReturnedTimestamp.increaseToAtLeast(targetTimestamp);
 
         return rangeToHandOut;
     }
 
-    private synchronized void allocateEnoughTimestampsToHandOut(long timestamp) {
+    /**
+     * Ensure the upper limit is at least timestamp. If an update is required, increase it by an additional amount,
+     * specified by buffer.
+     * @param timestamp minimal upper limit for the timestamp bound.
+     * @param buffer additional buffer to use in case an update is necessary.
+     */
+    private synchronized void allocateEnoughTimestampsToHandOut(long timestamp, long buffer) {
         // synchronizing for semantic consistency and avoid `assert Thread.holdsLock(this);` overhead
         DebugLogger.logger.trace("Increasing limit to at least {}.", timestamp);
-        long newLimit = upperLimit.increaseToAtLeast(timestamp);
+        long newLimit = upperLimit.increaseToAtLeast(timestamp, buffer);
         if (DebugLogger.logger.isTraceEnabled()) {
             DebugLogger.logger.trace("Increased to at least {}. Limit is now {}.", timestamp, newLimit);
         }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -71,7 +71,6 @@ public class PerformanceResults {
                 .samples(rs.getPrimaryResult().getStatistics().getN())
                 .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
                 .mean(rs.getPrimaryResult().getStatistics().getMean())
-                .data(getData(rs))
                 .units(rs.getParams().getTimeUnit())
                 .p50(rs.getPrimaryResult().getStatistics().getPercentile(50.0))
                 .p90(rs.getPrimaryResult().getStatistics().getPercentile(90.0))
@@ -127,7 +126,6 @@ public class PerformanceResults {
         public abstract long samples();
         public abstract double std();
         public abstract double mean();
-        public abstract List<Double> data();
         public abstract TimeUnit units();
         public abstract double p50();
         public abstract double p90();

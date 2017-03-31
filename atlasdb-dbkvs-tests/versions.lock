@@ -1,11 +1,5 @@
 {
     "compileClasspath": {
-        "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.6.7",
             "transitive": [
@@ -364,6 +358,7 @@
             "locked": "3.1.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
@@ -427,7 +422,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-tests-shared",
                 "junit:junit",
-                "org.hamcrest:hamcrest-library"
+                "org.hamcrest:hamcrest-library",
+                "org.mockito:mockito-core"
             ]
         },
         "org.hamcrest:hamcrest-library": {
@@ -443,10 +439,22 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "org.mockito:mockito-core": {
+            "locked": "1.10.17",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-tests-shared"
+            ]
+        },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
+            ]
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.2",
+            "transitive": [
+                "org.mockito:mockito-core"
             ]
         },
         "org.postgresql:postgresql": {
@@ -458,7 +466,6 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.remoting1:tracing",
@@ -478,12 +485,6 @@
         }
     },
     "runtime": {
-        "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.6.7",
             "transitive": [
@@ -842,6 +843,7 @@
             "locked": "3.1.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
@@ -905,7 +907,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-tests-shared",
                 "junit:junit",
-                "org.hamcrest:hamcrest-library"
+                "org.hamcrest:hamcrest-library",
+                "org.mockito:mockito-core"
             ]
         },
         "org.hamcrest:hamcrest-library": {
@@ -921,10 +924,22 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "org.mockito:mockito-core": {
+            "locked": "1.10.17",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-tests-shared"
+            ]
+        },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
+            ]
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.2",
+            "transitive": [
+                "org.mockito:mockito-core"
             ]
         },
         "org.postgresql:postgresql": {
@@ -936,7 +951,6 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.remoting1:tracing",

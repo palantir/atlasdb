@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -61,19 +61,19 @@ public class TimestampAllocationFailuresTest {
     }
 
     @Test public void
-    shouldAllowTryingToAllocateMoreTimestampsAfterANormalRuntimeException() {
+    shouldAllowTryingToIssueMoreTimestampsAfterANormalRuntimeException() {
         ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
-        allocationFailures.verifyWeShouldTryToAllocateMoreTimestamps();
+        allocationFailures.verifyWeShouldIssueMoreTimestamps();
     }
 
     @Test public void
-    shouldDisallowTryingToAllocateMoreTimestampsAfterAMultipleRunningTimestampServicesFailure() {
+    shouldDisallowTryingToIssueMoreTimestampsAfterAMultipleRunningTimestampServicesFailure() {
         ignoringExceptions(() -> allocationFailures.responseTo(MULTIPLE_RUNNING_SERVICES_FAILURE));
 
         exception.expectCause(is(MULTIPLE_RUNNING_SERVICES_FAILURE));
         exception.expect(ServiceNotAvailableException.class);
 
-        allocationFailures.verifyWeShouldTryToAllocateMoreTimestamps();
+        allocationFailures.verifyWeShouldIssueMoreTimestamps();
     }
 
     @Test public void

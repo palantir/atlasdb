@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -119,7 +119,6 @@ public class AtlasDbPerfCli {
     private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
-                .threads(1)
                 .warmupIterations(1)
                 .measurementIterations(1)
                 .mode(Mode.SampleTime)

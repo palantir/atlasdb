@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -73,11 +73,13 @@ public class TracingPrefsConfig implements Runnable {
                                 tracingMinDurationToTraceMillis,
                                 tracedTables);
                     }
+                    loadedConfig = true;
                 } catch (IOException e) {
                     log.error("Could not load a malformed " + TRACING_PREF_FILENAME + ".");
                     loadedConfig = false;
                 }
-                loadedConfig = true;
+            } else {
+                loadedConfig = false;
             }
         } catch (Throwable t) {
             log.error("Error occurred while refreshing {}: {}", TRACING_PREF_FILENAME, t, t);

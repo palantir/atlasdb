@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -29,6 +29,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -45,6 +46,7 @@ import com.palantir.atlasdb.performance.benchmarks.table.WideRowsTable;
 public class KvsGetRowsColumnRangeBenchmarks {
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsAligned(WideRowsTable table) {
@@ -70,6 +72,7 @@ public class KvsGetRowsColumnRangeBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsUnaligned(WideRowsTable table) {
@@ -95,6 +98,7 @@ public class KvsGetRowsColumnRangeBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsSingleBigRow(VeryWideRowTable table,

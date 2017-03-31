@@ -124,3 +124,5 @@ task verifyDependencyLocksAreCurrent << {
 }
 
 check.dependsOn generateLock, verifyDependencyLocksAreCurrent
+
+ext.atlasdb_shaded = 'com.palantir.atlasdb.shaded'

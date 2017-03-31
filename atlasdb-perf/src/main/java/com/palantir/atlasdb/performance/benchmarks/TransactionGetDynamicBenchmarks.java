@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -26,6 +26,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.base.Preconditions;
@@ -47,6 +48,7 @@ import com.palantir.atlasdb.performance.benchmarks.table.Tables;
 public class TransactionGetDynamicBenchmarks {
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 25, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 180, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsExplicitly(ModeratelyWideRowTable table) {
@@ -59,6 +61,7 @@ public class TransactionGetDynamicBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 10, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 65, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsImplicitly(ModeratelyWideRowTable table) {
@@ -74,6 +77,7 @@ public class TransactionGetDynamicBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getFirstColumnExplicitly(ModeratelyWideRowTable table) {
@@ -88,6 +92,7 @@ public class TransactionGetDynamicBenchmarks {
     }
 
     @Benchmark
+    @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getFirstColumnExplicitlyGetRows(ModeratelyWideRowTable table) {
