@@ -376,7 +376,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 SlicePredicate pred = new SlicePredicate();
                                 pred.setSlice_range(slice);
 
-                                List<ByteBuffer> rowNames = wrap(rows);
+                                List<ByteBuffer> rowNames = wrap(batch);
 
                                 ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
                                 Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(
