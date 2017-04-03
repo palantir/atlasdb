@@ -43,6 +43,7 @@ shadowJar {
   classifier ''
 
   relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
+  relocate('com.netflix.feign', atlasdb_shaded + 'feign')
   relocate('jflex', atlasdb_shaded + 'jflex')
   relocate('org.apache.commons', atlasdb_shaded + 'commons')
   relocate('org.apache.tools.ant', atlasdb_shaded + 'ant')
