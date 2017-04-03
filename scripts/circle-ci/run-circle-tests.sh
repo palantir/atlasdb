@@ -71,11 +71,11 @@ if [[ $INTERNAL_BUILD != true ]]; then
 fi
 
 case $CIRCLE_NODE_INDEX in
-    0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
-    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} ${ETE_EXCLUDES[@]};;
-    3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
-    4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
-    5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
-    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} -x :atlasdb-jepsen-tests:jepsenTest && checkDocsBuild ;;
+    0) ./gradlew $BASE_GRADLE_ARGS atlasdb-jepsen-tests:jepsenTest ;;
+    1) ./gradlew $BASE_GRADLE_ARGS atlasdb-jepsen-tests:jepsenTest ;;
+    2) ./gradlew $BASE_GRADLE_ARGS atlasdb-jepsen-tests:jepsenTest ;;
+    3) ./gradlew $BASE_GRADLE_ARGS atlasdb-jepsen-tests:jepsenTest ;;
+    4) ./gradlew $BASE_GRADLE_ARGS atlasdb-jepsen-tests:jepsenTest ;;
+    5) ./gradlew $BASE_GRADLE_ARGS atlasdb-jepsen-tests:jepsenTest ;;
+    6) ./gradlew $BASE_GRADLE_ARGS atlasdb-jepsen-tests:jepsenTest ;;
 esac
