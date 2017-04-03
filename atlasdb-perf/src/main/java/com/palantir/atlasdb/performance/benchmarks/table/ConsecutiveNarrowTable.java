@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -72,6 +73,16 @@ public abstract class ConsecutiveNarrowTable {
 
     public int getNumRows() {
         return DEFAULT_NUM_ROWS;
+    }
+
+    public List<byte[]> rows = populateRowNames();
+
+    private List<byte[]> populateRowNames() {
+        List<byte[]> list = new ArrayList<>();
+        for (int j = 0; j < DEFAULT_NUM_ROWS; ++j) {
+            list.add(Ints.toByteArray(j));
+        }
+        return list;
     }
 
     protected abstract void setupData();
@@ -182,7 +193,7 @@ public abstract class ConsecutiveNarrowTable {
         }
         return requests;
     }
-
+    
     private static void storeDataInTable(ConsecutiveNarrowTable table, int numOverwrites) {
         IntStream.range(0, numOverwrites + 1).forEach($ -> {
             table.getTransactionManager().runTaskThrowOnConflict(txn -> {
