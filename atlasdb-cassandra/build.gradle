@@ -44,6 +44,7 @@ shadowJar {
 
   relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
   relocate('jflex', atlasdb_shaded + 'jflex')
+  relocate('org.apache.commons', atlasdb_shaded + 'commons')
   relocate('org.apache.tools.ant', atlasdb_shaded + 'ant')
   relocate('org.tarturus.snowball', atlasdb_shaded + 'snowball')
   relocate('org.objectweb.asm', atlasdb_shaded + 'asm')
