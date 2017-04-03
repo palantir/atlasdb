@@ -42,7 +42,7 @@ develop
     *    - Type
          - Change
 
-   *     - |new|
+    *    - |new|
          - Added a benchmark ``KvsGetRowsBenchmarks`` for benchmarking the KVS ``getRows`` method.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1770>`__)
 
