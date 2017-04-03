@@ -39,7 +39,7 @@ public class KvsGetRowsBenchmarks {
     public Object getManyRowsWithGetRows(ConsecutiveNarrowTable.CleanNarrowTable table) {
         Map<Cell, Value> result = table.getKvs().getRows(
                 table.getTableRef(),
-                table.rows,
+                table.getRowList(),
                 ColumnSelection.all(),
                 Long.MAX_VALUE
         );

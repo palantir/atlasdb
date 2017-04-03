@@ -51,10 +51,19 @@ public abstract class ConsecutiveNarrowTable {
 
     private static final int DEFAULT_NUM_ROWS = 10000;
     private static final int REGENERATING_NUM_ROWS = 500;
+    private static final List<byte[]> ROW_LIST = populateRowNames();
 
     private Random random = new Random(Tables.RANDOM_SEED);
-
     private AtlasDbServicesConnector connector;
+
+    private static List<byte[]> populateRowNames() {
+        List<byte[]> list = new ArrayList<>();
+        for (int j = 0; j < DEFAULT_NUM_ROWS; ++j) {
+            list.add(Ints.toByteArray(j));
+        }
+        return list;
+    }
+
     private AtlasDbServices services;
 
     public Random getRandom() {
@@ -75,14 +84,8 @@ public abstract class ConsecutiveNarrowTable {
         return DEFAULT_NUM_ROWS;
     }
 
-    public List<byte[]> rows = populateRowNames();
-
-    private List<byte[]> populateRowNames() {
-        List<byte[]> list = new ArrayList<>();
-        for (int j = 0; j < DEFAULT_NUM_ROWS; ++j) {
-            list.add(Ints.toByteArray(j));
-        }
-        return list;
+    public List<byte[]> getRowList() {
+        return ROW_LIST;
     }
 
     protected abstract void setupData();
@@ -193,7 +196,7 @@ public abstract class ConsecutiveNarrowTable {
         }
         return requests;
     }
-    
+
     private static void storeDataInTable(ConsecutiveNarrowTable table, int numOverwrites) {
         IntStream.range(0, numOverwrites + 1).forEach($ -> {
             table.getTransactionManager().runTaskThrowOnConflict(txn -> {
