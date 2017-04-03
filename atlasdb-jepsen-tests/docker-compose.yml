@@ -4,3 +4,4 @@ jepsen:
     - ./:/jepsen/atlasdb
     - /var/run/docker.sock:/var/run/docker.sock
   command: "bash -lc 'cd /jepsen/atlasdb && lein test'"
+  privileged: true
