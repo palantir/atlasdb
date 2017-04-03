@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - Added a benchmark ``KvsGetRowsBenchmarks`` for benchmarking the KVS ``getRows`` method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1770>`__)
+
     *    - |fixed|
          - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
