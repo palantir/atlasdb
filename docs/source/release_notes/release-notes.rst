@@ -46,6 +46,10 @@ develop
          - Refactored ``AvailableTimestamps`` reducing overzealous synchronization. Giving out timestamps is no longer blocking on refreshing the timestamp bound if there are enough timestamps to give out with the current bound.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1735>`__)
 
+    *    - |new|
+         - Added a benchmark ``KvsGetRowsBenchmarks`` for benchmarking the KVS ``getRows`` method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1770>`__)
+
     *    - |fixed|
          - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
