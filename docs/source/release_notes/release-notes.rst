@@ -50,6 +50,12 @@ develop
          - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
 
+    *    - |improved|
+         - The default ``sweepBatchSize`` has been changed from 1000 to 100.
+           This has empirically shown to be a better batch size because it puts less stress on the underlying KVS.
+           For a full list of tunable sweep parameters and default settings, see :ref:`sweep tunable options <sweep_tunable_parameters>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1763>`__)
+
 =======
 v0.37.0
 =======
