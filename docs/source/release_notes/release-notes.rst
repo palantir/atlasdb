@@ -54,6 +54,10 @@ develop
          - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
 
+    *    - |improved|
+         - Fixed broken batching in getting large sets of rows in Cassandra
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1764>`__)
+
 =======
 v0.37.0
 =======
