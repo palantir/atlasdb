@@ -33,6 +33,37 @@ Changelog
 develop
 =======
 
+.. replace this with the release date
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - Added a benchmark ``KvsGetRowsBenchmarks`` for benchmarking the KVS ``getRows`` method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1770>`__)
+
+    *    - |fixed|
+         - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
+
+    *    - |devbreak|
+         - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
+
+    *    - |improved|
+         - Fixed broken batching in getting large sets of rows in Cassandra
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1764>`__)
+
+=======
+v0.37.0
+=======
+
+29 Mar 2017
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
