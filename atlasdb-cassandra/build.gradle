@@ -52,6 +52,14 @@ shadowJar {
   relocate('org.jboss', atlasdb_shaded + 'jboss')
   relocate('org.objectweb.asm', atlasdb_shaded + 'asm')
   relocate('org.tarturus.snowball', atlasdb_shaded + 'snowball')
+
+  dependencies {
+    exclude(dependency('com.palantir.atlasdb:atlasdb-client'))
+    exclude(dependency('com.palantir.atlasdb:atlasdb-client-protobufs'))
+    exclude(dependency('com.palantir.atlasdb:atlasdb-api'))
+    exclude(dependency('com.palantir.atlasdb:commons-api'))
+    exclude(dependency('com.palantir.atlasdb:timestamp-impl'))
+  }
 }
 
 jar.dependsOn shadowJar
