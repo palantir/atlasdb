@@ -55,7 +55,13 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
 
     *    - |improved|
-         - Fixed broken batching in getting large sets of rows in Cassandra
+         - The default ``sweepBatchSize`` has been changed from 1000 to 100.
+           This has empirically shown to be a better batch size because it puts less stress on the underlying KVS.
+           For a full list of tunable sweep parameters and default settings, see :ref:`sweep tunable options <sweep_tunable_parameters>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1763>`__)
+       
+    *    - |fixed|
+         - Fixed broken batching in getting large sets of rows in Cassandra.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1764>`__)
 
 =======
