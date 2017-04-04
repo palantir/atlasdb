@@ -58,6 +58,10 @@ develop
          - Fixed broken batching in getting large sets of rows in Cassandra
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1764>`__)
 
+    *    - |new|
+         - ``InMemoryAtlasDbFactory`` now supports creating an in-memory transaction manager with multiple schemas.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1774>`__)
+
 =======
 v0.37.0
 =======
