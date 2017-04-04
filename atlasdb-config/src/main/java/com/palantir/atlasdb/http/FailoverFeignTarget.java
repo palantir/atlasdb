@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -52,6 +53,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private final int numServersToTryBeforeFailing = 14;
     private final int fastFailoverTimeoutMillis = 10000;
     private final int maxBackoffMillis;
+    private final RetrySemantics retrySemantics;
 
     private final AtomicLong failuresSinceLastSwitch = new AtomicLong();
     private final AtomicLong numSwitches = new AtomicLong();
@@ -64,13 +66,23 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
     public FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type) {
+        this(servers, maxBackoffMillis, type, RetrySemantics.getSemanticsFor(type));
+    }
+
+    @VisibleForTesting
+    FailoverFeignTarget(
+            Collection<String> servers,
+            int maxBackoffMillis,
+            Class<T> type,
+            RetrySemantics retrySemantics) {
         Preconditions.checkArgument(maxBackoffMillis > 0);
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
         this.maxBackoffMillis = maxBackoffMillis;
+        this.retrySemantics = retrySemantics;
     }
 
-    public void sucessfulCall() {
+    public void successfulCall() {
         numSwitches.set(0);
         failuresSinceLastSwitch.set(0);
         startTimeOfFastFailover.set(0);
@@ -78,14 +90,9 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     @Override
     public void continueOrPropagate(RetryableException ex) {
-        boolean isFastFailoverException;
-        if (ex.retryAfter() == null) {
-            // This is the case where we have failed due to networking or other IOException error.
-            isFastFailoverException = false;
-        } else {
-            // This is the case where the server has returned a 503.
-            // This is done when we want to do fast failover because we aren't the leader or we are shutting down.
-            isFastFailoverException = true;
+        boolean isFastFailoverException = isFastFailoverException(ex);
+        if (!isFastFailoverException && retrySemantics == RetrySemantics.NEVER_EXCEPT_ON_NON_LEADERS) {
+            throw hardFailOwingToFailureOnLeader(ex);
         }
         synchronized (this) {
             // Only fail over if this failure was to the current server.
@@ -114,6 +121,12 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
     }
 
+    private static RuntimeException hardFailOwingToFailureOnLeader(RetryableException ex) {
+        log.error("This connection has failed on a leader when its semantics instruct it not to retry"
+                + " except on a non-leader.", ex);
+        return ex == null ? new IllegalStateException("continueOrPropagate called on null") : ex;
+    }
+
     private void checkAndHandleFailure(RetryableException ex) {
         final long fastFailoverStartTime = startTimeOfFastFailover.get();
         final long currentTime = System.currentTimeMillis();
@@ -136,6 +149,12 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
     }
 
+    @VisibleForTesting
+    static boolean isFastFailoverException(RetryableException ex) {
+        // If this is not-null, then we interpret this to mean that the server has thrown a 503 (so it might
+        // not have been the leader).
+        return ex.retryAfter() != null;
+    }
 
     private void pauseForBackOff(RetryableException ex) {
         double pow = Math.pow(
@@ -191,7 +210,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             public Response execute(Request request, Options options) throws IOException {
                 Response response = client.execute(request, options);
                 if (response.status() >= 200 && response.status() < 300) {
-                    sucessfulCall();
+                    successfulCall();
                 }
                 return response;
             }
