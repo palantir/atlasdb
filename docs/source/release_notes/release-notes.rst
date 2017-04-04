@@ -126,11 +126,13 @@ v0.37.0
            This should fix a bug (`#1654 <https://github.com/palantir/atlasdb/issues/1654>`__) that caused
            AtlasDB probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
            building up leaked connections, due to a bug in the underlying driver.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1524>`__)
 
     *    - |fixed|
          - Correctness issue fixed in the ``clean-transactions-range`` CLI. This CLI is responsible for deleting potentially inconsistent transactions in the KVS upon restore from backup.
            The CLI was not reading the entire ``_transactions`` table, and as a result was missing deleting transactions whose start timestamp was before the backup timestamp and commit timestamp was after the backup timestamp.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1759>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
