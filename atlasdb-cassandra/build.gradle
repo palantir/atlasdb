@@ -43,15 +43,16 @@ shadowJar {
   classifier ''
 
   relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
+  relocate('com.fasterxml.jackson', atlasdb_shaded + 'jackson')
   relocate('com.netflix.feign', atlasdb_shaded + 'feign')
   relocate('jflex', atlasdb_shaded + 'jflex')
-  relocate('org.apache.commons', atlasdb_shaded + 'commons')
-  relocate('org.apache.tools.ant', atlasdb_shaded + 'ant')
-  relocate('org.tarturus.snowball', atlasdb_shaded + 'snowball')
-  relocate('org.objectweb.asm', atlasdb_shaded + 'asm')
   relocate('jnr', atlasdb_shaded + 'jnr')
   relocate('io.netty', atlasdb_shaded + 'netty')
+  relocate('org.apache.commons', atlasdb_shaded + 'commons')
+  relocate('org.apache.tools.ant', atlasdb_shaded + 'ant')
   relocate('org.jboss', atlasdb_shaded + 'jboss')
+  relocate('org.objectweb.asm', atlasdb_shaded + 'asm')
+  relocate('org.tarturus.snowball', atlasdb_shaded + 'snowball')
 }
 
 jar.dependsOn shadowJar
