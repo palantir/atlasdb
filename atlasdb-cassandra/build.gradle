@@ -32,8 +32,3 @@ dependencies {
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 }
-
-  classifier ''
-  relocate('com.netflix.feign', atlasdb_shaded + 'feign')
-  relocate('org.apache.commons', atlasdb_shaded + 'commons')
-  relocate('org.jboss', atlasdb_shaded + 'jboss')

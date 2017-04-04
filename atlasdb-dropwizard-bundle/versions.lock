@@ -1042,6 +1042,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "org.jboss.marshalling:jboss-marshalling": {
+            "locked": "1.4.11.Final",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
             "locked": "2.0.6",
             "transitive": [
@@ -2152,6 +2158,12 @@
             "locked": "3.1.3.GA",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.jboss.marshalling:jboss-marshalling": {
+            "locked": "1.4.11.Final",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
