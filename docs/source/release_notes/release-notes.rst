@@ -54,6 +54,18 @@ develop
          - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
 
+    *    - |fixed|
+         - AtlasDB clients will now failover to other nodes immediately upon discovering a given node is not the leader.
+           Previously, they would retry three times on the same non-leader node before failing over.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1747>`__)
+
+    *    - |improved| |devbreak|
+         - RemoteLockService clients will now only retry once (instead of infinitely often) on TimeLock connection failures.
+           This improves stability of the TimeLock server when used by AtlasDB.
+           To avoid breaking AtlasDB clients that use AtlasDB via TransactionManagers, we have wrapped instantiations of the RemoteLockService in an application-level retryer.
+           However, clients which use RemoteLockService directly should be aware of the possibility of exceptions being thrown from this class, and handle them appropriately.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1747>`__)
+
 =======
 v0.37.0
 =======
@@ -105,7 +117,7 @@ v0.37.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1689>`__)
 
     *    - |fixed|
-         - RemoteLockService clients will no longer silently retry on connection failures to the Timelock server.
+         - RemoteLockService clients will no longer silently retry on connection failures to the TimeLock server.
            This is used to mitigate issues with frequent leadership changes owing to `#1680 <https://github.com/palantir/atlasdb/issues/1680>`__.
            Previously, because of Jetty's idle timeout and OkHttp's silent connection retrying, we would generate an endless stream of lock requests if using HTTP/2 and blocking for more than the Jetty idle timeout for a single lock.
            This would lead to starvation of other requests on the TimeLock server, since a lock request blocked on acquiring a lock consumes a server thread.
