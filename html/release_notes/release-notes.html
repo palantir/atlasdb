@@ -283,8 +283,7 @@ This would lead to starvation of other requests on the TimeLock server, since a 
 <td>Cassandra dependencies have been bumped to newer versions.
 This should fix a bug (<a class="reference external" href="https://github.com/palantir/atlasdb/issues/1654">#1654</a>) that caused
 AtlasDB probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
-building up leaked connections, due to a bug in the underlying driver.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1524">Pull Request</a>)</td>
+building up leaked connections, due to a bug in the underlying driver.</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Correctness issue fixed in the <code class="docutils literal"><span class="pre">clean-transactions-range</span></code> CLI. This CLI is responsible for deleting potentially inconsistent transactions in the KVS upon restore from backup.
