@@ -209,7 +209,13 @@
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1750">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Fixed broken batching in getting large sets of rows in Cassandra
+<td>The default <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> has been changed from 1000 to 100.
+This has empirically shown to be a better batch size because it puts less stress on the underlying KVS.
+For a full list of tunable sweep parameters and default settings, see <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">sweep tunable options</span></a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1763">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed broken batching in getting large sets of rows in Cassandra.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1764">Pull Request</a>)</td>
 </tr>
 </tbody>
