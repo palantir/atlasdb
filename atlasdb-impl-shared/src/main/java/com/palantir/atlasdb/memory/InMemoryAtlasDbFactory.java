@@ -15,10 +15,14 @@
  */
 package com.palantir.atlasdb.memory;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -83,15 +87,22 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     public static SerializableTransactionManager createInMemoryTransactionManager(AtlasSchema schema) {
-        AtlasDbVersion.ensureVersionReported();
-        return createInMemoryTransactionManagerInternal(schema.getLatestSchema());
+        return createInMemoryTransactionManager(ImmutableSet.of(schema));
     }
 
-    private static SerializableTransactionManager createInMemoryTransactionManagerInternal(Schema schema) {
+    public static SerializableTransactionManager createInMemoryTransactionManager(Set<AtlasSchema> schemas) {
+        AtlasDbVersion.ensureVersionReported();
+        return createInMemoryTransactionManagerInternal(
+                schemas.stream().map(AtlasSchema::getLatestSchema).collect(Collectors.toSet()));
+    }
+
+    private static SerializableTransactionManager createInMemoryTransactionManagerInternal(Set<Schema> schemas) {
         TimestampService ts = new InMemoryTimestampService();
         KeyValueService keyValueService = createTableMappingKv();
 
-        Schemas.createTablesAndIndexes(schema, keyValueService);
+        for (Schema schema : schemas) {
+            Schemas.createTablesAndIndexes(schema, keyValueService);
+        }
         TransactionTables.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
@@ -107,7 +118,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
-        CleanupFollower follower = CleanupFollower.create(schema);
+        CleanupFollower follower = CleanupFollower.create(schemas);
         Cleaner cleaner = new DefaultCleanerBuilder(
                 keyValueService,
                 lock,

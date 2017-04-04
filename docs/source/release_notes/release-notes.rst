@@ -41,6 +41,10 @@ develop
 
     *    - Type
          - Change
+         
+    *    - |new|
+         - ``InMemoryAtlasDbFactory`` now supports creating an in-memory transaction manager with multiple schemas.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1761>`__)
 
     *    - |new|
          - Added a benchmark ``KvsGetRowsBenchmarks`` for benchmarking the KVS ``getRows`` method.
