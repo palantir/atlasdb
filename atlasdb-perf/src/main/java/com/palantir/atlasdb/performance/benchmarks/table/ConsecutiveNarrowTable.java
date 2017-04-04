@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -50,10 +51,19 @@ public abstract class ConsecutiveNarrowTable {
 
     private static final int DEFAULT_NUM_ROWS = 10000;
     private static final int REGENERATING_NUM_ROWS = 500;
+    private static final List<byte[]> ROW_LIST = populateRowNames();
 
     private Random random = new Random(Tables.RANDOM_SEED);
-
     private AtlasDbServicesConnector connector;
+
+    private static List<byte[]> populateRowNames() {
+        List<byte[]> list = new ArrayList<>();
+        for (int j = 0; j < DEFAULT_NUM_ROWS; ++j) {
+            list.add(Ints.toByteArray(j));
+        }
+        return list;
+    }
+
     private AtlasDbServices services;
 
     public Random getRandom() {
@@ -72,6 +82,10 @@ public abstract class ConsecutiveNarrowTable {
 
     public int getNumRows() {
         return DEFAULT_NUM_ROWS;
+    }
+
+    public List<byte[]> getRowList() {
+        return ROW_LIST;
     }
 
     protected abstract void setupData();
