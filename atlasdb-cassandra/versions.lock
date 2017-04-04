@@ -400,6 +400,10 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "org.jboss.marshalling:jboss-marshalling": {
+            "locked": "1.4.11.Final",
+            "requested": "1.4.11.Final"
+        },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",
             "transitive": [
@@ -875,6 +879,10 @@
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
+        },
+        "org.jboss.marshalling:jboss-marshalling": {
+            "locked": "1.4.11.Final",
+            "requested": "1.4.11.Final"
         },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",

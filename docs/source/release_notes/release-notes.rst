@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - Added a benchmark ``KvsGetRowsBenchmarks`` for benchmarking the KVS ``getRows`` method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1770>`__)
+
     *    - |fixed|
          - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
@@ -55,6 +59,10 @@ develop
            This has empirically shown to be a better batch size because it puts less stress on the underlying KVS.
            For a full list of tunable sweep parameters and default settings, see :ref:`sweep tunable options <sweep_tunable_parameters>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1763>`__)
+       
+    *    - |fixed|
+         - Fixed broken batching in getting large sets of rows in Cassandra.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1764>`__)
 
 =======
 v0.37.0
