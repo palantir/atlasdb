@@ -23,7 +23,7 @@ shadowJar {
   mergeServiceFiles()
   classifier ''
 
-  relocate('dagger',   atlasdb_shaded + 'dagger')
+  relocate('dagger', 'com.palantir.atlasdb.shaded.dagger')
 
   dependencies {
     include dependency(group: 'com.google.dagger', name: 'dagger')
