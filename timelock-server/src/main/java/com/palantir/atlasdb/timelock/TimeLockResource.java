@@ -15,22 +15,28 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
+import com.google.common.base.Supplier;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 @Path("/{client: [a-zA-Z0-9_-]+}")
 public class TimeLockResource {
-    private final Map<String, TimeLockServices> clientToServices;
+    private final Supplier<Set<String>> clients;
+    private final MyMethodType<TimeLockServices> create;
+    private Map<String, TimeLockServices> clientToServices = new HashMap<>();
 
-    public TimeLockResource(Map<String, TimeLockServices> clientToServices) {
-        this.clientToServices = clientToServices;
+    public TimeLockResource(Supplier<Set<String>> clients, MyMethodType<TimeLockServices> create) {
+        this.clients = clients;
+        this.create = create;
     }
 
     @Path("/lock")
@@ -51,8 +57,17 @@ public class TimeLockResource {
     private TimeLockServices getTimeLockServicesForClient(String client) {
         TimeLockServices services = clientToServices.get(client);
         if (services == null) {
-            throw new NotFoundException("Client doesn't exist");
+            if (clients.get().contains(client)) {
+                services = create.call(client);
+                clientToServices.put(client, services);
+            } else {
+                throw new NotFoundException("Client doesn't exist");
+            }
         }
         return services;
+    }
+
+    interface MyMethodType<TimelockServices> {
+        TimelockServices call(String param);
     }
 }

@@ -35,6 +35,7 @@ dependencies {
     compile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
     compile group: 'org.eclipse.jetty', name: 'jetty-alpn-server'
     compile group: 'org.eclipse.jetty.http2', name: 'http2-common'
+    compile "com.palantir.config.crypto:encrypted-config-value-bundle:1.0.0"
 
     runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
 
