@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |changed|
+         - Increased the size of CleanNarrowTable used in benchmarks from 10,000 to 1,000,000 rows.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1773>`__)
+
     *    - |new|
          - Added a benchmark ``KvsGetRowsBenchmarks`` for benchmarking the KVS ``getRows`` method.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1770>`__)
