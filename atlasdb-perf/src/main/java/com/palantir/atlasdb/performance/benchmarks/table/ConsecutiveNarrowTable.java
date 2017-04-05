@@ -206,7 +206,7 @@ public abstract class ConsecutiveNarrowTable {
         }
         return requests;
     }
-    
+
     private static void storeDataInTable(ConsecutiveNarrowTable table, int numOverwrites) {
         IntStream.range(0, numOverwrites + 1).forEach($ -> {
             table.getTransactionManager().runTaskThrowOnConflict(txn -> {
@@ -216,5 +216,4 @@ public abstract class ConsecutiveNarrowTable {
             });
         });
     }
-
 }
