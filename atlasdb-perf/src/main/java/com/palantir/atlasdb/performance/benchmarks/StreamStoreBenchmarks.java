@@ -65,7 +65,7 @@ public class StreamStoreBenchmarks {
     @Benchmark
     @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
     public Object loadLargeStream(StreamingTable table) throws IOException {
         long id = table.getLargeStreamId();
         TransactionManager transactionManager = table.getTransactionManager();
@@ -76,6 +76,25 @@ public class StreamStoreBenchmarks {
             int read = inputStream.read(firstBytes);
             assertThat(read, is(16));
             assertArrayEquals(table.getLargeStreamFirstBytes(), firstBytes);
+        }
+
+        return null;
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
+    public Object loadVeryLargeStream(StreamingTable table) throws IOException {
+        long id = table.getVeryLargeStreamId();
+        TransactionManager transactionManager = table.getTransactionManager();
+        StreamTestTableFactory tables = StreamTestTableFactory.of();
+        ValueStreamStore store = ValueStreamStore.of(transactionManager, tables);
+        try (InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, id))) {
+            byte[] firstBytes = new byte[16];
+            int read = inputStream.read(firstBytes);
+            assertThat(read, is(16));
+            assertArrayEquals(table.getVeryLargeStreamFirstBytes(), firstBytes);
         }
 
         return null;

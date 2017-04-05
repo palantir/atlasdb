@@ -52,7 +52,9 @@ public class StreamingTable {
 
     private long smallStreamId;
     private long largeStreamId;
+    private long veryLargeStreamId;
     private byte[] largeStreamFirstBytes;
+    private byte[] veryLargeStreamFirstBytes;
 
     public long getSmallStreamId() {
         return smallStreamId;
@@ -62,8 +64,16 @@ public class StreamingTable {
         return largeStreamId;
     }
 
+    public long getVeryLargeStreamId() {
+        return veryLargeStreamId;
+    }
+
     public byte[] getLargeStreamFirstBytes() {
         return largeStreamFirstBytes;
+    }
+
+    public byte[] getVeryLargeStreamFirstBytes() {
+        return veryLargeStreamFirstBytes;
     }
 
     public TransactionManager getTransactionManager() {
@@ -104,6 +114,12 @@ public class StreamingTable {
         random.nextBytes(randomData);
         largeStreamId = storeStreamForRow(randomData, "row2");
         largeStreamFirstBytes = Arrays.copyOf(randomData, 16);
+
+        // Longer streamable data
+        byte[] bigRandomData = new byte[60_000_000];
+        random.nextBytes(bigRandomData);
+        veryLargeStreamId = storeStreamForRow(bigRandomData, "row3");
+        veryLargeStreamFirstBytes = Arrays.copyOf(bigRandomData, 16);
     }
 
     private Long storeStreamForRow(byte[] data, String rowName) {
