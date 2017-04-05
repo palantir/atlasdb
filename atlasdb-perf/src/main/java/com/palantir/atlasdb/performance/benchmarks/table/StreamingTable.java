@@ -82,6 +82,7 @@ public class StreamingTable {
 
     @TearDown(Level.Trial)
     public void cleanup() throws Exception {
+        services.getKeyValueService().dropTable(getTableRef());
         this.connector.close();
     }
 
@@ -89,10 +90,8 @@ public class StreamingTable {
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         this.services = conn.connect();
-        if (!services.getKeyValueService().getAllTableNames().contains(getTableRef())) {
-            Schemas.createTablesAndIndexes(StreamTestSchema.getSchema(), getKvs());
-            setupData();
-        }
+        Schemas.createTablesAndIndexes(StreamTestSchema.getSchema(), getKvs());
+        setupData();
     }
 
     private void setupData() {
