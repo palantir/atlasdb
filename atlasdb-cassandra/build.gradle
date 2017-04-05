@@ -1,6 +1,5 @@
 apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
-apply plugin: 'com.github.johnrengelman.shadow'
 
 apply from: "../gradle/shared.gradle"
 
@@ -12,10 +11,6 @@ dependencies {
 
   compile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
     exclude module: 'junit'
-
-    // override ant to a newer one that is shared with the version in jmock-->cglib
-    exclude module: 'ant'
-    compile 'org.apache.ant:ant:' + libVersions.ant
   }
   compile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
   compile group: 'com.google.guava', name: 'guava'
@@ -37,20 +32,3 @@ dependencies {
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 }
-
-shadowJar {
-  mergeServiceFiles()
-  classifier ''
-
-  relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
-  relocate('jflex', atlasdb_shaded + 'jflex')
-  relocate('org.apache.tools.ant', atlasdb_shaded + 'ant')
-  relocate('org.tarturus.snowball', atlasdb_shaded + 'snowball')
-  relocate('org.objectweb.asm', atlasdb_shaded + 'asm')
-  relocate('jnr', atlasdb_shaded + 'jnr')
-  relocate('io.netty', atlasdb_shaded + 'netty')
-  relocate('org.jboss', atlasdb_shaded + 'jboss')
-}
-
-jar.dependsOn shadowJar
-jar.onlyIf { false }

@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - Added a benchmark ``KvsGetRowsBenchmarks`` for benchmarking the KVS ``getRows`` method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1770>`__)
+
     *    - |fixed|
          - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
@@ -49,6 +53,20 @@ develop
     *    - |devbreak|
          - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
+
+    *    - |improved|
+         - The default ``sweepBatchSize`` has been changed from 1000 to 100.
+           This has empirically shown to be a better batch size because it puts less stress on the underlying KVS.
+           For a full list of tunable sweep parameters and default settings, see :ref:`sweep tunable options <sweep_tunable_parameters>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1763>`__)
+       
+    *    - |fixed|
+         - Fixed broken batching in getting large sets of rows in Cassandra.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1764>`__)
+
+    *    - |new|
+         - ``InMemoryAtlasDbFactory`` now supports creating an in-memory transaction manager with multiple schemas.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1774>`__)
 
 =======
 v0.37.0
@@ -112,13 +130,11 @@ v0.37.0
            This should fix a bug (`#1654 <https://github.com/palantir/atlasdb/issues/1654>`__) that caused
            AtlasDB probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
            building up leaked connections, due to a bug in the underlying driver.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1524>`__)
 
     *    - |fixed|
          - Correctness issue fixed in the ``clean-transactions-range`` CLI. This CLI is responsible for deleting potentially inconsistent transactions in the KVS upon restore from backup.
            The CLI was not reading the entire ``_transactions`` table, and as a result was missing deleting transactions whose start timestamp was before the backup timestamp and commit timestamp was after the backup timestamp.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1759>`__)
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
