@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 /**
+=======
+/*
+>>>>>>> Fix merge conflict
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -39,7 +43,7 @@ public class KvsGetRowsBenchmarks {
     public Object getManyRowsWithGetRows(ConsecutiveNarrowTable.CleanNarrowTable table) {
         Map<Cell, Value> result = table.getKvs().getRows(
                 table.getTableRef(),
-                table.rows,
+                table.getRowList(),
                 ColumnSelection.all(),
                 Long.MAX_VALUE
         );

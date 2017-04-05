@@ -42,6 +42,14 @@ develop
     *    - Type
          - Change
 
+    *    - |changed|
+         - Increased the size of CleanNarrowTable used in benchmarks from 10,000 to 1,000,000 rows.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1773>`__)
+
+    *    - |new|
+         - Added a benchmark ``KvsGetRowsBenchmarks`` for benchmarking the KVS ``getRows`` method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1770>`__)
+
     *    - |fixed|
          - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
@@ -50,9 +58,9 @@ develop
          - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
 
-    *    - |changed|
-         - Increased the size of CleanNarrowTable used in benchmarks from 10,000 to 1,000,000 rows.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1773>`__)
+    *    - |improved|
+         - Fixed broken batching in getting large sets of rows in Cassandra
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1764>`__)
 
 =======
 v0.37.0
