@@ -70,7 +70,7 @@ develop
        
     *    - |fixed|
          - Fixed broken batching in getting large sets of rows in Cassandra.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1764>
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1764>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
