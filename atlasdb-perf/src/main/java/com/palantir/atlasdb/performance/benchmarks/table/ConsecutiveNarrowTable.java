@@ -88,6 +88,10 @@ public abstract class ConsecutiveNarrowTable {
         return ROW_LIST;
     }
 
+    public List<byte[]> getRowList() {
+        return ROW_LIST;
+    }
+
     protected abstract void setupData();
 
     @Setup(Level.Trial)
