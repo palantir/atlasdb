@@ -472,13 +472,13 @@ import com.palantir.util.Pair;
     }
 
     private void logAtDebugOrInfo(String lockId, LockClient currentHolder, long duration) {
-        if (log.isDebugEnabled()) {
-            log.debug("Blocked for {} ms to acquire lock {} {}.",
+        if (slowLogEnabled) {
+            SlowLockLogger.logger.info("Blocked for {} ms to acquire lock {} {}.",
                     duration,
                     lockId,
                     currentHolder == null ? "successfully" : "unsuccessfully");
         } else {
-            log.info("Blocked for {} ms to acquire lock {} {}.",
+            log.debug("Blocked for {} ms to acquire lock {} {}.",
                     duration,
                     lockId,
                     currentHolder == null ? "successfully" : "unsuccessfully");
