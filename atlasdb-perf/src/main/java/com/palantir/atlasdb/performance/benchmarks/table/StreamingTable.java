@@ -16,8 +16,9 @@
 package com.palantir.atlasdb.performance.benchmarks.table;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Random;
 
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
@@ -44,16 +45,26 @@ import com.palantir.common.persist.Persistable;
 
 @State(Scope.Benchmark)
 public class StreamingTable {
-//    private Random random = new Random(Tables.RANDOM_SEED);
+    private Random random = new Random(Tables.RANDOM_SEED);
 
     private AtlasDbServicesConnector connector;
     private AtlasDbServices services;
 
-    public long getStreamId() {
-        return streamId;
+    private long smallStreamId;
+    private long largeStreamId;
+    private byte[] largeStreamFirstBytes;
+
+    public long getSmallStreamId() {
+        return smallStreamId;
     }
 
-    private long streamId;
+    public long getLargeStreamId() {
+        return largeStreamId;
+    }
+
+    public byte[] getLargeStreamFirstBytes() {
+        return largeStreamFirstBytes;
+    }
 
     public TransactionManager getTransactionManager() {
         return services.getTransactionManager();
@@ -77,7 +88,7 @@ public class StreamingTable {
     @Setup(Level.Trial)
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
-        services = conn.connect();
+        this.services = conn.connect();
         if (!services.getKeyValueService().getAllTableNames().contains(getTableRef())) {
             Schemas.createTablesAndIndexes(StreamTestSchema.getSchema(), getKvs());
             setupData();
@@ -85,27 +96,35 @@ public class StreamingTable {
     }
 
     private void setupData() {
+        // Short streamable data
+        byte[] data = "bytes".getBytes(StandardCharsets.UTF_8);
+        smallStreamId = storeStreamForRow(data, "row");
+
+        // Long streamable data
+        byte[] randomData = new byte[6_000_000];
+        random.nextBytes(randomData);
+        largeStreamId = storeStreamForRow(randomData, "row2");
+        largeStreamFirstBytes = Arrays.copyOf(randomData, 16);
+    }
+
+    private Long storeStreamForRow(byte[] data, String rowName) {
         StreamTestTableFactory tableFactory = StreamTestTableFactory.of();
         ValueStreamStore streamTestStreamStore = ValueStreamStore.of(
                 getTransactionManager(),
                 tableFactory
         );
-        byte[] data = "bytes".getBytes(StandardCharsets.UTF_8); //new byte[6_000_000];
 
-//        random.nextBytes(data);
-
-        InputStream inputStream = new ByteArrayInputStream(data);
-        streamId = streamTestStreamStore.storeStream(inputStream).getLhSide();
+        final Long streamId = streamTestStreamStore.storeStream(new ByteArrayInputStream(data)).getLhSide();
 
         getTransactionManager().runTaskThrowOnConflict(txn -> {
             KeyValueTable table = tableFactory.getKeyValueTable(txn);
-            KeyValueTable.KeyValueRow row = KeyValueTable.KeyValueRow.of("row");
+            KeyValueTable.KeyValueRow row = KeyValueTable.KeyValueRow.of(rowName);
             KeyValueTable.StreamId id = KeyValueTable.StreamId.of(streamId);
             Multimap<Persistable, ColumnValue<?>> rows = ImmutableMultimap.of(row, id);
 
             txn.put(table.getTableRef(), ColumnValues.toCellValues(rows));
             return null;
         });
-
+        return streamId;
     }
 }
