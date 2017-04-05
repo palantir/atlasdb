@@ -196,29 +196,33 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>Increased the size of CleanNarrowTable used in benchmarks from 10,000 to 1,000,000 rows.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1773">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Added a benchmark <code class="docutils literal"><span class="pre">KvsGetRowsBenchmarks</span></code> for benchmarking the KVS <code class="docutils literal"><span class="pre">getRows</span></code> method.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1770">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1729">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The <code class="docutils literal"><span class="pre">atlasdb-remoting</span></code> project was removed. We don&#8217;t believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1750">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The default <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> has been changed from 1000 to 100.
 This has empirically shown to be a better batch size because it puts less stress on the underlying KVS.
 For a full list of tunable sweep parameters and default settings, see <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">sweep tunable options</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1763">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed broken batching in getting large sets of rows in Cassandra.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1764">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td><code class="docutils literal"><span class="pre">InMemoryAtlasDbFactory</span></code> now supports creating an in-memory transaction manager with multiple schemas.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1774">Pull Request</a>)</td>
 </tr>
