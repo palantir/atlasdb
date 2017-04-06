@@ -152,20 +152,27 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 ManagedTimestampService.class,
                 createPaxosBackedTimestampService(client),
                 client);
+        LockService lockService = createLockService(client);
+        return TimeLockServices.create(timestampService, lockService, timestampService);
+    }
+
+    private LockService createLockService(String client) {
         LockServerOptions lockServerOptions = new LockServerOptions() {
             @Override
             public boolean isSlowLogEnabled() {
                 return true;
             }
         };
-        LockService lockService = instrument(
+
+        return instrument(
                 LockService.class,
                 AwaitingLeadershipProxy.newProxyInstance(
                         LockService.class,
-                        () -> LockServiceImpl.create(lockServerOptions),
+                        () -> DelegatingBlockingTimeLimitedLockService.create(
+                                LockServiceImpl.create(lockServerOptions),
+                                paxosConfiguration.lockServiceBlockingTimeoutWaitMs()),
                         leaderElectionService),
                 client);
-        return TimeLockServices.create(timestampService, lockService, timestampService);
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {

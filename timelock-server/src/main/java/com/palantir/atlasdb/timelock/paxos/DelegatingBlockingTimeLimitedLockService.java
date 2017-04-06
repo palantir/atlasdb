@@ -23,6 +23,9 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.ws.rs.PathParam;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
@@ -37,9 +40,10 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
-import com.palantir.lock.impl.LockServiceImpl;
 
 public class DelegatingBlockingTimeLimitedLockService implements LockService {
+    private static final Logger log = LoggerFactory.getLogger(DelegatingBlockingTimeLimitedLockService.class);
+
     private final LockService delegate;
     private final TimeLimiter timeLimiter;
     private final long timeLimitMillis;
@@ -53,9 +57,9 @@ public class DelegatingBlockingTimeLimitedLockService implements LockService {
         this.timeLimitMillis = timeLimitMillis;
     }
 
-    public LockService create(long timeLimitMillis) {
+    public static LockService create(LockService delegate, long timeLimitMillis) {
         return new DelegatingBlockingTimeLimitedLockService(
-                LockServiceImpl.create(),
+                delegate,
                 new SimpleTimeLimiter(),
                 timeLimitMillis);
     }
@@ -63,13 +67,13 @@ public class DelegatingBlockingTimeLimitedLockService implements LockService {
     @Nullable
     @Override
     public LockRefreshToken lock(@PathParam("client") String client, LockRequest request) throws InterruptedException {
-        return callWithTimeoutUnchecked(() -> delegate.lock(client, request));
+        return runWithTimeout(() -> delegate.lock(client, request), client, request);
     }
 
     @Override
     public HeldLocksToken lockAndGetHeldLocks(@PathParam("client") String client, LockRequest request)
             throws InterruptedException {
-        return callWithTimeoutUnchecked(() -> delegate.lockAndGetHeldLocks(client, request));
+        return runWithTimeout(() -> delegate.lockAndGetHeldLocks(client, request), client, request);
     }
 
     @Override
@@ -90,7 +94,7 @@ public class DelegatingBlockingTimeLimitedLockService implements LockService {
 
     @Override
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
-        return callWithTimeoutUnchecked(() -> delegate.lockWithFullLockResponse(client, request));
+        return runWithTimeout(() -> delegate.lockWithFullLockResponse(client, request), client.getClientId(), request);
     }
 
     @Override
@@ -171,10 +175,14 @@ public class DelegatingBlockingTimeLimitedLockService implements LockService {
         delegate.logCurrentState();
     }
 
-    private <T> T callWithTimeoutUnchecked(Callable<T> callable) {
+    private <T> T runWithTimeout(Callable<T> function, String client, LockRequest request) {
         try {
-            return timeLimiter.callWithTimeout(callable, timeLimitMillis, TimeUnit.MILLISECONDS, true);
+            return timeLimiter.callWithTimeout(function, timeLimitMillis, TimeUnit.MILLISECONDS, true);
         } catch (UncheckedTimeoutException e) {
+            log.info("A lock request {} from client {} blocked for too long on the server."
+                    + " This may occur under high load, but is retryable.",
+                    client,
+                    request);
             throw new BlockingTimeoutException(e);
         } catch (Exception e) {
             throw Throwables.propagate(e);

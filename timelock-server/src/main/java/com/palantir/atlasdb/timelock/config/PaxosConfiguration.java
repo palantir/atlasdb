@@ -55,6 +55,11 @@ public abstract class PaxosConfiguration implements TimeLockAlgorithmConfigurati
         return 5000L;
     }
 
+    @Value.Default
+    public long lockServiceBlockingTimeoutWaitMs() {
+        return 30000L;
+    }
+
     @Value.Check
     protected final void check() {
         Preconditions.checkArgument(paxosDataDir().exists() || paxosDataDir().mkdirs(),
@@ -65,6 +70,8 @@ public abstract class PaxosConfiguration implements TimeLockAlgorithmConfigurati
                 "Maximum wait before proposal must be positive; found '%s'.", maximumWaitBeforeProposalMs());
         Preconditions.checkArgument(leaderPingResponseWaitMs() > 0,
                 "Leader ping response wait interval must be positive; found '%s'.", leaderPingResponseWaitMs());
+        Preconditions.checkArgument(lockServiceBlockingTimeoutWaitMs() > 0,
+                "Lock service blocking timeout must be positive; found '%s'.", lockServiceBlockingTimeoutWaitMs());
     }
 
     @Override
