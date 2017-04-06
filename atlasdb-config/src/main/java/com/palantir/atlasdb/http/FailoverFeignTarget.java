@@ -83,22 +83,23 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             // This means that no one on another thread has failed us over already.
             if (mostRecentServerIndex.get() != null && mostRecentServerIndex.get() == failoverCount.get()) {
                 long failures = failuresSinceLastSwitch.incrementAndGet();
-                if (retryBehaviour.shouldRetryInfinitelyManyTimes() || failures >= failuresBeforeSwitching) {
-                    if (retryBehaviour.shouldRetryInfinitelyManyTimes()) {
+                if (retryBehaviour.shouldBackoffAndTryOtherNodes() || failures >= failuresBeforeSwitching) {
+                    // Should switch!
+                    if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
                         // We did talk to a node successfully. It was shutting down but nodes are available
                         // so we shouldn't keep making the backoff higher.
                         numSwitches.set(0);
-                    } else {
-                        numSwitches.incrementAndGet();
-                    }
-
-                    if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
                         startTimeOfFastFailover.compareAndSet(0, System.currentTimeMillis());
                     } else {
+                        numSwitches.incrementAndGet();
                         startTimeOfFastFailover.set(0);
                     }
                     failuresSinceLastSwitch.set(0);
                     failoverCount.incrementAndGet();
+                } else {
+                    if (retryBehaviour.shouldRetryInfinitelyManyTimes()) {
+                        failuresSinceLastSwitch.set(0);
+                    }
                 }
             }
         }

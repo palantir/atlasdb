@@ -20,9 +20,9 @@ import com.palantir.lock.BlockingTimeoutException;
 import feign.RetryableException;
 
 public enum ExceptionRetryBehaviour {
-    RETRY_ON_OTHER_NODE(false, true),
-    RETRY_INDEFINITELY_ON_SAME_NODE(false, false),
-    RETRY_ON_SAME_NODE(true, false);
+    RETRY_ON_OTHER_NODE(true, true),
+    RETRY_INDEFINITELY_ON_SAME_NODE(true, false),
+    RETRY_ON_SAME_NODE(false, false);
 
     private final boolean shouldRetryInfinitelyManyTimes;
     private final boolean shouldBackoffAndTryOtherNodes;
