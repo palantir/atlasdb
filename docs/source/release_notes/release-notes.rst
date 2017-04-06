@@ -42,8 +42,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Any lock requests that take more than ``100ms`` to receive a response are now logged in the ``SlowLockLogger`` logger.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1769>`__)
 
 =======
 v0.38.0
