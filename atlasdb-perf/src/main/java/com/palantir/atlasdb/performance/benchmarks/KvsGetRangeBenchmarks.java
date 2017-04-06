@@ -61,7 +61,7 @@ public class KvsGetRangeBenchmarks {
     }
 
     private Object getMultiRangeInner(ConsecutiveNarrowTable table) {
-        Iterable<RangeRequest> requests = table.getRangeRequests((int) (table.getNumRows() * 0.1), 1);
+        Iterable<RangeRequest> requests = table.getRangeRequests(1000, 1);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results =
                 table.getKvs().getFirstBatchForRanges(table.getTableRef(), requests, Long.MAX_VALUE);
 
@@ -108,7 +108,7 @@ public class KvsGetRangeBenchmarks {
     @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getSingleLargeRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
-        return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
+        return getSingleRangeInner(table, 1000);
     }
 
     @Benchmark

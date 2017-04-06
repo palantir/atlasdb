@@ -49,9 +49,11 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 @State(Scope.Benchmark)
 public abstract class ConsecutiveNarrowTable {
 
-    private static final int DEFAULT_NUM_ROWS = 10000;
+    private static final int DIRTY_NUM_ROWS = 10000;
+    private static final int CLEAN_NUM_ROWS = 1_000_000;
     private static final int REGENERATING_NUM_ROWS = 500;
     private static final List<byte[]> ROW_LIST = populateRowNames();
+    private static final int DEFAULT_NUM_ROWS = 10_000;
 
     private Random random = new Random(Tables.RANDOM_SEED);
     private AtlasDbServicesConnector connector;
@@ -80,9 +82,7 @@ public abstract class ConsecutiveNarrowTable {
 
     public abstract TableReference getTableRef();
 
-    public int getNumRows() {
-        return DEFAULT_NUM_ROWS;
-    }
+    public abstract int getNumRows();
 
     public List<byte[]> getRowList() {
         return ROW_LIST;
@@ -110,6 +110,11 @@ public abstract class ConsecutiveNarrowTable {
         @Override
         public TableReference getTableRef() {
             return TableReference.createFromFullyQualifiedName("performance.persistent_table_clean");
+        }
+
+        @Override
+        public int getNumRows() {
+            return CLEAN_NUM_ROWS;
         }
 
         @Override
@@ -148,6 +153,11 @@ public abstract class ConsecutiveNarrowTable {
         @Override
         public TableReference getTableRef() {
             return TableReference.createFromFullyQualifiedName("performance.persistent_table_dirty");
+        }
+
+        @Override
+        public int getNumRows() {
+            return DIRTY_NUM_ROWS;
         }
 
         @Override
@@ -206,5 +216,4 @@ public abstract class ConsecutiveNarrowTable {
             });
         });
     }
-
 }
