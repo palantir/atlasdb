@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -39,21 +39,12 @@ public class KvsGetRowsBenchmarks {
     public Object getManyRowsWithGetRows(ConsecutiveNarrowTable.CleanNarrowTable table) {
         Map<Cell, Value> result = table.getKvs().getRows(
                 table.getTableRef(),
-<<<<<<< HEAD
                 table.getRowList(),
                 ColumnSelection.all(),
                 Long.MAX_VALUE
         );
         Preconditions.checkState(result.size() == table.getRowList().size(),
                 "Should be %s rows, but were: %s", table.getRowList().size(), result.size());
-=======
-                table.rows,
-                ColumnSelection.all(),
-                Long.MAX_VALUE
-        );
-        Preconditions.checkState(result.size() == table.getNumRows(),
-                "Should be %s rows, but were: %s", table.getNumRows(), result.size());
->>>>>>> develop
         return result;
     }
 }
