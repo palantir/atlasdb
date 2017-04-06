@@ -23,7 +23,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * This is a logger intended for use tracking down problems arising from
  * PDS-50301 (Product hogs threads on timelock server with HTTP/2 protocol). This is currently logging the locks
- * requested in a lock request that took more than 100ms to receive a response. This will be auto-enabled
+ * requested in a lock request that took more than 100ms to receive a response. This will be enabled automatically
  * if you migrate to the timelock server.
  */
 @SuppressFBWarnings("SLF4J_LOGGER_SHOULD_BE_PRIVATE")
