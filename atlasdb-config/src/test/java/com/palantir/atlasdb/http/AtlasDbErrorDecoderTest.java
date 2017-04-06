@@ -24,11 +24,14 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.net.HttpHeaders;
 
 import feign.Response;
 import feign.RetryableException;
@@ -40,7 +43,11 @@ public class AtlasDbErrorDecoderTest {
     private static final Exception NON_RETRYABLE_EXCEPTION = new Exception();
     private static final Exception RETRYABLE_EXCEPTION = new RetryableException("MyException", new Date());
 
-    private static final Map<String, Collection<String>> EMPTY_HEADERS = new HashMap<>();
+    private static final Date RETRY_AFTER_DATE = new Date(314159265L);
+
+    private static final Map<String, Collection<String>> EMPTY_HEADERS = ImmutableMap.of();
+    private static final Map<String, Collection<String>> HEADERS_WITH_RETRY_AFTER = ImmutableMap.of(
+            HttpHeaders.RETRY_AFTER, ImmutableList.of(String.valueOf(RETRY_AFTER_DATE.getTime())));
     private static final String EMPTY_REASON = "";
     private static final byte[] EMPTY_BODY = new byte[0];
 
@@ -57,10 +64,20 @@ public class AtlasDbErrorDecoderTest {
     }
 
     @Test
-    public void shouldCreateNewRetryableExceptionWithNullRetryAfterWhen503AndNotRetryableException() {
+    public void shouldCreateNewRetryableExceptionWithMatchingNullRetryAfterWhen503AndNotRetryableException() {
         Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_503, NON_RETRYABLE_EXCEPTION);
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
         assertNull(((RetryableException) exception).retryAfter());
+    }
+
+    @Test
+    public void shouldCreateNewRetryableExceptionWithMatchingNonnullRetryAfterWhen503AndNotRetryableException() {
+        Response response = makeDefaultDecoderReplyWithHeadersWhenReceivingResponse(
+                STATUS_503,
+                NON_RETRYABLE_EXCEPTION,
+                HEADERS_WITH_RETRY_AFTER);
+        Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
+        assertThat(((RetryableException) exception).retryAfter(), is(RETRY_AFTER_DATE));
     }
 
     @Test
@@ -85,12 +102,19 @@ public class AtlasDbErrorDecoderTest {
     }
 
     private Response makeDefaultDecoderReplyWhenReceivingResponse(int status, Exception exception) {
-        Response response = createResponse(status);
+        return makeDefaultDecoderReplyWithHeadersWhenReceivingResponse(status, exception, EMPTY_HEADERS);
+    }
+
+    private Response makeDefaultDecoderReplyWithHeadersWhenReceivingResponse(
+            int status,
+            Exception exception,
+            Map<String, Collection<String>> headers) {
+        Response response = createResponse(status, headers);
         when(defaultDecoder.decode(EMPTY_METHOD_KEY, response)).thenReturn(exception);
         return response;
     }
 
-    private static Response createResponse(int status) {
-        return Response.create(status, EMPTY_REASON, EMPTY_HEADERS, EMPTY_BODY);
+    private static Response createResponse(int status, Map<String, Collection<String>> headers) {
+        return Response.create(status, EMPTY_REASON, headers, EMPTY_BODY);
     }
 }
