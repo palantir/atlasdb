@@ -43,8 +43,8 @@ public class KvsGetRowsBenchmarks {
                 ColumnSelection.all(),
                 Long.MAX_VALUE
         );
-        Preconditions.checkState(result.size() == table.getNumRows(),
-                "Should be %s rows, but were: %s", table.getNumRows(), result.size());
+        Preconditions.checkState(result.size() == table.getRowList().size(),
+                "Should be %s rows, but were: %s", table.getRowList().size(), result.size());
         return result;
     }
 }
