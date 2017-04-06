@@ -196,22 +196,26 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td>Increased the size of CleanNarrowTable used in benchmarks from 10,000 to 1,000,000 rows.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1773">Pull Request</a>)</td>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td>Added a benchmark <code class="docutils literal"><span class="pre">KvsGetRowsBenchmarks</span></code> for benchmarking the KVS <code class="docutils literal"><span class="pre">getRows</span></code> method.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1770">Pull Request</a>)</td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-38-0">
+<h2>v0.38.0<a class="headerlink" href="#v0-38-0" title="Permalink to this headline">¶</a></h2>
+<p>6 Apr 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1729">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>The <code class="docutils literal"><span class="pre">atlasdb-remoting</span></code> project was removed. We don&#8217;t believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1750">Pull Request</a>)</td>
-</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The default <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> has been changed from 1000 to 100.
 This has empirically shown to be a better batch size because it puts less stress on the underlying KVS.
@@ -219,19 +223,43 @@ For a full list of tunable sweep parameters and default settings, see <a class="
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1763">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed broken batching in getting large sets of rows in Cassandra.
+<td>Reverted <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1524">#1524</a>, which caused dependency issues in upstream products.
+Once we have resolved these issues, we will reintroduce the change, which was originally part of AtlasDB 0.37.0.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1775">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Creating a postgres table with a long name now throws a <code class="docutils literal"><span class="pre">RuntimeException</span></code> if the truncated name (first sixty characters) is the same as that of a different existing table.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1729">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a performance regression introduced in <a class="reference external" href="https://github.com/palantir/atlasdb/pull/582">#582</a>, which caused sub-optimal batching behaviour when getting large sets of rows in Cassandra.
+The benchmark, intentionally set up in <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1770">#1770</a> to highlight the break, shows a 10x performance improvement.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1764">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Correctness issue fixed in the <code class="docutils literal"><span class="pre">clean-transactions-range</span></code> CLI. This CLI is responsible for deleting potentially inconsistent transactions in the KVS upon restore from backup.
+The CLI was not reading the entire <code class="docutils literal"><span class="pre">_transactions</span></code> table, and as a result missed deleting transactions that started before and committed after.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1759">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The <code class="docutils literal"><span class="pre">atlasdb-remoting</span></code> project was removed. We don&#8217;t believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1750">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td><code class="docutils literal"><span class="pre">InMemoryAtlasDbFactory</span></code> now supports creating an in-memory transaction manager with multiple schemas.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1774">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Timelock users who start an embedded timestamp and lock service without <a class="reference internal" href="../services/timelock_service/reverse-migration.html#timelock-reverse-migration"><span class="std std-ref">reverse-migrating</span></a> now encounter a more informative error message.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1755">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="section" id="v0-37-0">
 <h2>v0.37.0<a class="headerlink" href="#v0-37-0" title="Permalink to this headline">¶</a></h2>
-<p>29 Mar 2017</p>
+<p>Removed 6 Apr 2017 due to dependency issues. Please use 0.38.0 instead.</p>
+<p>Released 29 Mar 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -292,11 +320,6 @@ This would lead to starvation of other requests on the TimeLock server, since a 
 This should fix a bug (<a class="reference external" href="https://github.com/palantir/atlasdb/issues/1654">#1654</a>) that caused
 AtlasDB probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
 building up leaked connections, due to a bug in the underlying driver.</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Correctness issue fixed in the <code class="docutils literal"><span class="pre">clean-transactions-range</span></code> CLI. This CLI is responsible for deleting potentially inconsistent transactions in the KVS upon restore from backup.
-The CLI was not reading the entire <code class="docutils literal"><span class="pre">_transactions</span></code> table, and as a result was missing deleting transactions whose start timestamp was before the backup timestamp and commit timestamp was after the backup timestamp.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1759">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
