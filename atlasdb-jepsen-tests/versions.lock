@@ -495,7 +495,8 @@
         "org.yaml:snakeyaml": {
             "locked": "1.12",
             "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "com.palantir.atlasdb:lock-impl"
             ]
         }
     },
@@ -995,7 +996,8 @@
         "org.yaml:snakeyaml": {
             "locked": "1.12",
             "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "com.palantir.atlasdb:lock-impl"
             ]
         }
     }

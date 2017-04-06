@@ -34,4 +34,12 @@ public class LockWithMode {
     public LockMode getLockMode() {
         return lockMode;
     }
+
+    @Override
+    public String toString() {
+        return "LockWithMode{" +
+                "lockDescriptor=" + lockDescriptor +
+                ", lockMode=" + lockMode +
+                '}';
+    }
 }
