@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,7 +30,6 @@ import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import feign.Client;
 import feign.Request;
-import feign.Request.Options;
 import feign.RequestTemplate;
 import feign.Response;
 import feign.RetryableException;
@@ -78,28 +76,25 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     @Override
     public void continueOrPropagate(RetryableException ex) {
-        boolean isFastFailoverException;
-        if (ex.retryAfter() == null) {
-            // This is the case where we have failed due to networking or other IOException error.
-            isFastFailoverException = false;
-        } else {
-            // This is the case where the server has returned a 503.
-            // This is done when we want to do fast failover because we aren't the leader or we are shutting down.
-            isFastFailoverException = true;
-        }
+        ExceptionRetryBehaviour retryBehaviour = ExceptionRetryBehaviour.getRetryBehaviourForException(ex);
+
         synchronized (this) {
             // Only fail over if this failure was to the current server.
             // This means that no one on another thread has failed us over already.
             if (mostRecentServerIndex.get() != null && mostRecentServerIndex.get() == failoverCount.get()) {
                 long failures = failuresSinceLastSwitch.incrementAndGet();
-                if (isFastFailoverException || failures >= failuresBeforeSwitching) {
-                    if (isFastFailoverException) {
+                if (retryBehaviour.shouldRetryInfinitelyManyTimes() || failures >= failuresBeforeSwitching) {
+                    if (retryBehaviour.shouldRetryInfinitelyManyTimes()) {
                         // We did talk to a node successfully. It was shutting down but nodes are available
-                        // so we shoudln't keep making the backoff higher.
+                        // so we shouldn't keep making the backoff higher.
                         numSwitches.set(0);
-                        startTimeOfFastFailover.compareAndSet(0, System.currentTimeMillis());
                     } else {
                         numSwitches.incrementAndGet();
+                    }
+
+                    if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
+                        startTimeOfFastFailover.compareAndSet(0, System.currentTimeMillis());
+                    } else {
                         startTimeOfFastFailover.set(0);
                     }
                     failuresSinceLastSwitch.set(0);
@@ -109,7 +104,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
 
         checkAndHandleFailure(ex);
-        if (!isFastFailoverException) {
+        if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
             pauseForBackOff(ex);
         }
     }
@@ -186,15 +181,12 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
     public Client wrapClient(final Client client)  {
-        return new Client() {
-            @Override
-            public Response execute(Request request, Options options) throws IOException {
-                Response response = client.execute(request, options);
-                if (response.status() >= 200 && response.status() < 300) {
-                    sucessfulCall();
-                }
-                return response;
+        return (request, options) -> {
+            Response response = client.execute(request, options);
+            if (response.status() >= 200 && response.status() < 300) {
+                sucessfulCall();
             }
+            return response;
         };
     }
 }
