@@ -452,7 +452,7 @@ import com.palantir.util.Pair;
                 if (log.isDebugEnabled() || slowLogEnabled) {
                     long duration = System.currentTimeMillis() - startTime;
                     if (duration > 100) {
-                        logAtDebugOrInfo(entry.getKey().toString(), currentHolder, duration);
+                        logSlowLockAcquisition(entry.getKey().toString(), currentHolder, duration);
                     }
                 }
                 if (currentHolder == null) {
@@ -471,7 +471,7 @@ import com.palantir.util.Pair;
         }
     }
 
-    private void logAtDebugOrInfo(String lockId, LockClient currentHolder, long duration) {
+    private void logSlowLockAcquisition(String lockId, LockClient currentHolder, long duration) {
         if (slowLogEnabled) {
             SlowLockLogger.logger.info("Blocked for {} ms to acquire lock {} {}.",
                     duration,
