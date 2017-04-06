@@ -92,7 +92,7 @@ v0.38.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1774>`__)
 
     *    - |improved|
-         - Timelock users who start an embedded timestamp and lock service without reverse-migrating now encounter a more informative error message.
+         - Timelock users who start an embedded timestamp and lock service without :ref:`reverse-migrating <timelock-reverse-migration>` now encounter a more informative error message.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1755>`__)
 
 =======
