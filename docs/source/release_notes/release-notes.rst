@@ -74,13 +74,13 @@ v0.38.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
 
     *    - |fixed|
-         - Fixed a performance regression caused by broken batching in getting large sets of rows in Cassandra.
+         - Fixed a performance regression introduced in `#582 <https://github.com/palantir/atlasdb/pull/582>`__, which caused sub-optimal batching behaviour when getting large sets of rows in Cassandra.
            The benchmark, intentionally set up in `#1770 <https://github.com/palantir/atlasdb/pull/1770>`__ to highlight the break, shows a 10x performance improvement.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1764>`__)
 
     *    - |fixed|
          - Correctness issue fixed in the ``clean-transactions-range`` CLI. This CLI is responsible for deleting potentially inconsistent transactions in the KVS upon restore from backup.
-           The CLI was not reading the entire ``_transactions`` table, and as a result was missing deleting transactions whose start timestamp was before the backup timestamp and commit timestamp was after the backup timestamp.
+           The CLI was not reading the entire ``_transactions`` table, and as a result missed deleting transactions that started before and committed after.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1759>`__)
 
     *    - |devbreak|
@@ -90,6 +90,10 @@ v0.38.0
     *    - |new|
          - ``InMemoryAtlasDbFactory`` now supports creating an in-memory transaction manager with multiple schemas.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1774>`__)
+
+    *    - |improved|
+         - Timelock users who start an embedded timestamp and lock service without reverse-migrating now encounter a more informative error message.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1755>`__)
 
 =======
 v0.37.0
