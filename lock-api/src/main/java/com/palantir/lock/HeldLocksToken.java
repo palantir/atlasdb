@@ -112,6 +112,7 @@ import com.google.common.collect.Iterables;
      * Returns the set of locks which were successfully acquired as a map
      * from descriptor to lock mode.
      */
+    @Override
     @JsonIgnore
     public SortedLockCollection<LockDescriptor> getLockDescriptors() {
         return lockMap;
