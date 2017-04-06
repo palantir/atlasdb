@@ -110,4 +110,14 @@ public class FailoverFeignTargetTest {
                     i % CLUSTER_SIZE == 0 ? EXCEPTION_WITHOUT_RETRY_AFTER : EXCEPTION_WITH_RETRY_AFTER);
         }
     }
+
+    @Test
+    public void retriesOnSameNodeIfBlockingTimeoutIsLastAllowedFailureBeforeSwitch() {
+        for (int i = 1; i < target.failuresBeforeSwitching; i++) {
+            target.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+        }
+        String currentUrl = target.url();
+        target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+        assertThat(target.url()).isEqualTo(currentUrl);
+    }
 }

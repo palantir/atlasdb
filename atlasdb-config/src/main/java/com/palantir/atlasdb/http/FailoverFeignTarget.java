@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -46,7 +47,10 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private final ImmutableList<String> servers;
     private final Class<T> type;
     private final AtomicInteger failoverCount = new AtomicInteger();
-    private final int failuresBeforeSwitching = 3;
+
+    @VisibleForTesting
+    final int failuresBeforeSwitching = 3;
+
     private final int numServersToTryBeforeFailing = 14;
     private final int fastFailoverTimeoutMillis = 10000;
     private final int maxBackoffMillis;
@@ -83,7 +87,8 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             // This means that no one on another thread has failed us over already.
             if (mostRecentServerIndex.get() != null && mostRecentServerIndex.get() == failoverCount.get()) {
                 long failures = failuresSinceLastSwitch.incrementAndGet();
-                if (retryBehaviour.shouldBackoffAndTryOtherNodes() || failures >= failuresBeforeSwitching) {
+                if (retryBehaviour.shouldBackoffAndTryOtherNodes() ||
+                        (!retryBehaviour.shouldRetryInfinitelyManyTimes() && failures >= failuresBeforeSwitching)) {
                     // Should switch!
                     if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
                         // We did talk to a node successfully. It was shutting down but nodes are available
@@ -96,10 +101,8 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
                     }
                     failuresSinceLastSwitch.set(0);
                     failoverCount.incrementAndGet();
-                } else {
-                    if (retryBehaviour.shouldRetryInfinitelyManyTimes()) {
-                        failuresSinceLastSwitch.set(0);
-                    }
+                } else if (retryBehaviour.shouldRetryInfinitelyManyTimes()) {
+                    failuresSinceLastSwitch.set(0);
                 }
             }
         }
