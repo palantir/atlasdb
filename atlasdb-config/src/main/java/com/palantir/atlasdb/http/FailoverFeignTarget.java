@@ -87,20 +87,8 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             // This means that no one on another thread has failed us over already.
             if (mostRecentServerIndex.get() != null && mostRecentServerIndex.get() == failoverCount.get()) {
                 long failures = failuresSinceLastSwitch.incrementAndGet();
-                if (retryBehaviour.shouldBackoffAndTryOtherNodes() ||
-                        (!retryBehaviour.shouldRetryInfinitelyManyTimes() && failures >= failuresBeforeSwitching)) {
-                    // Should switch!
-                    if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
-                        // We did talk to a node successfully. It was shutting down but nodes are available
-                        // so we shouldn't keep making the backoff higher.
-                        numSwitches.set(0);
-                        startTimeOfFastFailover.compareAndSet(0, System.currentTimeMillis());
-                    } else {
-                        numSwitches.incrementAndGet();
-                        startTimeOfFastFailover.set(0);
-                    }
-                    failuresSinceLastSwitch.set(0);
-                    failoverCount.incrementAndGet();
+                if (shouldSwitchNode(retryBehaviour, failures)) {
+                    failoverToNextNode(retryBehaviour);
                 } else if (retryBehaviour.shouldRetryInfinitelyManyTimes()) {
                     failuresSinceLastSwitch.set(0);
                 }
@@ -111,6 +99,25 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
             pauseForBackOff(ex);
         }
+    }
+
+    private boolean shouldSwitchNode(ExceptionRetryBehaviour retryBehaviour, long failures) {
+        return retryBehaviour.shouldBackoffAndTryOtherNodes() ||
+                (!retryBehaviour.shouldRetryInfinitelyManyTimes() && failures >= failuresBeforeSwitching);
+    }
+
+    private void failoverToNextNode(ExceptionRetryBehaviour retryBehaviour) {
+        if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
+            // We did talk to a node successfully. It was shutting down but nodes are available
+            // so we shouldn't keep making the backoff higher.
+            numSwitches.set(0);
+            startTimeOfFastFailover.compareAndSet(0, System.currentTimeMillis());
+        } else {
+            numSwitches.incrementAndGet();
+            startTimeOfFastFailover.set(0);
+        }
+        failuresSinceLastSwitch.set(0);
+        failoverCount.incrementAndGet();
     }
 
     private void checkAndHandleFailure(RetryableException ex) {
