@@ -88,6 +88,16 @@ public abstract class ConsecutiveNarrowTable {
         return ROW_LIST;
     }
 
+    public List<byte[]> rows = populateRowNames();
+
+    private List<byte[]> populateRowNames() {
+        List<byte[]> list = new ArrayList<>();
+        for (int j = 0; j < DEFAULT_NUM_ROWS; ++j) {
+            list.add(Ints.toByteArray(j));
+        }
+        return list;
+    }
+
     protected abstract void setupData();
 
     @Setup(Level.Trial)
@@ -206,7 +216,7 @@ public abstract class ConsecutiveNarrowTable {
         }
         return requests;
     }
-
+    
     private static void storeDataInTable(ConsecutiveNarrowTable table, int numOverwrites) {
         IntStream.range(0, numOverwrites + 1).forEach($ -> {
             table.getTransactionManager().runTaskThrowOnConflict(txn -> {
