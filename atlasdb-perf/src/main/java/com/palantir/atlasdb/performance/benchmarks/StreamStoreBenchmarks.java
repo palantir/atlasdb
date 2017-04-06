@@ -46,7 +46,7 @@ public class StreamStoreBenchmarks {
     @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
-    public Object loadSmallStream(StreamingTable table) throws IOException {
+    public void loadSmallStream(StreamingTable table) throws IOException {
         long id = table.getSmallStreamId();
         TransactionManager transactionManager = table.getTransactionManager();
         StreamTestTableFactory tables = StreamTestTableFactory.of();
@@ -58,15 +58,13 @@ public class StreamStoreBenchmarks {
 
             assertThat(line, startsWith("bytes"));
         }
-
-        return null;
     }
 
     @Benchmark
     @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
-    public Object loadLargeStream(StreamingTable table) throws IOException {
+    public void loadLargeStream(StreamingTable table) throws IOException {
         long id = table.getLargeStreamId();
         TransactionManager transactionManager = table.getTransactionManager();
         StreamTestTableFactory tables = StreamTestTableFactory.of();
@@ -77,15 +75,13 @@ public class StreamStoreBenchmarks {
             assertThat(read, is(16));
             assertArrayEquals(table.getLargeStreamFirstBytes(), firstBytes);
         }
-
-        return null;
     }
 
     @Benchmark
     @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
-    public Object loadVeryLargeStream(StreamingTable table) throws IOException {
+    public void loadVeryLargeStream(StreamingTable table) throws IOException {
         long id = table.getVeryLargeStreamId();
         TransactionManager transactionManager = table.getTransactionManager();
         StreamTestTableFactory tables = StreamTestTableFactory.of();
@@ -96,7 +92,5 @@ public class StreamStoreBenchmarks {
             assertThat(read, is(16));
             assertArrayEquals(table.getVeryLargeStreamFirstBytes(), firstBytes);
         }
-
-        return null;
     }
 }
