@@ -42,21 +42,22 @@ develop
     *    - Type
          - Change
 
-    *    - |changed|
-         - Increased the size of CleanNarrowTable used in benchmarks from 10,000 to 1,000,000 rows.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1773>`__)
+    *    - |improved|
+         - Any lock requests that take more than ``100ms`` to receive a response are now logged in the ``SlowLockLogger`` logger.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1769>`__)
 
-    *    - |new|
-         - Added a benchmark ``KvsGetRowsBenchmarks`` for benchmarking the KVS ``getRows`` method.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1770>`__)
+=======
+v0.38.0
+=======
 
-    *    - |fixed|
-         - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
+6 Apr 2017
 
-    *    - |devbreak|
-         - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |improved|
          - The default ``sweepBatchSize`` has been changed from 1000 to 100.
@@ -64,23 +65,44 @@ develop
            For a full list of tunable sweep parameters and default settings, see :ref:`sweep tunable options <sweep_tunable_parameters>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1763>`__)
 
-    *    - |improved|
-         - Any lock requests that take more than ``100ms`` to receive a response are now logged in the ``SlowLockLogger`` logger.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1769>`__)
+    *    - |fixed|
+         - Reverted `#1524 <https://github.com/palantir/atlasdb/pull/1524>`__, which caused dependency issues in upstream products.
+           Once we have resolved these issues, we will reintroduce the change, which was originally part of AtlasDB 0.37.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1775>`__)
 
     *    - |fixed|
-         - Fixed broken batching in getting large sets of rows in Cassandra.
+         - Creating a postgres table with a long name now throws a ``RuntimeException`` if the truncated name (first sixty characters) is the same as that of a different existing table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
+
+    *    - |fixed|
+         - Fixed a performance regression introduced in `#582 <https://github.com/palantir/atlasdb/pull/582>`__, which caused sub-optimal batching behaviour when getting large sets of rows in Cassandra.
+           The benchmark, intentionally set up in `#1770 <https://github.com/palantir/atlasdb/pull/1770>`__ to highlight the break, shows a 10x performance improvement.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1764>`__)
+
+    *    - |fixed|
+         - Correctness issue fixed in the ``clean-transactions-range`` CLI. This CLI is responsible for deleting potentially inconsistent transactions in the KVS upon restore from backup.
+           The CLI was not reading the entire ``_transactions`` table, and as a result missed deleting transactions that started before and committed after.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1759>`__)
+
+    *    - |devbreak|
+         - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
 
     *    - |new|
          - ``InMemoryAtlasDbFactory`` now supports creating an in-memory transaction manager with multiple schemas.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1774>`__)
 
+    *    - |improved|
+         - Timelock users who start an embedded timestamp and lock service without :ref:`reverse-migrating <timelock-reverse-migration>` now encounter a more informative error message.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1755>`__)
+
 =======
 v0.37.0
 =======
 
-29 Mar 2017
+Removed 6 Apr 2017 due to dependency issues. Please use 0.38.0 instead.
+
+Released 29 Mar 2017
 
 .. list-table::
     :widths: 5 40
@@ -139,10 +161,6 @@ v0.37.0
            AtlasDB probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
            building up leaked connections, due to a bug in the underlying driver.
 
-    *    - |fixed|
-         - Correctness issue fixed in the ``clean-transactions-range`` CLI. This CLI is responsible for deleting potentially inconsistent transactions in the KVS upon restore from backup.
-           The CLI was not reading the entire ``_transactions`` table, and as a result was missing deleting transactions whose start timestamp was before the backup timestamp and commit timestamp was after the backup timestamp.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1759>`__)
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
