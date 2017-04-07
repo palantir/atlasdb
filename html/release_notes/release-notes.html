@@ -197,6 +197,10 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Refactored <code class="docutils literal"><span class="pre">AvailableTimestamps</span></code> reducing overzealous synchronization. Giving out timestamps is no longer blocking on refreshing the timestamp bound if there are enough timestamps to give out with the current bound.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1783">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Any lock requests that take more than <code class="docutils literal"><span class="pre">100ms</span></code> to receive a response are now logged in the <code class="docutils literal"><span class="pre">SlowLockLogger</span></code> logger.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1769">Pull Request</a>)</td>
 </tr>
