@@ -41,6 +41,7 @@ import com.palantir.atlasdb.api.TableRange;
 import com.palantir.atlasdb.api.TableRowResult;
 import com.palantir.atlasdb.api.TableRowSelection;
 import com.palantir.atlasdb.api.TransactionToken;
+import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
@@ -48,7 +49,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.memory.InMemoryAtlasDbFactory;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
@@ -68,7 +68,7 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class TransactionRemotingTest {
     public final static AtlasSchema schema = SweepSchema.INSTANCE;
-    public final SerializableTransactionManager txMgr = InMemoryAtlasDbFactory.createInMemoryTransactionManager(schema);
+    public final SerializableTransactionManager txMgr = TransactionManagers.createInMemory(schema);
     public final KeyValueService kvs = txMgr.getKeyValueService();
     public final TableMetadataCache cache = new TableMetadataCache(kvs);
     public final ObjectMapper mapper = new ObjectMapper(); { mapper.registerModule(new AtlasJacksonModule(cache).createModule()); }
