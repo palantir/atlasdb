@@ -54,6 +54,12 @@ develop
          - Deprecated ``InMemoryAtlasDbFactory#createInMemoryTransactionManager``, please instead use the supported ``TransactionManagers.createInMemory(...)`` for your testing.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1784>`__)
 
+    *    - |fixed|
+         - AtlasDB HTTP clients now parse ``Retry-After`` headers correctly.
+           This manifests as clients failing over and trying other nodes when receiving a 503 with a ``Retry-After`` header from a remote (e.g. from a TimeLock non-leader).
+           Previously, clients would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
+
 =======
 v0.38.0
 =======
