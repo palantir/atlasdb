@@ -50,6 +50,10 @@ develop
          - Any lock requests that take more than ``100ms`` to receive a response are now logged in the ``SlowLockLogger`` logger.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1769>`__)
 
+    *    - |deprecated|
+         - Deprecated ``InMemoryAtlasDbFactory#createInMemoryTransactionManager``, please instead use the supported ``TransactionManagers.createInMemory(...)`` for your testing.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1784>`__)
+
 =======
 v0.38.0
 =======

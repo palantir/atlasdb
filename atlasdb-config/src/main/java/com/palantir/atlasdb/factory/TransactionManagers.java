@@ -105,7 +105,7 @@ public final class TransactionManagers {
     public static SerializableTransactionManager createInMemory(AtlasSchema schema, AtlasSchema... otherSchemas) {
         return create(ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build(),
                 getSchemaSet(Lists.asList(schema, otherSchemas)),
-                x -> {},
+                x -> { },
                 false);
     }
 
