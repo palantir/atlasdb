@@ -15,8 +15,29 @@
  */
 package com.palantir.lock.impl;
 
-/**
- * Created by gmaretic on 01/04/2017.
- */
-public class LockRateLimiter {
+import net.jcip.annotations.ThreadSafe;
+
+@ThreadSafe
+public class ThreadCountLimiter {
+    private int value;
+
+    public ThreadCountLimiter(int value) {
+        this.value = value;
+    }
+
+    synchronized public void set(int newValue) {
+        value = newValue;
+    }
+
+    synchronized public boolean acquire() {
+        if (value > 0) {
+            value--;
+            return true;
+        }
+        return false;
+    }
+
+    synchronized public void release() {
+        value++;
+    }
 }

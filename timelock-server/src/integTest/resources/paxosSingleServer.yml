@@ -10,5 +10,10 @@ cluster:
 clients:
   - test
   - test2
+  - test3
   - learner
   - acceptor
+
+server:
+  minThreads: 1
+  maxThreads: 50

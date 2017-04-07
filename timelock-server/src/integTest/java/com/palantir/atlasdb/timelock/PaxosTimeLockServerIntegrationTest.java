@@ -21,10 +21,20 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
+import org.assertj.core.util.Lists;
 import org.eclipse.jetty.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -53,11 +63,22 @@ import io.dropwizard.testing.ResourceHelpers;
 
 public class PaxosTimeLockServerIntegrationTest {
     private static final String NOT_FOUND_CODE = "404";
+    private static final String TOO_MANY_REQUESTS_CODE="429";
 
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
+    private static final String CLIENT_3 = "test3";
+    private static final String CLIENT_4 = "test4";
     private static final String NONEXISTENT_CLIENT = "nonexistent";
     private static final String INVALID_CLIENT = "test2\b";
+
+    private static final int NUM_CLIENTS = 5;
+    private static final int MAX_SERVER_THREADS = 50;
+    private static final int RESERVED_THREADS = 15;
+    private static final int AVAILABLE_THREADS = MAX_SERVER_THREADS - RESERVED_THREADS;
+    private static final int LOCAL_TC_LIMIT = AVAILABLE_THREADS / 2 / NUM_CLIENTS;
+    private static final int GLOBAL_TC_LIMIT = AVAILABLE_THREADS - LOCAL_TC_LIMIT * NUM_CLIENTS;
+
 
     private static final long ONE_MILLION = 1000000;
     private static final long TWO_MILLION = 2000000;
@@ -83,6 +104,78 @@ public class PaxosTimeLockServerIntegrationTest {
     public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
             .around(TEMPORARY_CONFIG_HOLDER)
             .around(TIMELOCK_SERVER_HOLDER);
+
+    private TrustManager[] get_trust_mgr() {
+        TrustManager[] certs = new TrustManager[] {
+                new X509TrustManager() {
+                    public X509Certificate[ ] getAcceptedIssuers() { return null; }
+                    public void checkClientTrusted(X509Certificate[ ] certs, String t) { }
+                    public void checkServerTrusted(X509Certificate[ ] certs, String t) { }
+                }
+        };
+        return certs;
+    }
+
+    @Test
+    public void notExceedingThreadCountLimitsSucceeds() {
+        List<RemoteLockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
+
+        assertThat(lockAndUnlockAndCountExceptions(lockService, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT))
+                .isEqualTo(0);
+    }
+
+    @Test
+    public void exceedingThreadCountLimitsReturns429() {
+        List<RemoteLockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
+
+        assertThat(lockAndUnlockAndCountExceptions(lockService, MAX_SERVER_THREADS))
+                .isEqualTo(MAX_SERVER_THREADS - LOCAL_TC_LIMIT - GLOBAL_TC_LIMIT);
+    }
+
+    @Test
+    public void multipleClientsCanShareGlobalThreads() {
+        List<RemoteLockService> lockServiceList = ImmutableList.of(
+                getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
+
+        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT / 3))
+                .isEqualTo(0);
+    }
+
+    @Test
+    public void globalThreadCountLimitAppliesToAllClients() {
+        List<RemoteLockService> lockServiceList = ImmutableList.of(
+                getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
+
+        assertThat(lockAndUnlockAndCountExceptions(lockServiceList,LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT))
+                .isEqualTo(2 * GLOBAL_TC_LIMIT);
+    }
+
+    @Test
+    public void clientsCanUseTheirAllowanceWhenGlobalLimitIsReached() throws Exception {
+        RemoteLockService lockService1 = getLockService(CLIENT_1);
+        RemoteLockService lockService2 = getLockService(CLIENT_2);
+        ExecutorService executorService = Executors.newFixedThreadPool(GLOBAL_TC_LIMIT + 2 * LOCAL_TC_LIMIT + 1);
+        List<Future<LockRefreshToken>> initialRequests;
+        List<Future<LockRefreshToken>> secondClientRequests;
+        List<Future<LockRefreshToken>> followUpRequests;
+
+        // This will exhaust all the globally available threads
+        initialRequests = requestLocks(lockService1, GLOBAL_TC_LIMIT + LOCAL_TC_LIMIT + 1, executorService);
+
+        // The following are assigned to CLIENT_2's threads
+        secondClientRequests = requestLocks(lockService2, LOCAL_TC_LIMIT, executorService);
+
+        // CLIENT_1 still cannot acquire a thread
+        followUpRequests = requestLocks(lockService1, 1, executorService);
+
+        assertThat(unlockAndCountExceptions(lockService2, secondClientRequests)).isEqualTo(0);
+        secondClientRequests = requestLocks(lockService2, LOCAL_TC_LIMIT, executorService);
+        assertThat(unlockAndCountExceptions(lockService2, secondClientRequests)).isEqualTo(0);
+
+        // Verify that all the global threads were occupied by the firs client's requests
+        assertThat(unlockAndCountExceptions(lockService1, initialRequests)).isEqualTo(1);
+        assertThat(unlockAndCountExceptions(lockService1, followUpRequests)).isEqualTo(1);
+    }
 
     @Test
     public void lockServiceShouldAllowUsToTakeOutLocks() throws InterruptedException {
@@ -236,6 +329,40 @@ public class PaxosTimeLockServerIntegrationTest {
         String uriWithParam = getFastForwardUriForClientOne() + "?newMinimum=1200";
         Response response = makeEmptyPostToUri(uriWithParam);
         assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
+    }
+
+    private List<Future<LockRefreshToken>> requestLocks(RemoteLockService lockService, int number, ExecutorService executorService) {
+        List<Future<LockRefreshToken>> futures = Lists.newArrayList();
+        for (int i = 0; i < number; i++) {
+            int currentTrial = i;
+            LockRequest request = LockRequest.builder(ImmutableSortedMap.of(
+                    StringLockDescriptor.of(String.valueOf(currentTrial)), LockMode.WRITE)).doNotBlock().build();
+            futures.add(executorService.submit(() -> lockService.lock(String.valueOf(currentTrial), request)));
+        }
+        return futures;
+    }
+
+    private int unlockAndCountExceptions(RemoteLockService lockService, List<Future<LockRefreshToken>> futures) {
+        final int[] exceptionCounter = {0};
+        futures.forEach(future -> {
+            try {
+                LockRefreshToken token = future.get();
+                assertThat(token).isNotNull();
+                lockService.unlock(token);
+            } catch (Exception e) {
+                assertThat(e).hasMessageContaining(TOO_MANY_REQUESTS_CODE);
+                exceptionCounter[0]++;
+            }
+        });
+        return exceptionCounter[0];
+    }
+
+    private int lockAndUnlockAndCountExceptions(List<RemoteLockService> lockServices, int numRequests) {
+        ExecutorService executorService = Executors.newFixedThreadPool(lockServices.size() * numRequests);
+        Map<RemoteLockService, List<Future<LockRefreshToken>>> futureMap = new HashMap<>();
+        lockServices.forEach(service -> futureMap.put(service, requestLocks(service, numRequests, executorService)));
+        return futureMap.entrySet().stream()
+                .mapToInt(entry -> unlockAndCountExceptions(entry.getKey(), entry.getValue())).sum();
     }
 
     private static String getFastForwardUriForClientOne() {

@@ -15,8 +15,5 @@
  */
 package com.palantir.lock.impl;
 
-/**
- * Created by gmaretic on 02/04/2017.
- */
-public class LockRateLimiterTest {
+public class TooManyRequestsException extends RuntimeException{
 }
