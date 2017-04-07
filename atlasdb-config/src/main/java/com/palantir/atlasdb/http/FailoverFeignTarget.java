@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -48,7 +49,8 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private final ImmutableList<String> servers;
     private final Class<T> type;
     private final AtomicInteger failoverCount = new AtomicInteger();
-    private final int failuresBeforeSwitching = 3;
+    @VisibleForTesting
+    final int failuresBeforeSwitching = 3;
     private final int numServersToTryBeforeFailing = 14;
     private final int fastFailoverTimeoutMillis = 10000;
     private final int maxBackoffMillis;

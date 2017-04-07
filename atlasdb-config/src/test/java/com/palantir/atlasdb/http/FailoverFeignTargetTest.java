@@ -33,6 +33,7 @@ import feign.RetryableException;
 
 public class FailoverFeignTargetTest {
     private static final int FAILOVERS = 1000;
+    private static final int ITERATIONS = 100;
     private static final int CLUSTER_SIZE = 3;
 
     private static final String SERVER_1 = "server1";
@@ -108,6 +109,28 @@ public class FailoverFeignTargetTest {
         for (int i = 0; i < FAILOVERS; i++) {
             target.continueOrPropagate(
                     i % CLUSTER_SIZE == 0 ? EXCEPTION_WITHOUT_RETRY_AFTER : EXCEPTION_WITH_RETRY_AFTER);
+        }
+    }
+
+    @Test
+    public void retriesOnSameNodeIfBlockingTimeoutIsLastAllowedFailureBeforeSwitch() {
+        for (int i = 1; i < target.failuresBeforeSwitching; i++) {
+            target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+        }
+        String currentUrl = target.url();
+        target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+        assertThat(target.url()).isEqualTo(currentUrl);
+    }
+
+    @Test
+    public void blockingTimeoutExceptionResetsFailureCount() {
+        String currentUrl = target.url();
+        for (int i = 0; i < ITERATIONS; i++) {
+            for (int j = 1; j < target.failuresBeforeSwitching; j++) {
+                target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+            }
+            target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+            assertThat(target.url()).isEqualTo(currentUrl);
         }
     }
 }
