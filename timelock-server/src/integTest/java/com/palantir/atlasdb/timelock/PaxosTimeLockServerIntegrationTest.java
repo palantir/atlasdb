@@ -68,7 +68,6 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
-    private static final String CLIENT_4 = "test4";
     private static final String NONEXISTENT_CLIENT = "nonexistent";
     private static final String INVALID_CLIENT = "test2\b";
 

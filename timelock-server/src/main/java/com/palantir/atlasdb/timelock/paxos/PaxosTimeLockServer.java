@@ -85,8 +85,6 @@ public class PaxosTimeLockServer implements TimeLockServer {
         maxServerThreads = ((DefaultServerFactory) configuration.getServerFactory()).getMaxThreads();
         numClients = configuration.clients().size();
 
-        System.out.println("MAX SERVER THREADS: " + maxServerThreads);
-
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
 
         registerLeaderElectionService(configuration);
