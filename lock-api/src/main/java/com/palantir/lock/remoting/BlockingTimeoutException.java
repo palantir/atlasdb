@@ -28,8 +28,4 @@ public class BlockingTimeoutException extends RuntimeException {
     public BlockingTimeoutException(Throwable cause) {
         super(cause);
     }
-
-    public BlockingTimeoutException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }
