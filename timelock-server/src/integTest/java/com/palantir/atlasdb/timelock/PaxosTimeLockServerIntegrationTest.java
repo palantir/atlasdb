@@ -29,6 +29,7 @@ import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
@@ -50,7 +51,9 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.TimeDuration;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.squareup.okhttp.MediaType;
@@ -99,6 +102,11 @@ public class PaxosTimeLockServerIntegrationTest {
     private final TimestampService timestampService = getTimestampService(CLIENT_1);
     private final TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
 
+    private static final LockRequest SLOW_REQUEST = LockRequest
+            .builder(ImmutableSortedMap.of(StringLockDescriptor.of("lock"), LockMode.WRITE))
+            .blockForAtMost(SimpleTimeDuration.of(100, TimeUnit.MILLISECONDS))
+            .build();
+
     @ClassRule
     public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
             .around(TEMPORARY_CONFIG_HOLDER)
@@ -123,12 +131,22 @@ public class PaxosTimeLockServerIntegrationTest {
                 .isEqualTo(0);
     }
 
+    /**
+     *  The tests that verify the thread count limit has been exceeded suffer from a race condition where the first
+     *  request may be completely served before all the other requests have been assigned to threads. This will acquire
+     *  a lock and release the thread. Since the lock is now held, all other threads serving lock requests from the same
+     *  client will block for 100 ms (see SLOW_REQUEST), ensuring that those threads will not be released before all
+     *  the other requests have been processed.
+     *
+     *  Due to the uncertainty for the first thread per client, the number of requests that will be met by a 429
+     *  response may be off by 1 per client that exceeded the limit.
+     */
     @Test
     public void exceedingThreadCountLimitsReturns429() {
         List<RemoteLockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
 
-        assertThat(lockAndUnlockAndCountExceptions(lockService, MAX_SERVER_THREADS))
-                .isEqualTo(MAX_SERVER_THREADS - LOCAL_TC_LIMIT - GLOBAL_TC_LIMIT);
+        assertThat(lockAndUnlockAndCountExceptions(lockService, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT + FORTY_TWO))
+                .isBetween(FORTY_TWO - lockService.size(), FORTY_TWO);
     }
 
     @Test
@@ -145,35 +163,36 @@ public class PaxosTimeLockServerIntegrationTest {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
 
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList,LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT))
-                .isEqualTo(2 * GLOBAL_TC_LIMIT);
+        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT))
+                .isBetween(2 * GLOBAL_TC_LIMIT - lockServiceList.size(), 2 * GLOBAL_TC_LIMIT);
     }
 
     @Test
     public void clientsCanUseTheirAllowanceWhenGlobalLimitIsReached() throws Exception {
         RemoteLockService lockService1 = getLockService(CLIENT_1);
         RemoteLockService lockService2 = getLockService(CLIENT_2);
-        ExecutorService executorService = Executors.newFixedThreadPool(GLOBAL_TC_LIMIT + 2 * LOCAL_TC_LIMIT + 1);
+        ExecutorService executorService =
+                Executors.newFixedThreadPool(GLOBAL_TC_LIMIT + 2 * LOCAL_TC_LIMIT + FORTY_TWO);
         List<Future<LockRefreshToken>> initialRequests;
         List<Future<LockRefreshToken>> secondClientRequests;
         List<Future<LockRefreshToken>> followUpRequests;
 
         // This will exhaust all the globally available threads
-        initialRequests = requestLocks(lockService1, GLOBAL_TC_LIMIT + LOCAL_TC_LIMIT + 1, executorService);
+        initialRequests = requestLocks(lockService1, GLOBAL_TC_LIMIT + LOCAL_TC_LIMIT + FORTY_TWO, executorService);
 
         // The following are assigned to CLIENT_2's threads
         secondClientRequests = requestLocks(lockService2, LOCAL_TC_LIMIT, executorService);
 
         // CLIENT_1 still cannot acquire a thread
-        followUpRequests = requestLocks(lockService1, 1, executorService);
+        followUpRequests = requestLocks(lockService1, FORTY_TWO, executorService);
 
         assertThat(unlockAndCountExceptions(lockService2, secondClientRequests)).isEqualTo(0);
         secondClientRequests = requestLocks(lockService2, LOCAL_TC_LIMIT, executorService);
         assertThat(unlockAndCountExceptions(lockService2, secondClientRequests)).isEqualTo(0);
 
-        // Verify that all the global threads were occupied by the firs client's requests
-        assertThat(unlockAndCountExceptions(lockService1, initialRequests)).isEqualTo(1);
-        assertThat(unlockAndCountExceptions(lockService1, followUpRequests)).isEqualTo(1);
+        // Verify that all the global threads were occupied by CLIENT_1's requests
+        assertThat(unlockAndCountExceptions(lockService1, initialRequests)).isBetween(FORTY_TWO - 1, FORTY_TWO);
+        assertThat(unlockAndCountExceptions(lockService1, followUpRequests)).isBetween(FORTY_TWO - 1, FORTY_TWO);
     }
 
     @Test
@@ -334,9 +353,7 @@ public class PaxosTimeLockServerIntegrationTest {
         List<Future<LockRefreshToken>> futures = Lists.newArrayList();
         for (int i = 0; i < number; i++) {
             int currentTrial = i;
-            LockRequest request = LockRequest.builder(ImmutableSortedMap.of(
-                    StringLockDescriptor.of(String.valueOf(currentTrial)), LockMode.WRITE)).doNotBlock().build();
-            futures.add(executorService.submit(() -> lockService.lock(String.valueOf(currentTrial), request)));
+            futures.add(executorService.submit(() -> lockService.lock(String.valueOf(currentTrial), SLOW_REQUEST)));
         }
         return futures;
     }
@@ -346,8 +363,9 @@ public class PaxosTimeLockServerIntegrationTest {
         futures.forEach(future -> {
             try {
                 LockRefreshToken token = future.get();
-                assertThat(token).isNotNull();
-                lockService.unlock(token);
+                if (token != null) {
+                    lockService.unlock(token);
+                }
             } catch (Exception e) {
                 assertThat(e).hasMessageContaining(TOO_MANY_REQUESTS_CODE);
                 exceptionCounter[0]++;
