@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import java.util.concurrent.TimeUnit;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -59,6 +61,16 @@ public abstract class DdlConfig {
     @Value.Default
     public int mutationBatchSizeBytes() {
         return 2 * 1024 * 1024;
+    }
+
+    @Value.Default
+    public int parallelDdlOperationConcurrency() {
+        return 16;
+    }
+
+    @Value.Default
+    public long ddlOperationTimeoutSeconds() {
+        return TimeUnit.SECONDS.convert(10, TimeUnit.MINUTES);
     }
 
     @Value.Check

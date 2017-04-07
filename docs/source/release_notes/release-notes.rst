@@ -56,6 +56,14 @@ develop
            Previously, clients would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
 
+    *    - |improved|
+         - DbKVS now parallelizes createTables(), dropTables(), truncateTables() DDL operations
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1788>`__)
+
+    *    - |new|
+         - DbKVS now has a timeout for DDL operations
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1788>`__)
+
 =======
 v0.38.0
 =======

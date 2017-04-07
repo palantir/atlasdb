@@ -35,6 +35,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +60,7 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -102,7 +106,6 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
-import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.util.crypto.Sha256Hash;
@@ -125,6 +128,7 @@ public class DbKvs extends AbstractKeyValueService {
     private final DbTableFactory dbTables;
     private final SqlConnectionSupplier connections;
     private final BatchingTaskRunner batchingQueryRunner;
+    private final ExecutorService ddlExecutor;
 
     public static DbKvs create(DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier) {
         DbKvs dbKvs = new DbKvs(config.ddl(), config.ddl().tableFactorySupplier().get(), sqlConnSupplier);
@@ -144,6 +148,9 @@ public class DbKvs extends AbstractKeyValueService {
         this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
+        ddlExecutor = Executors.newFixedThreadPool(
+                config.parallelDdlOperationConcurrency(),
+                new NamedThreadFactory("Atlas Relational KVS DDL Runner"));
 
         if (DBType.ORACLE.equals(dbTables.getDbType())) {
             batchingQueryRunner = new ImmediateSingleBatchTaskRunner();
@@ -152,6 +159,7 @@ public class DbKvs extends AbstractKeyValueService {
                     newFixedThreadPool(config.poolSize()),
                     config.fetchBatchSize());
         }
+
     }
 
     private static ThreadPoolExecutor newFixedThreadPool(int maxPoolSize) {
@@ -181,12 +189,9 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     private void createMetadataTable() {
-        runInitialization(new Function<DbTableInitializer, Void>() {
-            @Override
-            public Void apply(@Nonnull DbTableInitializer initializer) {
-                initializer.createMetadataTable(config.metadataTable().getQualifiedName());
-                return null;
-            }
+        runInitialization(initializer -> {
+            initializer.createMetadataTable(config.metadataTable().getQualifiedName());
+            return null;
         });
     }
     @Override
@@ -195,6 +200,7 @@ public class DbKvs extends AbstractKeyValueService {
         dbTables.close();
         connections.close();
         batchingQueryRunner.close();
+        ddlExecutor.shutdown();
     }
 
     @Override
@@ -459,12 +465,9 @@ public class DbKvs extends AbstractKeyValueService {
 
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
-        runWriteForceAutocommit(tableRef, new Function<DbWriteTable, Void>() {
-            @Override
-            public Void apply(DbWriteTable table) {
-                table.delete(range);
-                return null;
-            }
+        runWriteForceAutocommit(tableRef, table -> {
+            table.delete(range);
+            return null;
         });
     }
 
@@ -1081,102 +1084,109 @@ public class DbKvs extends AbstractKeyValueService {
 
     @Override
     public void truncateTable(TableReference tableRef) {
-        runDdl(tableRef, new Function<DbDdlTable, Void>() {
-            @Override
-            public Void apply(DbDdlTable table) {
-                table.truncate();
-                return null;
-            }
-        });
+        truncateTables(ImmutableSet.of(tableRef));
+    }
+
+    @Override
+    public void truncateTables(Set<TableReference> tableRefs) {
+        List<Future> futures = Lists.newArrayListWithCapacity(tableRefs.size());
+        tableRefs.forEach(tableRef -> futures.add(ddlExecutor.submit(() ->
+                runDdl(tableRef, table -> {
+                    table.truncate();
+                    return null;
+                }))));
+
+        waitOnDdlOperations(futures);
     }
 
     @Override
     public void dropTable(TableReference tableRef) {
-        runDdl(tableRef, new Function<DbDdlTable, Void>() {
-            @Override
-            public Void apply(DbDdlTable table) {
-                table.drop();
-                return null;
-            }
-        });
+        dropTables(ImmutableSet.of(tableRef));
+    }
+
+    @Override
+    public void dropTables(Set<TableReference> tableRefs) {
+        List<Future> futures = Lists.newArrayListWithCapacity(tableRefs.size());
+        tableRefs.forEach(tableRef -> futures.add(ddlExecutor.submit(() ->
+                runDdl(tableRef, table -> {
+                    table.drop();
+                    return null;
+                }))));
+
+        waitOnDdlOperations(futures);
     }
 
     @Override
     public void createTable(TableReference tableRef, byte[] tableMetadata) {
-        runDdl(tableRef, new Function<DbDdlTable, Void>() {
-            @Override
-            public Void apply(DbDdlTable table) {
-                table.create(tableMetadata);
-                return null;
+        createTables(ImmutableMap.of(tableRef, tableMetadata));
+    }
+
+    @Override
+    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
+        Set<Entry<TableReference, byte[]>> entries = tableRefToTableMetadata.entrySet();
+        List<Future> futures = Lists.newArrayListWithCapacity(entries.size());
+
+        entries.forEach(entry -> futures.add(ddlExecutor.submit(() ->
+                runDdl(entry.getKey(), table -> {
+                    table.create(entry.getValue());
+                    putMetadataForTable(entry.getKey(), entry.getValue());
+                    return null;
+                }))));
+
+        waitOnDdlOperations(futures);
+    }
+
+    private void waitOnDdlOperations(List<Future> futures) {
+        for (Future future : futures) {
+            try {
+                future.get(config.ddlOperationTimeoutSeconds(), TimeUnit.SECONDS);
+            } catch (Exception e) {
+                throw Throwables.rewrapAndThrowUncheckedException(e);
             }
-        });
-        // it would be kind of nice if this was in a transaction with the DbDdlTable create,
-        // but the code currently isn't well laid out to accommodate that
-        putMetadataForTable(tableRef, tableMetadata);
+        }
     }
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return run(new Function<SqlConnection, Set<TableReference>>() {
-            @Override
-            public Set<TableReference> apply(SqlConnection conn) {
-                AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                        "SELECT table_name FROM " + config.metadataTable().getQualifiedName());
-                Set<TableReference> ret = Sets.newHashSetWithExpectedSize(results.size());
-                for (AgnosticResultRow row : results.rows()) {
-                    ret.add(TableReference.createUnsafe(row.getString("table_name")));
-                }
-                return ret;
-            }
+        return run(conn -> {
+            AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
+                    "SELECT table_name FROM " + config.metadataTable().getQualifiedName());
+            Set<TableReference> ret = Sets.newHashSetWithExpectedSize(results.size());
+            results.rows().forEach(row -> ret.add(TableReference.createUnsafe(row.getString("table_name"))));
+            return ret;
         });
     }
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
-        return runMetadata(tableRef, new Function<DbMetadataTable, byte[]>() {
-            @Override
-            public byte[] apply(DbMetadataTable table) {
-                return table.getMetadata();
-            }
-        });
+        return runMetadata(tableRef, table -> table.getMetadata());
     }
 
     @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
-        runMetadata(tableRef, new Function<DbMetadataTable, Void>() {
-            @Override
-            public Void apply(DbMetadataTable table) {
-                table.putMetadata(metadata);
-                return null;
-            }
+        runMetadata(tableRef, table -> {
+            table.putMetadata(metadata);
+            return null;
         });
     }
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
-        return run(new Function<SqlConnection, Map<TableReference, byte[]>>() {
-            @Override
-            @SuppressWarnings("deprecation")
-            public Map<TableReference, byte[]> apply(SqlConnection conn) {
-                AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                        "SELECT table_name, value FROM " + config.metadataTable().getQualifiedName());
-                Map<TableReference, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
-                for (AgnosticResultRow row : results.rows()) {
-                    ret.put(TableReference.createUnsafe(row.getString("table_name")), row.getBytes("value"));
-                }
-                return ret;
-            }
+        return run(conn -> {
+            AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
+                    "SELECT table_name, value FROM " + config.metadataTable().getQualifiedName());
+            Map<TableReference, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
+            results.rows().forEach(row ->
+                    ret.put(TableReference.createUnsafe(row.getString("table_name")), row.getBytes("value")));
+            return ret;
         });
     }
 
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
-        runWrite(tableRef, new Function<DbWriteTable, Void>() {
-            @Override
-            public Void apply(DbWriteTable table) {
-                table.putSentinels(cells);
-                return null;
-            }
+        runWrite(tableRef, table -> {
+            table.putSentinels(cells);
+            return null;
         });
     }
 
@@ -1204,22 +1214,16 @@ public class DbKvs extends AbstractKeyValueService {
 
     @Override
     public void compactInternally(TableReference tableRef) {
-        runDdl(tableRef, new Function<DbDdlTable, Void>() {
-            @Override
-            public Void apply(DbDdlTable table) {
-                table.compactInternally();
-                return null;
-            }
+        runDdl(tableRef, table -> {
+            table.compactInternally();
+            return null;
         });
     }
 
     public void checkDatabaseVersion() {
-        runDdl(TableReference.createWithEmptyNamespace(""), new Function<DbDdlTable, Void>() {
-            @Override
-            public Void apply(DbDdlTable table) {
-                table.checkDatabaseVersion();
-                return null;
-            }
+        runDdl(TableReference.createWithEmptyNamespace(""), table -> {
+            table.checkDatabaseVersion();
+            return null;
         });
     }
 
@@ -1250,11 +1254,11 @@ public class DbKvs extends AbstractKeyValueService {
         }
     }
 
-    private <T> T runDdl(TableReference tableRef, Function<DbDdlTable, T> runner) {
+    private void runDdl(TableReference tableRef, Function<DbDdlTable, Void> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
             /* The ddl actions can used both the fully qualified name and the internal name */
-            return runner.apply(dbTables.createDdl(tableRef, conns));
+            runner.apply(dbTables.createDdl(tableRef, conns));
         } finally {
             conns.close();
         }
