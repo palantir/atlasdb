@@ -102,8 +102,8 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
     private boolean shouldSwitchNode(ExceptionRetryBehaviour retryBehaviour, long failures) {
-        return retryBehaviour.shouldBackoffAndTryOtherNodes() ||
-                (!retryBehaviour.shouldRetryInfinitelyManyTimes() && failures >= failuresBeforeSwitching);
+        return retryBehaviour.shouldBackoffAndTryOtherNodes()
+                || (!retryBehaviour.shouldRetryInfinitelyManyTimes() && failures >= failuresBeforeSwitching);
     }
 
     private void failoverToNextNode(ExceptionRetryBehaviour retryBehaviour) {
