@@ -109,6 +109,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 localPaxosServices.ourAcceptor(),
                 localPaxosServices.ourLearner()));
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
+        environment.jersey().register(new BlockingTimeoutExceptionMapper());
     }
 
     private void registerHealthCheck(TimeLockServerConfiguration configuration) {
