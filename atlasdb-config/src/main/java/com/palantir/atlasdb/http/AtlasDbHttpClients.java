@@ -41,13 +41,11 @@ import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 
 public final class AtlasDbHttpClients {
-    // For consistent serialization across AtlasDB HTTP clients
-    public static final ObjectMapper mapper = new ObjectMapper();
-
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 1000;
     private static final int QUICK_MAX_BACKOFF_MILLIS = 1000;
     private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options();
 
+    private static final ObjectMapper mapper = new ObjectMapper();
     private static final Contract contract = new JAXRSContract();
     private static final Encoder encoder = new JacksonEncoder(mapper);
     private static final Decoder decoder = new TextDelegateDecoder(new JacksonDecoder(mapper));

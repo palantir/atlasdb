@@ -23,14 +23,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.palantir.common.remoting.AtlasDbRemotingConstants;
 
 public class ExceptionDecoder {
     private static final Logger log = LoggerFactory.getLogger(ExceptionDecoder.class);
 
-    private static final String CLASS_ANNOTATION = "@class";
+    public static final String CLASS_ANNOTATION = AtlasDbRemotingConstants.CLASS_FIELD_NAME;
 
     private final ObjectMapper mapper;
 
@@ -39,14 +43,16 @@ public class ExceptionDecoder {
     }
 
     public static ExceptionDecoder create() {
-        return new ExceptionDecoder(AtlasDbHttpClients.mapper);
+        // Need to disable the feature to handle exceptions of unknown type, which may have arbitrary fields.
+        return new ExceptionDecoder(new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES));
     }
 
     public Optional<Exception> decodeCausingException(InputStream inputStream) {
         return readJsonNode(inputStream).flatMap(this::decodeException);
     }
 
-    private Optional<JsonNode> readJsonNode(InputStream inputStream) {
+    @VisibleForTesting
+    Optional<JsonNode> readJsonNode(InputStream inputStream) {
         try {
             return Optional.of(mapper.readTree(inputStream));
         } catch (IOException e) {
@@ -57,7 +63,7 @@ public class ExceptionDecoder {
 
     private Optional<Exception> decodeException(JsonNode jsonNode) {
         try {
-            Class<? extends Exception> exceptionClass = readExceptionClass(jsonNode);
+            Class<? extends Exception> exceptionClass = parseExceptionClass(jsonNode);
             return Optional.of(mapper.treeToValue(jsonNode, exceptionClass));
         } catch (JsonProcessingException e) {
             log.warn("Could not deserialize a JSON node passed in to an exception: {}", jsonNode, e);
@@ -65,27 +71,30 @@ public class ExceptionDecoder {
         }
     }
 
-    private Class<? extends Exception> readExceptionClass(JsonNode jsonNode) {
-        if (jsonNode.has(CLASS_ANNOTATION)) {
+    @VisibleForTesting
+    static Class<? extends Exception> parseExceptionClass(JsonNode jsonNode) {
+        if (!jsonNode.has(CLASS_ANNOTATION)) {
             return Exception.class;
         }
 
         String className = jsonNode.get(CLASS_ANNOTATION).textValue();
-        if (className == null) {
-            // possible, if we have a malformed case and the exception class is an object
-            return Exception.class;
-        }
+        Preconditions.checkArgument(className != null, "The class name must be a string, but found %s",
+                jsonNode.get(CLASS_ANNOTATION).asText());
         try {
-            return readExceptionClass(className);
+            return parseExceptionClass(className);
         } catch (ClassNotFoundException e) {
-            log.warn("The server threw an exception of class {} which the client doesn't know about",
+            log.warn("The server threw an exception of class {} which the client doesn't know about;"
+                            + " deserializing as a generic Exception.",
                     jsonNode.get(CLASS_ANNOTATION).textValue(),
                     e);
+
+            // We need to do this, otherwise the deserialization (line 65) will break
+            ((ObjectNode) jsonNode).remove(CLASS_ANNOTATION);
             return Exception.class;
         }
     }
 
-    private Class<? extends Exception> readExceptionClass(String className) throws ClassNotFoundException {
+    private static Class<? extends Exception> parseExceptionClass(String className) throws ClassNotFoundException {
         return Class.forName(className).asSubclass(Exception.class);
     }
 }

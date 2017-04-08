@@ -25,7 +25,9 @@ import com.google.common.net.HostAndPort;
  *
  * @author carrino
  */
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = AtlasDbRemotingConstants.CLASS_FIELD_NAME)
 public class ServiceNotAvailableException extends RuntimeException {
     private static final long serialVersionUID = 2L;
 
