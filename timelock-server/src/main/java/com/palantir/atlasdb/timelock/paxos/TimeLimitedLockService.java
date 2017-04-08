@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.math.BigInteger;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -55,47 +56,13 @@ public class TimeLimitedLockService implements LockService {
     @Nullable
     @Override
     public LockRefreshToken lock(@PathParam("client") String client, LockRequest request) throws InterruptedException {
-        try {
-            return timeLimiter.callWithTimeout(
-                    () -> delegate.lock(client, request),
-                    timeLimit.toMillis(),
-                    TimeUnit.MILLISECONDS,
-                    true);
-        } catch (InterruptedException e) {
-            // The client thread was interrupted. We're done here anyway
-            throw e;
-        } catch (UncheckedTimeoutException e) {
-            // The request timed out.
-            log.info("A request to lock() timed out for client {}; request was {}", client, request);
-            throw new BlockingTimeoutException("The server side lock service timed out. Please retry your request.");
-        } catch (Exception e) {
-            // Neither of the above cases
-            log.error("An unexpected exception occurred in the lock service when trying to lock!", e);
-            throw Throwables.propagate(e);
-        }
+        return runLockingOperationUnderTimeLimit(() -> delegate.lock(client, request), client, request);
     }
 
     @Override
     public HeldLocksToken lockAndGetHeldLocks(@PathParam("client") String client, LockRequest request)
             throws InterruptedException {
-        try {
-            return timeLimiter.callWithTimeout(
-                    () -> delegate.lockAndGetHeldLocks(client, request),
-                    timeLimit.toMillis(),
-                    TimeUnit.MILLISECONDS,
-                    true);
-        } catch (InterruptedException e) {
-            // The client thread was interrupted. We're done here anyway
-            throw e;
-        } catch (UncheckedTimeoutException e) {
-            // The request timed out.
-            log.info("A request to tryLock() timed out for client {}; request was {}", client, request);
-            throw new BlockingTimeoutException("The server side lock service timed out. Please retry your request.");
-        } catch (Exception e) {
-            // Neither of the above cases
-            log.error("An unexpected exception occurred in the lock service when trying to lock!", e);
-            throw Throwables.propagate(e);
-        }
+        return runLockingOperationUnderTimeLimit(() -> delegate.lockAndGetHeldLocks(client, request), client, request);
     }
 
     @Override
@@ -195,5 +162,28 @@ public class TimeLimitedLockService implements LockService {
     @Override
     public void logCurrentState() {
         delegate.logCurrentState();
+    }
+
+    private <T> T runLockingOperationUnderTimeLimit(Callable<T> function,
+            String client,
+            LockRequest request) throws InterruptedException {
+        try {
+            return timeLimiter.callWithTimeout(
+                    function,
+                    timeLimit.toMillis(),
+                    TimeUnit.MILLISECONDS,
+                    true);
+        } catch (InterruptedException e) {
+            // The client thread was interrupted. We're done here anyway
+            throw e;
+        } catch (UncheckedTimeoutException e) {
+            // The request timed out.
+            log.info("A locking operation timed out for client {}; request was {}", client, request);
+            throw new BlockingTimeoutException("The server side lock service timed out. Please retry your request.");
+        } catch (Exception e) {
+            // Neither of the above cases
+            log.error("An unexpected exception occurred in the lock service when trying to lock!", e);
+            throw Throwables.propagate(e);
+        }
     }
 }
