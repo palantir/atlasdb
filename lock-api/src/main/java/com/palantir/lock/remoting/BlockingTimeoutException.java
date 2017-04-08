@@ -15,11 +15,14 @@
  */
 package com.palantir.lock.remoting;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
 /**
  * A BlockingTimeoutException indicates that a lock request has blocked for too long, and that the server
  * will no longer service the request. The request may be retried; it is the responsibility of servers to
  * clean up their resources when throwing this exception.
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
 public class BlockingTimeoutException extends RuntimeException {
     public BlockingTimeoutException(String message) {
         super(message);

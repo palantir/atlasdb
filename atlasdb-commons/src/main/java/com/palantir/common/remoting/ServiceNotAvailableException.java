@@ -15,6 +15,7 @@
  */
 package com.palantir.common.remoting;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.base.Optional;
 import com.google.common.net.HostAndPort;
 
@@ -24,6 +25,7 @@ import com.google.common.net.HostAndPort;
  *
  * @author carrino
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
 public class ServiceNotAvailableException extends RuntimeException {
     private static final long serialVersionUID = 2L;
 

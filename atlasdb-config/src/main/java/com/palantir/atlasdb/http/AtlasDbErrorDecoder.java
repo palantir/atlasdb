@@ -15,14 +15,23 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.io.IOException;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Throwables;
 
 import feign.Response;
 import feign.RetryableException;
 import feign.codec.ErrorDecoder;
 
 public class AtlasDbErrorDecoder implements ErrorDecoder {
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbErrorDecoder.class);
     private ErrorDecoder defaultErrorDecoder = new ErrorDecoder.Default();
+    private ExceptionDecoder exceptionDecoder = ExceptionDecoder.create();
 
     public AtlasDbErrorDecoder() {
     }
@@ -34,11 +43,25 @@ public class AtlasDbErrorDecoder implements ErrorDecoder {
 
     @Override
     public Exception decode(String methodKey, Response response) {
-        Exception exception = defaultErrorDecoder.decode(methodKey, response);
-        if (response503ButExceptionIsNotRetryable(response, exception)) {
-            return new RetryableException(exception.getMessage(), exception, null);
+        Optional<Exception> causingExceptionOptional;
+        try {
+            causingExceptionOptional = exceptionDecoder.decodeCausingException(response.body().asInputStream());
+        } catch (IOException e) {
+            // Could not read the response body, perhaps because it was malformed.
+            log.error("Encountered an error when deserializing an exception:", e);
+            throw Throwables.propagate(e);
         }
-        return exception;
+        Exception feignException = defaultErrorDecoder.decode(methodKey, response);
+
+        if (!causingExceptionOptional.isPresent()) {
+            return feignException;
+        }
+
+        Exception causingException = causingExceptionOptional.get();
+        if (response503ButExceptionIsNotRetryable(response, feignException)) {
+            return new RetryableException(feignException.getMessage(), causingException, null);
+        }
+        return causingException;
     }
 
     private boolean response503ButExceptionIsNotRetryable(Response response, Exception exception) {
