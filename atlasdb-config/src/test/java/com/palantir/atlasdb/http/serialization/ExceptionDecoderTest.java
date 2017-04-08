@@ -118,7 +118,8 @@ public class ExceptionDecoderTest {
         assertTypeOfDecodedException(exceptionOptional, KNOWN_EXCEPTION);
     }
 
-    private void assertTypeOfDecodedException(Optional<Exception> exceptionOptional, Class<?> clazz) {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // test assertion
+    private static void assertTypeOfDecodedException(Optional<Exception> exceptionOptional, Class<?> clazz) {
         assertThat(exceptionOptional).isPresent();
         assertThat(exceptionOptional.get())
                 .hasMessage(EXCEPTION_MESSAGE)
