@@ -31,6 +31,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -163,7 +164,10 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 LockService.class,
                 AwaitingLeadershipProxy.newProxyInstance(
                         LockService.class,
-                        () -> LockServiceImpl.create(lockServerOptions),
+                        () -> new TimeLimitedLockService(
+                                LockServiceImpl.create(lockServerOptions),
+                                new SimpleTimeLimiter(),
+                                61 * 1_000), // TODO: Make this configurable
                         leaderElectionService),
                 client);
         return TimeLockServices.create(timestampService, lockService, timestampService);

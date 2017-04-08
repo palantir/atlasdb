@@ -26,6 +26,7 @@ import javax.ws.rs.PathParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
@@ -38,19 +39,19 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
-import com.palantir.lock.TimeDuration;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 
 public class TimeLimitedLockService implements LockService {
     private static final Logger log = LoggerFactory.getLogger(TimeLimitedLockService.class);
     private final LockService delegate;
     private final TimeLimiter timeLimiter;
-    private final TimeDuration timeLimit;
+    private final long timeLimitMillis;
 
-    public TimeLimitedLockService(LockService delegate, TimeLimiter timeLimiter, TimeDuration timeLimit) {
+    public TimeLimitedLockService(LockService delegate, TimeLimiter timeLimiter, long timeLimitMillis) {
+        Preconditions.checkArgument(timeLimitMillis > 0, "Time limit should be a positive integer.");
         this.delegate = delegate;
         this.timeLimiter = timeLimiter;
-        this.timeLimit = timeLimit;
+        this.timeLimitMillis = timeLimitMillis;
     }
 
     @Nullable
@@ -170,7 +171,7 @@ public class TimeLimitedLockService implements LockService {
         try {
             return timeLimiter.callWithTimeout(
                     function,
-                    timeLimit.toMillis(),
+                    timeLimitMillis,
                     TimeUnit.MILLISECONDS,
                     true);
         } catch (InterruptedException e) {
