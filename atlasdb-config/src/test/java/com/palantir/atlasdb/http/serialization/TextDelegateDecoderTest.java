@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.http;
+package com.palantir.atlasdb.http.serialization;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -32,6 +32,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HttpHeaders;
+import com.palantir.atlasdb.http.serialization.TextDelegateDecoder;
 
 import feign.Response;
 import feign.codec.Decoder;

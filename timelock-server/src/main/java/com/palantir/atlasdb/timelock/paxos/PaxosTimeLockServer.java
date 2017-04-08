@@ -37,7 +37,7 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.factory.ServiceCreator;
-import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
+import com.palantir.atlasdb.http.serialization.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;

@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.http.serialization.AtlasDbErrorDecoder;
+import com.palantir.atlasdb.http.serialization.TextDelegateDecoder;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 import feign.Client;

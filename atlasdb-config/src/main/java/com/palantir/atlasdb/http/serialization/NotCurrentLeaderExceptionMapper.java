@@ -1,5 +1,5 @@
-/*
- * Copyright 2015 Palantir Technologies
+/**
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.http;
+package com.palantir.atlasdb.http.serialization;
 
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;

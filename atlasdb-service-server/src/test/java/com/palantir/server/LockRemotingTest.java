@@ -25,7 +25,7 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
-import com.palantir.atlasdb.http.TextDelegateDecoder;
+import com.palantir.atlasdb.http.serialization.TextDelegateDecoder;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;

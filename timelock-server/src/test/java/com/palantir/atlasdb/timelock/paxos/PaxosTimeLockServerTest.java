@@ -36,7 +36,7 @@ import org.junit.Test;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
+import com.palantir.atlasdb.http.serialization.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.ImmutablePaxosConfiguration;
