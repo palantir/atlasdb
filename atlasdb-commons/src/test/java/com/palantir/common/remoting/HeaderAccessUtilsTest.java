@@ -26,7 +26,6 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.palantir.common.remoting.HeaderAccessUtils;
 
 public class HeaderAccessUtilsTest {
     private static final String FOO = "foo";

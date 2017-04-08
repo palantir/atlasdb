@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.common.remoting.AtlasDbRemotingConstants;
@@ -44,7 +45,9 @@ public class ExceptionDecoder {
 
     public static ExceptionDecoder create() {
         // Need to disable the feature to handle exceptions of unknown type, which may have arbitrary fields.
-        return new ExceptionDecoder(new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES));
+        return new ExceptionDecoder(new ObjectMapper()
+                .registerModule(new GuavaModule())
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES));
     }
 
     public Optional<Exception> decodeCausingException(InputStream inputStream) {
