@@ -92,10 +92,11 @@ import com.google.common.base.Objects;
     }
 
     /**
-     * Info level logging for any lock request that receives a response after 100ms.
+     * Info level logging for any lock request that receives a response after given time.
+     * If the duration is zero or negative, slow lock logging will be disabled.
      */
-    public boolean isSlowLogEnabled() {
-        return false;
+    public long slowLogTriggerMillis() {
+        return -1;
     }
 
     @Override public final boolean equals(@Nullable Object obj) {

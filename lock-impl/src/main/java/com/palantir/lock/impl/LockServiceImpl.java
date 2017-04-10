@@ -152,7 +152,7 @@ import com.palantir.util.Pair;
     private final SecureRandomPool randomPool = new SecureRandomPool(SECURE_RANDOM_ALGORITHM, SECURE_RANDOM_POOL_SIZE);
 
     private final boolean isStandaloneServer;
-    private final boolean slowLogEnabled;
+    private final long slowLogTriggerMillis;
     private final TimeDuration maxAllowedLockTimeout;
     private final TimeDuration maxAllowedClockDrift;
     private final TimeDuration maxAllowedBlockingDuration;
@@ -241,7 +241,7 @@ import com.palantir.util.Pair;
         maxAllowedBlockingDuration = SimpleTimeDuration.of(options.getMaxAllowedBlockingDuration());
         maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         randomBitCount = options.getRandomBitCount();
-        slowLogEnabled = options.isSlowLogEnabled();
+        slowLogTriggerMillis = options.slowLogTriggerMillis();
         executor.execute(() -> {
             Thread.currentThread().setName("Held Locks Token Reaper");
             reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
@@ -449,11 +449,9 @@ import com.palantir.util.Pair;
                 long startTime = System.currentTimeMillis();
                 @Nullable LockClient currentHolder = tryLock(lock.get(client, entry.getValue()),
                         blockingMode, deadline);
-                if (log.isDebugEnabled() || slowLogEnabled) {
-                    long duration = System.currentTimeMillis() - startTime;
-                    if (duration > 100) {
-                        logSlowLockAcquisition(entry.getKey().toString(), currentHolder, duration);
-                    }
+                if (log.isDebugEnabled() || isSlowLogEnabled()) {
+                    long responseTimeMillis = System.currentTimeMillis() - startTime;
+                    logSlowLockAcquisition(entry.getKey().toString(), currentHolder, responseTimeMillis);
                 }
                 if (currentHolder == null) {
                     locks.put(lock, entry.getValue());
@@ -471,18 +469,22 @@ import com.palantir.util.Pair;
         }
     }
 
-    private void logSlowLockAcquisition(String lockId, LockClient currentHolder, long duration) {
-        if (slowLogEnabled) {
+    private void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
+        if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
             SlowLockLogger.logger.info("Blocked for {} ms to acquire lock {} {}.",
-                    duration,
+                    durationMillis,
                     lockId,
                     currentHolder == null ? "successfully" : "unsuccessfully");
-        } else {
+        } else if (durationMillis > 100) {
             log.debug("Blocked for {} ms to acquire lock {} {}.",
-                    duration,
+                    durationMillis,
                     lockId,
                     currentHolder == null ? "successfully" : "unsuccessfully");
         }
+    }
+
+    private boolean isSlowLogEnabled() {
+        return slowLogTriggerMillis > 0;
     }
 
     @Nullable private LockClient tryLock(KnownClientLock lock, BlockingMode blockingMode,

@@ -70,7 +70,8 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
             TimeLockServer serverImpl) {
         Map<String, TimeLockServices> clientToServices = ImmutableMap.copyOf(Maps.asMap(
                 configuration.clients(),
-                serverImpl::createInvalidatingTimeLockServices));
+                client -> serverImpl.createInvalidatingTimeLockServices(client,
+                        configuration.slowLockLogTriggerMillis())));
 
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));

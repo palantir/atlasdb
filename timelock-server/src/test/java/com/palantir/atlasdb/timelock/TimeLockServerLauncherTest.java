@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -63,7 +64,7 @@ public class TimeLockServerLauncherTest {
         algorithmConfiguration = mock(TimeLockAlgorithmConfiguration.class);
         timeLockServer = mock(TimeLockServer.class);
         when(algorithmConfiguration.createServerImpl(environment)).thenReturn(timeLockServer);
-        when(timeLockServer.createInvalidatingTimeLockServices(any()))
+        when(timeLockServer.createInvalidatingTimeLockServices(any(), anyLong()))
                 .thenReturn(mock(TimeLockServices.class));
     }
 

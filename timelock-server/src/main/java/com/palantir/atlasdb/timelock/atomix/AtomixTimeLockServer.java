@@ -104,7 +104,7 @@ public class AtomixTimeLockServer implements TimeLockServer {
     }
 
     @Override
-    public TimeLockServices createInvalidatingTimeLockServices(String client) {
+    public TimeLockServices createInvalidatingTimeLockServices(String client, long slowLogTriggerMillis) {
         DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(replica);
         DistributedLong timestamp = DistributedValues.getTimestampForClient(replica, client);
         Supplier<TimeLockServices> timeLockSupplier = () -> {
