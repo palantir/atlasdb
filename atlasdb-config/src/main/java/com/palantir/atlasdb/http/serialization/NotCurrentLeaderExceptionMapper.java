@@ -15,10 +15,11 @@
  */
 package com.palantir.atlasdb.http.serialization;
 
-import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
+import com.google.common.net.HttpHeaders;
 import com.palantir.leader.NotCurrentLeaderException;
 
 /**
@@ -29,6 +30,11 @@ import com.palantir.leader.NotCurrentLeaderException;
 public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
-        return Response.noContent().status(503).header(HttpHeaders.RETRY_AFTER, "0").build();
+        return Response.serverError()
+                .status(503)
+                .entity(exception)
+                .type(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.RETRY_AFTER, "0")
+                .build();
     }
 }
