@@ -62,7 +62,7 @@ public class FailoverFeignTargetTest {
     }
 
     @Test
-    public void failsOverMultipleTimesOnExceptionsWithRetryAfter() {
+    public void failsOverMultipleTimesOnNonBlockingExceptionsWithRetryAfter() {
         String previousUrl;
         for (int i = 0; i < FAILOVERS; i++) {
             previousUrl = target.url();
@@ -82,7 +82,7 @@ public class FailoverFeignTargetTest {
     public void rethrowsExceptionWithoutRetryAfterWhenLimitExceeded() {
         assertThatThrownBy(() -> {
             for (int i = 0; i < FAILOVERS; i++) {
-                target.url();
+                simulateRequest();
                 target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
             }
         }).isEqualTo(EXCEPTION_WITHOUT_RETRY_AFTER);
@@ -106,15 +106,19 @@ public class FailoverFeignTargetTest {
 
     @Test
     public void failsOverMultipleTimesWithFailingLeader() {
+        String initialUrl = target.url();
         for (int i = 0; i < FAILOVERS; i++) {
+            // The 'leader' is the initial node, and fails with non fast-failover exceptions (so without retry after).
+            // The other nodes fail with retry afters.
             target.continueOrPropagate(
-                    i % CLUSTER_SIZE == 0 ? EXCEPTION_WITHOUT_RETRY_AFTER : EXCEPTION_WITH_RETRY_AFTER);
+                    target.url().equals(initialUrl) ? EXCEPTION_WITHOUT_RETRY_AFTER : EXCEPTION_WITH_RETRY_AFTER);
         }
     }
 
     @Test
     public void retriesOnSameNodeIfBlockingTimeoutIsLastAllowedFailureBeforeSwitch() {
         for (int i = 1; i < target.failuresBeforeSwitching; i++) {
+            simulateRequest();
             target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
         }
         String currentUrl = target.url();
@@ -127,10 +131,17 @@ public class FailoverFeignTargetTest {
         String currentUrl = target.url();
         for (int i = 0; i < ITERATIONS; i++) {
             for (int j = 1; j < target.failuresBeforeSwitching; j++) {
+                simulateRequest();
                 target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
             }
             target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
             assertThat(target.url()).isEqualTo(currentUrl);
         }
+    }
+
+    private void simulateRequest() {
+        // This method is called as a part of a request being invoked.
+        // We need to update the mostRecentServerIndex, for the FailoverFeignTarget to track failures properly.
+        target.url();
     }
 }

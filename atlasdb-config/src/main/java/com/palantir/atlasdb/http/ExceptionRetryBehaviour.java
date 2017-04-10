@@ -39,20 +39,30 @@ public enum ExceptionRetryBehaviour {
             return RETRY_INDEFINITELY_ON_SAME_NODE;
         }
 
-        if (retryableException.retryAfter() == null) {
-            // This is the case where we have failed due to networking or other IOException.
-            return RETRY_ON_SAME_NODE;
+        if (retryableException.retryAfter() != null) {
+            // This is the case where the server has returned a 503.
+            // This is done when we want to do fast failover because we aren't the leader or we are shutting down.
+            return RETRY_ON_OTHER_NODE;
         }
 
-        // This is the case where the server has returned a 503.
-        // This is done when we want to do fast failover because we aren't the leader or we are shutting down.
-        return RETRY_ON_OTHER_NODE;
+        // This is the case where we have failed due to networking or other IOException.
+        return RETRY_ON_SAME_NODE;
     }
 
+    /**
+     * Returns true if and only if clients which have defined a finite limit for the number
+     * of retries should retry infinitely many times. Typically, this implies that the failure of the
+     * node in question is not reflective of a failing condition of the cluster in general (such as the node
+     * in question shutting down, or it not being the leader.)
+     */
     public boolean shouldRetryInfinitelyManyTimes() {
         return shouldRetryInfinitelyManyTimes;
     }
 
+    /**
+     * Returns true if clients should, where possible, retry on other nodes before retrying on this
+     * node. Note that a value of false here does not necessarily mean that clients should not retry on other nodes.
+     */
     public boolean shouldBackoffAndTryOtherNodes() {
         return shouldBackoffAndTryOtherNodes;
     }
