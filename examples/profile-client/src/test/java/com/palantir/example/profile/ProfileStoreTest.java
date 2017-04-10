@@ -33,7 +33,7 @@ import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Closeables;
-import com.palantir.atlasdb.memory.InMemoryAtlasDbFactory;
+import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -51,8 +51,8 @@ public class ProfileStoreTest {
             .setName("first last")
             .build();
 
-    private final TransactionManager txnMgr = InMemoryAtlasDbFactory
-            .createInMemoryTransactionManager(ProfileSchema.INSTANCE);
+    private final TransactionManager txnMgr =
+            TransactionManagers.createInMemory(ProfileSchema.INSTANCE);
 
     @Rule
     public ExpectedException exception = ExpectedException.none();

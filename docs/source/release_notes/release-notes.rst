@@ -50,6 +50,10 @@ develop
          - Any lock requests that take more than ``100ms`` to receive a response are now logged in the ``SlowLockLogger`` logger.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1769>`__)
 
+    *    - |deprecated|
+         - Deprecated ``InMemoryAtlasDbFactory#createInMemoryTransactionManager``, please instead use the supported ``TransactionManagers.createInMemory(...)`` for your testing.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1784>`__)
+
     *    - |fixed|
          - AtlasDB HTTP clients now parse ``Retry-After`` headers correctly.
            This manifests as clients failing over and trying other nodes when receiving a 503 with a ``Retry-After`` header from a remote (e.g. from a TimeLock non-leader).
