@@ -4,7 +4,9 @@ apply from: "../gradle/publish-dists.gradle"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  runtime project(':atlasdb-cli')
+  runtime (project(':atlasdb-cli')) {
+    exclude module: 'dagger'
+  }
 
   // Supported KVSs
   runtime project(':atlasdb-cassandra')
