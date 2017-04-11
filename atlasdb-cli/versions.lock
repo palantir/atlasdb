@@ -114,7 +114,6 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-dagger",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
@@ -146,10 +145,7 @@
             ]
         },
         "com.google.dagger:dagger": {
-            "locked": "2.0.2",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-dagger"
-            ]
+            "locked": "2.0.2"
         },
         "com.google.guava:guava": {
             "locked": "18.0",
@@ -779,7 +775,6 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-dagger",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
@@ -808,12 +803,6 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard:dropwizard-util",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
-            ]
-        },
-        "com.google.dagger:dagger": {
-            "locked": "2.0.2",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-dagger"
             ]
         },
         "com.google.guava:guava": {
@@ -1186,7 +1175,6 @@
         "javax.inject:javax.inject": {
             "locked": "1",
             "transitive": [
-                "com.google.dagger:dagger",
                 "com.palantir.atlasdb:atlasdb-service",
                 "io.airlift:airline"
             ]
