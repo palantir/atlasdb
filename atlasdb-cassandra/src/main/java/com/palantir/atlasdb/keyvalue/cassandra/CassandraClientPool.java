@@ -243,19 +243,31 @@ public class CassandraClientPool {
     private synchronized void refreshPool() {
         checkAndUpdateBlacklist();
 
-        Set<InetSocketAddress> serversToAdd = Sets.newHashSet(config.servers());
+        Set<InetSocketAddress> discoveredServers = Sets.newHashSet(config.servers());
         Set<InetSocketAddress> serversToRemove = ImmutableSet.of();
 
         if (config.autoRefreshNodes()) {
             refreshTokenRanges(); // re-use token mapping as list of hosts in the cluster
             for (List<InetSocketAddress> rangeOwners : tokenMap.asMapOfRanges().values()) {
                 for (InetSocketAddress address : rangeOwners) {
-                    serversToAdd.add(address);
+                    discoveredServers.add(address);
                 }
+            }
+            // find servers that:
+            // - we're configured to hit via config, and we used to be using / still have pools for
+            // - but the cluster appears to have currently forgotten about
+            Set<InetSocketAddress> decommissionedServersWithActivePools =
+                    Sets.intersection(Sets.difference(config.servers(), discoveredServers), currentPools.keySet());
+            if (!decommissionedServersWithActivePools.isEmpty()) {
+                log.warn("The following Cassandra node(s): {} AtlasDB was configured to use, and was previously using,"
+                        + " but the cluster has reported back that no longer exist. It is likely that they were decommissioned."
+                        + " They have been removed from use until the cluster believes they exist again.",
+                        decommissionedServersWithActivePools);
+                serversToRemove.addAll(decommissionedServersWithActivePools);
             }
         }
 
-        serversToAdd = Sets.difference(serversToAdd, currentPools.keySet());
+        Set<InetSocketAddress> serversToAdd = Sets.difference(discoveredServers, currentPools.keySet());
 
         if (!config.autoRefreshNodes()) { // (we would just add them back in)
             serversToRemove = Sets.difference(currentPools.keySet(), config.servers());
