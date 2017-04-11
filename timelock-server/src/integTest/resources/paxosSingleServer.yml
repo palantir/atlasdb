@@ -1,5 +1,5 @@
 algorithm:
-  type: paxos
+  type: paxos_test
   paxosDataDir: <TEMP_DATA_DIR>
 
 cluster:
@@ -17,3 +17,9 @@ clients:
 server:
   minThreads: 1
   maxThreads: 50
+  applicationConnectors:
+    - type: http
+      selectorThreads: 8
+      acceptorThreads: 4
+
+

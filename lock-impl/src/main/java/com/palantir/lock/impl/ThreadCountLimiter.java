@@ -15,29 +15,36 @@
  */
 package com.palantir.lock.impl;
 
+import java.util.concurrent.Semaphore;
+
 import net.jcip.annotations.ThreadSafe;
 
 @ThreadSafe
-public class ThreadCountLimiter {
-    private int value;
-
-    public ThreadCountLimiter(int value) {
-        this.value = value;
+public class ThreadCountLimiter extends Semaphore{
+    public ThreadCountLimiter(int permits) {
+        super(permits);
     }
-
-    synchronized public void set(int newValue) {
-        value = newValue;
-    }
-
-    synchronized public boolean acquire() {
-        if (value > 0) {
-            value--;
-            return true;
-        }
-        return false;
-    }
-
-    synchronized public void release() {
-        value++;
-    }
+    //    private int value;
+//
+//    public ThreadCountLimiter(int value) {
+//        this.value = value;
+//    }
+//
+//    synchronized public void set(int newValue) {
+//        value = newValue;
+//    }
+//
+//    synchronized public boolean acquire() {
+//        System.out.println(this + " POOL SIZE: " + value);
+//        if (value > 0) {
+//            value--;
+//            return true;
+//        }
+//        return false;
+//    }
+//
+//    synchronized public void release() {
+//        System.out.println(this + " POOL SIZE: " + value);
+//        value++;
+//    }
 }

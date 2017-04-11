@@ -57,6 +57,8 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.PersistentTimestampService;
 
+import io.dropwizard.jetty.ConnectorFactory;
+import io.dropwizard.jetty.HttpConnectorFactory;
 import io.dropwizard.server.DefaultServerFactory;
 import io.dropwizard.setup.Environment;
 
@@ -67,11 +69,11 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     private Set<String> remoteServers;
     private Optional<SSLSocketFactory> optionalSecurity = Optional.absent();
-    private LeaderElectionService leaderElectionService;
+    LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
 
-    private int maxServerThreads;
-    private int numClients;
+    int availableThreads;
+    int numClients;
 
     public PaxosTimeLockServer(PaxosConfiguration configuration, Environment environment) {
         this.paxosConfiguration = configuration;
@@ -82,8 +84,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     public void onStartup(TimeLockServerConfiguration configuration) {
         registerPaxosResource();
 
-        maxServerThreads = ((DefaultServerFactory) configuration.getServerFactory()).getMaxThreads();
-        numClients = configuration.clients().size();
+        registerNumberOfThreadsAndClients(configuration);
 
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
 
@@ -95,6 +96,20 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private void registerPaxosResource() {
         paxosResource = PaxosResource.create(paxosConfiguration.paxosDataDir().toString());
         environment.jersey().register(paxosResource);
+    }
+
+    private void registerNumberOfThreadsAndClients(TimeLockServerConfiguration configuration) {
+        DefaultServerFactory serverFactory = ((DefaultServerFactory) configuration.getServerFactory());
+        int maxServerThreads = serverFactory.getMaxThreads();
+
+        HttpConnectorFactory connectorFactory = (HttpConnectorFactory) serverFactory.getApplicationConnectors().get(0);
+        int selectorThreads = connectorFactory.getSelectorThreads();
+        int acceptorThreads = connectorFactory.getAcceptorThreads();
+
+        //TODO make sure the magic number 3 is correct
+        availableThreads = maxServerThreads - selectorThreads - acceptorThreads - 1;
+        System.out.println("THREADS: " + availableThreads);
+        numClients = configuration.clients().size();
     }
 
     private void registerLeaderElectionService(TimeLockServerConfiguration configuration) {
@@ -172,17 +187,17 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 LockService.class,
                 AwaitingLeadershipProxy.newProxyInstance(
                         LockService.class,
-                        () -> RateLimitingLockService.create(LockServiceImpl.create(lockServerOptions), maxServerThreads, numClients),
+                        () -> RateLimitingLockService.create(LockServiceImpl.create(lockServerOptions), availableThreads, numClients),
                         leaderElectionService),
                 client);
         return TimeLockServices.create(timestampService, lockService, timestampService);
     }
 
-    private static <T> T instrument(Class<T> serviceClass, T service, String client) {
+    static <T> T instrument(Class<T> serviceClass, T service, String client) {
         return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass, client));
     }
 
-    private ManagedTimestampService createPaxosBackedTimestampService(String client) {
+    ManagedTimestampService createPaxosBackedTimestampService(String client) {
         paxosResource.addClient(client);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
