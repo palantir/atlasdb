@@ -60,6 +60,12 @@ develop
            Previously, clients would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
 
+    *    - |new|
+         - Created an interface ``PingableLeaderElectionService``, extending ``PingableLeader`` and ``LeaderElectionService``.
+           Any products with a dependency on ``PaxosLeaderElectionService`` can now use the new interface instead.
+           This will hopefully reduce your dependency footprint, and make testing easier.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1794>`__)
+
 =======
 v0.38.0
 =======
