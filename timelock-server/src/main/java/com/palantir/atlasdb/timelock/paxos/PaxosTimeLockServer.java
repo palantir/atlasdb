@@ -28,6 +28,7 @@ import javax.net.ssl.SSLSocketFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -57,7 +58,6 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.PersistentTimestampService;
 
-import io.dropwizard.jetty.ConnectorFactory;
 import io.dropwizard.jetty.HttpConnectorFactory;
 import io.dropwizard.server.DefaultServerFactory;
 import io.dropwizard.setup.Environment;
@@ -72,6 +72,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
 
+    boolean useRateLimiting;
     int availableThreads;
     int numClients;
 
@@ -84,7 +85,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     public void onStartup(TimeLockServerConfiguration configuration) {
         registerPaxosResource();
 
-        registerNumberOfThreadsAndClients(configuration);
+        registerRateLimitingConfiguration(configuration);
 
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
 
@@ -98,7 +99,9 @@ public class PaxosTimeLockServer implements TimeLockServer {
         environment.jersey().register(paxosResource);
     }
 
-    private void registerNumberOfThreadsAndClients(TimeLockServerConfiguration configuration) {
+    private void registerRateLimitingConfiguration(TimeLockServerConfiguration configuration) {
+        useRateLimiting = configuration.rateLimit();
+
         DefaultServerFactory serverFactory = ((DefaultServerFactory) configuration.getServerFactory());
         int maxServerThreads = serverFactory.getMaxThreads();
 
@@ -106,9 +109,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
         int selectorThreads = connectorFactory.getSelectorThreads();
         int acceptorThreads = connectorFactory.getAcceptorThreads();
 
-        //TODO make sure the magic number 3 is correct
+        //TODO consider reserving numClients more threads or something similar for unlocks
         availableThreads = maxServerThreads - selectorThreads - acceptorThreads - 1;
-        System.out.println("THREADS: " + availableThreads);
         numClients = configuration.clients().size();
     }
 
@@ -187,10 +189,18 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 LockService.class,
                 AwaitingLeadershipProxy.newProxyInstance(
                         LockService.class,
-                        () -> RateLimitingLockService.create(LockServiceImpl.create(lockServerOptions), availableThreads, numClients),
+                        getLockServiceSupplier(lockServerOptions),
                         leaderElectionService),
                 client);
         return TimeLockServices.create(timestampService, lockService, timestampService);
+    }
+
+    private Supplier<LockService> getLockServiceSupplier(LockServerOptions lockServerOptions) {
+        if (useRateLimiting) {
+            return () -> RateLimitingLockService.create(LockServiceImpl.create(lockServerOptions), availableThreads,
+                    numClients);
+        }
+        return () -> LockServiceImpl.create(lockServerOptions);
     }
 
     static <T> T instrument(Class<T> serviceClass, T service, String client) {

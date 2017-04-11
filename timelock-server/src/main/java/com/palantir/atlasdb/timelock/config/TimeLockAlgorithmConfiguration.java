@@ -26,8 +26,7 @@ import io.dropwizard.setup.Environment;
         property = "type")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = AtomixConfiguration.class, name = "atomix"),
-        @JsonSubTypes.Type(value = PaxosConfiguration.class, name = "paxos"),
-        @JsonSubTypes.Type(value = TestPaxosConfiguration.class, name = "paxos_test")})
+        @JsonSubTypes.Type(value = PaxosConfiguration.class, name = "paxos")})
 public interface TimeLockAlgorithmConfiguration {
     TimeLockServer createServerImpl(Environment environment);
 }

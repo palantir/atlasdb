@@ -20,7 +20,6 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import com.palantir.lock.ForwardingLockService;
-import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
@@ -60,7 +59,6 @@ public class RateLimitingLockService extends ForwardingLockService {
     public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
         if (limiter.tryAcquire()) {
             try{
-                Thread.sleep(100);
                 LockRefreshToken token = delegate.lock(client, request);
                 return token;
             } finally {
@@ -68,7 +66,6 @@ public class RateLimitingLockService extends ForwardingLockService {
             }
         } else if (globalLimiter.tryAcquire()) {
             try{
-                Thread.sleep(100);
                 LockRefreshToken token = delegate.lock(client, request);
                 return token;
             } finally {
@@ -77,12 +74,6 @@ public class RateLimitingLockService extends ForwardingLockService {
         } else {
             throw new TooManyRequestsException();
         }
-    }
-
-
-    @Override
-    public boolean unlock(LockRefreshToken token) {
-        return delegate.unlock(token);
     }
 
     @Override
@@ -100,46 +91,4 @@ public class RateLimitingLockService extends ForwardingLockService {
         }
     }
 
-    public static class TestSlowRateLimitingService extends RateLimitingLockService {
-
-        private TestSlowRateLimitingService(LockService delegate, int localLimiterSize) {
-            super(delegate, localLimiterSize);
-        }
-
-
-        public static RateLimitingLockService create(LockService delegate, int availableThreads, int numClients) {
-            numClients = Math.max(numClients, 1);
-
-            int localLimiterSize = availableThreads / numClients / 2;
-            int globalLimiterSize = availableThreads - localLimiterSize * numClients;
-
-            if (globalLimiter.availablePermits() == -1){
-                globalLimiter.release(globalLimiterSize + 1);
-            }
-            return new TestSlowRateLimitingService(delegate, localLimiterSize);
-        }
-        @Nullable
-        @Override
-        public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
-            if (limiter.tryAcquire()) {
-                try{
-                    Thread.sleep(100);
-                    LockRefreshToken token = delegate.lock(client, request);
-                    return token;
-                } finally {
-                    limiter.release();
-                }
-            } else if (globalLimiter.tryAcquire()) {
-                try{
-                    Thread.sleep(100);
-                    LockRefreshToken token = delegate.lock(client, request);
-                    return token;
-                } finally {
-                    globalLimiter.release();
-                }
-            } else {
-                throw new TooManyRequestsException();
-            }
-        }
-    }
 }

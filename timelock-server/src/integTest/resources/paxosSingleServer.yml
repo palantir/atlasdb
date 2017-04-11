@@ -1,5 +1,5 @@
 algorithm:
-  type: paxos_test
+  type: paxos
   paxosDataDir: <TEMP_DATA_DIR>
 
 cluster:
@@ -13,6 +13,8 @@ clients:
   - test3
   - learner
   - acceptor
+
+rateLimit: true
 
 server:
   minThreads: 1

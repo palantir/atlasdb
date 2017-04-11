@@ -32,17 +32,20 @@ public class TimeLockServerConfiguration extends Configuration {
     private final TimeLockAlgorithmConfiguration algorithm;
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
+    private final boolean rateLimit;
 
     public TimeLockServerConfiguration(
             @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
-            @JsonProperty(value = "clients", required = true) Set<String> clients) {
+            @JsonProperty(value = "clients", required = true) Set<String> clients,
+            @JsonProperty(value = "rateLimit", required = false) Boolean rateLimit) {
         Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
         checkClientNames(clients);
 
         this.algorithm = MoreObjects.firstNonNull(algorithm, AtomixConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
+        this.rateLimit = MoreObjects.firstNonNull(rateLimit, false);
     }
 
     private void checkClientNames(Set<String> clientNames) {
@@ -75,5 +78,9 @@ public class TimeLockServerConfiguration extends Configuration {
     @Value.Default
     public long slowLockLogTriggerMillis() {
         return 10000;
+    }
+
+    public boolean rateLimit() {
+        return rateLimit;
     }
 }
