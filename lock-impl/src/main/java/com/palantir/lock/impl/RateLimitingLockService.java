@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -16,6 +16,7 @@
 package com.palantir.lock.impl;
 
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
 
@@ -25,14 +26,14 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 
 public class RateLimitingLockService extends ForwardingLockService {
-    private static final ThreadCountLimiter globalLimiter = new ThreadCountLimiter(-1);
+    private static final Semaphore globalLimiter = new Semaphore(-1);
 
     final LockService delegate;
-    final ThreadCountLimiter limiter;
+    final Semaphore limiter;
 
     private RateLimitingLockService(LockService delegate, int localLimiterSize) {
         this.delegate = delegate;
-        this.limiter = new ThreadCountLimiter(localLimiterSize);
+        this.limiter = new Semaphore(localLimiterSize);
     }
 
     public static RateLimitingLockService create(LockService delegate, int availableThreads, int numClients) {
@@ -42,6 +43,7 @@ public class RateLimitingLockService extends ForwardingLockService {
         int localLimiterSize = availableThreads / numClients / 2;
         int globalLimiterSize = availableThreads - localLimiterSize * numClients;
 
+        // TODO a more robust solution is needed for live reloading
         if (globalLimiter.availablePermits() == -1){
             globalLimiter.release(globalLimiterSize + 1);
         }

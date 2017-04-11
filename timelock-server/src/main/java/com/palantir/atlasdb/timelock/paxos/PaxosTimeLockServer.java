@@ -102,7 +102,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private void registerRateLimitingConfiguration(TimeLockServerConfiguration configuration) {
         useRateLimiting = configuration.rateLimit();
 
-        DefaultServerFactory serverFactory = ((DefaultServerFactory) configuration.getServerFactory());
+        DefaultServerFactory serverFactory = (DefaultServerFactory) configuration.getServerFactory();
         int maxServerThreads = serverFactory.getMaxThreads();
 
         HttpConnectorFactory connectorFactory = (HttpConnectorFactory) serverFactory.getApplicationConnectors().get(0);
