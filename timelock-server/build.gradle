@@ -20,7 +20,7 @@ dependencies {
     compile project(":timestamp-impl")
     compile project(":lock-impl")
     compile project(":leader-election-impl")
-    compile project(":atlasdb-config")
+    compile project(path: ":atlasdb-config", configuration: "shadow")
 
     compile group: 'com.github.rholder', name: 'guava-retrying'
     compile group: 'com.palantir.remoting1', name: 'jersey-servers'
@@ -69,6 +69,10 @@ configurations.all {
                 case 'io.dropwizard':
                     details.useVersion libVersions.timelock_dropwizard
                     break
+                case 'com.fasterxml.jackson.core':
+                case 'com.fasterxml.jackson.module':
+                    details.useVersion libVersions.timelock_jackson
+                    break
                 case 'org.eclipse.jetty':
                     details.useVersion libVersions.timelock_jetty
                     break
@@ -79,8 +83,10 @@ configurations.all {
         }
         forcedModules = [
                 'ch.qos.logback:logback-classic:1.1.7',
-                'com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7',
                 'com.netflix.feign:feign-core:8.10.1',
+                'com.fasterxml.jackson.datatype:jackson-datatype-guava:2.7.8',
+                'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.7.8',
+                'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.7.8',
                 'io.atomix.catalyst:catalyst-transport:1.1.2',
                 'org.objenesis:objenesis:2.3'
         ]

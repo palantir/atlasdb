@@ -1,28 +1,37 @@
 apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 apply from: "../gradle/shared.gradle"
 
-dependencies {
-    compile project(':atlasdb-api')
-    compile project(':atlasdb-impl-shared')
-    compile project(':leader-election-impl')
-    compile project(':lock-impl')
+configurations {
+    explicitShadow
+    compile.extendsFrom(explicitShadow)
+    shadow.extendsFrom(explicitShadow)
+}
 
-    compile group: 'com.netflix.feign', name: 'feign-jackson'
-    compile (group: 'com.netflix.feign', name: 'feign-jaxrs') {
+dependencies {
+    compile group: 'com.palantir.remoting2', name: 'error-handling'
+
+    explicitShadow project(':atlasdb-api')
+    explicitShadow project(':atlasdb-impl-shared')
+    explicitShadow project(':leader-election-impl')
+    explicitShadow project(':lock-impl')
+
+    explicitShadow group: 'com.netflix.feign', name: 'feign-jackson'
+    explicitShadow (group: 'com.netflix.feign', name: 'feign-jaxrs') {
         exclude module: 'jsr311-api'
     }
     // versions below 8.10.0 have a bug where POST requests must have a body
-    compile group: 'com.netflix.feign', name: 'feign-okhttp'
-    compile group: 'javax.validation', name: 'validation-api'
-    compile group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
-    compile group: 'com.palantir.tritium', name: 'tritium-lib'
+    explicitShadow group: 'com.netflix.feign', name: 'feign-okhttp'
+    explicitShadow group: 'javax.validation', name: 'validation-api'
+    explicitShadow group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
+    explicitShadow group: 'com.palantir.tritium', name: 'tritium-lib'
 
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
-    compile group: 'io.dropwizard', name: 'dropwizard-jackson'
-    compile group: 'com.google.code.findbugs', name: 'annotations'
+    explicitShadow group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+    explicitShadow group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
+    explicitShadow group: 'io.dropwizard', name: 'dropwizard-jackson'
+    explicitShadow group: 'com.google.code.findbugs', name: 'annotations'
 
     // This is added so that AtlasDB clients can specify the javaAgent as a JVM argument to load jars needed for HTTP/2
     // in the boot classpath
@@ -37,3 +46,17 @@ dependencies {
     testCompile group: 'com.github.tomakehurst', name: 'wiremock'
     testCompile group: 'org.assertj', name: 'assertj-core'
 }
+
+shadowJar {
+    mergeServiceFiles()
+    classifier ''
+
+    relocate('com.palantir.remoting2.errors', 'com.palantir.atlasdb.http.errors')
+    
+    dependencies {
+        include(dependency(group: 'com.palantir.remoting2', name: 'error-handling'))
+    }
+}
+
+jar.dependsOn shadowJar
+jar.onlyIf { false } // Prevents running the jar task directly.
