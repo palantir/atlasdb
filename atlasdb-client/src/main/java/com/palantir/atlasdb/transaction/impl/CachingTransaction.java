@@ -44,11 +44,13 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 public class CachingTransaction extends ForwardingTransaction {
 
     private static final Logger log = LoggerFactory.getLogger(CachingTransaction.class);
+    private static final int defaultMaxCacheSize = 100_000;
 
     final Transaction delegate;
 
     private final LoadingCache<String, ConcurrentMap<Cell, byte[]>> columnTableCache = CacheBuilder.newBuilder()
             .softValues()
+            .maximumSize(defaultMaxCacheSize)
             .build(new CacheLoader<String, ConcurrentMap<Cell, byte[]>>() {
         @Override
         public ConcurrentMap<Cell, byte[]> load(String key) throws Exception {
