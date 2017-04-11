@@ -204,6 +204,16 @@
 <td>Any lock requests that take more than <code class="docutils literal"><span class="pre">100ms</span></code> to receive a response are now logged in the <code class="docutils literal"><span class="pre">SlowLockLogger</span></code> logger.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1769">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<td>Deprecated <code class="docutils literal"><span class="pre">InMemoryAtlasDbFactory#createInMemoryTransactionManager</span></code>, please instead use the supported <code class="docutils literal"><span class="pre">TransactionManagers.createInMemory(...)</span></code> for your testing.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1784">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB HTTP clients now parse <code class="docutils literal"><span class="pre">Retry-After</span></code> headers correctly.
+This manifests as clients failing over and trying other nodes when receiving a 503 with a <code class="docutils literal"><span class="pre">Retry-After</span></code> header from a remote (e.g. from a TimeLock non-leader).
+Previously, clients would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1782">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
