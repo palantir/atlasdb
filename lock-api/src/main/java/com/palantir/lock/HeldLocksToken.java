@@ -230,7 +230,8 @@ import com.google.common.collect.Iterables;
                 @JsonProperty("expirationDateMs") long expirationDateMs,
                 @JsonProperty("locks") List<LockWithMode> locks,
                 @JsonProperty("lockTimeout") TimeDuration lockTimeout,
-                @JsonProperty("versionId") Long versionId, String requestingThread) {
+                @JsonProperty("versionId") Long versionId,
+                @JsonProperty("requestingThread") String requestingThread) {
             ImmutableSortedMap.Builder<LockDescriptor, LockMode> localLockMapBuilder = ImmutableSortedMap.naturalOrder();
             for (LockWithMode lock : locks) {
                 localLockMapBuilder.put(lock.getLockDescriptor(), lock.getLockMode());
