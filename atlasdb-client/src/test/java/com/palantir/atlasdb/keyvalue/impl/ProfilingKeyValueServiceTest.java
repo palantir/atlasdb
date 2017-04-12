@@ -95,7 +95,7 @@ public class ProfilingKeyValueServiceTest {
     @Before
     public void before() throws Exception {
         delegate = mock(KeyValueService.class);
-        kvs = ProfilingKeyValueService.create(delegate);
+        kvs = ProfilingKeyValueService.create(delegate, 1000);
     }
 
     @After

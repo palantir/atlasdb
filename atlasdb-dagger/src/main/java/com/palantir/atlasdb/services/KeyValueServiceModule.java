@@ -51,7 +51,8 @@ public class KeyValueServiceModule {
                                                          TimestampService tss,
                                                          ServicesConfig config) {
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
-        kvs = ProfilingKeyValueService.create(kvs);
+        kvs = ProfilingKeyValueService.create(kvs,
+                config.atlasDbConfig().getProfilingKeyValueStoreSlowLogThresholdMillis());
         kvs = TracingKeyValueService.create(kvs);
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs);
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);

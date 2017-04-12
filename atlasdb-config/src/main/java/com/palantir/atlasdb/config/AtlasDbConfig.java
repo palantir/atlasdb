@@ -171,6 +171,14 @@ public abstract class AtlasDbConfig {
         return AtlasDbConstants.DEFAULT_SWEEP_CELL_BATCH_SIZE;
     }
 
+    /**
+     * The time threshold for ProfilingKeyValueService to log a KVS operation for being slow.
+     */
+    @Value.Default
+    public long getProfilingKeyValueStoreSlowLogThresholdMillis() {
+        return 1000;
+    }
+
     @Value.Check
     protected final void check() {
         if (leader().isPresent()) {

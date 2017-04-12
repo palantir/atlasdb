@@ -74,8 +74,8 @@ public class ProfilingKeyValueService implements KeyValueService {
         return sizeInBytes;
     }
 
-    public static ProfilingKeyValueService create(KeyValueService delegate) {
-        return new ProfilingKeyValueService(delegate);
+    public static ProfilingKeyValueService create(KeyValueService delegate, long slowLogThresholdMillis) {
+        return new ProfilingKeyValueService(delegate, slowLogThresholdMillis);
     }
 
     @FunctionalInterface
@@ -164,12 +164,15 @@ public class ProfilingKeyValueService implements KeyValueService {
 
     private final KeyValueService delegate;
 
-    private ProfilingKeyValueService(KeyValueService delegate) {
+    private final Long slowLogThresholdMillis;
+
+    private final Predicate<Stopwatch> slowLogPredicate;
+
+    private ProfilingKeyValueService(KeyValueService delegate, long slowLogThresholdMillis) {
         this.delegate = delegate;
+        this.slowLogThresholdMillis = slowLogThresholdMillis;
+        slowLogPredicate =  stopwatch -> stopwatch.elapsed(TimeUnit.MILLISECONDS) > slowLogThresholdMillis;
     }
-
-    private final Predicate<Stopwatch> slowLogPredicate = stopwatch -> stopwatch.elapsed(TimeUnit.MILLISECONDS) > 1000;
-
 
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
