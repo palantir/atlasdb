@@ -38,14 +38,22 @@ import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 
 public final class LockServiceImplTest extends LockServiceTest {
     public static final long SLOW_LOG_TRIGGER_MILLIS = LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS + 10;
-    private LockServiceImpl lockService;
+    private static final String TEST_LOCKID = "test_lockId";
+    private LockServiceImpl lockServiceWithSlowLogEnabled;
+    private LockServiceImpl lockServiceWithSlowLogDisabled;
+
     TestLogger testSlowLogger = TestLoggerFactory.getTestLogger(SlowLockLogger.class);
     TestLogger lockServiceImplLogger = TestLoggerFactory.getTestLogger(LockServiceImpl.class);
 
     @Before
     public void setUp() {
         lockServiceImplLogger.setEnabledLevels(Level.INFO);
-        lockService = LockServiceImpl.create(new LockServerOptions() {
+        lockServiceWithSlowLogEnabled = createLockServiceWithSlowLogTrigger(true);
+        lockServiceWithSlowLogDisabled = createLockServiceWithSlowLogTrigger(false);
+    }
+
+    private LockServiceImpl createLockServiceWithSlowLogTrigger(boolean isSlowLogEnabled) {
+        return LockServiceImpl.create(new LockServerOptions() {
             private static final long serialVersionUID = 1L;
 
             @Override
@@ -55,7 +63,7 @@ public final class LockServiceImplTest extends LockServiceTest {
 
             @Override
             public long slowLogTriggerMillis() {
-                return SLOW_LOG_TRIGGER_MILLIS;
+                return isSlowLogEnabled ? SLOW_LOG_TRIGGER_MILLIS : 0;
             }
         });
     }
@@ -66,39 +74,72 @@ public final class LockServiceImplTest extends LockServiceTest {
     }
 
     protected LockService getLockService() {
-        return SerializingProxy.newProxyInstance(LockService.class, lockService);
+        return SerializingProxy.newProxyInstance(LockService.class, lockServiceWithSlowLogEnabled);
     }
 
     @Test
-    public void slowLogShouldBeEnabled() {
-        assertThat(lockService.isSlowLogEnabled(), is(true));
+    public void slowLogShouldBeEnabledIfSlowLogTriggerMillisIsSetToPositiveValue() {
+        assertThat(lockServiceWithSlowLogEnabled.isSlowLogEnabled(), is(true));
+    }
+
+    @Test
+    public void slowLogShouldNotBeEnabledIfSlowLogTriggerMillisIsSetToZero() {
+        assertThat(lockServiceWithSlowLogDisabled.isSlowLogEnabled(), is(false));
     }
 
     @Test
     public void slowLogShouldBeLoggedWhenLockResponseIsSlowButShouldNotBeLoggedAtDebug() {
         long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS + 5;
         lockServiceImplLogger.setEnabledLevels(Level.DEBUG);
-        lockService.logSlowLockAcquisition("test_lockId", LockClient.ANONYMOUS, lockDurationMillis);
+        lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
 
         assertThat(lockServiceImplLogger.isDebugEnabled(), is(true));
         assertThat(lockServiceImplLogger.getLoggingEvents().size(), is(0));
 
         assertThat(testSlowLogger.getLoggingEvents().size(), is(1));
         assertThat(Iterables.getOnlyElement(testSlowLogger.getLoggingEvents()),
-                is(info("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, "test_lockId",
+                is(info("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID,
                         "unsuccessfully")));
     }
+
+    @Test
+    public void debugLogShouldBeLoggedWhenLockResponseIsSlowButSlowLogIsDisabled() {
+        long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS + 5;
+        lockServiceImplLogger.setEnabledLevels(Level.DEBUG);
+        lockServiceWithSlowLogDisabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
+
+        assertThat(lockServiceImplLogger.isDebugEnabled(), is(true));
+        assertThat(Iterables.getOnlyElement(lockServiceImplLogger.getLoggingEvents()),
+                is(debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID,
+                        "unsuccessfully")));
+
+        assertThat(testSlowLogger.getLoggingEvents().size(), is(0));
+    }
+
 
     @Test
     public void debugLogShouldBeLoggedIfLockResponseTimeIsLessThanSlowLogTriggerMillisButGreaterThanDebugTriggerTime() {
         lockServiceImplLogger.setEnabledLevels(Level.DEBUG);
         long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS - 5;
-        lockService.logSlowLockAcquisition("test_lockId", LockClient.ANONYMOUS, lockDurationMillis);
+        lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
 
         assertThat(lockServiceImplLogger.isDebugEnabled(), is(true));
-        assertThat(lockServiceImplLogger.getLoggingEvents().size(), is(1));
         assertThat(Iterables.getOnlyElement(lockServiceImplLogger.getLoggingEvents()),
-                is(debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, "test_lockId",
+                is(debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID,
+                        "unsuccessfully")));
+
+        assertThat(testSlowLogger.getLoggingEvents().size(), is(0));
+    }
+
+    @Test
+    public void debugLogShouldBeLoggedIfLockIsSlowAndSlowLogIsDisabled() {
+        lockServiceImplLogger.setEnabledLevels(Level.DEBUG);
+        long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS - 5;
+        lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
+
+        assertThat(lockServiceImplLogger.isDebugEnabled(), is(true));
+        assertThat(Iterables.getOnlyElement(lockServiceImplLogger.getLoggingEvents()),
+                is(debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID,
                         "unsuccessfully")));
 
         assertThat(testSlowLogger.getLoggingEvents().size(), is(0));
@@ -107,7 +148,8 @@ public final class LockServiceImplTest extends LockServiceTest {
     @Test
     public void debugOrSlowLogShouldNotBeLoggedWhenLockResponseIsNotSlow() {
         lockServiceImplLogger.setEnabledLevels(Level.DEBUG);
-        lockService.logSlowLockAcquisition("test_lockId", LockClient.ANONYMOUS, LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS - 5);
+        lockServiceWithSlowLogEnabled.logSlowLockAcquisition(
+                TEST_LOCKID, LockClient.ANONYMOUS, LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS - 5);
         assertThat(lockServiceImplLogger.getLoggingEvents().size(), is(0));
         assertThat(testSlowLogger.getLoggingEvents().size(), is(0));
     }
