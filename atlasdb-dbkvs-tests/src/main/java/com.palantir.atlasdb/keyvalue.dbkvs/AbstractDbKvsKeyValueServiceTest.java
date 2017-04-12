@@ -28,8 +28,10 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
@@ -38,9 +40,23 @@ import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueServiceTest {
+    protected static final Namespace TEST_NAMESPACE = Namespace.create("ns");
+    protected static final String TEST_LONG_TABLE_NAME =
+            "ThisShouldAlwaysBeAVeryLongTableNameThatExceedsPostgresLengthLimit";
+
     @After
     public void resetMaxBatch() {
         setMaxRangeOfTimestampsBatchSize(DbKvs.DEFAULT_GET_RANGE_OF_TS_BATCH);
+    }
+
+    @Test
+    public void dontThrowWhenCreatingTheSameLongTable() throws Exception {
+        TableReference longTableName = TableReference.create(TEST_NAMESPACE, TEST_LONG_TABLE_NAME);
+
+        keyValueService.createTable(longTableName, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(longTableName, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        keyValueService.dropTable(longTableName);
     }
 
     @Test

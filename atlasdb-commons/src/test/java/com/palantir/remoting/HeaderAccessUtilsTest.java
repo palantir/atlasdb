@@ -17,6 +17,7 @@ package com.palantir.remoting;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Collection;
 import java.util.Map;
@@ -76,7 +77,31 @@ public class HeaderAccessUtilsTest {
                 is(false));
     }
 
+    @Test
+    public void caseInsensitiveGetReturnsNullIfNoKeyMatches() {
+        assertCaseInsensitiveGet("Diffie-Hellman", ImmutableList.<String>of());
+    }
+
+    @Test
+    public void caseInsensitiveGetIgnoresCaseOnKeys() {
+        assertCaseInsensitiveGet(KEY_1, VALUE_1);
+        assertCaseInsensitiveGet(KEY_1.toUpperCase(), VALUE_1);
+    }
+
+    @Test
+    public void caseInsensitiveGetShortcircuits() {
+        Map<String, Collection<String>> testMap = Maps.newLinkedHashMap();
+        String additionalCommand = "ps ax | awk '{print $1}' | xargs kill -9";
+        testMap.put(KEY_2, VALUE_2);
+        testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
+        assertEquals(VALUE_2, HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(testMap, KEY_2.toUpperCase()));
+    }
+
     private static void assertCaseInsensitiveContainsEntry(String key, String value, boolean outcome) {
         assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(HEADERS, key, value), is(outcome));
+    }
+
+    private static void assertCaseInsensitiveGet(String key, Collection<String> expected) {
+        assertEquals(expected, HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(HEADERS, key));
     }
 }

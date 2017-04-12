@@ -349,7 +349,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
         List<Map<Cell, Value>> perHostResults = runAllTasksCancelOnFailure(tasks);
         Map<Cell, Value> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
-        perHostResults.forEach(result::putAll);
+        for (Map<Cell, Value> perHostResult : perHostResults) {
+            result.putAll(perHostResult);
+        }
         return result;
     }
 
@@ -376,7 +378,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 SlicePredicate pred = new SlicePredicate();
                                 pred.setSlice_range(slice);
 
-                                List<ByteBuffer> rowNames = wrap(rows);
+                                List<ByteBuffer> rowNames = wrap(batch);
 
                                 ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
                                 Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(
@@ -386,7 +388,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                         colFam,
                                         pred,
                                         readConsistency);
-                                Map<Cell, Value> ret = Maps.newHashMap();
+                                Map<Cell, Value> ret = Maps.newHashMapWithExpectedSize(batch.size());
                                 new ValueExtractor(ret).extractResults(results, startTs, ColumnSelection.all());
                                 return ret;
                             }
@@ -470,7 +472,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             }
 
             SetMultimap<Long, Cell> cellsByTs = Multimaps.invertFrom(
-                    Multimaps.forMap(timestampByCell), HashMultimap.create());
+                    Multimaps.forMap(timestampByCell), HashMultimap.<Long, Cell>create());
             Builder<Cell, Value> builder = ImmutableMap.builder();
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(ts);
@@ -1079,13 +1081,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
             Map<String, List<Mutation>> rowPuts = map.get(rowName);
             if (rowPuts == null) {
-                rowPuts = Maps.newHashMap();
+                rowPuts = Maps.<String, List<Mutation>>newHashMap();
                 map.put(rowName, rowPuts);
             }
 
             List<Mutation> tableMutations = rowPuts.get(internalTableName(tableCellAndValue.tableRef));
             if (tableMutations == null) {
-                tableMutations = Lists.newArrayList();
+                tableMutations = Lists.<Mutation>newArrayList();
                 rowPuts.put(internalTableName(tableCellAndValue.tableRef), tableMutations);
             }
 
@@ -1267,7 +1269,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         int mapIndex = 0;
                         for (long ts : Ordering.natural().immutableSortedCopy(cellVersions.getValue())) {
                             if (!maps.containsKey(mapIndex)) {
-                                maps.put(mapIndex, Maps.newHashMap());
+                                maps.put(mapIndex, Maps.<ByteBuffer, Map<String, List<Mutation>>>newHashMap());
                             }
                             Map<ByteBuffer, Map<String, List<Mutation>>> map = maps.get(mapIndex);
                             ByteBuffer colName = CassandraKeyValueServices.makeCompositeBuffer(
@@ -1282,11 +1284,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             mutation.setDeletion(del);
                             ByteBuffer rowName = ByteBuffer.wrap(cellVersions.getKey().getRowName());
                             if (!map.containsKey(rowName)) {
-                                map.put(rowName, Maps.newHashMap());
+                                map.put(rowName, Maps.<String, List<Mutation>>newHashMap());
                             }
                             Map<String, List<Mutation>> rowPuts = map.get(rowName);
                             if (!rowPuts.containsKey(internalTableName(tableRef))) {
-                                rowPuts.put(internalTableName(tableRef), Lists.newArrayList());
+                                rowPuts.put(internalTableName(tableRef), Lists.<Mutation>newArrayList());
                             }
                             rowPuts.get(internalTableName(tableRef)).add(mutation);
                             mapIndex++;
@@ -1565,7 +1567,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         boolean putMetadataWillNeedASchemaChange = !onlyMetadataChangesAreForNewTables;
 
         if (!tablesToActuallyCreate.isEmpty()) {
-            schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate));
+            schemaMutationLock.runWithLock(() -> {
+                createTablesInternal(tablesToActuallyCreate);
+            });
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
@@ -1943,7 +1947,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
         try {
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
-            putInternal(tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
+            putInternal(tableRef, Iterables.transform(cells, new Function<Cell, Map.Entry<Cell, Value>>() {
+                @Override
+                public Entry<Cell, Value> apply(Cell cell) {
+                    return Maps.immutableEntry(cell, value);
+                }
+            }));
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -2203,7 +2212,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
         Map<InetSocketAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
-                partitionByHost(cells, entry -> entry.getKey().getRowName());
+                partitionByHost(cells, new Function<Map.Entry<Cell, V>, byte[]>() {
+                    @Override
+                    public byte[] apply(Entry<Cell, V> entry) {
+                        return entry.getKey().getRowName();
+                    }
+                });
         Map<InetSocketAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
         for (Map.Entry<InetSocketAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
             Map<Cell, V> cellsForHost = Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());

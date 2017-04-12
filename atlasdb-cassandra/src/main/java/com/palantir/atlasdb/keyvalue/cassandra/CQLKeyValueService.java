@@ -43,7 +43,6 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.PreparedStatement;
@@ -52,6 +51,7 @@ import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
@@ -62,10 +62,12 @@ import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.policies.RoundRobinPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
+import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
@@ -167,17 +169,17 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         clusterBuilder.withCompression(Compression.LZ4);
 
         if (config.sslConfiguration().isPresent()) {
-            // We could switch to newer netty SSL configuration (perf++), but all of our other stuff
-            // uses the built-in java SSL configuration and doing something different could be a headache
             SSLContext sslContext = SslSocketFactories.createSslContext(config.sslConfiguration().get());
-            JdkSSLOptions sslOptions = JdkSSLOptions.builder().withSSLContext(sslContext).build();
+            SSLOptions sslOptions = new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
             clusterBuilder.withSSL(sslOptions);
+        } else if (config.ssl().isPresent() && config.ssl().get()) {
+            clusterBuilder.withSSL();
         }
 
         PoolingOptions poolingOptions = new PoolingOptions();
         poolingOptions.setMaxRequestsPerConnection(HostDistance.LOCAL, config.poolSize());
         poolingOptions.setMaxRequestsPerConnection(HostDistance.REMOTE, config.poolSize());
-        poolingOptions.setMaxQueueSize(config.cqlPoolMaxQueueSize());
+        poolingOptions.setPoolTimeoutMillis(config.cqlPoolTimeoutMillis());
         clusterBuilder.withPoolingOptions(poolingOptions);
 
         // defaults for queries; can override on per-query basis
@@ -210,9 +212,17 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             cluster = clusterBuilder.build();
             metadata = cluster.getMetadata(); // special; this is the first place we connect to
             // hosts, this is where people will see failures
-        } catch (NoHostAvailableException | IllegalStateException e) {
-            if (e.getMessage().contains("Unknown compression algorithm")
-                    || e.getMessage().contains("requested compression is not available")) {
+        } catch (NoHostAvailableException e) {
+            if (e.getMessage().contains("Unknown compression algorithm")) {
+                clusterBuilder.withCompression(Compression.NONE);
+                cluster = clusterBuilder.build();
+                metadata = cluster.getMetadata();
+            } else {
+                throw e;
+            }
+        } catch (IllegalStateException e) {
+            // god dammit datastax what did I do to _you_
+            if (e.getMessage().contains("requested compression is not available")) {
                 clusterBuilder.withCompression(Compression.NONE);
                 cluster = clusterBuilder.build();
                 metadata = cluster.getMetadata();
@@ -275,8 +285,12 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
         Set<Peer> peers = CQLKeyValueServices.getPeers(session);
 
-        boolean allNodesHaveSaneNumberOfVnodes = Iterables.all(peers,
-                peer -> peer.tokens.size() > CassandraConstants.ABSOLUTE_MINIMUM_NUMBER_OF_TOKENS_PER_NODE);
+        boolean allNodesHaveSaneNumberOfVnodes = Iterables.all(peers, new Predicate<Peer>() {
+            @Override
+            public boolean apply(Peer peer) {
+                return peer.tokens.size() > CassandraConstants.ABSOLUTE_MINIMUM_NUMBER_OF_TOKENS_PER_NODE;
+            }
+        });
 
         // node we're querying doesn't count itself as a peer
         if (peers.size() > 0 && !allNodesHaveSaneNumberOfVnodes) {
@@ -1145,7 +1159,12 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             final Value value = Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP);
             putInternal(
                     tableRef,
-                    Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)), TransactionType.NONE);
+                    Iterables.transform(cells, new Function<Cell, Map.Entry<Cell, Value>>() {
+                        @Override
+                        public Entry<Cell, Value> apply(Cell cell) {
+                            return Maps.immutableEntry(cell, value);
+                        }
+                    }), TransactionType.NONE);
         } catch (Throwable t) {
             throw Throwables.throwUncheckedException(t);
         }
