@@ -12,6 +12,7 @@ configurations {
 
 dependencies {
     compile group: 'com.palantir.remoting2', name: 'error-handling'
+    compile group: 'com.palantir.remoting2', name: 'jackson-support'
 
     explicitShadow project(':atlasdb-api')
     explicitShadow project(':atlasdb-impl-shared')
@@ -52,9 +53,11 @@ shadowJar {
     classifier ''
 
     relocate('com.palantir.remoting2.errors', 'com.palantir.atlasdb.shaded.com.palantir.remoting2.errors')
-    
+    relocate('com.palantir.remoting2.ext.jackson', 'com.palantir.atlasdb.shaded.com.palantir.remoting2.ext.jackson')
+
     dependencies {
         include(dependency(group: 'com.palantir.remoting2', name: 'error-handling'))
+        include(dependency(group: 'com.palantir.remoting2', name: 'jackson-support'))
     }
 }
 
