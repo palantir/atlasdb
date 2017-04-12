@@ -16,17 +16,45 @@
 package com.palantir.atlasdb.containers;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 public class CassandraEnvironmentTest {
+    @Rule
+    public final EnvironmentVariables environment = new EnvironmentVariables();
+
     @Test
     public void testDefaults() {
-        Map<String, String> defaults = CassandraEnvironment.get();
+        assertCassandraEnvironmentContains(
+                CassandraEnvironment.DEFAULT_VERSION,
+                CassandraEnvironment.DEFAULT_MAX_HEAP_SIZE,
+                CassandraEnvironment.DEFAULT_HEAP_NEWSIZE);
+    }
 
-        assertThat(defaults.size(), is(3));
+    @Test
+    public void testNonDefaultsAreRead() {
+        String version = "1.2.19";
+        String maxHeapSize = "1337m";
+        String heapNewsize = "42m";
+
+        environment.set(CassandraEnvironment.CASSANDRA_VERSION, version);
+        environment.set(CassandraEnvironment.CASSANDRA_MAX_HEAP_SIZE, maxHeapSize);
+        environment.set(CassandraEnvironment.CASSANDRA_HEAP_NEWSIZE, heapNewsize);
+
+        assertCassandraEnvironmentContains(version, maxHeapSize, heapNewsize);
+    }
+
+    private void assertCassandraEnvironmentContains(String version, String maxHeapSize, String heapNewsize) {
+        Map<String, String> variables = CassandraEnvironment.get();
+        assertThat(variables.size(), is(3));
+        assertEquals(version, variables.get(CassandraEnvironment.CASSANDRA_VERSION));
+        assertEquals(maxHeapSize, variables.get(CassandraEnvironment.CASSANDRA_MAX_HEAP_SIZE));
+        assertEquals(heapNewsize, variables.get(CassandraEnvironment.CASSANDRA_HEAP_NEWSIZE));
     }
 }
