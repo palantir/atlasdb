@@ -70,7 +70,6 @@ configurations.all {
                     details.useVersion libVersions.timelock_dropwizard
                     break
                 case 'com.fasterxml.jackson.core':
-                case 'com.fasterxml.jackson.module':
                 case 'com.fasterxml.jackson.datatype':
                     details.useVersion libVersions.timelock_jackson
                     break
@@ -84,6 +83,7 @@ configurations.all {
         }
         forcedModules = [
                 'ch.qos.logback:logback-classic:1.1.7',
+                'com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7',
                 'com.netflix.feign:feign-core:8.10.1',
                 'io.atomix.catalyst:catalyst-transport:1.1.2',
                 'org.objenesis:objenesis:2.3'
