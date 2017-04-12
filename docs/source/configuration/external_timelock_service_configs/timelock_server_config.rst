@@ -131,10 +131,8 @@ default values.
      - The length of time between a follower initiating a ping to a leader and, if it hasn't received a response,
        believing the leader is down, in ms (default: ``5000``).
 
-
 Further Configuration Parameters
 --------------------------------
-
    * - Property
      - Description
 
@@ -144,7 +142,6 @@ Further Configuration Parameters
 
 Dropwizard Configuration Parameters
 -----------------------------------
-
 The Timelock Server is implemented as a Dropwizard application, and may thus be suitably configured with a ``server``
 block following `Dropwizard's configuration <http://www.dropwizard.io/1.0.6/docs/manual/configuration.html>`__. This
 may be useful if, for example, one needs to change the application and/or admin ports for the Timelock Server.
