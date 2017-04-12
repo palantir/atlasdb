@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -58,7 +58,6 @@ public final class LockServiceImplTest extends LockServiceTest {
                 return SLOW_LOG_TRIGGER_MILLIS;
             }
         });
-
     }
 
     @After

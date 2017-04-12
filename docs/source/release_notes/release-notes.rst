@@ -47,9 +47,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
 
     *    - |improved|
-         - The lock server can be configured with an option to enable logging if the request that take more than a given time. Specifically, the timelock server also takes a configuration parameter ``slowLockLogTriggerMillis``
-           and any lock server requests that take more than 10 are now logged in the ``SlowLockLogger`` logger.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1769>`__)
+         - The lock server can be configured with an option to enable logging to the ``SlowLockLogger`` logger if the request takes more than a given time to be processed on the lock server. Specifically, the
+           timelock server also a configuration parameter ``slowLockLogTriggerMillis`` which defaults to ``10000ms``. Any application can modify the trigger value through ``LockServerOptions`` in
+           ``TransactionManagers.create`` if not using timelock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1791>`__)
 
     *    - |deprecated|
          - Deprecated ``InMemoryAtlasDbFactory#createInMemoryTransactionManager``, please instead use the supported ``TransactionManagers.createInMemory(...)`` for your testing.

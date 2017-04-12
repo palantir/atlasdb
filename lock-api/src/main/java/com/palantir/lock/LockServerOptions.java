@@ -96,7 +96,7 @@ import com.google.common.base.Objects;
      * If the duration is zero or negative, slow lock logging will be disabled.
      */
     public long slowLogTriggerMillis() {
-        return -1;
+        return 10000;
     }
 
     @Override public final boolean equals(@Nullable Object obj) {
