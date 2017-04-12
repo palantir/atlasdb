@@ -17,30 +17,33 @@ package com.palantir.atlasdb.timelock;
 
 import static org.mockito.Mockito.mock;
 
+import java.util.Set;
+
 import javax.ws.rs.NotFoundException;
 
 import org.junit.Test;
+import org.mockito.internal.util.collections.Sets;
 
-import com.google.common.collect.ImmutableMap;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class TimeLockResourceTest {
     private static final String EXISTING_CLIENT = "existing-client";
-    private static final String NON_EXISTING_CLIENT = "non-existing-client";
+    private static final Set<String> EXISTING_CLIENT_SET = Sets.newSet(EXISTING_CLIENT);
 
+    private static final String NON_EXISTING_CLIENT = "non-existing-client";
     private static final LockService LOCK_SERVICE = mock(LockService.class);
     private static final TimestampService TIMESTAMP_SERVICE = mock(TimestampService.class);
     private static final TimestampManagementService TIMESTAMP_MANAGEMENT_SERVICE =
             mock(TimestampManagementService.class);
+
     private static final TimeLockServices TIME_LOCK_SERVICES = TimeLockServices.create(
             TIMESTAMP_SERVICE,
             LOCK_SERVICE,
             TIMESTAMP_MANAGEMENT_SERVICE);
-
-    private static final TimeLockResource RESOURCE = new TimeLockResource(
-            ImmutableMap.of(EXISTING_CLIENT, TIME_LOCK_SERVICES));
+    private static final TimeLockResource RESOURCE = new TimeLockResource(() -> EXISTING_CLIENT_SET,
+            client -> TIME_LOCK_SERVICES);
 
     @Test
     public void canGetExistingTimeService() {

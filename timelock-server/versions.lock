@@ -68,6 +68,7 @@
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.config.crypto:encrypted-config-value",
+                "com.palantir.config.crypto:encrypted-config-value-bundle",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:ssl-config",
@@ -196,6 +197,7 @@
                 "com.github.rholder:guava-retrying",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.config.crypto:encrypted-config-value",
+                "com.palantir.config.crypto:encrypted-config-value-bundle",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:ssl-config",
@@ -367,10 +369,15 @@
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
+        "com.palantir.config.crypto:encrypted-config-value-bundle": {
+            "locked": "1.0.0",
+            "requested": "1.0.0"
+        },
         "com.palantir.config.crypto:encrypted-config-value-module": {
             "locked": "1.0.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.config.crypto:encrypted-config-value-bundle"
             ]
         },
         "com.palantir.patches.sourceforge:trove3": {
@@ -656,6 +663,7 @@
             "locked": "1.0.6",
             "requested": "1.0.6",
             "transitive": [
+                "com.palantir.config.crypto:encrypted-config-value-bundle",
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
@@ -1265,6 +1273,7 @@
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.config.crypto:encrypted-config-value",
+                "com.palantir.config.crypto:encrypted-config-value-bundle",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:ssl-config",
@@ -1393,6 +1402,7 @@
                 "com.github.rholder:guava-retrying",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.config.crypto:encrypted-config-value",
+                "com.palantir.config.crypto:encrypted-config-value-bundle",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:ssl-config",
@@ -1564,10 +1574,15 @@
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
+        "com.palantir.config.crypto:encrypted-config-value-bundle": {
+            "locked": "1.0.0",
+            "requested": "1.0.0"
+        },
         "com.palantir.config.crypto:encrypted-config-value-module": {
             "locked": "1.0.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.config.crypto:encrypted-config-value-bundle"
             ]
         },
         "com.palantir.patches.sourceforge:trove3": {
@@ -1853,6 +1868,7 @@
             "locked": "1.0.6",
             "requested": "1.0.6",
             "transitive": [
+                "com.palantir.config.crypto:encrypted-config-value-bundle",
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
