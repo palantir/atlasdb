@@ -42,21 +42,21 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class CachingTransaction extends ForwardingTransaction {
-
     private static final Logger log = LoggerFactory.getLogger(CachingTransaction.class);
-    private static final int defaultMaxCacheSize = 100_000;
+
+    private static final int DEFAULT_MAX_CACHE_SIZE = 100_000;
 
     final Transaction delegate;
 
     private final LoadingCache<String, ConcurrentMap<Cell, byte[]>> columnTableCache = CacheBuilder.newBuilder()
             .softValues()
-            .maximumSize(defaultMaxCacheSize)
+            .maximumSize(DEFAULT_MAX_CACHE_SIZE)
             .build(new CacheLoader<String, ConcurrentMap<Cell, byte[]>>() {
-        @Override
-        public ConcurrentMap<Cell, byte[]> load(String key) throws Exception {
-            return Maps.newConcurrentMap();
-        }
-    });
+                @Override
+                public ConcurrentMap<Cell, byte[]> load(String key) throws Exception {
+                    return Maps.newConcurrentMap();
+                }
+            });
 
     public CachingTransaction(Transaction delegate) {
         this.delegate = delegate;
@@ -162,7 +162,7 @@ public class CachingTransaction extends ForwardingTransaction {
     }
 
     @Override
-    final public void delete(TableReference tableRef, Set<Cell> cells) {
+    public final void delete(TableReference tableRef, Set<Cell> cells) {
         super.delete(tableRef, cells);
         addToColCache(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
     }
