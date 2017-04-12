@@ -115,17 +115,6 @@ public class PaxosTimeLockServerIntegrationTest {
             .around(TEMPORARY_CONFIG_HOLDER)
             .around(TIMELOCK_SERVER_HOLDER);
 
-    private TrustManager[] get_trust_mgr() {
-        TrustManager[] certs = new TrustManager[] {
-                new X509TrustManager() {
-                    public X509Certificate[ ] getAcceptedIssuers() { return null; }
-                    public void checkClientTrusted(X509Certificate[ ] certs, String t) { }
-                    public void checkServerTrusted(X509Certificate[ ] certs, String t) { }
-                }
-        };
-        return certs;
-    }
-
     @Test
     public void notExceedingThreadCountLimitsSucceeds() throws Exception {
         List<RemoteLockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
@@ -180,7 +169,9 @@ public class PaxosTimeLockServerIntegrationTest {
         CountDownLatch countDownLatch = new CountDownLatch(GLOBAL_TC_LIMIT + 2 * LOCAL_TC_LIMIT + FORTY_TWO);
 
         // This will exhaust all the globally available threads
-        initialRequests = requestLocks(lockService1, GLOBAL_TC_LIMIT + LOCAL_TC_LIMIT + FORTY_TWO, executorService, countDownLatch);
+        initialRequests = requestLocks(lockService1,
+                GLOBAL_TC_LIMIT + LOCAL_TC_LIMIT + FORTY_TWO, executorService,
+                countDownLatch);
 
         // The following are assigned to CLIENT_2's threads
         secondClientRequests = requestLocks(lockService2, LOCAL_TC_LIMIT, executorService, countDownLatch);
@@ -353,15 +344,17 @@ public class PaxosTimeLockServerIntegrationTest {
         assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
     }
 
-    private List<Future<LockRefreshToken>> requestLocks(RemoteLockService lockService, int number, ExecutorService executorService, CountDownLatch countDownLatch) {
+    private List<Future<LockRefreshToken>> requestLocks(RemoteLockService lockService,
+            int number,
+            ExecutorService executorService,
+            CountDownLatch countDownLatch) {
         List<Future<LockRefreshToken>> futures = Lists.newArrayList();
         for (int i = 0; i < number; i++) {
             int currentTrial = i;
             futures.add(executorService.submit(() -> {
                 countDownLatch.countDown();
                 countDownLatch.await();
-                LockRefreshToken asdg = lockService.lock(lockService.toString() + String.valueOf(currentTrial), SLOW_REQUEST);
-                return asdg;
+                return lockService.lock(lockService.toString() + String.valueOf(currentTrial), SLOW_REQUEST);
             }));
         }
         return futures;
@@ -370,25 +363,27 @@ public class PaxosTimeLockServerIntegrationTest {
     private int unlockAndCountExceptions(RemoteLockService lockService, List<Future<LockRefreshToken>> futures) {
         AtomicInteger exceptionCounter = new AtomicInteger(0);
         futures.forEach(future -> {
-                try {
-                    LockRefreshToken token = future.get();
-                    if (token != null) {
-                        lockService.unlock(token);
-                    }
-                } catch (Exception e) {
-                    assertThat(e).hasMessageContaining(TOO_MANY_REQUESTS_CODE);
-                    exceptionCounter.getAndIncrement();
+            try {
+                LockRefreshToken token = future.get();
+                if (token != null) {
+                    lockService.unlock(token);
                 }
+            } catch (Exception e) {
+                assertThat(e).hasMessageContaining(TOO_MANY_REQUESTS_CODE);
+                exceptionCounter.getAndIncrement();
+            }
 
         });
         return exceptionCounter.get();
     }
 
-    private int lockAndUnlockAndCountExceptions(List<RemoteLockService> lockServices, int numRequests) throws Exception {
+    private int lockAndUnlockAndCountExceptions(List<RemoteLockService> lockServices, int numRequests)
+            throws Exception {
         CountDownLatch countDownLatch = new CountDownLatch(lockServices.size() * numRequests);
         ExecutorService executorService = Executors.newFixedThreadPool(lockServices.size() * numRequests);
         Map<RemoteLockService, List<Future<LockRefreshToken>>> futureMap = new HashMap<>();
-        lockServices.forEach(service -> futureMap.put(service, requestLocks(service, numRequests, executorService, countDownLatch)));
+        lockServices.forEach(
+                service -> futureMap.put(service, requestLocks(service, numRequests, executorService, countDownLatch)));
         return futureMap.entrySet().stream()
                 .mapToInt(entry -> unlockAndCountExceptions(entry.getKey(), entry.getValue())).sum();
     }

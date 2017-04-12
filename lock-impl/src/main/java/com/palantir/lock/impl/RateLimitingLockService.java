@@ -22,8 +22,11 @@ import javax.annotation.Nullable;
 
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.lock.ForwardingLockService;
+import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockService;
 
 public class RateLimitingLockService extends ForwardingLockService {
@@ -61,6 +64,22 @@ public class RateLimitingLockService extends ForwardingLockService {
     @Override
     public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
         return applyWithPermit(lockService -> lockService.lock(client, request));
+    }
+
+    @Override
+    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request)
+            throws InterruptedException {
+        return applyWithPermit(lockService -> lockService.lockAndGetHeldLocks(client, request));
+    }
+
+    @Override
+    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
+        return applyWithPermit(lockService -> lockService.lockWithFullLockResponse(client, request));
+    }
+
+    @Override
+    public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
+        return applyWithPermit(lockService -> lockService.refreshTokens(tokens));
     }
 
     @Override
