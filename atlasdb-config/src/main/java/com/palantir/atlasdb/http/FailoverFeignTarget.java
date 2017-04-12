@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -48,7 +49,8 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private final ImmutableList<String> servers;
     private final Class<T> type;
     private final AtomicInteger failoverCount = new AtomicInteger();
-    private final int failuresBeforeSwitching = 3;
+    @VisibleForTesting
+    final int failuresBeforeSwitching = 3;
     private final int numServersToTryBeforeFailing = 14;
     private final int fastFailoverTimeoutMillis = 10000;
     private final int maxBackoffMillis;
@@ -78,40 +80,44 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     @Override
     public void continueOrPropagate(RetryableException ex) {
-        boolean isFastFailoverException;
-        if (ex.retryAfter() == null) {
-            // This is the case where we have failed due to networking or other IOException error.
-            isFastFailoverException = false;
-        } else {
-            // This is the case where the server has returned a 503.
-            // This is done when we want to do fast failover because we aren't the leader or we are shutting down.
-            isFastFailoverException = true;
-        }
+        ExceptionRetryBehaviour retryBehaviour = ExceptionRetryBehaviour.getRetryBehaviourForException(ex);
+
         synchronized (this) {
             // Only fail over if this failure was to the current server.
             // This means that no one on another thread has failed us over already.
             if (mostRecentServerIndex.get() != null && mostRecentServerIndex.get() == failoverCount.get()) {
                 long failures = failuresSinceLastSwitch.incrementAndGet();
-                if (isFastFailoverException || failures >= failuresBeforeSwitching) {
-                    if (isFastFailoverException) {
-                        // We did talk to a node successfully. It was shutting down but nodes are available
-                        // so we shoudln't keep making the backoff higher.
-                        numSwitches.set(0);
-                        startTimeOfFastFailover.compareAndSet(0, System.currentTimeMillis());
-                    } else {
-                        numSwitches.incrementAndGet();
-                        startTimeOfFastFailover.set(0);
-                    }
+                if (shouldSwitchNode(retryBehaviour, failures)) {
+                    failoverToNextNode(retryBehaviour);
+                } else if (retryBehaviour.shouldRetryInfinitelyManyTimes()) {
                     failuresSinceLastSwitch.set(0);
-                    failoverCount.incrementAndGet();
                 }
             }
         }
 
         checkAndHandleFailure(ex);
-        if (!isFastFailoverException) {
+        if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
             pauseForBackOff(ex);
         }
+    }
+
+    private boolean shouldSwitchNode(ExceptionRetryBehaviour retryBehaviour, long failures) {
+        return retryBehaviour.shouldBackoffAndTryOtherNodes()
+                || (!retryBehaviour.shouldRetryInfinitelyManyTimes() && failures >= failuresBeforeSwitching);
+    }
+
+    private void failoverToNextNode(ExceptionRetryBehaviour retryBehaviour) {
+        if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
+            // We did talk to a node successfully. It was shutting down but nodes are available
+            // so we shouldn't keep making the backoff higher.
+            numSwitches.set(0);
+            startTimeOfFastFailover.compareAndSet(0, System.currentTimeMillis());
+        } else {
+            numSwitches.incrementAndGet();
+            startTimeOfFastFailover.set(0);
+        }
+        failuresSinceLastSwitch.set(0);
+        failoverCount.incrementAndGet();
     }
 
     private void checkAndHandleFailure(RetryableException ex) {
