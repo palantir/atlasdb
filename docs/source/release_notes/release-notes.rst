@@ -47,9 +47,9 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
 
     *    - |improved|
-         - The lock server can be configured with an option to enable logging to the ``SlowLockLogger`` logger if the request takes more than a given time to be processed on the lock server. Specifically, the
-           timelock server also a configuration parameter ``slowLockLogTriggerMillis`` which defaults to ``10000ms``. Any application can modify the trigger value through ``LockServerOptions`` in
-           ``TransactionManagers.create`` if not using timelock.
+         - The lock server now logs to ``SlowLockLogger`` logger if a request takes more than a given time (``10000ms`` by default), to be processed. Specifically, the timelock
+           server has a configuration parameter ``slowLockLogTriggerMillis`` which defaults to ``10000ms``. If not using timelock, an application can modify the trigger value
+           through ``LockServerOptions`` during initialization in ``TransactionManagers.create`` .
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1791>`__)
 
     *    - |deprecated|
