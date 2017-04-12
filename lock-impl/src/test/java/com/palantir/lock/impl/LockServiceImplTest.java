@@ -26,17 +26,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
-import com.palantir.common.proxy.SerializingProxy;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.LockService;
-import com.palantir.lock.LockServiceTest;
 
 import uk.org.lidalia.slf4jext.Level;
 import uk.org.lidalia.slf4jtest.TestLogger;
 import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 
-public final class LockServiceImplTest extends LockServiceTest {
+public final class LockServiceImplTest {
     public static final long SLOW_LOG_TRIGGER_MILLIS = LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS + 10;
     private static final String TEST_LOCKID = "test_lockId";
     private LockServiceImpl lockServiceWithSlowLogEnabled;
@@ -48,11 +45,11 @@ public final class LockServiceImplTest extends LockServiceTest {
     @Before
     public void setUp() {
         lockServiceImplLogger.setEnabledLevels(Level.INFO);
-        lockServiceWithSlowLogEnabled = createLockServiceWithSlowLogTrigger(true);
-        lockServiceWithSlowLogDisabled = createLockServiceWithSlowLogTrigger(false);
+        lockServiceWithSlowLogEnabled = createLockServiceWithSlowLogEnabled(true);
+        lockServiceWithSlowLogDisabled = createLockServiceWithSlowLogEnabled(false);
     }
 
-    private LockServiceImpl createLockServiceWithSlowLogTrigger(boolean isSlowLogEnabled) {
+    private LockServiceImpl createLockServiceWithSlowLogEnabled(boolean isSlowLogEnabled) {
         return LockServiceImpl.create(new LockServerOptions() {
             private static final long serialVersionUID = 1L;
 
@@ -71,10 +68,6 @@ public final class LockServiceImplTest extends LockServiceTest {
     @After
     public void clearLoggers() {
         TestLoggerFactory.clear();
-    }
-
-    protected LockService getLockService() {
-        return SerializingProxy.newProxyInstance(LockService.class, lockServiceWithSlowLogEnabled);
     }
 
     @Test
