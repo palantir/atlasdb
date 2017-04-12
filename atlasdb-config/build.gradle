@@ -51,7 +51,7 @@ shadowJar {
     mergeServiceFiles()
     classifier ''
 
-    relocate('com.palantir.remoting2.errors', 'com.palantir.atlasdb.http.errors')
+    relocate('com.palantir.remoting2.errors', 'com.palantir.atlasdb.shaded.com.palantir.remoting2.errors')
     
     dependencies {
         include(dependency(group: 'com.palantir.remoting2', name: 'error-handling'))
