@@ -72,7 +72,7 @@ public class RateLimitingLockServiceTest {
     @Test
     public void oneClientCanUseAllGlobalAndItsLocalThreads() throws InterruptedException, ExecutionException {
         List<Future<LockRefreshToken>> futures = requestLocks(1, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT + TWENTY);
-        assertBlocked(futures, TWENTY);
+        confirmBlockedThreadsAreDone(futures, TWENTY);
         countDownLatch.countDown();
         assertUnBlocked(futures, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
     }
@@ -80,7 +80,7 @@ public class RateLimitingLockServiceTest {
     @Test
     public void multipleClientsCanShareGlobalThreads() throws InterruptedException, ExecutionException {
         List<Future<LockRefreshToken>> futures = requestLocks(NUM_CLIENTS, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT / NUM_CLIENTS);
-        assertBlocked(futures, 0);
+        confirmBlockedThreadsAreDone(futures, 0);
         countDownLatch.countDown();
         assertUnBlocked(futures, NUM_CLIENTS * LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
     }
@@ -88,7 +88,7 @@ public class RateLimitingLockServiceTest {
     @Test
     public void multipleClientsCanExhaustGlobalThreadsTogether() throws InterruptedException, ExecutionException {
         List<Future<LockRefreshToken>> futures = requestLocks(5, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
-        assertBlocked(futures, 4 * GLOBAL_TC_LIMIT);
+        confirmBlockedThreadsAreDone(futures, 4 * GLOBAL_TC_LIMIT);
         countDownLatch.countDown();
         assertUnBlocked(futures, 5 * LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
     }
@@ -99,10 +99,10 @@ public class RateLimitingLockServiceTest {
         List<Future<LockRefreshToken>> futures2 = requestLocks(1, LOCAL_TC_LIMIT);
         List<Future<LockRefreshToken>> futures3 = requestLocks(1, LOCAL_TC_LIMIT + 1);
         List<Future<LockRefreshToken>> futures4 = requestLocks(1, LOCAL_TC_LIMIT);
-        assertBlocked(futures1, 1);
-        assertBlocked(futures2, 0);
-        assertBlocked(futures3, 1);
-        assertBlocked(futures4, 0);
+        confirmBlockedThreadsAreDone(futures1, 1);
+        confirmBlockedThreadsAreDone(futures2, 0);
+        confirmBlockedThreadsAreDone(futures3, 1);
+        confirmBlockedThreadsAreDone(futures4, 0);
         countDownLatch.countDown();
         assertUnBlocked(futures1, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
         assertUnBlocked(futures2, LOCAL_TC_LIMIT);
@@ -122,19 +122,23 @@ public class RateLimitingLockServiceTest {
         return futures;
     }
 
-    private void assertBlocked(List<Future<LockRefreshToken>> futures, int numberBlocked)
+    private void confirmBlockedThreadsAreDone(List<Future<LockRefreshToken>> futures, int numberBlocked)
             throws InterruptedException, ExecutionException {
         AtomicInteger exceptions = new AtomicInteger(0);
-        futures.forEach(future -> {
-            if (future.isDone()) {
-                try {
-                    future.get();
-                } catch (Exception e) {
-                    assertThat(e).isInstanceOf(ExecutionException.class)
-                            .hasMessageContaining("TooManyRequestsException");
-                    exceptions.getAndIncrement();
+        do {
+            exceptions.set(0);
+            futures.forEach(future -> {
+                if (future.isDone()) {
+                    try {
+                        future.get();
+                    } catch (Exception e) {
+                        assertThat(e).isInstanceOf(ExecutionException.class)
+                                .hasMessageContaining("TooManyRequestsException");
+                        exceptions.getAndIncrement();
+                    }
                 }
-            }});
+            });
+        } while (exceptions.get() < numberBlocked);
         assertThat(exceptions.get()).isEqualTo(numberBlocked);
     }
 

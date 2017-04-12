@@ -20,6 +20,7 @@ import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
 
+import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.lock.ForwardingLockService;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
@@ -59,38 +60,29 @@ public class RateLimitingLockService extends ForwardingLockService {
     @Nullable
     @Override
     public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
-        if (limiter.tryAcquire()) {
-            try{
-                LockRefreshToken token = delegate.lock(client, request);
-                return token;
-            } finally {
-                limiter.release();
-            }
-        } else if (globalLimiter.tryAcquire()) {
-            try{
-                LockRefreshToken token = delegate.lock(client, request);
-                return token;
-            } finally {
-                globalLimiter.release();
-            }
-        } else {
-            throw new TooManyRequestsException();
-        }
+        return applyWithPermit(lockService -> lockService.lock(client, request));
     }
 
     @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
-        if (limiter.tryAcquire()) {
-            Set<LockRefreshToken> result = delegate.refreshLockRefreshTokens(tokens);
-            limiter.release();
-            return result;
-        } else if (globalLimiter.tryAcquire()) {
-            Set<LockRefreshToken> result = delegate.refreshLockRefreshTokens(tokens);
-            globalLimiter.release();
-            return result;
-        } else {
-            throw new TooManyRequestsException();
-        }
+        return applyWithPermit(lockService -> lockService.refreshLockRefreshTokens(tokens));
     }
 
+    private <T, K extends Exception> T applyWithPermit(FunctionCheckedException<LockService, T, K> function) throws K {
+        if (limiter.tryAcquire()) {
+            return apply(limiter, function);
+        } else if (globalLimiter.tryAcquire()) {
+            return apply(globalLimiter, function);
+        }
+        throw new TooManyRequestsException();
+    }
+
+    private <T, K extends Exception> T apply(Semaphore semaphore, FunctionCheckedException<LockService, T, K> function)
+            throws K {
+        try {
+            return function.apply(delegate);
+        } finally {
+            semaphore.release();
+        }
+    }
 }

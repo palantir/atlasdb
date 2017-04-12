@@ -66,4 +66,10 @@ public class TimeLockServerConfigurationTest {
         assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of(""), null))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    @Test
+    public void shouldNotUseRateLimitingIfNotIncluded() {
+        TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null);
+        assertThat(configuration.rateLimit()).isFalse();
+    }
 }
