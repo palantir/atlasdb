@@ -20,6 +20,9 @@ import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
 
+import org.immutables.value.Value;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.lock.ForwardingLockService;
 import com.palantir.lock.HeldLocksToken;
@@ -30,26 +33,41 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockService;
 
 public class RateLimitingLockService extends ForwardingLockService {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Semaphore globalLimiter = new Semaphore(-1);
 
     final LockService delegate;
-    final Semaphore limiter;
+    final Semaphore localLimiter;
+
 
     private RateLimitingLockService(LockService delegate, int localLimiterSize) {
         this.delegate = delegate;
-        this.limiter = new Semaphore(localLimiterSize);
+        this.localLimiter = new Semaphore(localLimiterSize);
     }
 
-    public static RateLimitingLockService create(LockService delegate, int availableThreads, int numClients) {
-        // TODO availableThreads is non-negative due to dropwizard asserts, but still consider making this look better
-        numClients = Math.max(numClients, 1);
+    public static LockService create(LockService delegate, RateLimitingConfiguration configuration) {
+        if (configuration.useRateLimiting() == false) {
+            return delegate;
+        }
 
-        int localLimiterSize = availableThreads / numClients / 2;
-        int globalLimiterSize = availableThreads - localLimiterSize * numClients;
+        int numClients = configuration.numClients();
+        if (numClients == 0) {
+            log.warn("TimeLockServerConfiguration specifies 0 clients. Rate limiter will default to 1 client.");
+            numClients = 1;
+        }
+        if (configuration.availableThreads() < 1) {
+            log.warn("TimeLockServerConfiguration specifies less than 1 available server thread. Rate limiting will be "
+                    + "disabled.");
+            return delegate;
+        }
+        int localLimiterSize = configuration.availableThreads() / numClients / 2;
+        int globalLimiterSize = configuration.availableThreads() - localLimiterSize * numClients;
 
-        // TODO a more robust solution is needed for live reloading
-        if (globalLimiter.availablePermits() == -1){
-            globalLimiter.release(globalLimiterSize + 1);
+        // TODO a more robust solution is needed for live reloading -- probably we can take the delegate and rewrap it
+        synchronized (globalLimiter) {
+            if (globalLimiter.availablePermits() == -1) {
+                globalLimiter.release(globalLimiterSize + 1);
+            }
         }
         return new RateLimitingLockService(delegate, localLimiterSize);
     }
@@ -88,12 +106,13 @@ public class RateLimitingLockService extends ForwardingLockService {
     }
 
     private <T, K extends Exception> T applyWithPermit(FunctionCheckedException<LockService, T, K> function) throws K {
-        if (limiter.tryAcquire()) {
-            return applyAndRelease(limiter, function);
+        if (localLimiter.tryAcquire()) {
+            return applyAndRelease(localLimiter, function);
         } else if (globalLimiter.tryAcquire()) {
             return applyAndRelease(globalLimiter, function);
         }
-        throw new TooManyRequestsException();
+        throw new TooManyRequestsException("RateLimitingLockService was unable to acquire a permit to assign a server "
+                + "thread to the request.");
     }
 
     private <T, K extends Exception> T applyAndRelease(Semaphore semaphore,
@@ -104,4 +123,12 @@ public class RateLimitingLockService extends ForwardingLockService {
             semaphore.release();
         }
     }
+
+    @Value.Immutable
+    public static abstract class RateLimitingConfiguration {
+        public abstract boolean useRateLimiting();
+        public abstract int availableThreads();
+        public abstract int numClients();
+    }
+
 }

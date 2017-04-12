@@ -1,3 +1,5 @@
+apply plugin: 'org.inferred.processors'
+
 apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
 
@@ -10,6 +12,8 @@ dependencies {
   compile group: 'com.palantir.remoting1', name: 'tracing'
   compile group: 'joda-time', name: 'joda-time'
   compile group: 'org.yaml', name: 'snakeyaml'
+
+  processor group: 'org.immutables', name: 'value'
 
   processor group: 'org.immutables', name: 'value'
 

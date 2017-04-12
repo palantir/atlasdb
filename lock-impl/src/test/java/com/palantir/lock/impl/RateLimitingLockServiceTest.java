@@ -39,15 +39,30 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
 
 public class RateLimitingLockServiceTest {
-    private static final LockRequest MOCK = LockRequest.builder(ImmutableSortedMap.of(StringLockDescriptor.of("mock"), LockMode.WRITE))
+    private static final LockRequest MOCK = LockRequest.builder(ImmutableSortedMap
+            .of(StringLockDescriptor.of("mock"), LockMode.WRITE))
             .build();
-    public static final int AVAILABLE_THREADS = 100;
-    public static final int NUM_CLIENTS = 10;
-    public static final int LOCAL_TC_LIMIT = AVAILABLE_THREADS / 2 / NUM_CLIENTS;
-    public static final int GLOBAL_TC_LIMIT = AVAILABLE_THREADS - LOCAL_TC_LIMIT * NUM_CLIENTS;
+    private static final int AVAILABLE_THREADS = 100;
+    private static final int NUM_CLIENTS = 10;
+    private static final int LOCAL_TC_LIMIT = (AVAILABLE_THREADS / 2) / NUM_CLIENTS;
+    private static final int GLOBAL_TC_LIMIT = AVAILABLE_THREADS - LOCAL_TC_LIMIT * NUM_CLIENTS;
 
-    public static final int TWENTY = 20;
-    public static final String TEST = "test";
+    private static final RateLimitingLockService.RateLimitingConfiguration ENABLED_CONFIG =
+            ImmutableRateLimitingConfiguration.builder()
+                    .numClients(NUM_CLIENTS)
+                    .availableThreads(AVAILABLE_THREADS)
+                    .useRateLimiting(true)
+                    .build();
+
+    private static final RateLimitingLockService.RateLimitingConfiguration DISABLED_CONFIG =
+            ImmutableRateLimitingConfiguration.builder()
+                    .numClients(NUM_CLIENTS)
+                    .availableThreads(AVAILABLE_THREADS)
+                    .useRateLimiting(false)
+                    .build();
+
+    private static final int TWENTY = 20;
+    private static final String TEST = "test";
 
     private static CountDownLatch countDownLatch;
 
@@ -68,53 +83,109 @@ public class RateLimitingLockServiceTest {
         countDownLatch = new CountDownLatch(1);
     }
 
+    @Test
+    public void disabledUseRatingLimitingFlagReturnsUnwrappedLockService() {
+        LockService lockService = mock(LockService.class);
+        LockService returnedLockService = RateLimitingLockService.create(lockService, DISABLED_CONFIG);
+        assertThat(returnedLockService).isNotInstanceOf(RateLimitingLockService.class);
+        assertThat(returnedLockService).isEqualTo(lockService);
+    }
+
+    @Test
+    public void enabledUseRatingLimitingFlagReturnsWrappedLockService() {
+        LockService lockService = mock(LockService.class);
+        LockService returnedLockService = RateLimitingLockService.create(lockService, ENABLED_CONFIG);
+        assertThat(returnedLockService).isNotEqualTo(lockService);
+        assertThat(returnedLockService).isInstanceOf(RateLimitingLockService.class);
+    }
+
+    @Test
+    public void rateLimitingWithNoClientsDefaultsToOneClient() throws ExecutionException, InterruptedException {
+        RateLimitingLockService.RateLimitingConfiguration noClientConfig =
+                ImmutableRateLimitingConfiguration.builder()
+                        .numClients(0)
+                        .availableThreads(AVAILABLE_THREADS)
+                        .useRateLimiting(true)
+                        .build();
+        List<Future<LockRefreshToken>> futures = requestLocks(1, AVAILABLE_THREADS + TWENTY, noClientConfig);
+        confirmBlockedThreadsAreDone(futures, TWENTY);
+        countDownLatch.countDown();
+        assertNumberLocked(futures, AVAILABLE_THREADS);
+    }
+
+    @Test
+    public void invalidNumberOfAvailableThreadsDisablesRateLimiting() throws ExecutionException, InterruptedException {
+        RateLimitingLockService.RateLimitingConfiguration noAvailableThreadsConfig =
+                ImmutableRateLimitingConfiguration.builder()
+                        .numClients(NUM_CLIENTS)
+                        .availableThreads(-1)
+                        .useRateLimiting(true)
+                        .build();
+        LockService lockService = mock(LockService.class);
+        LockService returnedLockService = RateLimitingLockService.create(lockService, noAvailableThreadsConfig);
+        assertThat(returnedLockService).isNotInstanceOf(RateLimitingLockService.class);
+        assertThat(returnedLockService).isEqualTo(lockService);
+    }
+
+    @Test
+    public void disbaledUseRateLimitingDoesNotRateLimit() throws ExecutionException, InterruptedException {
+        List<Future<LockRefreshToken>> futures = requestLocks(1, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT + TWENTY,
+                DISABLED_CONFIG);
+        countDownLatch.countDown();
+        assertNumberLocked(futures, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT + TWENTY);
+    }
 
     @Test
     public void oneClientCanUseAllGlobalAndItsLocalThreads() throws InterruptedException, ExecutionException {
-        List<Future<LockRefreshToken>> futures = requestLocks(1, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT + TWENTY);
+        List<Future<LockRefreshToken>> futures = requestLocks(1, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT + TWENTY,
+                ENABLED_CONFIG);
         confirmBlockedThreadsAreDone(futures, TWENTY);
         countDownLatch.countDown();
-        assertUnBlocked(futures, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
+        assertNumberLocked(futures, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
     }
 
     @Test
     public void multipleClientsCanShareGlobalThreads() throws InterruptedException, ExecutionException {
-        List<Future<LockRefreshToken>> futures = requestLocks(NUM_CLIENTS, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT / NUM_CLIENTS);
+        List<Future<LockRefreshToken>> futures = requestLocks(NUM_CLIENTS,
+                LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT / NUM_CLIENTS,
+                ENABLED_CONFIG);
         confirmBlockedThreadsAreDone(futures, 0);
         countDownLatch.countDown();
-        assertUnBlocked(futures, NUM_CLIENTS * LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
+        assertNumberLocked(futures, NUM_CLIENTS * LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
     }
 
     @Test
     public void multipleClientsCanExhaustGlobalThreadsTogether() throws InterruptedException, ExecutionException {
-        List<Future<LockRefreshToken>> futures = requestLocks(5, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
+        List<Future<LockRefreshToken>> futures = requestLocks(5, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT, ENABLED_CONFIG);
         confirmBlockedThreadsAreDone(futures, 4 * GLOBAL_TC_LIMIT);
         countDownLatch.countDown();
-        assertUnBlocked(futures, 5 * LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
+        assertNumberLocked(futures, 5 * LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
     }
 
     @Test
     public void clientsCanUseLocalAllowanceWhenGlobalIsExhausted() throws InterruptedException, ExecutionException {
-        List<Future<LockRefreshToken>> futures1 = requestLocks(1, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT + 1);
-        List<Future<LockRefreshToken>> futures2 = requestLocks(1, LOCAL_TC_LIMIT);
-        List<Future<LockRefreshToken>> futures3 = requestLocks(1, LOCAL_TC_LIMIT + 1);
-        List<Future<LockRefreshToken>> futures4 = requestLocks(1, LOCAL_TC_LIMIT);
+        // TODO Consider some more explicit names, like heavyLoadRequester or allGlobalThreadsRequester for futures1.
+        List<Future<LockRefreshToken>> futures1 = requestLocks(1, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT + 1, ENABLED_CONFIG);
+        List<Future<LockRefreshToken>> futures2 = requestLocks(1, LOCAL_TC_LIMIT, ENABLED_CONFIG);
+        List<Future<LockRefreshToken>> futures3 = requestLocks(1, LOCAL_TC_LIMIT + 1, ENABLED_CONFIG);
+        List<Future<LockRefreshToken>> futures4 = requestLocks(1, LOCAL_TC_LIMIT, ENABLED_CONFIG);
         confirmBlockedThreadsAreDone(futures1, 1);
         confirmBlockedThreadsAreDone(futures2, 0);
         confirmBlockedThreadsAreDone(futures3, 1);
         confirmBlockedThreadsAreDone(futures4, 0);
         countDownLatch.countDown();
-        assertUnBlocked(futures1, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
-        assertUnBlocked(futures2, LOCAL_TC_LIMIT);
-        assertUnBlocked(futures3, LOCAL_TC_LIMIT);
-        assertUnBlocked(futures4, LOCAL_TC_LIMIT);
+        assertNumberLocked(futures1, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT);
+        assertNumberLocked(futures2, LOCAL_TC_LIMIT);
+        assertNumberLocked(futures3, LOCAL_TC_LIMIT);
+        assertNumberLocked(futures4, LOCAL_TC_LIMIT);
     }
 
-    private List<Future<LockRefreshToken>> requestLocks(int clients, int locks) {
+    private List<Future<LockRefreshToken>> requestLocks(int clients, int locks,
+            RateLimitingLockService.RateLimitingConfiguration config) {
         List<Future<LockRefreshToken>> futures = new ArrayList<>();
         ExecutorService executorService = Executors.newFixedThreadPool(clients * locks);
         for (int i = 0; i < clients; i++) {
-            LockService lockService = RateLimitingLockService.create(slowLockService, AVAILABLE_THREADS, NUM_CLIENTS);
+            LockService lockService = RateLimitingLockService.create(slowLockService, config);
             for (int j = 0; j < locks; j++) {
                 futures.add(executorService.submit(() -> lockService.lock(TEST, MOCK)));
             }
@@ -142,7 +213,7 @@ public class RateLimitingLockServiceTest {
         assertThat(exceptions.get()).isEqualTo(numberBlocked);
     }
 
-    private void assertUnBlocked(List<Future<LockRefreshToken>> futures, int numberSuccessful)
+    private void assertNumberLocked(List<Future<LockRefreshToken>> futures, int numberSuccessful)
             throws InterruptedException, ExecutionException {
         AtomicInteger successes = new AtomicInteger(0);
         futures.forEach(future -> {
