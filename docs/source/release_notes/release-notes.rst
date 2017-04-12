@@ -63,6 +63,7 @@ develop
     *    - |improved|
          - Set a maximum cache size on ``CachingTransaction`` to avoid GC spirals on very large transactions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1798>`__)
+
 =======
 v0.38.0
 =======
