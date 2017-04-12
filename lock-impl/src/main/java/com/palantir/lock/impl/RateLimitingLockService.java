@@ -70,15 +70,15 @@ public class RateLimitingLockService extends ForwardingLockService {
 
     private <T, K extends Exception> T applyWithPermit(FunctionCheckedException<LockService, T, K> function) throws K {
         if (limiter.tryAcquire()) {
-            return apply(limiter, function);
+            return applyAndRelease(limiter, function);
         } else if (globalLimiter.tryAcquire()) {
-            return apply(globalLimiter, function);
+            return applyAndRelease(globalLimiter, function);
         }
         throw new TooManyRequestsException();
     }
 
-    private <T, K extends Exception> T apply(Semaphore semaphore, FunctionCheckedException<LockService, T, K> function)
-            throws K {
+    private <T, K extends Exception> T applyAndRelease(Semaphore semaphore,
+            FunctionCheckedException<LockService, T, K> function) throws K {
         try {
             return function.apply(delegate);
         } finally {
