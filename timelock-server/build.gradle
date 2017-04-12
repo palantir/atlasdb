@@ -71,6 +71,7 @@ configurations.all {
                     break
                 case 'com.fasterxml.jackson.core':
                 case 'com.fasterxml.jackson.module':
+                case 'com.fasterxml.jackson.datatype':
                     details.useVersion libVersions.timelock_jackson
                     break
                 case 'org.eclipse.jetty':
@@ -84,9 +85,6 @@ configurations.all {
         forcedModules = [
                 'ch.qos.logback:logback-classic:1.1.7',
                 'com.netflix.feign:feign-core:8.10.1',
-                'com.fasterxml.jackson.datatype:jackson-datatype-guava:2.7.8',
-                'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.7.8',
-                'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.7.8',
                 'io.atomix.catalyst:catalyst-transport:1.1.2',
                 'org.objenesis:objenesis:2.3'
         ]
