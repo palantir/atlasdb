@@ -21,7 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
-final class CassandraEnvironment {
+public final class CassandraEnvironment {
     public static final String CASSANDRA_VERSION = "CASSANDRA_VERSION";
 
     @VisibleForTesting
@@ -40,7 +40,7 @@ final class CassandraEnvironment {
         // uninstantiable
     }
 
-    static Map<String, String> get() {
+    public static Map<String, String> get() {
         return ImmutableMap.of(
                 CASSANDRA_VERSION, getOrDefault(CASSANDRA_VERSION, DEFAULT_VERSION),
                 CASSANDRA_MAX_HEAP_SIZE, getOrDefault(CASSANDRA_MAX_HEAP_SIZE, DEFAULT_MAX_HEAP_SIZE),

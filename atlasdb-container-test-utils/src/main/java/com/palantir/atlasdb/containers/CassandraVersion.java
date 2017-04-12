@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.util.Map;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Strings;
@@ -37,10 +36,6 @@ public interface CassandraVersion {
         } else {
             throw new IllegalArgumentException(String.format("Cassandra version %s not supported", version));
         }
-    }
-
-    static Map<String, String> getEnvironment() {
-        return CassandraEnvironment.get();
     }
 
     Pattern replicationFactorRegex();
