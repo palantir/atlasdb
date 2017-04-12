@@ -65,6 +65,7 @@ public class LockServiceStateLoggerTest {
 
         outstandingLockRequestMultimap.put(clientA, request1);
         outstandingLockRequestMultimap.put(clientB, request2);
+        outstandingLockRequestMultimap.put(clientA, request2);
 
         HeldLocksToken token = getFakeHeldLocksToken("client A", "Fake thread", new BigInteger("1"));
         HeldLocksToken token2 = getFakeHeldLocksToken("client B", "Fake thread 2", new BigInteger("2"));
@@ -93,10 +94,11 @@ public class LockServiceStateLoggerTest {
                 LockCollections.of(builder.build()),
                 LockRequest.DEFAULT_LOCK_TIMEOUT, 0L, requestingThread);
     }
+
     @Test
     public void testLocksLogging() throws Exception {
         LockServiceStateLogger logger = new LockServiceStateLogger(heldLocksTokenMap, outstandingLockRequestMultimap);
-        logger.logHeldLocks();
         logger.logOutstandingLockRequests();
+        logger.logHeldLocks();
     }
 }

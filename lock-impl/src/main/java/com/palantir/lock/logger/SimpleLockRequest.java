@@ -25,8 +25,9 @@ import com.palantir.lock.TimeDuration;
 @Value.Immutable
 public abstract class SimpleLockRequest {
 
-    public static SimpleLockRequest of(LockRequest request, String clientId) {
+    public static SimpleLockRequest of(LockRequest request, String lockDescriptor, String clientId) {
         return ImmutableSimpleLockRequest.builder()
+                .lockDescriptor(lockDescriptor)
                 .lockCount(request.getLocks().size())
                 .lockTimeout(request.getLockTimeout().getTime())
                 .lockGroupBehavior(request.getLockGroupBehavior().name())
@@ -36,6 +37,9 @@ public abstract class SimpleLockRequest {
                 .creatingThread(request.getCreatingThreadName())
                 .clientId(clientId).build();
     }
+
+    @Value.Parameter
+    public abstract String getLockDescriptor();
 
     @Value.Parameter
     public abstract long getLockCount();

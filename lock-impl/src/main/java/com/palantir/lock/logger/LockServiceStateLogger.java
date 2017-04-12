@@ -15,7 +15,8 @@
  */
 package com.palantir.lock.logger;
 
-import java.util.Collections;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,18 +61,42 @@ public class LockServiceStateLogger {
 
     private String generateOutstandingLocksYaml(Map<LockClient, Set<LockRequest>> outstandingLockRequestsMap) {
 
-        List<Map<String, SimpleLockRequest>> outstandingLockList = Collections.synchronizedList(Lists.newArrayList());
+        Map<String, SimpleLockRequestsWithSameDescriptor> outstandingRequestMap = Maps.newConcurrentMap();
 
         outstandingLockRequestsMap.forEach((client, requestSet) -> {
             if (requestSet != null) {
                 ImmutableSet<LockRequest> lockRequests = ImmutableSet.copyOf(requestSet);
-                lockRequests.forEach(lockRequest ->
-                        outstandingLockList.add(getDescriptorSimpleRequestMap(client, lockRequest)));
+                lockRequests.forEach(lockRequest -> {
+                    List<SimpleLockRequest> requestList = getDescriptorSimpleRequestMap(client, lockRequest);
+                    requestList.forEach(request -> {
+                        outstandingRequestMap.putIfAbsent(request.getLockDescriptor(),
+                                new SimpleLockRequestsWithSameDescriptor(request.getLockDescriptor()));
+                        outstandingRequestMap.get(request.getLockDescriptor()).addLockRequest(request);
+                    });
+                });
             }
         });
 
+        List<SimpleLockRequestsWithSameDescriptor> sortedOutstandingRequests = sortOutstandingRequests(outstandingRequestMap.values());
+
         Yaml yaml = new Yaml(getRepresenter(), getDumperOptions());
-        return yaml.dump(nameObjectForYamlConvertion(outstandingLockList, OUTSTANDING_LOCK_REQUESTS_TITLE));
+        return yaml.dump(nameObjectForYamlConvertion(sortedOutstandingRequests, OUTSTANDING_LOCK_REQUESTS_TITLE));
+    }
+
+    private List<SimpleLockRequestsWithSameDescriptor> sortOutstandingRequests(
+            Collection<SimpleLockRequestsWithSameDescriptor> outstandingRequestsByDescriptor) {
+
+        List<SimpleLockRequestsWithSameDescriptor> sortedEntries = Lists.newArrayList(outstandingRequestsByDescriptor);
+        sortedEntries.sort(
+                new Comparator<SimpleLockRequestsWithSameDescriptor>() {
+                    @Override
+                    public int compare(SimpleLockRequestsWithSameDescriptor o1,
+                            SimpleLockRequestsWithSameDescriptor o2) {
+                        return Integer.compare(o2.getLockRequestsCount(),
+                                o1.getLockRequestsCount());
+                    }
+                });
+        return sortedEntries;
     }
 
     private String generateHeldLocksYaml(ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
@@ -92,14 +117,11 @@ public class LockServiceStateLogger {
         return ImmutableMap.of(name, objectToName);
     }
 
-    private Map<String, SimpleLockRequest> getDescriptorSimpleRequestMap(LockClient client, LockRequest request) {
-        Map<String, SimpleLockRequest> requestsInfoMap = Maps.newHashMap();
-        request.getLocks().forEach(lock -> {
-            SimpleLockRequest simpleLockRequest = SimpleLockRequest.of(request, client.getClientId());
-            requestsInfoMap.put(lock.getLockDescriptor().getLockIdAsString(), simpleLockRequest);
-        });
-
-        return requestsInfoMap;
+    private List<SimpleLockRequest> getDescriptorSimpleRequestMap(LockClient client, LockRequest request) {
+        return request.getLocks().stream()
+                .map(lock ->
+                        SimpleLockRequest.of(request, lock.getLockDescriptor().getLockIdAsString(), client.getClientId()))
+                .collect(Collectors.toList());
     }
 
     private DumperOptions getDumperOptions() {
@@ -112,8 +134,9 @@ public class LockServiceStateLogger {
 
     private Representer getRepresenter() {
         Representer representer = new Representer();
-        representer.addClassTag(SimpleTokenInfo.class, Tag.MAP);
-        representer.addClassTag(SimpleLockRequest.class, Tag.MAP);
+        representer.addClassTag(ImmutableSimpleTokenInfo.class, Tag.MAP);
+        representer.addClassTag(ImmutableSimpleLockRequest.class, Tag.MAP);
+        representer.addClassTag(SimpleLockRequestsWithSameDescriptor.class, Tag.MAP);
         return representer;
     }
 
@@ -128,9 +151,11 @@ public class LockServiceStateLogger {
 
     public void logHeldLocks() {
         log.info(heldLocksYaml);
+        System.out.println(heldLocksYaml);
     }
 
     public void logOutstandingLockRequests() {
         log.info(outstandingLocksYaml);
+        System.out.println(outstandingLocksYaml);
     }
 }

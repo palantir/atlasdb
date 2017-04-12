@@ -1001,8 +1001,8 @@ import com.palantir.util.JMXUtils;
 
     private void logAllHeldAndOutstandingLocks() {
         LockServiceStateLogger lockServiceStateLogger = new LockServiceStateLogger(heldLocksTokenMap, outstandingLockRequestMultimap);
-        lockServiceStateLogger.logHeldLocks();
         lockServiceStateLogger.logOutstandingLockRequests();
+        lockServiceStateLogger.logHeldLocks();
     }
 
     private String serializeCollectionWithName(String collectionName, Collection collectionToLog) {
