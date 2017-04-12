@@ -109,6 +109,8 @@ import com.palantir.util.Pair;
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
+    @VisibleForTesting
+    static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
 
     /** Executor for the reaper threads. */
     private final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
@@ -478,7 +480,7 @@ import com.palantir.util.Pair;
                     durationMillis,
                     lockId,
                     currentHolder == null ? "successfully" : "unsuccessfully");
-        } else if (log.isDebugEnabled() && durationMillis > 100) {
+        } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
             log.debug(slowLockLogMessage,
                     durationMillis,
                     lockId,
