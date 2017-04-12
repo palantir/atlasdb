@@ -67,7 +67,6 @@ public class ProfilingKeyValueServiceTest {
             LoggingEvent ev = (LoggingEvent) argument;
             return ev.getLoggerName() == ProfilingKeyValueService.SLOW_LOGGER_NAME &&
                     ev.getLevel() == Level.WARN;
-
         }
     });
 
@@ -77,7 +76,6 @@ public class ProfilingKeyValueServiceTest {
             LoggingEvent ev = (LoggingEvent) argument;
             return ev.getLoggerName() == LoggerFactory.getLogger(ProfilingKeyValueService.class).getName() &&
                     ev.getLevel() == Level.TRACE;
-
         }
     });
 
@@ -131,7 +129,6 @@ public class ProfilingKeyValueServiceTest {
 
         verify(mockAppender).doAppend(traceLogMatcher.get());
         verify(mockAppender).doAppend(slowLogMatcher.get());
-
     }
 
     @Test

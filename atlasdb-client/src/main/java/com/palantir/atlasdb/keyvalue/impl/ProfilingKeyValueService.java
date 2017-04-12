@@ -238,13 +238,10 @@ public class ProfilingKeyValueService implements KeyValueService {
                 (logger, stopwatch, result) -> {
                         long sizeInBytes = 0;
                         for (Entry<Cell, Value> entry : result.entrySet()) {
-                            sizeInBytes +=
-                                    Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length
-                                            + 4L;
+                            sizeInBytes += Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length + 4L;
                         }
                         logger.log("Call to KVS.get on table {}, requesting {} cells took {} ms and returned {} bytes.",
-                                tableRef, timestampByCell.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS),
-                                sizeInBytes);
+                                tableRef, timestampByCell.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS), sizeInBytes);
                     });
     }
 
