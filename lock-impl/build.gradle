@@ -7,4 +7,5 @@ dependencies {
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
   compile group: 'com.palantir.remoting1', name: 'tracing'
   compile group: 'joda-time', name: 'joda-time'
+  testCompile group: 'org.mockito', name: 'mockito-core'
 }

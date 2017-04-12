@@ -47,7 +47,8 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
 
     *    - |improved|
-         - Any lock requests that take more than ``100ms`` to receive a response are now logged in the ``SlowLockLogger`` logger.
+         - The lock server can be configured with an option to enable logging if the request that take more than a given time. Specifically, the timelock server also takes a configuration parameter ``slowLockLogTriggerMillis``
+           and any lock server requests that take more than 10 are now logged in the ``SlowLockLogger`` logger.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1769>`__)
 
     *    - |deprecated|

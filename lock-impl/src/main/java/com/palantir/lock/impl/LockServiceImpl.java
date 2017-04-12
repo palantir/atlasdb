@@ -47,6 +47,7 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -469,21 +470,24 @@ import com.palantir.util.Pair;
         }
     }
 
-    private void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
+    @VisibleForTesting
+    protected void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
+        String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
-            SlowLockLogger.logger.info("Blocked for {} ms to acquire lock {} {}.",
+            SlowLockLogger.logger.info(slowLockLogMessage,
                     durationMillis,
                     lockId,
                     currentHolder == null ? "successfully" : "unsuccessfully");
-        } else if (durationMillis > 100) {
-            log.debug("Blocked for {} ms to acquire lock {} {}.",
+        } else if (log.isDebugEnabled() && durationMillis > 100) {
+            log.debug(slowLockLogMessage,
                     durationMillis,
                     lockId,
                     currentHolder == null ? "successfully" : "unsuccessfully");
         }
     }
 
-    private boolean isSlowLogEnabled() {
+    @VisibleForTesting
+    protected boolean isSlowLogEnabled() {
         return slowLogTriggerMillis > 0;
     }
 

@@ -21,6 +21,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 import com.palantir.lock.client.LockRefreshingLockServiceTest;
 import com.palantir.lock.impl.ClientAwareLockTest;
+import com.palantir.lock.impl.LockServiceImplTest;
 
 /**
  * Runs all lock server tests.
