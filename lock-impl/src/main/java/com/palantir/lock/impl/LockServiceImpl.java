@@ -37,8 +37,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.joda.time.DateTime;
@@ -46,14 +48,16 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedMap.Builder;
@@ -87,7 +91,6 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
-import com.palantir.lock.LockWithMode;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
@@ -97,7 +100,6 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.remoting1.tracing.Tracers;
 import com.palantir.util.JMXUtils;
-import com.palantir.util.Pair;
 
 /**
  * Implementation of the Lock Server.
@@ -120,6 +122,34 @@ import com.palantir.util.Pair;
             return from.getTokenId().toString(Character.MAX_RADIX);
         }
     };
+
+    @Immutable
+    public static class HeldLocks<T extends ExpiringToken> {
+        final T realToken;
+        final LockCollection<? extends ClientAwareReadWriteLock> locks;
+
+        @VisibleForTesting
+        public static <T extends ExpiringToken> HeldLocks<T> of(T token,
+                LockCollection<? extends ClientAwareReadWriteLock> locks) {
+            return new HeldLocks<T>(token, locks);
+        }
+
+        HeldLocks(T token, LockCollection<? extends ClientAwareReadWriteLock> locks) {
+            this.realToken = Preconditions.checkNotNull(token);
+            this.locks = locks;
+        }
+
+        public List<LockDescriptor> getLockDescriptors() {
+            return locks.stream().map(ClientAwareReadWriteLock::getDescriptor).collect(Collectors.toList());
+        }
+
+        @Override public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("realToken", realToken)
+                    .add("locks", locks)
+                    .toString();
+        }
+    }
 
     public static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
     public static final int SECURE_RANDOM_POOL_SIZE = 100;
@@ -960,31 +990,13 @@ import com.palantir.util.Pair;
         logAllHeldAndOutstandingLocks();
 
         StringBuilder logString = getGeneralLockStats();
-        for (Pair<String, ? extends Collection<?>> nameValuePair : ImmutableList.of(
-                Pair.create("descriptorToLockMap", descriptorToLockMap.asMap().entrySet()),
-                Pair.create("outstandingLockRequestMultimap", outstandingLockRequestMultimap.asMap().entrySet()),
-                Pair.create("heldLocksTokenMap", heldLocksTokenMap.entrySet()),
-                Pair.create("heldLocksGrantMap", heldLocksGrantMap.entrySet()),
-                Pair.create("lockTokenReaperQueue", queueToOrderedList(lockTokenReaperQueue)),
-                Pair.create("lockGrantReaperQueue", queueToOrderedList(lockGrantReaperQueue)),
-                Pair.create("lockClientMultimap", lockClientMultimap.asMap().entrySet()),
-                Pair.create("versionIdMap", versionIdMap.asMap().entrySet()))) {
-            Collection<?> elements = nameValuePair.getRhSide();
-            logString.append(nameValuePair.getLhSide()).append(".size() = ").append(elements.size()).append("\n");
-            if (elements.size() > MAX_LOCKS_TO_LOG) {
-                logString.append("WARNING: Only logging the first ").append(MAX_LOCKS_TO_LOG).append(" locks, ");
-                logString.append("logging more is likely to OOM or slow down lock server to the point of failure");
-            }
-            for (Object element : Iterables.limit(elements, MAX_LOCKS_TO_LOG)) {
-                logString.append(element).append("\n");
-            }
+        for (Entry<String, Collection> nameValuePair : getLoggableCollectionsWithNames().entrySet()) {
+            logString.append(serializeCollectionWithName(nameValuePair.getKey(), nameValuePair.getValue()));
         }
         logString.append("Finished logging current state. Time = ").append(currentTimeMillis());
         log.error("Current State: {}", logString.toString());
 
         log.error(logString.toString());
-        logCurrentHeldLocks();
-        logOutstandingLockRequests();
     }
 
     private void logAllHeldAndOutstandingLocks() {
@@ -993,35 +1005,28 @@ import com.palantir.util.Pair;
         lockServiceStateLogger.logOutstandingLockRequests();
     }
 
-    private void logOutstandingLockRequests() {
-        StringBuilder logString = new StringBuilder("Outstanding locks: \n");
-        for (Entry<LockClient, Collection<LockRequest>> lockClientToRequests : outstandingLockRequestMultimap.asMap().entrySet()) {
-            logString.append("Lock Client: ").append(lockClientToRequests.getKey().toString()).append("\n");
-            for (LockRequest request : lockClientToRequests.getValue()) {
-                logString.append("\t").append("Lock request: ").append(request.toString()).append("\n");
-                for (LockWithMode lock : request.getLocks()) {
-                    logString.append("\t\t").append("Lock descriptor: ").append(lock.toString()).append("\n");
-                }
-            }
+    private String serializeCollectionWithName(String collectionName, Collection collectionToLog) {
+        StringBuilder serializedCollection = new StringBuilder();
+        serializedCollection.append(collectionName).append(".size() = ").append(collectionToLog.size()).append("\n");
+        if (collectionToLog.size() > MAX_LOCKS_TO_LOG) {
+            serializedCollection.append("WARNING: Only logging the first ").append(MAX_LOCKS_TO_LOG).append(" locks, ");
+            serializedCollection.append("logging more is likely to OOM or slow down lock server to the point of failure");
         }
-        log.error(logString.toString());
+        for (Object element : Iterables.limit(collectionToLog, MAX_LOCKS_TO_LOG)) {
+            serializedCollection.append(element).append("\n");
+        }
+        return serializedCollection.toString();
     }
 
-    private void logCurrentHeldLocks() {
-        StringBuilder logString = new StringBuilder("Held locks:\n");
-        Set<ExpiringToken> heldLocksTokens = ImmutableSet.<ExpiringToken>builder()
-                .addAll(heldLocksTokenMap.keySet())
-                .addAll(heldLocksGrantMap.keySet())
+    private ImmutableMap<String, Collection> getLoggableCollectionsWithNames() {
+        return ImmutableMap.<String, Collection>builder()
+                .put("descriptorToLockMap", descriptorToLockMap.asMap().entrySet())
+                .put("outstandingLockRequestMultimap", outstandingLockRequestMultimap.asMap().entrySet())
+                .put("heldLocksTokenMap", heldLocksTokenMap.entrySet())
+                .put("heldLocksGrantMap", heldLocksGrantMap.entrySet())
+                .put("lockTokenReaperQueue", queueToOrderedList(lockTokenReaperQueue))
+                .put("lockGrantReaperQueue", queueToOrderedList(lockGrantReaperQueue))
                 .build();
-
-        for (ExpiringToken heldLocksToken : heldLocksTokens) {
-            for (LockDescriptor lockDescriptor : heldLocksToken.getLockDescriptors()) {
-                logString.append("Lock descriptor: ").append(lockDescriptor)
-                        .append(" Held locks token for the lock: ").append(heldLocksToken).append("\n");
-            }
-        }
-
-        log.error(logString.toString());
     }
 
     private StringBuilder getGeneralLockStats() {

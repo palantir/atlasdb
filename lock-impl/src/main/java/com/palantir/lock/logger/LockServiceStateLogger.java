@@ -27,7 +27,11 @@ import org.slf4j.LoggerFactory;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.representer.Representer;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
@@ -36,7 +40,7 @@ import com.google.common.collect.SetMultimap;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.impl.HeldLocks;
+import com.palantir.lock.impl.LockServiceImpl;
 
 public class LockServiceStateLogger {
 
@@ -48,7 +52,8 @@ public class LockServiceStateLogger {
     private String heldLocksYaml;
     private String outstandingLocksYaml;
 
-    public LockServiceStateLogger(ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>> heldLocksTokenMap, SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap) {
+    public LockServiceStateLogger(ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap,
+            SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap) {
         this.heldLocksYaml = generateHeldLocksYaml(heldLocksTokenMap);
         this.outstandingLocksYaml = generateOutstandingLocksYaml(Multimaps.asMap(outstandingLockRequestMultimap));
     }
@@ -59,42 +64,38 @@ public class LockServiceStateLogger {
 
         outstandingLockRequestsMap.forEach((client, requestSet) -> {
             if (requestSet != null) {
-                LockRequest[] lockRequests = requestSet.toArray(new LockRequest[requestSet.size()]);
-                for (LockRequest lockRequest : lockRequests) {
-                    outstandingLockList.add(getDescriptorSimpleRequestMap(client, lockRequest));
-                }
+                ImmutableSet<LockRequest> lockRequests = ImmutableSet.copyOf(requestSet);
+                lockRequests.forEach(lockRequest ->
+                        outstandingLockList.add(getDescriptorSimpleRequestMap(client, lockRequest)));
             }
         });
 
-        Yaml yaml = new Yaml(getDumperOptions());
+        Yaml yaml = new Yaml(getRepresenter(), getDumperOptions());
         return yaml.dump(nameObjectForYamlConvertion(outstandingLockList, OUTSTANDING_LOCK_REQUESTS_TITLE));
     }
 
-    private String generateHeldLocksYaml(ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
+    private String generateHeldLocksYaml(ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
 
         List<Map<String, Object>> mappedLockListGroupedByToken = heldLocksTokenMap.entrySet().stream()
-                .map(heldLocksTokenMapEntry -> getDescriptorToTokenMap(heldLocksTokenMapEntry.getKey(), heldLocksTokenMapEntry.getValue()))
+                .map(heldLocksTokenMapEntry ->
+                        getDescriptorToTokenMap(heldLocksTokenMapEntry.getKey(), heldLocksTokenMapEntry.getValue()))
                 .collect(Collectors.toList());
 
         Map<String, Object> mappedLocksToToken = Maps.newConcurrentMap();
         mappedLockListGroupedByToken.forEach(mappedLocksToToken::putAll);
 
-        Yaml yaml = new Yaml(getDumperOptions());
+        Yaml yaml = new Yaml(getRepresenter(), getDumperOptions());
         return yaml.dump(nameObjectForYamlConvertion(mappedLocksToToken, HELD_LOCKS_TITLE));
     }
 
     private Map<String, Object> nameObjectForYamlConvertion(Object objectToName, String name) {
-        Map<String, Object> outstandingLockRequests = Maps.newHashMap();
-        outstandingLockRequests.put(name, objectToName);
-        return outstandingLockRequests;
+        return ImmutableMap.of(name, objectToName);
     }
 
     private Map<String, SimpleLockRequest> getDescriptorSimpleRequestMap(LockClient client, LockRequest request) {
-
         Map<String, SimpleLockRequest> requestsInfoMap = Maps.newHashMap();
         request.getLocks().forEach(lock -> {
-            SimpleLockRequest simpleLockRequest = new SimpleLockRequest(request);
-            simpleLockRequest.setClientId(client.getClientId());
+            SimpleLockRequest simpleLockRequest = SimpleLockRequest.of(request, client.getClientId());
             requestsInfoMap.put(lock.getLockDescriptor().getLockIdAsString(), simpleLockRequest);
         });
 
@@ -105,14 +106,23 @@ public class LockServiceStateLogger {
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setIndent(4);
+        options.setAllowReadOnlyProperties(true);
         return options;
     }
 
-    private Map<String, Object> getDescriptorToTokenMap(HeldLocksToken heldLocksToken, HeldLocks<HeldLocksToken> heldLocks) {
+    private Representer getRepresenter() {
+        Representer representer = new Representer();
+        representer.addClassTag(SimpleTokenInfo.class, Tag.MAP);
+        representer.addClassTag(SimpleLockRequest.class, Tag.MAP);
+        return representer;
+    }
+
+    private Map<String, Object> getDescriptorToTokenMap(HeldLocksToken heldLocksToken,
+            LockServiceImpl.HeldLocks<HeldLocksToken> heldLocks) {
         Map<String, Object> lockToLockInfo = Maps.newHashMap();
-        heldLocks.getLocks()
-                .forEach(lock ->
-                        lockToLockInfo.put(lock.getDescriptor().getLockIdAsString(), new SimpleTokenInfo(heldLocksToken)));
+        heldLocks.getLockDescriptors()
+                .forEach(lockDescriptor ->
+                        lockToLockInfo.put(lockDescriptor.getLockIdAsString(), SimpleTokenInfo.of(heldLocksToken)));
         return lockToLockInfo;
     }
 

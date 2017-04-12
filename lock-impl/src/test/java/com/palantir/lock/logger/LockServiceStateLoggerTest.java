@@ -36,13 +36,13 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.ClientAwareReadWriteLock;
-import com.palantir.lock.impl.HeldLocks;
 import com.palantir.lock.impl.LockClientIndices;
 import com.palantir.lock.impl.LockServerLock;
+import com.palantir.lock.impl.LockServiceImpl;
 
 public class LockServiceStateLoggerTest {
 
-    private final ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>> heldLocksTokenMap =
+    private final ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap =
             new MapMaker().makeMap();
 
     private final SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap =
@@ -73,12 +73,12 @@ public class LockServiceStateLoggerTest {
         locks.put(new LockServerLock(StringLockDescriptor.of("lock2"), new LockClientIndices()), LockMode.WRITE);
         locks.put(new LockServerLock(StringLockDescriptor.of("lock"), new LockClientIndices()), LockMode.READ);
 
-        heldLocksTokenMap.putIfAbsent(token, HeldLocks.of(token, LockCollections.of(locks)));
+        heldLocksTokenMap.putIfAbsent(token, LockServiceImpl.HeldLocks.of(token, LockCollections.of(locks)));
 
         Map<ClientAwareReadWriteLock, LockMode> locks2 = Maps.newLinkedHashMap();
         locks2.put(new LockServerLock(StringLockDescriptor.of("lock3"), new LockClientIndices()), LockMode.WRITE);
         locks2.put(new LockServerLock(StringLockDescriptor.of("lock4"), new LockClientIndices()), LockMode.READ);
-        heldLocksTokenMap.putIfAbsent(token2, HeldLocks.of(token2, LockCollections.of(locks2)));
+        heldLocksTokenMap.putIfAbsent(token2, LockServiceImpl.HeldLocks.of(token2, LockCollections.of(locks2)));
     }
 
     private HeldLocksToken getFakeHeldLocksToken(String clientName, String requestingThread, BigInteger tokenId) {

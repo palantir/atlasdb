@@ -17,71 +17,39 @@ package com.palantir.lock.logger;
 
 import java.util.Date;
 
+import org.immutables.value.Value;
+
 import com.google.common.base.Preconditions;
 import com.palantir.lock.HeldLocksToken;
 
-public class SimpleTokenInfo {
-    private long expiresIn;
-    private long createdAtTS;
-    private String createAt;
-    private String tokenId;
-    private String clientId;
-    private String requestThread;
-
-    public SimpleTokenInfo(HeldLocksToken token) {
-        setExpiresIn(token.getExpirationDateMs() - System.currentTimeMillis());
-        setCreatedAtTS(token.getCreationDateMs());
-        setTokenId(token.getTokenId().toString());
-        setClientId(Preconditions.checkNotNull(token.getClient()).getClientId());
-        setRequestThread(token.getRequestingThread());
-        setCreateAt(new Date(getCreatedAtTS()).toString());
+@Value.Immutable
+public abstract class SimpleTokenInfo {
+    public static SimpleTokenInfo of(HeldLocksToken token) {
+        return ImmutableSimpleTokenInfo.builder()
+                .expiresIn(token.getExpirationDateMs() - System.currentTimeMillis())
+                .createdAtTs(token.getCreationDateMs())
+                .tokenId(token.getTokenId().toString())
+                .clientId(Preconditions.checkNotNull(token.getClient()).getClientId())
+                .requestThread(token.getRequestingThread())
+                .createAt(new Date(token.getCreationDateMs()).toString())
+                .build();
     }
 
-    public long getExpiresIn() {
-        return expiresIn;
-    }
+    @Value.Parameter
+    public abstract long getExpiresIn();
 
-    public void setExpiresIn(long expiresIn) {
-        this.expiresIn = expiresIn;
-    }
+    @Value.Parameter
+    public abstract long getCreatedAtTs();
 
-    public long getCreatedAtTS() {
-        return createdAtTS;
-    }
+    @Value.Parameter
+    public abstract String getTokenId();
 
-    public void setCreatedAtTS(long createdAtTS) {
-        this.createdAtTS = createdAtTS;
-    }
+    @Value.Parameter
+    public abstract String getClientId();
 
-    public String getTokenId() {
-        return tokenId;
-    }
+    @Value.Parameter
+    public abstract String getRequestThread();
 
-    public void setTokenId(String tokenId) {
-        this.tokenId = tokenId;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
-    public String getRequestThread() {
-        return requestThread;
-    }
-
-    public void setRequestThread(String requestThread) {
-        this.requestThread = requestThread;
-    }
-
-    public String getCreateAt() {
-        return createAt;
-    }
-
-    public void setCreateAt(String createAt) {
-        this.createAt = createAt;
-    }
+    @Value.Parameter
+    public abstract String getCreateAt();
 }

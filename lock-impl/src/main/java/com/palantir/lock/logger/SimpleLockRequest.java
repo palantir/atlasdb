@@ -15,90 +15,56 @@
  */
 package com.palantir.lock.logger;
 
+import javax.annotation.Nullable;
+
+import org.immutables.value.Value;
+
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.TimeDuration;
 
-public class SimpleLockRequest {
-    private long lockCount;
-    private long lockTimeout;
-    private String lockGroupBehavior;
-    private String blockingMode;
-    private Long blockingDuration;
-    private Long versionId;
-    private String creatingThread;
-    private String clientId;
+@Value.Immutable
+public abstract class SimpleLockRequest {
 
-    public SimpleLockRequest(LockRequest request) {
-        setLockCount(request.getLocks().size());
-        setLockTimeout(request.getLockTimeout().getTime());
-        setLockGroupBehavior(request.getLockGroupBehavior().name());
-        setBlockingMode(request.getBlockingMode().name());
-        setBlockingDuration(request.getBlockingDuration());
-        setVersionId(request.getVersionId());
-        setCreatingThread(request.getCreatingThreadName());
+    public static SimpleLockRequest of(LockRequest request, String clientId) {
+        return ImmutableSimpleLockRequest.builder()
+                .lockCount(request.getLocks().size())
+                .lockTimeout(request.getLockTimeout().getTime())
+                .lockGroupBehavior(request.getLockGroupBehavior().name())
+                .blockingMode(request.getBlockingMode().name())
+                .blockingDuration(extractBlockingDurationOrNull(request.getBlockingDuration()))
+                .versionId(request.getVersionId())
+                .creatingThread(request.getCreatingThreadName())
+                .clientId(clientId).build();
     }
 
-    public long getLockCount() {
-        return lockCount;
-    }
+    @Value.Parameter
+    public abstract long getLockCount();
 
-    public void setLockCount(long lockCount) {
-        this.lockCount = lockCount;
-    }
+    @Value.Parameter
+    public abstract long getLockTimeout();
 
-    public long getLockTimeout() {
-        return lockTimeout;
-    }
+    @Value.Parameter
+    public abstract String getLockGroupBehavior();
 
-    public void setLockTimeout(long lockTimeout) {
-        this.lockTimeout = lockTimeout;
-    }
+    @Value.Parameter
+    public abstract String getBlockingMode();
 
-    public String getLockGroupBehavior() {
-        return lockGroupBehavior;
-    }
+    @Nullable
+    @Value.Parameter
+    public abstract Long getBlockingDuration();
 
-    public void setLockGroupBehavior(String lockGroupBehavior) {
-        this.lockGroupBehavior = lockGroupBehavior;
-    }
+    @Nullable
+    @Value.Parameter
+    public abstract Long getVersionId();
 
-    public String getBlockingMode() {
-        return blockingMode;
-    }
+    @Value.Parameter
+    public abstract String getClientId();
 
-    public void setBlockingMode(String blockingMode) {
-        this.blockingMode = blockingMode;
-    }
+    @Value.Parameter
+    public abstract String getCreatingThread();
 
-    public long getBlockingDuration() {
-        return blockingDuration;
-    }
-
-    public void setBlockingDuration(TimeDuration blockingDuration) {
-        this.blockingDuration = (blockingDuration != null) ? blockingDuration.getTime() : null;
-    }
-
-    public long getVersionId() {
-        return versionId;
-    }
-
-    public void setVersionId(Long versionId) {
-        this.versionId = versionId;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
-    public String getCreatingThread() {
-        return creatingThread;
-    }
-
-    public void setCreatingThread(String creatingThread) {
-        this.creatingThread = creatingThread;
+    @Nullable
+    private static Long extractBlockingDurationOrNull(TimeDuration blockingDuration) {
+        return  (blockingDuration != null) ? blockingDuration.getTime() : null;
     }
 }

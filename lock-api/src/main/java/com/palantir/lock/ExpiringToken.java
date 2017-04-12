@@ -50,7 +50,7 @@ public interface ExpiringToken {
      * Returns the set of locks which were successfully acquired as a map
      * from descriptor to lock mode.
      */
-     SortedLockCollection<LockDescriptor> getLockDescriptors();
+    SortedLockCollection<LockDescriptor> getLockDescriptors();
 
     /**
      * Returns the amount of time that it takes for these locks to
