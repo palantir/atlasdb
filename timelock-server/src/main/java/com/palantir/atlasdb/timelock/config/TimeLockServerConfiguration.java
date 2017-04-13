@@ -17,6 +17,8 @@ package com.palantir.atlasdb.timelock.config;
 
 import java.util.Set;
 
+import org.immutables.value.Value;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -64,5 +66,14 @@ public class TimeLockServerConfiguration extends Configuration {
 
     public Set<String> clients() {
         return clients;
+    }
+
+    /**
+     * Log at INFO if a lock request receives a response after given duration in milliseconds.
+     * Default value is 10000 millis or 10 seconds.
+     */
+    @Value.Default
+    public long slowLockLogTriggerMillis() {
+        return 10000;
     }
 }

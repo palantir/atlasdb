@@ -18,7 +18,7 @@ package com.palantir.lock;
 import com.palantir.common.proxy.SerializingProxy;
 import com.palantir.lock.impl.LockServiceImpl;
 
-public final class LockServiceImplTest extends LockServiceTest {
+public final class LockServiceIntegrationTest extends LockServiceTest {
     @Override
     protected LockService getLockService() {
         return SerializingProxy.newProxyInstance(LockService.class, LockServiceImpl.create(

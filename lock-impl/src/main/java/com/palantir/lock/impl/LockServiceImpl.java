@@ -47,6 +47,7 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -108,6 +109,8 @@ import com.palantir.util.Pair;
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
+    @VisibleForTesting
+    static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
 
     /** Executor for the reaper threads. */
     private final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
@@ -152,7 +155,7 @@ import com.palantir.util.Pair;
     private final SecureRandomPool randomPool = new SecureRandomPool(SECURE_RANDOM_ALGORITHM, SECURE_RANDOM_POOL_SIZE);
 
     private final boolean isStandaloneServer;
-    private final boolean slowLogEnabled;
+    private final long slowLogTriggerMillis;
     private final TimeDuration maxAllowedLockTimeout;
     private final TimeDuration maxAllowedClockDrift;
     private final TimeDuration maxAllowedBlockingDuration;
@@ -241,7 +244,7 @@ import com.palantir.util.Pair;
         maxAllowedBlockingDuration = SimpleTimeDuration.of(options.getMaxAllowedBlockingDuration());
         maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         randomBitCount = options.getRandomBitCount();
-        slowLogEnabled = options.isSlowLogEnabled();
+        slowLogTriggerMillis = options.slowLogTriggerMillis();
         executor.execute(() -> {
             Thread.currentThread().setName("Held Locks Token Reaper");
             reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
@@ -449,11 +452,9 @@ import com.palantir.util.Pair;
                 long startTime = System.currentTimeMillis();
                 @Nullable LockClient currentHolder = tryLock(lock.get(client, entry.getValue()),
                         blockingMode, deadline);
-                if (log.isDebugEnabled() || slowLogEnabled) {
-                    long duration = System.currentTimeMillis() - startTime;
-                    if (duration > 100) {
-                        logSlowLockAcquisition(entry.getKey().toString(), currentHolder, duration);
-                    }
+                if (log.isDebugEnabled() || isSlowLogEnabled()) {
+                    long responseTimeMillis = System.currentTimeMillis() - startTime;
+                    logSlowLockAcquisition(entry.getKey().toString(), currentHolder, responseTimeMillis);
                 }
                 if (currentHolder == null) {
                     locks.put(lock, entry.getValue());
@@ -471,18 +472,25 @@ import com.palantir.util.Pair;
         }
     }
 
-    private void logSlowLockAcquisition(String lockId, LockClient currentHolder, long duration) {
-        if (slowLogEnabled) {
-            SlowLockLogger.logger.info("Blocked for {} ms to acquire lock {} {}.",
-                    duration,
+    @VisibleForTesting
+    protected void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
+        String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
+        if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
+            SlowLockLogger.logger.info(slowLockLogMessage,
+                    durationMillis,
                     lockId,
                     currentHolder == null ? "successfully" : "unsuccessfully");
-        } else {
-            log.debug("Blocked for {} ms to acquire lock {} {}.",
-                    duration,
+        } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
+            log.debug(slowLockLogMessage,
+                    durationMillis,
                     lockId,
                     currentHolder == null ? "successfully" : "unsuccessfully");
         }
+    }
+
+    @VisibleForTesting
+    protected boolean isSlowLogEnabled() {
+        return slowLogTriggerMillis > 0;
     }
 
     @Nullable private LockClient tryLock(KnownClientLock lock, BlockingMode blockingMode,
