@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -53,15 +53,23 @@ public class CachingTransaction extends ForwardingTransaction {
     private static final int DEFAULT_MAX_CACHE_WEIGHT_PER_TABLE = 10_000_000;
 
     final Transaction delegate;
+    private final int maxCacheSize;
+    private final int maxCacheWeightPerTable;
 
     // The keys here are Strings for historic reasons, as TableReferences treat empty namespace and the met namespace the same.
     private final Cache<String, LoadingCache<Cell, byte[]>> columnTableCache;
 
-    public CachingTransaction(Transaction delegate) {
+    public CachingTransaction(Transaction delegate, int maxCacheSize, int maxCacheWeightPerTable) {
         this.delegate = delegate;
+        this.maxCacheSize = maxCacheSize;
+        this.maxCacheWeightPerTable = maxCacheWeightPerTable;
         this.columnTableCache = CacheBuilder.newBuilder()
-                .maximumSize(DEFAULT_MAX_CACHE_SIZE)
+                .maximumSize(maxCacheSize)
                 .build();
+    }
+
+    public CachingTransaction(Transaction delegate) {
+        this(delegate, DEFAULT_MAX_CACHE_SIZE, DEFAULT_MAX_CACHE_WEIGHT_PER_TABLE);
     }
 
     @Override
@@ -190,7 +198,7 @@ public class CachingTransaction extends ForwardingTransaction {
     private LoadingCache<Cell, byte[]> createNewCacheForTable(TableReference tableRef) {
         return CacheBuilder.newBuilder()
                 .softValues()
-                .maximumWeight(DEFAULT_MAX_CACHE_WEIGHT_PER_TABLE)
+                .maximumWeight(maxCacheWeightPerTable)
                 .weigher((Weigher<Cell, byte[]>) (key, value) -> value.length)
                 .build(getCacheLoader(tableRef));
     }
