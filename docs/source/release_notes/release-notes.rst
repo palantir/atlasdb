@@ -63,6 +63,10 @@ develop
            Previously, clients would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
 
+    *    - |improved|
+         - Set a maximum cache size on ``CachingTransaction`` to avoid GC spirals on very large transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1798>`__)
+
 =======
 v0.38.0
 =======
