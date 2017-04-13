@@ -25,6 +25,8 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 
 import io.dropwizard.Configuration;
+import io.dropwizard.jetty.HttpConnectorFactory;
+import io.dropwizard.server.DefaultServerFactory;
 
 public class TimeLockServerConfiguration extends Configuration {
     public static final String CLIENT_NAME_REGEX = "[a-zA-Z0-9_-]+";
@@ -32,20 +34,24 @@ public class TimeLockServerConfiguration extends Configuration {
     private final TimeLockAlgorithmConfiguration algorithm;
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
-    private final boolean rateLimit;
+    private final boolean useThreadPooling;
 
     public TimeLockServerConfiguration(
             @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients,
-            @JsonProperty(value = "rateLimit", required = false) Boolean rateLimit) {
+            @JsonProperty(value = "useThreadPooling", required = false) Boolean useThreadPooling) {
         Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
         checkClientNames(clients);
+        if (Boolean.TRUE.equals(useThreadPooling)) {
+            Preconditions.checkState(computeNumberOfAvailableThreads() > 0,
+                    "Configuration enables threadPooling, but specifies non-positive number of available threads.");
+        }
 
         this.algorithm = MoreObjects.firstNonNull(algorithm, AtomixConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
-        this.rateLimit = MoreObjects.firstNonNull(rateLimit, false);
+        this.useThreadPooling = MoreObjects.firstNonNull(useThreadPooling, false);
     }
 
     private void checkClientNames(Set<String> clientNames) {
@@ -56,7 +62,6 @@ public class TimeLockServerConfiguration extends Configuration {
         Preconditions.checkState(!clientNames.contains(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
                 String.format("The namespace '%s' is reserved for the leader election service. Please use a different"
                         + " name.", PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE));
-
     }
 
     public TimeLockAlgorithmConfiguration algorithm() {
@@ -80,7 +85,26 @@ public class TimeLockServerConfiguration extends Configuration {
         return 10000;
     }
 
-    public boolean rateLimit() {
-        return rateLimit;
+    public boolean useThreadPooling() {
+        return useThreadPooling;
+    }
+
+    public int availableThreads() {
+        if (!useThreadPooling()) {
+            throw new IllegalStateException("Should not call availableThreads() if useThreadPooling is disabled");
+        }
+
+        return computeNumberOfAvailableThreads();
+    }
+
+    private int computeNumberOfAvailableThreads() {
+        DefaultServerFactory serverFactory = (DefaultServerFactory) getServerFactory();
+        int maxServerThreads = serverFactory.getMaxThreads();
+        HttpConnectorFactory connectorFactory = (HttpConnectorFactory) serverFactory.getApplicationConnectors().get(0);
+        int selectorThreads = connectorFactory.getSelectorThreads();
+        int acceptorThreads = connectorFactory.getAcceptorThreads();
+
+        //TODO consider reserving numClients more threads or something similar for unlocks
+        return maxServerThreads - selectorThreads - acceptorThreads - 1;
     }
 }

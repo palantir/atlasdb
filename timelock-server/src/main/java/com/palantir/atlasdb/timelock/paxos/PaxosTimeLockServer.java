@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -49,17 +50,14 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
-import com.palantir.lock.impl.ImmutableRateLimitingConfiguration;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.impl.RateLimitingLockService;
+import com.palantir.lock.impl.ThreadPooledLockService;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.PersistentTimestampService;
 
-import io.dropwizard.jetty.HttpConnectorFactory;
-import io.dropwizard.server.DefaultServerFactory;
 import io.dropwizard.setup.Environment;
 
 public class PaxosTimeLockServer implements TimeLockServer {
@@ -71,8 +69,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private Optional<SSLSocketFactory> optionalSecurity = Optional.absent();
     LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
-
-    private RateLimitingLockService.RateLimitingConfiguration rateLimitingConfiguration;
+    private Semaphore sharedThreadPool = new Semaphore(-1);
+    private TimeLockServerConfiguration timeLockServerConfiguration;
 
     public PaxosTimeLockServer(PaxosConfiguration configuration, Environment environment) {
         this.paxosConfiguration = configuration;
@@ -83,9 +81,11 @@ public class PaxosTimeLockServer implements TimeLockServer {
     public void onStartup(TimeLockServerConfiguration configuration) {
         registerPaxosResource();
 
-        initializeRateLimitingConfiguration(configuration);
-
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
+        timeLockServerConfiguration = configuration;
+        if (timeLockServerConfiguration.useThreadPooling()) {
+            environment.jersey().register(new TooManyRequestsExceptionMapper());
+        }
 
         registerLeaderElectionService(configuration);
 
@@ -95,23 +95,6 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private void registerPaxosResource() {
         paxosResource = PaxosResource.create(paxosConfiguration.paxosDataDir().toString());
         environment.jersey().register(paxosResource);
-    }
-
-    private void initializeRateLimitingConfiguration(TimeLockServerConfiguration configuration) {
-        environment.jersey().register(new TooManyRequestsExceptionMapper());
-        DefaultServerFactory serverFactory = (DefaultServerFactory) configuration.getServerFactory();
-        int maxServerThreads = serverFactory.getMaxThreads();
-
-        HttpConnectorFactory connectorFactory = (HttpConnectorFactory) serverFactory.getApplicationConnectors().get(0);
-        int selectorThreads = connectorFactory.getSelectorThreads();
-        int acceptorThreads = connectorFactory.getAcceptorThreads();
-
-        //TODO consider reserving numClients more threads or something similar for unlocks
-        rateLimitingConfiguration = ImmutableRateLimitingConfiguration.builder()
-                .useRateLimiting(configuration.rateLimit())
-                .availableThreads(maxServerThreads - selectorThreads - acceptorThreads - 1)
-                .numClients(configuration.clients().size())
-                .build();
     }
 
     private void registerLeaderElectionService(TimeLockServerConfiguration configuration) {
@@ -178,21 +161,43 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 ManagedTimestampService.class,
                 createPaxosBackedTimestampService(client),
                 client);
+        LockService lockService = instrument(
+                LockService.class,
+                AwaitingLeadershipProxy.newProxyInstance(
+                        LockService.class,
+                        () -> createLockService(slowLogTriggerMillis),
+                        leaderElectionService),
+                client);
+
+        return TimeLockServices.create(timestampService, lockService, timestampService);
+    }
+
+    private LockService createLockService(long slowLogTriggerMillis) {
         LockServerOptions lockServerOptions = new LockServerOptions() {
             @Override
             public long slowLogTriggerMillis() {
                 return slowLogTriggerMillis;
             }
         };
-        LockService lockService = instrument(
-                LockService.class,
-                AwaitingLeadershipProxy.newProxyInstance(
-                        LockService.class,
-                        () -> RateLimitingLockService.create(LockServiceImpl.create(lockServerOptions),
-                                rateLimitingConfiguration),
-                        leaderElectionService),
-                client);
-        return TimeLockServices.create(timestampService, lockService, timestampService);
+        LockService lockServiceNotUsingThreadPooling = LockServiceImpl.create(lockServerOptions);
+
+        if (!timeLockServerConfiguration.useThreadPooling()) {
+            return lockServiceNotUsingThreadPooling;
+        }
+
+        int availableThreads = timeLockServerConfiguration.availableThreads();
+        int numClients = timeLockServerConfiguration.clients().size();
+        int localThreadPoolSize = (availableThreads / numClients) / 2;
+        int sharedThreadPoolSize = availableThreads - localThreadPoolSize * numClients;
+
+        // TODO a more robust solution is needed for live reloading -- probably we can take the delegate and rewrap it
+        synchronized (this) {
+            if (sharedThreadPool.availablePermits() == -1) {
+                sharedThreadPool.release(sharedThreadPoolSize + 1);
+            }
+        }
+
+        return new ThreadPooledLockService(lockServiceNotUsingThreadPooling, localThreadPoolSize, sharedThreadPool);
     }
 
     static <T> T instrument(Class<T> serviceClass, T service, String client) {

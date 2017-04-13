@@ -57,6 +57,8 @@ develop
          - AtlasDB will refuse to start if backed by Postgres 9.5.0 or 9.5.1. These versions contain a known bug that causes incorrect results to be returned for certain queries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
 
+    *    - |new|
+         - Limit number of concurrent Lock calls from the same client.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

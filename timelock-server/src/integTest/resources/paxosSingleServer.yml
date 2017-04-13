@@ -14,7 +14,7 @@ clients:
   - learner
   - acceptor
 
-rateLimit: true
+useThreadPooling: true
 
 server:
   minThreads: 1

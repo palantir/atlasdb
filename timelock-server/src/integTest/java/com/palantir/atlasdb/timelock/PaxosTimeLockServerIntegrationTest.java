@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,13 +33,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 import org.assertj.core.util.Lists;
 import org.eclipse.jetty.http.HttpStatus;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
@@ -68,7 +64,7 @@ import io.dropwizard.testing.ResourceHelpers;
 
 public class PaxosTimeLockServerIntegrationTest {
     private static final String NOT_FOUND_CODE = "404";
-    private static final String TOO_MANY_REQUESTS_CODE="429";
+    private static final String TOO_MANY_REQUESTS_CODE = "429";
 
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
@@ -82,7 +78,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final int ACCEPTOR_THREADS = 4;
     private static final int AVAILABLE_THREADS = MAX_SERVER_THREADS - SELECTOR_THREADS - ACCEPTOR_THREADS - 1;
     private static final int LOCAL_TC_LIMIT = AVAILABLE_THREADS / 2 / NUM_CLIENTS;
-    private static final int GLOBAL_TC_LIMIT = AVAILABLE_THREADS - LOCAL_TC_LIMIT * NUM_CLIENTS;
+    private static final int SHARED_TC_LIMIT = AVAILABLE_THREADS - LOCAL_TC_LIMIT * NUM_CLIENTS;
 
 
     private static final long ONE_MILLION = 1000000;
@@ -107,7 +103,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static final LockRequest SLOW_REQUEST = LockRequest
             .builder(ImmutableSortedMap.of(StringLockDescriptor.of("lock"), LockMode.WRITE))
-            .blockForAtMost(SimpleTimeDuration.of(100, TimeUnit.MILLISECONDS))
+            .blockForAtMost(SimpleTimeDuration.of(200, TimeUnit.MILLISECONDS))
             .build();
 
     @ClassRule
@@ -119,7 +115,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void notExceedingThreadCountLimitsSucceeds() throws Exception {
         List<RemoteLockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
 
-        assertThat(lockAndUnlockAndCountExceptions(lockService, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT))
+        assertThat(lockAndUnlockAndCountExceptions(lockService, LOCAL_TC_LIMIT + SHARED_TC_LIMIT))
                 .isEqualTo(0);
     }
 
@@ -128,64 +124,8 @@ public class PaxosTimeLockServerIntegrationTest {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
 
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT / 3))
+        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, LOCAL_TC_LIMIT + SHARED_TC_LIMIT / 3))
                 .isEqualTo(0);
-    }
-
-    // TODO Probably don't want to merge these in, they are just here for now
-    @Ignore
-    @Test
-    public void exceedingThreadCountLimitsReturns429() throws Exception {
-        List<RemoteLockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
-
-
-        assertThat(lockAndUnlockAndCountExceptions(lockService, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT + FORTY_TWO))
-                .isBetween(FORTY_TWO, FORTY_TWO);
-    }
-
-    @Ignore
-    @Test
-    public void globalThreadCountLimitAppliesToAllClients() throws Exception {
-        List<RemoteLockService> lockServiceList = ImmutableList.of(
-                getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
-
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, LOCAL_TC_LIMIT + GLOBAL_TC_LIMIT))
-                .isBetween(2 * GLOBAL_TC_LIMIT , 2 * GLOBAL_TC_LIMIT);
-    }
-
-    @Ignore
-    @Test
-    public void clientsCanUseTheirAllowanceWhenGlobalLimitIsReached() throws Exception {
-        RemoteLockService lockService1 = getLockService(CLIENT_1);
-        RemoteLockService lockService2 = getLockService(CLIENT_2);
-        ExecutorService executorService =
-                Executors.newFixedThreadPool(GLOBAL_TC_LIMIT + 2 * LOCAL_TC_LIMIT + FORTY_TWO);
-        List<Future<LockRefreshToken>> initialRequests;
-        List<Future<LockRefreshToken>> secondClientRequests;
-        List<Future<LockRefreshToken>> followUpRequests;
-
-        CountDownLatch countDownLatch = new CountDownLatch(GLOBAL_TC_LIMIT + 2 * LOCAL_TC_LIMIT + FORTY_TWO);
-
-        // This will exhaust all the globally available threads
-        initialRequests = requestLocks(lockService1,
-                GLOBAL_TC_LIMIT + LOCAL_TC_LIMIT + FORTY_TWO, executorService,
-                countDownLatch);
-
-        // The following are assigned to CLIENT_2's threads
-        secondClientRequests = requestLocks(lockService2, LOCAL_TC_LIMIT, executorService, countDownLatch);
-
-        // CLIENT_1 still cannot acquire a thread
-        followUpRequests = requestLocks(lockService1, FORTY_TWO, executorService, countDownLatch);
-
-        Thread.sleep(100);
-
-        assertThat(unlockAndCountExceptions(lockService2, secondClientRequests)).isEqualTo(0);
-        secondClientRequests = requestLocks(lockService2, LOCAL_TC_LIMIT, executorService, countDownLatch);
-        assertThat(unlockAndCountExceptions(lockService2, secondClientRequests)).isEqualTo(0);
-
-        // Verify that all the global threads were occupied by CLIENT_1's requests
-        assertThat(unlockAndCountExceptions(lockService1, initialRequests)).isBetween(FORTY_TWO , FORTY_TWO);
-        assertThat(unlockAndCountExceptions(lockService1, followUpRequests)).isBetween(FORTY_TWO , FORTY_TWO);
     }
 
     @Test
