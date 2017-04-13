@@ -144,6 +144,9 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "com.google.dagger:dagger": {
+            "locked": "2.0.2"
+        },
         "com.google.guava:guava": {
             "locked": "18.0",
             "transitive": [
@@ -514,6 +517,7 @@
         "javax.inject:javax.inject": {
             "locked": "1",
             "transitive": [
+                "com.google.dagger:dagger",
                 "com.palantir.atlasdb:atlasdb-service",
                 "io.airlift:airline"
             ]

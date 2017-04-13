@@ -110,16 +110,18 @@ dependencyLock {
     configurationNames = ['runtime', 'compileClasspath']
 }
 
-task verifyDependencyLocksAreCurrent << {
-    def expectedDependencies = tasks.saveLock.getOutputLock()
-    def actualDependencies = tasks.saveLock.getGeneratedLock()
+task verifyDependencyLocksAreCurrent {
+    doLast {
+        def expectedDependencies = tasks.saveLock.getOutputLock()
+        def actualDependencies = tasks.saveLock.getGeneratedLock()
 
-    def digester = java.security.MessageDigest.getInstance('SHA')
-    logger.info("Verifying integrity of dependency locks: {} vs {}", expectedDependencies, actualDependencies)
-    if (digester.digest(expectedDependencies.bytes) != digester.digest(actualDependencies.bytes)) {
-        throw new Exception("The dependencies of project " + project.name + " do not match the expected "
-                + "dependencies recorded in " + expectedDependencies + ". "
-                + "Run `./gradlew generateLock saveLock` and commit the updated version.lock files")
+        def digester = java.security.MessageDigest.getInstance('SHA')
+        logger.info("Verifying integrity of dependency locks: {} vs {}", expectedDependencies, actualDependencies)
+        if (digester.digest(expectedDependencies.bytes) != digester.digest(actualDependencies.bytes)) {
+            throw new Exception("The dependencies of project " + project.name + " do not match the expected "
+                    + "dependencies recorded in " + expectedDependencies + ". "
+                    + "Run `./gradlew generateLock saveLock` and commit the updated version.lock files")
+        }
     }
 }
 

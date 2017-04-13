@@ -91,6 +91,13 @@ import com.google.common.base.Objects;
         return Long.SIZE;
     }
 
+    /**
+     * Info level logging for any lock request that receives a response after 100ms.
+     */
+    public boolean isSlowLogEnabled() {
+        return false;
+    }
+
     @Override public final boolean equals(@Nullable Object obj) {
         if (this == obj) return true;
         if (!(obj instanceof LockServerOptions)) return false;

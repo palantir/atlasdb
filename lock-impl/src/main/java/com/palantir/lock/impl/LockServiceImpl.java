@@ -157,6 +157,7 @@ import com.palantir.util.JMXUtils;
     private final SecureRandomPool randomPool = new SecureRandomPool(SECURE_RANDOM_ALGORITHM, SECURE_RANDOM_POOL_SIZE);
 
     private final boolean isStandaloneServer;
+    private final boolean slowLogEnabled;
     private final TimeDuration maxAllowedLockTimeout;
     private final TimeDuration maxAllowedClockDrift;
     private final TimeDuration maxAllowedBlockingDuration;
@@ -247,19 +248,15 @@ import com.palantir.util.JMXUtils;
         maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         randomBitCount = options.getRandomBitCount();
         lockStateLoggerDir = options.getLockStateLoggerDir();
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                Thread.currentThread().setName("Held Locks Token Reaper");
-                reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
-            }
+
+        slowLogEnabled = options.isSlowLogEnabled();
+        executor.execute(() -> {
+            Thread.currentThread().setName("Held Locks Token Reaper");
+            reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
         });
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                Thread.currentThread().setName("Held Locks Grant Reaper");
-                reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
-            }
+        executor.execute(() -> {
+            Thread.currentThread().setName("Held Locks Grant Reaper");
+            reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
         });
     }
 
@@ -460,13 +457,10 @@ import com.palantir.util.JMXUtils;
                 long startTime = System.currentTimeMillis();
                 @Nullable LockClient currentHolder = tryLock(lock.get(client, entry.getValue()),
                         blockingMode, deadline);
-                if (log.isDebugEnabled()) {
+                if (log.isDebugEnabled() || slowLogEnabled) {
                     long duration = System.currentTimeMillis() - startTime;
                     if (duration > 100) {
-                        log.debug("Blocked for {} ms to acquire lock {} {}.",
-                                duration,
-                                entry.getKey().getLockIdAsString(),
-                                currentHolder == null ? "successfully" : "unsuccessfully");
+                        logSlowLockAcquisition(entry.getKey().toString(), currentHolder, duration);
                     }
                 }
                 if (currentHolder == null) {
@@ -482,6 +476,20 @@ import com.palantir.util.JMXUtils;
             if (previousThreadName != null) {
                 tryRenameThread(previousThreadName);
             }
+        }
+    }
+
+    private void logSlowLockAcquisition(String lockId, LockClient currentHolder, long duration) {
+        if (slowLogEnabled) {
+            SlowLockLogger.logger.info("Blocked for {} ms to acquire lock {} {}.",
+                    duration,
+                    lockId,
+                    currentHolder == null ? "successfully" : "unsuccessfully");
+        } else {
+            log.debug("Blocked for {} ms to acquire lock {} {}.",
+                    duration,
+                    lockId,
+                    currentHolder == null ? "successfully" : "unsuccessfully");
         }
     }
 
@@ -719,23 +727,11 @@ import com.palantir.util.JMXUtils;
     }
 
     private void logIfAbnormallyOld(final HeldLocksGrant grant, final long now) {
-        logIfAbnormallyOld(grant, now,
-                new Supplier<String>() {
-                    @Override
-                    public String get() {
-                        return grant.toString(now);
-                    }
-                });
+        logIfAbnormallyOld(grant, now, () -> grant.toString(now));
     }
 
     private void logIfAbnormallyOld(final HeldLocksToken token, final long now) {
-        logIfAbnormallyOld(token, now,
-                new Supplier<String>() {
-                    @Override
-                    public String get() {
-                        return token.toString(now);
-                    }
-                });
+        logIfAbnormallyOld(token, now, () -> token.toString(now));
     }
 
     private void logIfAbnormallyOld(ExpiringToken token, long now, Supplier<String> description) {

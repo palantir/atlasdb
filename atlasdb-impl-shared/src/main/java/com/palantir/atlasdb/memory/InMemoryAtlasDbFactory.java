@@ -86,9 +86,17 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         return new InMemoryTimestampService();
     }
 
+    /**
+     * @deprecated use {@link TransactionManagers#createInMemory(...)}
+     *
+     * There are some differences in set up between the methods though they are unlikely to cause breaks.
+     * This method has been deprecated as all testing should be conducted on the code path used for
+     * production TransactionManager instantiation (regardless of the backing store).  It will be removed in
+     * future versions.
+     */
+    @Deprecated
     public static SerializableTransactionManager createInMemoryTransactionManager(AtlasSchema schema,
             AtlasSchema... otherSchemas) {
-        AtlasDbVersion.ensureVersionReported();
 
         Set<Schema> schemas = Lists.asList(schema, otherSchemas).stream()
                 .map(AtlasSchema::getLatestSchema)
