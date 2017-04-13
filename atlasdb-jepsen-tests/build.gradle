@@ -31,7 +31,7 @@ check.dependsOn integTest
 check.dependsOn runUnitTestsForPrintLogsInChronologicalOrderScript
 
 dependencies {
-    compile project(':atlasdb-config')
+    compile project(path: ':atlasdb-config', configuration: 'shadow')
 
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'

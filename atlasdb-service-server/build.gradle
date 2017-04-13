@@ -9,7 +9,7 @@ dependencies {
     compile project(':atlasdb-service')
     compile project(':lock-impl')
     compile project(':leader-election-impl')
-    compile project(':atlasdb-config')
+    compile project(path: ':atlasdb-config', configuration: 'shadow')
     runtime project(':atlasdb-rocksdb')
     runtime project(':atlasdb-cassandra')
 
