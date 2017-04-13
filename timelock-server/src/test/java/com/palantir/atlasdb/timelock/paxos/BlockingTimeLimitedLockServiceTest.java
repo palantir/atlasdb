@@ -15,9 +15,12 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -28,13 +31,16 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.FakeTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.remoting.BlockingTimeoutException;
 
 public class BlockingTimeLimitedLockServiceTest {
     private static final long BLOCKING_TIME_LIMIT_MILLIS = 10L;
+    private static final long TIME = 42L;
     private static final String CLIENT = "client";
     private static final LockRequest LOCK_REQUEST
             = LockRequest.builder(ImmutableSortedMap.of(StringLockDescriptor.of("lockId"), LockMode.WRITE)).build();
@@ -52,9 +58,49 @@ public class BlockingTimeLimitedLockServiceTest {
     private final LockService throwingService = createService(throwingLimiter);
 
     @Test
-    public void delegatesOperations() throws InterruptedException {
+    public void delegatesInterruptibleOperations() throws InterruptedException {
         acceptingService.lock(CLIENT, LOCK_REQUEST);
         verify(delegate, times(1)).lock(CLIENT, LOCK_REQUEST);
+    }
+
+    @Test
+    public void delegatesNonInterruptibleOperations() {
+        verifyCurrentTimeMillisDelegates(acceptingService);
+    }
+
+    @Test
+    public void timeoutDoesNotApplyToUninterruptibleOperations() {
+        verifyCurrentTimeMillisDelegates(timingOutService);
+    }
+
+    @Test
+    public void interruptDoesNotApplyToUninterruptibleOperations() {
+        verifyCurrentTimeMillisDelegates(interruptingService);
+    }
+
+    @Test
+    public void throwsBlockingTimeoutExceptionIfInterruptibleOperationTimesOut() {
+        assertThatThrownBy(() -> timingOutService.lock(CLIENT, LOCK_REQUEST))
+                .isInstanceOf(BlockingTimeoutException.class);
+    }
+
+    @Test
+    public void rethrowsInterruptedExceptionIfInterruptibleOperationIsInterrupted() {
+        assertThatThrownBy(() -> interruptingService.lockAndGetHeldLocks(CLIENT, LOCK_REQUEST))
+                .isInstanceOf(InterruptedException.class);
+    }
+
+    @Test
+    public void rethrowsExceptionOccurringFromInterruptibleOperation() {
+        assertThatThrownBy(() -> throwingService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_REQUEST))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    private void verifyCurrentTimeMillisDelegates(LockService service) {
+        when(delegate.currentTimeMillis()).thenReturn(TIME);
+
+        assertThat(service.currentTimeMillis()).isEqualTo(TIME);
+        verify(delegate, times(1)).currentTimeMillis();
     }
 
     private LockService createService(TimeLimiter limiter) {
