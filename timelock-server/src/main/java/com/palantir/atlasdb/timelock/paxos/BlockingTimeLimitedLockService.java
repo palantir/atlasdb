@@ -23,9 +23,11 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.ws.rs.PathParam;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
@@ -48,7 +50,8 @@ public class BlockingTimeLimitedLockService implements LockService {
     private final TimeLimiter timeLimiter;
     private final long blockingTimeLimitMillis;
 
-    private BlockingTimeLimitedLockService(
+    @VisibleForTesting
+    BlockingTimeLimitedLockService(
             LockService delegate,
             TimeLimiter timeLimiter,
             long blockingTimeLimitMillis) {
@@ -64,7 +67,9 @@ public class BlockingTimeLimitedLockService implements LockService {
     @Nullable
     @Override
     public LockRefreshToken lock(@PathParam("client") String client, LockRequest request) throws InterruptedException {
-        return callWithTimeLimit(() -> delegate.lock(client, request), "lock", client, request);
+        return callWithTimeLimit(
+                () -> delegate.lock(client, request),
+                ImmutableLockRequestSpecification.of("lock", client, request));
     }
 
     @Override
@@ -72,9 +77,7 @@ public class BlockingTimeLimitedLockService implements LockService {
             throws InterruptedException {
         return callWithTimeLimit(
                 () -> delegate.lockAndGetHeldLocks(client, request),
-                "lockAndGetHeldLocks",
-                client,
-                request);
+                ImmutableLockRequestSpecification.of("lockAndGetHeldLocks", client, request));
     }
 
     @Override
@@ -97,9 +100,7 @@ public class BlockingTimeLimitedLockService implements LockService {
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
         return callWithTimeLimit(
                 () -> delegate.lockWithFullLockResponse(client, request),
-                "lockWithFullLockResponse",
-                client.toString(),
-                request);
+                ImmutableLockRequestSpecification.of("lockWithFullLockResponse", client.getClientId(), request));
     }
 
     @Override
@@ -180,29 +181,44 @@ public class BlockingTimeLimitedLockService implements LockService {
         delegate.logCurrentState();
     }
 
-    private <T> T callWithTimeLimit(Callable<T> callable, String method, String client, LockRequest lockRequest)
+    private <T> T callWithTimeLimit(Callable<T> callable, LockRequestSpecification specification)
             throws InterruptedException {
         try {
             return timeLimiter.callWithTimeout(callable, blockingTimeLimitMillis, TimeUnit.MILLISECONDS, true);
         } catch (InterruptedException e) {
             // In this case, the thread was interrupted for some other reason, perhaps because we lost leadership.
             // This is fine but it's probably worth logging.
-            log.warn("Lock service was interrupted when servicing {} for client {}; request was {}",
-                    method, client, lockRequest, e);
+            log.warn("Lock service was interrupted when servicing {} for client \"{}\"; request was {}",
+                    specification.method(),
+                    specification.client(),
+                    specification.lockRequest(),
+                    e);
             throw e;
         } catch (UncheckedTimeoutException e) {
             // This is the legitimate timeout case we're trying to catch.
             String errorMessage = String.format(
-                    "Lock service timed out after %s milliseconds when servicing %s for client %s; request was %s",
+                    "Lock service timed out after %s milliseconds when servicing %s for client \"%s\"; request was %s",
                     blockingTimeLimitMillis,
-                    method,
-                    client,
-                    lockRequest);
+                    specification.method(),
+                    specification.client(),
+                    specification.lockRequest());
             log.warn(errorMessage, e);
             throw new BlockingTimeoutException(errorMessage);
         } catch (Exception e) {
             // We don't know, and would prefer not to throw checked exceptions apart from InterruptedException.
             throw Throwables.propagate(e);
         }
+    }
+
+    @Value.Immutable
+    abstract static class LockRequestSpecification {
+        @Value.Parameter
+        abstract String method();
+
+        @Value.Parameter
+        abstract String client();
+
+        @Value.Parameter
+        abstract LockRequest lockRequest();
     }
 }
