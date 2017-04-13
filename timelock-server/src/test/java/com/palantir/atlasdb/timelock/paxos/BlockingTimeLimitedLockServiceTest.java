@@ -16,19 +16,28 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.FakeTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
+import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import com.palantir.lock.StringLockDescriptor;
 
 public class BlockingTimeLimitedLockServiceTest {
     private static final long BLOCKING_TIME_LIMIT_MILLIS = 10L;
+    private static final String CLIENT = "client";
+    private static final LockRequest LOCK_REQUEST
+            = LockRequest.builder(ImmutableSortedMap.of(StringLockDescriptor.of("lockId"), LockMode.WRITE)).build();
 
     private final TimeLimiter acceptingLimiter = new FakeTimeLimiter();
     private final TimeLimiter timingOutLimiter = new ThrowingTimeLimiter(new UncheckedTimeoutException());
@@ -43,8 +52,9 @@ public class BlockingTimeLimitedLockServiceTest {
     private final LockService throwingService = createService(throwingLimiter);
 
     @Test
-    public void delegatesOperationsUnderTimeLimit() {
-
+    public void delegatesOperations() throws InterruptedException {
+        acceptingService.lock(CLIENT, LOCK_REQUEST);
+        verify(delegate, times(1)).lock(CLIENT, LOCK_REQUEST);
     }
 
     private LockService createService(TimeLimiter limiter) {
