@@ -201,8 +201,11 @@
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1783">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Any lock requests that take more than <code class="docutils literal"><span class="pre">100ms</span></code> to receive a response are now logged in the <code class="docutils literal"><span class="pre">SlowLockLogger</span></code> logger.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1769">Pull Request</a>)</td>
+<td>The lock server now logs to <code class="docutils literal"><span class="pre">SlowLockLogger</span></code> logger if a request takes more than a given time (10 seconds by default) to be processed.
+Specifically, the timelock server has a configuration parameter <code class="docutils literal"><span class="pre">slowLockLogTriggerMillis</span></code> which defaults to <code class="docutils literal"><span class="pre">10000</span></code>.
+Setting this parameter to zero (or any negative number) will disable the new logger; slow locks will instead be logged at <code class="docutils literal"><span class="pre">DEBUG</span></code>.
+If not using timelock, an application can modify the trigger value through <code class="docutils literal"><span class="pre">LockServerOptions</span></code> during initialization in <code class="docutils literal"><span class="pre">TransactionManagers.create</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1791">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
 <td>Deprecated <code class="docutils literal"><span class="pre">InMemoryAtlasDbFactory#createInMemoryTransactionManager</span></code>, please instead use the supported <code class="docutils literal"><span class="pre">TransactionManagers.createInMemory(...)</span></code> for your testing.

@@ -201,8 +201,9 @@ these may be configured in turn, as well as additional configuration parameters.
 <li><a class="reference internal" href="#paxos-configuration" id="id5">Paxos Configuration</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#further-configuration-parameters" id="id6">Further Configuration Parameters</a><ul>
-<li><a class="reference internal" href="#configuring-http-2" id="id7">Configuring HTTP/2</a></li>
+<li><a class="reference internal" href="#further-configuration-parameters" id="id6">Further Configuration Parameters</a></li>
+<li><a class="reference internal" href="#dropwizard-configuration-parameters" id="id7">Dropwizard Configuration Parameters</a><ul>
+<li><a class="reference internal" href="#configuring-http-2" id="id8">Configuring HTTP/2</a></li>
 </ul>
 </li>
 </ul>
@@ -338,11 +339,28 @@ believing the leader is down, in ms (default: <code class="docutils literal"><sp
 </div>
 <div class="section" id="further-configuration-parameters">
 <h2><a class="toc-backref" href="#id6">Further Configuration Parameters</a><a class="headerlink" href="#further-configuration-parameters" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><ul class="first">
+<li>Property</li>
+<li>Description</li>
+</ul>
+</li>
+<li><ul class="first">
+<li>slowLockLogTriggerMillis</li>
+<li>Log at INFO if a lock request receives a response after given duration in milliseconds (default: <code class="docutils literal"><span class="pre">10000</span></code> i.e. 10s).</li>
+</ul>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="dropwizard-configuration-parameters">
+<h2><a class="toc-backref" href="#id7">Dropwizard Configuration Parameters</a><a class="headerlink" href="#dropwizard-configuration-parameters" title="Permalink to this headline">¶</a></h2>
 <p>The Timelock Server is implemented as a Dropwizard application, and may thus be suitably configured with a <code class="docutils literal"><span class="pre">server</span></code>
 block following <a class="reference external" href="http://www.dropwizard.io/1.0.6/docs/manual/configuration.html">Dropwizard&#8217;s configuration</a>. This
 may be useful if, for example, one needs to change the application and/or admin ports for the Timelock Server.</p>
 <div class="section" id="configuring-http-2">
-<span id="timelock-server-config-http2"></span><h3><a class="toc-backref" href="#id7">Configuring HTTP/2</a><a class="headerlink" href="#configuring-http-2" title="Permalink to this headline">¶</a></h3>
+<span id="timelock-server-config-http2"></span><h3><a class="toc-backref" href="#id8">Configuring HTTP/2</a><a class="headerlink" href="#configuring-http-2" title="Permalink to this headline">¶</a></h3>
 <p><a class="reference external" href="https://http2.github.io/">HTTP/2</a> is a newer version of the HTTP protocol that supports, among other features, connection multiplexing. This is
 extremely useful in improving the latency of timestamp and lock requests, which are usually fairly small.
 Timelock Server is compatible with HTTP/2 as of AtlasDB v0.34.0; to configure this, one should change the protocol
