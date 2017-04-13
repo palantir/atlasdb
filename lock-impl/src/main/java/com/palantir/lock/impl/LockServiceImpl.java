@@ -22,6 +22,7 @@ import static com.palantir.lock.LockGroupBehavior.LOCK_ALL_OR_NONE;
 import static com.palantir.lock.LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Iterator;
@@ -163,6 +164,7 @@ import com.palantir.util.JMXUtils;
     private final int randomBitCount;
     private final Runnable callOnClose;
     private volatile boolean isShutDown = false;
+    private final String lockStateLoggerDir;
 
     private final LockClientIndices clientIndices = new LockClientIndices();
 
@@ -244,6 +246,7 @@ import com.palantir.util.JMXUtils;
         maxAllowedBlockingDuration = SimpleTimeDuration.of(options.getMaxAllowedBlockingDuration());
         maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         randomBitCount = options.getRandomBitCount();
+        lockStateLoggerDir = options.getLockStateLoggerDir();
         executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -987,8 +990,6 @@ import com.palantir.util.JMXUtils;
      */
     @Override
     public void logCurrentState() {
-        logAllHeldAndOutstandingLocks();
-
         StringBuilder logString = getGeneralLockStats();
         for (Entry<String, Collection> nameValuePair : getLoggableCollectionsWithNames().entrySet()) {
             logString.append(serializeCollectionWithName(nameValuePair.getKey(), nameValuePair.getValue()));
@@ -997,12 +998,18 @@ import com.palantir.util.JMXUtils;
         log.error("Current State: {}", logString.toString());
 
         log.error(logString.toString());
+
+        try {
+            logAllHeldAndOutstandingLocks();
+        } catch (IOException e) {
+            log.error("Can't dump state to Yaml: [{}]", e);
+            throw new IllegalStateException(e);
+        }
     }
 
-    private void logAllHeldAndOutstandingLocks() {
+    private void logAllHeldAndOutstandingLocks() throws IOException {
         LockServiceStateLogger lockServiceStateLogger = new LockServiceStateLogger(heldLocksTokenMap, outstandingLockRequestMultimap);
-        lockServiceStateLogger.logOutstandingLockRequests();
-        lockServiceStateLogger.logHeldLocks();
+        lockServiceStateLogger.logLocks(lockStateLoggerDir);
     }
 
     private String serializeCollectionWithName(String collectionName, Collection collectionToLog) {

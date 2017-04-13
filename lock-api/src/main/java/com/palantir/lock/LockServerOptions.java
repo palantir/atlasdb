@@ -120,6 +120,7 @@ import com.google.common.base.Objects;
                 .add("maxAllowedBlockingDuration", getMaxAllowedBlockingDuration())
                 .add("maxNormalLockAge", getMaxNormalLockAge())
                 .add("randomBitCount", getRandomBitCount())
+                .add("lockStateLoggerDir", getLockStateLoggerDir())
                 .toString();
     }
 
@@ -130,6 +131,10 @@ import com.google.common.base.Objects;
 
     protected final Object writeReplace() {
         return new SerializationProxy(this);
+    }
+
+    public String getLockStateLoggerDir() {
+        return "log/state";
     }
 
     private static class SerializationProxy implements Serializable {

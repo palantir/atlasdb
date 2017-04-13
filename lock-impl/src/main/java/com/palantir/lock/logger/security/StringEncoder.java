@@ -28,9 +28,6 @@ import javax.crypto.SecretKey;
 
 import com.google.common.annotations.VisibleForTesting;
 
-/**
- * Created by davidt on 4/12/17.
- */
 public class StringEncoder {
 
     private final SecretKey sercretKey;
@@ -58,8 +55,7 @@ public class StringEncoder {
 
         try {
             byte[] encoded = cipher.doFinal(value.getBytes(StandardCharsets.ISO_8859_1));
-            String s = new String(encoded, StandardCharsets.ISO_8859_1);
-            return s;
+            return new String(encoded, StandardCharsets.ISO_8859_1);
         } catch (IllegalBlockSizeException | BadPaddingException e) {
             throw new RuntimeException(e);
         }
@@ -84,6 +80,9 @@ public class StringEncoder {
         return new String(decrypted, StandardCharsets.ISO_8859_1);
     }
 
+    public byte[] getKey() {
+       return sercretKey.getEncoded();
+    }
 
     private SecretKey keyGen() {
         KeyGenerator keygen;
@@ -95,5 +94,4 @@ public class StringEncoder {
         keygen.init(KEY_SIZE);
         return keygen.generateKey();
     }
-
 }

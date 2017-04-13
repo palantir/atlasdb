@@ -15,6 +15,12 @@
  */
 package com.palantir.lock.logger;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -25,7 +31,6 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.Tag;
@@ -37,7 +42,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
-
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
@@ -45,24 +49,40 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.logger.security.StringEncoder;
 
 public class LockServiceStateLogger {
-
     private static Logger log = LoggerFactory.getLogger(LockServiceStateLogger.class);
 
     private static final String OUTSTANDING_LOCK_REQUESTS_TITLE = "OutstandingLockRequests";
     private static final String HELD_LOCKS_TITLE = "HeldLocks";
+
+    private static final String FILE_NOT_CREATED_LOG_ERROR = "Destination file [{}] either already exists"
+            + "or can't be created. This is a very unlikely scenario."
+            + "Retrigger logging or check if process has permitions on the folder";
+
     private final StringEncoder stringEncoder = new StringEncoder();
 
-    private String heldLocksYaml;
-    private String outstandingLocksYaml;
+    private final ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocks;
+    private final Map<LockClient, Set<LockRequest>> outstandingLockRequests;
 
     public LockServiceStateLogger(ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap,
             SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap) {
-        this.heldLocksYaml = generateHeldLocksYaml(heldLocksTokenMap);
-        this.outstandingLocksYaml = generateOutstandingLocksYaml(Multimaps.asMap(outstandingLockRequestMultimap));
+        this.heldLocks = heldLocksTokenMap;
+        this.outstandingLockRequests = Multimaps.asMap(outstandingLockRequestMultimap);
     }
 
-    private String generateOutstandingLocksYaml(Map<LockClient, Set<LockRequest>> outstandingLockRequestsMap) {
+    public void logLocks(String outputDir) throws IOException {
+        Map<String, Object> generatedOutstandingRequests = generateOutstandingLocksYaml(outstandingLockRequests);
+        Map<String, Object> generatedHeldLocks = generateHeldLocks(heldLocks);
 
+        long timestamp = System.currentTimeMillis();
+
+        Path outputDirPath = Paths.get(outputDir);
+        Files.createDirectories(outputDirPath);
+
+        dumpYamlInNewFile(outputDir, generatedOutstandingRequests, generatedHeldLocks, timestamp);
+        dumpKeyInNewFile(outputDir, timestamp);
+    }
+
+    private Map<String, Object> generateOutstandingLocksYaml(Map<LockClient, Set<LockRequest>> outstandingLockRequestsMap) {
         Map<String, SimpleLockRequestsWithSameDescriptor> outstandingRequestMap = Maps.newConcurrentMap();
 
         outstandingLockRequestsMap.forEach((client, requestSet) -> {
@@ -82,7 +102,7 @@ public class LockServiceStateLogger {
         List<SimpleLockRequestsWithSameDescriptor> sortedOutstandingRequests = sortOutstandingRequests(outstandingRequestMap.values());
 
         Yaml yaml = new Yaml(getRepresenter(), getDumperOptions());
-        return yaml.dump(nameObjectForYamlConvertion(sortedOutstandingRequests, OUTSTANDING_LOCK_REQUESTS_TITLE));
+        return nameObjectForYamlConvertion(sortedOutstandingRequests, OUTSTANDING_LOCK_REQUESTS_TITLE);
     }
 
     private List<SimpleLockRequestsWithSameDescriptor> sortOutstandingRequests(
@@ -101,7 +121,7 @@ public class LockServiceStateLogger {
         return sortedEntries;
     }
 
-    private String generateHeldLocksYaml(ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
+    private Map<String, Object> generateHeldLocks(ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
 
         List<Map<String, Object>> mappedLockListGroupedByToken = heldLocksTokenMap.entrySet().stream()
                 .map(heldLocksTokenMapEntry ->
@@ -111,8 +131,7 @@ public class LockServiceStateLogger {
         Map<String, Object> mappedLocksToToken = Maps.newConcurrentMap();
         mappedLockListGroupedByToken.forEach(mappedLocksToToken::putAll);
 
-        Yaml yaml = new Yaml(getRepresenter(), getDumperOptions());
-        return yaml.dump(nameObjectForYamlConvertion(mappedLocksToToken, HELD_LOCKS_TITLE));
+        return nameObjectForYamlConvertion(mappedLocksToToken, HELD_LOCKS_TITLE);
     }
 
     private Map<String, Object> nameObjectForYamlConvertion(Object objectToName, String name) {
@@ -153,13 +172,37 @@ public class LockServiceStateLogger {
         return lockToLockInfo;
     }
 
-    public void logHeldLocks() {
-        log.info(heldLocksYaml);
-        System.out.println(heldLocksYaml);
+    private void dumpYamlInNewFile(String outputDir, Map<String, Object> generatedOutstandingRequests,
+            Map<String, Object> generatedHeldLocks, long timestamp) throws IOException {
+        String fileName = "lockstate-" + timestamp + ".yaml";
+
+        File file = new File(outputDir, fileName);
+
+        if (file.createNewFile()) {
+            dumpYaml(generatedOutstandingRequests, generatedHeldLocks, file);
+        } else {
+            log.error(FILE_NOT_CREATED_LOG_ERROR, file.getAbsolutePath());
+            throw new IllegalStateException("Yaml file either already exists or can't be created at: " + file.getAbsolutePath());
+        }
     }
 
-    public void logOutstandingLockRequests() {
-        log.info(outstandingLocksYaml);
-        System.out.println(outstandingLocksYaml);
+    private void dumpYaml(Map<String, Object> generatedOutstandingRequests, Map<String, Object> generatedHeldLocks,
+            File file) throws IOException {
+        FileWriter writer = new FileWriter(file);
+        Yaml yaml = new Yaml(getRepresenter(), getDumperOptions());
+        yaml.dump(generatedOutstandingRequests, writer);
+        writer.append("\n\n---\n\n");
+        yaml.dump(generatedHeldLocks, writer);
+    }
+
+    private void dumpKeyInNewFile(String outputDir, long timestamp) throws IOException {
+        String keyFileName = "key-" + timestamp + ".key";
+        File keyFile = new File(outputDir, keyFileName);
+        if (keyFile.createNewFile()) {
+            Files.write(keyFile.toPath(), stringEncoder.getKey());
+        } else {
+            log.error(FILE_NOT_CREATED_LOG_ERROR, keyFile.getAbsolutePath());
+            throw new IllegalStateException("Key file can't be created at: " + keyFile.getAbsolutePath());
+        }
     }
 }
