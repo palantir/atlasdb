@@ -42,6 +42,7 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.logger.security.StringEncoder;
 
 public class LockServiceStateLogger {
 
@@ -49,6 +50,7 @@ public class LockServiceStateLogger {
 
     private static final String OUTSTANDING_LOCK_REQUESTS_TITLE = "OutstandingLockRequests";
     private static final String HELD_LOCKS_TITLE = "HeldLocks";
+    private final StringEncoder stringEncoder = new StringEncoder();
 
     private String heldLocksYaml;
     private String outstandingLocksYaml;
@@ -120,7 +122,9 @@ public class LockServiceStateLogger {
     private List<SimpleLockRequest> getDescriptorSimpleRequestMap(LockClient client, LockRequest request) {
         return request.getLocks().stream()
                 .map(lock ->
-                        SimpleLockRequest.of(request, lock.getLockDescriptor().getLockIdAsString(), client.getClientId()))
+                        SimpleLockRequest.of(request,
+                                this.stringEncoder.encrypt(lock.getLockDescriptor().getLockIdAsString()),
+                                client.getClientId()))
                 .collect(Collectors.toList());
     }
 
