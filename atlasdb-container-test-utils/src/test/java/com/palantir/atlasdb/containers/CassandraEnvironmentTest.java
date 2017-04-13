@@ -31,6 +31,10 @@ public class CassandraEnvironmentTest {
 
     @Test
     public void testDefaults() {
+        environment.set(CassandraEnvironment.CASSANDRA_VERSION, null);
+        environment.set(CassandraEnvironment.CASSANDRA_MAX_HEAP_SIZE, null);
+        environment.set(CassandraEnvironment.CASSANDRA_HEAP_NEWSIZE, null);
+
         assertCassandraEnvironmentContains(
                 CassandraEnvironment.DEFAULT_VERSION,
                 CassandraEnvironment.DEFAULT_MAX_HEAP_SIZE,
