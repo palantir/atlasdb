@@ -38,8 +38,8 @@ import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 public final class LockServiceImplTest {
     public static final long SLOW_LOG_TRIGGER_MILLIS = LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS + 10;
     private static final String TEST_LOCKID = "test_lockId";
-    private static final LockServiceImpl lockServiceWithSlowLogEnabled = createLockServiceWithSlowLogEnabled(true);
-    private static final LockServiceImpl lockServiceWithSlowLogDisabled = createLockServiceWithSlowLogEnabled(false);
+    private LockServiceImpl lockServiceWithSlowLogEnabled;
+    private LockServiceImpl lockServiceWithSlowLogDisabled;
 
     private TestLogger testSlowLogger;
     private TestLogger testLockServiceImplLogger;
@@ -50,6 +50,9 @@ public final class LockServiceImplTest {
         testLockServiceImplLogger = TestLoggerFactory.getTestLogger(LockServiceImpl.class);
         testSlowLogger.setEnabledLevelsForAllThreads(Level.INFO);
         testLockServiceImplLogger.setEnabledLevelsForAllThreads(Level.DEBUG);
+
+        lockServiceWithSlowLogEnabled = createLockServiceWithSlowLogEnabled(true);
+        lockServiceWithSlowLogDisabled = createLockServiceWithSlowLogEnabled(false);
     }
 
     @After
