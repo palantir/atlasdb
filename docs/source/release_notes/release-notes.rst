@@ -63,6 +63,10 @@ develop
            Previously, clients would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
 
+    *    - |improved|
+         - No longer fill logs with blacklist messages until Atlas is restarted for Cassandra nodes that have been decommissioned or replaced.
+         - (`Pull Request <https://github.com/palantir/atlasdb/pull/1797>`__)
+
 =======
 v0.38.0
 =======
