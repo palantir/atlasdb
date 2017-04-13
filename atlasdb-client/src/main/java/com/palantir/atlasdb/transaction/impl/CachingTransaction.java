@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -53,18 +54,22 @@ public class CachingTransaction extends ForwardingTransaction {
     private static final int DEFAULT_MAX_CACHE_WEIGHT_PER_TABLE = 10_000_000;
 
     final Transaction delegate;
-    private final int maxCacheSize;
     private final int maxCacheWeightPerTable;
 
-    // The keys here are Strings for historic reasons, as TableReferences treat empty namespace and the met namespace the same.
+    // The keys here are Strings for historic reasons, as TableReferences treat empty namespace and the met namespace
+    // the same.
     private final Cache<String, LoadingCache<Cell, byte[]>> columnTableCache;
 
     public CachingTransaction(Transaction delegate, int maxCacheSize, int maxCacheWeightPerTable) {
         this.delegate = delegate;
-        this.maxCacheSize = maxCacheSize;
         this.maxCacheWeightPerTable = maxCacheWeightPerTable;
         this.columnTableCache = CacheBuilder.newBuilder()
                 .maximumSize(maxCacheSize)
+                .removalListener(notification -> {
+                    if (log.isDebugEnabled() && notification.wasEvicted()) {
+                        log.debug("Caching transaction cache for table {} was evicted.", notification.getKey());
+                    }
+                })
                 .build();
     }
 
@@ -157,7 +162,7 @@ public class CachingTransaction extends ForwardingTransaction {
             return getColCacheForTable(tableRef).getAll(cells).entrySet()
                     .stream()
                     .filter(entry -> entry.getValue().length > 0)
-                    .collect(Collectors.toConcurrentMap(entry -> entry.getKey(), entry -> entry.getValue()));
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         } catch (ExecutionException | UncheckedExecutionException e) {
             throw Throwables.throwUncheckedException(e.getCause());
         }
@@ -177,13 +182,7 @@ public class CachingTransaction extends ForwardingTransaction {
 
     private void addToColCache(TableReference tableRef, Map<Cell, byte[]> values) {
         LoadingCache<Cell, byte[]> colCache = getColCacheForTable(tableRef);
-        for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-            byte[] value = e.getValue();
-            if (value == null) {
-                value = PtBytes.EMPTY_BYTE_ARRAY;
-            }
-            colCache.put(e.getKey(), value);
-        }
+        colCache.putAll(setMissingKeysToEmpty(values, values.keySet()));
     }
 
     private LoadingCache<Cell, byte[]> getColCacheForTable(TableReference tableRef) {
@@ -200,37 +199,47 @@ public class CachingTransaction extends ForwardingTransaction {
                 .softValues()
                 .maximumWeight(maxCacheWeightPerTable)
                 .weigher((Weigher<Cell, byte[]>) (key, value) -> value.length)
+                .removalListener(notification -> {
+                    if (log.isDebugEnabled() && notification.wasEvicted()) {
+                        String rowName = notification.getKey() == null ? "null cell" :
+                                Arrays.toString(notification.getKey().getRowName());
+                        String colName = notification.getKey() == null ? "null cell" :
+                                Arrays.toString(notification.getKey().getColumnName());
+                        log.debug("Removing entry from caching transaction cache: Table {}, Row {}, Column {},"
+                                        + " Eviction reason {}", tableRef.getQualifiedName(), rowName, colName,
+                                notification.getCause().toString());
+                    }
+                })
                 .build(getCacheLoader(tableRef));
     }
 
     private CacheLoader<Cell, byte[]> getCacheLoader(TableReference tableRef) {
         return new CacheLoader<Cell, byte[]>() {
-
             @Override
             public byte[] load(Cell key) throws Exception {
-                byte[] res = CachingTransaction.super.get(tableRef, ImmutableSet.of(key)).get(key);
-                if (res == null) {
-                    return PtBytes.EMPTY_BYTE_ARRAY;
-                } else {
-                    return res;
-                }
+                return setMissingKeysToEmpty(CachingTransaction.super.get(tableRef, ImmutableSet.of(key)),
+                        ImmutableSet.of(key))
+                        .get(key);
             }
 
             @Override
             public Map<Cell, byte[]> loadAll(Iterable<? extends Cell> keys) throws Exception {
-                Map<Cell, byte[]> internalResult = CachingTransaction.super.get(tableRef, ImmutableSet.copyOf(keys));
-                Map<Cell, byte[]> res = Maps.newConcurrentMap();
-                for (Cell key : keys) {
-                    byte[] value = internalResult.get(key);
-                    if (value == null) {
-                        res.put(key, PtBytes.EMPTY_BYTE_ARRAY);
-                    } else {
-                        res.put(key, value);
-                    }
-                }
-
-                return res;
+                Set<Cell> keySet = ImmutableSet.copyOf(keys);
+                return setMissingKeysToEmpty(CachingTransaction.super.get(tableRef, ImmutableSet.copyOf(keys)), keySet);
             }
         };
+    }
+
+    private Map<Cell, byte[]> setMissingKeysToEmpty(Map<Cell, byte[]> returnedMap, Set<Cell> expectedKeys) {
+        Map<Cell, byte[]> res = Maps.newConcurrentMap();
+        for (Cell key : expectedKeys) {
+            byte[] value = returnedMap.get(key);
+            if (value == null) {
+                res.put(key, PtBytes.EMPTY_BYTE_ARRAY);
+            } else {
+                res.put(key, value);
+            }
+        }
+        return res;
     }
 }
