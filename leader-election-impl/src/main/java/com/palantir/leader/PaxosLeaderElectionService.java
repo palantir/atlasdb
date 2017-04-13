@@ -65,7 +65,7 @@ import com.palantir.paxos.PaxosValue;
  *
  * @author rullman
  */
-public class PaxosLeaderElectionService implements PingableLeader, LeaderElectionService {
+public class PaxosLeaderElectionService implements PingableLeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
     private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
 
