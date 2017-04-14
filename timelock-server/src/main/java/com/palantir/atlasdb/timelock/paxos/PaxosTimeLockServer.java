@@ -147,15 +147,15 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     @Override
-    public TimeLockServices createInvalidatingTimeLockServices(String client) {
+    public TimeLockServices createInvalidatingTimeLockServices(String client, long slowLogTriggerMillis) {
         ManagedTimestampService timestampService = instrument(
                 ManagedTimestampService.class,
                 createPaxosBackedTimestampService(client),
                 client);
         LockServerOptions lockServerOptions = new LockServerOptions() {
             @Override
-            public boolean isSlowLogEnabled() {
-                return true;
+            public long slowLogTriggerMillis() {
+                return slowLogTriggerMillis;
             }
         };
         LockService lockService = instrument(

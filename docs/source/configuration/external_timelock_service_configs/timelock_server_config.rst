@@ -133,7 +133,15 @@ default values.
 
 Further Configuration Parameters
 --------------------------------
+   * - Property
+     - Description
 
+   * - slowLockLogTriggerMillis
+     - Log at INFO if a lock request receives a response after given duration in milliseconds (default: ``10000`` i.e. 10s).
+
+
+Dropwizard Configuration Parameters
+-----------------------------------
 The Timelock Server is implemented as a Dropwizard application, and may thus be suitably configured with a ``server``
 block following `Dropwizard's configuration <http://www.dropwizard.io/1.0.6/docs/manual/configuration.html>`__. This
 may be useful if, for example, one needs to change the application and/or admin ports for the Timelock Server.
