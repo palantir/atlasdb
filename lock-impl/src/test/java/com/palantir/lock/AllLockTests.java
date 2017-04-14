@@ -31,10 +31,10 @@ import com.palantir.lock.logger.security.StringEncoderTest;
  */
 @SuiteClasses(value = {
         ClientAwareLockTest.class,
-        LockServiceImplTest.class,
-        LockRefreshingLockServiceTest.class,
         LockServiceStateLoggerTest.class,
-        StringEncoderTest.class
+        StringEncoderTest.class,
+        LockServiceIntegrationTest.class,
+        LockRefreshingLockServiceTest.class
 }) @RunWith(value = Suite.class) public final class AllLockTests {
     /* Empty; the annotations above take care of everything. */
 }
