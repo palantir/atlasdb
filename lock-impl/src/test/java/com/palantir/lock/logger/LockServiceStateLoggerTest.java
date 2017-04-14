@@ -15,12 +15,18 @@
  */
 package com.palantir.lock.logger;
 
+import java.io.File;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+
+import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.MapMaker;
@@ -42,6 +48,7 @@ import com.palantir.lock.impl.LockServiceImpl;
 
 public class LockServiceStateLoggerTest {
 
+    private static final String LOG_STATE_DIR = "log-state";
     private final ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap =
             new MapMaker().makeMap();
 
@@ -98,6 +105,16 @@ public class LockServiceStateLoggerTest {
     @Test
     public void testLocksLogging() throws Exception {
         LockServiceStateLogger logger = new LockServiceStateLogger(heldLocksTokenMap, outstandingLockRequestMultimap);
-        logger.logLocks("log/state");
+        logger.logLocks(LOG_STATE_DIR);
     }
+
+    @After
+    public void after() throws IOException {
+        File rootDir = new File(LOG_STATE_DIR);
+        for (File file : rootDir.listFiles()) {
+            Assert.assertTrue(file.delete());
+        }
+        Assert.assertTrue(rootDir.delete());
+    }
+
 }
