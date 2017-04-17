@@ -58,7 +58,6 @@ import com.palantir.timestamp.PersistentTimestampService;
 import io.dropwizard.setup.Environment;
 
 public class PaxosTimeLockServer implements TimeLockServer {
-
     private final PaxosConfiguration paxosConfiguration;
     private final Environment environment;
 
@@ -67,6 +66,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
 
+    private long blockingTimeout;
+
     public PaxosTimeLockServer(PaxosConfiguration configuration, Environment environment) {
         this.paxosConfiguration = configuration;
         this.environment = environment;
@@ -74,6 +75,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     @Override
     public void onStartup(TimeLockServerConfiguration configuration) {
+        blockingTimeout = BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), configuration);
+
         registerPaxosResource();
 
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
@@ -160,12 +163,18 @@ public class PaxosTimeLockServer implements TimeLockServer {
         };
         LockService lockService = instrument(
                 LockService.class,
-                AwaitingLeadershipProxy.newProxyInstance(
-                        LockService.class,
-                        () -> LockServiceImpl.create(lockServerOptions),
-                        leaderElectionService),
+                createLockService(lockServerOptions),
                 client);
         return TimeLockServices.create(timestampService, lockService, timestampService);
+    }
+
+    private LockService createLockService(LockServerOptions lockServerOptions) {
+        return AwaitingLeadershipProxy.newProxyInstance(
+                LockService.class,
+                () -> BlockingTimeLimitedLockService.create(
+                        LockServiceImpl.create(lockServerOptions),
+                        blockingTimeout),
+                leaderElectionService);
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {
