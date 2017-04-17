@@ -102,6 +102,7 @@
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
             "locked": "2.6.7",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
@@ -114,6 +115,7 @@
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
             "locked": "2.6.7",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
@@ -1299,6 +1301,7 @@
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
             "locked": "2.6.7",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
@@ -1311,6 +1314,7 @@
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
             "locked": "2.6.7",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
