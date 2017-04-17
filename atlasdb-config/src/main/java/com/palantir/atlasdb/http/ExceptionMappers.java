@@ -24,12 +24,20 @@ public final class ExceptionMappers {
         // utility
     }
 
-    public static Response encode503Response(Exception exception) {
+    public static Response encode503ResponseWithoutRetryAfter(Exception exception) {
+        return encode503ResponseInternal(exception).build();
+    }
+
+    public static Response encode503ResponseWithRetryAfter(Exception exception) {
+        return encode503ResponseInternal(exception)
+                .header(HttpHeaders.RETRY_AFTER, "0")
+                .build();
+    }
+
+    private static Response.ResponseBuilder encode503ResponseInternal(Exception exception) {
         return Response.serverError()
                 .entity(exception)
                 .status(503)
-                .header(HttpHeaders.RETRY_AFTER, "0")
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
-                .build();
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
     }
 }
