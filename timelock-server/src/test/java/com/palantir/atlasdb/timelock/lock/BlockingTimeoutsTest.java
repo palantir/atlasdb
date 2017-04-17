@@ -37,9 +37,6 @@ public class BlockingTimeoutsTest {
             .build();
     private static final Set<String> CLIENTS = ImmutableSet.of("client1", "client2");
 
-    private static final long DEFAULT_BLOCKING_TIMEOUT =
-            BlockingTimeouts.scaleForErrorMargin(BlockingTimeouts.DEFAULT_IDLE_TIMEOUT);
-
     private static final long ONE_MILLION = 1_000_000;
     private static final long FIVE_HUNDRED = 500;
     private static final long FIVE = 5;
@@ -65,6 +62,6 @@ public class BlockingTimeoutsTest {
     public void returnsDefaultBlockingTimeoutWithNoSpecifiedConnectors() {
         TimeLockServerConfiguration basicConfiguration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS);
         assertThat(BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, basicConfiguration))
-                .isEqualTo(DEFAULT_BLOCKING_TIMEOUT);
+                .isEqualTo(BlockingTimeouts.getDefaultBlockingTimeout());
     }
 }

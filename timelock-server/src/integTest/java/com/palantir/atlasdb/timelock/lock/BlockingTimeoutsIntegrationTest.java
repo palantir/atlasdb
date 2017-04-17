@@ -33,15 +33,13 @@ import io.dropwizard.testing.ResourceHelpers;
 public class BlockingTimeoutsIntegrationTest {
     private static final ObjectMapper OBJECT_MAPPER = Jackson.newObjectMapper(new YAMLFactory());
 
-    private static final long DEFAULT_BLOCKING_TIMEOUT =
-            BlockingTimeouts.scaleForErrorMargin(BlockingTimeouts.DEFAULT_IDLE_TIMEOUT);
     private static final int MILLIS_PER_SECOND = 1000;
 
     @Test
     public void returnsDefaultBlockingTimeoutWithConnectorsWithoutIdleTimeouts() throws IOException {
         assertThat(BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, getConfigurationFromResource(
                 "lock/default-timeout.yml")))
-                .isEqualTo(DEFAULT_BLOCKING_TIMEOUT);
+                .isEqualTo(BlockingTimeouts.getDefaultBlockingTimeout());
     }
 
     @Test
@@ -62,7 +60,7 @@ public class BlockingTimeoutsIntegrationTest {
     public void returnsDefaultBlockingTimeoutIfConnectorWithoutSpecifiedIdleTimeoutIsMinimal() throws IOException {
         assertThat(BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, getConfigurationFromResource(
                 "lock/one-specified-one-implicit-timeout.yml")))
-                .isEqualTo(DEFAULT_BLOCKING_TIMEOUT);
+                .isEqualTo(BlockingTimeouts.getDefaultBlockingTimeout());
     }
 
     private TimeLockServerConfiguration getConfigurationFromResource(String fileName) throws IOException {
