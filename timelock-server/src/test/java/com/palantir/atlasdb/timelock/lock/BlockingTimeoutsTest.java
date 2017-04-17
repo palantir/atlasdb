@@ -22,20 +22,13 @@ import java.util.Set;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.config.ClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
-import com.palantir.remoting2.ext.jackson.ShimJdk7Module;
 
 public class BlockingTimeoutsTest {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory())
-            .registerModule(new GuavaModule())
-            .registerModule(new Jdk8Module())
-            .registerModule(new ShimJdk7Module());
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String ADDRESS = "localhost:8701";
     private static final ClusterConfiguration CLUSTER = ImmutableClusterConfiguration.builder()
