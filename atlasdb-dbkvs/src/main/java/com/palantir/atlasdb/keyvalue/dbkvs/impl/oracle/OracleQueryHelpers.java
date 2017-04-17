@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -19,7 +19,9 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-public class OracleQueryHelpers {
+public final class OracleQueryHelpers {
+
+    private OracleQueryHelpers() { }
 
     public static String getValueSubselect(boolean haveOverflow,
                                            String tableAlias,

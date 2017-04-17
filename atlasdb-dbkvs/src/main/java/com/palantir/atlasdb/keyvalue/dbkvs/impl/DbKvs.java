@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -119,7 +119,7 @@ import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class DbKvs extends AbstractKeyValueService {
+public final class DbKvs extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(DbKvs.class);
 
     public static final String ROW = "row_name";
@@ -149,7 +149,8 @@ public class DbKvs extends AbstractKeyValueService {
      * ConnectionManagerAwareDbKvs which will instantiate a properly initialized DbKVS using the above create method
      */
     public static DbKvs createNoInit(DdlConfig config, SqlConnectionSupplier connections) {
-        ExecutorService executor = AbstractKeyValueService.createFixedThreadPool("Atlas Relational KVS", config.poolSize());
+        ExecutorService executor = AbstractKeyValueService.createFixedThreadPool(
+                "Atlas Relational KVS", config.poolSize());
         return config.accept(new DdlConfig.Visitor<DbKvs>() {
             @Override
             public DbKvs visit(PostgresDdlConfig postgresDdlConfig) {
@@ -190,6 +191,8 @@ public class DbKvs extends AbstractKeyValueService {
         OraclePrefixedTableNames prefixedTableNames = new OraclePrefixedTableNames(tableNameGetter);
         TableValueStyleCache valueStyleCache = new TableValueStyleCache();
         OverflowValueLoader overflowValueLoader = new OracleOverflowValueLoader(oracleDdlConfig, tableNameGetter);
+        DbKvsGetRange getRange = new OracleGetRange(
+                connections, overflowValueLoader, tableNameGetter, valueStyleCache, oracleDdlConfig);
         return new DbKvs(
                 executor,
                 oracleDdlConfig,
@@ -197,7 +200,7 @@ public class DbKvs extends AbstractKeyValueService {
                 connections,
                 new ImmediateSingleBatchTaskRunner(),
                 overflowValueLoader,
-                new OracleGetRange(connections, overflowValueLoader, tableNameGetter, valueStyleCache, oracleDdlConfig));
+                getRange);
     }
 
     private DbKvs(ExecutorService executor,

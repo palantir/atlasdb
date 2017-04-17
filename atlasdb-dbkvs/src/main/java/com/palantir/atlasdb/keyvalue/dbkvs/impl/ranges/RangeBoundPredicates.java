@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -23,7 +23,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
-public class RangeBoundPredicates {
+public final class RangeBoundPredicates {
     public final String predicates;
     public final List<Object> args;
 
@@ -57,7 +57,9 @@ public class RangeBoundPredicates {
             if (startColumnInclusive.length > 0) {
                 Preconditions.checkArgument(startRowInclusive.length > 0);
                 // Warning: this syntax is not supported by Oracle
-                predicates.append(reverse ? " AND (row_name, col_name) <= (?, ?) " : " AND (row_name, col_name) >= (?, ?) ");
+                predicates.append(reverse
+                        ? " AND (row_name, col_name) <= (?, ?) "
+                        : " AND (row_name, col_name) >= (?, ?) ");
                 args.add(startRowInclusive);
                 args.add(startColumnInclusive);
             } else {

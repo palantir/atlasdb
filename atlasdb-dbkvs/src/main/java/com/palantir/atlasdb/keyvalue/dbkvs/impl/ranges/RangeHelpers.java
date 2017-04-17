@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -19,7 +19,8 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 
-public class RangeHelpers {
+public final class RangeHelpers {
+    private RangeHelpers() { }
 
     public static int getMaxRowsPerPage(RangeRequest rangeRequest) {
         if (rangeRequest.getBatchHint() != null) {

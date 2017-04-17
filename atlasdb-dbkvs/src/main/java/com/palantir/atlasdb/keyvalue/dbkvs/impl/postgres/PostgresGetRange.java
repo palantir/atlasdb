@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -186,8 +186,8 @@ public class PostgresGetRange implements DbKvsGetRange {
         private final String tableName;
         private final String prefixedTableName;
 
-        public PageIterator(byte[] currentRowName, byte[] endExclusive, Set<byte[]> columnSelection, boolean reverse,
-                        long ts, int maxRowsPerPage, int maxCellsPerPage, String tableName, String prefixedTableName) {
+        PageIterator(byte[] currentRowName, byte[] endExclusive, Set<byte[]> columnSelection, boolean reverse,
+                     long ts, int maxRowsPerPage, int maxCellsPerPage, String tableName, String prefixedTableName) {
             this.currentRowName = currentRowName;
             this.endExclusive = endExclusive;
             this.columnSelection = columnSelection;

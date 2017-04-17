@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -177,7 +177,7 @@ public class OracleGetRange implements DbKvsGetRange {
         private final int maxRowsPerPage;
         private final long timestamp;
 
-        public PageIterator(byte[] startInclusive, byte[] endExclusive, Set<byte[]> columnSelection, boolean reverse,
+        PageIterator(byte[] startInclusive, byte[] endExclusive, Set<byte[]> columnSelection, boolean reverse,
                 TableReference tableRef, boolean haveOverflowValues, int maxRowsPerPage, long timestamp) {
             this.startInclusive = startInclusive;
             this.endExclusive = endExclusive;
@@ -245,7 +245,7 @@ public class OracleGetRange implements DbKvsGetRange {
                     .endRowExclusive(endExclusive)
                     .columnSelection(columnSelection)
                     .build();
-            String direction = reverse ? "DESC": "ASC";
+            String direction = reverse ? "DESC" : "ASC";
             String shortTableName = getInternalShortTableName(conns);
             String query = "/* GET_RANGE(" + shortTableName + ") */"
                     + "  SELECT /*+ USE_NL(sub v) */ sub.row_name, sub.col_name, sub.ts"
@@ -312,7 +312,8 @@ public class OracleGetRange implements DbKvsGetRange {
         public final long ts;
         public final byte[] val;
         public final Long overflowId;
-        public RawSqlRow(Cell cell, long ts, byte[] val, Long overflowId) {
+
+        RawSqlRow(Cell cell, long ts, byte[] val, Long overflowId) {
             this.cell = cell;
             this.ts = ts;
             this.val = val;

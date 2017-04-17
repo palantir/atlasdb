@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -60,8 +60,8 @@ public class OracleOverflowValueLoader implements OverflowValueLoader {
                 try (ClosableIterator<AgnosticLightResultRow> overflowIter = select(conns, query)) {
                     while (overflowIter.hasNext()) {
                         AgnosticLightResultRow row = overflowIter.next();
-                        // QA-94468 LONG RAW typed columns ("val" in this case) must be retrieved first from the result set
-                        // see https://docs.oracle.com/cd/B19306_01/java.102/b14355/jstreams.htm#i1007581
+                        // QA-94468 LONG RAW typed columns ("val" in this case) must be retrieved first from the result
+                        // set. See https://docs.oracle.com/cd/B19306_01/java.102/b14355/jstreams.htm#i1007581
                         byte[] val = row.getBytes("val");
                         long id = row.getLong("id");
                         ret.put(id, val);
