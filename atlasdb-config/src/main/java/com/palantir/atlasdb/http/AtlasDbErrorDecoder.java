@@ -27,7 +27,7 @@ import feign.RetryableException;
 import feign.codec.ErrorDecoder;
 
 public class AtlasDbErrorDecoder implements ErrorDecoder {
-    private ErrorDecoder defaultErrorDecoder = new ErrorDecoder.Default();
+    private ErrorDecoder defaultErrorDecoder = new SerializableErrorDecoder();
 
     public AtlasDbErrorDecoder() {
     }
