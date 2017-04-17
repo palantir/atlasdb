@@ -23,6 +23,6 @@ import com.palantir.lock.remoting.BlockingTimeoutException;
 public class BlockingTimeoutExceptionMapper implements ExceptionMapper<BlockingTimeoutException> {
     @Override
     public Response toResponse(BlockingTimeoutException exception) {
-        return ExceptionMappers.encode503Response(exception);
+        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
     }
 }
