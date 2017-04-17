@@ -23,6 +23,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
@@ -48,20 +49,29 @@ public final class BlockingTimeouts {
     public static long getBlockingTimeout(ObjectMapper mapper, TimeLockServerConfiguration configuration) {
         // TODO (jkong): Need to decide if this is worth the pain to enforce our invariant, or if we should just
         // let users do it manually!
+        if (mapper == null || configuration == null) {
+            log.warn("Attempted to initiate TimeLock with a missing object mapper or null configuration."
+                    + " Using the default timeout of {} ms", DEFAULT_IDLE_TIMEOUT);
+            return getDefaultBlockingTimeout();
+        }
         try {
             List<Map<String, String>> connectorData = getConnectorData(mapper, configuration);
             long minimumTimeout = getMinimumTimeout(connectorData);
             return scaleForErrorMargin(minimumTimeout);
         } catch (IOException e) {
             log.warn("Couldn't figure out the idle timeout from configuration. Will assume this to be the"
-                    + " Dropwizard default of 30 seconds.");
-            return scaleForErrorMargin(DEFAULT_IDLE_TIMEOUT);
+                    + " default of {} ms", DEFAULT_IDLE_TIMEOUT);
+            return getDefaultBlockingTimeout();
         }
+    }
+
+    public static long getDefaultBlockingTimeout() {
+        return scaleForErrorMargin(DEFAULT_IDLE_TIMEOUT);
     }
 
     @SuppressWarnings("unchecked") // Any map can be deserialized as Map<String, String>.
     private static List<Map<String, String>> getConnectorData(ObjectMapper mapper,
-            TimeLockServerConfiguration configuration) throws com.fasterxml.jackson.core.JsonProcessingException {
+            TimeLockServerConfiguration configuration) throws JsonProcessingException {
         JsonNode configurationJson = mapper.valueToTree(configuration);
         JsonNode connectorJson = configurationJson.get(SERVER).get(APPLICATION_CONNECTORS);
         return Arrays.asList(mapper.treeToValue(connectorJson, Map[].class));
