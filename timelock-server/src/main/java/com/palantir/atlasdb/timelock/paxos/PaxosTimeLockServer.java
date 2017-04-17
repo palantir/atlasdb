@@ -44,6 +44,8 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
+import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
