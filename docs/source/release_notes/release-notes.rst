@@ -44,6 +44,59 @@ develop
 
     *    - |improved|
          - Refactored ``AvailableTimestamps`` reducing overzealous synchronization. Giving out timestamps is no longer blocking on refreshing the timestamp bound if there are enough timestamps to give out with the current bound.
+
+    *    - |improved|
+         - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
+
+    *    - |devbreak|
+         - ``atlasdb-config`` now pulls in two more dependencies - the Jackson JDK 8 and JSR 310 modules (``jackson-datatype-jdk8`` and ``jackson-datatype-jsr310``).
+           These are required by the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
+           This behaviour is consistent with our existing behaviour for Jackson modules (JDK 7, Guava and Joda Time).
+           If you do encounter breaks due to this addition, please contact the AtlasDB team for support.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1810>`__)
+
+    *    - |userbreak|
+         - AtlasDB will refuse to start if backed by Postgres 9.5.0 or 9.5.1. These versions contain a known bug that causes incorrect results to be returned for certain queries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
+
+    *    - |new|
+         - The lock server now can limit number of concurrent open lock requests from the same client.
+           This behavior can be enabled with the flag ``useClientRequestLimit``. The flag is disabled by default.
+           For more information, see the :ref:`docs <timelock-server-further-config>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
+
+    *    - |improved| |devbreak|
+         - The format of exception messages has been brought in line with that of the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
+           This should generally improve readability and also allows for more meaningful messages to be sent; we would previously return message bodies with no content for some exceptions (such as ``NotCurrentLeaderException``).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
+
+    *    - |fixed| |devbreak|
+         - TimeLock clients may now receive a ``BlockingTimeoutException`` 503 if they make a lock request that blocks for longer than the server's idle timeout.
+           Previously, these requests would be failed with a HTTP-level exception that the stream was closed.
+           We have rewritten clients constructed via ``AtlasDbHttpClients`` to account for this new behaviour, but custom clients directly accessing the lock service may be affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.39.0
+=======
+
+19 Apr 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Refactored ``AvailableTimestamps`` reducing overzealous synchronization.
+           Giving out timestamps is no longer blocking on refreshing the timestamp bound if there are enough timestamps to give out with the current bound.
+           This improves latency of timestamp requests under heavy load; we have seen an approximately 30 percent improvement on internal benchmarks.
+>>>>>>> 847c8af... Release notes
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
 
     *    - |improved|
@@ -86,6 +139,7 @@ develop
          - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1814>`__)
 
+<<<<<<< HEAD
     *    - |devbreak|
          - ``atlasdb-config`` now pulls in two more dependencies - the Jackson JDK 8 and JSR 310 modules (``jackson-datatype-jdk8`` and ``jackson-datatype-jsr310``).
            These are required by the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
@@ -93,6 +147,8 @@ develop
            If you do encounter breaks due to this addition, please contact the AtlasDB team for support.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1810>`__)
 
+=======
+>>>>>>> 847c8af... Release notes
 =======
 v0.38.0
 =======
