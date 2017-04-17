@@ -27,8 +27,6 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 
-import feign.FeignException;
-
 public class MultiCassandraDoubleNodeDownEteTest {
     private static final List<String> CASSANDRA_NODES_TO_KILL = ImmutableList.of("cassandra1", "cassandra2");
 
@@ -42,13 +40,13 @@ public class MultiCassandraDoubleNodeDownEteTest {
         CASSANDRA_NODES_TO_KILL.forEach(MultiCassandraTestSuite::startCassandraContainer);
     }
 
-    @Test(expected = FeignException.class)
+    @Test(expected = RuntimeException.class)
     public void shouldNotBeAbleToWriteWithTwoCassandraNodseDown() {
         TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
         todos.addTodo(getUniqueTodo());
     }
 
-    @Test(expected = FeignException.class)
+    @Test(expected = RuntimeException.class)
     public void shouldNotBeAbleToReadWithTwoCassandraNodesDown() {
         TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
         todos.getTodoList();
