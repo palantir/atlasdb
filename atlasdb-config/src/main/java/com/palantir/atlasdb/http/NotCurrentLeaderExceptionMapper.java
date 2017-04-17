@@ -28,6 +28,6 @@ import com.palantir.leader.NotCurrentLeaderException;
 public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
-        return ExceptionMappers.encode503Response(exception);
+        return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
     }
 }
