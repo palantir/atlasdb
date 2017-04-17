@@ -1,5 +1,5 @@
-/*
- * Copyright 2015 Palantir Technologies
+/**
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,11 @@ package com.palantir.atlasdb.http;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
-import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.lock.remoting.BlockingTimeoutException;
 
-/**
- * Convert {@link NotCurrentLeaderException} into a 503 status response.
- *
- * @author carrino
- */
-public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
+public class BlockingTimeoutExceptionMapper implements ExceptionMapper<BlockingTimeoutException> {
     @Override
-    public Response toResponse(NotCurrentLeaderException exception) {
+    public Response toResponse(BlockingTimeoutException exception) {
         return ExceptionMappers.encode503Response(exception);
     }
 }
