@@ -34,6 +34,7 @@ public final class BlockingTimeouts {
     private static final Logger log = LoggerFactory.getLogger(BlockingTimeouts.class);
 
     public static final long DEFAULT_IDLE_TIMEOUT = 30 * 1000;
+
     private static final double ERROR_MARGIN = 0.03;
 
     private static final String SERVER = "server";
@@ -45,7 +46,7 @@ public final class BlockingTimeouts {
     }
 
     public static long getBlockingTimeout(ObjectMapper mapper, TimeLockServerConfiguration configuration) {
-        // TODO (jkong): Need to decide if this is worth the pain to enforce our invariant, or we should just
+        // TODO (jkong): Need to decide if this is worth the pain to enforce our invariant, or if we should just
         // let users do it manually!
         try {
             List<Map<String, String>> connectorData = getConnectorData(mapper, configuration);
@@ -53,7 +54,7 @@ public final class BlockingTimeouts {
             return scaleForErrorMargin(minimumTimeout);
         } catch (IOException e) {
             log.warn("Couldn't figure out the idle timeout from configuration. Will assume this to be the"
-                    + " Dropwizard default of 30 seconds. Thus producing a blocking timeout of 27 seconds (90%).");
+                    + " Dropwizard default of 30 seconds.");
             return scaleForErrorMargin(DEFAULT_IDLE_TIMEOUT);
         }
     }
