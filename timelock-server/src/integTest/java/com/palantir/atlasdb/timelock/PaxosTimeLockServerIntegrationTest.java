@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.SortedMap;
 
 import javax.net.ssl.SSLSocketFactory;
+import javax.ws.rs.NotFoundException;
 
 import org.eclipse.jetty.http.HttpStatus;
 import org.junit.ClassRule;
@@ -41,6 +42,8 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.remoting2.errors.RemoteException;
+import com.palantir.remoting2.errors.SerializableError;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.squareup.okhttp.MediaType;
@@ -52,8 +55,6 @@ import com.squareup.okhttp.Response;
 import io.dropwizard.testing.ResourceHelpers;
 
 public class PaxosTimeLockServerIntegrationTest {
-    private static final String NOT_FOUND_CODE = "404";
-
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String NONEXISTENT_CLIENT = "nonexistent";
@@ -202,14 +203,14 @@ public class PaxosTimeLockServerIntegrationTest {
     public void returnsNotFoundOnQueryingNonexistentClient() {
         RemoteLockService lockService = getLockService(NONEXISTENT_CLIENT);
         assertThatThrownBy(lockService::currentTimeMillis)
-                .hasMessageContaining(NOT_FOUND_CODE);
+                .satisfies(PaxosTimeLockServerIntegrationTest::assertCausedBy404);
     }
 
     @Test
     public void returnsNotFoundOnQueryingTimestampWithNonexistentClient() {
         TimestampService nonExistentTimestampService = getTimestampService(NONEXISTENT_CLIENT);
         assertThatThrownBy(nonExistentTimestampService::getFreshTimestamp)
-                .hasMessageContaining(NOT_FOUND_CODE);
+                .satisfies(PaxosTimeLockServerIntegrationTest::assertCausedBy404);
     }
 
     @Test
@@ -272,5 +273,12 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static String getRootUriForClient(String client) {
         return String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
+    }
+
+    private static void assertCausedBy404(Throwable throwable) {
+        assertThat(throwable).isInstanceOf(RemoteException.class);
+
+        SerializableError error = ((RemoteException) throwable).getRemoteException();
+        assertThat(error.getErrorName()).contains(NotFoundException.class.getCanonicalName());
     }
 }
