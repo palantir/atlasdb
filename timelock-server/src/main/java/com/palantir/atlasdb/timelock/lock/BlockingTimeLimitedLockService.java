@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -86,6 +86,11 @@ public class BlockingTimeLimitedLockService implements LockService {
     }
 
     @Override
+    public boolean unlock(HeldLocksToken token) {
+        return delegate.unlock(token);
+    }
+
+    @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
         return delegate.refreshLockRefreshTokens(tokens);
     }
@@ -96,16 +101,22 @@ public class BlockingTimeLimitedLockService implements LockService {
         return delegate.getMinLockedInVersionId(client);
     }
 
+    @Nullable
+    @Override
+    public Long getMinLockedInVersionId() {
+        return delegate.getMinLockedInVersionId();
+    }
+
+    @Override
+    public Long getMinLockedInVersionId(LockClient client) {
+        return delegate.getMinLockedInVersionId(client);
+    }
+
     @Override
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
         return callWithTimeLimit(
                 () -> delegate.lockWithFullLockResponse(client, request),
                 ImmutableLockRequestSpecification.of("lockWithFullLockResponse", client.getClientId(), request));
-    }
-
-    @Override
-    public boolean unlock(HeldLocksToken token) {
-        return delegate.unlock(token);
     }
 
     @Override
@@ -153,17 +164,6 @@ public class BlockingTimeLimitedLockService implements LockService {
     @Override
     public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
         return delegate.useGrant(client, grantId);
-    }
-
-    @Nullable
-    @Override
-    public Long getMinLockedInVersionId() {
-        return delegate.getMinLockedInVersionId();
-    }
-
-    @Override
-    public Long getMinLockedInVersionId(LockClient client) {
-        return delegate.getMinLockedInVersionId(client);
     }
 
     @Override
