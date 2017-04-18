@@ -111,35 +111,6 @@ public class CachingTransaction extends ForwardingTransaction {
         }
     }
 
-    private byte[] getCachedCellIfPresent(TableReference tableRef, Cell cell) {
-        return cellCache.getIfPresent(Pair.create(tableRef.getQualifiedName(), cell));
-    }
-
-    private void cacheLoadedCell(TableReference tableRef, Cell cell, byte[] value) {
-        cellCache.put(Pair.create(tableRef.getQualifiedName(), cell), value);
-    }
-
-    private void cacheLoadedRows(TableReference tableRef,
-                                 Iterable<RowResult<byte[]>> rowView) {
-        for (RowResult<byte[]> loadedRow : rowView) {
-            for (Map.Entry<Cell, byte[]> e : loadedRow.getCells()) {
-                cacheLoadedCell(tableRef, e.getKey(), e.getValue());
-            }
-        }
-    }
-
-    private void cacheLoadedCells(TableReference tableRef,
-                                    Set<Cell> toLoad,
-                                    Map<Cell, byte[]> toCache) {
-        for (Cell key : toLoad) {
-            byte[] value = toCache.get(key);
-            if (value == null) {
-                value = PtBytes.EMPTY_BYTE_ARRAY;
-            }
-            cacheLoadedCell(tableRef, key, value);
-        }
-    }
-
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         if (cells.isEmpty()) {
@@ -188,6 +159,33 @@ public class CachingTransaction extends ForwardingTransaction {
             cacheLoadedCell(tableRef, e.getKey(), value);
         }
     }
+
+    private void cacheLoadedRows(TableReference tableRef, Iterable<RowResult<byte[]>> rowView) {
+        for (RowResult<byte[]> loadedRow : rowView) {
+            for (Map.Entry<Cell, byte[]> e : loadedRow.getCells()) {
+                cacheLoadedCell(tableRef, e.getKey(), e.getValue());
+            }
+        }
+    }
+
+    private void cacheLoadedCells(TableReference tableRef, Set<Cell> toLoad, Map<Cell, byte[]> toCache) {
+        for (Cell key : toLoad) {
+            byte[] value = toCache.get(key);
+            if (value == null) {
+                value = PtBytes.EMPTY_BYTE_ARRAY;
+            }
+            cacheLoadedCell(tableRef, key, value);
+        }
+    }
+
+    private byte[] getCachedCellIfPresent(TableReference tableRef, Cell cell) {
+        return cellCache.getIfPresent(Pair.create(tableRef.getQualifiedName(), cell));
+    }
+
+    private void cacheLoadedCell(TableReference tableRef, Cell cell, byte[] value) {
+        cellCache.put(Pair.create(tableRef.getQualifiedName(), cell), value);
+    }
+
 
     // Log cache stats on commit or abort.
     // Note we check for logging enabled because actually getting stats is not necessarily trivial
