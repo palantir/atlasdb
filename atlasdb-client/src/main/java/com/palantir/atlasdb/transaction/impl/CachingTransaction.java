@@ -197,8 +197,8 @@ public class CachingTransaction extends ForwardingTransaction {
         try {
             super.commit();
         } finally {
-            if (log.isInfoEnabled()) {
-                log.info("CachingTransaction cache stats on commit: {}", cellCache.stats());
+            if (log.isDebugEnabled()) {
+                log.debug("CachingTransaction cache stats on commit: {}", cellCache.stats());
             }
         }
     }
@@ -208,8 +208,8 @@ public class CachingTransaction extends ForwardingTransaction {
         try {
             super.commit(txService);
         } finally {
-            if (log.isInfoEnabled()) {
-                log.info("CachingTransaction cache stats on commit(txService): {}", cellCache.stats());
+            if (log.isDebugEnabled()) {
+                log.debug("CachingTransaction cache stats on commit(txService): {}", cellCache.stats());
             }
         }
     }
@@ -219,8 +219,8 @@ public class CachingTransaction extends ForwardingTransaction {
         try {
             super.abort();
         } finally {
-            if (log.isInfoEnabled()) {
-                log.info("CachingTransaction cache stats on abort: {}", cellCache.stats());
+            if (log.isDebugEnabled()) {
+                log.debug("CachingTransaction cache stats on abort: {}", cellCache.stats());
             }
         }
     }
