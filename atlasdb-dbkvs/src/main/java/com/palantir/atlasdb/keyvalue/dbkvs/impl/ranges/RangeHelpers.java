@@ -24,7 +24,7 @@ public final class RangeHelpers {
 
     public static int getMaxRowsPerPage(RangeRequest rangeRequest) {
         if (rangeRequest.getBatchHint() != null) {
-            return rangeRequest.getBatchHint();
+            return Math.max(1, rangeRequest.getBatchHint());
         } else {
             return 100;
         }

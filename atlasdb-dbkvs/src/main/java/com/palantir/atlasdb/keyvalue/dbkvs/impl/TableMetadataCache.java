@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.annotation.Nullable;
 
 import com.google.common.cache.Cache;
@@ -27,6 +29,7 @@ public class TableMetadataCache {
 
     private final Cache<TableReference, TableMetadata> cache = CacheBuilder.newBuilder()
             .maximumSize(10000)
+            .expireAfterWrite(1, TimeUnit.HOURS)
             .build();
     private final DbTableFactory dbTables;
 

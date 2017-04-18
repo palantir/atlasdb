@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
@@ -160,7 +161,7 @@ public class PostgresGetRange implements DbKvsGetRange {
             if (metadata.getColumns().hasDynamicColumns()) {
                 return 100;
             } else {
-                return metadata.getColumns().getNamedColumns().size();
+                return Math.max(1, metadata.getColumns().getNamedColumns().size());
             }
         }
     }
@@ -207,12 +208,14 @@ public class PostgresGetRange implements DbKvsGetRange {
             } else {
                 try (ConnectionSupplier conns = new ConnectionSupplier(connectionPool)) {
                     List<RowResult<Value>> results = new ArrayList<>(maxRowsPerPage);
+                    int numSqlRows = 0;
                     byte[] colName = null;
                     try (ClosableIterator<AgnosticLightResultRow> iter = selectNextPage(conns)) {
                         while (iter.hasNext()) {
+                            numSqlRows += 1;
                             AgnosticLightResultRow sqlRow = iter.next();
                             byte[] rowName = sqlRow.getBytes("row_name");
-                            colName = sqlRow.getBytes("col_name");
+                            colName = Preconditions.checkNotNull(sqlRow.getBytes("col_name"));
                             if (!Arrays.equals(currentRowName, rowName)) {
                                 flushCurrentRow(results);
                                 currentRowName = rowName;
@@ -221,10 +224,10 @@ public class PostgresGetRange implements DbKvsGetRange {
                             currentRowCells.put(colName, value);
                         }
                     }
-                    if (results.size() < maxCellsPerPage) {
+                    if (numSqlRows < maxCellsPerPage || colName == null) {
                         getCurrentRowResult().ifPresent(results::add);
                         endOfResults = true;
-                    } else if (colName != null) {
+                    } else {
                         computeNextStartPosition(colName, results);
                     }
                     return results.iterator();
@@ -235,10 +238,11 @@ public class PostgresGetRange implements DbKvsGetRange {
         private void computeNextStartPosition(byte[] lastColName,
                                               @Output List<RowResult<Value>> results) {
             firstRowStartColumnInclusive = RangeRequests.getNextStartRowUnlessTerminal(reverse, lastColName);
-            // We need to handle the edge case where
+            // We need to handle the edge case where the column was lexicographically last
             if (firstRowStartColumnInclusive == null) {
                 flushCurrentRow(results);
                 currentRowName = RangeRequests.getNextStartRowUnlessTerminal(reverse, currentRowName);
+                firstRowStartColumnInclusive = PtBytes.EMPTY_BYTE_ARRAY;
                 if (currentRowName == null) {
                     endOfResults = true;
                 }
