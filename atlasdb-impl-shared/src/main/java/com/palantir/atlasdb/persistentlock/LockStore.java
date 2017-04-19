@@ -75,10 +75,14 @@ public class LockStore {
     }
 
     public static LockStore create(KeyValueService kvs) {
+        log.info("Creating _persisted_locks table");
         kvs.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         LockStore lockStore = new LockStore(kvs);
         if (lockStore.allLockEntries().isEmpty()) {
+            log.info("Table created, but is empty - populating...");
             new LockStorePopulator(kvs).populate();
+        } else {
+            log.info("Table was created, but not empty.");
         }
         return lockStore;
     }
@@ -152,13 +156,15 @@ public class LockStore {
                     LOCK_OPEN.cell(),
                     LOCK_OPEN.value());
             try {
+                log.info("Applying CAS...");
                 kvs.checkAndSet(request);
+                log.info("CAS successful.");
             } catch (CheckAndSetException e) {
                 // This can happen if multiple LockStores are started at once. We don't actually mind.
                 // All we care about is that we're in the state machine of "LOCK_OPEN"/"LOCK_TAKEN".
                 // It still might be interesting, so we'll log it.
                 List<String> values = getActualValues(e);
-                log.debug("Encountered a CheckAndSetException when creating the LockStore. This means that two "
+                log.info("Encountered a CheckAndSetException when creating the LockStore. This means that two "
                         + "LockStore objects were created near-simultaneously, and is probably not a problem. "
                         + "For the record, we observed these values: {}", values);
             }
