@@ -79,7 +79,19 @@ class AtlasCoreModule implements AtlasConsoleModule {
                          <TABLE>.join([[ <ROW-VALUE-1> : <EXTRA-DATA-1>], [ <ROW-VALUE-2> : <EXTRA-DATA-2]])
                          Returns:
                          [["JOIN_KEY" : <ROW-VALUE-1>, "INPUT_VALUE" : <EXTRA-DATA-1>, "OUTPUT_VALUE" : <TABLE-ROW-1>], 
-                         ["JOIN_KEY" : <ROW-VALUE-2>, "INPUT_VALUE" : <EXTRA-DATA-2>, "OUTPUT_VALUE" : <TABLE-ROW-2>]] 
+                         ["JOIN_KEY" : <ROW-VALUE-2>, "INPUT_VALUE" : <EXTRA-DATA-2>, "OUTPUT_VALUE" : <TABLE-ROW-2>]]
+
+                         The join() method partitions the input iterable into batches, default 10000.
+                         Use join(iterable, cols, batchSize) to override.
+
+                         For an easy way to lazily transform a table range into the appropriate format for joining,
+                         consider Guava (since Groovy's Iterable#collect is not lazy).  For example, if two tables have
+                         the same structure in their row keys, a full join looks like this:
+
+                         FluentIterable = com.google.common.collect.FluentIterable
+                         input = FluentIterable.from(table("myTable").getRange()).transform{ [(it.row): it}
+                         output = table("myOtherTable").join(input)
+                         output.each { println it}
                          '''.stripIndent(),
 
             'getCells': '''\
