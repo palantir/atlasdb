@@ -91,6 +91,14 @@ import com.google.common.base.Objects;
         return Long.SIZE;
     }
 
+    /**
+     * Info level logging for any lock request that receives a response after given time.
+     * If the duration is zero or negative, slow lock logging will be disabled.
+     */
+    public long slowLogTriggerMillis() {
+        return 10000;
+    }
+
     @Override public final boolean equals(@Nullable Object obj) {
         if (this == obj) return true;
         if (!(obj instanceof LockServerOptions)) return false;

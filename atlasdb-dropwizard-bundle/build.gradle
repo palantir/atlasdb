@@ -3,7 +3,7 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
     compile project(':atlasdb-cli')
-    compile project(':atlasdb-config')
+    compile project(path: ':atlasdb-config', configuration: 'shadow')
     compile project(':atlasdb-console')
 
     compile group: 'io.dropwizard', name: 'dropwizard-core'

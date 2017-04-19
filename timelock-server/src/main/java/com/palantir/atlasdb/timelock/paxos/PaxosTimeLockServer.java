@@ -46,6 +46,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.paxos.PaxosAcceptor;
@@ -146,16 +147,22 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     @Override
-    public TimeLockServices createInvalidatingTimeLockServices(String client) {
+    public TimeLockServices createInvalidatingTimeLockServices(String client, long slowLogTriggerMillis) {
         ManagedTimestampService timestampService = instrument(
                 ManagedTimestampService.class,
                 createPaxosBackedTimestampService(client),
                 client);
+        LockServerOptions lockServerOptions = new LockServerOptions() {
+            @Override
+            public long slowLogTriggerMillis() {
+                return slowLogTriggerMillis;
+            }
+        };
         LockService lockService = instrument(
                 LockService.class,
                 AwaitingLeadershipProxy.newProxyInstance(
                         LockService.class,
-                        LockServiceImpl::create,
+                        () -> LockServiceImpl.create(lockServerOptions),
                         leaderElectionService),
                 client);
         return TimeLockServices.create(timestampService, lockService, timestampService);
