@@ -29,9 +29,10 @@ public class PostgresDbTableFactory implements DbTableFactory {
     private final PostgresDdlConfig config;
     private final PostgresPrefixedTableNames prefixedTableNames;
 
-    public PostgresDbTableFactory(PostgresDdlConfig config) {
+    public PostgresDbTableFactory(PostgresDdlConfig config,
+                                  PostgresPrefixedTableNames prefixedTableNames) {
         this.config = config;
-        this.prefixedTableNames = new PostgresPrefixedTableNames(config);
+        this.prefixedTableNames = prefixedTableNames;
     }
 
     @Override

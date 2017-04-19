@@ -45,6 +45,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang3.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -369,17 +371,17 @@ public abstract class BasicSQL {
 
     /**Execute the PreparedStatement asynchronously, cancel it if we're interrupted, and return the result set if we're not.
     Throws a RuntimeException (PalantirInterruptedException) in case of interrupts. */
-    private <T> T runCancellably(final PreparedStatement ps, ResultSetVisitor<T> visitor, FinalSQLString sql)
-    throws PalantirInterruptedException, PalantirSqlException {
-        return runCancellably(ps, visitor, sql, AutoClose.TRUE);
+    private <T> T runCancellably(PreparedStatement ps, ResultSetVisitor<T> visitor, FinalSQLString sql,
+            @Nullable Integer fetchSize) throws PalantirInterruptedException, PalantirSqlException {
+        return runCancellably(ps, visitor, sql, AutoClose.TRUE, fetchSize);
     }
 
     private <T> T runCancellably(final PreparedStatement ps, ResultSetVisitor<T> visitor, final FinalSQLString sql,
-            AutoClose autoClose) throws PalantirInterruptedException, PalantirSqlException {
+            AutoClose autoClose, @Nullable Integer fetchSize) throws PalantirInterruptedException, PalantirSqlException {
         if (isSqlCancellationDisabled()) {
-            return runUninterruptablyInternal(ps, visitor, sql, autoClose);
+            return runUninterruptablyInternal(ps, visitor, sql, autoClose, fetchSize);
         } else {
-            return runCancellablyInternal(ps, visitor, sql, autoClose);
+            return runCancellablyInternal(ps, visitor, sql, autoClose, fetchSize);
         }
     }
 
@@ -388,7 +390,7 @@ public abstract class BasicSQL {
     }
 
     private static <T> T runUninterruptablyInternal(final PreparedStatement ps, final ResultSetVisitor<T> visitor, final FinalSQLString sql,
-            final AutoClose autoClose) throws PalantirInterruptedException, PalantirSqlException {
+            final AutoClose autoClose, @Nullable Integer fetchSize) throws PalantirInterruptedException, PalantirSqlException {
         if (Thread.currentThread().isInterrupted()) {
             SqlLoggers.CANCEL_LOGGER.debug("interrupted prior to executing uninterruptable SQL call");
             throw new PalantirInterruptedException("interrupted prior to executing uninterruptable SQL call");
@@ -396,6 +398,9 @@ public abstract class BasicSQL {
         return BasicSQLUtils.runUninterruptably(new Callable<T>() {
             @Override
             public T call() throws SQLException {
+                if (fetchSize != null) {
+                    ps.setFetchSize(fetchSize);
+                }
                 ResultSet rs = null;
                 try {
                     rs = ps.executeQuery();
@@ -412,7 +417,7 @@ public abstract class BasicSQL {
     }
 
     private static <T> T runCancellablyInternal(final PreparedStatement ps, ResultSetVisitor<T> visitor, final FinalSQLString sql,
-                                        AutoClose autoClose) throws PalantirInterruptedException, PalantirSqlException {
+                                        AutoClose autoClose, @Nullable Integer fetchSize) throws PalantirInterruptedException, PalantirSqlException {
         final String threadString = sql.toString();
         Future<ResultSet> result = service.submit(ThreadNamingCallable.wrapWithThreadName(new Callable<ResultSet>() {
             @Override
@@ -422,6 +427,9 @@ public abstract class BasicSQL {
                     //we want to clear the interrupted status here -
                     //we cancel via the prepared statement, not interrupts
                     Thread.interrupted();
+                }
+                if (fetchSize != null) {
+                    ps.setFetchSize(fetchSize);
                 }
                 return ps.executeQuery();
             }
@@ -574,7 +582,7 @@ public abstract class BasicSQL {
                     public Boolean visit(ResultSet rs) throws PalantirSqlException {
                         return ResultSets.next(rs);
                     }
-                }, sql);
+                }, sql, null);
             }
         }, "selectExists"); //$NON-NLS-1$
     }
@@ -603,7 +611,7 @@ public abstract class BasicSQL {
 
                         // indicate failure
                         throw PalantirSqlException.create("No rows returned."); //$NON-NLS-1$
-                    }}, sql);
+                    }}, sql, null);
             }
         }, "selectInteger"); //$NON-NLS-1$
     }
@@ -650,7 +658,7 @@ public abstract class BasicSQL {
                             return defaultVal;
                         }
                     }
-                }, sql);
+                }, sql, null);
             }
         }, "selectLong"); //$NON-NLS-1$
     }
@@ -658,7 +666,8 @@ public abstract class BasicSQL {
     protected AgnosticLightResultSet selectLightResultSetSpecifyingDBType(final Connection c,
                                                                           final FinalSQLString sql,
                                                                           Object vs[],
-                                                                          final DBType dbType)
+                                                                          final DBType dbType,
+                                                                          @Nullable Integer fetchSize)
             throws PalantirSqlException, PalantirInterruptedException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL light result set selection query: {}", sql.getQuery());
@@ -692,7 +701,7 @@ public abstract class BasicSQL {
                 };
 
                 try {
-                    return runCancellably(ps, resultSetVisitor, sql, AutoClose.FALSE);
+                    return runCancellably(ps, resultSetVisitor, sql, AutoClose.FALSE, fetchSize);
                 } catch (Exception e) {
                     closeSilently(ps);
                     BasicSQLUtils.throwUncheckedIfSQLException(e);
@@ -739,7 +748,7 @@ public abstract class BasicSQL {
 
                         return new AgnosticResultSetImpl(rvs, dbType, columnMap);
                     }
-                }, sql);
+                }, sql, null);
             }
         }, "selectList"); //$NON-NLS-1$
     }
