@@ -66,12 +66,12 @@ v0.39.0
            This improves latency of timestamp requests under heavy load; we have seen an approximately 30 percent improvement on internal benchmarks.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
 
-    *    - |improved|
-         - The lock server now logs to ``SlowLockLogger`` logger if a request takes more than a given time (10 seconds by default) to be processed.
+    *    - |new|
+         - The lock server now has a ``SlowLockLogger``, which logs at INFO in the service logs if a lock request receives a response after at least a given amount of time (10 seconds by default).
            This is likely to be useful for debugging issues with long-running locks in production.
 
            Specifically, the timelock server has a configuration parameter ``slowLockLogTriggerMillis`` which defaults to ``10000``.
-           Setting this parameter to zero (or any negative number) will disable the new logger; slow locks will continue to be logged at ``DEBUG`` (which is the existing behaviour).
+           Setting this parameter to zero (or any negative number) will disable the new logger.
            If not using timelock, an application can modify the trigger value through ``LockServerOptions`` during initialization in ``TransactionManagers.create``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1791>`__)
 
@@ -80,8 +80,8 @@ v0.39.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1784>`__)
 
     *    - |fixed|
-         - AtlasDB HTTP clients now parse ``Retry-After`` headers correctly.
-           This manifests as clients failing over and trying other nodes when receiving a 503 with a ``Retry-After`` header from a remote (e.g. from a TimeLock non-leader).
+         - Proxies created via ``AtlasDbHttpClients`` now parse ``Retry-After`` headers correctly.
+           This manifests as Timelock clients failing over and trying other nodes when receiving a 503 with a ``Retry-After`` header from a remote (e.g. from a TimeLock non-leader).
            Previously, clients would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
 
