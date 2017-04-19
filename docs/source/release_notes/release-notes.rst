@@ -86,6 +86,13 @@ develop
          - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1814>`__)
 
+    *    - |devbreak|
+         - ``atlasdb-config`` now pulls in two more dependencies - the Jackson JDK 8 and JSR 310 modules (``jackson-datatype-jdk8`` and ``jackson-datatype-jsr310``).
+           These are required by the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
+           This behaviour is consistent with our existing behaviour for Jackson modules (JDK 7, Guava and Joda Time).
+           If you do encounter breaks due to this addition, please contact the AtlasDB team for support.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1810>`__)
+
 =======
 v0.38.0
 =======
