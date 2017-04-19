@@ -54,6 +54,21 @@ public class CassandraEnvironmentTest {
         assertCassandraEnvironmentContains(version, maxHeapSize, heapNewsize);
     }
 
+    @Test
+    public void testGetVersionWhenEnvironmentSet() {
+        String expectedVersion = "1.2.19";
+        environment.set(CassandraEnvironment.CASSANDRA_VERSION, expectedVersion);
+        String version = CassandraEnvironment.getVersion();
+        assertEquals(expectedVersion, version);
+    }
+
+    @Test
+    public void testGetVersionWhenEnvironmentNotSet() {
+        environment.set(CassandraEnvironment.CASSANDRA_VERSION, null);
+        String version = CassandraEnvironment.getVersion();
+        assertEquals(CassandraEnvironment.DEFAULT_VERSION, version);
+    }
+
     private void assertCassandraEnvironmentContains(String version, String maxHeapSize, String heapNewsize) {
         Map<String, String> variables = CassandraEnvironment.get();
         assertThat(variables.size(), is(3));

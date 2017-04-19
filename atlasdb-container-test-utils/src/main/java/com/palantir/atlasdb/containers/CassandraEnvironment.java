@@ -47,6 +47,10 @@ public final class CassandraEnvironment {
                 CASSANDRA_HEAP_NEWSIZE, getOrDefault(CASSANDRA_HEAP_NEWSIZE, DEFAULT_HEAP_NEWSIZE));
     }
 
+    public static String getVersion() {
+        return getOrDefault(CASSANDRA_VERSION, DEFAULT_VERSION);
+    }
+
     private static String getOrDefault(String name, String defaultValue) {
         String version = System.getenv(name);
         if (Strings.isNullOrEmpty(version)) {

@@ -17,15 +17,11 @@ package com.palantir.atlasdb.containers;
 
 import java.util.regex.Pattern;
 
-import com.google.common.base.Strings;
-
 public interface CassandraVersion {
 
     static CassandraVersion fromEnvironment() {
-        String version = System.getenv(CassandraEnvironment.CASSANDRA_VERSION);
-        return Strings.isNullOrEmpty(version)
-                ? new Cassandra22XVersion()
-                : from(version);
+        String version = CassandraEnvironment.getVersion();
+        return from(version);
     }
 
     static CassandraVersion from(String version) {
