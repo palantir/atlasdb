@@ -204,7 +204,7 @@ class Table {
     public Iterable<Map<String, Object>> join(
             Iterable<Map<?, ?>> input,
             cols = null,
-            int batchSize = 10000,
+            int batchSize = DEFAULT_JOIN_BATCH_SIZE,
             TransactionToken token = service.getTransactionToken()) {
 
         return AtlasConsoleJoins.join(input, batchSize, { keys -> getRows(keys, cols, token)});

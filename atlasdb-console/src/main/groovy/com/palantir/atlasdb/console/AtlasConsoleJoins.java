@@ -17,6 +17,7 @@ package com.palantir.atlasdb.console;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -25,7 +26,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 /**
- * Created by dcohen on 4/17/17.
+ * Utility for joins.
  */
 public class AtlasConsoleJoins {
 
@@ -35,11 +36,11 @@ public class AtlasConsoleJoins {
 
     public static Iterable<Map<String, Object>> join(Iterable<Map<?, ?>> input, int batchSize,
             Function<List<?>, List<Map<String, ?>>> getRowsFunction) {
-        Iterable<Map.Entry<?, ?>> entries = Iterables.concat(Iterables.transform(input, java.util.Map::entrySet));
+        Iterable<Entry<?, ?>> entries = Iterables.concat(Iterables.transform(input, Map::entrySet));
         return FluentIterable.from(Iterables.partition(entries, batchSize)).transformAndConcat(
                 batch -> {
-                    Map<?, ?> batchMap = batch.stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-                    List<?> keys = batch.stream().map(Map.Entry::getKey).collect(Collectors.toList());
+                    Map<?, ?> batchMap = batch.stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+                    List<?> keys = batch.stream().map(Entry::getKey).collect(Collectors.toList());
                     List<Map<String, ?>> batchResult = getRowsFunction.apply(keys);
 
                     return batchResult.stream().map(result -> {
