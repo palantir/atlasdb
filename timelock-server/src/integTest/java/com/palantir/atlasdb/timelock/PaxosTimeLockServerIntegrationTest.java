@@ -97,13 +97,13 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
             new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
 
-    private final TimestampService timestampService = getTimestampService(CLIENT_1);
-    private final TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
-
     private static final LockRequest SLOW_REQUEST = LockRequest
             .builder(ImmutableSortedMap.of(StringLockDescriptor.of("lock"), LockMode.WRITE))
             .blockForAtMost(SimpleTimeDuration.of(200, TimeUnit.MILLISECONDS))
             .build();
+
+    private final TimestampService timestampService = getTimestampService(CLIENT_1);
+    private final TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
 
     @ClassRule
     public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
