@@ -58,7 +58,14 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
 
     *    - |new|
-         - Limit number of concurrent Lock calls from the same client.
+         - The lock server now can limit number of concurrent connections from the same client which request a lock.
+           This behavior can be enabled with the configuration flag ``useThreadPooling`` on the ``TimeLockServerConfiguration`` in dropwizard.
+
+           The threads from the server are split equally in a `private pool` and a `public pool`.
+           The `private pool` is split equally among all the clients.
+           The `public pool` can be used by any client, after all its private pool threads have been used.
+           If enabled, it's impossible for a single client to consume all the threads from the server, since each client will always have its `private pool` share.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
