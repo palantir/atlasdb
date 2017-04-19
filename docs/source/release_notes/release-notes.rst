@@ -50,6 +50,10 @@ develop
          - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
 
+    *    - |new|
+         - ProfilingKeyValueService now has some additional logging mechanisms for logging long-running operations on WARN level, enabled by defaultd by default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1801>`__)
+
 =======
 v0.37.0
 =======
