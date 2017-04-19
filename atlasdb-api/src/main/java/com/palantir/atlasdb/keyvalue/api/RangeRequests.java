@@ -191,7 +191,7 @@ public final class RangeRequests {
     @Nullable
     public static byte[] getNextStartRowUnlessTerminal(boolean reverse, @Nonnull byte[] rowName) {
         if (reverse) {
-            if (isTerminalRow(reverse, rowName)) {
+            if (isFirstRowName(rowName)) {
                 return null;
             } else {
                 return previousLexicographicName(rowName);
