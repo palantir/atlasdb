@@ -43,13 +43,36 @@ develop
          - Change
 
     *    - |improved|
-         - Refactored ``AvailableTimestamps`` reducing overzealous synchronization. Giving out timestamps is no longer blocking on refreshing the timestamp bound if there are enough timestamps to give out with the current bound.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
+         - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.39.0
+=======
+
+19 Apr 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |improved|
-         - The lock server now logs to ``SlowLockLogger`` logger if a request takes more than a given time (10 seconds by default) to be processed.
+         - Refactored ``AvailableTimestamps`` reducing overzealous synchronization.
+           Giving out timestamps is no longer blocking on refreshing the timestamp bound if there are enough timestamps to give out with the current bound.
+           This improves latency of timestamp requests under heavy load; we have seen an approximately 30 percent improvement on internal benchmarks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
+
+    *    - |new|
+         - The lock server now has a ``SlowLockLogger``, which logs at INFO in the service logs if a lock request receives a response after at least a given amount of time (10 seconds by default).
+           This is likely to be useful for debugging issues with long-running locks in production.
+
            Specifically, the timelock server has a configuration parameter ``slowLockLogTriggerMillis`` which defaults to ``10000``.
-           Setting this parameter to zero (or any negative number) will disable the new logger; slow locks will instead be logged at ``DEBUG``.
+           Setting this parameter to zero (or any negative number) will disable the new logger.
            If not using timelock, an application can modify the trigger value through ``LockServerOptions`` during initialization in ``TransactionManagers.create``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1791>`__)
 
@@ -58,14 +81,17 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1784>`__)
 
     *    - |fixed|
-         - AtlasDB HTTP clients now parse ``Retry-After`` headers correctly.
-           This manifests as clients failing over and trying other nodes when receiving a 503 with a ``Retry-After`` header from a remote (e.g. from a TimeLock non-leader).
-           Previously, clients would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
+         - Proxies created via ``AtlasDbHttpClients`` now parse ``Retry-After`` headers correctly.
+           This manifests as Timelock clients failing over and trying other nodes when receiving a 503 with a ``Retry-After`` header from a remote (e.g. from a TimeLock non-leader).
+           Previously, these proxies would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
 
-    *    - |improved|
-         - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
+    *    - |new|
+         - The ``atlasdb-config`` project now shadows the ``error-handling`` and ``jackson-support`` libraries from `http-remoting <https://github.com/palantir/http-remoting>`__.
+           This will be used to handle exceptions in a future release, and was done in this way to avoid causing dependency issues in upstream products.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1796>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.38.0
@@ -116,6 +142,8 @@ v0.38.0
     *    - |improved|
          - Timelock users who start an embedded timestamp and lock service without :ref:`reverse-migrating <timelock-reverse-migration>` now encounter a more informative error message.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1755>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.37.0
