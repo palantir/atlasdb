@@ -42,8 +42,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         - 
+    *    - |improved|
+         - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
