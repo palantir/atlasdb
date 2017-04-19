@@ -63,6 +63,10 @@ develop
            Previously, clients would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
 
+    *    - |improved|
+         - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
+
 =======
 v0.38.0
 =======

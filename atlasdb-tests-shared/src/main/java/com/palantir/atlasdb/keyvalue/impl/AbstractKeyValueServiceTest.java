@@ -26,7 +26,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -34,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
@@ -71,6 +74,13 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.NameMetadataDescription;
+import com.palantir.atlasdb.table.description.NamedColumnDescription;
+import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractKeyValueServiceTest {
@@ -659,6 +669,187 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void testGetRangePaging() {
+        for (int numColumnsInMetadata = 1; numColumnsInMetadata <= 3; ++numColumnsInMetadata) {
+            for (int batchSizeHint = 1; batchSizeHint <= 5; ++batchSizeHint) {
+                doTestGetRangePaging(numColumnsInMetadata, batchSizeHint, false);
+                if (reverseRangesSupported()) {
+                    doTestGetRangePaging(numColumnsInMetadata, batchSizeHint, true);
+                }
+            }
+        }
+    }
+
+    private void doTestGetRangePaging(int numColumnsInMetadata, int batchSizeHint, boolean reverse) {
+        TableReference tableRef = createTableWithNamedColumns(numColumnsInMetadata);
+
+        Map<Cell, byte[]> values = new HashMap<Cell, byte[]>();
+        values.put(Cell.create("00".getBytes(), "c1".getBytes()), "a".getBytes());
+        values.put(Cell.create("00".getBytes(), "c2".getBytes()), "b".getBytes());
+
+        values.put(Cell.create("01".getBytes(), RangeRequests.getFirstRowName()), "c".getBytes());
+
+        values.put(Cell.create("02".getBytes(), "c1".getBytes()), "d".getBytes());
+        values.put(Cell.create("02".getBytes(), "c2".getBytes()), "e".getBytes());
+
+        values.put(Cell.create("03".getBytes(), "c1".getBytes()), "f".getBytes());
+
+        values.put(Cell.create("04".getBytes(), "c1".getBytes()), "g".getBytes());
+        values.put(Cell.create("04".getBytes(), RangeRequests.getLastRowName()), "h".getBytes());
+
+        values.put(Cell.create("05".getBytes(), "c1".getBytes()), "i".getBytes());
+        values.put(Cell.create(RangeRequests.getLastRowName(), "c1".getBytes()), "j".getBytes());
+        keyValueService.put(tableRef, values, TEST_TIMESTAMP);
+
+        RangeRequest request = RangeRequest.builder(reverse).batchHint(batchSizeHint).build();
+        try (ClosableIterator<RowResult<Value>> iter = keyValueService.getRange(tableRef, request, Long.MAX_VALUE)) {
+            List<RowResult<Value>> results = ImmutableList.copyOf(iter);
+            List<RowResult<Value>> expected = ImmutableList.of(
+                RowResult.create("00".getBytes(),
+                    ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
+                        .put("c1".getBytes(), Value.create("a".getBytes(), TEST_TIMESTAMP))
+                        .put("c2".getBytes(), Value.create("b".getBytes(), TEST_TIMESTAMP))
+                        .build()),
+                RowResult.create("01".getBytes(),
+                    ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
+                        .put(RangeRequests.getFirstRowName(), Value.create("c".getBytes(), TEST_TIMESTAMP))
+                        .build()),
+                RowResult.create("02".getBytes(),
+                    ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
+                        .put("c1".getBytes(), Value.create("d".getBytes(), TEST_TIMESTAMP))
+                        .put("c2".getBytes(), Value.create("e".getBytes(), TEST_TIMESTAMP))
+                        .build()),
+                RowResult.create("03".getBytes(),
+                    ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
+                        .put("c1".getBytes(), Value.create("f".getBytes(), TEST_TIMESTAMP))
+                        .build()),
+                RowResult.create("04".getBytes(),
+                    ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
+                        .put("c1".getBytes(), Value.create("g".getBytes(), TEST_TIMESTAMP))
+                        .put(RangeRequests.getLastRowName(), Value.create("h".getBytes(), TEST_TIMESTAMP))
+                        .build()),
+                RowResult.create("05".getBytes(),
+                    ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
+                        .put("c1".getBytes(), Value.create("i".getBytes(), TEST_TIMESTAMP))
+                        .build()),
+                RowResult.create(RangeRequests.getLastRowName(),
+                    ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
+                        .put("c1".getBytes(), Value.create("j".getBytes(), TEST_TIMESTAMP))
+                        .build())
+            );
+            assertEquals(reverse ? Lists.reverse(expected) : expected, results);
+        }
+    }
+
+    @Test
+    public void testGetRangePagingLastRowEdgeCase() {
+        for (int batchSizeHint = 1; batchSizeHint <= 2; ++batchSizeHint) {
+            doTestGetRangePagingLastRowEdgeCase(1, batchSizeHint, false);
+            if (reverseRangesSupported()) {
+                doTestGetRangePagingLastRowEdgeCase(1, batchSizeHint, true);
+            }
+        }
+    }
+
+    private void doTestGetRangePagingLastRowEdgeCase(int numColumnsInMetadata, int batchSizeHint, boolean reverse) {
+        TableReference tableRef = createTableWithNamedColumns(numColumnsInMetadata);
+        byte[] last = reverse ? RangeRequests.getFirstRowName() : RangeRequests.getLastRowName();
+        Map<Cell, byte[]> values = ImmutableMap.of(
+            Cell.create(last, "c1".getBytes()), "a".getBytes(),
+            Cell.create(last, last), "b".getBytes());
+        keyValueService.put(tableRef, values, TEST_TIMESTAMP);
+
+        RangeRequest request = RangeRequest.builder(reverse).batchHint(batchSizeHint).build();
+        try (ClosableIterator<RowResult<Value>> iter = keyValueService.getRange(tableRef, request, Long.MAX_VALUE)) {
+            List<RowResult<Value>> results = ImmutableList.copyOf(iter);
+            List<RowResult<Value>> expected = ImmutableList.of(
+                RowResult.create(last,
+                    ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
+                            .put("c1".getBytes(), Value.create("a".getBytes(), TEST_TIMESTAMP))
+                            .put(last, Value.create("b".getBytes(), TEST_TIMESTAMP))
+                            .build()));
+            assertEquals(expected, results);
+        }
+    }
+
+    @Test
+    public void testGetRangePagingWithColumnSelection() {
+        for (int numRows = 1; numRows <= 6; ++numRows) {
+            populateTableWithTriangularData(numRows);
+            for (int numColsInSelection = 1; numColsInSelection <= 7; ++numColsInSelection) {
+                for (int batchSizeHint = 1; batchSizeHint <= 7; ++batchSizeHint) {
+                    doTestGetRangePagingWithColumnSelection(batchSizeHint, numRows, numColsInSelection, false);
+                    if (reverseRangesSupported()) {
+                        doTestGetRangePagingWithColumnSelection(batchSizeHint, numRows, numColsInSelection, true);
+                    }
+                }
+            }
+        }
+    }
+
+    // row 1: 1
+    // row 2: 1 2
+    // row 3: 1 2 3
+    // row 4: 1 2 3 4
+    // ...
+    private void populateTableWithTriangularData(int numRows) {
+        Map<Cell, byte[]> values = new HashMap<>();
+        for (long row = 1; row <= numRows; ++row) {
+            for (long col = 1; col <= row; ++col) {
+                byte[] rowName = PtBytes.toBytes(Long.MIN_VALUE ^ row);
+                byte[] colName = PtBytes.toBytes(Long.MIN_VALUE ^ col);
+                values.put(Cell.create(rowName, colName), (row + "," + col).getBytes());
+            }
+        }
+        keyValueService.truncateTable(TEST_TABLE);
+        keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP);
+    }
+
+    private void doTestGetRangePagingWithColumnSelection(int batchSizeHint,
+                                                         int numRows,
+                                                         int numColsInSelection,
+                                                         boolean reverse) {
+        Collection<byte[]> columnSelection = new ArrayList<>(numColsInSelection);
+        for (long col = 1; col <= numColsInSelection; ++col) {
+            byte[] colName = PtBytes.toBytes(Long.MIN_VALUE ^ col);
+            columnSelection.add(colName);
+        }
+        RangeRequest request = RangeRequest.builder(reverse)
+                .retainColumns(columnSelection)
+                .batchHint(batchSizeHint)
+                .build();
+        try (ClosableIterator<RowResult<Value>> iter = keyValueService.getRange(TEST_TABLE, request, Long.MAX_VALUE)) {
+            List<RowResult<Value>> results = ImmutableList.copyOf(iter);
+            assertEquals(getExpectedResultForRangePagingWithColumnSelectionTest(numRows, numColsInSelection, reverse),
+                    results);
+        }
+    }
+
+    private List<RowResult<Value>> getExpectedResultForRangePagingWithColumnSelectionTest(int numRows,
+                                                                                          int numColsInSelection,
+                                                                                          boolean reverse) {
+        List<RowResult<Value>> expected = new ArrayList<>();
+        for (long row = 1; row <= numRows; ++row) {
+            ImmutableSortedMap.Builder<byte[], Value> builder = ImmutableSortedMap.orderedBy(
+                    UnsignedBytes.lexicographicalComparator());
+            for (long col = 1; col <= row && col <= numColsInSelection; ++col) {
+                byte[] colName = PtBytes.toBytes(Long.MIN_VALUE ^ col);
+                builder.put(colName, Value.create((row + "," + col).getBytes(), TEST_TIMESTAMP));
+            }
+            SortedMap<byte[], Value> columns = builder.build();
+            if (!columns.isEmpty()) {
+                byte[] rowName = PtBytes.toBytes(Long.MIN_VALUE ^ row);
+                expected.add(RowResult.create(rowName, columns));
+            }
+        }
+        if (reverse) {
+            return Lists.reverse(expected);
+        } else {
+            return expected;
+        }
+    }
+
+    @Test
     public void testGetAllTimestamps() {
         putTestDataForMultipleTimestamps();
         final Set<Cell> cellSet = ImmutableSet.of(TEST_CELL);
@@ -1213,6 +1404,23 @@ public abstract class AbstractKeyValueServiceTest {
         values.put(Cell.create(row2, column1), value21);
         values.put(Cell.create(row2, column2), value22);
         keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP);
+    }
+
+    private TableReference createTableWithNamedColumns(int numColumns) {
+        TableReference tableRef = TableReference.createFromFullyQualifiedName(
+                "ns.pt_kvs_test_named_cols_" + numColumns);
+        List<NamedColumnDescription> columns = new ArrayList<>();
+        for (int i = 1; i <= numColumns; ++i) {
+            columns.add(new NamedColumnDescription(
+                    "c" + i, "column" + i, ColumnValueDescription.forType(ValueType.BLOB)));
+        }
+        keyValueService.createTable(tableRef,
+                new TableMetadata(
+                        new NameMetadataDescription(),
+                        new ColumnMetadataDescription(columns),
+                        ConflictHandler.RETRY_ON_WRITE_WRITE).persistToBytes());
+        keyValueService.truncateTable(tableRef);
+        return tableRef;
     }
 
     protected abstract KeyValueService getKeyValueService();
