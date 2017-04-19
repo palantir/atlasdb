@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.console.module
 
-import groovy.json.JsonBuilder
-import groovy.json.JsonOutput
-import groovy.transform.CompileStatic
-
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.common.collect.ImmutableSet
 import com.palantir.atlasdb.api.AtlasDbService
@@ -35,6 +31,9 @@ import com.palantir.atlasdb.impl.TableMetadataCache
 import com.palantir.atlasdb.jackson.AtlasJacksonModule
 import com.palantir.atlasdb.table.description.Schema
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager
+import groovy.json.JsonBuilder
+import groovy.json.JsonOutput
+import groovy.transform.CompileStatic
 
 /**
  * Public methods that clients can call within AtlasConsole.
@@ -74,6 +73,15 @@ class AtlasCoreModule implements AtlasConsoleModule {
             'getRows': '''\
                          Retrieve one or more rows from a table. Ex:
                          <TABLE>.getRows([ <ROW-VALUE>, <ROW-VALUE> ])'''.stripIndent(),
+            'join': '''\
+                         Retreive one or more rows from a table and match them up by row-key
+                         with corresponding values.  Ex:
+                         <TABLE>.join([[ <ROW-VALUE-1> : <EXTRA-DATA-1>], [ <ROW-VALUE-2> : <EXTRA-DATA-2]])
+                         Returns:
+                         [["JOIN_KEY" : <ROW-VALUE-1>, "INPUT_VALUE" : <EXTRA-DATA-1>, "OUTPUT_VALUE" : <TABLE-ROW-1>], 
+                         ["JOIN_KEY" : <ROW-VALUE-2>, "INPUT_VALUE" : <EXTRA-DATA-2>, "OUTPUT_VALUE" : <TABLE-ROW-2>]] 
+                         '''.stripIndent(),
+
             'getCells': '''\
                          Retrieve one or more cells from a table, specified by row and
                          column.
