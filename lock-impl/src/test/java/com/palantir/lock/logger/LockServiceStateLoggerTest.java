@@ -57,7 +57,7 @@ public class LockServiceStateLoggerTest {
         LockClient clientA = LockClient.of("Client A");
         LockClient clientB = LockClient.of("Client B");
 
-        LockDescriptor descriptor1 = StringLockDescriptor.of("AAAA");
+        LockDescriptor descriptor1 = StringLockDescriptor.of("lock");
         LockDescriptor descriptor2 = StringLockDescriptor.of("BBB");
 
         LockRequest request1 = LockRequest.builder(LockCollections.of(ImmutableSortedMap.of(descriptor1, LockMode.WRITE)))
