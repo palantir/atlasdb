@@ -42,6 +42,9 @@ develop
     *    - Type
          - Change
 
+    *    -
+         - 
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -51,12 +54,11 @@ v0.39.0
 19 Apr 2017
 
 .. list-table::
-:widths: 5 40
+    :widths: 5 40
     :header-rows: 1
 
-        *    - Type
-             - Change
-
+    *    - Type
+         - Change
 
     *    - |improved|
          - Refactored ``AvailableTimestamps`` reducing overzealous synchronization.
