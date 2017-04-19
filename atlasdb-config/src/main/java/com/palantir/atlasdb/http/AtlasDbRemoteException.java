@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.http;
 
 import com.palantir.remoting2.errors.RemoteException;
-import com.palantir.remoting2.errors.SerializableError;
 
 /**
  * An AtlasDbRemoteException is a wrapper around a http-remoting RemoteException.
@@ -31,10 +30,6 @@ public class AtlasDbRemoteException extends RuntimeException {
 
     public AtlasDbRemoteException(RemoteException remoteException) {
         this.remoteException = remoteException;
-    }
-
-    public AtlasDbRemoteException(SerializableError error, int status) {
-        this.remoteException = new RemoteException(error, status);
     }
 
     public int getStatus() {
