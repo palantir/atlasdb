@@ -63,6 +63,12 @@ develop
            Previously, clients would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
 
+    *    - |improved|
+         - The lock server now will dump all held locks and outstanding lock requests in YAML file, when logging state requested, for easy readability and further processing.
+           This will make debuging lock congestions easier. Lock descriptors are changed with places holders and can be decoded using descriptors file,
+           which will be written in the folder. Information like requesting clients, requesting threads and other details can be found in the YAML.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1792>`__)
+
 =======
 v0.38.0
 =======
