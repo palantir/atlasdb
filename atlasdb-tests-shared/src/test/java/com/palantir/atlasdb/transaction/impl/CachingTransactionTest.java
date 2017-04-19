@@ -37,91 +37,107 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class CachingTransactionTest {
+    private static final byte[] ROW_BYTES = "row".getBytes();
+    private static final byte[] COL_BYTES = "col".getBytes();
+    private static final byte[] VALUE_BYTES = "value".getBytes();
+
     private final TableReference table = TableReference.createWithEmptyNamespace("table");
-    private final Mockery m = new Mockery();
-    private final Transaction t = m.mock(Transaction.class);
-    private final CachingTransaction c = new CachingTransaction(t);
+    private final Mockery mockery = new Mockery();
+    private final Transaction txn = mockery.mock(Transaction.class);
+    private final CachingTransaction ct = new CachingTransaction(txn);
 
     @Test
     public void testCacheEmptyGets() {
-        final Set<byte[]> oneRow = ImmutableSortedSet.<byte[]>orderedBy(PtBytes.BYTES_COMPARATOR).add("row".getBytes()).build();
-        final ColumnSelection oneColumn = ColumnSelection.create(ImmutableList.of("c".getBytes()));
-        final SortedMap<byte[], RowResult<byte[]>> emptyResults = ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR).build();
+        final Set<byte[]> oneRow = ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR).add(ROW_BYTES).build();
+        final ColumnSelection oneColumn = ColumnSelection.create(ImmutableList.of(COL_BYTES));
+        final SortedMap<byte[], RowResult<byte[]>> emptyResults =
+                ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR).build();
 
-        m.checking(new Expectations() {{
-            // the cache doesn't actually cache empty results in this case
-            // this is probably an oversight, but this has been the behavior for a long time
-            oneOf(t).getRows(table, oneRow, oneColumn); will(returnValue(emptyResults));
-            oneOf(t).getRows(table, oneRow, oneColumn); will(returnValue(emptyResults));
-        }});
+        mockery.checking(new Expectations() {
+            {
+                // the cache doesn't actually cache empty results in this case
+                // this is probably an oversight, but this has been the behavior for a long time
+                oneOf(txn).getRows(table, oneRow, oneColumn);
+                will(returnValue(emptyResults));
 
-        Assert.assertEquals(emptyResults, c.getRows(table, oneRow, oneColumn));
-        Assert.assertEquals(emptyResults, c.getRows(table, oneRow, oneColumn));
+                oneOf(txn).getRows(table, oneRow, oneColumn);
+                will(returnValue(emptyResults));
+            }
+        });
 
-        m.assertIsSatisfied();
+        Assert.assertEquals(emptyResults, ct.getRows(table, oneRow, oneColumn));
+        Assert.assertEquals(emptyResults, ct.getRows(table, oneRow, oneColumn));
+
+        mockery.assertIsSatisfied();
     }
 
     @Test
     public void testGetRows() {
-        final Set<byte[]> ONE_ROW = ImmutableSortedSet.<byte[]>orderedBy(PtBytes.BYTES_COMPARATOR).add("row".getBytes()).build();
-        final ColumnSelection ONE_COLUMN = ColumnSelection.create(ImmutableList.of("col".getBytes()));
+        final Set<byte[]> oneRow = ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR).add(ROW_BYTES).build();
+        final ColumnSelection oneColumn = ColumnSelection.create(ImmutableList.of(COL_BYTES));
 
-        final Set<byte[]> NO_ROWS = ImmutableSortedSet.<byte[]>orderedBy(PtBytes.BYTES_COMPARATOR).build();
-        final SortedMap<byte[], RowResult<byte[]>> emptyResults = ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR).build();
+        final Set<byte[]> noRows = ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR).build();
+        final SortedMap<byte[], RowResult<byte[]>> emptyResults =
+                ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR).build();
 
-        final RowResult<byte[]> rowResult = RowResult.of(Cell.create("row".getBytes(), "col".getBytes()), "value".getBytes());
-        final SortedMap<byte[], RowResult<byte[]>> oneResult = ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR)
-                .put("row".getBytes(), rowResult)
+        final RowResult<byte[]> rowResult = RowResult.of(Cell.create(ROW_BYTES, COL_BYTES), VALUE_BYTES);
+        final SortedMap<byte[], RowResult<byte[]>> oneResult
+                = ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR)
+                .put(ROW_BYTES, rowResult)
                 .build();
 
-        m.checking(new Expectations() {{
-            // row result is cached after first call, so second call requests no rows
-            oneOf(t).getRows(table, ONE_ROW, ONE_COLUMN); will(returnValue(oneResult));
-            oneOf(t).getRows(table, NO_ROWS, ONE_COLUMN); will(returnValue(emptyResults));
-        }});
+        mockery.checking(new Expectations() {
+            {
+                // row result is cached after first call, so second call requests no rows
+                oneOf(txn).getRows(table, oneRow, oneColumn);
+                will(returnValue(oneResult));
 
-        Assert.assertEquals(oneResult, c.getRows(table, ONE_ROW, ONE_COLUMN));
-        Assert.assertEquals(oneResult, c.getRows(table, ONE_ROW, ONE_COLUMN));
+                oneOf(txn).getRows(table, noRows, oneColumn);
+                will(returnValue(emptyResults));
+            }
+        });
 
-        m.assertIsSatisfied();
+        Assert.assertEquals(oneResult, ct.getRows(table, oneRow, oneColumn));
+        Assert.assertEquals(oneResult, ct.getRows(table, oneRow, oneColumn));
+
+        mockery.assertIsSatisfied();
     }
 
     @Test
     public void testGetCell() {
-
-        final Cell cell = Cell.create("row".getBytes(), "c".getBytes());
-        final Set<Cell> cellSet = ImmutableSet.of(cell);
+        final Cell cell = Cell.create(ROW_BYTES, COL_BYTES);
         final Map<Cell, byte[]> cellValueMap = ImmutableMap.<Cell, byte[]>builder()
-                .put(cell, "value".getBytes())
+                .put(cell, VALUE_BYTES)
                 .build();
 
-        m.checking(new Expectations() {{
-            // cell is cached after first call, so second call requests no cells
-            oneOf(t).get(table, cellSet); will(returnValue(cellValueMap));
-            oneOf(t).get(table, ImmutableSet.of()); will(returnValue(ImmutableMap.of()));
-        }});
-
-        Assert.assertEquals(cellValueMap, c.get(table, cellSet));
-        Assert.assertEquals(cellValueMap, c.get(table, cellSet));
-
-        m.assertIsSatisfied();
+        // cell is cached after first call, so second call requests no cells
+        testGetCellResults(cell, cellValueMap);
     }
 
     @Test
     public void testGetEmptyCell() {
-        final Cell cell = Cell.create("row".getBytes(), "c".getBytes());
-        final Set<Cell> cellSet = ImmutableSet.of(cell);
+        final Cell cell = Cell.create(ROW_BYTES, COL_BYTES);
         final Map<Cell, byte[]> emptyCellValueMap = ImmutableMap.of();
 
-        m.checking(new Expectations() {{
-            // empty result is cached in this case (second call requests no cells)
-            oneOf(t).get(table, cellSet); will(returnValue(emptyCellValueMap));
-            oneOf(t).get(table, ImmutableSet.of()); will(returnValue(emptyCellValueMap));
-        }});
+        // empty result is cached in this case (second call requests no cells)
+        testGetCellResults(cell, emptyCellValueMap);
+    }
 
-        Assert.assertEquals(emptyCellValueMap, c.get(table, cellSet));
-        Assert.assertEquals(emptyCellValueMap, c.get(table, cellSet));
+    private void testGetCellResults(Cell cell, Map<Cell, byte[]> cellValueMap) {
+        final Set<Cell> cellSet = ImmutableSet.of(cell);
+        mockery.checking(new Expectations() {
+            {
+                oneOf(txn).get(table, cellSet);
+                will(returnValue(cellValueMap));
 
-        m.assertIsSatisfied();
+                oneOf(txn).get(table, ImmutableSet.of());
+                will(returnValue(ImmutableMap.of()));
+            }
+        });
+
+        Assert.assertEquals(cellValueMap, ct.get(table, cellSet));
+        Assert.assertEquals(cellValueMap, ct.get(table, cellSet));
+
+        mockery.assertIsSatisfied();
     }
 }
