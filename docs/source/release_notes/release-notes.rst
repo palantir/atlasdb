@@ -42,6 +42,22 @@ develop
     *    - Type
          - Change
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.39.0
+=======
+
+19 Apr 2017
+
+.. list-table::
+:widths: 5 40
+    :header-rows: 1
+
+        *    - Type
+             - Change
+
+
     *    - |improved|
          - Refactored ``AvailableTimestamps`` reducing overzealous synchronization.
            Giving out timestamps is no longer blocking on refreshing the timestamp bound if there are enough timestamps to give out with the current bound.
@@ -66,6 +82,8 @@ develop
            This manifests as clients failing over and trying other nodes when receiving a 503 with a ``Retry-After`` header from a remote (e.g. from a TimeLock non-leader).
            Previously, clients would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.38.0
@@ -116,6 +134,8 @@ v0.38.0
     *    - |improved|
          - Timelock users who start an embedded timestamp and lock service without :ref:`reverse-migrating <timelock-reverse-migration>` now encounter a more informative error message.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1755>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.37.0
