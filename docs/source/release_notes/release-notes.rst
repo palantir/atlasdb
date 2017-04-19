@@ -85,6 +85,11 @@ v0.39.0
            Previously, clients would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
 
+    *    - |new|
+         - The ``atlasdb-config`` project now shadows the ``error-handling`` and ``jackson-support`` libraries from `http-remoting <https://github.com/palantir/http-remoting>`__.
+           This will be used to handle exceptions in a future release, and was done in this way to avoid causing dependency issues in upstream products.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1796>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
