@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -58,7 +57,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedMap.Builder;
@@ -217,7 +215,6 @@ import com.palantir.util.JMXUtils;
 
     private static final AtomicInteger instanceCount = new AtomicInteger();
     private static final int MAX_FAILED_LOCKS_TO_LOG = 20;
-    private static final int MAX_LOCKS_TO_LOG = 10000;
 
     /** Creates a new lock server instance with default options. */
     // TODO (jtamer) read lock server options from a prefs file
@@ -976,17 +973,6 @@ import com.palantir.util.JMXUtils;
         return options;
     }
 
-    private <T> List<T> queueToOrderedList(Queue<T> queue) {
-        List<T> list = Lists.newLinkedList();
-        while (!queue.isEmpty()) {
-            list.add(queue.poll());
-        }
-        for (T element : list) {
-            queue.add(element);
-        }
-        return list;
-    }
-
     /**
      * Prints the current state of the lock server to the logs. Useful for
      * debugging.
@@ -994,13 +980,7 @@ import com.palantir.util.JMXUtils;
     @Override
     public void logCurrentState() {
         StringBuilder logString = getGeneralLockStats();
-        for (Entry<String, Collection> nameValuePair : getLoggableCollectionsWithNames().entrySet()) {
-            logString.append(serializeCollectionWithName(nameValuePair.getKey(), nameValuePair.getValue()));
-        }
-        logString.append("Finished logging current state. Time = ").append(currentTimeMillis());
-        log.error("Current State: {}", logString.toString());
-
-        log.error(logString.toString());
+        log.info("Current State: {}", logString.toString());
 
         try {
             logAllHeldAndOutstandingLocks();
@@ -1013,30 +993,6 @@ import com.palantir.util.JMXUtils;
     private void logAllHeldAndOutstandingLocks() throws IOException {
         LockServiceStateLogger lockServiceStateLogger = new LockServiceStateLogger(heldLocksTokenMap, outstandingLockRequestMultimap);
         lockServiceStateLogger.logLocks(lockStateLoggerDir);
-    }
-
-    private String serializeCollectionWithName(String collectionName, Collection collectionToLog) {
-        StringBuilder serializedCollection = new StringBuilder();
-        serializedCollection.append(collectionName).append(".size() = ").append(collectionToLog.size()).append("\n");
-        if (collectionToLog.size() > MAX_LOCKS_TO_LOG) {
-            serializedCollection.append("WARNING: Only logging the first ").append(MAX_LOCKS_TO_LOG).append(" locks, ");
-            serializedCollection.append("logging more is likely to OOM or slow down lock server to the point of failure");
-        }
-        for (Object element : Iterables.limit(collectionToLog, MAX_LOCKS_TO_LOG)) {
-            serializedCollection.append(element).append("\n");
-        }
-        return serializedCollection.toString();
-    }
-
-    private ImmutableMap<String, Collection> getLoggableCollectionsWithNames() {
-        return ImmutableMap.<String, Collection>builder()
-                .put("descriptorToLockMap", descriptorToLockMap.asMap().entrySet())
-                .put("outstandingLockRequestMultimap", outstandingLockRequestMultimap.asMap().entrySet())
-                .put("heldLocksTokenMap", heldLocksTokenMap.entrySet())
-                .put("heldLocksGrantMap", heldLocksGrantMap.entrySet())
-                .put("lockTokenReaperQueue", queueToOrderedList(lockTokenReaperQueue))
-                .put("lockGrantReaperQueue", queueToOrderedList(lockGrantReaperQueue))
-                .build();
     }
 
     private StringBuilder getGeneralLockStats() {
