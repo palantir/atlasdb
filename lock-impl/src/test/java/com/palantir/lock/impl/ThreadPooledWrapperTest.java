@@ -38,8 +38,9 @@ import com.google.common.collect.Lists;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class ThreadPooledWrapperTest {
+    private static final Waiter WAITER = new Waiter();
+
     private static CountDownLatch countDownLatch;
-    private static Waiter WAITER = new Waiter();
 
     private static class Waiter {
         int await() throws InterruptedException {
@@ -72,7 +73,7 @@ public class ThreadPooledWrapperTest {
 
     @Test
     public void sharedPoolCanExecuteMethod() throws InterruptedException, ExecutionException {
-        assertSingleClientCanExecuteMethods(new Semaphore (1), 0, 1);
+        assertSingleClientCanExecuteMethods(new Semaphore(1), 0, 1);
     }
 
     @Test
@@ -115,9 +116,9 @@ public class ThreadPooledWrapperTest {
         assertTwoClientsCanExecuteMethods(new Semaphore(2), 4, 1);
     }
 
-    private void assertTwoClientsCanExecuteMethods(Semaphore sharedThreadPool, int nThreads, int localThreadPoolSize)
+    private void assertTwoClientsCanExecuteMethods(Semaphore sharedThreadPool, int numThreads, int localThreadPoolSize)
             throws InterruptedException, ExecutionException {
-        ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
         List<Future> futuresForClient1 = getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, w -> 1L);
         List<Future> futuresForClient2 = getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, w -> 2L);
 
@@ -181,6 +182,7 @@ public class ThreadPooledWrapperTest {
                         assertThat(e).isInstanceOf(ExecutionException.class)
                                 .hasMessageContaining("TooManyRequestsException");
                         exceptions.getAndIncrement();
+
                     }
                 }
             });
@@ -201,5 +203,4 @@ public class ThreadPooledWrapperTest {
         });
         assertThat(successes.get()).isEqualTo(numberSuccessful);
     }
-
 }

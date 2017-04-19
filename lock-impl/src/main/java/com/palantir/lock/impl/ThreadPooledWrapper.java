@@ -46,14 +46,14 @@ public class ThreadPooledWrapper<F> {
         if (sharedThreadPool.tryAcquire()) {
             return applyAndRelease(sharedThreadPool, function);
         }
-        throw new TooManyRequestsException("ThreadPooledLockService was unable to acquire a permit to assign a server "
-                + "thread to the request.");
+        throw new TooManyRequestsException(
+                "ThreadPooledLockService was unable to acquire a permit to assign a server thread to the request.");
     }
 
     private <T, K extends Exception> T applyAndRelease(Semaphore semaphore, FunctionCheckedException<F, T, K> function)
             throws K {
         try {
-            return function.apply(delegate());
+            return function.apply(delegate);
         } finally {
             semaphore.release();
         }

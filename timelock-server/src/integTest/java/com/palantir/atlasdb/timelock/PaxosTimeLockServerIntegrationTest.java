@@ -77,9 +77,8 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final int SELECTOR_THREADS = 8;
     private static final int ACCEPTOR_THREADS = 4;
     private static final int AVAILABLE_THREADS = MAX_SERVER_THREADS - SELECTOR_THREADS - ACCEPTOR_THREADS - 1;
-    private static final int LOCAL_TC_LIMIT = AVAILABLE_THREADS / 2 / NUM_CLIENTS;
+    private static final int LOCAL_TC_LIMIT = (AVAILABLE_THREADS / 2) / NUM_CLIENTS;
     private static final int SHARED_TC_LIMIT = AVAILABLE_THREADS - LOCAL_TC_LIMIT * NUM_CLIENTS;
-
 
     private static final long ONE_MILLION = 1000000;
     private static final long TWO_MILLION = 2000000;
@@ -126,6 +125,34 @@ public class PaxosTimeLockServerIntegrationTest {
 
         assertThat(lockAndUnlockAndCountExceptions(lockServiceList, LOCAL_TC_LIMIT + SHARED_TC_LIMIT / 3))
                 .isEqualTo(0);
+    }
+
+    private int lockAndUnlockAndCountExceptions(List<RemoteLockService> lockServices, int numRequests)
+            throws Exception {
+        CountDownLatch countDownLatch = new CountDownLatch(lockServices.size() * numRequests);
+        ExecutorService executorService = Executors.newFixedThreadPool(lockServices.size() * numRequests);
+        Map<RemoteLockService, List<Future<LockRefreshToken>>> futureMap = new HashMap<>();
+        lockServices.forEach(
+                service -> futureMap.put(service, requestLocks(service, numRequests, executorService, countDownLatch)));
+        return futureMap.entrySet().stream()
+                .mapToInt(entry -> unlockAndCountExceptions(entry.getKey(), entry.getValue())).sum();
+    }
+
+    private int unlockAndCountExceptions(RemoteLockService lockService, List<Future<LockRefreshToken>> futures) {
+        AtomicInteger exceptionCounter = new AtomicInteger(0);
+        futures.forEach(future -> {
+            try {
+                LockRefreshToken token = future.get();
+                if (token != null) {
+                    lockService.unlock(token);
+                }
+            } catch (Exception e) {
+                assertThat(e).hasMessageContaining(TOO_MANY_REQUESTS_CODE);
+                exceptionCounter.getAndIncrement();
+            }
+        });
+
+        return exceptionCounter.get();
     }
 
     @Test
@@ -296,34 +323,6 @@ public class PaxosTimeLockServerIntegrationTest {
             }));
         }
         return futures;
-    }
-
-    private int unlockAndCountExceptions(RemoteLockService lockService, List<Future<LockRefreshToken>> futures) {
-        AtomicInteger exceptionCounter = new AtomicInteger(0);
-        futures.forEach(future -> {
-            try {
-                LockRefreshToken token = future.get();
-                if (token != null) {
-                    lockService.unlock(token);
-                }
-            } catch (Exception e) {
-                assertThat(e).hasMessageContaining(TOO_MANY_REQUESTS_CODE);
-                exceptionCounter.getAndIncrement();
-            }
-
-        });
-        return exceptionCounter.get();
-    }
-
-    private int lockAndUnlockAndCountExceptions(List<RemoteLockService> lockServices, int numRequests)
-            throws Exception {
-        CountDownLatch countDownLatch = new CountDownLatch(lockServices.size() * numRequests);
-        ExecutorService executorService = Executors.newFixedThreadPool(lockServices.size() * numRequests);
-        Map<RemoteLockService, List<Future<LockRefreshToken>>> futureMap = new HashMap<>();
-        lockServices.forEach(
-                service -> futureMap.put(service, requestLocks(service, numRequests, executorService, countDownLatch)));
-        return futureMap.entrySet().stream()
-                .mapToInt(entry -> unlockAndCountExceptions(entry.getKey(), entry.getValue())).sum();
     }
 
     private static String getFastForwardUriForClientOne() {

@@ -47,8 +47,7 @@ public class ThreadPooledLockService extends ForwardingLockService {
     }
 
     @Override
-    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request)
-            throws InterruptedException {
+    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
         return wrapper.applyWithPermit(lockService -> lockService.lockAndGetHeldLocks(client, request));
     }
 

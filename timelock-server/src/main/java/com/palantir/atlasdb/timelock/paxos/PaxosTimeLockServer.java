@@ -67,7 +67,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     private Set<String> remoteServers;
     private Optional<SSLSocketFactory> optionalSecurity = Optional.absent();
-    LeaderElectionService leaderElectionService;
+    private LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
     private Semaphore sharedThreadPool = new Semaphore(-1);
     private TimeLockServerConfiguration timeLockServerConfiguration;
