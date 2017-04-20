@@ -57,8 +57,8 @@ public class LockServiceStateLoggerTest {
         LockClient clientA = LockClient.of("Client A");
         LockClient clientB = LockClient.of("Client B");
 
-        LockDescriptor descriptor1 = StringLockDescriptor.of("lock");
-        LockDescriptor descriptor2 = StringLockDescriptor.of("BBB");
+        LockDescriptor descriptor1 = StringLockDescriptor.of("logger-lock");
+        LockDescriptor descriptor2 = StringLockDescriptor.of("logger-BBB");
 
         LockRequest request1 = LockRequest.builder(LockCollections.of(ImmutableSortedMap.of(descriptor1, LockMode.WRITE)))
                 .blockForAtMost(SimpleTimeDuration.of(1000, TimeUnit.MILLISECONDS))
@@ -75,14 +75,14 @@ public class LockServiceStateLoggerTest {
         HeldLocksToken token2 = getFakeHeldLocksToken("client B", "Fake thread 2", new BigInteger("2"));
 
         Map<ClientAwareReadWriteLock, LockMode> locks = Maps.newLinkedHashMap();
-        locks.put(new LockServerLock(StringLockDescriptor.of("lock2"), new LockClientIndices()), LockMode.WRITE);
-        locks.put(new LockServerLock(StringLockDescriptor.of("lock"), new LockClientIndices()), LockMode.READ);
+        locks.put(new LockServerLock(StringLockDescriptor.of("logger-lock-2"), new LockClientIndices()), LockMode.WRITE);
+        locks.put(new LockServerLock(StringLockDescriptor.of("logger-lock"), new LockClientIndices()), LockMode.READ);
 
         heldLocksTokenMap.putIfAbsent(token, LockServiceImpl.HeldLocks.of(token, LockCollections.of(locks)));
 
         Map<ClientAwareReadWriteLock, LockMode> locks2 = Maps.newLinkedHashMap();
-        locks2.put(new LockServerLock(StringLockDescriptor.of("lock3"), new LockClientIndices()), LockMode.WRITE);
-        locks2.put(new LockServerLock(StringLockDescriptor.of("lock4"), new LockClientIndices()), LockMode.READ);
+        locks2.put(new LockServerLock(StringLockDescriptor.of("logger-lock-3"), new LockClientIndices()), LockMode.WRITE);
+        locks2.put(new LockServerLock(StringLockDescriptor.of("logger-lock-4"), new LockClientIndices()), LockMode.READ);
         heldLocksTokenMap.putIfAbsent(token2, LockServiceImpl.HeldLocks.of(token2, LockCollections.of(locks2)));
     }
 
