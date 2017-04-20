@@ -712,7 +712,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 defaultTransactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(commitTs + 1),
-                ConflictDetectionManagers.withoutConflictDetection(keyValueService),
+                ConflictDetectionManager.createWithNoConflictDetection(),
                 sweepStrategyManager,
                 immutableTimestamp,
                 Collections.emptyList(),

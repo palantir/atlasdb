@@ -70,7 +70,6 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -198,7 +197,7 @@ public final class TransactionManagers {
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
-        ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
+        ConflictDetectionManager conflictManager = ConflictDetectionManager.create(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
 
         Set<Schema> allSchemas = ImmutableSet.<Schema>builder()

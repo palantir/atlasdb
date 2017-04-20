@@ -252,7 +252,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.cleaner = cleaner;
         this.lockService = lockService;
         this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
-        this.conflictDetectionManager = ConflictDetectionManagers.fromMap(tablesToWriteWrite);
+        this.conflictDetectionManager = ConflictDetectionManager.createWithStaticConflictDetection(tablesToWriteWrite);
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.immutableTimestamp = 0;
         this.externalLocksTokens = ImmutableSet.of();
@@ -291,7 +291,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.cleaner = NoOpCleaner.INSTANCE;
         this.lockService = lockService;
         this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
-        this.conflictDetectionManager = ConflictDetectionManagers.withoutConflictDetection(keyValueService);
+        this.conflictDetectionManager = ConflictDetectionManager.createWithNoConflictDetection();
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.timestampService = null;
         this.immutableTimestamp = startTimeStamp;
@@ -1058,11 +1058,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
         Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
-        if (!validConflictDetection(tableRef)) {
-            conflictDetectionManager.recompute();
-            Preconditions.checkArgument(
-                    validConflictDetection(tableRef),
-                    "Not a valid table for this transaction.  Make sure this table name has a namespace: " + tableRef);
+        if (conflictDetectionManager.get(tableRef) == null) {
+            throw new IllegalArgumentException(
+                    "Not a valid table for this transaction."
+                            + " Make sure this table name exists or has a valid namespace: " + tableRef);
         }
         if (values.isEmpty()) {
             return;
@@ -1107,10 +1106,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             expiringValues.put(expiringCell, cellEntry.getValue());
         }
         return expiringValues;
-    }
-
-    private boolean validConflictDetection(TableReference tableRef) {
-        return conflictDetectionManager.isEmptyOrContainsTable(tableRef);
     }
 
     private void putWritesAndLogIfTooLarge(Map<Cell, byte[]> values, SortedMap<Cell, byte[]> writes) {
@@ -1311,7 +1306,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected ConflictHandler getConflictHandlerForTable(TableReference tableRef) {
-        Map<TableReference, ConflictHandler> tableToConflictHandler = conflictDetectionManager.get();
+        Map<TableReference, ConflictHandler> tableToConflictHandler = conflictDetectionManager.getCachedValues();
         if (tableToConflictHandler.isEmpty()) {
             return ConflictHandler.RETRY_ON_WRITE_WRITE;
         }

@@ -60,7 +60,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 lockService,
                 transactionService,
                 Suppliers.ofInstance(constraintCheckingMode),
-                ConflictDetectionManagers.createDefault(keyValueService),
+                ConflictDetectionManager.create(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE);
     }
@@ -89,7 +89,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 transactionService,
                 cleaner,
                 timestampService.getFreshTimestamp(),
-                conflictDetectionManager.get(),
+                conflictDetectionManager.getCachedValues(),
                 constraintModeSupplier.get(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampValidationReadCache);
