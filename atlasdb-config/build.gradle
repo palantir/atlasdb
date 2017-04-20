@@ -31,6 +31,8 @@ dependencies {
 
     explicitShadow group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     explicitShadow group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
+    explicitShadow group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
+    explicitShadow group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310'
     explicitShadow group: 'io.dropwizard', name: 'dropwizard-jackson'
     explicitShadow group: 'com.google.code.findbugs', name: 'annotations'
 
