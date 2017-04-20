@@ -37,7 +37,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -141,7 +140,11 @@ import com.palantir.util.JMXUtils;
         }
 
         public List<LockDescriptor> getLockDescriptors() {
-            return locks.stream().map(ClientAwareReadWriteLock::getDescriptor).collect(Collectors.toList());
+            List<LockDescriptor> descriptors = Lists.newArrayListWithCapacity(locks.size());
+            for (ClientAwareReadWriteLock lock : locks) {
+                descriptors.add(lock.getDescriptor());
+            }
+            return descriptors;
         }
 
         @Override public String toString() {
@@ -541,7 +544,7 @@ import com.palantir.util.JMXUtils;
                 fakeLockSet,
                 maxAllowedLockTimeout,
                 0L,
-                "fakeThread-unlockSimple"));
+                "UnknownThread-unlockSimple"));
     }
 
     @Override
@@ -666,7 +669,7 @@ import com.palantir.util.JMXUtils;
                     fakeLockSet,
                     maxAllowedLockTimeout,
                     0L,
-                    "fakeThread-refreshLockRefreshTokens"));
+                    "UnknownThread-refreshLockRefreshTokens"));
         }
         return ImmutableSet.copyOf(Iterables.transform(refreshTokens(fakeTokens), HeldLocksTokens.getRefreshTokenFun()));
     }
@@ -1003,6 +1006,16 @@ import com.palantir.util.JMXUtils;
         logString.append("maxAllowedClockDrift = ").append(maxAllowedClockDrift).append("\n");
         logString.append("maxAllowedBlockingDuration = ").append(maxAllowedBlockingDuration).append("\n");
         logString.append("randomBitCount = ").append(randomBitCount).append("\n");
+
+        logString.append("descriptorToLockMap.size = ").append(descriptorToLockMap.size()).append("\n");
+        logString.append("outstandingLockRequestMultimap.size = ").append(descriptorToLockMap.size()).append("\n");
+        logString.append("heldLocksTokenMap.size = ").append(heldLocksTokenMap.size()).append("\n");
+        logString.append("heldLocksGrantMap.size = ").append(heldLocksGrantMap.size()).append("\n");
+        logString.append("lockTokenReaperQueue.size = ").append(lockTokenReaperQueue.size()).append("\n");
+        logString.append("lockGrantReaperQueue.size = ").append(lockGrantReaperQueue.size()).append("\n");
+        logString.append("lockClientMultimap.size = ").append(lockClientMultimap.size()).append("\n");
+        logString.append("lockClientMultimap.size = ").append(lockClientMultimap.size()).append("\n");
+
         return logString;
     }
 
