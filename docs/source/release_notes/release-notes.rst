@@ -67,6 +67,10 @@ develop
          - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
 
+    *    - |userbreak|
+         - AtlasDB will refuse to start if backed by Postgres 9.5.0 or 9.5.1. These versions contain a known bug that causes incorrect results to be returned for certain queries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
+
 =======
 v0.38.0
 =======
