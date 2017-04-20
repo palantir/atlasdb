@@ -53,6 +53,11 @@ develop
            If you do encounter breaks due to this addition, please contact the AtlasDB team for support.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1810>`__)
 
+    *    - |userbreak|
+         - AtlasDB will refuse to start if backed by Postgres 9.5.0 or 9.5.1. These versions contain a known bug that causes incorrect results to be returned for certain queries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

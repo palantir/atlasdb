@@ -230,6 +230,7 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     private void init() {
+        checkDatabaseVersion();
         databaseSpecificInitialization();
         createMetadataTable();
     }
