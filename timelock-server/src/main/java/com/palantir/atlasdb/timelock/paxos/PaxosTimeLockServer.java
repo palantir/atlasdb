@@ -83,7 +83,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
         timeLockServerConfiguration = configuration;
-        if (timeLockServerConfiguration.useThreadPooling()) {
+        if (timeLockServerConfiguration.useClientRequestLimit()) {
             environment.jersey().register(new TooManyRequestsExceptionMapper());
         }
 
@@ -181,7 +181,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
         };
         LockService lockServiceNotUsingThreadPooling = LockServiceImpl.create(lockServerOptions);
 
-        if (!timeLockServerConfiguration.useThreadPooling()) {
+        if (!timeLockServerConfiguration.useClientRequestLimit()) {
             return lockServiceNotUsingThreadPooling;
         }
 

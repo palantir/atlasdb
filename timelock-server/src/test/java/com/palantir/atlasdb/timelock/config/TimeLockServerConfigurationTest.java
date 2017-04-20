@@ -68,32 +68,32 @@ public class TimeLockServerConfigurationTest {
     }
 
     @Test
-    public void shouldHavePositiveNumberOfAvailableThreadsWhenUsingThreadPooling() {
+    public void shouldHavePositiveNumberOfAvailableThreadsWhenUsingClientRequestLimit() {
         TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, true);
         assertThat(configuration.availableThreads()).isGreaterThan(0);
     }
 
     @Test
-    public void shouldRequireUseThreadPoolingEnabledWhenCallingAvailableThreads() {
+    public void shouldRequireUseClientRequestLimitEnabledWhenCallingAvailableThreads() {
         TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, false);
         assertThatThrownBy(configuration::availableThreads).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
-    public void shouldUseThreadPoolingIfTrue() {
+    public void shouldUseClientRequestLimitIfTrue() {
         TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, true);
-        assertThat(configuration.useThreadPooling()).isTrue();
+        assertThat(configuration.useClientRequestLimit()).isTrue();
     }
 
     @Test
-    public void shouldNotUseThreadPoolingIfFalse() {
+    public void shouldNotUseClientRequestLimitIfFalse() {
         TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, false);
-        assertThat(configuration.useThreadPooling()).isFalse();
+        assertThat(configuration.useClientRequestLimit()).isFalse();
     }
 
     @Test
-    public void shouldNotUseThreadPoolingIfNotIncluded() {
+    public void shouldNotUseClientRequestLimitIfNotIncluded() {
         TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null);
-        assertThat(configuration.useThreadPooling()).isFalse();
+        assertThat(configuration.useClientRequestLimit()).isFalse();
     }
 }

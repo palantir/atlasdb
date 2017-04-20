@@ -34,24 +34,24 @@ public class TimeLockServerConfiguration extends Configuration {
     private final TimeLockAlgorithmConfiguration algorithm;
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
-    private final boolean useThreadPooling;
+    private final boolean useClientRequestLimit;
 
     public TimeLockServerConfiguration(
             @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients,
-            @JsonProperty(value = "useThreadPooling", required = false) Boolean useThreadPooling) {
+            @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit) {
         Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
         checkClientNames(clients);
-        if (Boolean.TRUE.equals(useThreadPooling)) {
+        if (Boolean.TRUE.equals(useClientRequestLimit)) {
             Preconditions.checkState(computeNumberOfAvailableThreads() > 0,
-                    "Configuration enables threadPooling, but specifies non-positive number of available threads.");
+                    "Configuration enables clientRequestLimit, but specifies non-positive number of available threads.");
         }
 
         this.algorithm = MoreObjects.firstNonNull(algorithm, AtomixConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
-        this.useThreadPooling = MoreObjects.firstNonNull(useThreadPooling, false);
+        this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
     }
 
     private void checkClientNames(Set<String> clientNames) {
@@ -85,21 +85,28 @@ public class TimeLockServerConfiguration extends Configuration {
         return 10000;
     }
 
-    public boolean useThreadPooling() {
-        return useThreadPooling;
+    public boolean useClientRequestLimit() {
+        return useClientRequestLimit;
     }
 
     public int availableThreads() {
-        if (!useThreadPooling()) {
-            throw new IllegalStateException("Should not call availableThreads() if useThreadPooling is disabled");
+        if (!useClientRequestLimit()) {
+            throw new IllegalStateException("Should not call availableThreads() if useClientRequestLimit is disabled");
         }
 
         return computeNumberOfAvailableThreads();
     }
 
     private int computeNumberOfAvailableThreads() {
+        Preconditions.checkState(getServerFactory() instanceof DefaultServerFactory,
+                "Unexpected serverFactory instance on TimeLockServerConfiguration.");
         DefaultServerFactory serverFactory = (DefaultServerFactory) getServerFactory();
         int maxServerThreads = serverFactory.getMaxThreads();
+
+        Preconditions.checkNotNull(serverFactory.getApplicationConnectors(),
+                "applicationConnectors of TimeLockServerConfiguration must not be null.");
+        Preconditions.checkState(serverFactory.getApplicationConnectors().get(0) instanceof HttpConnectorFactory,
+                "applicationConnectors of TimeLockServerConfiguration must have a HttpConnectorFactory instance.");
         HttpConnectorFactory connectorFactory = (HttpConnectorFactory) serverFactory.getApplicationConnectors().get(0);
         int selectorThreads = connectorFactory.getSelectorThreads();
         int acceptorThreads = connectorFactory.getAcceptorThreads();
