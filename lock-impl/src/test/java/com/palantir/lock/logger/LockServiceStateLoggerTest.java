@@ -87,7 +87,6 @@ public class LockServiceStateLoggerTest {
     }
 
     private HeldLocksToken getFakeHeldLocksToken(String clientName, String requestingThread, BigInteger tokenId) {
-
         LockDescriptor descriptor1 = StringLockDescriptor.of("123");
         ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder =
                 ImmutableSortedMap.naturalOrder();
