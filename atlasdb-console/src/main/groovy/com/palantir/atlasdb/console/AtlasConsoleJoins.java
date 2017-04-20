@@ -39,18 +39,19 @@ public class AtlasConsoleJoins {
         Iterable<Entry<?, ?>> entries = Iterables.concat(Iterables.transform(input, Map::entrySet));
         return FluentIterable.from(Iterables.partition(entries, batchSize)).transformAndConcat(
                 batch -> {
-                    Map<?, ?> batchMap = batch.stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue));
                     List<?> keys = batch.stream().map(Entry::getKey).collect(Collectors.toList());
                     List<Map<String, ?>> batchResult = getRowsFunction.apply(keys);
-
-                    return batchResult.stream().map(result -> {
-                        Map<String, Object> map = Maps.newHashMap();
-                        Object row = result.get("row");
-                        map.put(JoinComponent.JOIN_KEY.toString(), row);
-                        map.put(JoinComponent.OUTPUT_VALUE.toString(), result);
-                        map.put(JoinComponent.INPUT_VALUE.toString(), batchMap.get(row));
-                        return map;
-                    }).collect(Collectors.toList());
+                    Map<?, ?> resultMap = Maps.uniqueIndex(batchResult, m -> m.get("row"));
+                    return batch.stream()
+                            .filter(inputItem -> resultMap.containsKey(inputItem.getKey()))
+                            .map(batchItem -> {
+                                Map<String, Object> map = Maps.newHashMap();
+                                Object row = batchItem.getKey();
+                                map.put(JoinComponent.JOIN_KEY.toString(), row);
+                                map.put(JoinComponent.OUTPUT_VALUE.toString(), resultMap.get(row));
+                                map.put(JoinComponent.INPUT_VALUE.toString(), batchItem.getValue());
+                                return map;
+                            }).collect(Collectors.toList());
                 }
         );
     }
