@@ -83,7 +83,7 @@ def get_last_release_from_gradle():
   p = subprocess.Popen(['./gradlew', 'printLastVersion'],
                        cwd=codebase_root, stdout=subprocess.PIPE)
   stdout = p.communicate()[0]
-  lines = stdout.split('\n')
+  lines = stdout.decode().split('\n')
   return lines[lines.index(':printLastVersion') + 1]
 
 # The version info for the project you're documenting, acts as replacement for
