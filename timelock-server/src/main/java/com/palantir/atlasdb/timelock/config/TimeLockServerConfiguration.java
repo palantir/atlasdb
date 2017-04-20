@@ -45,7 +45,7 @@ public class TimeLockServerConfiguration extends Configuration {
         checkClientNames(clients);
         if (Boolean.TRUE.equals(useClientRequestLimit)) {
             Preconditions.checkState(computeNumberOfAvailableThreads() > 0,
-                    "Configuration enables clientRequestLimit, but specifies non-positive number of available threads.");
+                    "Configuration enables clientRequestLimit but specifies non-positive number of available threads.");
         }
 
         this.algorithm = MoreObjects.firstNonNull(algorithm, AtomixConfiguration.DEFAULT);
