@@ -44,7 +44,6 @@ public interface DbQueryFactory {
 
     FullQuery getRangeQuery(RangeRequest range, long ts, int maxRows);
     boolean hasOverflowValues();
-    Collection<FullQuery> getOverflowQueries(Collection<OverflowValue> overflowIds);
 
     FullQuery getRowsColumnRangeCountsQuery(Iterable<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection);
     FullQuery getRowsColumnRangeQuery(Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow, long ts);

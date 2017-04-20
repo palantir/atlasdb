@@ -197,6 +197,12 @@ public class ConnectionBackedSqlConnectionImpl implements ConnectionBackedSqlCon
     }
 
     @Override
+    public AgnosticLightResultSet selectLightResultSetUnregisteredQueryWithFetchSize(String sql, int fetchSize,
+            Object... vs) throws PalantirSqlException, PalantirInterruptedException {
+        return sqlConnectionHelper.selectLightResultSetUnregisteredQueryWithFetchSize(c, sql, fetchSize, vs);
+    }
+
+    @Override
     public long selectLong(RegisteredSQLString sql, Object... vs) throws PalantirSqlException,
         PalantirInterruptedException {
         return sqlConnectionHelper.selectLong(c, sql.getKey(), vs);

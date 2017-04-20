@@ -34,7 +34,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.SortedSet;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +55,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -65,7 +66,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Atomics;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -83,11 +83,21 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.H2DdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.AccumulatorStrategies;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.BatchingStrategies;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.BatchingTaskRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ImmediateSingleBatchTaskRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ParallelTaskRunner;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleGetRange;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowValueLoader;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresGetRange;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresPrefixedTableNames;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRange;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
@@ -100,7 +110,6 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -110,7 +119,7 @@ import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class DbKvs extends AbstractKeyValueService {
+public final class DbKvs extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(DbKvs.class);
 
     public static final String ROW = "row_name";
@@ -125,9 +134,11 @@ public class DbKvs extends AbstractKeyValueService {
     private final DbTableFactory dbTables;
     private final SqlConnectionSupplier connections;
     private final BatchingTaskRunner batchingQueryRunner;
+    private final OverflowValueLoader overflowValueLoader;
+    private final DbKvsGetRange getRangeStrategy;
 
     public static DbKvs create(DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier) {
-        DbKvs dbKvs = new DbKvs(config.ddl(), config.ddl().tableFactorySupplier().get(), sqlConnSupplier);
+        DbKvs dbKvs = createNoInit(config.ddl(), sqlConnSupplier);
         dbKvs.init();
         return dbKvs;
     }
@@ -137,21 +148,75 @@ public class DbKvs extends AbstractKeyValueService {
      * be used directly and is exposed to support legacy software.  Instead you should prefer the use of
      * ConnectionManagerAwareDbKvs which will instantiate a properly initialized DbKVS using the above create method
      */
-    public DbKvs(DdlConfig config,
-                 DbTableFactory dbTables,
-                 SqlConnectionSupplier connections) {
-        super(AbstractKeyValueService.createFixedThreadPool("Atlas Relational KVS", config.poolSize()));
+    public static DbKvs createNoInit(DdlConfig config, SqlConnectionSupplier connections) {
+        ExecutorService executor = AbstractKeyValueService.createFixedThreadPool(
+                "Atlas Relational KVS", config.poolSize());
+        return config.accept(new DdlConfig.Visitor<DbKvs>() {
+            @Override
+            public DbKvs visit(PostgresDdlConfig postgresDdlConfig) {
+                return createPostgres(executor, postgresDdlConfig, connections);
+            }
+            @Override
+            public DbKvs visit(H2DdlConfig h2DdlConfig) {
+                PostgresDdlConfig postgresDdlConfig = ImmutablePostgresDdlConfig.builder().from(h2DdlConfig).build();
+                return createPostgres(executor, postgresDdlConfig, connections);
+            }
+            @Override
+            public DbKvs visit(OracleDdlConfig oracleDdlConfig) {
+                return createOracle(executor, oracleDdlConfig, connections);
+            }
+        });
+    }
+
+    private static DbKvs createPostgres(ExecutorService executor,
+                                        PostgresDdlConfig config,
+                                        SqlConnectionSupplier connections) {
+        PostgresPrefixedTableNames prefixedTableNames = new PostgresPrefixedTableNames(config);
+        DbTableFactory tableFactory = new PostgresDbTableFactory(config, prefixedTableNames);
+        TableMetadataCache tableMetadataCache = new TableMetadataCache(tableFactory);
+        return new DbKvs(
+                executor,
+                config,
+                tableFactory,
+                connections,
+                new ParallelTaskRunner(newFixedThreadPool(config.poolSize()), config.fetchBatchSize()),
+                (conns, tbl, ids) -> Collections.emptyMap(), // no overflow on postgres
+                new PostgresGetRange(prefixedTableNames, connections, tableMetadataCache));
+    }
+
+    private static DbKvs createOracle(ExecutorService executor,
+                                      OracleDdlConfig oracleDdlConfig,
+                                      SqlConnectionSupplier connections) {
+        OracleTableNameGetter tableNameGetter = new OracleTableNameGetter(oracleDdlConfig);
+        OraclePrefixedTableNames prefixedTableNames = new OraclePrefixedTableNames(tableNameGetter);
+        TableValueStyleCache valueStyleCache = new TableValueStyleCache();
+        OverflowValueLoader overflowValueLoader = new OracleOverflowValueLoader(oracleDdlConfig, tableNameGetter);
+        DbKvsGetRange getRange = new OracleGetRange(
+                connections, overflowValueLoader, tableNameGetter, valueStyleCache, oracleDdlConfig);
+        return new DbKvs(
+                executor,
+                oracleDdlConfig,
+                new OracleDbTableFactory(oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache),
+                connections,
+                new ImmediateSingleBatchTaskRunner(),
+                overflowValueLoader,
+                getRange);
+    }
+
+    private DbKvs(ExecutorService executor,
+                  DdlConfig config,
+                  DbTableFactory dbTables,
+                  SqlConnectionSupplier connections,
+                  BatchingTaskRunner batchingQueryRunner,
+                  OverflowValueLoader overflowValueLoader,
+                  DbKvsGetRange getRangeStrategy) {
+        super(executor);
         this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
-
-        if (DBType.ORACLE.equals(dbTables.getDbType())) {
-            batchingQueryRunner = new ImmediateSingleBatchTaskRunner();
-        } else {
-            batchingQueryRunner = new ParallelTaskRunner(
-                    newFixedThreadPool(config.poolSize()),
-                    config.fetchBatchSize());
-        }
+        this.batchingQueryRunner = batchingQueryRunner;
+        this.overflowValueLoader = overflowValueLoader;
+        this.getRangeStrategy = getRangeStrategy;
     }
 
     private static ThreadPoolExecutor newFixedThreadPool(int maxPoolSize) {
@@ -231,12 +296,13 @@ public class DbKvs extends AbstractKeyValueService {
     private Map<Cell, Value> runReadAndExtractResults(
             TableReference tableRef,
             Function<DbReadTable, ClosableIterator<AgnosticLightResultRow>> query) {
-        return runRead(tableRef, table -> extractResults(table, query.apply(table)));
+        return runRead(tableRef, table -> extractResults(table, tableRef, query.apply(table)));
     }
 
     @SuppressWarnings("deprecation")
     private Map<Cell, Value> extractResults(
             DbReadTable table,
+            TableReference tableRef,
             ClosableIterator<AgnosticLightResultRow> rows) {
         Map<Cell, Value> results = Maps.newHashMap();
         Map<Cell, OverflowValue> overflowResults = Maps.newHashMap();
@@ -261,7 +327,7 @@ public class DbKvs extends AbstractKeyValueService {
                 }
             }
         }
-        fillOverflowValues(table, overflowResults, results);
+        fillOverflowValues(table.getConnectionSupplier(), tableRef, overflowResults, results);
         return results;
     }
 
@@ -312,7 +378,7 @@ public class DbKvs extends AbstractKeyValueService {
                     writeTable.put(batch, timestamp);
                 } catch (KeyAlreadyExistsException e) {
                     if (idempotent) {
-                        putIfNotUpdate(readTable, writeTable, batch, timestamp, e);
+                        putIfNotUpdate(readTable, writeTable, tableRef, batch, timestamp, e);
                     } else {
                         throw e;
                     }
@@ -331,6 +397,7 @@ public class DbKvs extends AbstractKeyValueService {
     private void putIfNotUpdate(
             DbReadTable readTable,
             DbWriteTable writeTable,
+            TableReference tableRef,
             List<Entry<Cell, Value>> batch,
             KeyAlreadyExistsException ex) {
         Map<Cell, Long> timestampByCell = Maps.newHashMap();
@@ -338,7 +405,7 @@ public class DbKvs extends AbstractKeyValueService {
             timestampByCell.put(entry.getKey(), entry.getValue().getTimestamp() + 1);
         }
 
-        Map<Cell, Value> results = extractResults(readTable, readTable.getLatestCells(timestampByCell, true));
+        Map<Cell, Value> results = extractResults(readTable, tableRef, readTable.getLatestCells(timestampByCell, true));
 
         ListIterator<Entry<Cell, Value>> iter = batch.listIterator();
         while (iter.hasNext()) {
@@ -361,13 +428,14 @@ public class DbKvs extends AbstractKeyValueService {
     private void putIfNotUpdate(
             DbReadTable readTable,
             DbWriteTable writeTable,
+            TableReference tableRef,
             List<Entry<Cell, byte[]>> batch,
             long timestamp,
             KeyAlreadyExistsException ex) {
         List<Entry<Cell, Value>> batchValues =
                 Lists.transform(batch,
                         input -> Maps.immutableEntry(input.getKey(), Value.create(input.getValue(), timestamp)));
-        putIfNotUpdate(readTable, writeTable, batchValues, ex);
+        putIfNotUpdate(readTable, writeTable, tableRef, batchValues, ex);
     }
 
     @Override
@@ -385,7 +453,7 @@ public class DbKvs extends AbstractKeyValueService {
                 try {
                     writeTable.put(batch);
                 } catch (KeyAlreadyExistsException e) {
-                    putIfNotUpdate(readTable, writeTable, batch, e);
+                    putIfNotUpdate(readTable, writeTable, tableRef, batch, e);
                 }
             }
             return null;
@@ -482,90 +550,7 @@ public class DbKvs extends AbstractKeyValueService {
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        Iterable<RowResult<Value>> rows =
-                new AbstractPagingIterable<RowResult<Value>, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>() {
-                    @Override
-                    protected TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getFirstPage() {
-                        return getPage(tableRef, rangeRequest, timestamp);
-                    }
-
-                    @Override
-                    protected TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getNextPage(
-                            TokenBackedBasicResultsPage<RowResult<Value>, byte[]> previous) {
-                        byte[] newStartRow = previous.getTokenForNextPage();
-                        RangeRequest newRange = rangeRequest.getBuilder().startRowInclusive(newStartRow).build();
-                        return getPage(tableRef, newRange, timestamp);
-                    }
-                };
-        return ClosableIterators.wrap(rows.iterator());
-    }
-
-    private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPage(
-            TableReference tableRef,
-            RangeRequest range,
-            long timestamp) {
-        Stopwatch watch = Stopwatch.createStarted();
-        try {
-            return getPageInternal(tableRef, range, timestamp);
-        } finally {
-            log.debug("Call to KVS.getPage on table {} took {} ms.", tableRef, watch.elapsed(TimeUnit.MILLISECONDS));
-        }
-    }
-
-    @SuppressWarnings("deprecation")
-    private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPageInternal(TableReference tableRef,
-                                                                                  RangeRequest range,
-                                                                                  long timestamp) {
-        int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
-        SortedSet<byte[]> rows = runRead(tableRef, table -> getRowKeysForRange(table, range, timestamp, maxRows));
-        if (rows.isEmpty()) {
-            return SimpleTokenBackedResultsPage.create(null, ImmutableList.of(), false);
-        }
-
-        Map<Cell, Value> results = getRowsBatching(tableRef, rows, getColumnSelectionForRange(range), timestamp);
-        NavigableMap<byte[], SortedMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(results);
-        if (range.isReverse()) {
-            cellsByRow = cellsByRow.descendingMap();
-        }
-
-        List<RowResult<Value>> finalResults = Lists.newArrayListWithCapacity(results.size());
-        for (Entry<byte[], SortedMap<byte[], Value>> entry : cellsByRow.entrySet()) {
-            finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
-        }
-
-        byte[] nextRow = null;
-        boolean mayHaveMoreResults = false;
-        byte[] lastRow = range.isReverse() ? rows.first() : rows.last();
-        if (!RangeRequests.isTerminalRow(range.isReverse(), lastRow)) {
-            nextRow = RangeRequests.getNextStartRow(range.isReverse(), lastRow);
-            mayHaveMoreResults = rows.size() == maxRows;
-        }
-        return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
-    }
-
-    private ColumnSelection getColumnSelectionForRange(RangeRequest range) {
-        if (!range.getColumnNames().isEmpty()) {
-            return ColumnSelection.create(range.getColumnNames());
-        } else {
-            return ColumnSelection.all();
-        }
-    }
-
-    private SortedSet<byte[]> getRowKeysForRange(DbReadTable table,
-                                                 RangeRequest range,
-                                                 long timestamp,
-                                                 int maxRows) {
-        Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
-        SortedSet<byte[]> rows = Sets.newTreeSet(comp);
-        try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {
-            while (rows.size() < maxRows && rangeResults.hasNext()) {
-                byte[] rowName = rangeResults.next().getBytes(ROW);
-                if (rowName != null) {
-                    rows.add(rowName);
-                }
-            }
-        }
-        return rows;
+        return ClosableIterators.wrap(getRangeStrategy.getRange(tableRef, rangeRequest, timestamp));
     }
 
     public void setMaxRangeOfTimestampsBatchSize(long newValue) {
@@ -937,6 +922,7 @@ public class DbKvs extends AbstractKeyValueService {
             batch -> runRead(tableRef, table ->
                     extractRowColumnRangePageInternal(
                         table,
+                        tableRef,
                         () -> table.getRowsColumnRange(batch, ts),
                         batch.keySet())));
     }
@@ -952,12 +938,14 @@ public class DbKvs extends AbstractKeyValueService {
             batch -> runRead(tableRef, table ->
                     extractRowColumnRangePageInternal(
                         table,
+                        tableRef,
                         () -> table.getRowsColumnRange(batch, ts),
                         RowsColumnRangeBatchRequests.getAllRowsInOrder(batch))));
     }
 
     private Map<byte[], List<Map.Entry<Cell, Value>>> extractRowColumnRangePageInternal(
             DbReadTable table,
+            TableReference tableRef,
             Supplier<ClosableIterator<AgnosticLightResultRow>> rowLoader,
             Collection<byte[]> allRows) {
         Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMapWithExpectedSize(allRows.size());
@@ -995,7 +983,7 @@ public class DbKvs extends AbstractKeyValueService {
             }
         }
 
-        fillOverflowValues(table, overflowValues, values);
+        fillOverflowValues(table.getConnectionSupplier(), tableRef, overflowValues, values);
 
         Map<byte[], List<Map.Entry<Cell, Value>>> results =
                 Maps.newHashMapWithExpectedSize(allRows.size());
@@ -1009,7 +997,8 @@ public class DbKvs extends AbstractKeyValueService {
         return results;
     }
 
-    private void fillOverflowValues(DbReadTable table,
+    private void fillOverflowValues(ConnectionSupplier conns,
+                                    TableReference tableRef,
                                     Map<Cell, OverflowValue> overflowValues,
                                     @Output Map<Cell, Value> values) {
         Iterator<Entry<Cell, OverflowValue>> overflowIterator = overflowValues.entrySet().iterator();
@@ -1020,26 +1009,16 @@ public class DbKvs extends AbstractKeyValueService {
                 overflowIterator.remove();
             }
         }
-
-        if (!overflowValues.isEmpty()) {
-            Map<Long, byte[]> resolvedOverflowValues = Maps.newHashMapWithExpectedSize(overflowValues.size());
-            try (ClosableIterator<AgnosticLightResultRow> overflowIter = table.getOverflow(overflowValues.values())) {
-                while (overflowIter.hasNext()) {
-                    AgnosticLightResultRow row = overflowIter.next();
-                    // QA-94468 LONG RAW typed columns ("val" in this case) must be retrieved first from the result set
-                    // see https://docs.oracle.com/cd/B19306_01/java.102/b14355/jstreams.htm#i1007581
-                    byte[] val = row.getBytes(VAL);
-                    long id = row.getLong("id");
-                    resolvedOverflowValues.put(id, val);
-                }
-            }
-            for (Entry<Cell, OverflowValue> entry : overflowValues.entrySet()) {
-                Cell cell = entry.getKey();
-                OverflowValue ov = entry.getValue();
-                byte[] val = resolvedOverflowValues.get(ov.id());
-                Preconditions.checkNotNull(val, "Failed to load overflow data: cell=%s, overflowId=%s", cell, ov.id());
-                values.put(cell, Value.create(val, ov.ts()));
-            }
+        Map<Long, byte[]> resolvedOverflowValues = overflowValueLoader.loadOverflowValues(
+                conns,
+                tableRef,
+                Collections2.transform(overflowValues.values(), OverflowValue::id));
+        for (Entry<Cell, OverflowValue> entry : overflowValues.entrySet()) {
+            Cell cell = entry.getKey();
+            OverflowValue ov = entry.getValue();
+            byte[] val = resolvedOverflowValues.get(ov.id());
+            Preconditions.checkNotNull(val, "Failed to load overflow data: cell=%s, overflowId=%s", cell, ov.id());
+            values.put(cell, Value.create(val, ov.ts()));
         }
     }
 

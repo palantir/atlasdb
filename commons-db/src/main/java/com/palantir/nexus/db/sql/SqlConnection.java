@@ -37,6 +37,7 @@ public interface SqlConnection {
     int selectInteger(final RegisteredSQLString sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
 
     AgnosticLightResultSet selectLightResultSetUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
+    AgnosticLightResultSet selectLightResultSetUnregisteredQueryWithFetchSize(String sql, int fetchSize, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
     AgnosticLightResultSet selectLightResultSet(String key, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
     AgnosticLightResultSet selectLightResultSet(RegisteredSQLString sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
     AgnosticResultSet selectResultSetUnregisteredQuery(String sql, Object...vs) throws PalantirSqlException, PalantirInterruptedException;
