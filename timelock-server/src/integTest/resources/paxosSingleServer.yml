@@ -18,7 +18,7 @@ useClientRequestLimit: true
 
 server:
   minThreads: 1
-  maxThreads: 50
+  maxThreads: 100
   applicationConnectors:
     - type: http
       selectorThreads: 8

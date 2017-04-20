@@ -73,7 +73,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String INVALID_CLIENT = "test2\b";
 
     private static final int NUM_CLIENTS = 5;
-    private static final int MAX_SERVER_THREADS = 50;
+    private static final int MAX_SERVER_THREADS = 100;
     private static final int SELECTOR_THREADS = 8;
     private static final int ACCEPTOR_THREADS = 4;
     private static final int AVAILABLE_THREADS = MAX_SERVER_THREADS - SELECTOR_THREADS - ACCEPTOR_THREADS - 1;
