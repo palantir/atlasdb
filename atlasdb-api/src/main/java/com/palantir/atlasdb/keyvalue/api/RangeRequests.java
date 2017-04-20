@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -187,4 +188,16 @@ public final class RangeRequests {
         }
     }
 
+    @Nullable
+    public static byte[] getNextStartRowUnlessTerminal(boolean reverse, @Nonnull byte[] rowName) {
+        if (reverse) {
+            if (isFirstRowName(rowName)) {
+                return null;
+            } else {
+                return previousLexicographicName(rowName);
+            }
+        } else {
+            return nextLexicographicNameInternal(rowName);
+        }
+    }
 }

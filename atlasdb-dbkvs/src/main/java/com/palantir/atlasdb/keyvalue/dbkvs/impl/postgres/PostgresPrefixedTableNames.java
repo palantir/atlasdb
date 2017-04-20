@@ -31,7 +31,10 @@ public class PostgresPrefixedTableNames implements PrefixedTableNames {
 
     @Override
     public String get(TableReference tableRef, ConnectionSupplier connectionSupplier) {
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+        return get(tableRef);
     }
 
+    public String get(TableReference tableRef) {
+        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+    }
 }
