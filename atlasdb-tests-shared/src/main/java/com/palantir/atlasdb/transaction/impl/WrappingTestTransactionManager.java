@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public abstract class WrappingTestTransactionManager extends WrappingTransactionManager implements TestTransactionManager {
@@ -33,5 +35,10 @@ public abstract class WrappingTestTransactionManager extends WrappingTransaction
     @Override
     public Transaction createNewTransaction() {
         return wrap(delegate.createNewTransaction());
+    }
+
+    @Override
+    public void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
+        delegate.overrideConflictHandlerForTable(table, conflictHandler);
     }
 }

@@ -177,7 +177,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
             Maps.newConcurrentMap();
-    private final ConflictDetectionManager conflictDetectionManager;
+    protected final ConflictDetectionManager conflictDetectionManager;
     private final AtomicLong byteCount = new AtomicLong();
 
     private final AtlasDbConstraintCheckingMode constraintCheckingMode;
@@ -242,7 +242,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         TransactionService transactionService,
                         Cleaner cleaner,
                         long startTimeStamp,
-                        Map<TableReference, ConflictHandler> tablesToWriteWrite,
+                        ConflictDetectionManager conflictDetectionManager,
                         AtlasDbConstraintCheckingMode constraintCheckingMode,
                         TransactionReadSentinelBehavior readSentinelBehavior,
                         TimestampCache timestampValidationReadCache) {
@@ -252,7 +252,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.cleaner = cleaner;
         this.lockService = lockService;
         this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
-        this.conflictDetectionManager = ConflictDetectionManagers.fromMap(tablesToWriteWrite);
+        this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.immutableTimestamp = 0;
         this.externalLocksTokens = ImmutableSet.of();
@@ -291,7 +291,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.cleaner = NoOpCleaner.INSTANCE;
         this.lockService = lockService;
         this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
-        this.conflictDetectionManager = ConflictDetectionManagers.withoutConflictDetection(keyValueService);
+        this.conflictDetectionManager = ConflictDetectionManagers.createWithNoConflictDetection();
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.timestampService = null;
         this.immutableTimestamp = startTimeStamp;
@@ -1058,12 +1058,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
         Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
-        if (!validConflictDetection(tableRef)) {
-            conflictDetectionManager.recompute();
-            Preconditions.checkArgument(
-                    validConflictDetection(tableRef),
-                    "Not a valid table for this transaction.  Make sure this table name has a namespace: " + tableRef);
-        }
         if (values.isEmpty()) {
             return;
         }
@@ -1107,10 +1101,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             expiringValues.put(expiringCell, cellEntry.getValue());
         }
         return expiringValues;
-    }
-
-    private boolean validConflictDetection(TableReference tableRef) {
-        return conflictDetectionManager.isEmptyOrContainsTable(tableRef);
     }
 
     private void putWritesAndLogIfTooLarge(Map<Cell, byte[]> values, SortedMap<Cell, byte[]> writes) {
@@ -1311,11 +1301,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected ConflictHandler getConflictHandlerForTable(TableReference tableRef) {
-        Map<TableReference, ConflictHandler> tableToConflictHandler = conflictDetectionManager.get();
-        if (tableToConflictHandler.isEmpty()) {
-            return ConflictHandler.RETRY_ON_WRITE_WRITE;
-        }
-        return tableToConflictHandler.get(tableRef);
+        return Preconditions.checkNotNull(conflictDetectionManager.get(tableRef),
+            "Not a valid table for this transaction. Make sure this table name exists or has a valid namespace: %s",
+            tableRef);
     }
 
     private String getExpiredLocksErrorString(@Nullable LockRefreshToken commitLocksToken,

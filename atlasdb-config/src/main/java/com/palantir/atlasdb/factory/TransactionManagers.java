@@ -198,7 +198,7 @@ public final class TransactionManagers {
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
-        ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
+        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
 
         Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
