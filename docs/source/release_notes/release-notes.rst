@@ -66,10 +66,22 @@ develop
     *    - |improved|
          - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
+    
+    *    - |improved|
+         - The lock server now will dump all held locks and outstanding lock requests in YAML file, when logging state requested, for easy readability and further processing.
+           This will make debuging lock congestions easier. Lock descriptors are changed with places holders and can be decoded using descriptors file,
+           which will be written in the folder. Information like requesting clients, requesting threads and other details can be found in the YAML.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1792>`__)
+
+    *    - |new|
+         - The ``atlasdb-config`` project now shadows the ``error-handling`` and ``jackson-support`` libraries from `http-remoting <https://github.com/palantir/http-remoting>`__.
+           This will be used to handle exceptions in a future release, and was done in this way to avoid causing dependency issues in upstream products.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1796>`__)
 
     *    - |userbreak|
          - AtlasDB will refuse to start if backed by Postgres 9.5.0 or 9.5.1. These versions contain a known bug that causes incorrect results to be returned for certain queries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
+
 
 =======
 v0.38.0
