@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
@@ -292,6 +293,17 @@ import com.palantir.timestamp.TimestampService;
     }
 
     public KeyValueServiceStatus getKeyValueServiceStatus() {
-        return KeyValueServiceStatus.HEALTHY;
+        NodeAvailabilityStatus nodeAvailabilityStatus = keyValueService.getNodeAvailabilityStatus();
+        // TODO: if config doesnt match db state return TERMINAL
+        switch (nodeAvailabilityStatus) {
+            case ALL_NODES_UP:
+                return KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS;
+            case EXACTLY_ONE_NODE_DOWN:
+                return KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES;
+            case MORE_THAN_ONE_NODE_DOWN:
+                return KeyValueServiceStatus.UNHEALTHY;
+            default:
+                return KeyValueServiceStatus.UNHEALTHY;
+        }
     }
 }

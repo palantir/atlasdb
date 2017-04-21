@@ -137,7 +137,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
 
     @Override
     public KeyValueServiceStatus getKeyValueServiceStatus() {
-        return KeyValueServiceStatus.HEALTHY;
+        throw new UnsupportedOperationException("keyValueServiceStatus is not implemented for read only txManager");
     }
 
     @Override
