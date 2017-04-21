@@ -128,4 +128,15 @@ public class ConflictDetectionManager {
     public ConflictHandler get(TableReference tableReference) {
         return cache.getUnchecked(tableReference);
     }
+
+
+    @Deprecated
+    public void removeConflictDetectionMode(TableReference table) {
+        cache.invalidate(table);
+    }
+
+    @Deprecated
+    public void setConflictDetectionMode(TableReference table, ConflictHandler handler) {
+        cache.put(table, handler);
+    }
 }

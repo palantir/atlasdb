@@ -63,6 +63,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -115,14 +116,6 @@ import com.palantir.remoting1.tracing.Tracers;
 public class SnapshotTransactionTest extends AtlasDbTestCase {
     protected final TimestampCache timestampCache = TimestampCache.create();
 
-    private static final byte[] RETRY_ON_WRITE_WRITE = new TableMetadata(new NameMetadataDescription(),
-            new ColumnMetadataDescription(),
-            ConflictHandler.RETRY_ON_WRITE_WRITE).persistToBytes();
-
-    private static final byte[] RETRY_ON_VALUE_CHANGED = new TableMetadata(new NameMetadataDescription(),
-            new ColumnMetadataDescription(),
-            ConflictHandler.RETRY_ON_VALUE_CHANGED).persistToBytes();
-
     private class UnstableKeyValueService extends ForwardingKeyValueService {
         private final KeyValueService delegate;
         private final Random random;
@@ -166,7 +159,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
     static final TableReference TABLE = TableReference.createFromFullyQualifiedName("default.table");
     static final TableReference TABLE1 = TableReference.createFromFullyQualifiedName("default.table1");
-    static final TableReference TABLE_WRITE_WRITE = TableReference.createFromFullyQualifiedName("default.table2");
+    static final TableReference TABLE2 = TableReference.createFromFullyQualifiedName("default.table2");
 
     static final TableReference TABLE_SWEPT_THOROUGH = TableReference.createFromFullyQualifiedName("default.table2");
 
@@ -181,13 +174,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 throw new RuntimeException("cannot delete");
             }
         };
-        keyValueService.createTable(TABLE, RETRY_ON_VALUE_CHANGED);
-        keyValueService.createTable(TABLE1, RETRY_ON_VALUE_CHANGED);
-        keyValueService.createTable(TABLE_WRITE_WRITE, RETRY_ON_WRITE_WRITE);
+        keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(TABLE1, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @Test
     public void testConcurrentWriteChangedConflicts() throws InterruptedException, ExecutionException {
+        conflictDetectionManager.setConflictDetectionMode(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
         CompletionService<Void> executor = new ExecutorCompletionService<Void>(
                 Tracers.wrap(PTExecutors.newFixedThreadPool(8)));
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
@@ -552,7 +546,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t1 = txManager.createNewTransaction();
         t2 = txManager.createNewTransaction();
         t1.put(TABLE1, ImmutableMap.of(row1Column1, BigInteger.valueOf(1).toByteArray()));
-        t2.put(TABLE_WRITE_WRITE, ImmutableMap.of(row1Column1, BigInteger.valueOf(1).toByteArray()));
+        t2.put(TABLE2, ImmutableMap.of(row1Column1, BigInteger.valueOf(1).toByteArray()));
         t1.commit();
         t2.commit();
 
@@ -658,6 +652,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void testWriteChangedConflictsNoThrow() {
+        conflictDetectionManager.setConflictDetectionMode(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
@@ -669,6 +664,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void testWriteChangedConflictsThrow() {
+        conflictDetectionManager.setConflictDetectionMode(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
@@ -721,11 +717,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void testWriteWriteConflictsDeletedThrow() {
+        conflictDetectionManager.setConflictDetectionMode(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE);
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
-        t1.delete(TABLE_WRITE_WRITE, ImmutableSet.of(cell));
-        t2.delete(TABLE_WRITE_WRITE, ImmutableSet.of(cell));
+        t1.delete(TABLE, ImmutableSet.of(cell));
+        t2.delete(TABLE, ImmutableSet.of(cell));
         t1.commit();
         try {
             t2.commit();
