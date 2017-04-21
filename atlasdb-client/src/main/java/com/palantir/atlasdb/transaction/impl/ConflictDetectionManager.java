@@ -24,19 +24,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.UncheckedExecutionException;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class ConflictDetectionManager {
     private static final Logger log = LoggerFactory.getLogger(ConflictDetectionManager.class);
     private final LoadingCache<TableReference, ConflictHandler> cache;
-
-    // back-compat with last impl. Having a silent default ConflictHandler is bad and we should fix this.
-    private static final ConflictHandler DEFAULT_CONFLICT_HANDLER = ConflictHandler.RETRY_ON_WRITE_WRITE;
 
     /**
      *  This class does not make the mistake of attempting cache invalidation,
@@ -50,72 +43,13 @@ public class ConflictDetectionManager {
      *
      *  (This has always been the behavior of this class; I'm simply calling it out)
      */
-    private ConflictDetectionManager(CacheLoader<TableReference, ConflictHandler> loader) {
+    public ConflictDetectionManager(CacheLoader<TableReference, ConflictHandler> loader) {
         this.cache = CacheBuilder.newBuilder()
                 .maximumSize(100_000)
                 .build(loader);
     }
 
-
-    public static ConflictDetectionManager create(KeyValueService kvs) {
-        ConflictDetectionManager conflictDetectionManager = new ConflictDetectionManager(
-                new CacheLoader<TableReference, ConflictHandler>() {
-                    @Override
-                    public ConflictHandler load(TableReference tableReference) throws Exception {
-                        byte[] metadata = kvs.getMetadataForTable(tableReference);
-                        if (metadata == null) {
-                            return DEFAULT_CONFLICT_HANDLER;
-                        }
-                        return getConflictHandlerFromMetadata(metadata);
-                    }
-                });
-
-        // kick off an async thread that attempts to fully warm this cache
-        // if it fails (e.g. probably this user has way too many tables), that's okay,
-        // we will be falling back on individually loading in tables as needed.
-        new Thread(() -> {
-            try {
-                conflictDetectionManager.warmCacheWith(
-                        Maps.transformValues(kvs.getMetadataForTables(),
-                                ConflictDetectionManager::getConflictHandlerFromMetadata));
-            } catch (Throwable t) {
-                log.warn("There was a problem with pre-warming the conflict detection cache;"
-                        + " if you have unusually high table scale, this might be expected."
-                        + " Performance may be degraded until normal usage adequately warms the cache.", t);
-            }
-        }, "ConflictDetectionManager Cache Async Pre-Warm").start();
-
-        return conflictDetectionManager;
-    }
-
-    public static ConflictDetectionManager createWithNoConflictDetection() {
-        return new ConflictDetectionManager(
-                new CacheLoader<TableReference, ConflictHandler>() {
-                    @Override
-                    public ConflictHandler load(TableReference tableReference) throws Exception {
-                        return ConflictHandler.IGNORE_ALL;
-                    }
-                });
-    }
-
-    @VisibleForTesting
-    public static ConflictDetectionManager createWithStaticConflictDetection(
-            Map<TableReference, ConflictHandler> staticMap) {
-        return new ConflictDetectionManager(
-                new CacheLoader<TableReference, ConflictHandler>() {
-                    @Override
-                    public ConflictHandler load(TableReference tableReference) throws Exception {
-                        return staticMap.getOrDefault(tableReference, DEFAULT_CONFLICT_HANDLER);
-                    }
-                });
-    }
-
-    private static ConflictHandler getConflictHandlerFromMetadata(byte[] metadata) {
-        return TableMetadata.BYTES_HYDRATOR
-                .hydrateFromBytes(metadata).getConflictHandler();
-    }
-
-    private void warmCacheWith(Map<TableReference, ConflictHandler> preload) {
+    public void warmCacheWith(Map<TableReference, ConflictHandler> preload) {
         cache.putAll(preload);
     }
 
@@ -125,20 +59,6 @@ public class ConflictDetectionManager {
     }
 
     public ConflictHandler get(TableReference tableReference) {
-        try {
-            return cache.getUnchecked(tableReference);
-        } catch (UncheckedExecutionException e) {
-            return DEFAULT_CONFLICT_HANDLER;
-        }
-    }
-
-    @Deprecated
-    public void removeConflictDetectionMode(TableReference table) {
-        cache.invalidate(table);
-    }
-
-    @Deprecated
-    public void setConflictDetectionMode(TableReference table, ConflictHandler handler) {
-        cache.put(table, handler);
+        return cache.getUnchecked(tableReference);
     }
 }

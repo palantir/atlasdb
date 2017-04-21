@@ -181,7 +181,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void testConcurrentWriteChangedConflicts() throws InterruptedException, ExecutionException {
-        conflictDetectionManager.setConflictDetectionMode(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
         CompletionService<Void> executor = new ExecutorCompletionService<Void>(
                 Tracers.wrap(PTExecutors.newFixedThreadPool(8)));
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
@@ -289,7 +289,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 transactionTs,
-                ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE),
+                TestConflictDetectionManagers.createWithStaticConflictDetection(
+                        ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache);
@@ -344,7 +345,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 transactionTs,
-                ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE),
+                TestConflictDetectionManagers.createWithStaticConflictDetection(
+                        ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache);
@@ -652,7 +654,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void testWriteChangedConflictsNoThrow() {
-        conflictDetectionManager.setConflictDetectionMode(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
@@ -664,7 +666,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void testWriteChangedConflictsThrow() {
-        conflictDetectionManager.setConflictDetectionMode(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
@@ -717,7 +719,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void testWriteWriteConflictsDeletedThrow() {
-        conflictDetectionManager.setConflictDetectionMode(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE);
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE);
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();

@@ -242,7 +242,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         TransactionService transactionService,
                         Cleaner cleaner,
                         long startTimeStamp,
-                        Map<TableReference, ConflictHandler> tablesToWriteWrite,
+                        ConflictDetectionManager conflictDetectionManager,
                         AtlasDbConstraintCheckingMode constraintCheckingMode,
                         TransactionReadSentinelBehavior readSentinelBehavior,
                         TimestampCache timestampValidationReadCache) {
@@ -252,7 +252,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.cleaner = cleaner;
         this.lockService = lockService;
         this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
-        this.conflictDetectionManager = ConflictDetectionManager.createWithStaticConflictDetection(tablesToWriteWrite);
+        this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.immutableTimestamp = 0;
         this.externalLocksTokens = ImmutableSet.of();
@@ -291,7 +291,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.cleaner = NoOpCleaner.INSTANCE;
         this.lockService = lockService;
         this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
-        this.conflictDetectionManager = ConflictDetectionManager.createWithNoConflictDetection();
+        this.conflictDetectionManager = ConflictDetectionManagers.createWithNoConflictDetection();
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.timestampService = null;
         this.immutableTimestamp = startTimeStamp;

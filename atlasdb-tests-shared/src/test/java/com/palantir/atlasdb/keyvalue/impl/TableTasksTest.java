@@ -44,6 +44,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -74,7 +75,7 @@ public class TableTasksTest {
         });
         TransactionService txService = TransactionServices.createTransactionService(kvs);
         Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
-        ConflictDetectionManager cdm = ConflictDetectionManager.create(kvs);
+        ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
@@ -92,8 +93,8 @@ public class TableTasksTest {
         TableReference table1 = TableReference.createWithEmptyNamespace("table1");
         TableReference table2 = TableReference.createWithEmptyNamespace("table2");
         Random rand = new Random();
-        kvs.createTable(table1, AtlasDbConstants.EMPTY_TABLE_METADATA);
-        kvs.createTable(table2, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        kvs.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(table2, AtlasDbConstants.GENERIC_TABLE_METADATA);
         HashMultimap<Integer, Integer> keys1 = HashMultimap.create();
         HashMultimap<Integer, Integer> keys2 = HashMultimap.create();
         int key = 0;

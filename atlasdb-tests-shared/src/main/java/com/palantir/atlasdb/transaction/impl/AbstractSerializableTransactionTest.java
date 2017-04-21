@@ -91,7 +91,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),
-                ConflictDetectionManager.createWithStaticConflictDetection(tablesToWriteWrite),
+                TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
                 ImmutableList.<LockRefreshToken>of(),

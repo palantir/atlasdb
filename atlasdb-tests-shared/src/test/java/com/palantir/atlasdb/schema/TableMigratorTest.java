@@ -44,6 +44,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
@@ -98,7 +99,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
 
         // migration doesn't use namespace mapping
         final InMemoryKeyValueService kvs2 = new InMemoryKeyValueService(false);
-        final ConflictDetectionManager cdm2 = ConflictDetectionManager.createWithNoConflictDetection();
+        final ConflictDetectionManager cdm2 = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager ssm2 = SweepStrategyManagers.completelyConservative(kvs2);
         final TestTransactionManagerImpl txManager2 = new TestTransactionManagerImpl(
                 kvs2,
@@ -132,7 +133,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         checkpointer.deleteCheckpoints();
 
         final KeyValueService verifyKvs = NamespaceMappingKeyValueService.create(TableRemappingKeyValueService.create(kvs2, tableMap));
-        final ConflictDetectionManager verifyCdm = ConflictDetectionManager.createWithNoConflictDetection();
+        final ConflictDetectionManager verifyCdm = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative(verifyKvs);
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
                 verifyKvs,

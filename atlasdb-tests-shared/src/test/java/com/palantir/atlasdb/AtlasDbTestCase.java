@@ -17,6 +17,8 @@ package com.palantir.atlasdb;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
@@ -34,8 +36,10 @@ import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManager;
@@ -68,6 +72,7 @@ public class AtlasDbTestCase {
     protected SweepStrategyManager sweepStrategyManager;
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
+    protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
 
     @BeforeClass
     public static void setupLockClient() {
@@ -108,8 +113,7 @@ public class AtlasDbTestCase {
         keyValueService = new TrackingKeyValueService(keyValueServiceWithStats);
         TransactionTables.createTables(kvs);
         transactionService = TransactionServices.createTransactionService(kvs);
-
-        conflictDetectionManager = ConflictDetectionManager.create(keyValueService);
+        conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         txManager = new TestTransactionManagerImpl(
@@ -140,6 +144,10 @@ public class AtlasDbTestCase {
         keyValueService = null;
         timestampService = null;
         txManager = null;
+    }
+
+    protected void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
+        txManager.overrideConflictHandlerForTable(table, conflictHandler);
     }
 
     protected void setConstraintCheckingMode(AtlasDbConstraintCheckingMode mode) {
