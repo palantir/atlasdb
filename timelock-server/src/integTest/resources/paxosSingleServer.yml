@@ -23,5 +23,3 @@ server:
     - type: http
       selectorThreads: 8
       acceptorThreads: 4
-
-

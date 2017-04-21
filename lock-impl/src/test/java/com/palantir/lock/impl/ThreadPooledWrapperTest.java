@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.lock.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -182,7 +181,6 @@ public class ThreadPooledWrapperTest {
                         assertThat(e).isInstanceOf(ExecutionException.class)
                                 .hasMessageContaining("TooManyRequestsException");
                         exceptions.getAndIncrement();
-
                     }
                 }
             });

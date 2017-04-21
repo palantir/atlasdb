@@ -200,11 +200,11 @@ public class PaxosTimeLockServer implements TimeLockServer {
         return new ThreadPooledLockService(lockServiceNotUsingThreadPooling, localThreadPoolSize, sharedThreadPool);
     }
 
-    static <T> T instrument(Class<T> serviceClass, T service, String client) {
+    private static <T> T instrument(Class<T> serviceClass, T service, String client) {
         return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass, client));
     }
 
-    ManagedTimestampService createPaxosBackedTimestampService(String client) {
+    private ManagedTimestampService createPaxosBackedTimestampService(String client) {
         paxosResource.addClient(client);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
