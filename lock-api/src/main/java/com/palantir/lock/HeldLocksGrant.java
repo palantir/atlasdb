@@ -83,6 +83,11 @@ import com.google.common.base.Preconditions;
         return null;
     }
 
+    @Override
+    public SortedLockCollection<LockDescriptor> getLockDescriptors() {
+        return getLocks();
+    }
+
     /**
      * Returns the time (in milliseconds since the epoch) since this token was
      * created.

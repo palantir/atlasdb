@@ -41,6 +41,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.SerializingProxy;
 import com.palantir.common.proxy.SimulatingServerProxy;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.logger.LockServiceLoggerTestUtils;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 
@@ -463,6 +464,8 @@ public final class LockServiceImplTest {
         } catch (TimeoutException e) {
             // If we exceed the timeout, the call is hung and it's a failure
             Assert.fail();
+        } finally {
+            LockServiceLoggerTestUtils.cleanUpLogStateDir();
         }
     }
 
