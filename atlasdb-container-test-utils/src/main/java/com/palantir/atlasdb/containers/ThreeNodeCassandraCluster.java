@@ -75,7 +75,7 @@ public class ThreeNodeCassandraCluster extends Container {
 
     @Override
     public Map<String, String> getEnvironment() {
-        return CassandraVersion.getEnvironment();
+        return CassandraEnvironment.get();
     }
 
     @Override
