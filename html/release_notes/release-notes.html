@@ -253,7 +253,13 @@ This manifests as Timelock clients failing over and trying other nodes when rece
 Previously, these proxies would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1782">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The lock server now will dump all held locks and outstanding lock requests in YAML file, when logging state requested, for easy readability and further processing.
+This will make debuging lock congestions easier. Lock descriptors are changed with places holders and can be decoded using descriptors file,
+which will be written in the folder. Information like requesting clients, requesting threads and other details can be found in the YAML.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1792">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>The <code class="docutils literal"><span class="pre">atlasdb-config</span></code> project now shadows the <code class="docutils literal"><span class="pre">error-handling</span></code> and <code class="docutils literal"><span class="pre">jackson-support</span></code> libraries from <a class="reference external" href="https://github.com/palantir/http-remoting">http-remoting</a>.
 This will be used to handle exceptions in a future release, and was done in this way to avoid causing dependency issues in upstream products.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1796">Pull Request</a>)</td>
