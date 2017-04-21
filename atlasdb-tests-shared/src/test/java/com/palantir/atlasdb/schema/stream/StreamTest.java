@@ -77,6 +77,7 @@ import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamStor
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -653,6 +654,6 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Test
     public void transactionManagerCanReturnKVSStatus() throws Exception {
-        Assertions.assertThat(txManager.getKeyValueServiceStatus()).isInstanceOf(Boolean.class);
+        Assertions.assertThat(txManager.getKeyValueServiceStatus()).isInstanceOf(KeyValueServiceStatus.class);
     }
 }

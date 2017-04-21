@@ -31,6 +31,7 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTasks;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
@@ -290,7 +291,7 @@ import com.palantir.timestamp.TimestampService;
         return timestampService;
     }
 
-    public boolean getKeyValueServiceStatus() {
-        return true;
+    public KeyValueServiceStatus getKeyValueServiceStatus() {
+        return KeyValueServiceStatus.HEALTHY;
     }
 }

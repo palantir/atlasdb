@@ -110,7 +110,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @return status of the key value service, can be used by tghe application to decide its own health
      */
-    boolean getKeyValueServiceStatus();
+    KeyValueServiceStatus getKeyValueServiceStatus();
 
     /**
      * Returns the timestamp that is before any open start timestamps. This is different from the immutable

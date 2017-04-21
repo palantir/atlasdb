@@ -20,6 +20,7 @@ import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -135,8 +136,8 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     }
 
     @Override
-    public boolean getKeyValueServiceStatus() {
-        return false;
+    public KeyValueServiceStatus getKeyValueServiceStatus() {
+        return KeyValueServiceStatus.HEALTHY;
     }
 
     @Override
