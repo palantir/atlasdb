@@ -617,4 +617,15 @@ public interface KeyValueService extends AutoCloseable {
     @Path("compact-internally")
     @Consumes(MediaType.APPLICATION_JSON)
     void compactInternally(TableReference tableRef);
+
+
+    /**
+     * Checks if the KVS has a quorum available to successfully perform reads/writes.
+     *
+     * This call must be implemented so that it completes synchronously.
+     */
+    @POST
+    @Path("node-availability-status")
+    @Consumes(MediaType.APPLICATION_JSON)
+    NodeAvailabilityStatus getNodeAvailabilityStatus();
 }

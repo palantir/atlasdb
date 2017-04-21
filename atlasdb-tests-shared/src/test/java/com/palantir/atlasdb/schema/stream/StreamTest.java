@@ -43,7 +43,6 @@ import java.util.concurrent.Future;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -77,7 +76,6 @@ import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamStor
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
-import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -650,10 +648,5 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] data = new byte[size];
         new Random(0).nextBytes(data);
         return data;
-    }
-
-    @Test
-    public void transactionManagerCanReturnKVSStatus() throws Exception {
-        Assertions.assertThat(txManager.getKeyValueServiceStatus()).isInstanceOf(KeyValueServiceStatus.class);
     }
 }
