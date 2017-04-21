@@ -16,13 +16,11 @@
 package com.palantir.lock.logger;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +29,6 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -108,14 +105,8 @@ public class LockServiceStateLogger {
 
         List<SimpleLockRequestsWithSameDescriptor> sortedEntries = Lists.newArrayList(outstandingRequestsByDescriptor);
         sortedEntries.sort(
-                new Comparator<SimpleLockRequestsWithSameDescriptor>() {
-                    @Override
-                    public int compare(SimpleLockRequestsWithSameDescriptor o1,
-                            SimpleLockRequestsWithSameDescriptor o2) {
-                        return Integer.compare(o2.getLockRequestsCount(),
-                                o1.getLockRequestsCount());
-                    }
-                });
+                (o1, o2) -> Integer.compare(o2.getLockRequestsCount(),
+                        o1.getLockRequestsCount()));
         return sortedEntries;
     }
 
@@ -163,10 +154,8 @@ public class LockServiceStateLogger {
         createNewFile(file);
         createNewFile(descriptorsFile);
 
-        LockLoggingYamlOptions yamlOptions = new LockLoggingYamlOptions();
-
-        dumpYaml(generatedOutstandingRequests, generatedHeldLocks, file, yamlOptions);
-        dumpDescriptorsYaml(descriptorsFile, yamlOptions);
+        dumpYaml(generatedOutstandingRequests, generatedHeldLocks, file);
+        dumpDescriptorsYaml(descriptorsFile);
     }
 
     private void createNewFile(File file) throws IOException {
@@ -178,20 +167,18 @@ public class LockServiceStateLogger {
     }
 
     private void dumpYaml(Map<String, Object> generatedOutstandingRequests, Map<String, Object> generatedHeldLocks,
-            File file, LockLoggingYamlOptions yamlOptions) throws IOException {
+            File file) throws IOException {
+        YamlWriter writer = YamlWriter.create(file);
 
-        FileWriter writer = new FileWriter(file);
-
-        Yaml yaml = new Yaml(yamlOptions.getRepresenter(), yamlOptions.getDumperOptions());
-        yaml.dump(generatedOutstandingRequests, writer);
-        writer.append("\n\n---\n\n");
-        yaml.dump(generatedHeldLocks, writer);
+        writer.writeToYaml(generatedOutstandingRequests);
+        writer.appendString("\n\n---\n\n");
+        writer.writeToYaml(generatedHeldLocks);
     }
 
-    private void dumpDescriptorsYaml(File descriptorsFile, LockLoggingYamlOptions yamlOptions) throws IOException {
-        FileWriter writer = new FileWriter(descriptorsFile);
-        writer.append(WARNING_LOCK_DESCRIPTORS);
-        Yaml yaml = new Yaml(yamlOptions.getRepresenter(), yamlOptions.getDumperOptions());
-        yaml.dump(this.lockDescriptorMapper.getReversedMapper(), writer);
+    private void dumpDescriptorsYaml(File descriptorsFile) throws IOException {
+        YamlWriter writer = YamlWriter.create(descriptorsFile);
+
+        writer.appendString(WARNING_LOCK_DESCRIPTORS);
+        writer.writeToYaml(this.lockDescriptorMapper.getReversedMapper());
     }
 }

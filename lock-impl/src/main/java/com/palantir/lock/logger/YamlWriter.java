@@ -15,27 +15,52 @@
  */
 package com.palantir.lock.logger;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
 import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 
 /**
  * Created by davidt on 4/20/17.
  */
-public class LockLoggingYamlOptions {
-    DumperOptions getDumperOptions() {
-        DumperOptions options = new DumperOptions();
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        options.setIndent(4);
-        options.setAllowReadOnlyProperties(true);
-        return options;
+class YamlWriter {
+    private static final Yaml yaml = new Yaml(getRepresenter(), getDumperOptions());
+
+    private final FileWriter fileWriter;
+
+    YamlWriter(FileWriter fileWriter) {
+        this.fileWriter = fileWriter;
     }
 
-    Representer getRepresenter() {
+    public static YamlWriter create(File file) throws IOException {
+        return new YamlWriter(new FileWriter(file));
+    }
+
+    public void writeToYaml(Object data) {
+        yaml.dump(data, fileWriter);
+    }
+
+    public void appendString(String string) throws IOException {
+        fileWriter.append(string);
+    }
+
+    private static Representer getRepresenter() {
         Representer representer = new Representer();
         representer.addClassTag(ImmutableSimpleTokenInfo.class, Tag.MAP);
         representer.addClassTag(ImmutableSimpleLockRequest.class, Tag.MAP);
         representer.addClassTag(SimpleLockRequestsWithSameDescriptor.class, Tag.MAP);
         return representer;
+    }
+
+    private static DumperOptions getDumperOptions() {
+        DumperOptions options = new DumperOptions();
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        options.setIndent(4);
+        options.setAllowReadOnlyProperties(true);
+        return options;
     }
 }
