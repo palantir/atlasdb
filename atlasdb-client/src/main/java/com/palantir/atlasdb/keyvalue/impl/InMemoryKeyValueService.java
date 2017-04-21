@@ -552,7 +552,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        return NodeAvailabilityStatus.ALL_NODES_UP;
+        return NodeAvailabilityStatus.ALL_AVAILABLE;
     }
 
     private static class Key implements Comparable<Key> {

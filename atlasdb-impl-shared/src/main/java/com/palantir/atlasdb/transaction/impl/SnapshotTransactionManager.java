@@ -294,14 +294,14 @@ import com.palantir.timestamp.TimestampService;
 
     public KeyValueServiceStatus getKeyValueServiceStatus() {
         NodeAvailabilityStatus nodeAvailabilityStatus = keyValueService.getNodeAvailabilityStatus();
-        // TODO: if config doesnt match db state return TERMINAL
+        // TODO: if config doesn't match db state return TERMINAL
         switch (nodeAvailabilityStatus) {
-            case ALL_NODES_UP:
+            case ALL_AVAILABLE:
                 return KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS;
-            case EXACTLY_ONE_NODE_DOWN:
+            case EACH_QUORUM_AVAILABLE:
                 return KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES;
-            case MORE_THAN_ONE_NODE_DOWN:
-                return KeyValueServiceStatus.UNHEALTHY;
+            case LOCAL_QUORUM_AVAILABLE:
+            case NO_QUORUM_AVAILABLE:
             default:
                 return KeyValueServiceStatus.UNHEALTHY;
         }

@@ -362,6 +362,6 @@ public final class TableSplittingKeyValueService implements KeyValueService {
                 .map(kvs -> kvs.getNodeAvailabilityStatus())
                 .sorted()
                 .findFirst()
-                .orElse(NodeAvailabilityStatus.ALL_NODES_UP);
+                .orElse(NodeAvailabilityStatus.ALL_AVAILABLE);
     }
 }

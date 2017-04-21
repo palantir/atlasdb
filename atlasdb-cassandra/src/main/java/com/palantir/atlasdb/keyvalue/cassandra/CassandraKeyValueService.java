@@ -37,12 +37,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.cassandra.thrift.CASResult;
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
+import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
@@ -2126,7 +2129,49 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        return NodeAvailabilityStatus.ALL_NODES_UP;
+        try {
+            readAtSpecifiedConsistency(ConsistencyLevel.ALL);
+            return NodeAvailabilityStatus.ALL_AVAILABLE;
+        } catch (TException e) {
+            try {
+                readAtSpecifiedConsistency(ConsistencyLevel.EACH_QUORUM);
+                return NodeAvailabilityStatus.EACH_QUORUM_AVAILABLE;
+            } catch (TException e1) {
+                return tryReadWithLocalQuorum();
+            }
+        }
+    }
+
+    private NodeAvailabilityStatus tryReadWithLocalQuorum() {
+        try {
+            readAtSpecifiedConsistency(ConsistencyLevel.LOCAL_QUORUM);
+            return NodeAvailabilityStatus.LOCAL_QUORUM_AVAILABLE;
+        } catch (TException e2) {
+            return NodeAvailabilityStatus.NO_QUORUM_AVAILABLE;
+        }
+    }
+
+    private void readAtSpecifiedConsistency(ConsistencyLevel consistency) throws TException {
+        clientPool.run(client -> {
+            String lockRowName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME);
+            String lockColName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME);
+            String selectCql = String.format(
+                    "SELECT \"value\" FROM \"%s\" WHERE key = %s AND column1 = %s AND column2 = -1;",
+                    schemaMutationLockTable.getOnlyTable().getQualifiedName(),
+                    lockRowName,
+                    lockColName);
+            return runCqlQuery(selectCql, client, consistency);
+        });
+    }
+
+    private static CqlResult runCqlQuery(String query, Cassandra.Client client, ConsistencyLevel consistency)
+            throws TException {
+        ByteBuffer queryBuffer = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
+        return client.execute_cql3_query(queryBuffer, Compression.NONE, consistency);
+    }
+
+    private static String getHexEncodedBytes(String str) {
+        return CassandraKeyValueServices.encodeAsHex(str.getBytes(StandardCharsets.UTF_8));
     }
 
     private void alterGcAndTombstone(

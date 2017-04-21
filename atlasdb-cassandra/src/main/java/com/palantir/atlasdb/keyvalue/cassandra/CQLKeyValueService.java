@@ -1246,7 +1246,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        return NodeAvailabilityStatus.ALL_NODES_UP;
+        return NodeAvailabilityStatus.ALL_AVAILABLE;
     }
 
     private void alterTableForCompaction(TableReference tableRef, int gcGraceSeconds, float tombstoneThreshold) {

@@ -1027,7 +1027,7 @@ public class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        return NodeAvailabilityStatus.ALL_NODES_UP;
+        return NodeAvailabilityStatus.ALL_AVAILABLE;
     }
 
     @Override

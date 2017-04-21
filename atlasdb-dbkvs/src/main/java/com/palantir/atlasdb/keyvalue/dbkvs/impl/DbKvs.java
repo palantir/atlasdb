@@ -1196,7 +1196,7 @@ public final class DbKvs extends AbstractKeyValueService {
 
     @Override
     public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        return NodeAvailabilityStatus.ALL_NODES_UP;
+        return NodeAvailabilityStatus.ALL_AVAILABLE;
     }
 
     public void checkDatabaseVersion() {
