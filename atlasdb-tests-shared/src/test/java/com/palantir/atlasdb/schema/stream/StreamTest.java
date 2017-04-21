@@ -43,6 +43,7 @@ import java.util.concurrent.Future;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -650,4 +651,8 @@ public class StreamTest extends AtlasDbTestCase {
         return data;
     }
 
+    @Test
+    public void transactionManagerCanReturnKVSStatus() throws Exception {
+        Assertions.assertThat(txManager.getKeyValueServiceStatus()).isInstanceOf(Boolean.class);
+    }
 }
