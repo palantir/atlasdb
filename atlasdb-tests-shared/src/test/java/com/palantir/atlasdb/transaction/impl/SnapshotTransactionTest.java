@@ -814,7 +814,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 expirationDateMs,
                 LockCollections.of(builder.build()),
                 lockTimeout,
-                versionId);
+                versionId,
+                "Dummy thread");
     }
 
 
