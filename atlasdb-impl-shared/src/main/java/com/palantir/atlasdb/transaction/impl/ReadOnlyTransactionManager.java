@@ -135,6 +135,11 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     }
 
     @Override
+    public boolean getKeyValueServiceStatus() {
+        return false;
+    }
+
+    @Override
     public long getUnreadableTimestamp() {
         return Long.MAX_VALUE;
     }

@@ -56,6 +56,12 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     }
 
     @Override
+    public boolean getKeyValueServiceStatus() {
+        return delegate().getKeyValueServiceStatus();
+    }
+
+
+    @Override
     public long getUnreadableTimestamp() {
         return delegate().getUnreadableTimestamp();
     }

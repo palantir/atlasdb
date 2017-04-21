@@ -289,4 +289,8 @@ import com.palantir.timestamp.TimestampService;
     public TimestampService getTimestampService() {
         return timestampService;
     }
+
+    public boolean getKeyValueServiceStatus() {
+        return true;
+    }
 }
