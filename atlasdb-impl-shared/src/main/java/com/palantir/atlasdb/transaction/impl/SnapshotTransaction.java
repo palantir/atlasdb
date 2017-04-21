@@ -1307,13 +1307,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected ConflictHandler getConflictHandlerForTable(TableReference tableRef) {
         return conflictDetectionManager.get(tableRef);
-        /*
-        Map<TableReference, ConflictHandler> tableToConflictHandler = conflictDetectionManager.getCachedValues();
-        if (tableToConflictHandler.isEmpty()) {
-            return ConflictHandler.RETRY_ON_WRITE_WRITE;
-        }
-        return tableToConflictHandler.get(tableRef);
-        */
     }
 
     private String getExpiredLocksErrorString(@Nullable LockRefreshToken commitLocksToken,

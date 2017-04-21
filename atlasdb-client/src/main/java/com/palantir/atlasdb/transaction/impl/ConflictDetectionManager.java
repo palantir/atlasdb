@@ -25,6 +25,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -33,6 +34,9 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 public class ConflictDetectionManager {
     private static final Logger log = LoggerFactory.getLogger(ConflictDetectionManager.class);
     private final LoadingCache<TableReference, ConflictHandler> cache;
+
+    // back-compat with last impl. Having a silent default ConflictHandler is bad and we should fix this.
+    private static final ConflictHandler DEFAULT_CONFLICT_HANDLER = ConflictHandler.RETRY_ON_WRITE_WRITE;
 
     /**
      *  This class does not make the mistake of attempting cache invalidation,
@@ -60,7 +64,7 @@ public class ConflictDetectionManager {
                     public ConflictHandler load(TableReference tableReference) throws Exception {
                         byte[] metadata = kvs.getMetadataForTable(tableReference);
                         if (metadata == null) {
-                            return ConflictHandler.RETRY_ON_WRITE_WRITE; // legacy behavior / this is dumb
+                            return DEFAULT_CONFLICT_HANDLER;
                         }
                         return getConflictHandlerFromMetadata(metadata);
                     }
@@ -97,18 +101,13 @@ public class ConflictDetectionManager {
     @VisibleForTesting
     public static ConflictDetectionManager createWithStaticConflictDetection(
             Map<TableReference, ConflictHandler> staticMap) {
-        CacheLoader<TableReference, ConflictHandler> loader = new CacheLoader<TableReference, ConflictHandler>() {
-            @Override
-            public ConflictHandler load(TableReference tableReference) throws Exception {
-                ConflictHandler conflictHandler = staticMap.get(tableReference);
-                if (conflictHandler == null) {
-                    return ConflictHandler.RETRY_ON_WRITE_WRITE; // legacy behavior / this is dumb
-                }
-                return conflictHandler;
-            }
-        };
         return new ConflictDetectionManager(
-                loader);
+                new CacheLoader<TableReference, ConflictHandler>() {
+                    @Override
+                    public ConflictHandler load(TableReference tableReference) throws Exception {
+                        return staticMap.getOrDefault(tableReference, DEFAULT_CONFLICT_HANDLER);
+                    }
+                });
     }
 
     private static ConflictHandler getConflictHandlerFromMetadata(byte[] metadata) {
@@ -126,9 +125,12 @@ public class ConflictDetectionManager {
     }
 
     public ConflictHandler get(TableReference tableReference) {
-        return cache.getUnchecked(tableReference);
+        try {
+            return cache.getUnchecked(tableReference);
+        } catch (UncheckedExecutionException e) {
+            return DEFAULT_CONFLICT_HANDLER;
+        }
     }
-
 
     @Deprecated
     public void removeConflictDetectionMode(TableReference table) {
