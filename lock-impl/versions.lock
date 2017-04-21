@@ -110,6 +110,9 @@
                 "com.palantir.remoting1:tracing",
                 "io.dropwizard.metrics:metrics-core"
             ]
+        },
+        "org.yaml:snakeyaml": {
+            "locked": "1.12"
         }
     },
     "runtime": {
@@ -223,6 +226,9 @@
                 "com.palantir.remoting1:tracing",
                 "io.dropwizard.metrics:metrics-core"
             ]
+        },
+        "org.yaml:snakeyaml": {
+            "locked": "1.12"
         }
     }
 }

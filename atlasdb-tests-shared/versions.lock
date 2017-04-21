@@ -368,6 +368,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
+        },
+        "org.yaml:snakeyaml": {
+            "locked": "1.12",
+            "transitive": [
+                "com.palantir.atlasdb:lock-impl"
+            ]
         }
     },
     "runtime": {
@@ -738,6 +744,12 @@
             "locked": "1.1.1.7",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "org.yaml:snakeyaml": {
+            "locked": "1.12",
+            "transitive": [
+                "com.palantir.atlasdb:lock-impl"
             ]
         }
     }
