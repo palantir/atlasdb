@@ -100,8 +100,11 @@ public class LockServiceStateLoggerTest {
 
     @Test
     public void testLocksLogging() throws Exception {
-        LockServiceStateLogger logger = new LockServiceStateLogger(heldLocksTokenMap, outstandingLockRequestMultimap);
-        logger.logLocks(LockServiceLoggerTestUtils.TEST_LOG_STATE_DIR);
+        LockServiceStateLogger logger = new LockServiceStateLogger(
+                heldLocksTokenMap,
+                outstandingLockRequestMultimap,
+                LockServiceLoggerTestUtils.TEST_LOG_STATE_DIR);
+        logger.logLocks();
     }
 
     @After

@@ -60,22 +60,24 @@ public class LockServiceStateLogger {
 
     private final ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocks;
     private final Map<LockClient, Set<LockRequest>> outstandingLockRequests;
+    private String outputDir;
 
 
     public LockServiceStateLogger(ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap,
-            SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap) {
+            SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap, String outputDir) {
         this.heldLocks = heldLocksTokenMap;
         this.outstandingLockRequests = Multimaps.asMap(outstandingLockRequestMultimap);
+        this.outputDir = outputDir;
     }
 
-    public void logLocks(String outputDir) throws IOException {
+    public void logLocks() throws IOException {
         Map<String, Object> generatedOutstandingRequests = generateOutstandingLocksYaml(outstandingLockRequests);
         Map<String, Object> generatedHeldLocks = generateHeldLocks(heldLocks);
 
         Path outputDirPath = Paths.get(outputDir);
         Files.createDirectories(outputDirPath);
 
-        dumpYamlsInNewFiles(outputDir, generatedOutstandingRequests, generatedHeldLocks);
+        dumpYamlsInNewFiles(generatedOutstandingRequests, generatedHeldLocks);
     }
 
     private Map<String, Object> generateOutstandingLocksYaml(Map<LockClient, Set<LockRequest>> outstandingLockRequestsMap) {
@@ -143,27 +145,26 @@ public class LockServiceStateLogger {
         return lockToLockInfo;
     }
 
-    private void dumpYamlsInNewFiles(String outputDir, Map<String, Object> generatedOutstandingRequests,
+    private void dumpYamlsInNewFiles(Map<String, Object> generatedOutstandingRequests,
             Map<String, Object> generatedHeldLocks) throws IOException {
-        String fileName = LOCKSTATE_FILE_PREFIX + this.startTimestamp + ".yaml";
-        File file = new File(outputDir, fileName);
+        File lockStateFile = createNewFile(LOCKSTATE_FILE_PREFIX);
+        File descriptorsFile = createNewFile(DESCRIPTORS_FILE_PREFIX);
 
-        String descriptorsFileName = DESCRIPTORS_FILE_PREFIX + this.startTimestamp + ".yaml";
-        File descriptorsFile = new File(outputDir, descriptorsFileName);
-
-        createNewFile(file);
-        createNewFile(descriptorsFile);
-
-        dumpYaml(generatedOutstandingRequests, generatedHeldLocks, file);
+        dumpYaml(generatedOutstandingRequests, generatedHeldLocks, lockStateFile);
         dumpDescriptorsYaml(descriptorsFile);
     }
 
-    private void createNewFile(File file) throws IOException {
+    private File createNewFile(String fileNamePrefix) throws IOException {
+        String fileName = fileNamePrefix + this.startTimestamp + ".yaml";
+        File file = new File(outputDir, fileName);
+
         if (!file.createNewFile()) {
             String fileCreationError = String.format(FILE_NOT_CREATED_LOG_ERROR, file.getAbsolutePath());
             log.error(fileCreationError);
             throw new IllegalStateException(fileCreationError);
         }
+
+        return file;
     }
 
     private void dumpYaml(Map<String, Object> generatedOutstandingRequests, Map<String, Object> generatedHeldLocks,

@@ -994,8 +994,11 @@ import com.palantir.util.JMXUtils;
     }
 
     private void logAllHeldAndOutstandingLocks() throws IOException {
-        LockServiceStateLogger lockServiceStateLogger = new LockServiceStateLogger(heldLocksTokenMap, outstandingLockRequestMultimap);
-        lockServiceStateLogger.logLocks(lockStateLoggerDir);
+        LockServiceStateLogger lockServiceStateLogger = new LockServiceStateLogger(
+                heldLocksTokenMap,
+                outstandingLockRequestMultimap,
+                lockStateLoggerDir);
+        lockServiceStateLogger.logLocks();
     }
 
     private StringBuilder getGeneralLockStats() {
