@@ -27,8 +27,6 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public final class ConflictDetectionManagers {
     private static final Logger log = LoggerFactory.getLogger(ConflictDetectionManagers.class);
-    // back-compat with last impl. Having a silent default ConflictHandler is bad and we should fix this.
-    public static final ConflictHandler DEFAULT_CONFLICT_HANDLER = ConflictHandler.RETRY_ON_WRITE_WRITE;
 
     private ConflictDetectionManagers() {}
 
@@ -57,10 +55,9 @@ public final class ConflictDetectionManagers {
                     public ConflictHandler load(TableReference tableReference) throws Exception {
                         byte[] metadata = kvs.getMetadataForTable(tableReference);
                         if (metadata == null) {
-                            log.error("Tried to make a transaction over a table that has no metadata: {}."
-                                    + " Using the default conflict handler ({}).",
-                                    tableReference, DEFAULT_CONFLICT_HANDLER.toString());
-                            return DEFAULT_CONFLICT_HANDLER;
+                            log.error("Tried to make a transaction over a table that has no metadata: {}.",
+                                    tableReference);
+                            return null;
                         } else {
                             return getConflictHandlerFromMetadata(metadata);
                         }

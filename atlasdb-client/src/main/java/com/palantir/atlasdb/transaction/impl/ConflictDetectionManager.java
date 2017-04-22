@@ -17,8 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.annotation.Nullable;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
@@ -28,7 +27,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class ConflictDetectionManager {
-    private static final Logger log = LoggerFactory.getLogger(ConflictDetectionManager.class);
     private final LoadingCache<TableReference, ConflictHandler> cache;
 
     /**
@@ -58,6 +56,7 @@ public class ConflictDetectionManager {
         return cache.asMap();
     }
 
+    @Nullable
     public ConflictHandler get(TableReference tableReference) {
         return cache.getUnchecked(tableReference);
     }

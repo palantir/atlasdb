@@ -177,7 +177,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
             Maps.newConcurrentMap();
-    private final ConflictDetectionManager conflictDetectionManager;
+    protected final ConflictDetectionManager conflictDetectionManager;
     private final AtomicLong byteCount = new AtomicLong();
 
     private final AtlasDbConstraintCheckingMode constraintCheckingMode;
@@ -1058,11 +1058,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
         Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
-        if (conflictDetectionManager.get(tableRef) == null) {
-            throw new IllegalArgumentException(
-                    "Not a valid table for this transaction."
-                            + " Make sure this table name exists or has a valid namespace: " + tableRef);
-        }
         if (values.isEmpty()) {
             return;
         }
@@ -1306,7 +1301,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected ConflictHandler getConflictHandlerForTable(TableReference tableRef) {
-        return conflictDetectionManager.get(tableRef);
+        return Preconditions.checkNotNull(conflictDetectionManager.get(tableRef),
+            "Not a valid table for this transaction. Make sure this table name exists or has a valid namespace: %s",
+            tableRef);
     }
 
     private String getExpiredLocksErrorString(@Nullable LockRefreshToken commitLocksToken,

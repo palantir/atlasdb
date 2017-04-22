@@ -33,7 +33,7 @@ public final class TestConflictDetectionManagers {
                     @Override
                     public ConflictHandler load(TableReference tableReference) throws Exception {
                         return staticMap.getOrDefault(
-                                tableReference, ConflictDetectionManagers.DEFAULT_CONFLICT_HANDLER);
+                                tableReference, ConflictHandler.RETRY_ON_WRITE_WRITE);
                     }
                 });
     }
