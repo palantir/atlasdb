@@ -110,7 +110,7 @@ public abstract class AbstractSweeperTest {
         txService = TransactionServices.createTransactionService(kvs);
         Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
-        ConflictDetectionManager cdm = ConflictDetectionManagers.createDefault(kvs);
+        ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
         txManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService,

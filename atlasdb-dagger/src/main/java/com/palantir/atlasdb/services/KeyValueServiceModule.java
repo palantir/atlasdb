@@ -76,7 +76,7 @@ public class KeyValueServiceModule {
     @Provides
     @Singleton
     public ConflictDetectionManager provideConflictDetectionManager(@Named("kvs") KeyValueService kvs) {
-        return ConflictDetectionManagers.createDefault(kvs);
+        return ConflictDetectionManagers.create(kvs);
     }
 
     @Provides

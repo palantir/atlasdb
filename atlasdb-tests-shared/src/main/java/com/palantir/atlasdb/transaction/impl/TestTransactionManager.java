@@ -15,10 +15,13 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public interface TestTransactionManager extends LockAwareTransactionManager {
     Transaction commitAndStartNewTransaction(Transaction t);
     Transaction createNewTransaction();
+    void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler);
 }
