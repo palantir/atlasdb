@@ -28,7 +28,6 @@ dependencies {
     processor group: 'org.immutables', name: 'value'
 
     testCompile project(':atlasdb-container-test-utils')
-    testCompile project(':atlasdb-docker-test-utils')
     testCompile project(':atlasdb-ete-test-utils')
 
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
