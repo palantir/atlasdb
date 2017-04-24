@@ -64,14 +64,14 @@ public class AtlasDbErrorDecoder implements ErrorDecoder {
     }
 
     private boolean response503ButExceptionIsNotRetryable(Response response, Exception exception) {
-        return (response.status() == 503) && !isExceptionIsRetryable(exception);
+        return (response.status() == 503) && !isExceptionRetryable(exception);
     }
 
     private boolean response429ButExceptionIsNotRetryable(Response response, Exception exception) {
-        return (response.status() == 429) && !isExceptionIsRetryable(exception);
+        return (response.status() == 429) && !isExceptionRetryable(exception);
     }
 
-    private boolean isExceptionIsRetryable(Exception exception) {
+    private boolean isExceptionRetryable(Exception exception) {
         return exception instanceof RetryableException;
     }
 }
