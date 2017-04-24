@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,15 +25,8 @@ import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({
-        OneNodeDownGetTest.class,
-        OneNodeDownPutTest.class,
-        OneNodeDownMetadataTest.class,
-        OneNodeDownDeleteTest.class,
-        OneNodeDownTableManipulationTest.class,
-        OneNodeDownNodeAvailabilityTest.class
-        })
-public final class OneNodeDownTestSuite extends NodesDownTestSetup {
+@Suite.SuiteClasses(LessThanQuorumNodeAvailabilityTest.class)
+public final class ThreeNodeDownTestSuite extends NodesDownTestSetup {
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(NodesDownTestSetup.class)
@@ -42,6 +35,9 @@ public final class OneNodeDownTestSuite extends NodesDownTestSetup {
     @BeforeClass
     public static void setup() {
         NodesDownTestSetup.initializeKvsAndDegradeCluster(
-                ImmutableList.of(ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME));
+                ImmutableList.of(ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
+                        ThreeNodeCassandraCluster.SECOND_CASSANDRA_CONTAINER_NAME,
+                        ThreeNodeCassandraCluster.THIRD_CASSANDRA_CONTAINER_NAME)
+        );
     }
 }

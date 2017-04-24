@@ -2132,11 +2132,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         try {
             readAtSpecifiedConsistency(ConsistencyLevel.ALL);
             return NodeAvailabilityStatus.ALL_AVAILABLE;
-        } catch (TException e) {
+        } catch (Exception e) {
             try {
                 readAtSpecifiedConsistency(ConsistencyLevel.EACH_QUORUM);
                 return NodeAvailabilityStatus.EACH_QUORUM_AVAILABLE;
-            } catch (TException e1) {
+            } catch (Exception e1) {
                 return tryReadWithLocalQuorum();
             }
         }
@@ -2146,7 +2146,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         try {
             readAtSpecifiedConsistency(ConsistencyLevel.LOCAL_QUORUM);
             return NodeAvailabilityStatus.LOCAL_QUORUM_AVAILABLE;
-        } catch (TException e2) {
+        } catch (Exception e) {
             return NodeAvailabilityStatus.NO_QUORUM_AVAILABLE;
         }
     }
