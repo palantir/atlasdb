@@ -112,7 +112,8 @@ public class SerializableErrorDecoderTest {
     }
 
     private static Response createResponse(int status, byte[] bodyBytes) {
-        return Response.create(status,
+        return Response.create(
+                status,
                 EMPTY_REASON,
                 ImmutableMap.of(HttpHeaders.CONTENT_TYPE, ImmutableSet.of(MediaType.APPLICATION_JSON)),
                 bodyBytes);

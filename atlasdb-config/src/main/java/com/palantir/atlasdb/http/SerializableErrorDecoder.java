@@ -33,6 +33,10 @@ import feign.codec.ErrorDecoder;
 public class SerializableErrorDecoder implements ErrorDecoder {
     private static final Logger log = LoggerFactory.getLogger(SerializableErrorDecoder.class);
 
+    /**
+     * Returns an AtlasDbRemoteException if the response may be decoded as such; otherwise returns a
+     * generic RuntimeException (for instance, if the response is empty or malformed).
+     */
     @Override
     public Exception decode(String methodKey, Response response) {
         return wrapRemoteException(SerializableErrorToExceptionConverter.getException(
@@ -53,7 +57,7 @@ public class SerializableErrorDecoder implements ErrorDecoder {
 
     private static Exception wrapRemoteException(RuntimeException exception) {
         if (exception instanceof RemoteException) {
-            return new AtlasDbRemoteException(((RemoteException) exception));
+            return new AtlasDbRemoteException((RemoteException) exception);
         }
         return exception;
     }
