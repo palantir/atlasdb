@@ -126,6 +126,7 @@ public class OneNodeDownGetTest {
 
     @Test
     public void nodeAvailabilityStatusIsQuorum() {
-        assertEquals(OneNodeDownTestSuite.db.getNodeAvailabilityStatus(), NodeAvailabilityStatus.EACH_QUORUM_AVAILABLE);
+        assertEquals(OneNodeDownTestSuite.db.getNodeAvailabilityStatus(),
+                NodeAvailabilityStatus.LOCAL_QUORUM_AVAILABLE);
     }
 }
