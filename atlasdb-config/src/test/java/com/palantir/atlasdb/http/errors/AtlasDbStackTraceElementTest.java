@@ -107,7 +107,7 @@ public class AtlasDbStackTraceElementTest {
     public void canCreateFromHttpRemotingSerializableStackTraceElementWithNoData() {
         SerializableStackTraceElement elementWithNoData = SerializableStackTraceElement.builder()
                 .build();
-        assertCreatedExceptionMatches(elementWithNoData);
+        assertCreatedStackTraceElementMatches(elementWithNoData);
     }
 
     @Test
@@ -116,7 +116,7 @@ public class AtlasDbStackTraceElementTest {
                 .className(CLASS_NAME)
                 .fileName(FILE_NAME)
                 .build();
-        assertCreatedExceptionMatches(elementWithPartialData);
+        assertCreatedStackTraceElementMatches(elementWithPartialData);
     }
 
     @Test
@@ -127,15 +127,11 @@ public class AtlasDbStackTraceElementTest {
                 .fileName(FILE_NAME)
                 .lineNumber(LINE_NUMBER)
                 .build();
-        assertCreatedExceptionMatches(elementWithFullData);
+        assertCreatedStackTraceElementMatches(elementWithFullData);
     }
 
-    private void assertCreatedExceptionMatches(SerializableStackTraceElement element) {
+    private void assertCreatedStackTraceElementMatches(SerializableStackTraceElement element) {
         AtlasDbStackTraceElement atlasDbElement = AtlasDbStackTraceElement.fromSerializableStackTraceElement(element);
-
-        assertThat(atlasDbElement.getClassName()).isEqualTo(element.getClassName());
-        assertThat(atlasDbElement.getMethodName()).isEqualTo(element.getMethodName());
-        assertThat(atlasDbElement.getFileName()).isEqualTo(element.getFileName());
-        assertThat(atlasDbElement.getLineNumber()).isEqualTo(element.getLineNumber());
+        RemotingAssertions.assertStackTraceElementsMatch(atlasDbElement, element);
     }
 }

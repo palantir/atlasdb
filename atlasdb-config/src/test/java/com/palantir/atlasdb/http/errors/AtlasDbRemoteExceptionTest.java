@@ -15,31 +15,35 @@
  */
 package com.palantir.atlasdb.http.errors;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.List;
 
 import javax.ws.rs.NotFoundException;
 
 import org.apache.http.HttpStatus;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.remoting2.errors.RemoteException;
 import com.palantir.remoting2.errors.SerializableError;
+import com.palantir.remoting2.errors.SerializableStackTraceElement;
 
 @SuppressWarnings("ThrowableInstanceNeverThrown") // This test validates properties of runtime exceptions.
 public class AtlasDbRemoteExceptionTest {
     private static final String MESSAGE = "Unknown client";
     private static final String UNKNOWN_EXCEPTION_TYPE = "com.palantir.atlasdb.exception.foo.bar.baz.quux";
 
+    private static final List<SerializableStackTraceElement> STACK_TRACE = ImmutableList.of(
+            getStackTraceElement("foo", "bar"),
+            getStackTraceElement("baz", "quux")
+    );
+
     @Test
-    public void canBeCreatedFromRemoteException() {
+    public void canBeCreatedFromRemoteExceptionWithoutStackTrace() {
         RemoteException remoteException = new RemoteException(
                 SerializableError.of(MESSAGE, NotFoundException.class),
                 HttpStatus.SC_NOT_FOUND);
 
-        AtlasDbRemoteException atlasDbRemoteException = new AtlasDbRemoteException(remoteException);
-        assertThat(atlasDbRemoteException.getStatus()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-        assertThat(atlasDbRemoteException.getMessage()).isEqualTo(MESSAGE);
-        assertThat(atlasDbRemoteException.getErrorName()).isEqualTo(NotFoundException.class.getCanonicalName());
+        assertCreatedExceptionMatches(remoteException);
     }
 
     @Test
@@ -48,9 +52,27 @@ public class AtlasDbRemoteExceptionTest {
                 SerializableError.of(MESSAGE, UNKNOWN_EXCEPTION_TYPE),
                 HttpStatus.SC_EXPECTATION_FAILED);
 
+        assertCreatedExceptionMatches(remoteException);
+    }
+
+    @Test
+    public void canBeCreatedFromRemoteExceptionWithStackTrace() {
+        RemoteException remoteException = new RemoteException(
+                SerializableError.withCustomStackTrace(MESSAGE, NotFoundException.class, STACK_TRACE),
+                HttpStatus.SC_NOT_FOUND);
+
+        assertCreatedExceptionMatches(remoteException);
+    }
+
+    private static void assertCreatedExceptionMatches(RemoteException remoteException) {
         AtlasDbRemoteException atlasDbRemoteException = new AtlasDbRemoteException(remoteException);
-        assertThat(atlasDbRemoteException.getStatus()).isEqualTo(HttpStatus.SC_EXPECTATION_FAILED);
-        assertThat(atlasDbRemoteException.getMessage()).isEqualTo(MESSAGE);
-        assertThat(atlasDbRemoteException.getErrorName()).isEqualTo(UNKNOWN_EXCEPTION_TYPE);
+        RemotingAssertions.assertRemoteExceptionsMatch(atlasDbRemoteException, remoteException);
+    }
+
+    private static SerializableStackTraceElement getStackTraceElement(String className, String methodName) {
+        return SerializableStackTraceElement.builder()
+                .className(className)
+                .methodName(methodName)
+                .build();
     }
 }
