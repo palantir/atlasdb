@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
+import com.palantir.remoting2.errors.SerializableStackTraceElement;
+
 /**
  * We only need to test that our custom toString() can cope with Optional.empty() in a reasonable way.
  */
@@ -99,5 +101,41 @@ public class AtlasDbStackTraceElementTest {
                 .contains(METHOD_NAME)
                 .contains(FILE_NAME)
                 .contains(String.valueOf(LINE_NUMBER));
+    }
+
+    @Test
+    public void canCreateFromHttpRemotingSerializableStackTraceElementWithNoData() {
+        SerializableStackTraceElement elementWithNoData = SerializableStackTraceElement.builder()
+                .build();
+        assertCreatedExceptionMatches(elementWithNoData);
+    }
+
+    @Test
+    public void canCreateFromHttpRemotingSerializableStackTraceElementWithPartialData() {
+        SerializableStackTraceElement elementWithPartialData = SerializableStackTraceElement.builder()
+                .className(CLASS_NAME)
+                .fileName(FILE_NAME)
+                .build();
+        assertCreatedExceptionMatches(elementWithPartialData);
+    }
+
+    @Test
+    public void canCreateFromHttpRemotingSerializableStackTraceElementWithFullData() {
+        SerializableStackTraceElement elementWithFullData = SerializableStackTraceElement.builder()
+                .className(CLASS_NAME)
+                .methodName(METHOD_NAME)
+                .fileName(FILE_NAME)
+                .lineNumber(LINE_NUMBER)
+                .build();
+        assertCreatedExceptionMatches(elementWithFullData);
+    }
+
+    private void assertCreatedExceptionMatches(SerializableStackTraceElement element) {
+        AtlasDbStackTraceElement atlasDbElement = AtlasDbStackTraceElement.fromSerializableStackTraceElement(element);
+
+        assertThat(atlasDbElement.getClassName()).isEqualTo(element.getClassName());
+        assertThat(atlasDbElement.getMethodName()).isEqualTo(element.getMethodName());
+        assertThat(atlasDbElement.getFileName()).isEqualTo(element.getFileName());
+        assertThat(atlasDbElement.getLineNumber()).isEqualTo(element.getLineNumber());
     }
 }

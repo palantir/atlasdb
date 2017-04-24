@@ -22,6 +22,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.remoting2.errors.SerializableStackTraceElement;
 
 @JsonDeserialize(as = ImmutableAtlasDbStackTraceElement.class)
 @JsonSerialize(as = ImmutableAtlasDbStackTraceElement.class)
@@ -39,6 +40,15 @@ public abstract class AtlasDbStackTraceElement {
     public abstract Optional<String> getFileName();
 
     public abstract Optional<Integer> getLineNumber();
+
+    public static AtlasDbStackTraceElement fromSerializableStackTraceElement(SerializableStackTraceElement element) {
+        return ImmutableAtlasDbStackTraceElement.builder()
+                .className(element.getClassName())
+                .methodName(element.getMethodName())
+                .fileName(element.getFileName())
+                .lineNumber(element.getLineNumber())
+                .build();
+    }
 
     @Override
     public final String toString() {
