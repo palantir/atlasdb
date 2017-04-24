@@ -54,6 +54,12 @@ public class MultiCassandraDoubleNodeDownEteTest {
         todos.getTodoList();
     }
 
+    @Test
+    public void nodeAvailabilityStatusShouldBeNoQuorum() {
+        TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
+        todos.getTodoList();
+    }
+
     private static Todo getUniqueTodo() {
         return ImmutableTodo.of("some unique TODO item with UUID=" + UUID.randomUUID());
     }

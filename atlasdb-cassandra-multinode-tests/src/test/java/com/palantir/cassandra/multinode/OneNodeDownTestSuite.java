@@ -84,8 +84,8 @@ public final class OneNodeDownTestSuite {
     @BeforeClass
     public static void initializeKvsAndDegradeCluster() throws IOException, InterruptedException {
         setupTestTable();
-        degradeCassandraCluster();
         db = createCassandraKvs();
+        degradeCassandraCluster();
     }
 
     @AfterClass
