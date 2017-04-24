@@ -43,6 +43,13 @@ public class AtlasDbErrorDecoder implements ErrorDecoder {
         if (response503ButExceptionIsNotRetryable(response, exception)) {
             return new RetryableException(exception.getMessage(), exception, parseRetryAfter(response));
         }
+        if (response429ButExceptionIsNotRetryable(response, exception)) {
+            // We want to retry on the same node (ExceptionRetryBehaviour.RETRY_ON_SAME_NODE) every time we receive
+            // a response with status 429. Therefore, we set retryAfter to null to comply with
+            // ExceptionRetryBehaviour.getRetryBehaviourForException logic.
+            return new RetryableException(exception.getMessage(), exception, null);
+        }
+
         return exception;
     }
 
@@ -57,8 +64,14 @@ public class AtlasDbErrorDecoder implements ErrorDecoder {
     }
 
     private boolean response503ButExceptionIsNotRetryable(Response response, Exception exception) {
-        boolean responseIs503 = response.status() == 503;
-        boolean isRetryableException = exception instanceof RetryableException;
-        return responseIs503 && !isRetryableException;
+        return (response.status() == 503) && !isExceptionIsRetryable(exception);
+    }
+
+    private boolean response429ButExceptionIsNotRetryable(Response response, Exception exception) {
+        return (response.status() == 429) && !isExceptionIsRetryable(exception);
+    }
+
+    private boolean isExceptionIsRetryable(Exception exception) {
+        return exception instanceof RetryableException;
     }
 }
