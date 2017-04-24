@@ -44,7 +44,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TimeLockMigratorTest {
-    private static final int PORT = 8080;
+    private static final int PORT = 8082; // needs to be different from port in AtlasDbHttpClientsTest to avoid flakes
     private static final long BACKUP_TIMESTAMP = 42;
     private static final String TEST_ENDPOINT = "/testClient/timestamp-management/fast-forward?currentTimestamp="
             + BACKUP_TIMESTAMP;
