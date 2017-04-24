@@ -47,6 +47,7 @@ public class AtlasDbRemoteException extends RuntimeException {
 
     @Override
     public String toString() {
+        // Implemented in this way for consistency with http-remoting RemoteException#toString.
         return super.toString() + remoteException.toString();
     }
 }
