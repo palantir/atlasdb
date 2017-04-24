@@ -54,32 +54,17 @@ public class SerializableErrorDecoderTest {
 
     @Test
     public void canDecodeExceptionOfKnownType() throws JsonProcessingException {
-        SerializableError serializableError = SerializableError.of(EXCEPTION_MESSAGE, KNOWN_ERROR_NAME);
-        Response response = createResponseForEntity(serializableError);
-
-        Exception exception = decoder.decode(SOME_METHOD_KEY, response);
-        assertThat(exception).isInstanceOf(AtlasDbRemoteException.class)
-                .satisfies(remoteException -> assertHasErrorName(remoteException, KNOWN_ERROR_NAME));
+        assertCanSerializeAndDeserializeErrorWithName(KNOWN_ERROR_NAME);
     }
 
     @Test
     public void canDecodeExceptionOfUnknownType() throws JsonProcessingException {
-        SerializableError serializableError = SerializableError.of(EXCEPTION_MESSAGE, UNKNOWN_ERROR_NAME);
-        Response response = createResponseForEntity(serializableError);
-
-        Exception exception = decoder.decode(SOME_METHOD_KEY, response);
-        assertThat(exception).isInstanceOf(AtlasDbRemoteException.class)
-                .satisfies(remoteException -> assertHasErrorName(remoteException, UNKNOWN_ERROR_NAME));
+        assertCanSerializeAndDeserializeErrorWithName(UNKNOWN_ERROR_NAME);
     }
 
     @Test
     public void canDecodeExceptionBelievedToNotBeAnExceptionType() throws JsonProcessingException {
-        SerializableError serializableError = SerializableError.of(EXCEPTION_MESSAGE, NOT_ERROR_NAME);
-        Response response = createResponseForEntity(serializableError);
-
-        Exception exception = decoder.decode(SOME_METHOD_KEY, response);
-        assertThat(exception).isInstanceOf(AtlasDbRemoteException.class)
-                .satisfies(remoteException -> assertHasErrorName(remoteException, NOT_ERROR_NAME));
+        assertCanSerializeAndDeserializeErrorWithName(NOT_ERROR_NAME);
     }
 
     @Test
@@ -105,6 +90,15 @@ public class SerializableErrorDecoderTest {
         Response response = createResponseForEntity(lockRequest);
 
         assertCanDecodeRuntimeException(response);
+    }
+
+    private void assertCanSerializeAndDeserializeErrorWithName(String errorName) throws JsonProcessingException {
+        SerializableError serializableError = SerializableError.of(EXCEPTION_MESSAGE, errorName);
+        Response response = createResponseForEntity(serializableError);
+
+        Exception exception = decoder.decode(SOME_METHOD_KEY, response);
+        assertThat(exception).isInstanceOf(AtlasDbRemoteException.class)
+                .satisfies(remoteException -> assertHasErrorName(remoteException, errorName));
     }
 
     private static Response createResponseForEntity(Object entity) throws JsonProcessingException {
