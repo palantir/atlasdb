@@ -38,7 +38,6 @@ public class CassandraConnectionIntegrationTest {
             .copyOf(CassandraContainer.KVS_CONFIG)
             .withCredentials(Optional.absent());
 
-
     @Test
     public void testAuthProvided() {
         CassandraKeyValueService.create(
