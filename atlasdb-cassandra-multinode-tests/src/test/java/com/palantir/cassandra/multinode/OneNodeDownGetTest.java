@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -121,5 +122,10 @@ public class OneNodeDownGetTest {
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableSet.of(OneNodeDownTestSuite.CELL_1_1), Long.MAX_VALUE))
                 .isExactlyInstanceOf(PalantirRuntimeException.class);
+    }
+
+    @Test
+    public void nodeAvailabilityStatusIsQuorum() {
+        assertEquals(OneNodeDownTestSuite.db.getNodeAvailabilityStatus(), NodeAvailabilityStatus.EACH_QUORUM_AVAILABLE);
     }
 }
