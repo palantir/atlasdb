@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.http;
+package com.palantir.atlasdb.http.errors;
 
 import com.palantir.remoting2.errors.RemoteException;
 

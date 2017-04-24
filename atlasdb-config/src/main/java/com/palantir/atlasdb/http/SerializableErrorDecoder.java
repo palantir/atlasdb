@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HttpHeaders;
+import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.common.remoting.HeaderAccessUtils;
 import com.palantir.remoting2.errors.RemoteException;
 import com.palantir.remoting2.errors.SerializableErrorToExceptionConverter;

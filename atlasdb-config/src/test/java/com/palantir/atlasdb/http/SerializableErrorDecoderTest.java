@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.net.HttpHeaders;
+import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
