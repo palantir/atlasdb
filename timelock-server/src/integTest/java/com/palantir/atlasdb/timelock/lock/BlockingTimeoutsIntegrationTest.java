@@ -34,6 +34,7 @@ public class BlockingTimeoutsIntegrationTest {
     private static final ObjectMapper OBJECT_MAPPER = Jackson.newObjectMapper(new YAMLFactory());
 
     private static final int MILLIS_PER_SECOND = 1000;
+    private static final int SECONDS_IN_ONE_DAY = 86400;
 
     @Test
     public void returnsDefaultBlockingTimeoutWithConnectorsWithoutIdleTimeouts() throws IOException {
@@ -46,7 +47,7 @@ public class BlockingTimeoutsIntegrationTest {
     public void returnsBlockingTimeoutWithConnectorWithIdleTimeouts() throws IOException {
         assertThat(BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, getConfigurationFromResource(
                 "lock/one-specified-timeout.yml")))
-                .isEqualTo(BlockingTimeouts.scaleForErrorMargin(86400 * MILLIS_PER_SECOND));
+                .isEqualTo(BlockingTimeouts.scaleForErrorMargin(SECONDS_IN_ONE_DAY * MILLIS_PER_SECOND));
     }
 
     @Test
@@ -59,7 +60,7 @@ public class BlockingTimeoutsIntegrationTest {
     @Test
     public void returnsDefaultBlockingTimeoutIfConnectorWithoutSpecifiedIdleTimeoutIsMinimal() throws IOException {
         assertThat(BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, getConfigurationFromResource(
-                "lock/one-specified-one-implicit-timeout.yml")))
+                "lock/one-default-one-higher-explicit-timeout.yml")))
                 .isEqualTo(BlockingTimeouts.getDefaultBlockingTimeout());
     }
 

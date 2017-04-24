@@ -24,10 +24,19 @@ public final class ExceptionMappers {
         // utility
     }
 
+    /**
+     * Returns a 503 response, with a JSON-serialized form of the causing exception as the body, and an appropriate
+     * HTTP header (Content-Type: application/json).
+     */
     public static Response encode503ResponseWithoutRetryAfter(Exception exception) {
         return encode503ResponseInternal(exception).build();
     }
 
+    /**
+     * Returns a 503 response, with a JSON-serialized form of the causing exception as the body, and an appropriate
+     * HTTP header (Content-Type: application/json). In addition, we also include a Retry-After header with a zero
+     * value.
+     */
     public static Response encode503ResponseWithRetryAfter(Exception exception) {
         return encode503ResponseInternal(exception)
                 .header(HttpHeaders.RETRY_AFTER, "0")

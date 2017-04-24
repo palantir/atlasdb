@@ -45,14 +45,18 @@ public class BlockingTimeoutsTest {
     public void scaleForErrorMarginReducesTimeoutSlightly() {
         assertThat(BlockingTimeouts.scaleForErrorMargin(ONE_MILLION))
                 .isLessThan(ONE_MILLION)
-                .isEqualTo(970_000);
+                .isEqualTo(scaleForErrorMarginReferenceImplementation(ONE_MILLION));
     }
 
     @Test
     public void scaleForErrorMarginScalesProportionalToTimeoutValue() {
         assertThat(BlockingTimeouts.scaleForErrorMargin(FIVE_HUNDRED))
                 .isGreaterThan(0)
-                .isEqualTo(485);
+                .isEqualTo(scaleForErrorMarginReferenceImplementation(FIVE_HUNDRED));
+    }
+
+    @Test
+    public void scaleForErrorMarginDoesNotReduceAlreadySmallTimeouts() {
         assertThat(BlockingTimeouts.scaleForErrorMargin(FIVE))
                 .isGreaterThan(0)
                 .isEqualTo(FIVE);
@@ -63,5 +67,9 @@ public class BlockingTimeoutsTest {
         TimeLockServerConfiguration basicConfiguration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS);
         assertThat(BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, basicConfiguration))
                 .isEqualTo(BlockingTimeouts.getDefaultBlockingTimeout());
+    }
+
+    private static long scaleForErrorMarginReferenceImplementation(long idleTimeout) {
+        return Math.round(idleTimeout * (1 - BlockingTimeouts.ERROR_MARGIN));
     }
 }
