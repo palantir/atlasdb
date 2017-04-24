@@ -64,8 +64,9 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
     *    - |improved| |devbreak|
-         - The format of exception messages has been brought in line with that of the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
+         - The format of serialised exceptions occurring on a remote host has been brought in line with that of the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
            This should generally improve readability and also allows for more meaningful messages to be sent; we would previously return message bodies with no content for some exceptions (such as ``NotCurrentLeaderException``).
+           This does mean that clients which rely on catching ``FeignException`` should now catch ``AtlasDbRemoteException`` instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
 
     *    - |fixed| |devbreak|

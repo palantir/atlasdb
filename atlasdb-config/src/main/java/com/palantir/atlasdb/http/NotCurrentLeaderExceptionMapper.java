@@ -26,6 +26,10 @@ import com.palantir.leader.NotCurrentLeaderException;
  * @author carrino
  */
 public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
+
+    /**
+     * Returns a 503 response, with body corresponding to the serialized exception.
+     */
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
         return ExceptionMappers.encode503ResponseWithRetryAfter(exception);

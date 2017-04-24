@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +37,8 @@ public final class BlockingTimeouts {
 
     public static final long DEFAULT_IDLE_TIMEOUT = 30 * 1000;
 
-    private static final double ERROR_MARGIN = 0.03;
+    @VisibleForTesting
+    static final double ERROR_MARGIN = 0.03;
 
     private static final String SERVER = "server";
     private static final String APPLICATION_CONNECTORS = "applicationConnectors";
@@ -59,9 +61,7 @@ public final class BlockingTimeouts {
             long minimumTimeout = getMinimumTimeout(connectorData);
             return scaleForErrorMargin(minimumTimeout);
         } catch (IOException e) {
-            log.warn("Couldn't figure out the idle timeout from configuration. Will assume this to be the"
-                    + " default of {} ms", DEFAULT_IDLE_TIMEOUT);
-            return getDefaultBlockingTimeout();
+            return logAndGetDefault();
         }
     }
 
@@ -78,11 +78,21 @@ public final class BlockingTimeouts {
     }
 
     private static long getMinimumTimeout(List<Map<String, String>> connectorData) {
-        return connectorData.stream()
+        Optional<Long> minimum = connectorData.stream()
                 .map(connectorDatum -> connectorDatum.get(IDLE_TIMEOUT))
                 .map(idleTimeout -> Duration.parse(idleTimeout).toMilliseconds())
-                .min(Long::compareTo)
-                .orElse(DEFAULT_IDLE_TIMEOUT);
+                .min(Long::compareTo);
+
+        if (minimum.isPresent()) {
+            return minimum.get();
+        }
+        return logAndGetDefault();
+    }
+
+    private static long logAndGetDefault() {
+        log.warn("Couldn't figure out the idle timeout from configuration. Will assume this to be the"
+                + " default of {} ms", DEFAULT_IDLE_TIMEOUT);
+        return getDefaultBlockingTimeout();
     }
 
     @VisibleForTesting
