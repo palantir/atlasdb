@@ -34,7 +34,6 @@ import com.google.common.collect.Iterables;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
@@ -43,6 +42,7 @@ import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.DockerComposeRunOption;
 import com.palantir.docker.compose.logging.LogDirectory;
+import com.palantir.docker.proxy.DockerProxyRule;
 
 // **** Important: Some internal tests depend on this class,
 // please recompile them if any breaking changes are made to the setup ***
@@ -95,7 +95,7 @@ public class EteSetup {
                 .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
                 .build();
 
-        DockerProxyRule dockerProxyRule = new DockerProxyRule(docker.projectName(), eteClass);
+        DockerProxyRule dockerProxyRule = DockerProxyRule.fromProjectName(docker.projectName(), eteClass);
 
         return RuleChain
                 .outerRule(GRADLE_PREPARE_TASK)

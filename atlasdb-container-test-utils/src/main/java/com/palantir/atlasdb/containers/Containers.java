@@ -35,7 +35,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
-import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.DockerComposeFiles;
 import com.palantir.docker.compose.configuration.ProjectName;
@@ -43,11 +42,12 @@ import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.logging.LogCollector;
 import com.palantir.docker.compose.logging.LogDirectory;
+import com.palantir.docker.proxy.DockerProxyRule;
 
 public class Containers extends ExternalResource {
     private static final ProjectName PROJECT_NAME = ProjectName.fromString("atlasdbcontainers");
     @VisibleForTesting
-    static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(PROJECT_NAME, Container.class);
+    static final DockerProxyRule DOCKER_PROXY_RULE = DockerProxyRule.fromProjectName(PROJECT_NAME, Container.class);
 
     private static final Set<Container> containersToStart = new HashSet<>();
     private static final Set<Container> containersStarted = new HashSet<>();
