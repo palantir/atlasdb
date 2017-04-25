@@ -125,7 +125,7 @@ public class AtlasDbErrorDecoderTest {
     }
 
     @Test
-    public void shouldDelegateToDefaultDecoderWhenNot503Nor429AndRetryableException() {
+    public void shouldDelegateToDefaultDecoderWhenNeither503Nor429AndRetryableException() {
         Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_NOT_503_NOR_429, RETRYABLE_EXCEPTION);
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
         assertThat(exception, is(sameInstance(RETRYABLE_EXCEPTION)));
