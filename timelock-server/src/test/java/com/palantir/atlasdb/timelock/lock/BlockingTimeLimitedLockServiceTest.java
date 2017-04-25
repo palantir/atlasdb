@@ -64,7 +64,7 @@ public class BlockingTimeLimitedLockServiceTest {
     }
 
     @Test
-    public void delegatesNonInterruptibleOperations() {
+    public void delegatesUninterruptibleOperations() {
         verifyCurrentTimeMillisDelegates(acceptingService);
     }
 
@@ -120,7 +120,10 @@ public class BlockingTimeLimitedLockServiceTest {
         }
 
         @Override
-        public <T> T callWithTimeout(Callable<T> callable, long timeoutDuration, TimeUnit timeoutUnit,
+        public <T> T callWithTimeout(
+                Callable<T> callable,
+                long timeoutDuration,
+                TimeUnit timeoutUnit,
                 boolean interruptible) throws Exception {
             throw primedException;
         }
