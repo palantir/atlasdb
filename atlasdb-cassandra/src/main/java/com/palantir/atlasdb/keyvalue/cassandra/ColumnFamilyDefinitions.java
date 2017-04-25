@@ -18,13 +18,11 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.ColumnDef;
 import org.apache.cassandra.thrift.TriggerDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -35,9 +33,6 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.exception.PalantirRuntimeException;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 final class ColumnFamilyDefinitions {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
 
@@ -51,6 +46,7 @@ final class ColumnFamilyDefinitions {
      *
      *  Warning to developers: you must update CKVS.isMatchingCf if you update this method
      */
+    @SuppressWarnings("CyclomaticComplexity")
     static CfDef getCfDef(String keyspace, TableReference tableRef, byte[] rawMetadata) {
         Map<String, String> compressionOptions = Maps.newHashMap();
         CfDef cf = getStandardCfDef(keyspace, AbstractKeyValueService.internalTableName(tableRef));
@@ -158,6 +154,7 @@ final class ColumnFamilyDefinitions {
     // because unfortunately .equals takes into account if fields with defaults are populated or not
     // also because compression_options after serialization / deserialization comes back as blank
     // for the ones we set 4K chunk on... ?!
+    @SuppressWarnings("CyclomaticComplexity")
     static boolean isMatchingCf(CfDef clientSide, CfDef clusterSide) {
         String tableName = clientSide.name;
         if (!Objects.equal(clientSide.compaction_strategy_options, clusterSide.compaction_strategy_options)) {

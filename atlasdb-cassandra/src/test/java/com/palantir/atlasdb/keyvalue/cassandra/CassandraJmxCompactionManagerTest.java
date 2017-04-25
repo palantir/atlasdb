@@ -45,7 +45,7 @@ public class CassandraJmxCompactionManagerTest {
     private static final TableReference TEST_TABLE_NAME = TableReference.createWithEmptyNamespace("testTableName");
 
     @Before
-    public void setUp() {
+    public void before() {
         CassandraJmxCompactionClient jmxCompactionClient = mock(CassandraJmxCompactionClient.class);
         mockedClients = ImmutableSet.of(jmxCompactionClient);
         exec = Executors.newFixedThreadPool(

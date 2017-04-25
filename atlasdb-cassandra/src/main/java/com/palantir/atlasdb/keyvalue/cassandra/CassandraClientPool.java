@@ -90,6 +90,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *   RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
  *   ... this is one of the reasons why there is a new system.
  **/
+@SuppressWarnings("VisibilityModifier")
 public class CassandraClientPool {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
     /**

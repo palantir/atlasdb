@@ -35,7 +35,7 @@ public class CassandraTimestampStoreInvalidatorTest {
             = new CassandraTimestampStoreInvalidator(backupRunner);
 
     @Before
-    public void setUp() {
+    public void before() {
         when(backupRunner.backupExistingTimestamp()).thenReturn(BACKUP_TIMESTAMP);
     }
 

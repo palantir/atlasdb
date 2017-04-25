@@ -45,7 +45,7 @@ public class CassandraJmxCompactionClientTest {
     private static final TableReference TEST_TABLE_NAME = TableReference.createWithEmptyNamespace("testTableName");
 
     @Before
-    public void setUp() {
+    public void before() {
         jmxConnector = mock(JMXConnector.class);
         storageServiceProxy = mock(StorageServiceMBean.class);
         hintedHandoffProxy = mock(HintedHandOffManagerMBean.class);

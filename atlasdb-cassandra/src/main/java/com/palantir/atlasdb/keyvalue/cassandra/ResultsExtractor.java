@@ -36,6 +36,7 @@ import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class ResultsExtractor<T, U> {
+    @SuppressWarnings("VisibilityModifier")
     protected final T collector;
 
     ResultsExtractor(T collector) {

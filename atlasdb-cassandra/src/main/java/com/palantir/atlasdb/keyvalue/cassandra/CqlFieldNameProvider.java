@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 
 public class CqlFieldNameProvider {
-    boolean isScylla;
+    private boolean isScylla;
 
     public CqlFieldNameProvider(CassandraKeyValueServiceConfig config) {
         isScylla = config.scyllaDb();

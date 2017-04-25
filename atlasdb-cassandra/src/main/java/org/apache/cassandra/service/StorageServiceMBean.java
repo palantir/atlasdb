@@ -28,6 +28,7 @@ import java.util.concurrent.TimeoutException;
 import javax.management.NotificationEmitter;
 import javax.management.openmbean.TabularData;
 
+@SuppressWarnings("AbbreviationAsWordInName")
 public interface StorageServiceMBean extends NotificationEmitter {
     /**
      * Retrieve the list of live nodes in the cluster, where "liveness" is

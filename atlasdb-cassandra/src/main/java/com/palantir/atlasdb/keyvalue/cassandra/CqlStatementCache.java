@@ -22,11 +22,12 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
-public class CQLStatementCache {
+@SuppressWarnings("VisibilityModifier")
+public class CqlStatementCache {
     final Session session;
     final Session longRunningQuerySession;
 
-    CQLStatementCache(Session session, Session longRunningQuerySession) {
+    CqlStatementCache(Session session, Session longRunningQuerySession) {
         this.session = session;
         this.longRunningQuerySession = longRunningQuerySession;
     }

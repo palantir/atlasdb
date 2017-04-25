@@ -36,7 +36,7 @@ public final class CassandraKeyValueServiceConfigManager {
     private final long initDelay;
     private final long refreshInterval;
     private CassandraKeyValueServiceConfig config;
-    boolean isShutdown = false;
+    private boolean isShutdown = false;
 
     private static final long DEFAULT_INIT_DELAY = 1000 * 60;
     private static final long DEFAULT_REFRESH_INTERVAL = 1000 * 10;
