@@ -32,6 +32,7 @@ import com.palantir.remoting.ssl.SslConfiguration;
 @JsonDeserialize(as = ImmutableLeaderConfig.class)
 @JsonSerialize(as = ImmutableLeaderConfig.class)
 @Value.Immutable
+@SuppressWarnings("DesignForExtension")
 public abstract class LeaderConfig {
 
     public abstract int quorumSize();

@@ -1420,8 +1420,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, CellConflict> cellToConflict = Maps.newHashMap();
         Map<Cell, Long> cellToTs = Maps.newHashMap();
         for (CellConflict c : Sets.union(spanningWrites, dominatingWrites)) {
-            cellToConflict.put(c.cell, c);
-            cellToTs.put(c.cell, c.theirStart + 1);
+            cellToConflict.put(c.getCell(), c);
+            cellToTs.put(c.getCell(), c.getTheirStart() + 1);
         }
 
         Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(table, cellToTs.keySet());

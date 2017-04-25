@@ -40,11 +40,12 @@ public final class TransactionConflictException extends TransactionFailedRetriab
     public static class CellConflict implements Serializable {
         private static final long serialVersionUID = 1L;
 
-        public final Cell cell;
-        public final String cellString;
-        public final long theirStart;
-        public final long theirCommit;
+        private final Cell cell;
+        private final String cellString;
 
+        private final long theirStart;
+
+        private final long theirCommit;
         public CellConflict(Cell cell, long theirStart, long theirCommit) {
             this.cell = cell;
             this.cellString = cell.toString();
@@ -59,20 +60,28 @@ public final class TransactionConflictException extends TransactionFailedRetriab
             this.theirCommit = theirCommit;
         }
 
-        @Override
-        public String toString() {
-            return "CellConflict [cell=" + cellString
-                    + ", theirStart=" + theirStart
-                    + ", theirCommit=" + theirCommit + "]";
+        public final Cell getCell() {
+            return cell;
+        }
+
+        public final long getTheirStart() {
+            return theirStart;
         }
 
         public static Function<CellConflict, Cell> getCellFunction() {
             return input -> input.cell;
         }
+
+        @Override
+        public final String toString() {
+            return "CellConflict [cell=" + cellString
+                    + ", theirStart=" + theirStart
+                    + ", theirCommit=" + theirCommit + "]";
+        }
     }
 
-    final ImmutableList<CellConflict> spanningWrites;
-    final ImmutableList<CellConflict> dominatingWrites;
+    private final ImmutableList<CellConflict> spanningWrites;
+    private final ImmutableList<CellConflict> dominatingWrites;
 
     /**
      * These conflicts had a start timestamp before our start and a commit timestamp after our start.
