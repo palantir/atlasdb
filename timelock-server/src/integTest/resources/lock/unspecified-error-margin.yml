@@ -10,12 +10,7 @@ cluster:
 algorithm:
   type: paxos
 
-lockServiceTimeoutMargin: 0.03
-
 server:
   applicationConnectors:
     - type: http
       port: 8080
-    - type: https
-      port: 808
-      idleTimeout: 90 seconds

@@ -35,27 +35,27 @@ public class TimeLockServerConfiguration extends Configuration {
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
     private final boolean useClientRequestLimit;
-    private final Double lockServiceTimeoutMargin;
+    private final TimeLimiterConfiguration timeLimiterConfiguration;
 
     public TimeLockServerConfiguration(
             @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients,
             @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit,
-            @JsonProperty(value = "lockServiceTimeoutMargin", required = false) Double lockServiceTimeoutMargin) {
+            @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration) {
         Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
         checkClientNames(clients);
         if (Boolean.TRUE.equals(useClientRequestLimit)) {
             Preconditions.checkState(computeNumberOfAvailableThreads() > 0,
                     "Configuration enables clientRequestLimit but specifies non-positive number of available threads.");
         }
-        checkLockServiceTimeoutMargin(lockServiceTimeoutMargin);
 
         this.algorithm = MoreObjects.firstNonNull(algorithm, AtomixConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
-        this.lockServiceTimeoutMargin = lockServiceTimeoutMargin; // null means don't do timeouts at all
+        this.timeLimiterConfiguration =
+                MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
     }
 
     private void checkClientNames(Set<String> clientNames) {
@@ -66,15 +66,6 @@ public class TimeLockServerConfiguration extends Configuration {
         Preconditions.checkState(!clientNames.contains(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
                 String.format("The namespace '%s' is reserved for the leader election service. Please use a different"
                         + " name.", PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE));
-    }
-
-    private void checkLockServiceTimeoutMargin(Double timeoutMargin) {
-        if (timeoutMargin != null) {
-            Preconditions.checkState(timeoutMargin > 0,
-                    "Lock service timeout margin, if specified, must be strictly positive.");
-            Preconditions.checkState(timeoutMargin < 1,
-                    "Lock service timeout margin, if specified, must be strictly less than 1.");
-        }
     }
 
     public TimeLockAlgorithmConfiguration algorithm() {
@@ -100,6 +91,10 @@ public class TimeLockServerConfiguration extends Configuration {
 
     public boolean useClientRequestLimit() {
         return useClientRequestLimit;
+    }
+
+    public TimeLimiterConfiguration timeLimiterConfiguration() {
+        return timeLimiterConfiguration;
     }
 
     public int availableThreads() {

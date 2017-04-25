@@ -64,7 +64,6 @@ import com.squareup.okhttp.Response;
 import io.dropwizard.testing.ResourceHelpers;
 
 public class PaxosTimeLockServerIntegrationTest {
-    private static final String NOT_FOUND_CODE = "404";
     private static final String TOO_MANY_REQUESTS_CODE = "429";
 
     private static final String CLIENT_1 = "test";

@@ -10,6 +10,8 @@ cluster:
 algorithm:
   type: paxos
 
+lockServiceTimeoutMargin: 0.03
+
 server:
   applicationConnectors:
     - type: http

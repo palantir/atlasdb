@@ -25,10 +25,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.config.ClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.ImmutableClusterConfiguration;
+import com.palantir.atlasdb.timelock.config.ImmutableTimeLimiterConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 
 public class BlockingTimeoutsTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private static final double TEST_ERROR_MARGIN = 0.09;
 
     private static final String ADDRESS = "localhost:8701";
     private static final ClusterConfiguration CLUSTER = ImmutableClusterConfiguration.builder()
@@ -43,34 +46,42 @@ public class BlockingTimeoutsTest {
 
     @Test
     public void scaleForErrorMarginReducesTimeoutSlightly() {
-        assertThat(BlockingTimeouts.scaleForErrorMargin(ONE_MILLION))
+        assertThat(BlockingTimeouts.scaleForErrorMargin(ONE_MILLION, TEST_ERROR_MARGIN))
                 .isLessThan(ONE_MILLION)
-                .isEqualTo(scaleForErrorMarginReferenceImplementation(ONE_MILLION));
+                .isEqualTo(scaleForErrorMarginReferenceImplementation(ONE_MILLION, TEST_ERROR_MARGIN));
     }
 
     @Test
     public void scaleForErrorMarginScalesProportionalToTimeoutValue() {
-        assertThat(BlockingTimeouts.scaleForErrorMargin(FIVE_HUNDRED))
+        assertThat(BlockingTimeouts.scaleForErrorMargin(FIVE_HUNDRED, TEST_ERROR_MARGIN))
                 .isGreaterThan(0)
-                .isEqualTo(scaleForErrorMarginReferenceImplementation(FIVE_HUNDRED));
+                .isEqualTo(scaleForErrorMarginReferenceImplementation(FIVE_HUNDRED, TEST_ERROR_MARGIN));
     }
 
     @Test
     public void scaleForErrorMarginDoesNotReduceAlreadySmallTimeouts() {
-        assertThat(BlockingTimeouts.scaleForErrorMargin(FIVE))
+        assertThat(BlockingTimeouts.scaleForErrorMargin(FIVE, TEST_ERROR_MARGIN))
                 .isGreaterThan(0)
                 .isEqualTo(FIVE);
     }
 
     @Test
     public void returnsDefaultBlockingTimeoutWithNoSpecifiedConnectors() {
-        TimeLockServerConfiguration basicConfiguration
-                = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, null);
+        TimeLockServerConfiguration basicConfiguration = new TimeLockServerConfiguration(
+                null,
+                CLUSTER,
+                CLIENTS,
+                null,
+                ImmutableTimeLimiterConfiguration.of(true, TEST_ERROR_MARGIN));
+
+        long expectedMargin = scaleForErrorMarginReferenceImplementation(
+                BlockingTimeouts.DEFAULT_IDLE_TIMEOUT,
+                TEST_ERROR_MARGIN);
         assertThat(BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, basicConfiguration))
-                .isEqualTo(BlockingTimeouts.getDefaultBlockingTimeout());
+                .isEqualTo(expectedMargin);
     }
 
-    private static long scaleForErrorMarginReferenceImplementation(long idleTimeout) {
-        return Math.round(idleTimeout * (1 - BlockingTimeouts.ERROR_MARGIN));
+    private static long scaleForErrorMarginReferenceImplementation(long idleTimeout, double errorMargin) {
+        return Math.round(idleTimeout * (1 - errorMargin));
     }
 }
