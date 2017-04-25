@@ -69,8 +69,6 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
 
-    private long blockingTimeout;
-
     public PaxosTimeLockServer(PaxosConfiguration configuration, Environment environment) {
         this.paxosConfiguration = configuration;
         this.environment = environment;
@@ -78,8 +76,6 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     @Override
     public void onStartup(TimeLockServerConfiguration configuration) {
-        blockingTimeout = BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), configuration);
-
         registerPaxosResource();
 
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
@@ -184,9 +180,14 @@ public class PaxosTimeLockServer implements TimeLockServer {
             }
         };
 
-        return BlockingTimeLimitedLockService.create(
-                LockServiceImpl.create(lockServerOptions),
-                BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), timeLockServerConfiguration));
+        LockService rawLockService = LockServiceImpl.create(lockServerOptions);
+
+        if (timeLockServerConfiguration.timeLimiterConfiguration().enableTimeLimiting()) {
+            return BlockingTimeLimitedLockService.create(
+                    rawLockService,
+                    BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), timeLockServerConfiguration));
+        }
+        return rawLockService;
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {

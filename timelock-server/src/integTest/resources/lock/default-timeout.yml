@@ -12,8 +12,7 @@ algorithm:
 
 timeLimiter:
   enableTimeLimiting: true
-  blockingTimeoutErrorMargin:
-    0.03
+  blockingTimeoutErrorMargin: 0.03
 
 server:
   applicationConnectors:

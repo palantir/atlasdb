@@ -68,10 +68,10 @@ public class BlockingTimeoutsIntegrationTest {
     }
 
     @Test
-    public void throwsIfAttemptingToObtainBlockingTimeoutFromConfigurationWithoutErrorMargin() throws IOException {
+    public void cannotGetBlockingTimeoutIfTimeLimitNotEnabled() throws IOException {
         assertThatThrownBy(() -> BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, getConfigurationFromResource(
-                "lock/unspecified-error-margin.yml")))
-                .isInstanceOf(NullPointerException.class);
+                "lock/time-limiting-disabled.yml")))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     private TimeLockServerConfiguration getConfigurationFromResource(String fileName) throws IOException {
