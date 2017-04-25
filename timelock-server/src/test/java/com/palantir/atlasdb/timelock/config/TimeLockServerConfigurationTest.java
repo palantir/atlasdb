@@ -35,26 +35,25 @@ public class TimeLockServerConfigurationTest {
 
     @Test
     public void shouldAddDefaultConfigurationIfNotIncluded() {
-        TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS);
+        TimeLockServerConfiguration configuration = createSimpleConfig(CLUSTER, CLIENTS);
         assertThat(configuration.algorithm()).isEqualTo(ImmutableAtomixConfiguration.DEFAULT);
     }
 
     @Test
     public void shouldRequireAtLeastOneClient() {
-        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of()))
+        assertThatThrownBy(() -> createSimpleConfig(CLUSTER, ImmutableSet.of()))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void shouldRejectClientsWithInvalidCharacters() {
-        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of("/")))
+        assertThatThrownBy(() -> createSimpleConfig(CLUSTER, ImmutableSet.of("/")))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void shouldRejectClientsConflictingWithInternalClients() {
-        assertThatThrownBy(() -> new TimeLockServerConfiguration(
-                null,
+        assertThatThrownBy(() -> createSimpleConfig(
                 CLUSTER,
                 ImmutableSet.of(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE)))
                 .isInstanceOf(IllegalStateException.class);
@@ -62,7 +61,11 @@ public class TimeLockServerConfigurationTest {
 
     @Test
     public void shouldRejectClientsWithEmptyName() {
-        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of("")))
+        assertThatThrownBy(() -> createSimpleConfig(CLUSTER, ImmutableSet.of("")))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    private static TimeLockServerConfiguration createSimpleConfig(ClusterConfiguration cluster, Set<String> clients) {
+        return new TimeLockServerConfiguration(null, cluster, clients, null);
     }
 }
