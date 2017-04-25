@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -107,7 +107,7 @@ public class BlockingTimeLimitedLockServiceTest {
         return new BlockingTimeLimitedLockService(delegate, limiter, BLOCKING_TIME_LIMIT_MILLIS);
     }
 
-    private static class ThrowingTimeLimiter implements TimeLimiter {
+    private static final class ThrowingTimeLimiter implements TimeLimiter {
         private final Exception primedException;
 
         private ThrowingTimeLimiter(Exception primedException) {
