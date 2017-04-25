@@ -45,6 +45,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -273,14 +274,14 @@ public class PaxosTimeLockServerIntegrationTest {
     public void returnsNotFoundOnQueryingNonexistentClient() {
         RemoteLockService lockService = getLockService(NONEXISTENT_CLIENT);
         assertThatThrownBy(lockService::currentTimeMillis)
-                .hasMessageContaining(NOT_FOUND_CODE);
+                .satisfies(PaxosTimeLockServerIntegrationTest::assertRemoteNotFoundException);
     }
 
     @Test
     public void returnsNotFoundOnQueryingTimestampWithNonexistentClient() {
         TimestampService nonExistentTimestampService = getTimestampService(NONEXISTENT_CLIENT);
         assertThatThrownBy(nonExistentTimestampService::getFreshTimestamp)
-                .hasMessageContaining(NOT_FOUND_CODE);
+                .satisfies(PaxosTimeLockServerIntegrationTest::assertRemoteNotFoundException);
     }
 
     @Test
@@ -359,5 +360,12 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static String getRootUriForClient(String client) {
         return String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
+    }
+
+    private static void assertRemoteNotFoundException(Throwable throwable) {
+        assertThat(throwable).isInstanceOf(AtlasDbRemoteException.class);
+
+        AtlasDbRemoteException remoteException = (AtlasDbRemoteException) throwable;
+        assertThat(remoteException.getStatus()).isEqualTo(HttpStatus.NOT_FOUND_404);
     }
 }
