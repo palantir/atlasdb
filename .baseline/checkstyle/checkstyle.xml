@@ -44,6 +44,11 @@
     </module>
     <module name="SuppressWarningsFilter"/> <!-- baseline-gradle: README.md -->
     <module name="SuppressionCommentFilter"/> <!-- baseline-gradle: README.md -->
+    <module name="SuppressionCommentFilter">
+        <property name="offCommentFormat" value="CHECKSTYLE.OFF\: ([\w\|]+)"/>
+        <property name="onCommentFormat" value="CHECKSTYLE.ON\: ([\w\|]+)"/>
+        <property name="checkFormat" value="$1"/>
+    </module>
     <module name="TreeWalker">
         <module name="AbbreviationAsWordInName"> <!-- Java Style Guide: Camel case : defined -->
             <property name="ignoreFinal" value="false"/>
@@ -67,6 +72,9 @@
             <property name="allowInSwitchCase" value="true"/>
         </module>
         <module name="AvoidStarImport"/> <!-- Java Style Guide: No wildcard imports -->
+        <module name="AvoidStaticImport"> <!-- Java Style Guide: No static imports -->
+            <property name="excludes" value="org.junit.Assert.*,org.junit.Assume.*,org.hamcrest.Matchers.*,org.mockito.ArgumentMatchers.*,org.mockito.Mockito.*,org.mockito.Matchers.*,org.assertj.core.api.Assertions.*,com.google.common.base.Preconditions.*,org.apache.commons.lang3.Validate.*,com.google.common.truth.Truth.*"/>
+        </module>
         <module name="ClassTypeParameterName"> <!-- Java Style Guide: Type variable names -->
             <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>
             <message key="name.invalidPattern" value="Class type name ''{0}'' must match pattern ''{1}''."/>
@@ -88,6 +96,7 @@
         <module name="EqualsHashCode"/>
         <module name="FallThrough"/> <!-- Java Style Guide: Fall-through: commented -->
         <module name="FileContentsHolder"/> <!-- Required for SuppressionCommentFilter -->
+        <module name="FinalClass"/> <!-- Java Coding Guidelines: Private constructors -->
         <module name="GenericWhitespace"> <!-- Java Style Guide: Horizontal whitespace -->
             <message key="ws.followed" value="GenericWhitespace ''{0}'' is followed by whitespace."/>
             <message key="ws.preceded" value="GenericWhitespace ''{0}'' is preceded with whitespace."/>
@@ -166,7 +175,6 @@
         </module>
         <module name="MethodParamPad"/> <!-- Java Style Guide: Horizontal whitespace -->
         <module name="MissingDeprecated"/> <!-- Java Coding Guide: Deprecate per annotation and Javadoc -->
-        <module name="MissingSwitchDefault"/> <!-- Java Style Guide: The default case is present -->
         <module name="ModifiedControlVariable"/> <!-- Java Coding Guide: For-loop control variables: never modified -->
         <module name="ModifierOrder"/> <!-- Java Style Guide: Modifiers -->
         <module name="MultipleVariableDeclarations"/> <!-- Java Style Guide: One variable per declaration -->
@@ -244,6 +252,18 @@
             <property name="format" value="CoreMatchers\.notNull"/>
             <property name="message" value="Use better assertion method(s): Assert.assertEquals(), assertNull(), assertSame(), etc."/>
         </module>
+        <module name="RegexpSinglelineJava"> <!-- Java Coding Guidelines: Avoid Generics clutter where possible -->
+            <property name="format" value="ImmutableList\.Builder.*new ImmutableList\.Builder"/>
+            <property name="message" value="Use ImmutableList.builder() for variable assignment."/>
+        </module>
+        <module name="RegexpSinglelineJava"> <!-- Java Coding Guidelines: Avoid Generics clutter where possible -->
+            <property name="format" value="ImmutableMap\.Builder.*new ImmutableMap\.Builder"/>
+            <property name="message" value="Use ImmutableMap.builder() for variable assignment."/>
+        </module>
+        <module name="RegexpSinglelineJava"> <!-- Java Coding Guidelines: Avoid Generics clutter where possible -->
+            <property name="format" value="ImmutableSet\.Builder.*new ImmutableSet\.Builder"/>
+            <property name="message" value="Use ImmutableSet.builder() for variable assignment."/>
+        </module>
         <module name="RegexpSinglelineJava"> <!-- Java Coding Guidelines: Check parameters for validity -->
             <property name="format" value="Preconditions\.checkNotNull\((?!.*,)([^()]*(\(([^()]*|\(([^()]*|\([^()]*\))*\))*\)[^()]*)*)\)"/>
             <property name="message" value="Use Preconditions.checkNotNull(Object, String)."/>
@@ -299,10 +319,21 @@
             <property name="format" value="static enum"/>
             <property name="message" value="Redundant ''static'' modifier."/>
         </module>
-        <module name="RightCurly"/> <!-- Java Style Guide: Nonempty blocks: K & R style -->
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="(\/\/TODO)|(\/\/ TODO:)|(\/\/ TODO\(\))|(\/\/ TODO\(.*\):[^ ])|(\/\/ TODO\(.*\)[^:])"/>
+            <property name="message" value="TODO format: // TODO(flastname): explanation"/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="(void setUp\(\))|(void setup\(\))|(void setupStatic\(\))|(void setUpStatic\(\))|(void beforeTest\(\))|(void teardown\(\))|(void tearDown\(\))|(void beforeStatic\(\))|(void afterStatic\(\))"/>
+            <property name="message" value="Test setup/teardown methods are called before(), beforeClass(), after(), afterClass(), but not setUp, teardown, etc."/>
+        </module>
+        <module name="RightCurly"> <!-- Java Style Guide: Nonempty blocks: K & R style -->
+            <property name="option" value="same"/>
+            <property name="tokens" value="LITERAL_TRY, LITERAL_CATCH, LITERAL_FINALLY, LITERAL_IF, LITERAL_ELSE, LITERAL_DO"/>
+        </module>
         <module name="RightCurly"> <!-- Java Style Guide: Nonempty blocks: K & R style -->
             <property name="option" value="alone"/>
-            <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, STATIC_INIT, INSTANCE_INIT"/>
+            <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT, INSTANCE_INIT"/>
         </module>
         <module name="SeparatorWrap"> <!-- Java Style Guide: Where to break -->
             <property name="tokens" value="DOT"/>
@@ -349,6 +380,7 @@
             <property name="target" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF, VARIABLE_DEF"/>
         </module>
         <module name="CyclomaticComplexity"/> <!-- Java Coding Guidelines: Reduce Cyclomatic Complexity -->
+        <module name="DesignForExtension"/> <!-- Java Coding Guidelines: Design for extension -->
         <module name="JavadocMethod"> <!-- Java Style Guide: Where Javadoc is used -->
             <property name="scope" value="public"/>
             <property name="allowMissingParamTags" value="true"/>
