@@ -42,10 +42,9 @@ public final class TransactionConflictException extends TransactionFailedRetriab
 
         private final Cell cell;
         private final String cellString;
-
         private final long theirStart;
-
         private final long theirCommit;
+
         public CellConflict(Cell cell, long theirStart, long theirCommit) {
             this.cell = cell;
             this.cellString = cell.toString();

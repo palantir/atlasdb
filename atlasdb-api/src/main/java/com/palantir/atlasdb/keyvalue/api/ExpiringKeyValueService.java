@@ -29,7 +29,7 @@ import com.google.common.collect.Multimap;
  * - This is for space and deletion time savings only.
  * - This does not fulfill the same goals/legal requirements as hard delete for sensitive data.
  *   (though data written by this service can itself be deleted by normal hard delete routines)
- * - // TODO: Only tables marked with 'AllowsSelfExpiringData' in their schema may use these features
+ * - // TODO(unknown): Only tables marked with 'AllowsSelfExpiringData' in their schema may use these features
  *
  * - Normal AtlasDB guarantees may be broken. Data written with expiration times are:
  * 1. not guaranteed to expire atomically with the entire row or at any other level of granularity
