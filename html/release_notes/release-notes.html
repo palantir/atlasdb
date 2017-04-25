@@ -211,6 +211,12 @@ If you do encounter breaks due to this addition, please contact the AtlasDB team
 <td>AtlasDB will refuse to start if backed by Postgres 9.5.0 or 9.5.1. These versions contain a known bug that causes incorrect results to be returned for certain queries.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1820">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>The lock server now can limit number of concurrent open lock requests from the same client.
+This behavior can be enabled with the flag <code class="docutils literal"><span class="pre">useClientRequestLimit</span></code>. The flag is disabled by default.
+For more information, see the <a class="reference internal" href="../configuration/external_timelock_service_configs/timelock_server_config.html#timelock-server-further-config"><span class="std std-ref">docs</span></a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1785">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

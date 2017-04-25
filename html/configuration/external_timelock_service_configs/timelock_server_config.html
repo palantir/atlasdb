@@ -338,21 +338,28 @@ believing the leader is down, in ms (default: <code class="docutils literal"><sp
 </div>
 </div>
 <div class="section" id="further-configuration-parameters">
-<h2><a class="toc-backref" href="#id6">Further Configuration Parameters</a><a class="headerlink" href="#further-configuration-parameters" title="Permalink to this headline">¶</a></h2>
-<blockquote>
-<div><ul class="simple">
-<li><ul class="first">
-<li>Property</li>
-<li>Description</li>
-</ul>
-</li>
-<li><ul class="first">
-<li>slowLockLogTriggerMillis</li>
-<li>Log at INFO if a lock request receives a response after given duration in milliseconds (default: <code class="docutils literal"><span class="pre">10000</span></code> i.e. 10s).</li>
-</ul>
-</li>
-</ul>
-</div></blockquote>
+<span id="timelock-server-further-config"></span><h2><a class="toc-backref" href="#id6">Further Configuration Parameters</a><a class="headerlink" href="#further-configuration-parameters" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Property</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>slowLockLogTriggerMillis</td>
+<td>Log at INFO if a lock request receives a response after given duration in milliseconds (default: <code class="docutils literal"><span class="pre">10000</span></code> i.e. 10s).</td>
+</tr>
+<tr class="row-odd"><td>useClientRequestLimit</td>
+<td>Limit the number of concurrent lock requests from a single client.
+Each request consumes a thread on the server.
+When enabled, each client has a number of threads reserved for itself (default: <code class="docutils literal"><span class="pre">false</span></code>).</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section" id="dropwizard-configuration-parameters">
 <h2><a class="toc-backref" href="#id7">Dropwizard Configuration Parameters</a><a class="headerlink" href="#dropwizard-configuration-parameters" title="Permalink to this headline">¶</a></h2>
