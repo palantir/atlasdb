@@ -22,8 +22,8 @@ import java.util.List;
 import com.palantir.remoting2.errors.RemoteException;
 import com.palantir.remoting2.errors.SerializableStackTraceElement;
 
-public final class RemotingAssertions {
-    private RemotingAssertions() {
+public final class RemotingExceptionTestUtils {
+    private RemotingExceptionTestUtils() {
         // utility
     }
 

@@ -66,7 +66,7 @@ public class AtlasDbRemoteExceptionTest {
 
     private static void assertCreatedExceptionMatches(RemoteException remoteException) {
         AtlasDbRemoteException atlasDbRemoteException = new AtlasDbRemoteException(remoteException);
-        RemotingAssertions.assertRemoteExceptionsMatch(atlasDbRemoteException, remoteException);
+        RemotingExceptionTestUtils.assertRemoteExceptionsMatch(atlasDbRemoteException, remoteException);
     }
 
     private static SerializableStackTraceElement getStackTraceElement(String className, String methodName) {

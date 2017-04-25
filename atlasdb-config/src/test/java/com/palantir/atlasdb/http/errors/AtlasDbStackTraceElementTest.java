@@ -34,9 +34,10 @@ public class AtlasDbStackTraceElementTest {
     public void canConvertToStringWithNoData() {
         AtlasDbStackTraceElement element = ImmutableAtlasDbStackTraceElement.builder().build();
 
-        assertThat(element.toString())
-                .contains(AtlasDbStackTraceElement.UNKNOWN_CLASS)
-                .contains(AtlasDbStackTraceElement.UNKNOWN_METHOD);
+        assertClassAndMethodName(
+                element,
+                AtlasDbStackTraceElement.UNKNOWN_CLASS,
+                AtlasDbStackTraceElement.UNKNOWN_METHOD);
     }
 
     @Test
@@ -45,9 +46,10 @@ public class AtlasDbStackTraceElementTest {
                 .className(CLASS_NAME)
                 .build();
 
-        assertThat(element.toString())
-                .contains(CLASS_NAME)
-                .contains(AtlasDbStackTraceElement.UNKNOWN_METHOD);
+        assertClassAndMethodName(
+                element,
+                CLASS_NAME,
+                AtlasDbStackTraceElement.UNKNOWN_METHOD);
     }
 
     @Test
@@ -56,9 +58,10 @@ public class AtlasDbStackTraceElementTest {
                 .methodName(METHOD_NAME)
                 .build();
 
-        assertThat(element.toString())
-                .contains(AtlasDbStackTraceElement.UNKNOWN_CLASS)
-                .contains(METHOD_NAME);
+        assertClassAndMethodName(
+                element,
+                AtlasDbStackTraceElement.UNKNOWN_CLASS,
+                METHOD_NAME);
     }
 
     @Test
@@ -68,9 +71,7 @@ public class AtlasDbStackTraceElementTest {
                 .methodName(METHOD_NAME)
                 .build();
 
-        assertThat(element.toString())
-                .contains(CLASS_NAME)
-                .contains(METHOD_NAME);
+        assertClassAndMethodName(element, CLASS_NAME, METHOD_NAME);
     }
 
     @Test
@@ -81,10 +82,8 @@ public class AtlasDbStackTraceElementTest {
                 .fileName(FILE_NAME)
                 .build();
 
-        assertThat(element.toString())
-                .contains(CLASS_NAME)
-                .contains(METHOD_NAME)
-                .contains(FILE_NAME);
+        assertClassAndMethodName(element, CLASS_NAME, METHOD_NAME);
+        assertThat(element.toString()).contains(FILE_NAME);
     }
 
     @Test
@@ -96,9 +95,8 @@ public class AtlasDbStackTraceElementTest {
                 .lineNumber(LINE_NUMBER)
                 .build();
 
+        assertClassAndMethodName(element, CLASS_NAME, METHOD_NAME);
         assertThat(element.toString())
-                .contains(CLASS_NAME)
-                .contains(METHOD_NAME)
                 .contains(FILE_NAME)
                 .contains(String.valueOf(LINE_NUMBER));
     }
@@ -120,7 +118,7 @@ public class AtlasDbStackTraceElementTest {
     }
 
     @Test
-    public void canCreateFromHttpRemotingSerializableStackTraceElementWithFullData() {
+    public void canCreateFromHttpRemotingSerializableStackTraceElementW1ithFullData() {
         SerializableStackTraceElement elementWithFullData = SerializableStackTraceElement.builder()
                 .className(CLASS_NAME)
                 .methodName(METHOD_NAME)
@@ -130,8 +128,17 @@ public class AtlasDbStackTraceElementTest {
         assertCreatedStackTraceElementMatches(elementWithFullData);
     }
 
-    private void assertCreatedStackTraceElementMatches(SerializableStackTraceElement element) {
+    private static void assertCreatedStackTraceElementMatches(SerializableStackTraceElement element) {
         AtlasDbStackTraceElement atlasDbElement = AtlasDbStackTraceElement.fromSerializableStackTraceElement(element);
-        RemotingAssertions.assertStackTraceElementsMatch(atlasDbElement, element);
+        RemotingExceptionTestUtils.assertStackTraceElementsMatch(atlasDbElement, element);
+    }
+
+    private static void assertClassAndMethodName(
+            AtlasDbStackTraceElement stackTraceElement,
+            String className,
+            String methodName) {
+        assertThat(stackTraceElement.toString())
+                .contains(className)
+                .contains(methodName);
     }
 }
