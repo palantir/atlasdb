@@ -18,6 +18,7 @@ package com.palantir.atlasdb.http.errors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 import com.palantir.remoting2.errors.RemoteException;
 import com.palantir.remoting2.errors.SerializableStackTraceElement;
@@ -59,11 +60,10 @@ public final class RemotingExceptionTestUtils {
                     assertThat(stackTraceElements).isNotNull();
                     assertThat(stackTraceElements.size()).isEqualTo(httpRemotingStackTraceElements.size());
 
-                    for (int i = 0; i < stackTraceElements.size(); i++) {
-                        assertStackTraceElementsMatch(
-                                stackTraceElements.get(i),
-                                httpRemotingStackTraceElements.get(i));
-                    }
+                    IntStream.range(0, stackTraceElements.size())
+                            .forEach(index -> assertStackTraceElementsMatch(
+                                    stackTraceElements.get(index),
+                                    httpRemotingStackTraceElements.get(index)));
                 });
     }
 }
