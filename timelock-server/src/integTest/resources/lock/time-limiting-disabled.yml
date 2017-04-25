@@ -10,6 +10,9 @@ cluster:
 algorithm:
   type: paxos
 
+timeLimiter:
+  enableTimeLimiting: false
+
 server:
   applicationConnectors:
     - type: http
