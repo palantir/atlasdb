@@ -55,7 +55,7 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
-    private static final int AVAILABLE_PORT = 8080;
+    private static final int AVAILABLE_PORT = 8083;
     private static final String USER_AGENT = "user-agent (3.14159265)";
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final long EMBEDDED_BOUND = 3;
