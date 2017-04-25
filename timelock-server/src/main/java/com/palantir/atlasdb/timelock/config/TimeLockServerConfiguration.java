@@ -58,15 +58,6 @@ public class TimeLockServerConfiguration extends Configuration {
         this.lockServiceTimeoutMargin = lockServiceTimeoutMargin; // null means don't do timeouts at all
     }
 
-    private void checkLockServiceTimeoutMargin(Double lockServiceTimeoutMargin) {
-        if (lockServiceTimeoutMargin != null) {
-            Preconditions.checkState(lockServiceTimeoutMargin > 0,
-                    "Lock service timeout margin, if specified, must be strictly positive.");
-            Preconditions.checkState(lockServiceTimeoutMargin < 1,
-                    "Lock service timeout margin, if specified, must be strictly less than 1.");
-        }
-    }
-
     private void checkClientNames(Set<String> clientNames) {
         clientNames.forEach(client -> Preconditions.checkState(
                 client.matches(CLIENT_NAME_REGEX),
@@ -75,6 +66,15 @@ public class TimeLockServerConfiguration extends Configuration {
         Preconditions.checkState(!clientNames.contains(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
                 String.format("The namespace '%s' is reserved for the leader election service. Please use a different"
                         + " name.", PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE));
+    }
+
+    private void checkLockServiceTimeoutMargin(Double timeoutMargin) {
+        if (timeoutMargin != null) {
+            Preconditions.checkState(timeoutMargin > 0,
+                    "Lock service timeout margin, if specified, must be strictly positive.");
+            Preconditions.checkState(timeoutMargin < 1,
+                    "Lock service timeout margin, if specified, must be strictly less than 1.");
+        }
     }
 
     public TimeLockAlgorithmConfiguration algorithm() {

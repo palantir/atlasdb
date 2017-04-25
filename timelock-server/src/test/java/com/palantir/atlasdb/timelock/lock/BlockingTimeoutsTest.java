@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -64,7 +64,8 @@ public class BlockingTimeoutsTest {
 
     @Test
     public void returnsDefaultBlockingTimeoutWithNoSpecifiedConnectors() {
-        TimeLockServerConfiguration basicConfiguration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, null);
+        TimeLockServerConfiguration basicConfiguration
+                = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, null);
         assertThat(BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, basicConfiguration))
                 .isEqualTo(BlockingTimeouts.getDefaultBlockingTimeout());
     }

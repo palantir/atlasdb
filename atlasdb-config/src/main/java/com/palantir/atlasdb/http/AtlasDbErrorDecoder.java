@@ -27,19 +27,19 @@ import feign.RetryableException;
 import feign.codec.ErrorDecoder;
 
 public class AtlasDbErrorDecoder implements ErrorDecoder {
-    private ErrorDecoder defaultErrorDecoder = new SerializableErrorDecoder();
+    private ErrorDecoder delegateDecoder = new SerializableErrorDecoder();
 
     public AtlasDbErrorDecoder() {
     }
 
     @VisibleForTesting
     AtlasDbErrorDecoder(ErrorDecoder errorDecoder) {
-        defaultErrorDecoder = errorDecoder;
+        delegateDecoder = errorDecoder;
     }
 
     @Override
     public Exception decode(String methodKey, Response response) {
-        Exception exception = defaultErrorDecoder.decode(methodKey, response);
+        Exception exception = delegateDecoder.decode(methodKey, response);
         if (response503ButExceptionIsNotRetryable(response, exception)) {
             return new RetryableException(exception.getMessage(), exception, parseRetryAfter(response));
         }
