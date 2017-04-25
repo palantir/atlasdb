@@ -47,17 +47,17 @@ public class AtlasDbHttpClientsTest {
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final String TEST_ENDPOINT = "/number";
     private static final MappingBuilder ENDPOINT_MAPPING = get(urlEqualTo(TEST_ENDPOINT));
-    private static final int UNAVAILABLE_PORT = 8081;
     private static final int TEST_NUMBER = 12;
 
     private int availablePort;
+    private int unavailablePort;
     private Set<String> bothUris;
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     @Rule
-    public WireMockRule unavailableServer = new WireMockRule(UNAVAILABLE_PORT);
+    public WireMockRule unavailableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     public interface TestResource {
         @GET
@@ -72,8 +72,9 @@ public class AtlasDbHttpClientsTest {
         availableServer.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
 
         availablePort = availableServer.port();
+        unavailablePort = unavailableServer.port();
         bothUris = ImmutableSet.of(
-                getUriForPort(UNAVAILABLE_PORT),
+                getUriForPort(unavailablePort),
                 getUriForPort(availablePort));
     }
 
