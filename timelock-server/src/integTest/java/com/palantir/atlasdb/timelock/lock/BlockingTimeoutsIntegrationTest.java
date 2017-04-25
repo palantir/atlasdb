@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -36,32 +37,41 @@ public class BlockingTimeoutsIntegrationTest {
     private static final int MILLIS_PER_SECOND = 1000;
     private static final int SECONDS_IN_ONE_DAY = 86400;
 
+    private static final double ERROR_MARGIN = 0.03;
+
     @Test
     public void returnsDefaultBlockingTimeoutWithConnectorsWithoutIdleTimeouts() throws IOException {
         assertThat(BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, getConfigurationFromResource(
                 "lock/default-timeout.yml")))
-                .isEqualTo(BlockingTimeouts.getDefaultBlockingTimeout());
+                .isEqualTo(BlockingTimeouts.scaleForErrorMargin(BlockingTimeouts.DEFAULT_IDLE_TIMEOUT, ERROR_MARGIN));
     }
 
     @Test
     public void returnsBlockingTimeoutWithConnectorWithIdleTimeouts() throws IOException {
         assertThat(BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, getConfigurationFromResource(
                 "lock/one-specified-timeout.yml")))
-                .isEqualTo(BlockingTimeouts.scaleForErrorMargin(SECONDS_IN_ONE_DAY * MILLIS_PER_SECOND));
+                .isEqualTo(BlockingTimeouts.scaleForErrorMargin(SECONDS_IN_ONE_DAY * MILLIS_PER_SECOND, ERROR_MARGIN));
     }
 
     @Test
     public void returnsShortestBlockingTimeoutWithMultipleConnectorsWithIdleTimeouts() throws IOException {
         assertThat(BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, getConfigurationFromResource(
                 "lock/two-specified-timeouts.yml")))
-                .isEqualTo(BlockingTimeouts.scaleForErrorMargin(60 * MILLIS_PER_SECOND));
+                .isEqualTo(BlockingTimeouts.scaleForErrorMargin(60 * MILLIS_PER_SECOND, ERROR_MARGIN));
     }
 
     @Test
     public void returnsDefaultBlockingTimeoutIfConnectorWithoutSpecifiedIdleTimeoutIsMinimal() throws IOException {
         assertThat(BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, getConfigurationFromResource(
                 "lock/one-default-one-higher-explicit-timeout.yml")))
-                .isEqualTo(BlockingTimeouts.getDefaultBlockingTimeout());
+                .isEqualTo(BlockingTimeouts.scaleForErrorMargin(BlockingTimeouts.DEFAULT_IDLE_TIMEOUT, ERROR_MARGIN));
+    }
+
+    @Test
+    public void throwsIfAttemptingToObtainBlockingTimeoutFromConfigurationWithoutErrorMargin() throws IOException {
+        assertThatThrownBy(() -> BlockingTimeouts.getBlockingTimeout(OBJECT_MAPPER, getConfigurationFromResource(
+                "lock/unspecified-error-margin.yml")))
+                .isInstanceOf(NullPointerException.class);
     }
 
     private TimeLockServerConfiguration getConfigurationFromResource(String fileName) throws IOException {
