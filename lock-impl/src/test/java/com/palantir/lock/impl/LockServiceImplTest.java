@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.impl;
 
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -38,21 +40,24 @@ import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 public final class LockServiceImplTest {
     public static final long SLOW_LOG_TRIGGER_MILLIS = LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS + 10;
     private static final String TEST_LOCKID = "test_lockId";
-    private LockServiceImpl lockServiceWithSlowLogEnabled;
-    private LockServiceImpl lockServiceWithSlowLogDisabled;
+    private static LockServiceImpl lockServiceWithSlowLogEnabled;
+    private static LockServiceImpl lockServiceWithSlowLogDisabled;
 
     private TestLogger testSlowLogger;
     private TestLogger testLockServiceImplLogger;
 
+    @BeforeClass
+    public static void setupLockService() {
+        lockServiceWithSlowLogEnabled = createLockServiceWithSlowLogEnabled(true);
+        lockServiceWithSlowLogDisabled = createLockServiceWithSlowLogEnabled(false);
+    }
+
     @Before
-    public void setUp() {
+    public void setUpLoggers() {
         testSlowLogger = TestLoggerFactory.getTestLogger(SlowLockLogger.class);
         testLockServiceImplLogger = TestLoggerFactory.getTestLogger(LockServiceImpl.class);
         testSlowLogger.setEnabledLevelsForAllThreads(Level.INFO);
         testLockServiceImplLogger.setEnabledLevelsForAllThreads(Level.DEBUG);
-
-        lockServiceWithSlowLogEnabled = createLockServiceWithSlowLogEnabled(true);
-        lockServiceWithSlowLogDisabled = createLockServiceWithSlowLogEnabled(false);
     }
 
     @After
@@ -114,15 +119,15 @@ public final class LockServiceImplTest {
     }
 
     @Test
-    public void debugLogShouldBeLoggedIfLockResponseTimeIsLessThanSlowLogTriggerMillisButGreaterThanDebugTriggerTime() {
+    public void debugLogShouldBeLoggedIfLockResponseTimeIsBetweenDebugTriggerTimeAndSlowLogTriggerMillis() {
         long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS - 5;
         lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
 
         assertThat(testLockServiceImplLogger.isDebugEnabled(), is(true));
-        assertThat(Iterables.getOnlyElement(testLockServiceImplLogger.getLoggingEvents().stream()
+        assertThat(testLockServiceImplLogger.getLoggingEvents().stream()
                         .filter(event -> event.getLevel().equals(Level.DEBUG))
-                        .collect(Collectors.toList())),
-                is(debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID,
+                        .collect(Collectors.toList()),
+                hasItem(debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID,
                         "unsuccessfully")));
 
         assertThat(testSlowLogger.getLoggingEvents().size(), is(0));
