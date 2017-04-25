@@ -57,6 +57,11 @@ develop
          - AtlasDB will refuse to start if backed by Postgres 9.5.0 or 9.5.1. These versions contain a known bug that causes incorrect results to be returned for certain queries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
 
+    *    - |new|
+         - The lock server now can limit number of concurrent open lock requests from the same client.
+           This behavior can be enabled with the flag ``useClientRequestLimit``. The flag is disabled by default.
+           For more information, see the :ref:`docs <timelock-server-further-config>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

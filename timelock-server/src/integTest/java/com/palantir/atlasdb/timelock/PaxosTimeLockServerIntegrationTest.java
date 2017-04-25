@@ -21,10 +21,20 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.assertj.core.util.Lists;
 import org.eclipse.jetty.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -40,6 +50,7 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -53,11 +64,21 @@ import io.dropwizard.testing.ResourceHelpers;
 
 public class PaxosTimeLockServerIntegrationTest {
     private static final String NOT_FOUND_CODE = "404";
+    private static final String TOO_MANY_REQUESTS_CODE = "429";
 
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
+    private static final String CLIENT_3 = "test3";
     private static final String NONEXISTENT_CLIENT = "nonexistent";
     private static final String INVALID_CLIENT = "test2\b";
+
+    private static final int NUM_CLIENTS = 5;
+    private static final int MAX_SERVER_THREADS = 100;
+    private static final int SELECTOR_THREADS = 8;
+    private static final int ACCEPTOR_THREADS = 4;
+    private static final int AVAILABLE_THREADS = MAX_SERVER_THREADS - SELECTOR_THREADS - ACCEPTOR_THREADS - 1;
+    private static final int LOCAL_TC_LIMIT = (AVAILABLE_THREADS / 2) / NUM_CLIENTS;
+    private static final int SHARED_TC_LIMIT = AVAILABLE_THREADS - LOCAL_TC_LIMIT * NUM_CLIENTS;
 
     private static final long ONE_MILLION = 1000000;
     private static final long TWO_MILLION = 2000000;
@@ -76,6 +97,11 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
             new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
 
+    private static final LockRequest SLOW_REQUEST = LockRequest
+            .builder(ImmutableSortedMap.of(StringLockDescriptor.of("lock"), LockMode.WRITE))
+            .blockForAtMost(SimpleTimeDuration.of(200, TimeUnit.MILLISECONDS))
+            .build();
+
     private final TimestampService timestampService = getTimestampService(CLIENT_1);
     private final TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
 
@@ -83,6 +109,51 @@ public class PaxosTimeLockServerIntegrationTest {
     public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
             .around(TEMPORARY_CONFIG_HOLDER)
             .around(TIMELOCK_SERVER_HOLDER);
+
+    @Test
+    public void notExceedingThreadCountLimitsSucceeds() throws Exception {
+        List<RemoteLockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
+
+        assertThat(lockAndUnlockAndCountExceptions(lockService, LOCAL_TC_LIMIT + SHARED_TC_LIMIT))
+                .isEqualTo(0);
+    }
+
+    @Test
+    public void multipleClientsCanShareGlobalThreads() throws Exception {
+        List<RemoteLockService> lockServiceList = ImmutableList.of(
+                getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
+
+        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, LOCAL_TC_LIMIT + SHARED_TC_LIMIT / 3))
+                .isEqualTo(0);
+    }
+
+    private int lockAndUnlockAndCountExceptions(List<RemoteLockService> lockServices, int numRequests)
+            throws Exception {
+        CountDownLatch countDownLatch = new CountDownLatch(lockServices.size() * numRequests);
+        ExecutorService executorService = Executors.newFixedThreadPool(lockServices.size() * numRequests);
+        Map<RemoteLockService, List<Future<LockRefreshToken>>> futureMap = new HashMap<>();
+        lockServices.forEach(
+                service -> futureMap.put(service, requestLocks(service, numRequests, executorService, countDownLatch)));
+        return futureMap.entrySet().stream()
+                .mapToInt(entry -> unlockAndCountExceptions(entry.getKey(), entry.getValue())).sum();
+    }
+
+    private int unlockAndCountExceptions(RemoteLockService lockService, List<Future<LockRefreshToken>> futures) {
+        AtomicInteger exceptionCounter = new AtomicInteger(0);
+        futures.forEach(future -> {
+            try {
+                LockRefreshToken token = future.get();
+                if (token != null) {
+                    lockService.unlock(token);
+                }
+            } catch (Exception e) {
+                assertThat(e).hasMessageContaining(TOO_MANY_REQUESTS_CODE);
+                exceptionCounter.getAndIncrement();
+            }
+        });
+
+        return exceptionCounter.get();
+    }
 
     @Test
     public void lockServiceShouldAllowUsToTakeOutLocks() throws InterruptedException {
@@ -236,6 +307,22 @@ public class PaxosTimeLockServerIntegrationTest {
         String uriWithParam = getFastForwardUriForClientOne() + "?newMinimum=1200";
         Response response = makeEmptyPostToUri(uriWithParam);
         assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
+    }
+
+    private List<Future<LockRefreshToken>> requestLocks(RemoteLockService lockService,
+            int number,
+            ExecutorService executorService,
+            CountDownLatch countDownLatch) {
+        List<Future<LockRefreshToken>> futures = Lists.newArrayList();
+        for (int i = 0; i < number; i++) {
+            int currentTrial = i;
+            futures.add(executorService.submit(() -> {
+                countDownLatch.countDown();
+                countDownLatch.await();
+                return lockService.lock(lockService.toString() + String.valueOf(currentTrial), SLOW_REQUEST);
+            }));
+        }
+        return futures;
     }
 
     private static String getFastForwardUriForClientOne() {

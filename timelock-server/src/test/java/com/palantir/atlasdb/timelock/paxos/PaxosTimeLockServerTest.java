@@ -59,7 +59,8 @@ public class PaxosTimeLockServerTest {
                     .addServers(LOCAL_ADDRESS_STRING)
                     .localServer(LOCAL_ADDRESS_STRING)
                     .build(),
-            TEST_CLIENTS);
+            TEST_CLIENTS,
+            false);
 
     private final Environment environment = mock(Environment.class);
     private final TimeLockServer implementation =

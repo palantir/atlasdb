@@ -35,19 +35,19 @@ public class TimeLockServerConfigurationTest {
 
     @Test
     public void shouldAddDefaultConfigurationIfNotIncluded() {
-        TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS);
+        TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null);
         assertThat(configuration.algorithm()).isEqualTo(ImmutableAtomixConfiguration.DEFAULT);
     }
 
     @Test
     public void shouldRequireAtLeastOneClient() {
-        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of()))
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of(), null))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void shouldRejectClientsWithInvalidCharacters() {
-        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of("/")))
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of("/"), null))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -56,13 +56,44 @@ public class TimeLockServerConfigurationTest {
         assertThatThrownBy(() -> new TimeLockServerConfiguration(
                 null,
                 CLUSTER,
-                ImmutableSet.of(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE)))
+                ImmutableSet.of(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
+                null))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void shouldRejectClientsWithEmptyName() {
-        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of("")))
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of(""), null))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void shouldHavePositiveNumberOfAvailableThreadsWhenUsingClientRequestLimit() {
+        TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, true);
+        assertThat(configuration.availableThreads()).isGreaterThan(0);
+    }
+
+    @Test
+    public void shouldRequireUseClientRequestLimitEnabledWhenCallingAvailableThreads() {
+        TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, false);
+        assertThatThrownBy(configuration::availableThreads).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void shouldUseClientRequestLimitIfTrue() {
+        TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, true);
+        assertThat(configuration.useClientRequestLimit()).isTrue();
+    }
+
+    @Test
+    public void shouldNotUseClientRequestLimitIfFalse() {
+        TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, false);
+        assertThat(configuration.useClientRequestLimit()).isFalse();
+    }
+
+    @Test
+    public void shouldNotUseClientRequestLimitIfNotIncluded() {
+        TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null);
+        assertThat(configuration.useClientRequestLimit()).isFalse();
     }
 }
