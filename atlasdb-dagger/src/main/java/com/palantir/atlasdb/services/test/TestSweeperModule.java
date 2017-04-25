@@ -15,17 +15,17 @@
  */
 package com.palantir.atlasdb.services.test;
 
+import java.util.function.LongSupplier;
+
 import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
-import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -36,14 +36,14 @@ import dagger.Provides;
 @Module
 public class TestSweeperModule {
 
-    private final Optional<Supplier<Long>> unreadableTs;
-    private final Optional<Supplier<Long>> immutableTs;
+    private final Optional<LongSupplier> unreadableTs;
+    private final Optional<LongSupplier> immutableTs;
 
-    public static TestSweeperModule create(Supplier<Long> ts) {
+    public static TestSweeperModule create(LongSupplier ts) {
         return new TestSweeperModule(Optional.of(ts), Optional.of(ts));
     }
 
-    public static TestSweeperModule create(Supplier<Long> unreadableTs, Supplier<Long> immutableTs) {
+    public static TestSweeperModule create(LongSupplier unreadableTs, LongSupplier immutableTs) {
         return new TestSweeperModule(Optional.of(unreadableTs), Optional.of(immutableTs));
     }
 
@@ -52,7 +52,7 @@ public class TestSweeperModule {
         this.immutableTs = Optional.absent();
     }
 
-    private TestSweeperModule(Optional<Supplier<Long>> unreadableTs, Optional<Supplier<Long>> immutableTs) {
+    private TestSweeperModule(Optional<LongSupplier> unreadableTs, Optional<LongSupplier> immutableTs) {
         this.unreadableTs = unreadableTs;
         this.immutableTs = immutableTs;
     }
@@ -64,9 +64,9 @@ public class TestSweeperModule {
                                                   TransactionService transactionService,
                                                   SweepStrategyManager sweepStrategyManager,
                                                   Follower follower) {
-        Supplier<Long> unreadable = unreadableTs.isPresent() ? unreadableTs.get() : txm::getUnreadableTimestamp;
-        Supplier<Long> immutable = immutableTs.isPresent() ? immutableTs.get() : txm::getImmutableTimestamp;
-        return new SweepTaskRunnerImpl(
+        LongSupplier unreadable = unreadableTs.or(txm::getUnreadableTimestamp);
+        LongSupplier immutable = immutableTs.or(txm::getImmutableTimestamp);
+        return new SweepTaskRunner(
                 kvs,
                 unreadable,
                 immutable,
