@@ -128,6 +128,7 @@ public class TimeLockServerLauncherTest {
                         .addServers(LOCAL_ADDRESS)
                         .build(),
                 ImmutableSet.of(TEST_CLIENT),
-                false);
+                false,
+                null);
     }
 }

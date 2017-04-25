@@ -49,6 +49,7 @@ public class AtomixTimeLockServerTest {
                     .addServers(LOCAL_ADDRESS_STRING)
                     .build(),
             ImmutableSet.of("test"),
+            null,
             null);
 
     private TimeLockServer implementation;

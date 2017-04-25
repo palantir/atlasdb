@@ -35,23 +35,36 @@ public class TimeLockServerConfiguration extends Configuration {
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
     private final boolean useClientRequestLimit;
+    private final Double lockServiceTimeoutMargin;
 
     public TimeLockServerConfiguration(
             @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients,
-            @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit) {
+            @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit,
+            @JsonProperty(value = "lockServiceTimeoutMargin", required = false) Double lockServiceTimeoutMargin) {
         Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
         checkClientNames(clients);
         if (Boolean.TRUE.equals(useClientRequestLimit)) {
             Preconditions.checkState(computeNumberOfAvailableThreads() > 0,
                     "Configuration enables clientRequestLimit but specifies non-positive number of available threads.");
         }
+        checkLockServiceTimeoutMargin(lockServiceTimeoutMargin);
 
         this.algorithm = MoreObjects.firstNonNull(algorithm, AtomixConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
+        this.lockServiceTimeoutMargin = lockServiceTimeoutMargin; // null means don't do timeouts at all
+    }
+
+    private void checkLockServiceTimeoutMargin(Double lockServiceTimeoutMargin) {
+        if (lockServiceTimeoutMargin != null) {
+            Preconditions.checkState(lockServiceTimeoutMargin > 0,
+                    "Lock service timeout margin, if specified, must be strictly positive.");
+            Preconditions.checkState(lockServiceTimeoutMargin < 1,
+                    "Lock service timeout margin, if specified, must be strictly less than 1.");
+        }
     }
 
     private void checkClientNames(Set<String> clientNames) {
