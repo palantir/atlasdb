@@ -66,6 +66,7 @@ develop
    *    - |new|
         - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
 
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
