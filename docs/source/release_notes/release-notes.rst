@@ -64,7 +64,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
    *    - |new|
-         - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
+        - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
