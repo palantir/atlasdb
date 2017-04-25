@@ -627,7 +627,7 @@ public class RocksDbKeyValueService implements KeyValueService {
 
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef,
-                                                   Set<Cell> cells) {
+                                                   Iterable<Cell> cells) {
         try (ColumnFamily table = columnFamilies.get(tableRef.getQualifiedName())) {
             byte[] val = new byte[0];
             try (Disposer d = new Disposer()) {

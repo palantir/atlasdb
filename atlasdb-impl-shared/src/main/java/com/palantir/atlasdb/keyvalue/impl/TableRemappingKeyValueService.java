@@ -66,7 +66,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         try {
             delegate().addGarbageCollectionSentinelValues(
                     tableMapper.getMappedTableName(tableRef),

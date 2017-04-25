@@ -86,7 +86,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         getDelegate(tableRef).addGarbageCollectionSentinelValues(tableRef, cells);
     }
 

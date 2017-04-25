@@ -214,7 +214,7 @@ public class ThrowingKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         throw throwEx();
     }
 

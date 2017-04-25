@@ -192,7 +192,7 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         delegate1.addGarbageCollectionSentinelValues(tableRef, cells);
         delegate2.addGarbageCollectionSentinelValues(tableRef, cells);
     }
