@@ -61,7 +61,6 @@ import com.palantir.timestamp.PersistentTimestampService;
 import io.dropwizard.setup.Environment;
 
 public class PaxosTimeLockServer implements TimeLockServer {
-
     private final PaxosConfiguration paxosConfiguration;
     private final Environment environment;
 
@@ -72,6 +71,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private Semaphore sharedThreadPool = new Semaphore(-1);
     private TimeLockServerConfiguration timeLockServerConfiguration;
 
+    private long blockingTimeout;
+
     public PaxosTimeLockServer(PaxosConfiguration configuration, Environment environment) {
         this.paxosConfiguration = configuration;
         this.environment = environment;
@@ -79,6 +80,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     @Override
     public void onStartup(TimeLockServerConfiguration configuration) {
+        blockingTimeout = BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), configuration);
+
         registerPaxosResource();
 
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
@@ -163,23 +166,14 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 client);
         LockService lockService = instrument(
                 LockService.class,
-                AwaitingLeadershipProxy.newProxyInstance(
-                        LockService.class,
-                        () -> createLockService(slowLogTriggerMillis),
-                        leaderElectionService),
+                createLockService(slowLogTriggerMillis),
                 client);
 
         return TimeLockServices.create(timestampService, lockService, timestampService);
     }
 
     private LockService createLockService(long slowLogTriggerMillis) {
-        LockServerOptions lockServerOptions = new LockServerOptions() {
-            @Override
-            public long slowLogTriggerMillis() {
-                return slowLogTriggerMillis;
-            }
-        };
-        LockService lockServiceNotUsingThreadPooling = LockServiceImpl.create(lockServerOptions);
+        LockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(slowLogTriggerMillis);
 
         if (!timeLockServerConfiguration.useClientRequestLimit()) {
             return lockServiceNotUsingThreadPooling;
@@ -198,6 +192,19 @@ public class PaxosTimeLockServer implements TimeLockServer {
         }
 
         return new ThreadPooledLockService(lockServiceNotUsingThreadPooling, localThreadPoolSize, sharedThreadPool);
+    }
+
+    private LockService createTimeLimitedLockService(long slowLogTriggerMillis) {
+        LockServerOptions lockServerOptions = new LockServerOptions() {
+            @Override
+            public long slowLogTriggerMillis() {
+                return slowLogTriggerMillis;
+            }
+        };
+
+        return BlockingTimeLimitedLockService.create(
+                LockServiceImpl.create(lockServerOptions),
+                BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), timeLockServerConfiguration));
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {
