@@ -99,6 +99,11 @@ public final class CassandraVerifier {
                         + "It is very likely that your rack configuration is incorrect and replicas "
                         + "would not be placed correctly for the failure tolerance you want.", safetyDisabled);
             }
+            if (hosts.size() < desiredRf) {
+                logErrorOrThrow(String.format("The cassandra cluster only has %d nodes, and the desired replication " +
+                        "factor of %d is greater than that.  Your replication factor is likely incorrect for your setup.",
+                        hosts.size(), desiredRf), safetyDisabled);
+            }
         }
 
         return dataCenterToRack.keySet();
