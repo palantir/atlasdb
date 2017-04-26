@@ -2129,25 +2129,29 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        try {
-            readAtSpecifiedConsistency(ConsistencyLevel.ALL);
-            return NodeAvailabilityStatus.ALL_AVAILABLE;
-        } catch (Exception e) {
+        Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = clientPool.currentPools;
+        int replicationFactor = configManager.getConfig().replicationFactor();
+
+        int numberOfUnreachableNodes = 0;
+        for (InetSocketAddress host : currentPools.keySet()) {
             try {
-                readAtSpecifiedConsistency(ConsistencyLevel.EACH_QUORUM);
-                return NodeAvailabilityStatus.EACH_QUORUM_AVAILABLE;
-            } catch (Exception e1) {
-                return tryReadWithLocalQuorum();
+                clientPool.runOnHost(host, CassandraVerifier.healthCheck);
+                try {
+                    clientPool.runOnHost(host, clientPool.validatePartitioner);
+                } catch (Exception e) {
+                    return NodeAvailabilityStatus.TERMINAL;
+                }
+            } catch (Exception e) {
+                numberOfUnreachableNodes++;
             }
         }
-    }
-
-    private NodeAvailabilityStatus tryReadWithLocalQuorum() {
-        try {
-            readAtSpecifiedConsistency(ConsistencyLevel.LOCAL_QUORUM);
-            return NodeAvailabilityStatus.LOCAL_QUORUM_AVAILABLE;
-        } catch (Exception e) {
+        int quorumSize = replicationFactor / 2 + 1;
+        if (numberOfUnreachableNodes > (replicationFactor - quorumSize)) {
             return NodeAvailabilityStatus.NO_QUORUM_AVAILABLE;
+        } else if (numberOfUnreachableNodes == 0) {
+            return NodeAvailabilityStatus.ALL_AVAILABLE;
+        } else {
+            return NodeAvailabilityStatus.QUORUM_AVAILABLE;
         }
     }
 

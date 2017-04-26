@@ -22,7 +22,7 @@ public class OneNodeDownNodeAvailabilityTest extends AbstractNodeAvailabilityTes
 
     @Override
     protected NodeAvailabilityStatus expectedNodeAvailabilityStatus() {
-        return NodeAvailabilityStatus.LOCAL_QUORUM_AVAILABLE;
+        return NodeAvailabilityStatus.QUORUM_AVAILABLE;
     }
 
     @Override

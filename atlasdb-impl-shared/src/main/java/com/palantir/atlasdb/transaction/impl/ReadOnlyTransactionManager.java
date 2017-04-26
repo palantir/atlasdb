@@ -141,11 +141,12 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
         NodeAvailabilityStatus nodeAvailabilityStatus = keyValueService.getNodeAvailabilityStatus();
         switch (nodeAvailabilityStatus) {
             case ALL_AVAILABLE:
-            case EACH_QUORUM_AVAILABLE:
-            case LOCAL_QUORUM_AVAILABLE:
+            case QUORUM_AVAILABLE:
                 return KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS;
             case NO_QUORUM_AVAILABLE:
                 return KeyValueServiceStatus.UNHEALTHY;
+            case TERMINAL:
+                return KeyValueServiceStatus.TERMINAL;
             default:
                 log.warn("The kvs returned a non-standard availability status: {}", nodeAvailabilityStatus);
                 return KeyValueServiceStatus.UNHEALTHY;

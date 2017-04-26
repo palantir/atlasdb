@@ -16,8 +16,8 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 public enum NodeAvailabilityStatus {
+    TERMINAL,
     NO_QUORUM_AVAILABLE,
-    LOCAL_QUORUM_AVAILABLE,
-    EACH_QUORUM_AVAILABLE,
+    QUORUM_AVAILABLE,
     ALL_AVAILABLE
 }
