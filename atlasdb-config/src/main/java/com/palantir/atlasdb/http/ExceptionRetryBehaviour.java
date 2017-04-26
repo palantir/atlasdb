@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
+import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 
 import feign.RetryableException;
@@ -33,7 +34,7 @@ public enum ExceptionRetryBehaviour {
     }
 
     public static ExceptionRetryBehaviour getRetryBehaviourForException(RetryableException retryableException) {
-        if (retryableException.getCause() instanceof BlockingTimeoutException) {
+        if (isCausedByBlockingTimeout(retryableException)) {
             // This is the case where we have a network request that failed because it blocked too long on a lock.
             // Since it is still the leader, we want to try again on the same node.
             return RETRY_INDEFINITELY_ON_SAME_NODE;
@@ -65,5 +66,14 @@ public enum ExceptionRetryBehaviour {
      */
     public boolean shouldBackoffAndTryOtherNodes() {
         return shouldBackoffAndTryOtherNodes;
+    }
+
+    private static boolean isCausedByBlockingTimeout(RetryableException retryableException) {
+        return retryableException.getCause() instanceof AtlasDbRemoteException &&
+                getCausingErrorName(retryableException).equals(BlockingTimeoutException.class.getName());
+    }
+
+    private static String getCausingErrorName(RetryableException retryableException) {
+        return ((AtlasDbRemoteException) retryableException.getCause()).getErrorName();
     }
 }
