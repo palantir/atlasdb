@@ -26,7 +26,7 @@ public abstract class AbstractNodeAvailabilityTest {
 
     @Test
     public void nodeAvailabilityStatusShouldBeAsExpected() {
-        assertEquals(getKeyValueService().getNodeAvailabilityStatus(), expectedNodeAvailabilityStatus());
+        assertEquals(expectedNodeAvailabilityStatus(), getKeyValueService().getNodeAvailabilityStatus());
     }
 
     protected abstract NodeAvailabilityStatus expectedNodeAvailabilityStatus();

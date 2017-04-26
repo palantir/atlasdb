@@ -2179,7 +2179,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private boolean fewerThanRfByTwoNodesUnreachable(int numberOfUnreachableNodes) {
         int replicationFactor = configManager.getConfig().replicationFactor();
-        return numberOfUnreachableNodes < replicationFactor / 2;
+        return numberOfUnreachableNodes < (replicationFactor + 1) / 2;
     }
 
     private void alterGcAndTombstone(
