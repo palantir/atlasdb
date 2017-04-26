@@ -67,6 +67,10 @@ develop
          - Relax the signature of KeyValueService.addGarbageCollectionSentinelValues() to take an Iterable instead of a Set.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1843>`__)
 
+    *    - |new|
+         - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1814>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
