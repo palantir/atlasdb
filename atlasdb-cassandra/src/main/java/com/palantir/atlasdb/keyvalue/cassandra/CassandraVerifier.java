@@ -291,7 +291,7 @@ public final class CassandraVerifier {
 
     static void currentRfOnKeyspaceMatchesDesiredRf(Client client, CassandraKeyValueServiceConfig config,
             boolean safetyDisabled) throws TException {
-        KsDef ks = new KsDef(config.keyspace(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
+        KsDef ks = client.describe_keyspace(config.keyspace());
         Set<String> dcs = sanityCheckDatacenters(client, config.replicationFactor(), safetyDisabled);
         sanitiseReplicationFactor(ks, config.replicationFactor(), safetyDisabled, dcs);
     }
