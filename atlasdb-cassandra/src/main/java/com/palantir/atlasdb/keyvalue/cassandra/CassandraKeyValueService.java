@@ -37,15 +37,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
-import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
@@ -2130,8 +2127,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public NodeAvailabilityStatus getNodeAvailabilityStatus() {
         Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = clientPool.currentPools;
-        int replicationFactor = configManager.getConfig().replicationFactor();
-
         int numberOfUnreachableNodes = 0;
         for (InetSocketAddress host : currentPools.keySet()) {
             try {
@@ -2145,37 +2140,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 numberOfUnreachableNodes++;
             }
         }
-        int quorumSize = replicationFactor / 2 + 1;
-        if (numberOfUnreachableNodes > (replicationFactor - quorumSize)) {
-            return NodeAvailabilityStatus.NO_QUORUM_AVAILABLE;
-        } else if (numberOfUnreachableNodes == 0) {
+
+        if (numberOfUnreachableNodes == 0) {
             return NodeAvailabilityStatus.ALL_AVAILABLE;
-        } else {
+        } else if (fewerThanRfByTwoNodesUnreachable(numberOfUnreachableNodes)) {
             return NodeAvailabilityStatus.QUORUM_AVAILABLE;
+        } else {
+            return NodeAvailabilityStatus.NO_QUORUM_AVAILABLE;
         }
     }
 
-    private void readAtSpecifiedConsistency(ConsistencyLevel consistency) throws TException {
-        clientPool.run(client -> {
-            String lockRowName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME);
-            String lockColName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME);
-            String selectCql = String.format(
-                    "SELECT \"value\" FROM \"%s\" WHERE key = %s AND column1 = %s AND column2 = -1;",
-                    schemaMutationLockTable.getOnlyTable().getQualifiedName(),
-                    lockRowName,
-                    lockColName);
-            return runCqlQuery(selectCql, client, consistency);
-        });
-    }
-
-    private static CqlResult runCqlQuery(String query, Cassandra.Client client, ConsistencyLevel consistency)
-            throws TException {
-        ByteBuffer queryBuffer = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
-        return client.execute_cql3_query(queryBuffer, Compression.NONE, consistency);
-    }
-
-    private static String getHexEncodedBytes(String str) {
-        return CassandraKeyValueServices.encodeAsHex(str.getBytes(StandardCharsets.UTF_8));
+    private boolean fewerThanRfByTwoNodesUnreachable(int numberOfUnreachableNodes) {
+        int replicationFactor = configManager.getConfig().replicationFactor();
+        return numberOfUnreachableNodes < replicationFactor / 2;
     }
 
     private void alterGcAndTombstone(
