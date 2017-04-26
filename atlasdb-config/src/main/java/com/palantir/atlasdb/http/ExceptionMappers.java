@@ -15,9 +15,13 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.util.Arrays;
+
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import com.palantir.remoting2.errors.SerializableError;
 
 public final class ExceptionMappers {
     private ExceptionMappers() {
@@ -45,8 +49,15 @@ public final class ExceptionMappers {
 
     private static Response.ResponseBuilder encode503ResponseInternal(Exception exception) {
         return Response.serverError()
-                .entity(exception)
+                .entity(createSerializableError(exception))
                 .status(503)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
+    }
+
+    private static SerializableError createSerializableError(Exception exception) {
+        return SerializableError.of(
+                exception.getMessage(),
+                exception.getClass(),
+                Arrays.asList(exception.getStackTrace()));
     }
 }
