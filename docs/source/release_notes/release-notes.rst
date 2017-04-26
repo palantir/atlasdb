@@ -82,6 +82,9 @@ develop
          - AtlasDB will refuse to start if backed by Postgres 9.5.0 or 9.5.1. These versions contain a known bug that causes incorrect results to be returned for certain queries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
 
+    *    - |new|
+         - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1814>`__)
 
 =======
 v0.38.0
