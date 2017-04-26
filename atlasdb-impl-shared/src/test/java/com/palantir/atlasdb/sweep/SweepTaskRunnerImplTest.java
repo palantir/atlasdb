@@ -34,11 +34,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.function.LongSupplier;
 
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -53,10 +53,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
-import com.palantir.atlasdb.sweep.sweepers.ConservativeSweeper;
-import com.palantir.atlasdb.sweep.sweepers.Sweeper;
-import com.palantir.atlasdb.sweep.sweepers.ThoroughSweeper;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -80,46 +76,18 @@ public class SweepTaskRunnerImplTest {
     public static final int ROW_BATCH_SIZE = 1000;
 
     private final KeyValueService mockKvs = mock(KeyValueService.class);
-    private final Supplier<Long> mockImmutableTimestampSupplier = mock(Supplier.class);
-    private final Supplier<Long> mockUnreadableTimestampSupplier = mock(Supplier.class);
+    private final LongSupplier mockImmutableTimestampSupplier = mock(LongSupplier.class);
+    private final LongSupplier mockUnreadableTimestampSupplier = mock(LongSupplier.class);
     private final TransactionService mockTransactionService = mock(TransactionService.class);
     private final CellsSweeper mockCellsSweeper = mock(CellsSweeper.class);
     private final SweepStrategyManager mockSweepStrategyManager = mock(SweepStrategyManager.class);
-    private final SweepTaskRunnerImpl sweepTaskRunner = new SweepTaskRunnerImpl(
+    private final SweepTaskRunner sweepTaskRunner = new SweepTaskRunner(
             mockKvs,
             mockUnreadableTimestampSupplier,
             mockImmutableTimestampSupplier,
             mockTransactionService,
             mockSweepStrategyManager,
             mockCellsSweeper);
-    private final Sweeper thoroughSweeper = new ThoroughSweeper(mockKvs, mockImmutableTimestampSupplier);
-    private final Sweeper conservativeSweeper = new ConservativeSweeper(
-            mockKvs,
-            mockImmutableTimestampSupplier,
-            mockUnreadableTimestampSupplier);
-
-    @Test
-    public void thoroughWillReturnTheImmutableTimestamp() {
-        when(mockImmutableTimestampSupplier.get()).thenReturn(VALID_TIMESTAMP);
-
-        assertThat(sweepTaskRunner.getSweepTimestamp(SweepStrategy.THOROUGH)).isEqualTo(VALID_TIMESTAMP);
-    }
-
-    @Test
-    public void conservativeWillReturnTheImmutableTimestampIfItIsLowerThanUnreadableTimestamp() {
-        when(mockImmutableTimestampSupplier.get()).thenReturn(100L);
-        when(mockUnreadableTimestampSupplier.get()).thenReturn(200L);
-
-        assertThat(sweepTaskRunner.getSweepTimestamp(SweepStrategy.CONSERVATIVE)).isEqualTo(100L);
-    }
-
-    @Test
-    public void conservativeWillReturnTheUnreadableTimestampIfItIsLowerThanImmutableTimestamp() {
-        when(mockImmutableTimestampSupplier.get()).thenReturn(200L);
-        when(mockUnreadableTimestampSupplier.get()).thenReturn(100L);
-
-        assertThat(sweepTaskRunner.getSweepTimestamp(SweepStrategy.CONSERVATIVE)).isEqualTo(100L);
-    }
 
     private static CellsAndTimestamps convertToCellAndTimestamps(Multimap<Cell, Long> multimap) {
         ImmutableCellsAndTimestamps.Builder builder = ImmutableCellsAndTimestamps.builder();
@@ -135,7 +103,7 @@ public class SweepTaskRunnerImplTest {
                 convertToCellAndTimestamps(ImmutableMultimap.of()),
                 Iterators.peekingIterator(Collections.emptyIterator()),
                 VALID_TIMESTAMP,
-                conservativeSweeper);
+                Sweeper.CONSERVATIVE);
 
         verify(mockTransactionService, never()).get(any());
         verify(mockTransactionService, never()).get(anyLong());
@@ -150,7 +118,7 @@ public class SweepTaskRunnerImplTest {
                 convertToCellAndTimestamps(timestampsPerRow),
                 Iterators.peekingIterator(Collections.emptyIterator()),
                 sweepTimestampHigherThanCommitTimestamp,
-                conservativeSweeper).timestampsAsMultimap();
+                Sweeper.CONSERVATIVE).timestampsAsMultimap();
 
         assertThat(startTimestampsPerRowToSweep.get(SINGLE_CELL)).contains(LOW_START_TS);
     }
@@ -164,7 +132,7 @@ public class SweepTaskRunnerImplTest {
                 convertToCellAndTimestamps(timestampsPerRow),
                 Iterators.peekingIterator(Collections.emptyIterator()),
                 sweepTimestampLowerThanCommitTimestamp,
-                conservativeSweeper).timestampsAsMultimap();
+                Sweeper.CONSERVATIVE).timestampsAsMultimap();
 
         assertThat(startTimestampsPerRowToSweep.get(SINGLE_CELL)).isEmpty();
     }
@@ -178,7 +146,7 @@ public class SweepTaskRunnerImplTest {
                 convertToCellAndTimestamps(timestampsPerRow),
                 Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator()),
                 sweepTimestampHigherThanCommitTimestamp,
-                conservativeSweeper);
+                Sweeper.CONSERVATIVE);
 
         assertThat(cellsToSweep.allSentinels()).contains(SINGLE_CELL);
     }
@@ -192,7 +160,7 @@ public class SweepTaskRunnerImplTest {
                 convertToCellAndTimestamps(timestampsPerRow),
                 Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator()),
                 sweepTimestampHigherThanCommitTimestamp,
-                thoroughSweeper);
+                Sweeper.THOROUGH);
 
         assertThat(cellsToSweep.allSentinels()).isEmpty();
     }
@@ -207,7 +175,7 @@ public class SweepTaskRunnerImplTest {
                 convertToCellAndTimestamps(timestampsPerRow),
                 Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator()),
                 HIGH_START_TS,
-                conservativeSweeper);
+                Sweeper.CONSERVATIVE);
         Multimap<Cell, Long> timestampsToSweep = cellsToSweep.timestampsAsMultimap();
 
         assertThat(timestampsToSweep.get(SINGLE_CELL)).contains(LOW_START_TS);
@@ -224,7 +192,7 @@ public class SweepTaskRunnerImplTest {
                 convertToCellAndTimestamps(timestampsPerRow),
                 Iterators.peekingIterator(ClosableIterators.wrap(ImmutableList.of(rowResult).iterator())),
                 HIGH_START_TS,
-                thoroughSweeper);
+                Sweeper.THOROUGH);
         Multimap<Cell, Long> timestampsToSweep = cellsToSweep.timestampsAsMultimap();
 
         assertThat(timestampsToSweep.get(SINGLE_CELL)).contains(LOW_START_TS);
@@ -255,8 +223,8 @@ public class SweepTaskRunnerImplTest {
         when(mockTransactionService.get(any(Iterable.class))).thenReturn(startToCommitTs);
         when(mockKvs.getMetadataForTable(TABLE_REFERENCE)).thenReturn(new byte[1]);
         when(mockSweepStrategyManager.get()).thenReturn(ImmutableMap.of());
-        when(mockImmutableTimestampSupplier.get()).thenReturn(100L);
-        when(mockUnreadableTimestampSupplier.get()).thenReturn(100L);
+        when(mockImmutableTimestampSupplier.getAsLong()).thenReturn(100L);
+        when(mockUnreadableTimestampSupplier.getAsLong()).thenReturn(100L);
         when(mockKvs.getRangeOfTimestamps(eq(TABLE_REFERENCE), any(RangeRequest.class), anyLong()))
                 .thenReturn(ClosableIterators.wrap(timestamps.iterator()));
 
