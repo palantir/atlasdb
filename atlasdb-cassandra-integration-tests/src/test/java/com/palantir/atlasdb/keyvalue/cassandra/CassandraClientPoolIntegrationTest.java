@@ -130,21 +130,7 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testSanitiseReplicationFactorFailsAfterManipulatingReplicationFactorOnCassandra() throws TException {
-        clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
-            @Override
-            public Void apply(Cassandra.Client client) throws TException {
-                KsDef originalKsDef = client.describe_keyspace(CassandraContainer.KVS_CONFIG.keyspace());
-                // there was an existing keyspace
-                // check and make sure it's definition is up to date with our config
-                KsDef modifiedKsDef = originalKsDef.deepCopy();
-                modifiedKsDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
-                modifiedKsDef.setStrategy_options(ImmutableMap.of("dc1", Integer.toString(
-                        MODIFIED_REPLICATION_FACTOR)));
-                modifiedKsDef.setCf_defs(ImmutableList.of());
-                client.system_update_keyspace(modifiedKsDef);
-                return null;
-            }
-        });
+        changeReplicationFactor(MODIFIED_REPLICATION_FACTOR);
         clientPool.run(client -> {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, CassandraContainer.KVS_CONFIG, false);
@@ -153,6 +139,24 @@ public class CassandraClientPoolIntegrationTest {
                 // expected
             }
             return false;
+        });
+        changeReplicationFactor(CassandraContainer.KVS_CONFIG.replicationFactor());
+    }
+
+    private void changeReplicationFactor(int replicationFactor) throws TException {
+        clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
+            @Override
+            public Void apply(Cassandra.Client client) throws TException {
+                KsDef originalKsDef = client.describe_keyspace(CassandraContainer.KVS_CONFIG.keyspace());
+                // there was an existing keyspace
+                // check and make sure it's definition is up to date with our config
+                KsDef modifiedKsDef = originalKsDef.deepCopy();
+                modifiedKsDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
+                modifiedKsDef.setStrategy_options(ImmutableMap.of("dc1", Integer.toString(replicationFactor)));
+                modifiedKsDef.setCf_defs(ImmutableList.of());
+                client.system_update_keyspace(modifiedKsDef);
+                return null;
+            }
         });
     }
 
