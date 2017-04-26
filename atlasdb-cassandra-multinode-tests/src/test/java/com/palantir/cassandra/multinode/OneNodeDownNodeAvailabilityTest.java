@@ -27,6 +27,6 @@ public class OneNodeDownNodeAvailabilityTest extends AbstractNodeAvailabilityTes
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return NodesDownTestSetup.db;
+        return NodesDownTestSetup.kvs;
     }
 }

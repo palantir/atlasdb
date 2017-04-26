@@ -618,7 +618,6 @@ public interface KeyValueService extends AutoCloseable {
     @Consumes(MediaType.APPLICATION_JSON)
     void compactInternally(TableReference tableRef);
 
-
     /**
      * Checks if the KVS has a quorum available to successfully perform reads/writes.
      *

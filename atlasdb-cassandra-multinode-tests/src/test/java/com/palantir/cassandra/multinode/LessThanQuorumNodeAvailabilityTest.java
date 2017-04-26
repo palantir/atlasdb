@@ -27,6 +27,6 @@ public class LessThanQuorumNodeAvailabilityTest extends AbstractNodeAvailability
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return NodesDownTestSetup.db;
+        return NodesDownTestSetup.kvs;
     }
 }

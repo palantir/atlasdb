@@ -15,7 +15,6 @@ package com.palantir.cassandra.multinode;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -61,7 +60,7 @@ public abstract class NodesDownTestSetup {
     static final long OLD_TIMESTAMP = 1L;
     static final Value DEFAULT_VALUE = Value.create(DEFAULT_CONTENTS, DEFAULT_TIMESTAMP);
 
-    static CassandraKeyValueService db;
+    static CassandraKeyValueService kvs;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(NodesDownTestSetup.class)
@@ -69,13 +68,13 @@ public abstract class NodesDownTestSetup {
 
     public static void initializeKvsAndDegradeCluster(List<String> nodesToKill) {
         setupTestTable();
-        db = createCassandraKvs();
+        kvs = createCassandraKvs();
         degradeCassandraCluster(nodesToKill);
     }
 
     @AfterClass
     public static void closeKvs() throws IOException, InterruptedException {
-        db.close();
+        kvs.close();
     }
 
     private static void setupTestTable() {
@@ -101,8 +100,8 @@ public abstract class NodesDownTestSetup {
                 ThreeNodeCassandraCluster.LEADER_CONFIG);
     }
 
-    private static void degradeCassandraCluster(List<String> nodesTokill) {
-        nodesTokill.forEach((containerName) -> {
+    private static void degradeCassandraCluster(List<String> nodesToKill) {
+        nodesToKill.forEach((containerName) -> {
             try {
                 killCassandraContainer(containerName);
             } catch (IOException | InterruptedException e) {
@@ -112,7 +111,7 @@ public abstract class NodesDownTestSetup {
 
         // startup checks aren't guaranteed to pass immediately after killing the node, so we wait until
         // they do. unclear if this is an AtlasDB product problem. see #1154
-        if (nodesTokill.size() < 2) {
+        if (nodesToKill.size() < 2) {
             waitUntilStartupChecksPass();
         }
     }
@@ -135,24 +134,18 @@ public abstract class NodesDownTestSetup {
         try {
             // startup checks are done implicitly in the constructor
             new CassandraClientPool(manager.getConfig());
+            return true;
         } catch (Exception e) {
             return false;
         }
-        return true;
     }
 
     protected static void verifyValue(Cell cell, Value value) {
-        Map<Cell, Value> result = db.get(TEST_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
+        Map<Cell, Value> result = kvs.get(TEST_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
         assertThat(value).isEqualTo(result.get(cell));
     }
 
     protected static boolean tableExists(TableReference tableReference) {
-        Iterator<TableReference> it = NodesDownTestSetup.db.getAllTableNames().iterator();
-        while (it.hasNext()) {
-            if (it.next().equals(tableReference)) {
-                return true;
-            }
-        }
-        return false;
+        return NodesDownTestSetup.kvs.getAllTableNames().contains(tableReference);
     }
 }

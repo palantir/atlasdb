@@ -108,7 +108,7 @@ public interface TransactionManager extends AutoCloseable {
     /**
      * Return true if KVS is healthy, else return false.
      *
-     * @return status of the key value service, can be used by tghe application to decide its own health
+     * @return status of the key value service, can be used by the application to decide its own health
      */
     KeyValueServiceStatus getKeyValueServiceStatus();
 

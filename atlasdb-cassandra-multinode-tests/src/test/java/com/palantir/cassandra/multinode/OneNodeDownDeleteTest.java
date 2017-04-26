@@ -26,7 +26,7 @@ public class OneNodeDownDeleteTest {
 
     @Test
     public void deletingThrows() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.delete(OneNodeDownTestSuite.TEST_TABLE,
+        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.delete(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP)))
                 .isInstanceOf(PalantirRuntimeException.class);
     }
