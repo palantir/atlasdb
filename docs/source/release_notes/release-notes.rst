@@ -63,9 +63,9 @@ develop
            For more information, see the :ref:`docs <timelock-server-further-config>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
-   *    - |new|
-        - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
-
+    *    - |new|
+         - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1814>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
