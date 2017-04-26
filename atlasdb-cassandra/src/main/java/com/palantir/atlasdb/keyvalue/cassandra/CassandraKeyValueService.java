@@ -2126,21 +2126,48 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = clientPool.currentPools;
+        if (!doesConfigReplicationFactorMatchWithCluster()) {
+            return NodeAvailabilityStatus.TERMINAL;
+        }
+        return getStatusByRunningOperationsOnEachHost();
+    }
+
+    private NodeAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
         int numberOfUnreachableNodes = 0;
-        for (InetSocketAddress host : currentPools.keySet()) {
+        for (InetSocketAddress host : clientPool.currentPools.keySet()) {
             try {
                 clientPool.runOnHost(host, CassandraVerifier.healthCheck);
-                try {
-                    clientPool.runOnHost(host, clientPool.validatePartitioner);
-                } catch (Exception e) {
+                if (!partitionerIsValid(host)) {
                     return NodeAvailabilityStatus.TERMINAL;
                 }
             } catch (Exception e) {
                 numberOfUnreachableNodes++;
             }
         }
+        return getClusterAvailabilityStatus(numberOfUnreachableNodes);
+    }
 
+    private boolean doesConfigReplicationFactorMatchWithCluster() {
+        return clientPool.run(client -> {
+            try {
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, configManager.getConfig(), false);
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        });
+    }
+
+    private boolean partitionerIsValid(InetSocketAddress host) {
+        try {
+            clientPool.runOnHost(host, clientPool.validatePartitioner);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private NodeAvailabilityStatus getClusterAvailabilityStatus(int numberOfUnreachableNodes) {
         if (numberOfUnreachableNodes == 0) {
             return NodeAvailabilityStatus.ALL_AVAILABLE;
         } else if (fewerThanRfByTwoNodesUnreachable(numberOfUnreachableNodes)) {
