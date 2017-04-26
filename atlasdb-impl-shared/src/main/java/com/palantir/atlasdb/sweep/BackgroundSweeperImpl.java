@@ -151,6 +151,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         daemon.setDaemon(true);
         daemon.setName("BackgroundSweeper");
         daemon.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            log.info("Shutting down persistent lock manager");
+            persistentLockManager.shutdown();
+        }));
     }
 
     @Override

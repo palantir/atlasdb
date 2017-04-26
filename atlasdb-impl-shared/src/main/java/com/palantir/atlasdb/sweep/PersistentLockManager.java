@@ -29,9 +29,10 @@ public class PersistentLockManager {
     private static final Logger log = LoggerFactory.getLogger(PersistentLockManager.class);
 
     private final PersistentLockService persistentLockService;
+    private final long persistentLockRetryWaitMillis;
 
     private PersistentLockId lockId;
-    private long persistentLockRetryWaitMillis;
+    private boolean isShutDown = false;
 
     public PersistentLockManager(PersistentLockService persistentLockService, long persistentLockRetryWaitMillis) {
         this.persistentLockService = persistentLockService;
@@ -40,7 +41,17 @@ public class PersistentLockManager {
         this.lockId = null;
     }
 
+    public synchronized void shutdown() {
+        isShutDown = true;
+        releasePersistentLock();
+    }
+
     public synchronized void acquirePersistentLockWithRetry() {
+        if (isShutDown) {
+            // To avoid a race condition on shutdown, we don't want to acquire any more.
+            log.info("The PersistentLockManager is shut down, and therefore rejected a request to acquire the lock.");
+            return;
+        }
         // TODO what should happen if we've already acquired a lock?
 
         while (true) {
