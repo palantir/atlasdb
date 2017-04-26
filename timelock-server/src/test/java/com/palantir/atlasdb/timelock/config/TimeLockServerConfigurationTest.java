@@ -65,6 +65,12 @@ public class TimeLockServerConfigurationTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
+    @Test
+    public void shouldNotEnableTimeLimiterIfNotSpecified() {
+        TimeLockServerConfiguration configuration = createSimpleConfig(CLUSTER, CLIENTS);
+        assertThat(configuration.timeLimiterConfiguration().enableTimeLimiting()).isFalse();
+    }
+
     private static TimeLockServerConfiguration createSimpleConfig(ClusterConfiguration cluster, Set<String> clients) {
         return new TimeLockServerConfiguration(null, cluster, clients, null);
     }
