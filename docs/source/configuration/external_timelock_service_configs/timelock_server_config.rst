@@ -131,6 +131,44 @@ default values.
      - The length of time between a follower initiating a ping to a leader and, if it hasn't received a response,
        believing the leader is down, in ms (default: ``5000``).
 
+.. _timelock-server-time-limiting:
+
+Time Limiting
+-------------
+
+Clients that make long-running lock requests will block a thread on TimeLock for the duration of their request. More
+significantly, if these requests are blocked for longer than the idle timeout of the server's application connector
+on HTTP/2, then Jetty will send a stream closed message to the client. This can lead to an infinite buildup of threads
+and was the root cause of issue `#1680 <https://github.com/palantir/atlasdb/issues/1680>`__. We thus reap the thread
+before the timeout expires, and send a ``BlockingTimeoutException`` to the client indicating that it should retry.
+
+This mechanism can be switched on and off, and the time interval between generating the ``BlockingTimeoutException``
+and the actual idle timeout becoming active is configurable. Note that even if we lose the race between generating
+this exception and the idle timeout, we will retry on the same node. Even if this happens 3 times in a row we are fine,
+since we will fail over to non-leaders and they will redirect us back.
+
+   .. code:: yaml
+
+      timeLimiter:
+        enableTimeLimiting: true
+        blockingTimeoutErrorMargin: 0.03
+
+.. list-table::
+   :widths: 5 40
+   :header-rows: 1
+
+   * - Property
+     - Description
+
+   * - enableTimeLimiting
+     - Whether to enable the time limiting mechanism or not (default: ``false``).
+
+   * - blockingTimeoutErrorMargin
+     - A value indicating the margin of error we leave before interrupting a long running request,
+       since we wish to perform this interruption and return a BlockingTimeoutException *before* Jetty closes the
+       stream. This margin is specified as a ratio of the smallest idle timeout - hence it must be strictly between
+       0 and 1 (default: ``0.03``).
+
 .. _timelock-server-further-config:
 
 Further Configuration Parameters
