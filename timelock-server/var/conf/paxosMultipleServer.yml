@@ -1,0 +1,24 @@
+clients:
+  - test
+  - test2
+  - test3
+
+cluster:
+  localServer: ${ME}:8421
+  servers:
+    - timelock1:8421
+    - timelock2:8421
+    - timelock3:8421
+
+algorithm:
+  type: paxos
+
+useClientRequestLimit: true
+
+server:
+  applicationConnectors:
+    - type: http
+      port: 8421
+  adminConnectors:
+    - type: http
+      port: 8422

@@ -29,6 +29,8 @@ import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
+import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
+import io.dropwizard.configuration.SubstitutingSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
@@ -42,6 +44,10 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         MetricRegistry metricRegistry = MetricRegistries.createWithHdrHistogramReservoirs();
         AtlasDbMetrics.setMetricRegistry(metricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);
+        bootstrap.setConfigurationSourceProvider(
+                new SubstitutingSourceProvider(
+                        bootstrap.getConfigurationSourceProvider(),
+                        new EnvironmentVariableSubstitutor()));
         super.initialize(bootstrap);
     }
 

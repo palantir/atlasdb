@@ -1,0 +1,32 @@
+version: '2'
+
+services:
+  timelock1:
+    image: palantirtechnologies/timelock-server
+    command: bash -c 'cp var/conf/paxosMultipleServer.yml var/conf/timelock.yml && service/bin/init.sh console'
+    ports:
+      - "8421"
+      - "8422"
+      - "10000"
+    environment:
+      - ME=timelock1
+
+  timelock2:
+    image: palantirtechnologies/timelock-server
+    command: bash -c 'cp var/conf/paxosMultipleServer.yml var/conf/timelock.yml && service/bin/init.sh console'
+    ports:
+      - "8421"
+      - "8422"
+      - "10000"
+    environment:
+      - ME=timelock2
+
+  timelock3:
+    image: palantirtechnologies/timelock-server
+    command: bash -c 'cp var/conf/paxosMultipleServer.yml var/conf/timelock.yml && service/bin/init.sh console'
+    ports:
+      - "8421"
+      - "8422"
+      - "10000"
+    environment:
+      - ME=timelock3
