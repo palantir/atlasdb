@@ -175,7 +175,7 @@ public abstract class AtlasDbConfig {
      * The time threshold for ProfilingKeyValueService to log a KVS operation for being slow.
      */
     @Value.Default
-    public long getProfilingKeyValueStoreSlowLogThresholdMillis() {
+    public long getKvsSlowLogThresholdMillis() {
         return 1000;
     }
 

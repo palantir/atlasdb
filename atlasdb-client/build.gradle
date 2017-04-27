@@ -45,7 +45,7 @@ dependencies {
   testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
-	testCompile group: 'ch.qos.logback', name: 'logback-classic'
+  testCompile group: 'ch.qos.logback', name: 'logback-classic'
 
   testArtifacts sourceSets.test.output
 }

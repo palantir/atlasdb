@@ -162,7 +162,7 @@ public final class TransactionManagers {
                 userAgent);
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
-        kvs = ProfilingKeyValueService.create(kvs, config.getProfilingKeyValueStoreSlowLogThresholdMillis());
+        kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
         kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
         kvs = TracingKeyValueService.create(kvs);
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs,

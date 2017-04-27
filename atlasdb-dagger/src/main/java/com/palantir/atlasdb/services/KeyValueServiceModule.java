@@ -52,7 +52,7 @@ public class KeyValueServiceModule {
                                                          ServicesConfig config) {
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = ProfilingKeyValueService.create(kvs,
-                config.atlasDbConfig().getProfilingKeyValueStoreSlowLogThresholdMillis());
+                config.atlasDbConfig().getKvsSlowLogThresholdMillis());
         kvs = TracingKeyValueService.create(kvs);
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs);
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
