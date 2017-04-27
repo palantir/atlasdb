@@ -31,7 +31,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
-import com.palantir.util.VersionStrings;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -40,7 +39,6 @@ public class PostgresDdlTable implements DbDdlTable {
     public static final int ATLASDB_POSTGRES_TABLE_NAME_LIMIT = POSTGRES_NAME_LENGTH_LIMIT
             - AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX.length();
     private static final Logger log = LoggerFactory.getLogger(PostgresDdlTable.class);
-    private static final String MIN_POSTGRES_VERSION = "9.2";
 
     private final TableReference tableName;
     private final ConnectionSupplier conns;
@@ -119,18 +117,7 @@ public class PostgresDdlTable implements DbDdlTable {
     public void checkDatabaseVersion() {
         AgnosticResultSet result = conns.get().selectResultSetUnregisteredQuery("SHOW server_version");
         String version = result.get(0).getString("server_version");
-        if (!version.matches("^[\\.0-9]+$") || VersionStrings.compareVersions(version, MIN_POSTGRES_VERSION) < 0) {
-            log.error("Your key value service currently uses version {} of postgres."
-                    + " The minimum supported version is {}."
-                    + " If you absolutely need to use an older version of postgres,"
-                    + " please contact Palantir support for assistance.", version, MIN_POSTGRES_VERSION);
-        } else if (VersionStrings.compareVersions(version, "9.5") >= 0
-                && VersionStrings.compareVersions(version, "9.5.2") < 0) {
-            throw new RuntimeException(
-                      "You are running Postgres " + version + ". Versions 9.5.0 and 9.5.1 contain a known bug "
-                    + "that causes incorrect results to be returned for certain queries. "
-                    + "Please update your Postgres distribution.");
-        }
+        PostgresVersionCheck.checkDatabaseVersion(version, log);
     }
 
     @Override

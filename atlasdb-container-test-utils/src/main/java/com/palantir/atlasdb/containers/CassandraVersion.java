@@ -15,21 +15,13 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.util.Map;
 import java.util.regex.Pattern;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-
 public interface CassandraVersion {
-    String CASSANDRA_VERSION = "CASSANDRA_VERSION";
-    String DEFAULT_VERSION = "2.2.8";
 
     static CassandraVersion fromEnvironment() {
-        String version = System.getenv(CASSANDRA_VERSION);
-        return Strings.isNullOrEmpty(version)
-                ? new Cassandra22XVersion()
-                : from(version);
+        String version = CassandraEnvironment.getVersion();
+        return from(version);
     }
 
     static CassandraVersion from(String version) {
@@ -40,14 +32,6 @@ public interface CassandraVersion {
         } else {
             throw new IllegalArgumentException(String.format("Cassandra version %s not supported", version));
         }
-    }
-
-    static Map<String, String> getEnvironment() {
-        String version = System.getenv(CASSANDRA_VERSION);
-        if (Strings.isNullOrEmpty(version)) {
-            version = DEFAULT_VERSION;
-        }
-        return ImmutableMap.of(CASSANDRA_VERSION, version);
     }
 
     Pattern replicationFactorRegex();

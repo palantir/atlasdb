@@ -35,7 +35,7 @@ public final class HeldLocksTokenTest {
     public void testSerializationDeserialization() throws Exception {
         SortedMap<LockDescriptor, LockMode> lockMap = ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.READ);
         HeldLocksToken heldLocksToken = new HeldLocksToken(BigInteger.valueOf(0), LockClient.of("foo"), 0, 0,
-                LockCollections.of(lockMap), SimpleTimeDuration.of(1, TimeUnit.SECONDS), 0L);
+                LockCollections.of(lockMap), SimpleTimeDuration.of(1, TimeUnit.SECONDS), 0L, "Dummy Thread");
 
         HeldLocksToken deserializedHeldLocksToken = MAPPER.readValue(MAPPER.writeValueAsString(heldLocksToken), HeldLocksToken.class);
         assertThat(deserializedHeldLocksToken, is(heldLocksToken));

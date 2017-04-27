@@ -29,8 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.containers.CassandraVersion;
-import com.palantir.atlasdb.testing.DockerProxyRule;
+import com.palantir.atlasdb.containers.CassandraEnvironment;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.connection.waiting.ClusterHealthCheck;
@@ -40,6 +39,7 @@ import com.palantir.docker.compose.execution.DockerComposeExecOption;
 import com.palantir.docker.compose.execution.DockerExecutionException;
 import com.palantir.docker.compose.execution.ImmutableDockerComposeExecArgument;
 import com.palantir.docker.compose.logging.LogDirectory;
+import com.palantir.docker.proxy.DockerProxyRule;
 
 public class DockerClientOrchestrationRule extends ExternalResource {
     private static final Logger log = LoggerFactory.getLogger(DockerClientOrchestrationRule.class);
@@ -78,7 +78,9 @@ public class DockerClientOrchestrationRule extends ExternalResource {
                 .saveLogsTo(LogDirectory.circleAwareLogDirectory(TimeLockMigrationEteTest.class.getSimpleName()))
                 .addClusterWait(new ClusterWait(ClusterHealthCheck.nativeHealthChecks(), WAIT_TIMEOUT))
                 .build();
-        dockerProxyRule = new DockerProxyRule(dockerComposeRule.projectName(), TimeLockMigrationEteTest.class);
+        dockerProxyRule = DockerProxyRule.fromProjectName(
+                dockerComposeRule.projectName(),
+                TimeLockMigrationEteTest.class);
 
         dockerComposeRule.before();
         dockerProxyRule.before();
@@ -121,7 +123,7 @@ public class DockerClientOrchestrationRule extends ExternalResource {
 
     private Map<String, String> getEnvironment() {
         return ImmutableMap.<String, String>builder()
-                .putAll(CassandraVersion.getEnvironment())
+                .putAll(CassandraEnvironment.get())
                 .put("CONFIG_FILE_MOUNTPOINT", temporaryFolder.getRoot().getAbsolutePath())
                 .build();
     }

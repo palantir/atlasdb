@@ -23,7 +23,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.containers.CassandraVersion;
+import com.palantir.atlasdb.containers.CassandraEnvironment;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -38,5 +38,5 @@ public class CassandraTimeLockTestSuite extends EteSetup {
             CassandraTimeLockTestSuite.class,
             "docker-compose.timelock.cassandra.yml",
             CLIENTS,
-            CassandraVersion.getEnvironment());
+            CassandraEnvironment.get());
 }

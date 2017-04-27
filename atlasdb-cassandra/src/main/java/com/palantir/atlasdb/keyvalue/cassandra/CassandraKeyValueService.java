@@ -1352,7 +1352,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, readConsistency, ValueExtractor.SUPPLIER);
+        return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, readConsistency, ValueExtractor::create);
     }
 
     /**
@@ -1389,7 +1389,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     rangeRequest,
                     timestamp,
                     deleteConsistency,
-                    TimestampExtractor.SUPPLIER);
+                    TimestampExtractor::new);
         }
     }
 
@@ -1404,35 +1404,35 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
         ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
 
-        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, TimestampExtractor.SUPPLIER, timestamp);
+        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, TimestampExtractor::new, timestamp);
     }
 
-    private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
+    private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp,
             ConsistencyLevel consistency,
-            Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+            Supplier<ResultsExtractor<T>> resultsExtractor) {
         RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ALL);
         ColumnGetter columnGetter = new ThriftColumnGetter();
 
         return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
     }
 
-    private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
+    private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
             RowGetter rowGetter,
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,
-            Supplier<ResultsExtractor<T, U>> resultsExtractor,
+            Supplier<ResultsExtractor<T>> resultsExtractor,
             long timestamp) {
         if (rangeRequest.isReverse()) {
             throw new UnsupportedOperationException();
         }
         if (rangeRequest.isEmptyRange()) {
-            return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
+            return ClosableIterators.wrap(ImmutableList.<RowResult<T>>of().iterator());
         }
 
-        CassandraRangePagingIterable<T, U> rowResults = new CassandraRangePagingIterable<>(
+        CassandraRangePagingIterable<T> rowResults = new CassandraRangePagingIterable<>(
                 rowGetter,
                 columnGetter,
                 rangeRequest,

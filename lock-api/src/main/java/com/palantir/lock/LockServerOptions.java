@@ -33,7 +33,7 @@ import com.google.common.base.Objects;
  * @author jtamer
  */
 @Immutable public class LockServerOptions implements Serializable {
-    private static final long serialVersionUID = 0xb5fd04db6d65582al;
+    private static final long serialVersionUID = 2930574230723753879L;
 
     /** The default lock server option values. */
     public static final LockServerOptions DEFAULT = new LockServerOptions();
@@ -108,7 +108,8 @@ import com.google.common.base.Objects;
                 && Objects.equal(getMaxAllowedClockDrift(), other.getMaxAllowedClockDrift())
                 && Objects.equal(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
                 && Objects.equal(getMaxNormalLockAge(), other.getMaxNormalLockAge())
-                && (getRandomBitCount() == other.getRandomBitCount());
+                && (getRandomBitCount() == other.getRandomBitCount()
+                && getLockStateLoggerDir().equals(other.getLockStateLoggerDir()));
     }
 
     @Override public final int hashCode() {
@@ -117,7 +118,8 @@ import com.google.common.base.Objects;
                 getMaxAllowedClockDrift(),
                 getMaxAllowedBlockingDuration(),
                 getMaxNormalLockAge(),
-                getRandomBitCount());
+                getRandomBitCount(),
+                getLockStateLoggerDir());
     }
 
     @Override public final String toString() {
@@ -128,6 +130,7 @@ import com.google.common.base.Objects;
                 .add("maxAllowedBlockingDuration", getMaxAllowedBlockingDuration())
                 .add("maxNormalLockAge", getMaxNormalLockAge())
                 .add("randomBitCount", getRandomBitCount())
+                .add("lockStateLoggerDir", getLockStateLoggerDir())
                 .toString();
     }
 
@@ -140,8 +143,12 @@ import com.google.common.base.Objects;
         return new SerializationProxy(this);
     }
 
+    public String getLockStateLoggerDir() {
+        return "log/state";
+    }
+
     private static class SerializationProxy implements Serializable {
-        private static final long serialVersionUID = 0xece5944130b16002l;
+        private static final long serialVersionUID = 4043798817916565364L;
 
         private final boolean isStandaloneServer;
         private final SimpleTimeDuration maxAllowedLockTimeout;
@@ -149,6 +156,7 @@ import com.google.common.base.Objects;
         private final SimpleTimeDuration maxAllowedBlockingDuration;
         private final SimpleTimeDuration maxNormalLockAge;
         private final int randomBitCount;
+        private final String lockStateLoggerDir;
 
         SerializationProxy(LockServerOptions lockServerOptions) {
             isStandaloneServer = lockServerOptions.isStandaloneServer();
@@ -161,11 +169,11 @@ import com.google.common.base.Objects;
             maxNormalLockAge = SimpleTimeDuration.of(
                     lockServerOptions.getMaxNormalLockAge());
             randomBitCount = lockServerOptions.getRandomBitCount();
+            lockStateLoggerDir = lockServerOptions.getLockStateLoggerDir();
         }
 
         Object readResolve() {
             return new LockServerOptions() {
-                private static final long serialVersionUID = 0xcc7124dcf06f0803l;
                 @Override public boolean isStandaloneServer() {
                     return isStandaloneServer;
                 }
@@ -183,6 +191,9 @@ import com.google.common.base.Objects;
                 }
                 @Override public int getRandomBitCount() {
                     return randomBitCount;
+                }
+                @Override public String getLockStateLoggerDir() {
+                    return lockStateLoggerDir;
                 }
             };
         }
