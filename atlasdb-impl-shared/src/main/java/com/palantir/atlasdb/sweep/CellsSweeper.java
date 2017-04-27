@@ -38,9 +38,8 @@ public class CellsSweeper {
 
     private final TransactionManager txManager;
     private final KeyValueService keyValueService;
-    private final PersistentLockService persistentLockService;
-    private final long persistentLockRetryWaitMillis;
     private final Collection<Follower> followers;
+    private final PersistentLockManager persistentLockManager;
 
     public CellsSweeper(
             TransactionManager txManager,
@@ -50,9 +49,9 @@ public class CellsSweeper {
             Collection<Follower> followers) {
         this.txManager = txManager;
         this.keyValueService = keyValueService;
-        this.persistentLockService = persistentLockService;
-        this.persistentLockRetryWaitMillis = persistentLockRetryWaitMillis;
         this.followers = followers;
+        this.persistentLockManager = new PersistentLockManager(persistentLockService,
+                persistentLockRetryWaitMillis);
     }
 
     public CellsSweeper(
@@ -63,8 +62,8 @@ public class CellsSweeper {
         this.keyValueService = keyValueService;
         this.followers = followers;
 
-        this.persistentLockRetryWaitMillis = AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS;
-        this.persistentLockService = getPersistentLockService(keyValueService);
+        this.persistentLockManager = new PersistentLockManager(getPersistentLockService(keyValueService),
+                AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
     }
 
     private static PersistentLockService getPersistentLockService(KeyValueService kvs) {
@@ -95,8 +94,6 @@ public class CellsSweeper {
                     sentinelsToAdd);
         }
 
-        PersistentLockManager persistentLockManager = new PersistentLockManager(persistentLockService,
-                persistentLockRetryWaitMillis);
         persistentLockManager.acquirePersistentLockWithRetry();
 
         try {
