@@ -41,20 +41,6 @@ public class CellsSweeper {
     private final Collection<Follower> followers;
     private final PersistentLockManager persistentLockManager;
 
-    /**
-     * @deprecated please use the constructor including PersistentLockManager instead.
-     */
-    @Deprecated
-    public CellsSweeper(
-            TransactionManager txManager,
-            KeyValueService keyValueService,
-            PersistentLockService persistentLockService,
-            long persistentLockRetryWaitMillis,
-            Collection<Follower> followers) {
-        this(txManager, keyValueService, new PersistentLockManager(persistentLockService,
-                persistentLockRetryWaitMillis), followers);
-    }
-
     public CellsSweeper(
             TransactionManager txManager,
             KeyValueService keyValueService,
