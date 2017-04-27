@@ -149,6 +149,10 @@ and the actual idle timeout is configurable. Note that even if we lose the race 
 the idle timeout, we will retry on the same node. Even if this happens 3 times in a row we are fine, since we will fail
 over to non-leaders and they will redirect us back.
 
+Note that this may affect lock fairness in cases where timeouts occur; previously our locks were entirely fair, but
+now if the blocking time is longer than the connection timeout, then it is possible for the locks to not behave
+fairly.
+
    .. code:: yaml
 
       timeLimiter:
