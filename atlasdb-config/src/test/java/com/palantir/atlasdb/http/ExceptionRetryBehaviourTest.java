@@ -22,8 +22,11 @@ import java.util.Date;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
+import com.palantir.remoting2.errors.RemoteException;
+import com.palantir.remoting2.errors.SerializableError;
 
 import feign.RetryableException;
 
@@ -31,7 +34,9 @@ import feign.RetryableException;
 public class ExceptionRetryBehaviourTest {
     private static final ServiceNotAvailableException SERVICE_NOT_AVAILABLE_EXCEPTION
             = new ServiceNotAvailableException("foo");
-    private static final BlockingTimeoutException BLOCKING_TIMEOUT_EXCEPTION = new BlockingTimeoutException("foo");
+    private static final AtlasDbRemoteException REMOTE_BLOCKING_TIMEOUT_EXCEPTION
+            = new AtlasDbRemoteException(
+                    new RemoteException(SerializableError.of("foo", BlockingTimeoutException.class), 503));
     private static final Date DATE = Date.from(Instant.EPOCH);
 
     @Test
@@ -73,7 +78,7 @@ public class ExceptionRetryBehaviourTest {
     @Test
     public void shouldRetryIndefinitelyOnSameNodeOnBlockingTimeoutExceptionWithoutRetryAfter() {
         RetryableException exception = createRetryableExceptionWithGenericMessage(
-                BLOCKING_TIMEOUT_EXCEPTION, null);
+                REMOTE_BLOCKING_TIMEOUT_EXCEPTION, null);
         assertThat(ExceptionRetryBehaviour.getRetryBehaviourForException(exception))
                 .isEqualTo(ExceptionRetryBehaviour.RETRY_INDEFINITELY_ON_SAME_NODE);
     }
@@ -81,7 +86,7 @@ public class ExceptionRetryBehaviourTest {
     @Test
     public void shouldRetryIndefinitelyOnSameNodeOnBlockingTimeoutExceptionWithRetryAfter() {
         RetryableException exception = createRetryableExceptionWithGenericMessage(
-                BLOCKING_TIMEOUT_EXCEPTION, DATE);
+                REMOTE_BLOCKING_TIMEOUT_EXCEPTION, DATE);
         assertThat(ExceptionRetryBehaviour.getRetryBehaviourForException(exception))
                 .isEqualTo(ExceptionRetryBehaviour.RETRY_INDEFINITELY_ON_SAME_NODE);
     }

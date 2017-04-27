@@ -69,8 +69,8 @@ public enum ExceptionRetryBehaviour {
     }
 
     private static boolean isCausedByBlockingTimeout(RetryableException retryableException) {
-        return retryableException.getCause() instanceof AtlasDbRemoteException &&
-                getCausingErrorName(retryableException).equals(BlockingTimeoutException.class.getName());
+        return retryableException.getCause() instanceof AtlasDbRemoteException
+                && getCausingErrorName(retryableException).equals(BlockingTimeoutException.class.getName());
     }
 
     private static String getCausingErrorName(RetryableException retryableException) {
