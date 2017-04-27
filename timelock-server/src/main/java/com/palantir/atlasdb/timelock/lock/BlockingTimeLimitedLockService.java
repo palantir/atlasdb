@@ -187,7 +187,7 @@ public class BlockingTimeLimitedLockService implements LockService {
             return timeLimiter.callWithTimeout(callable, blockingTimeLimitMillis, TimeUnit.MILLISECONDS, true);
         } catch (InterruptedException e) {
             // In this case, the thread was interrupted for some other reason, perhaps because we lost leadership.
-            log.warn("Lock service was interrupted when servicing {} for client \"{}\"; request was {}",
+            log.info("Lock service was interrupted when servicing {} for client \"{}\"; request was {}",
                     specification.method(),
                     specification.client(),
                     specification.lockRequest(),
@@ -195,14 +195,14 @@ public class BlockingTimeLimitedLockService implements LockService {
             throw e;
         } catch (UncheckedTimeoutException e) {
             // This is the legitimate timeout case we're trying to catch.
-            String errorMessage = String.format(
+            String message = String.format(
                     "Lock service timed out after %s milliseconds when servicing %s for client \"%s\"; request was %s",
                     blockingTimeLimitMillis,
                     specification.method(),
                     specification.client(),
                     specification.lockRequest());
-            log.warn(errorMessage, e);
-            throw new BlockingTimeoutException(errorMessage);
+            log.info(message, e);
+            throw new BlockingTimeoutException(message);
         } catch (Exception e) {
             // We don't know, and would prefer not to throw checked exceptions apart from InterruptedException.
             throw Throwables.propagate(e);
