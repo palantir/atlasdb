@@ -67,14 +67,14 @@ develop
          - The format of serialised exceptions occurring on a remote host has been brought in line with that of the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
            This should generally improve readability and also allows for more meaningful messages to be sent; we would previously return message bodies with no content for some exceptions (such as ``NotCurrentLeaderException``).
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1831>`__,
-           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1783>`__)
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1808>`__)
 
     *    - |new|
          - TimeLock clients may now receive a ``BlockingTimeoutException`` 503 if they make a lock request that blocks for longer than the server's idle timeout.
            Previously, these requests would be failed with a HTTP-level exception that the stream was closed.
            We have rewritten clients constructed via ``AtlasDbHttpClients`` to account for this new behaviour, but custom clients directly accessing the lock service may be affected.
            This feature is disabled by default, but can be enabled following the TimeLock server configuration :ref:`docs <timelock-server-time-limiting>`.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1808>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

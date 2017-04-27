@@ -271,8 +271,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void returnsNotFoundOnQueryingNonexistentClient() {
-        RemoteLockService lockService = getLockService(NONEXISTENT_CLIENT);
-        assertThatThrownBy(lockService::currentTimeMillis)
+        RemoteLockService nonExistentLockService = getLockService(NONEXISTENT_CLIENT);
+        assertThatThrownBy(nonExistentLockService::currentTimeMillis)
                 .satisfies(PaxosTimeLockServerIntegrationTest::assertRemoteNotFoundException);
     }
 
