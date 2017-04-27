@@ -18,13 +18,13 @@ package com.palantir.atlasdb.sweep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 
-// TODO add tests!
 // TODO move to persistentlock package?
 public class PersistentLockManager {
     private static final Logger log = LoggerFactory.getLogger(PersistentLockManager.class);
@@ -32,7 +32,9 @@ public class PersistentLockManager {
     private final PersistentLockService persistentLockService;
     private final long persistentLockRetryWaitMillis;
 
-    private PersistentLockId lockId;
+    @VisibleForTesting
+    PersistentLockId lockId;
+
     private boolean isShutDown = false;
 
     public PersistentLockManager(PersistentLockService persistentLockService, long persistentLockRetryWaitMillis) {
