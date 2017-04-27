@@ -63,7 +63,13 @@ develop
            For more information, see the :ref:`docs <timelock-server-further-config>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
+    *    - |improved|
+         - On graceful shutdown, the background sweeper will now release the backup lock if it holds it.
+           This should reduce the need for users to manually reset the ``_persisted_locks`` table in the event that they restarted a service while it was holding the lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1847>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
 
 =======
 v0.39.0
