@@ -140,12 +140,14 @@ Clients that make long-running lock requests will block a thread on TimeLock for
 significantly, if these requests are blocked for longer than the idle timeout of the server's application connector
 on HTTP/2, then Jetty will send a stream closed message to the client. This can lead to an infinite buildup of threads
 and was the root cause of issue `#1680 <https://github.com/palantir/atlasdb/issues/1680>`__. We thus reap the thread
-before the timeout expires, and send a ``BlockingTimeoutException`` to the client indicating that it should retry.
+for interruptible requests before the timeout expires, and send an exception to the client indicating that its request
+has timed out, but it is free to retry on the same node. Note that this issue may still occur if a *non-interruptible*
+method blocks for longer than the idle timeout, though we believe this is highly unlikely.
 
 This mechanism can be switched on and off, and the time interval between generating the ``BlockingTimeoutException``
-and the actual idle timeout becoming active is configurable. Note that even if we lose the race between generating
-this exception and the idle timeout, we will retry on the same node. Even if this happens 3 times in a row we are fine,
-since we will fail over to non-leaders and they will redirect us back.
+and the actual idle timeout is configurable. Note that even if we lose the race between generating this exception and
+the idle timeout, we will retry on the same node. Even if this happens 3 times in a row we are fine, since we will fail
+over to non-leaders and they will redirect us back.
 
    .. code:: yaml
 

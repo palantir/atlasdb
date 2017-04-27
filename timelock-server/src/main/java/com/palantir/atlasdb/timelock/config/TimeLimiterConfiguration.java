@@ -50,12 +50,8 @@ public abstract class TimeLimiterConfiguration {
         if (enableTimeLimiting()) {
             double errorMargin = blockingTimeoutErrorMargin();
             Preconditions.checkState(
-                    errorMargin > 0,
-                    "Lock service timeout margin must be strictly positive but found %s",
-                    errorMargin);
-            Preconditions.checkState(
-                    errorMargin < 1,
-                    "Lock service timeout margin must be strictly less than 1 but found %s",
+                    errorMargin > 0 && errorMargin < 1,
+                    "Lock service timeout margin must be strictly between 0 and 1 but found %s",
                     errorMargin);
         }
     }
