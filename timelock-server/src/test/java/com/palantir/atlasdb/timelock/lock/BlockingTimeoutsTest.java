@@ -61,7 +61,6 @@ public class BlockingTimeoutsTest {
     @Test
     public void scaleForErrorMarginDoesNotReduceAlreadySmallTimeouts() {
         assertThat(BlockingTimeouts.scaleForErrorMargin(FIVE, TEST_ERROR_MARGIN))
-                .isGreaterThan(0)
                 .isEqualTo(FIVE);
     }
 
