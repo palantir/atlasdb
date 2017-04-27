@@ -98,18 +98,18 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
 
-    private static void logCellsAndSize(LoggingFunction logger, String method, String tableName, int numCells, long sizeInBytes, Stopwatch stopwatch) {
+    private static void logCellsAndSize(LoggingFunction logger, String method, TableReference tableRef, int numCells, long sizeInBytes, Stopwatch stopwatch) {
         logger.log("Call to KVS.{} on table {} for {} cells of overall size {} bytes took {} ms.",
-                method, tableName, numCells, sizeInBytes, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                method, tableRef, numCells, sizeInBytes, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private static void logTime(LoggingFunction logger, String method, Stopwatch stopwatch) {
         logger.log("Call to KVS.{} took {} ms.", method, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
-    private static void logTimeAndTable(LoggingFunction logger, String method, String tableName, Stopwatch stopwatch) {
+    private static void logTimeAndTable(LoggingFunction logger, String method, TableReference tableRef, Stopwatch stopwatch) {
         logger.log("Call to KVS.{} on table {} took {} ms.",
-                method, tableName, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                method, tableRef, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private static void logTimeAndTableCount(LoggingFunction logger, String method, int tableCount, Stopwatch stopwatch) {
@@ -117,9 +117,9 @@ public class ProfilingKeyValueService implements KeyValueService {
                 method, tableCount, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
-    private static void logTimeAndTableRange(LoggingFunction logger, String method, String tableName, RangeRequest range, Stopwatch stopwatch) {
+    private static void logTimeAndTableRange(LoggingFunction logger, String method, TableReference tableRef, RangeRequest range, Stopwatch stopwatch) {
         logger.log("Call to KVS.{} on table {} with range {} took {} ms.",
-                method, tableName, range, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                method, tableRef, range, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private void maybeLog(Runnable runnable,  BiConsumer<LoggingFunction, Stopwatch> logger) {
@@ -182,7 +182,7 @@ public class ProfilingKeyValueService implements KeyValueService {
     @Override
     public void createTable(TableReference tableRef, byte[] tableMetadata) {
         maybeLog(() -> delegate.createTable(tableRef, tableMetadata),
-                (logger, stopwatch) -> logTimeAndTable(logger, "createTable", tableRef.getQualifiedName(), stopwatch));
+                (logger, stopwatch) -> logTimeAndTable(logger, "createTable", tableRef, stopwatch));
 
     }
 
@@ -196,7 +196,7 @@ public class ProfilingKeyValueService implements KeyValueService {
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         maybeLog(() -> delegate.delete(tableRef, keys),
-                (logger, stopwatch) -> logCellsAndSize(logger, "delete", tableRef.getQualifiedName(), keys.keySet().size(),
+                (logger, stopwatch) -> logCellsAndSize(logger, "delete", tableRef, keys.keySet().size(),
                         byteSize(keys), stopwatch));
     }
 
@@ -204,14 +204,14 @@ public class ProfilingKeyValueService implements KeyValueService {
     public void deleteRange(TableReference tableRef, RangeRequest range) {
         maybeLog(() -> delegate.deleteRange(tableRef, range),
                 (logger, stopwatch) ->
-                        logTimeAndTableRange(logger, "deleteRange", tableRef.getQualifiedName(), range, stopwatch));
+                        logTimeAndTableRange(logger, "deleteRange", tableRef, range, stopwatch));
     }
 
     @Override
     public void dropTable(TableReference tableRef) {
         maybeLog(() -> delegate.dropTable(tableRef),
                 (logger, stopwatch) ->
-                        logTimeAndTable(logger, "dropTable", tableRef.getQualifiedName(), stopwatch));
+                        logTimeAndTable(logger, "dropTable", tableRef, stopwatch));
     }
 
     @Override
@@ -247,7 +247,7 @@ public class ProfilingKeyValueService implements KeyValueService {
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
         return maybeLog(() -> delegate.getAllTimestamps(tableRef, cells, timestamp),
                 (logger, stopwatch) ->
-                        logCellsAndSize(logger, "getAllTimestamps", tableRef.getQualifiedName(), cells.size(), cells.size() * Longs.BYTES, stopwatch));
+                        logCellsAndSize(logger, "getAllTimestamps", tableRef, cells.size(), cells.size() * Longs.BYTES, stopwatch));
     }
 
     @Override
@@ -259,21 +259,21 @@ public class ProfilingKeyValueService implements KeyValueService {
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         return maybeLog(() -> delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp),
                 (logger, stopwatch) ->
-                        logTimeAndTable(logger, "getFirstBatchForRanges", tableRef.getQualifiedName(), stopwatch));
+                        logTimeAndTable(logger, "getFirstBatchForRanges", tableRef, stopwatch));
     }
 
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return maybeLog(() -> delegate.getLatestTimestamps(tableRef, timestampByCell),
                 (logger, stopwatch)->
-                        logCellsAndSize(logger, "getLatestTimestamps", tableRef.getQualifiedName(), timestampByCell.size(), byteSize(timestampByCell), stopwatch));
+                        logCellsAndSize(logger, "getLatestTimestamps", tableRef, timestampByCell.size(), byteSize(timestampByCell), stopwatch));
     }
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         return maybeLog(() -> delegate.getMetadataForTable(tableRef),
                 (logger, stopwatch)->
-                        logTimeAndTable(logger,"getMetadataForTable", tableRef.getQualifiedName(), stopwatch));
+                        logTimeAndTable(logger,"getMetadataForTable", tableRef, stopwatch));
     }
 
     @Override
@@ -287,14 +287,14 @@ public class ProfilingKeyValueService implements KeyValueService {
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         return maybeLog(() -> delegate.getRange(tableRef, rangeRequest, timestamp),
                 (logger, stopwatch) ->
-                        logTimeAndTableRange(logger,"getRange", tableRef.getQualifiedName(), rangeRequest, stopwatch));
+                        logTimeAndTableRange(logger,"getRange", tableRef, rangeRequest, stopwatch));
     }
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         return maybeLog(() -> delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
                 (logger, stopwatch) ->
-                        logTimeAndTableRange(logger, "getRangeOfTimestamps", tableRef.getQualifiedName(), rangeRequest, stopwatch));
+                        logTimeAndTableRange(logger, "getRangeOfTimestamps", tableRef, rangeRequest, stopwatch));
     }
 
     @Override
@@ -338,14 +338,14 @@ public class ProfilingKeyValueService implements KeyValueService {
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
         maybeLog(() -> delegate.put(tableRef, values, timestamp),
                 (logger, stopwatch) -> logCellsAndSize(logger,
-                        "put", tableRef.getQualifiedName(), values.keySet().size(), byteSize(values), stopwatch));
+                        "put", tableRef, values.keySet().size(), byteSize(values), stopwatch));
     }
 
     @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
         maybeLog(() -> delegate.putMetadataForTable(tableRef, metadata),
                 (logger, stopwatch) -> logTimeAndTable(logger,
-                        "putMetadataForTable", tableRef.getQualifiedName(), stopwatch));
+                        "putMetadataForTable", tableRef, stopwatch));
     }
 
     @Override
@@ -359,7 +359,7 @@ public class ProfilingKeyValueService implements KeyValueService {
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         maybeLog(() -> delegate.putUnlessExists(tableRef, values),
                 (logger, stopwatch) -> logCellsAndSize(logger,
-                        "putUnlessExists", tableRef.getQualifiedName(), values.keySet().size(), byteSize(values), stopwatch));
+                        "putUnlessExists", tableRef, values.keySet().size(), byteSize(values), stopwatch));
     }
 
     @Override
@@ -371,14 +371,14 @@ public class ProfilingKeyValueService implements KeyValueService {
     public void checkAndSet(CheckAndSetRequest request) {
         maybeLog(() -> delegate.checkAndSet(request),
                 (logger, stopwatch) -> logCellsAndSize(logger,
-                        "checkAndSet", request.table().getQualifiedName(), 1, request.newValue().length, stopwatch));
+                        "checkAndSet", request.table(), 1, request.newValue().length, stopwatch));
     }
 
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
         maybeLog(() -> delegate.putWithTimestamps(tableRef, values),
                 (logger, stopwatch) -> logCellsAndSize(logger,
-                        "putWithTimestamps", tableRef.getQualifiedName(), values.keySet().size(), byteSize(values), stopwatch));
+                        "putWithTimestamps", tableRef, values.keySet().size(), byteSize(values), stopwatch));
     }
 
     @Override
@@ -391,7 +391,7 @@ public class ProfilingKeyValueService implements KeyValueService {
     public void truncateTable(TableReference tableRef) {
         maybeLog(() -> delegate.truncateTable(tableRef),
                 (logger, stopwatch) -> logTimeAndTable(logger,
-                        "truncateTable", tableRef.getQualifiedName(), stopwatch));
+                        "truncateTable", tableRef, stopwatch));
     }
 
     @Override
@@ -405,7 +405,7 @@ public class ProfilingKeyValueService implements KeyValueService {
     public void compactInternally(TableReference tableRef) {
         maybeLog(() -> delegate.compactInternally(tableRef),
                 (logger, stopwatch) -> logTimeAndTable(logger,
-                        "compactInternally", tableRef.getQualifiedName(), stopwatch));
+                        "compactInternally", tableRef, stopwatch));
     }
 
     @Override
@@ -415,9 +415,9 @@ public class ProfilingKeyValueService implements KeyValueService {
                 batchColumnRangeSelection, timestamp),
                 (logger, stopwatch) -> {
                     logger.log("Call to KVS.getRowsColumnRange on table {} for {} rows with range {} took {} ms.",
-                            tableRef.getQualifiedName(), Iterables.size(rows), batchColumnRangeSelection,
+                            tableRef, Iterables.size(rows), batchColumnRangeSelection,
                             stopwatch.elapsed(TimeUnit.MILLISECONDS));
-                    logTimeAndTable(logger, "getRowsColumnRange", tableRef.getQualifiedName(), stopwatch);
+                    logTimeAndTable(logger, "getRowsColumnRange", tableRef, stopwatch);
                 });
     }
 
@@ -432,12 +432,12 @@ public class ProfilingKeyValueService implements KeyValueService {
                 (logger, stopwatch) -> {
                     logger.log(
                             "Call to KVS.getRowsColumnRangeCellBatch on table {} for {} rows with range {} and batch hint {} took {} ms.",
-                            tableRef.getQualifiedName(),
+                            tableRef,
                             Iterables.size(rows),
                             columnRangeSelection,
                             cellBatchHint,
                             stopwatch.elapsed(TimeUnit.MILLISECONDS));
-                    logTimeAndTable(logger, "getRowsColumnRangeCellBatch", tableRef.getQualifiedName(), stopwatch);
+                    logTimeAndTable(logger, "getRowsColumnRangeCellBatch", tableRef, stopwatch);
                 });
     }
 }
