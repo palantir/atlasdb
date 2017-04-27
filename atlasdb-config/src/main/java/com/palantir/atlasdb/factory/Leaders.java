@@ -27,6 +27,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 import org.immutables.value.Value;
 
+import com.codahale.metrics.InstrumentedExecutorService;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -38,6 +39,7 @@ import com.palantir.atlasdb.factory.TransactionManagers.Environment;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
@@ -111,12 +113,15 @@ public final class Leaders {
         Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(
                 remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory, userAgent);
 
-        ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-                .setNameFormat("atlas-leaders-%d")
-                .setDaemon(true)
-                .build());
+        InstrumentedExecutorService instrumentedExecutor = new InstrumentedExecutorService(
+                Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                        .setNameFormat("atlas-leaders-%d")
+                        .setDaemon(true)
+                        .build()),
+                AtlasDbMetrics.getMetricRegistry());
 
-        PaxosProposer proposer = createPaxosProposer(ourLearner, acceptors, learners, config.quorumSize(), executor);
+        PaxosProposer proposer = createPaxosProposer(ourLearner, acceptors, learners, config.quorumSize(),
+                instrumentedExecutor);
 
         PaxosLeaderElectionService leader = new PaxosLeaderElectionServiceBuilder()
                 .proposer(proposer)
@@ -124,7 +129,7 @@ public final class Leaders {
                 .potentialLeadersToHosts(otherLeaders)
                 .acceptors(acceptors)
                 .learners(learners)
-                .executor(executor)
+                .executor(instrumentedExecutor)
                 .pingRateMs(config.pingRateMs())
                 .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
@@ -145,11 +150,11 @@ public final class Leaders {
             int quorumSize,
             ExecutorService executor) {
         return PaxosProposerImpl.newProposer(
-                    ourLearner,
-                    ImmutableList.copyOf(acceptors),
-                    ImmutableList.copyOf(learners),
-                    quorumSize,
-                    executor);
+                ourLearner,
+                ImmutableList.copyOf(acceptors),
+                ImmutableList.copyOf(learners),
+                quorumSize,
+                executor);
     }
 
     public static <T> List<T> createProxyAndLocalList(
