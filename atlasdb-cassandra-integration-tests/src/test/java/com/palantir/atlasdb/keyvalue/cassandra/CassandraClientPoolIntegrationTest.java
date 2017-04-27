@@ -120,7 +120,7 @@ public class CassandraClientPoolIntegrationTest {
                         ImmutableCassandraKeyValueServiceConfig.copyOf(
                                 CassandraContainer.KVS_CONFIG).withReplicationFactor(
                                 MODIFIED_REPLICATION_FACTOR), false);
-                fail();
+                fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra config");
             } catch (Exception e) {
                 // expected
             }
@@ -134,7 +134,7 @@ public class CassandraClientPoolIntegrationTest {
         clientPool.run(client -> {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, CassandraContainer.KVS_CONFIG, false);
-                fail();
+                fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra keyspace");
             } catch (Exception e) {
                 // expected
             }
@@ -148,8 +148,6 @@ public class CassandraClientPoolIntegrationTest {
             @Override
             public Void apply(Cassandra.Client client) throws TException {
                 KsDef originalKsDef = client.describe_keyspace(CassandraContainer.KVS_CONFIG.keyspace());
-                // there was an existing keyspace
-                // check and make sure it's definition is up to date with our config
                 KsDef modifiedKsDef = originalKsDef.deepCopy();
                 modifiedKsDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
                 modifiedKsDef.setStrategy_options(ImmutableMap.of("dc1", Integer.toString(replicationFactor)));

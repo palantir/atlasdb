@@ -106,7 +106,7 @@ public interface TransactionManager extends AutoCloseable {
     long getImmutableTimestamp();
 
     /**
-     * Return true if KVS is healthy, else return false.
+     * Return the {@link KeyValueServiceStatus} depending on the availability of the underlying key-value store.
      *
      * @return status of the key value service, can be used by the application to decide its own health
      */

@@ -2132,8 +2132,20 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return getStatusByRunningOperationsOnEachHost();
     }
 
+    private boolean doesConfigReplicationFactorMatchWithCluster() {
+        return clientPool.run(client -> {
+            try {
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, configManager.getConfig(), false);
+                return true;
+            } catch (Exception e) {
+                log.warn("The config and Cassandra cluster do not agree on the replication factor.", e);
+                return false;
+            }
+        });
+    }
+
     private NodeAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
-        int numberOfUnreachableNodes = 0;
+        int countUnreachableNodes = 0;
         for (InetSocketAddress host : clientPool.currentPools.keySet()) {
             try {
                 clientPool.runOnHost(host, CassandraVerifier.healthCheck);
@@ -2141,21 +2153,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     return NodeAvailabilityStatus.TERMINAL;
                 }
             } catch (Exception e) {
-                numberOfUnreachableNodes++;
+                countUnreachableNodes++;
             }
         }
-        return getClusterAvailabilityStatus(numberOfUnreachableNodes);
-    }
-
-    private boolean doesConfigReplicationFactorMatchWithCluster() {
-        return clientPool.run(client -> {
-            try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, configManager.getConfig(), false);
-                return true;
-            } catch (Exception e) {
-                return false;
-            }
-        });
+        return getClusterAvailabilityStatus(countUnreachableNodes);
     }
 
     private boolean partitionerIsValid(InetSocketAddress host) {
@@ -2167,19 +2168,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    private NodeAvailabilityStatus getClusterAvailabilityStatus(int numberOfUnreachableNodes) {
-        if (numberOfUnreachableNodes == 0) {
+    private NodeAvailabilityStatus getClusterAvailabilityStatus(int countUnreachableNodes) {
+        if (countUnreachableNodes == 0) {
             return NodeAvailabilityStatus.ALL_AVAILABLE;
-        } else if (fewerThanRfByTwoNodesUnreachable(numberOfUnreachableNodes)) {
+        } else if (isQuorumAvailable(countUnreachableNodes)) {
             return NodeAvailabilityStatus.QUORUM_AVAILABLE;
         } else {
             return NodeAvailabilityStatus.NO_QUORUM_AVAILABLE;
         }
     }
 
-    private boolean fewerThanRfByTwoNodesUnreachable(int numberOfUnreachableNodes) {
+    private boolean isQuorumAvailable(int countUnreachableNodes) {
         int replicationFactor = configManager.getConfig().replicationFactor();
-        return numberOfUnreachableNodes < (replicationFactor + 1) / 2;
+        return countUnreachableNodes < (replicationFactor + 1) / 2;
     }
 
     private void alterGcAndTombstone(

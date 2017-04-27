@@ -286,17 +286,17 @@ public final class CassandraVerifier {
             dcs = sanityCheckDatacenters(client, desiredRf, safetyDisabled);
         }
 
-        sanitiseReplicationFactor(ks, desiredRf, safetyDisabled, dcs);
+        sanityCheckReplicationFactor(ks, desiredRf, safetyDisabled, dcs);
     }
 
     static void currentRfOnKeyspaceMatchesDesiredRf(Client client, CassandraKeyValueServiceConfig config,
             boolean safetyDisabled) throws TException {
         KsDef ks = client.describe_keyspace(config.keyspace());
         Set<String> dcs = sanityCheckDatacenters(client, config.replicationFactor(), safetyDisabled);
-        sanitiseReplicationFactor(ks, config.replicationFactor(), safetyDisabled, dcs);
+        sanityCheckReplicationFactor(ks, config.replicationFactor(), safetyDisabled, dcs);
     }
 
-    private static void sanitiseReplicationFactor(KsDef ks, int desiredRf, boolean safetyDisabled, Set<String> dcs) {
+    private static void sanityCheckReplicationFactor(KsDef ks, int desiredRf, boolean safetyDisabled, Set<String> dcs) {
         Map<String, String> strategyOptions = Maps.newHashMap(ks.getStrategy_options());
         for (String dc : dcs) {
             if (strategyOptions.get(dc) == null) {

@@ -45,7 +45,7 @@ develop
 
     *    - |improved|
          - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS. This is designed for applications
-           implementing their availability status using the ``sls-spec`` depending on the kvs availability.
+           to implement their availability status taking into account the kvs health.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1832>`__)
 
     *    - |improved|
