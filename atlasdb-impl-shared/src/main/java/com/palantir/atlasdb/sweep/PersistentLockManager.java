@@ -42,8 +42,10 @@ public class PersistentLockManager {
     }
 
     public synchronized void shutdown() {
+        log.info("Shutting down...");
         isShutDown = true;
         releasePersistentLock();
+        log.info("Shutdown completed!");
     }
 
     public synchronized void acquirePersistentLockWithRetry() {
@@ -68,6 +70,7 @@ public class PersistentLockManager {
 
     public synchronized void releasePersistentLock() {
         // TODO what should happen if we have no lock?
+        log.info("Releasing persistent lock {}", lockId);
         try {
             persistentLockService.releaseBackupLock(lockId);
             lockId = null;

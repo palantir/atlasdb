@@ -46,6 +46,7 @@ public class KvsBackedPersistentLockService implements PersistentLockService {
 
     @Override
     public void releaseBackupLock(PersistentLockId lockId) {
+        log.error("Received releaseBackupLock call with {}", lockId);
         Preconditions.checkNotNull(lockId, "Please provide a PersistentLockId to release.");
 
         LockEntry lockToRelease = lockStore.getLockEntryWithLockId(lockId);
