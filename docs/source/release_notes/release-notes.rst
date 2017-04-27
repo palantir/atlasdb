@@ -76,6 +76,10 @@ develop
            This feature is disabled by default, but can be enabled following the TimeLock server configuration :ref:`docs <timelock-server-time-limiting>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1808>`__)
 
+    *    - |new|
+         - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1814>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
