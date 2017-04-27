@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
@@ -44,7 +45,9 @@ public class PersistentLockManager {
     public synchronized void shutdown() {
         log.info("Shutting down...");
         isShutDown = true;
-        releasePersistentLock();
+        if (lockId != null) {
+            releasePersistentLock();
+        }
         log.info("Shutdown completed!");
     }
 
@@ -54,7 +57,8 @@ public class PersistentLockManager {
             log.info("The PersistentLockManager is shut down, and therefore rejected a request to acquire the lock.");
             return;
         }
-        // TODO what should happen if we've already acquired a lock?
+
+        Preconditions.checkState(lockId == null, "Acquiring a lock is unsupported when we've already acquired a lock");
 
         while (true) {
             try {
@@ -69,7 +73,11 @@ public class PersistentLockManager {
     }
 
     public synchronized void releasePersistentLock() {
-        // TODO what should happen if we have no lock?
+        if (lockId == null) {
+            log.info("Called releasePersistentLock, but no lock has been taken! Returning.");
+            return;
+        }
+
         log.info("Releasing persistent lock {}", lockId);
         try {
             persistentLockService.releaseBackupLock(lockId);
