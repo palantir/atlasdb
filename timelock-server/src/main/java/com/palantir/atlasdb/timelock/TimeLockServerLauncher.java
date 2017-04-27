@@ -48,7 +48,6 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        environment.jersey().register(new Jdk8Module());
 
         TimeLockServer serverImpl = configuration.algorithm().createServerImpl(environment);
         try {
@@ -76,6 +75,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
                 client -> serverImpl.createInvalidatingTimeLockServices(client,
                         configuration.slowLockLogTriggerMillis())));
 
+        environment.jersey().register(new Jdk8Module());
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));
     }
