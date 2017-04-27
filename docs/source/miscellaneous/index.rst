@@ -8,4 +8,5 @@ Miscellaneous
 
    contributing
    doc/adr/index
+   kvs-status-check
    dropwizard-metrics

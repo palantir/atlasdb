@@ -45,6 +45,7 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -150,6 +151,11 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     public void dropTable(TableReference tableRef) {
         delegate().dropTable(tableRef);
         recordClear(tableRef);
+    }
+
+    @Override
+    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
+        return delegate().getNodeAvailabilityStatus();
     }
 
     @Override

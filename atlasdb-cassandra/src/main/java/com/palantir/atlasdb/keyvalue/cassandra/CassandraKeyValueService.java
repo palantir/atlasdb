@@ -91,6 +91,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -2121,6 +2122,65 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     CassandraConstants.GC_GRACE_SECONDS,
                     CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
         }
+    }
+
+    @Override
+    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
+        if (!doesConfigReplicationFactorMatchWithCluster()) {
+            return NodeAvailabilityStatus.TERMINAL;
+        }
+        return getStatusByRunningOperationsOnEachHost();
+    }
+
+    private boolean doesConfigReplicationFactorMatchWithCluster() {
+        return clientPool.run(client -> {
+            try {
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, configManager.getConfig(), false);
+                return true;
+            } catch (Exception e) {
+                log.warn("The config and Cassandra cluster do not agree on the replication factor.", e);
+                return false;
+            }
+        });
+    }
+
+    private NodeAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
+        int countUnreachableNodes = 0;
+        for (InetSocketAddress host : clientPool.currentPools.keySet()) {
+            try {
+                clientPool.runOnHost(host, CassandraVerifier.healthCheck);
+                if (!partitionerIsValid(host)) {
+                    return NodeAvailabilityStatus.TERMINAL;
+                }
+            } catch (Exception e) {
+                countUnreachableNodes++;
+            }
+        }
+        return getClusterAvailabilityStatus(countUnreachableNodes);
+    }
+
+    private boolean partitionerIsValid(InetSocketAddress host) {
+        try {
+            clientPool.runOnHost(host, clientPool.validatePartitioner);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private NodeAvailabilityStatus getClusterAvailabilityStatus(int countUnreachableNodes) {
+        if (countUnreachableNodes == 0) {
+            return NodeAvailabilityStatus.ALL_AVAILABLE;
+        } else if (isQuorumAvailable(countUnreachableNodes)) {
+            return NodeAvailabilityStatus.QUORUM_AVAILABLE;
+        } else {
+            return NodeAvailabilityStatus.NO_QUORUM_AVAILABLE;
+        }
+    }
+
+    private boolean isQuorumAvailable(int countUnreachableNodes) {
+        int replicationFactor = configManager.getConfig().replicationFactor();
+        return countUnreachableNodes < (replicationFactor + 1) / 2;
     }
 
     private void alterGcAndTombstone(

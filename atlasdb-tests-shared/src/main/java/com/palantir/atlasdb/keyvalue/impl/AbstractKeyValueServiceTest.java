@@ -68,6 +68,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -1367,6 +1368,11 @@ public abstract class AbstractKeyValueServiceTest {
     @Test
     public void compactingShouldNotFail() {
         keyValueService.compactInternally(TEST_TABLE);
+    }
+
+    @Test
+    public void nodeAvailabilityStatusShouldBeAllAvailable() {
+        assertThat(keyValueService.getNodeAvailabilityStatus(), is(NodeAvailabilityStatus.ALL_AVAILABLE));
     }
 
     private byte[] dynamicColumn(long columnId) {

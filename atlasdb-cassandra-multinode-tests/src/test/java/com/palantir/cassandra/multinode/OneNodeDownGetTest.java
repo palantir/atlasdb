@@ -57,7 +57,7 @@ public class OneNodeDownGetTest {
 
     @Test
     public void canGetRows() {
-        Map<Cell, Value> row = OneNodeDownTestSuite.db.getRows(OneNodeDownTestSuite.TEST_TABLE,
+        Map<Cell, Value> row = OneNodeDownTestSuite.kvs.getRows(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableList.of(OneNodeDownTestSuite.FIRST_ROW), ColumnSelection.all(), Long.MAX_VALUE);
 
         assertThat(row).containsAllEntriesOf(expectedRow);
@@ -66,7 +66,7 @@ public class OneNodeDownGetTest {
     @Test
     public void canGetRange() {
         final RangeRequest range = RangeRequest.builder().endRowExclusive(OneNodeDownTestSuite.SECOND_ROW).build();
-        ClosableIterator<RowResult<Value>> it = OneNodeDownTestSuite.db.getRange(OneNodeDownTestSuite.TEST_TABLE,
+        ClosableIterator<RowResult<Value>> it = OneNodeDownTestSuite.kvs.getRange(OneNodeDownTestSuite.TEST_TABLE,
                 range, Long.MAX_VALUE);
 
         ImmutableMap<byte[], Value> expectedColumns = ImmutableMap.of(
@@ -82,7 +82,7 @@ public class OneNodeDownGetTest {
     public void canGetRowsColumnRange() {
         BatchColumnRangeSelection rangeSelection = BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY,
                 PtBytes.EMPTY_BYTE_ARRAY, 1);
-        Map<byte[], RowColumnRangeIterator> rowsColumnRange = OneNodeDownTestSuite.db.getRowsColumnRange(
+        Map<byte[], RowColumnRangeIterator> rowsColumnRange = OneNodeDownTestSuite.kvs.getRowsColumnRange(
                 OneNodeDownTestSuite.TEST_TABLE, ImmutableList.of(OneNodeDownTestSuite.FIRST_ROW),
                 rangeSelection, Long.MAX_VALUE);
 
@@ -101,7 +101,7 @@ public class OneNodeDownGetTest {
 
     @Test
     public void canGetLatestTimestamps() {
-        Map<Cell, Long> latest = OneNodeDownTestSuite.db.getLatestTimestamps(OneNodeDownTestSuite.TEST_TABLE,
+        Map<Cell, Long> latest = OneNodeDownTestSuite.kvs.getLatestTimestamps(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, Long.MAX_VALUE));
         assertEquals(OneNodeDownTestSuite.DEFAULT_TIMESTAMP, latest.get(OneNodeDownTestSuite.CELL_1_1).longValue());
     }
@@ -109,7 +109,7 @@ public class OneNodeDownGetTest {
     @Test
     public void getRangeOfTimestampsThrows() {
         RangeRequest range = RangeRequest.builder().endRowExclusive(OneNodeDownTestSuite.SECOND_ROW).build();
-        ClosableIterator<RowResult<Set<Long>>> it = OneNodeDownTestSuite.db.getRangeOfTimestamps(
+        ClosableIterator<RowResult<Set<Long>>> it = OneNodeDownTestSuite.kvs.getRangeOfTimestamps(
                 OneNodeDownTestSuite.TEST_TABLE, range, Long.MAX_VALUE);
         assertThatThrownBy(() -> it.next())
                 .isExactlyInstanceOf(InsufficientConsistencyException.class)
@@ -118,7 +118,7 @@ public class OneNodeDownGetTest {
 
     @Test
     public void getAllTimestampsThrows() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
+        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableSet.of(OneNodeDownTestSuite.CELL_1_1), Long.MAX_VALUE))
                 .isExactlyInstanceOf(PalantirRuntimeException.class);
     }
