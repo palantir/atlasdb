@@ -47,23 +47,29 @@ public class CellsSweeper {
             PersistentLockService persistentLockService,
             long persistentLockRetryWaitMillis,
             Collection<Follower> followers) {
+        this(txManager, keyValueService, new PersistentLockManager(persistentLockService,
+                persistentLockRetryWaitMillis), followers);
+    }
+
+    public CellsSweeper(
+            TransactionManager txManager,
+            KeyValueService keyValueService,
+            PersistentLockManager persistentLockManager,
+            Collection<Follower> followers) {
         this.txManager = txManager;
         this.keyValueService = keyValueService;
         this.followers = followers;
-        this.persistentLockManager = new PersistentLockManager(persistentLockService,
-                persistentLockRetryWaitMillis);
+        this.persistentLockManager = persistentLockManager;
     }
 
     public CellsSweeper(
             TransactionManager txManager,
             KeyValueService keyValueService,
             Collection<Follower> followers) {
-        this.txManager = txManager;
-        this.keyValueService = keyValueService;
-        this.followers = followers;
-
-        this.persistentLockManager = new PersistentLockManager(getPersistentLockService(keyValueService),
-                AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
+        this(txManager, keyValueService,
+                new PersistentLockManager(getPersistentLockService(keyValueService),
+                        AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS),
+                followers);
     }
 
     private static PersistentLockService getPersistentLockService(KeyValueService kvs) {
