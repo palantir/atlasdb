@@ -41,6 +41,10 @@ public class CellsSweeper {
     private final Collection<Follower> followers;
     private final PersistentLockManager persistentLockManager;
 
+    /**
+     * @deprecated please use the constructor including PersistentLockManager instead.
+     */
+    @Deprecated
     public CellsSweeper(
             TransactionManager txManager,
             KeyValueService keyValueService,
@@ -109,4 +113,3 @@ public class CellsSweeper {
         }
     }
 }
-
