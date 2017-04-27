@@ -187,7 +187,6 @@ public class BlockingTimeLimitedLockService implements LockService {
             return timeLimiter.callWithTimeout(callable, blockingTimeLimitMillis, TimeUnit.MILLISECONDS, true);
         } catch (InterruptedException e) {
             // In this case, the thread was interrupted for some other reason, perhaps because we lost leadership.
-            // This is fine but it's probably worth logging.
             log.warn("Lock service was interrupted when servicing {} for client \"{}\"; request was {}",
                     specification.method(),
                     specification.client(),
