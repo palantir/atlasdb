@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Miscellaneous &mdash; OSS AtlasDB develop documentation</title>
+  <title>KeyValueService Status &mdash; OSS AtlasDB develop documentation</title>
   
 
   
@@ -40,8 +40,9 @@
               href="../genindex.html"/>
         <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="OSS AtlasDB develop documentation" href="../index.html"/>
-        <link rel="next" title="Contributing to AtlasDB" href="contributing.html"/>
-        <link rel="prev" title="Writing Benchmarks" href="../performance/writing.html"/> 
+        <link rel="up" title="Miscellaneous" href="index.html"/>
+        <link rel="next" title="Dropwizard Metrics" href="dropwizard-metrics.html"/>
+        <link rel="prev" title="10. Use partial row complete cell batching in getTimestampsByCell" href="doc/adr/0010-use-partial-row-complete-cell-batching-in-gettimestampsbycell.html"/> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -102,10 +103,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../performance/index.html">Performance Testing</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Miscellaneous</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Miscellaneous</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="contributing.html">Contributing to AtlasDB</a></li>
 <li class="toctree-l2"><a class="reference internal" href="doc/adr/index.html">Architecture Decision Records</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kvs-status-check.html">KeyValueService Status</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">KeyValueService Status</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dropwizard-metrics.html">Dropwizard Metrics</a></li>
 </ul>
 </li>
@@ -155,14 +156,16 @@
     
       <li><a href="../index.html">Docs</a> &raquo;</li>
         
-      <li>Miscellaneous</li>
+          <li><a href="index.html">Miscellaneous</a> &raquo;</li>
+        
+      <li>KeyValueService Status</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
             
-              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/miscellaneous/index.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/miscellaneous/kvs-status-check.rst" class="fa fa-github"> Edit on GitHub</a>
             
           
         
@@ -176,16 +179,16 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="miscellaneous">
-<h1>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to AtlasDB</a></li>
-<li class="toctree-l1"><a class="reference internal" href="doc/adr/index.html">Architecture Decision Records</a></li>
-<li class="toctree-l1"><a class="reference internal" href="kvs-status-check.html">KeyValueService Status</a></li>
-<li class="toctree-l1"><a class="reference internal" href="dropwizard-metrics.html">Dropwizard Metrics</a></li>
+  <div class="section" id="keyvalueservice-status">
+<span id="kvs-status-check"></span><h1>KeyValueService Status<a class="headerlink" href="#keyvalueservice-status" title="Permalink to this headline">¶</a></h1>
+<p>Call <code class="docutils literal"><span class="pre">TransactionManagers.getKeyValueServiceStatus()</span></code> to find the state of the underlying key value service.
+Here are the values that can be returned by the status API.</p>
+<ul class="simple">
+<li><strong>TERMINAL</strong> : Implies the KVS configuration does not match the key value store state.</li>
+<li><strong>UNHEALTHY</strong> : Implies the KVS cannot perform read/write operations.</li>
+<li><strong>HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES</strong>: Implies read/write operations are available but the KVS cannot perform deletes or schema mutations.</li>
+<li><strong>HEALTHY_ALL_OPERATIONS</strong>: Implies the KVS is healthy and all operations are available.</li>
 </ul>
-</div>
 </div>
 
 
@@ -198,10 +201,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="contributing.html" class="btn btn-neutral float-right" title="Contributing to AtlasDB" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="dropwizard-metrics.html" class="btn btn-neutral float-right" title="Dropwizard Metrics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="../performance/writing.html" class="btn btn-neutral" title="Writing Benchmarks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="doc/adr/0010-use-partial-row-complete-cell-batching-in-gettimestampsbycell.html" class="btn btn-neutral" title="10. Use partial row complete cell batching in getTimestampsByCell" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
