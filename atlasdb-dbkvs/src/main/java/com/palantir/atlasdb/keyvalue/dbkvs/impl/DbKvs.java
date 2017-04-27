@@ -96,6 +96,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ImmediateSingleBatchTaskRu
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ParallelTaskRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleGetRange;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowValueLoader;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.DbkvsVersionException;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresGetRange;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresPrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRange;
@@ -1199,6 +1200,8 @@ public final class DbKvs extends AbstractKeyValueService {
         try {
             checkDatabaseVersion();
             return NodeAvailabilityStatus.ALL_AVAILABLE;
+        } catch (DbkvsVersionException e) {
+            return NodeAvailabilityStatus.TERMINAL;
         } catch (Exception e) {
             return NodeAvailabilityStatus.NO_QUORUM_AVAILABLE;
         }

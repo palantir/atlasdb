@@ -32,7 +32,7 @@ public final class PostgresVersionCheck {
                     + " please contact Palantir support for assistance.", version, MIN_POSTGRES_VERSION);
         } else if (VersionStrings.compareVersions(version, "9.5") >= 0
                 && VersionStrings.compareVersions(version, "9.5.2") < 0) {
-            throw new RuntimeException(
+            throw new DbkvsVersionException(
                     "You are running Postgres " + version + ". Versions 9.5.0 and 9.5.1 contain a known bug "
                             + "that causes incorrect results to be returned for certain queries. "
                             + "Please update your Postgres distribution.");
