@@ -43,6 +43,11 @@ develop
          - Change
 
     *    - |improved|
+         - Add instrumentation to the thread pool used to run quorum checks during leader elections. This will be useful for
+           debugging `PaxosQuorumChecker can leave hanging threads <https://github.com/palantir/atlasdb/issues/1823>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1849>`__)
+
+    *    - |improved|
          - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
 
