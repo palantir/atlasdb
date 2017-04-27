@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -51,6 +52,9 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
+import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
+import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
@@ -95,6 +99,7 @@ public abstract class AbstractSweeperTest {
     protected LockService lockService;
     protected TransactionService txService;
     protected SweepMetrics sweepMetrics = Mockito.mock(SweepMetrics.class);
+    protected PersistentLockManager persistentLockManager;
 
     @Before
     public void setup() {
@@ -117,7 +122,10 @@ public abstract class AbstractSweeperTest {
                 constraints, cdm, ssm, cleaner, false);
         setupTables(kvs);
         Supplier<Long> tsSupplier = sweepTimestamp::get;
-        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
+        persistentLockManager = new PersistentLockManager(
+                getPersistentLockService(kvs),
+                AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
+        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
         sweepRunner = new SweepTaskRunnerImpl(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
         setupBackgroundSweeper(DEFAULT_BATCH_SIZE);
     }
@@ -140,6 +148,14 @@ public abstract class AbstractSweeperTest {
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 
+    private static PersistentLockService getPersistentLockService(KeyValueService kvs) {
+        if (kvs.supportsCheckAndSet()) {
+            return KvsBackedPersistentLockService.create(kvs);
+        } else {
+            return new NoOpPersistentLockService();
+        }
+    }
+
     protected void setupBackgroundSweeper(int batchSize) {
         Supplier<Boolean> sweepEnabledSupplier = () -> true;
         Supplier<Long> sweepNoPause = () -> 0L;
@@ -148,7 +164,7 @@ public abstract class AbstractSweeperTest {
 
         backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause,
                 batchSizeSupplier, cellBatchSizeSupplier, SweepTableFactory.of(),
-                new NoOpBackgroundSweeperPerformanceLogger(), sweepMetrics);
+                new NoOpBackgroundSweeperPerformanceLogger(), sweepMetrics, persistentLockManager);
     }
 
     @After

@@ -83,6 +83,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private final SweepTableFactory tableFactory;
     private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
     private final SweepMetrics sweepMetrics;
+    private final PersistentLockManager persistentLockManager;
 
     private volatile float batchSizeMultiplier = 1.0f;
     private Thread daemon;
@@ -102,7 +103,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Integer> sweepCellBatchSize,
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            SweepMetrics sweepMetrics) {
+            SweepMetrics sweepMetrics,
+            PersistentLockManager persistentLockManager) {
         this.txManager = txManager;
         this.kvs = kvs;
         this.sweepRunner = sweepRunner;
@@ -113,6 +115,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         this.tableFactory = tableFactory;
         this.sweepPerfLogger = sweepPerfLogger;
         this.sweepMetrics = sweepMetrics;
+        this.persistentLockManager = persistentLockManager;
     }
 
     public static BackgroundSweeperImpl create(
@@ -124,7 +127,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Integer> sweepBatchSize,
             Supplier<Integer> sweepCellBatchSize,
             SweepTableFactory tableFactory,
-            BackgroundSweeperPerformanceLogger sweepPerfLogger) {
+            BackgroundSweeperPerformanceLogger sweepPerfLogger,
+            PersistentLockManager persistentLockManager) {
 
         SweepMetrics sweepMetrics = SweepMetrics.create();
         return new BackgroundSweeperImpl(txManager,
@@ -136,7 +140,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 sweepCellBatchSize,
                 tableFactory,
                 sweepPerfLogger,
-                sweepMetrics);
+                sweepMetrics,
+                persistentLockManager);
     }
 
     @Override
