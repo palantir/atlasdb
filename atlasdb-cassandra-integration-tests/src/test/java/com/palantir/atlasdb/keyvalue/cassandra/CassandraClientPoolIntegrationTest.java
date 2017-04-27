@@ -106,7 +106,7 @@ public class CassandraClientPoolIntegrationTest {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, CassandraContainer.KVS_CONFIG, false);
             } catch (TException e) {
-                fail();
+                fail("currentRf On Keyspace does not Match DesiredRf");
             }
             return false;
         });
