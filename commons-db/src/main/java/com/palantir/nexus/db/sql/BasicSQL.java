@@ -72,6 +72,8 @@ import com.palantir.sql.PreparedStatements;
 import com.palantir.sql.ResultSets;
 import com.palantir.util.sql.VerboseSQLException;
 
+@SuppressWarnings({"checkstyle:AbbreviationAsWordInName", // We must not break the API here.
+        "checkstyle:LineLength"}) // Difficult to separate SQL things plus annotations easily
 public abstract class BasicSQL {
 
     public interface SqlConfig {
@@ -82,8 +84,10 @@ public abstract class BasicSQL {
 
     protected abstract SqlConfig getSqlConfig();
 
-    private static final String ORACLE_CANCEL_ERROR = "ORA-01013: user requested cancel of current operation"; //$NON-NLS-1$
-    private static final String POSTGRES_CANCEL_ERROR = "ERROR: canceling statement due to user request"; //$NON-NLS-1$
+    private static final String ORACLE_CANCEL_ERROR
+            = "ORA-01013: user requested cancel of current operation"; //$NON-NLS-1$
+    private static final String POSTGRES_CANCEL_ERROR
+            = "ERROR: canceling statement due to user request"; //$NON-NLS-1$
 
     private static PalantirSqlException wrapSQLExceptionWithVerboseLogging(final SQLException sqlEx, String sql, Object[] args) {
         try {
@@ -123,10 +127,11 @@ public abstract class BasicSQL {
     }
 
     static String fillInQuery(String query, Object[] argArr) {
+        String workingQuery = query;
         for (Object x : argArr) {
-            query = query.replaceFirst("\\Q?\\E", x.toString()); //$NON-NLS-1$
-            }
-        return query;
+            workingQuery = workingQuery.replaceFirst("\\Q?\\E", x.toString()); //$NON-NLS-1$
+        }
+        return workingQuery;
     }
 
     protected static void closeSilently(PreparedStatement ps) {
@@ -140,7 +145,7 @@ public abstract class BasicSQL {
 
         try {
             rs.close();
-        } catch(SQLException e) {
+        } catch (SQLException e) {
             SqlLoggers.LOGGER.error("ignored sql exception on resultSet close",e); //$NON-NLS-1$
         }
     }
@@ -149,7 +154,7 @@ public abstract class BasicSQL {
         if (ps != null && autoClose == AutoClose.TRUE) {
             try {
                 ps.close();
-            } catch (SQLException ignored ) {
+            } catch (SQLException ignored) {
                 SqlLoggers.SQL_EXCEPTION_LOG.info("Caught ignored SQLException", ignored);
                 SqlLoggers.LOGGER.error("ignored sql exception on preparedStatement close", ignored); //$NON-NLS-1$
             }
@@ -162,26 +167,27 @@ public abstract class BasicSQL {
     private static final long POSTGRES_END_RANGE = new DateTime(294276, 1, 1, 0, 0, 0, 0).getMillis();
 
 
-    protected BlobHandler setObject(Connection c, PreparedStatement ps, int i, Object obj) throws PalantirSqlException {
+    protected BlobHandler setObject(Connection connection, PreparedStatement ps, int index, Object obj)
+            throws PalantirSqlException {
         if (obj instanceof ByteArrayInputStream) {
-            ByteArrayInputStream bais = (ByteArrayInputStream)obj;
+            ByteArrayInputStream bais = (ByteArrayInputStream) obj;
             // Using #available is only okay for ByteArrayInputStream,
             // not for a generic InputStream
-            PreparedStatements.setBinaryStream(ps, i, bais, bais.available());
+            PreparedStatements.setBinaryStream(ps, index, bais, bais.available());
         } else if (obj instanceof org.joda.time.DateTime) {
-            setDateTime(c, ps, i, (DateTime)obj);
+            setDateTime(connection, ps, index, (DateTime) obj);
         } else if (obj instanceof Boolean) {
             // TODO: gross hack because our code abuses the distinction between
             // boolean true and false and non-zeroness on a numeric field and
             // postgres complains because it is strict on column types.
-            Boolean b = (Boolean)obj;
+            Boolean b = (Boolean) obj;
             Long converted = b.booleanValue() ? 1L : 0L;
-            PreparedStatements.setObject(ps, i, converted);
+            PreparedStatements.setObject(ps, index, converted);
         } else if (obj instanceof Number) {
-            setNumber(ps, i, obj);
+            setNumber(ps, index, obj);
         } else {
             assert !(obj instanceof InputStream) : "InputStreams must be passed as PTInputStreams so we know the length"; //$NON-NLS-1$
-            PreparedStatements.setObject(ps, i, obj);
+            PreparedStatements.setObject(ps, index, obj);
         }
         return null;
     }
@@ -189,13 +195,13 @@ public abstract class BasicSQL {
     /**
      * Sets the specified joda {@link DateTime} on the prepared statement.
      */
-    private static void setDateTime(Connection c, PreparedStatement ps, int i, DateTime dt) throws PalantirSqlException {
+    private static void setDateTime(Connection connection, PreparedStatement ps, int index, DateTime dt) throws PalantirSqlException {
         // This method no longer attempts to store timezone information. Any
         // attempts to do so _must_ deal specifically with daylight savings time
         // (which caused issues for us before--see QA-14416 and QA-14625, and
         // the corresponding SVN revisions).
         long millis = dt.getMillis();
-        if (DBType.getTypeFromConnection(c) == DBType.POSTGRESQL) { //postgres has a smaller range of allowable timestamps
+        if (DBType.getTypeFromConnection(connection) == DBType.POSTGRESQL) { //postgres has a smaller range of allowable timestamps
             if (millis < POSTGRES_BEGIN_RANGE) {
                 millis = POSTGRES_BEGIN_RANGE;
             }
@@ -203,7 +209,7 @@ public abstract class BasicSQL {
                 millis = POSTGRES_END_RANGE;
             }
         }
-        PreparedStatements.setTimestamp(ps, i, new Timestamp(millis));
+        PreparedStatements.setTimestamp(ps, index, new Timestamp(millis));
     }
 
     private static void setNumber(PreparedStatement ps, int i, Object obj) throws PalantirSqlException {

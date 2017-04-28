@@ -81,18 +81,18 @@ public abstract class SQL extends BasicSQL {
     public static final int POSTGRES_BLOB_READ_LIMIT = 100 * 1000 * 1000; // Postgres doesn't like to read more than ~2^28 bytes at once, so limit to something smaller
 
     @Override
-    protected BlobHandler setObject(Connection c, PreparedStatement ps, int i, Object obj) {
+    protected BlobHandler setObject(Connection connection, PreparedStatement ps, int index, Object obj) {
         if (obj instanceof byte[]) {
             byte[] bytes = (byte[]) obj;
             PTInputStream is = new PTInputStream(new ByteArrayInputStream(bytes), bytes.length);
-            return handlePtInputStream(c, ps, i, is);
+            return handlePtInputStream(connection, ps, index, is);
         } else if (obj instanceof PTInputStream) {
-            return handlePtInputStream(c, ps, i, (PTInputStream) obj);
+            return handlePtInputStream(connection, ps, index, (PTInputStream) obj);
         } else if (obj instanceof ArrayHandler) {
-            setOracleStructArray(c, ps, i, (ArrayHandler) obj);
+            setOracleStructArray(connection, ps, index, (ArrayHandler) obj);
             return null;
         } else {
-            return super.setObject(c, ps, i, obj);
+            return super.setObject(connection, ps, index, obj);
         }
     }
 
