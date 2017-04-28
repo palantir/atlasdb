@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,11 +88,10 @@ public final class CassandraKeyValueServices {
                 throw Throwables.throwUncheckedException(e);
             }
             sleepTime = Math.min(sleepTime * 2, MAX_SLEEP_TIME);
-        }
-        while (System.currentTimeMillis() < start + schemaTimeoutMillis);
+        } while (System.currentTimeMillis() < start + schemaTimeoutMillis);
 
         StringBuilder sb = new StringBuilder();
-        String messageTemplate = "Cassandra cluster cannot come to agreement on schema versions,"
+        final String messageTemplate = "Cassandra cluster cannot come to agreement on schema versions,"
                 + " after attempting to modify table {}. {}"
                 + " \nFind the nodes above that diverge from the majority schema"
                 + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
@@ -250,12 +249,16 @@ public final class CassandraKeyValueServices {
     }
 
     static class StartTsResultsCollector implements ThreadSafeResultVisitor {
-        final Map<Cell, Value> collectedResults = Maps.newConcurrentMap();
-        final ValueExtractor extractor = new ValueExtractor(collectedResults);
-        final long startTs;
+        private final Map<Cell, Value> collectedResults = Maps.newConcurrentMap();
+        private final ValueExtractor extractor = new ValueExtractor(collectedResults);
+        private final long startTs;
 
         StartTsResultsCollector(long startTs) {
             this.startTs = startTs;
+        }
+
+        public Map<Cell, Value> getCollectedResults() {
+            return collectedResults;
         }
 
         @Override
@@ -265,7 +268,11 @@ public final class CassandraKeyValueServices {
     }
 
     static class AllTimestampsCollector implements ThreadSafeResultVisitor {
-        final Multimap<Cell, Long> collectedResults = HashMultimap.create();
+        private final Multimap<Cell, Long> collectedResults = HashMultimap.create();
+
+        public Multimap<Cell, Long> getCollectedResults() {
+            return collectedResults;
+        }
 
         @Override
         public synchronized void visit(Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {

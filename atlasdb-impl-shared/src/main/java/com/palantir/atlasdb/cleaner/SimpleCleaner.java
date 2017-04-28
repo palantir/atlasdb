@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ public class SimpleCleaner implements Cleaner {
         try {
             scrubber.scrubImmediately(txManager, tableRefToCell, scrubTimestamp, commitTimestamp);
         } catch (RuntimeException e) {
-            String message = "Scrubbing has failed during aggressive hard delete.  "
+            final String message = "Scrubbing has failed during aggressive hard delete.  "
                     + "Deleted values will no longer be visible to any Palantir clients, but the deleted values"
                     + " will still remain in the underlying KVS until the background scrub task has finished"
                     + " scrubbing.";
