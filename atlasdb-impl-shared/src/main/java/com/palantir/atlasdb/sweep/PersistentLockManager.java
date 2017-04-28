@@ -62,10 +62,11 @@ public class PersistentLockManager {
 
         Preconditions.checkState(lockId == null, "Acquiring a lock is unsupported when we've already acquired a lock");
 
-        while (lockId == null) {
+        while (true) {
             try {
                 lockId = persistentLockService.acquireBackupLock("Sweep");
                 log.info("Successfully acquired persistent lock for sweep: {}", lockId);
+                return;
             } catch (CheckAndSetException e) {
                 log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
                 waitForRetry();
