@@ -46,6 +46,10 @@ develop
          - Removed package ``atlasdb-exec``. If you require this package, please file a ticket to have it reinstated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1861>`__)
 
+    *    - |devbreak| |fixed|
+         - Correct ``TransactionManager.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1859>`__)
+
     *    - |improved|
          - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS. This is designed for applications
            to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`
