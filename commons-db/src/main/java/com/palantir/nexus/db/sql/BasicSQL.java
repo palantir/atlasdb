@@ -910,7 +910,7 @@ public abstract class BasicSQL {
             }
 
             @Override
-            public BlobHandler createBlob(Connection c) throws SQLException {
+            public BlobHandler createBlob(Connection connection) throws SQLException {
                 throw new UnsupportedOperationException();
             }
         };

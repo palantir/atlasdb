@@ -25,25 +25,25 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
  * JdbcHandler allows Oracle dependent logic to be injected into the SQL
- * dependent classes that support both Legacy DB and AtlasDB's Dbkvs
+ * dependent classes that support both Legacy DB and AtlasDB's DbKVS.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 public interface JdbcHandler {
     interface BlobHandler {
         void freeTemporary() throws SQLException;
 
-        OutputStream setBinaryStream(int i) throws SQLException;
+        OutputStream setBinaryStream(int index) throws SQLException;
 
         Blob getBlob();
     }
 
     interface ArrayHandler {
-        Object toOracleArray(Connection c) throws SQLException;
+        Object toOracleArray(Connection connection) throws SQLException;
     }
 
     ArrayHandler createStructArray(String structType,
             String arrayType,
             List<Object[]> elements);
 
-    BlobHandler createBlob(Connection c) throws SQLException;
+    BlobHandler createBlob(Connection connection) throws SQLException;
 }

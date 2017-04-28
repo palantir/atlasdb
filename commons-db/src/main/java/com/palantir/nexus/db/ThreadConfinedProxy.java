@@ -34,9 +34,10 @@ import com.palantir.util.AssertUtils;
 /**
  *  Dynamic Proxy for confining an object to a particular thread, but allowing explicit handoff.
  *
- *  For example, {@linkplain java.sql.Connection} objects are not thread-safe and are often passed around, sometimes between threads.  This
- *  can lead to race conditions.  Wrapping a Connection in a ThreadConfinedProxy will enforce that we do not accidentally access the
- *  Connection from multiple threads, provided we never expose the Connection outside of the proxy.
+ *  For example, {@linkplain java.sql.Connection} objects are not thread-safe and are often passed around, sometimes
+ *  between threads.  This can lead to race conditions.  Wrapping a Connection in a ThreadConfinedProxy will enforce
+ *  that we do not accidentally access the Connection from multiple threads, provided we never expose the Connection
+ *  outside of the proxy.
  */
 public class ThreadConfinedProxy extends AbstractInvocationHandler implements DelegatingInvocationHandler {
 
@@ -61,18 +62,31 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
     }
 
     /**
-     * Creates a new ThreadConfinedProxy with the given Strictness (ASSERT_AND_LOG or VALIDATE), initially assigned to the current thread.
+     * Creates a new ThreadConfinedProxy with the given Strictness (ASSERT_AND_LOG or VALIDATE), initially assigned to
+     * the current thread.
      */
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, Strictness strictness) {
         return newProxyInstance(interfaceClass, delegate, strictness, Thread.currentThread());
     }
 
     /**
-     * Explicitly passes the given ThreadConfinedProxy to a new thread.  If the proxy passed in is not a ThreadConfinedProxy, but is a
-     * different type of proxy that also uses a {@linkplain DelegatingInvocationHandler}, this method will recursively apply to the
-     * delegate.  This means that this method can handle arbitrarily nested DelegatingInvocationHandlers, including nested
-     * ThreadConfinedProxy objects.
-     *
+     * Creates a new ThreadConfinedProxy with the given Strictness (ASSERT_AND_LOG or VALIDATE), initially assigned to
+     * the given thread.
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, Strictness strictness, Thread current) {
+        ThreadConfinedProxy proxy = new ThreadConfinedProxy(delegate, strictness, current.getName(), current.getId());
+        return (T) Proxy.newProxyInstance(
+                interfaceClass.getClassLoader(),
+                new Class<?>[] {interfaceClass},
+                proxy);
+    }
+
+    /**
+     * Explicitly passes the given ThreadConfinedProxy to a new thread.  If the proxy passed in is not a
+     * ThreadConfinedProxy, but is a different type of proxy that also uses a {@linkplain DelegatingInvocationHandler},
+     * this method will recursively apply to the delegate.  This means that this method can handle arbitrarily nested
+     * DelegatingInvocationHandlers, including nested ThreadConfinedProxy objects.
      */
     public static void changeThread(Object proxy, Thread oldThread, Thread newThread) {
         Validate.notNull(proxy, "Proxy argument must not be null");
@@ -84,9 +98,15 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
         }
     }
 
+    private synchronized void changeThread(Thread oldThread, Thread newThread) {
+        checkThreadChange(oldThread, newThread);
+        threadId = newThread.getId();
+        threadName = newThread.getName();
+    }
+
     /**
-     * Wraps a callable in a new callable that assigns ownership to the thread running the callable, then passes ownership back to
-     * the thread that called this method.
+     * Wraps a callable in a new callable that assigns ownership to the thread running the callable, then passes
+     * ownership back to the thread that called this method.
      */
     public static <T> Callable<T> threadLendingCallable(final Object proxy, final Callable<T> callable) {
         if (proxy == null) {
@@ -115,16 +135,6 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
             changeThread(((DelegatingInvocationHandler) handler).getDelegate(), oldThread, newThread);
         }
     }
-
-    /**
-     * Creates a new ThreadConfinedProxy with the given Strictness (ASSERT_AND_LOG or VALIDATE), initially assigned to the given thread.
-     */
-    @SuppressWarnings("unchecked")
-    public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, Strictness strictness, Thread current) {
-        return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(),
-                new Class<?>[] {interfaceClass}, new ThreadConfinedProxy(delegate, strictness, current.getName(), current.getId()));
-    }
-
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
@@ -169,19 +179,16 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
             case VALIDATE:
                 Validate.isTrue(false, message);
                 break;
+            default:
+                throw new IllegalStateException("Unexpected value of strictness " + strictness);
         }
-    }
-
-    private synchronized void changeThread(Thread oldThread, Thread newThread) {
-        checkThreadChange(oldThread, newThread);
-        threadId = newThread.getId();
-        threadName = newThread.getName();
     }
 
     private void checkThreadChange(Thread oldThread, Thread newThread) {
         if (oldThread.getId() != threadId) {
             String message = String.format(
-                    "Thread confinement violation: tried to change threads from thread %s (ID %s) to thread %s (ID %s), but we expected thread %s (ID %s)",
+                    "Thread confinement violation: tried to change threads from thread %s (ID %s) to thread %s (ID %s),"
+                            + " but we expected thread %s (ID %s)",
                     oldThread.getId(),
                     oldThread.getName(),
                     newThread.getId(),

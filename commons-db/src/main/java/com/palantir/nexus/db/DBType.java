@@ -27,9 +27,14 @@ import com.palantir.sql.Connections;
  *
  * @author akashj
  */
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Prefer not to break the API
 public enum DBType {
     // AJ: the oracle jdbc url is missing a final "paren" - processing in DBMgr will fix this...
-    ORACLE("jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL={PROTOCOL})(HOST={HOST})(PORT={PORT}))(CONNECT_DATA=(SID={SID}))", "oracle.jdbc.driver.OracleDriver", "SELECT 1 FROM dual", true),
+    ORACLE("jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL={PROTOCOL})"
+            + "(HOST={HOST})(PORT={PORT}))(CONNECT_DATA=(SID={SID}))",
+            "oracle.jdbc.driver.OracleDriver",
+            "SELECT 1 FROM dual",
+            true),
     POSTGRESQL("jdbc:postgresql://{HOST}:{PORT}/{DBNAME}", "org.postgresql.Driver", "SELECT 1", true),
     H2_MEMORY("jdbc:h2:mem:", "org.h2.Driver", "SELECT 1", true);
 
@@ -42,7 +47,7 @@ public enum DBType {
         return hasGIS;
     }
 
-    private DBType(String defaultUrl, String driver, String testQuery, boolean hasGIS) {
+    DBType(String defaultUrl, String driver, String testQuery, boolean hasGIS) {
         this.defaultUrl = defaultUrl;
         this.driver = driver;
         this.testQuery = testQuery;
@@ -76,17 +81,21 @@ public enum DBType {
         return DBType.valueOf(strName.toUpperCase());
     }
 
-    public static DBType getTypeFromConnection(Connection c)
+    public static DBType getTypeFromConnection(Connection connection)
             throws PalantirSqlException {
-        String url = Connections.getUrl(c);
-        if (url.startsWith("jdbc:oracle:thin"))
+        String url = Connections.getUrl(connection);
+        if (url.startsWith("jdbc:oracle:thin")) {
             return ORACLE;
-        if (url.startsWith("jdbc:pgsql"))
+        }
+        if (url.startsWith("jdbc:pgsql")) {
             return POSTGRESQL;
-        if (url.startsWith("jdbc:postgresql"))
+        }
+        if (url.startsWith("jdbc:postgresql")) {
             return POSTGRESQL;
-        if (url.startsWith("jdbc:h2:mem:"))
+        }
+        if (url.startsWith("jdbc:h2:mem:")) {
             return H2_MEMORY;
+        }
         throw new RuntimeException("Unable to parse JDBC URL");
     }
 }

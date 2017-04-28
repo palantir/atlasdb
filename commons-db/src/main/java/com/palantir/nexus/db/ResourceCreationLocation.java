@@ -54,21 +54,20 @@ public class ResourceCreationLocation extends RuntimeException {
     }
 
     /**
-     * Used to avoid strong references to {@link Thread}
+     * Used to avoid strong references to {@link Thread}.
      */
-    public static class ThreadInfo implements Serializable {
+    public static final class ThreadInfo implements Serializable {
         private static final long serialVersionUID = 1L;
 
         private final String name;
         private final long id;
         private final long timestamp;
 
-        public static ThreadInfo from(Thread t) {
-            return new ThreadInfo(t.getName(), t.getId());
+        public static ThreadInfo from(Thread thread) {
+            return new ThreadInfo(thread.getName(), thread.getId());
         }
 
         private ThreadInfo(String name, long id) {
-            super();
             this.name = name;
             this.id = id;
             this.timestamp = System.currentTimeMillis();
