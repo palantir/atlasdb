@@ -211,6 +211,7 @@ public final class KeyValueTable implements
             return Objects.equal(key, other.key);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(key);
@@ -680,5 +681,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "VVF42SuaX14lLpPisB1hkw==";
+    static String __CLASS_HASH = "jD95e2JCtR+7/hh6Wo9LkA==";
 }
