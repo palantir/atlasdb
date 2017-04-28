@@ -18,15 +18,15 @@ package com.palantir.atlasdb.transaction.api;
 public class LockAcquisitionException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
-    public LockAcquisitionException(String message, Throwable t) {
-        super(message, t);
+    public LockAcquisitionException(String message, Throwable throwable) {
+        super(message, throwable);
     }
 
     public LockAcquisitionException(String message) {
         super(message);
     }
 
-    public LockAcquisitionException(Throwable t) {
-        super(t);
+    public LockAcquisitionException(Throwable throwable) {
+        super(throwable);
     }
 }
