@@ -82,6 +82,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private final SweepTableFactory tableFactory;
     private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
     private final SweepMetrics sweepMetrics;
+    private final PersistentLockManager persistentLockManager;
 
     private volatile float batchSizeMultiplier = 1.0f;
     private Thread daemon;
@@ -101,7 +102,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Integer> sweepCellBatchSize,
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            SweepMetrics sweepMetrics) {
+            SweepMetrics sweepMetrics,
+            PersistentLockManager persistentLockManager) {
         this.txManager = txManager;
         this.kvs = kvs;
         this.sweepRunner = sweepRunner;
@@ -112,6 +114,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         this.tableFactory = tableFactory;
         this.sweepPerfLogger = sweepPerfLogger;
         this.sweepMetrics = sweepMetrics;
+        this.persistentLockManager = persistentLockManager;
     }
 
     public static BackgroundSweeperImpl create(
@@ -123,7 +126,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Integer> sweepBatchSize,
             Supplier<Integer> sweepCellBatchSize,
             SweepTableFactory tableFactory,
-            BackgroundSweeperPerformanceLogger sweepPerfLogger) {
+            BackgroundSweeperPerformanceLogger sweepPerfLogger,
+            PersistentLockManager persistentLockManager) {
 
         SweepMetrics sweepMetrics = SweepMetrics.create();
         return new BackgroundSweeperImpl(txManager,
@@ -135,7 +139,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 sweepCellBatchSize,
                 tableFactory,
                 sweepPerfLogger,
-                sweepMetrics);
+                sweepMetrics,
+                persistentLockManager);
     }
 
     @Override
@@ -145,6 +150,20 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         daemon.setDaemon(true);
         daemon.setName("BackgroundSweeper");
         daemon.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            log.info("Shutting down persistent lock manager");
+            try {
+                persistentLockManager.shutdown();
+                log.info("Shutdown complete!");
+            } catch (Exception e) {
+                log.warn("An exception occurred while shutting down. This means that we had the backup lock out when"
+                        + "the shutdown was triggered, but failed to release it. If this is the case, sweep or backup"
+                        + "may fail to take out the lock in future. If this happens consistently, "
+                        + "consult the following documentation on how to release the dead lock: "
+                        + "https://palantir.github.io/atlasdb/html/troubleshooting/index.html#clearing-the-backup-lock",
+                        e);
+            }
+        }));
     }
 
     @Override

@@ -63,6 +63,7 @@ import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
+import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -235,11 +236,13 @@ public final class TransactionManagers {
                 cleaner,
                 allowHiddenTableAccess);
 
+        PersistentLockManager persistentLockManager = new PersistentLockManager(
+                persistentLockService,
+                config.getSweepPersistentLockWaitMillis());
         CellsSweeper cellsSweeper = new CellsSweeper(
                 transactionManager,
                 kvs,
-                persistentLockService,
-                config.getSweepPersistentLockWaitMillis(),
+                persistentLockManager,
                 ImmutableList.of(follower));
         SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,
@@ -257,7 +260,8 @@ public final class TransactionManagers {
                 Suppliers.ofInstance(config.getSweepBatchSize()),
                 Suppliers.ofInstance(config.getSweepCellBatchSize()),
                 SweepTableFactory.of(),
-                new NoOpBackgroundSweeperPerformanceLogger());
+                new NoOpBackgroundSweeperPerformanceLogger(),
+                persistentLockManager);
         backgroundSweeper.runInBackground();
 
         return transactionManager;

@@ -21,17 +21,14 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
-import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -41,33 +38,28 @@ public class CellsSweeper {
 
     private final TransactionManager txManager;
     private final KeyValueService keyValueService;
-    private final PersistentLockService persistentLockService;
-    private final long persistentLockRetryWaitMillis;
     private final Collection<Follower> followers;
+    private final PersistentLockManager persistentLockManager;
 
     public CellsSweeper(
             TransactionManager txManager,
             KeyValueService keyValueService,
-            PersistentLockService persistentLockService,
-            long persistentLockRetryWaitMillis,
+            PersistentLockManager persistentLockManager,
             Collection<Follower> followers) {
         this.txManager = txManager;
         this.keyValueService = keyValueService;
-        this.persistentLockService = persistentLockService;
-        this.persistentLockRetryWaitMillis = persistentLockRetryWaitMillis;
         this.followers = followers;
+        this.persistentLockManager = persistentLockManager;
     }
 
     public CellsSweeper(
             TransactionManager txManager,
             KeyValueService keyValueService,
             Collection<Follower> followers) {
-        this.txManager = txManager;
-        this.keyValueService = keyValueService;
-        this.followers = followers;
-
-        this.persistentLockRetryWaitMillis = AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS;
-        this.persistentLockService = getPersistentLockService(keyValueService);
+        this(txManager, keyValueService,
+                new PersistentLockManager(getPersistentLockService(keyValueService),
+                        AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS),
+                followers);
     }
 
     private static PersistentLockService getPersistentLockService(KeyValueService kvs) {
@@ -98,42 +90,12 @@ public class CellsSweeper {
                     sentinelsToAdd);
         }
 
-        PersistentLockId lockId = acquirePersistentLockWithRetry();
+        persistentLockManager.acquirePersistentLockWithRetry();
 
         try {
             keyValueService.delete(tableRef, cellTsPairsToSweep);
         } finally {
-            releasePersistentLock(lockId);
-        }
-    }
-
-    private PersistentLockId acquirePersistentLockWithRetry() {
-        while (true) {
-            try {
-                PersistentLockId lockId = persistentLockService.acquireBackupLock("Sweep");
-                log.info("Successfully acquired persistent lock for sweep: {}", lockId);
-                return lockId;
-            } catch (CheckAndSetException e) {
-                log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
-                waitForRetry();
-            }
-        }
-    }
-
-    private void waitForRetry() {
-        try {
-            Thread.sleep(persistentLockRetryWaitMillis);
-        } catch (InterruptedException e) {
-            throw Throwables.propagate(e);
-        }
-    }
-
-    private void releasePersistentLock(PersistentLockId lockId) {
-        try {
-            persistentLockService.releaseBackupLock(lockId);
-        } catch (CheckAndSetException e) {
-            log.error("Failed to release persistent lock {}. "
-                    + "Either the lock was already released, or communications with the database failed.", lockId, e);
+            persistentLockManager.releasePersistentLock();
         }
     }
 }
