@@ -1027,7 +1027,7 @@ public class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
-        return ClusterAvailabilityStatus.ALL_AVAILABLE;
+        throw new UnsupportedOperationException("getClusterAvailabilityStatus has not been implemented for Jdbc KVS");
     }
 
     @Override

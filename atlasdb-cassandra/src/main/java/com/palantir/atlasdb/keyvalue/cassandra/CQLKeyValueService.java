@@ -1246,7 +1246,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
-        return ClusterAvailabilityStatus.ALL_AVAILABLE;
+        throw new UnsupportedOperationException("getClusterAvailabilityStatus has not been implemented for CQL KVS");
     }
 
     private void alterTableForCompaction(TableReference tableRef, int gcGraceSeconds, float tombstoneThreshold) {

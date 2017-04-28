@@ -670,7 +670,7 @@ public class RocksDbKeyValueService implements KeyValueService {
 
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
-        return ClusterAvailabilityStatus.ALL_AVAILABLE;
+        throw new UnsupportedOperationException("getClusterAvailabilityStatus has not been implemented for RockDb KVS");
     }
 
     private RocksDB getDb() {
