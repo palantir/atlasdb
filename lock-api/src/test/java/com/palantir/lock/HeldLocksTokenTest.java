@@ -15,7 +15,7 @@
  */
 package com.palantir.lock;
 
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.math.BigInteger;
@@ -29,15 +29,24 @@ import com.google.common.collect.ImmutableSortedMap;
 
 public final class HeldLocksTokenTest {
 
-    private final ObjectMapper MAPPER = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
     public void testSerializationDeserialization() throws Exception {
-        SortedMap<LockDescriptor, LockMode> lockMap = ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.READ);
-        HeldLocksToken heldLocksToken = new HeldLocksToken(BigInteger.valueOf(0), LockClient.of("foo"), 0, 0,
-                LockCollections.of(lockMap), SimpleTimeDuration.of(1, TimeUnit.SECONDS), 0L, "Dummy Thread");
+        SortedMap<LockDescriptor, LockMode> lockMap =
+                ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.READ);
+        HeldLocksToken heldLocksToken = new HeldLocksToken(
+                BigInteger.valueOf(0),
+                LockClient.of("foo"),
+                0,
+                0,
+                LockCollections.of(lockMap),
+                SimpleTimeDuration.of(1, TimeUnit.SECONDS),
+                0L,
+                "Dummy Thread");
 
-        HeldLocksToken deserializedHeldLocksToken = MAPPER.readValue(MAPPER.writeValueAsString(heldLocksToken), HeldLocksToken.class);
+        HeldLocksToken deserializedHeldLocksToken =
+                mapper.readValue(mapper.writeValueAsString(heldLocksToken), HeldLocksToken.class);
         assertThat(deserializedHeldLocksToken, is(heldLocksToken));
     }
 

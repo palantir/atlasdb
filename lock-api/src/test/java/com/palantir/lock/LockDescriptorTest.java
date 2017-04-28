@@ -103,6 +103,7 @@ public class LockDescriptorTest {
         return "LockDescriptor [" + BaseEncoding.base16().encode(lockId) + "]";
     }
 
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava") // StandardCharsets is only available in JDK 1.7+
     private static byte[] stringToBytes(String lockId) {
         return lockId.getBytes(Charsets.UTF_8);
     }
