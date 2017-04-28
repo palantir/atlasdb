@@ -10,7 +10,6 @@ List<String> blacklistedBaselineProjects = [
         'atlasdb-exec',
         'atlasdb-jdbc',
         'atlasdb-jdbc-tests',
-        'atlasdb-lock-api',
         'atlasdb-rocksdb',
         'atlasdb-rocksdb-tests',
         'atlasdb-service',
