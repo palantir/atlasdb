@@ -2134,8 +2134,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private boolean isClusterQuorumAvaialble(ClusterAvailabilityStatus clusterStatus) {
-        return clusterStatus.equals(ClusterAvailabilityStatus.ALL_AVAILABLE) || clusterStatus.equals(
-                ClusterAvailabilityStatus.QUORUM_AVAILABLE);
+        return clusterStatus.equals(ClusterAvailabilityStatus.ALL_AVAILABLE)
+                || clusterStatus.equals(ClusterAvailabilityStatus.QUORUM_AVAILABLE);
     }
 
     private boolean doesConfigReplicationFactorMatchWithCluster() {
