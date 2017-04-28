@@ -151,7 +151,6 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 log.warn("The kvs returned a non-standard availability status: {}", nodeAvailabilityStatus);
                 return KeyValueServiceStatus.UNHEALTHY;
         }
-        // TODO: terminal state
     }
 
     @Override

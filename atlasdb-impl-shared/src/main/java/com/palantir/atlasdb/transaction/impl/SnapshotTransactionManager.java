@@ -294,7 +294,6 @@ import com.palantir.timestamp.TimestampService;
 
     public KeyValueServiceStatus getKeyValueServiceStatus() {
         NodeAvailabilityStatus nodeAvailabilityStatus = keyValueService.getNodeAvailabilityStatus();
-        // TODO: if config doesn't match db state return TERMINAL
         switch (nodeAvailabilityStatus) {
             case TERMINAL:
                 return KeyValueServiceStatus.TERMINAL;
