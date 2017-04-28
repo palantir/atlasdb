@@ -211,6 +211,7 @@ public final class UserPhotosStreamMetadataTable implements
             return Objects.equal(id, other.id);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(id);
@@ -704,5 +705,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "BVBEHh+h+Y0tBKMjSMnU4g==";
+    static String __CLASS_HASH = "Cu9J+yXk0syeAAUF1rmHjg==";
 }

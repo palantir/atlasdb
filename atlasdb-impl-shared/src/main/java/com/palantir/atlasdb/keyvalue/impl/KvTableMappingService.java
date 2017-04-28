@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
 
-public class KVTableMappingService extends AbstractTableMappingService {
+public class KvTableMappingService extends AbstractTableMappingService {
     public static final TableMetadata NAMESPACE_TABLE_METADATA = new TableMetadata(
             NameMetadataDescription.create(ImmutableList.of(
                     new NameComponentDescription("namespace", ValueType.VAR_STRING),
@@ -59,14 +59,14 @@ public class KVTableMappingService extends AbstractTableMappingService {
     private final KeyValueService kv;
     private final Supplier<Long> uniqueLongSupplier;
 
-    protected KVTableMappingService(KeyValueService kv, Supplier<Long> uniqueLongSupplier) {
+    protected KvTableMappingService(KeyValueService kv, Supplier<Long> uniqueLongSupplier) {
         this.kv = Preconditions.checkNotNull(kv, "kv must not be null");
         this.uniqueLongSupplier = Preconditions.checkNotNull(uniqueLongSupplier, "uniqueLongSupplier must not be null");
     }
 
-    public static KVTableMappingService create(KeyValueService kvs, Supplier<Long> uniqueLongSupplier) {
+    public static KvTableMappingService create(KeyValueService kvs, Supplier<Long> uniqueLongSupplier) {
         createTables(kvs);
-        KVTableMappingService ret = new KVTableMappingService(kvs, uniqueLongSupplier);
+        KvTableMappingService ret = new KvTableMappingService(kvs, uniqueLongSupplier);
         ret.updateTableMap();
         return ret;
     }

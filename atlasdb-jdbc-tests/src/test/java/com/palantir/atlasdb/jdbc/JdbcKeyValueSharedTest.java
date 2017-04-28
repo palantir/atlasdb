@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.jdbc;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
@@ -32,5 +35,12 @@ public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
     @Override
     protected boolean checkAndSetSupported() {
         return false;
+    }
+
+    @Override
+    @Test
+    public void clusterAvailabilityStatusShouldBeAllAvailable() {
+        assertThatThrownBy(() -> getKeyValueService().getClusterAvailabilityStatus()).isInstanceOf(
+                UnsupportedOperationException.class);
     }
 }

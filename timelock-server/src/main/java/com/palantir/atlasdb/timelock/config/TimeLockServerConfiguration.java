@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -119,7 +119,7 @@ public class TimeLockServerConfiguration extends Configuration {
         int selectorThreads = connectorFactory.getSelectorThreads();
         int acceptorThreads = connectorFactory.getAcceptorThreads();
 
-        //TODO consider reserving numClients more threads or something similar for unlocks
+        // TODO(gmaretic): consider reserving numClients more threads or something similar for unlocks
         return maxServerThreads - selectorThreads - acceptorThreads - 1;
     }
 }

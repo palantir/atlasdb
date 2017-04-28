@@ -42,6 +42,8 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak| |fixed|
+         - Correct ``TransactionManager.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
 
     *    - |improved|
          - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS. This is designed for applications
@@ -82,6 +84,27 @@ develop
            This feature is disabled by default, but can be enabled following the TimeLock server configuration :ref:`docs <timelock-server-time-limiting>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1808>`__)
 
+    *    - |improved|
+         - On graceful shutdown, the background sweeper will now release the backup lock if it holds it.
+           This should reduce the need for users to manually reset the ``_persisted_locks`` table in the event that they restarted a service while it was holding the lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1847>`__)
+
+    *    - |changed|
+         - Our dependency on immutables was bumped from 2.2.4 to 2.4.0, in order to fix an issue with static code analysis reporting errors in generated code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1853>`__)
+
+    *    - |devbreak|
+         - Renamed the following classes to match baseline rules. In each case, acronyms were lowercased, e.g. ``CQL`` becomes ``Cql``.
+
+              - ``CqlExpiringKeyValueService``
+              - ``CqlKeyValueService``
+              - ``CqlKeyValueServices``
+              - ``CqlStatementCache``
+              - ``KvTableMappingService``
+              - ``TransactionKvsWrapper``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1853>`__)
+
     *    - |deprecated|
          - ``ConflictDetectionManagers.createDefault(KeyValueService)`` has been deprecated.
            If you use this method, please replace it with ``ConflictDetectionManagers.create(KeyValueService)``.
@@ -92,6 +115,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1814>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
 
 =======
 v0.39.0
