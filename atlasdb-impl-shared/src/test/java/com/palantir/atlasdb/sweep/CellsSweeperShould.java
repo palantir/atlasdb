@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
@@ -25,12 +24,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
@@ -40,13 +37,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
-import com.palantir.atlasdb.persistentlock.PersistentLockId;
-import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class CellsSweeperShould {
@@ -67,15 +60,9 @@ public class CellsSweeperShould {
 
     private final KeyValueService mockKvs = mock(KeyValueService.class);
     private final Follower mockFollower = mock(Follower.class);
-    private final PersistentLockService mockPls = mock(KvsBackedPersistentLockService.class);
-    private final PersistentLockId mockLockId = mock(PersistentLockId.class);
+    private final PersistentLockManager mockPlm = mock(PersistentLockManager.class);
 
-    private final CellsSweeper sweeper = new CellsSweeper(null, mockKvs, mockPls, 1, ImmutableList.of(mockFollower));
-
-    @Before
-    public void setUp() {
-        when(mockPls.acquireBackupLock(anyString())).thenReturn(mockLockId);
-    }
+    private final CellsSweeper sweeper = new CellsSweeper(null, mockKvs, mockPlm, ImmutableList.of(mockFollower));
 
     @Test
     public void ensureCellSweepDeletesCells() {
@@ -112,31 +99,17 @@ public class CellsSweeperShould {
 
         verify(mockKvs, never()).delete(any(), any());
         verify(mockKvs, never()).addGarbageCollectionSentinelValues(any(), any());
-        verify(mockPls, never()).acquireBackupLock(any());
+        verify(mockPlm, never()).acquirePersistentLockWithRetry();
     }
 
     @Test
     public void acquireTheBackupLockBeforeDeletingButAfterAddingSentinels() {
         sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
-        InOrder ordering = inOrder(mockPls, mockKvs);
+        InOrder ordering = inOrder(mockPlm, mockKvs);
 
         ordering.verify(mockKvs, atLeastOnce()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
-        ordering.verify(mockPls, times(1)).acquireBackupLock("Sweep");
-        ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
-    }
-
-    @Test
-    public void retryWhenAcquiringTheBackupLock() {
-        when(mockPls.acquireBackupLock(anyString()))
-                .thenThrow(mock(CheckAndSetException.class))
-                .thenReturn(mockLockId);
-
-        sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
-
-        InOrder ordering = inOrder(mockPls, mockKvs);
-
-        ordering.verify(mockPls, times(2)).acquireBackupLock("Sweep");
+        ordering.verify(mockPlm, times(1)).acquirePersistentLockWithRetry();
         ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
     }
 
@@ -144,11 +117,11 @@ public class CellsSweeperShould {
     public void releaseTheBackupLockAfterDeleteAndAddingSentinels() {
         sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
-        InOrder ordering = inOrder(mockPls, mockKvs);
+        InOrder ordering = inOrder(mockPlm, mockKvs);
 
         ordering.verify(mockKvs, atLeastOnce()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
         ordering.verify(mockKvs, atLeastOnce()).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
-        ordering.verify(mockPls, times(1)).releaseBackupLock(mockLockId);
+        ordering.verify(mockPlm, times(1)).releasePersistentLock();
     }
 
     @Test
@@ -161,6 +134,6 @@ public class CellsSweeperShould {
             // expected
         }
 
-        verify(mockPls, times(1)).releaseBackupLock(mockLockId);
+        verify(mockPlm, times(1)).releasePersistentLock();
     }
 }

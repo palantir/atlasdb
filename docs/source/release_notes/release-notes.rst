@@ -42,6 +42,8 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak| |fixed|
+         - Correct ``TransactionManager.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
 
     *    - |improved|
          - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS. This is designed for applications
@@ -69,6 +71,11 @@ develop
            For more information, see the :ref:`docs <timelock-server-further-config>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
+    *    - |improved|
+         - On graceful shutdown, the background sweeper will now release the backup lock if it holds it.
+           This should reduce the need for users to manually reset the ``_persisted_locks`` table in the event that they restarted a service while it was holding the lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1847>`__)
+
     *    - |devbreak|
          - Renamed the following classes to match baseline rules. In each case, acronyms were lowercased, e.g. ``CQL`` becomes ``Cql``.
 
@@ -91,6 +98,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1814>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
 
 =======
 v0.39.0

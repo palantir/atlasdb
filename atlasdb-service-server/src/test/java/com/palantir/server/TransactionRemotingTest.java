@@ -68,7 +68,7 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class TransactionRemotingTest {
     public final static AtlasSchema schema = SweepSchema.INSTANCE;
-    public final SerializableTransactionManager txMgr = TransactionManagers.createInMemory(schema);
+    public final SerializableTransactionManager txMgr = TransactionManagers.createInMemory(schema.getLatestSchema());
     public final KeyValueService kvs = txMgr.getKeyValueService();
     public final TableMetadataCache cache = new TableMetadataCache(kvs);
     public final ObjectMapper mapper = new ObjectMapper(); { mapper.registerModule(new AtlasJacksonModule(cache).createModule()); }

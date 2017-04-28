@@ -24,11 +24,11 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -227,14 +227,14 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        NodeAvailabilityStatus nodeAvailabilityStatus1 = delegate1.getNodeAvailabilityStatus();
-        NodeAvailabilityStatus nodeAvailabilityStatus2 = delegate2.getNodeAvailabilityStatus();
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        ClusterAvailabilityStatus clusterAvailabilityStatus1 = delegate1.getClusterAvailabilityStatus();
+        ClusterAvailabilityStatus clusterAvailabilityStatus2 = delegate2.getClusterAvailabilityStatus();
 
-        if (nodeAvailabilityStatus1.compareTo(nodeAvailabilityStatus2) < 0) {
-            return nodeAvailabilityStatus1;
+        if (clusterAvailabilityStatus1.compareTo(clusterAvailabilityStatus2) < 0) {
+            return clusterAvailabilityStatus1;
         }
-        return nodeAvailabilityStatus2;
+        return clusterAvailabilityStatus2;
     }
 
     @Override

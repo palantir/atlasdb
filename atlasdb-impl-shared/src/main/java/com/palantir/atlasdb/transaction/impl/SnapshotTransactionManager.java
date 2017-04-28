@@ -29,8 +29,8 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
@@ -293,8 +293,8 @@ import com.palantir.timestamp.TimestampService;
     }
 
     public KeyValueServiceStatus getKeyValueServiceStatus() {
-        NodeAvailabilityStatus nodeAvailabilityStatus = keyValueService.getNodeAvailabilityStatus();
-        switch (nodeAvailabilityStatus) {
+        ClusterAvailabilityStatus clusterAvailabilityStatus = keyValueService.getClusterAvailabilityStatus();
+        switch (clusterAvailabilityStatus) {
             case TERMINAL:
                 return KeyValueServiceStatus.TERMINAL;
             case ALL_AVAILABLE:
