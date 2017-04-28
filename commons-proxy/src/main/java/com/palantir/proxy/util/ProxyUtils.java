@@ -27,7 +27,12 @@ import java.util.Set;
 
 import com.palantir.proxy.exception.ProxyException;
 
-public class ProxyUtils {
+public final class ProxyUtils {
+    private ProxyUtils() {
+        // Utility class, should never be instantiated
+    }
+
+    @SuppressWarnings({"checkstyle:AbbreviationAsWordInName", "checkstyle:IllegalThrows"}) // Avoiding API breaks
     public static Object invokeAndUnwrapITEs(Object object, Method method, Object[] args) throws Throwable {
         Object returnValue;
         try {
@@ -38,25 +43,25 @@ public class ProxyUtils {
         return returnValue;
     }
 
-    public static boolean isHashCode(Method m) throws ProxyException {
+    public static boolean isHashCode(Method method) throws ProxyException {
         try {
-            return m.equals(Object.class.getMethod("hashCode", new Class[]{}));
+            return method.equals(Object.class.getMethod("hashCode", new Class[]{}));
         } catch (NoSuchMethodException nsme) {
             throw new ProxyException(nsme);
         }
     }
 
-    public static boolean isEquals(Method m) throws ProxyException {
+    public static boolean isEquals(Method method) throws ProxyException {
         try {
-            return m.equals(Object.class.getMethod("equals", Object.class));
+            return method.equals(Object.class.getMethod("equals", Object.class));
         } catch (NoSuchMethodException nsme) {
             throw new ProxyException(nsme);
         }
     }
 
-    public static boolean isToString(Method m) throws ProxyException {
+    public static boolean isToString(Method method) throws ProxyException {
         try {
-            return m.equals(Object.class.getMethod("toString", new Class[]{}));
+            return method.equals(Object.class.getMethod("toString", new Class[]{}));
         } catch (NoSuchMethodException nsme) {
             throw new ProxyException(nsme);
         }
@@ -66,7 +71,8 @@ public class ProxyUtils {
         return !isHashCode(method) && !isEquals(method) && !isToString(method);
     }
 
-    public static Object invokeUnproxiableMethod(Method method, Object proxyObject, Object[] args) throws ProxyException {
+    public static Object invokeUnproxiableMethod(Method method, Object proxyObject, Object[] args)
+            throws ProxyException {
         if (ProxyUtils.isEquals(method)) {
             return proxyObject == args[0];
         } else if (ProxyUtils.isHashCode(method)) {
@@ -74,11 +80,14 @@ public class ProxyUtils {
         } else if (ProxyUtils.isToString(method)) {
             return proxyObject.getClass().getName() + "@" + Integer.toHexString(proxyObject.hashCode());
         } else {
-            throw new IllegalArgumentException("Method should be not be invoked directly on proxyObject: " + method.toString());
+            throw new IllegalArgumentException("Method should be not be invoked directly on proxyObject: "
+                    + method.toString());
         }
     }
 
     /**
+     * Returns a new proxy for a given interface class, plus all interfaces from the delegate class.
+     *
      * @param iface main interface to proxy
      * @param delegate delegate class whose interfaces ot proxy
      * @param handler proxy invocation handler
@@ -94,6 +103,9 @@ public class ProxyUtils {
     }
 
     /**
+     * Returns a set of interfaces implemented by a collection of classes, unioned with the interfaces in the
+     * additionalInterfaces set.
+     *
      * @return the set of interfaces for the specified classes
      * @throws IllegalArgumentException if the specified iface is not an interface
      */
@@ -114,6 +126,8 @@ public class ProxyUtils {
     }
 
     /**
+     * Returns a set of interfaces implemented by a collection of classes.
+     *
      * @return the set of interfaces for the specified classes
      * @throws IllegalArgumentException if the specified iface is not an interface
      */
