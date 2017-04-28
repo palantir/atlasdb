@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.util.Arrays;
+
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -55,6 +57,7 @@ public final class ExceptionMappers {
     private static SerializableError createSerializableError(Exception exception) {
         return SerializableError.of(
                 exception.getMessage(),
-                exception.getClass());
+                exception.getClass(),
+                Arrays.asList(exception.getStackTrace()));
     }
 }
