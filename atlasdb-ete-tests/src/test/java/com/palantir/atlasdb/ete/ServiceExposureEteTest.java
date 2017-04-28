@@ -15,10 +15,10 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNot.not;
-import static org.hamcrest.core.IsNull.nullValue;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.core.IsNot;
+import org.hamcrest.core.IsNull;
 
 import org.junit.Test;
 
@@ -29,6 +29,6 @@ public class ServiceExposureEteTest {
     public void shouldExposeATimestampServer() {
         TimestampService timestampClient = EteSetup.createClientToAllNodes(TimestampService.class);
 
-        assertThat(timestampClient.getFreshTimestamp(), is(not(nullValue())));
+        MatcherAssert.assertThat(timestampClient.getFreshTimestamp(), CoreMatchers.is(IsNot.not(IsNull.nullValue())));
     }
 }

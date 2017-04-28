@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@Value.Immutable()
+@Value.Immutable
 @JsonSerialize(as = ImmutableTodo.class)
 @JsonDeserialize(as = ImmutableTodo.class)
 public abstract class Todo {
