@@ -30,6 +30,8 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A client of the lock server. Clients who desire reentrancy are required to
  * identify themselves via unique strings (for example, client IDs).
@@ -93,6 +95,7 @@ import com.google.common.base.Strings;
                 .toString();
     }
 
+    @SuppressFBWarnings("NP_METHOD_PARAMETER_TIGHTENS_ANNOTATION") // Avoid breaking existing API
     @Override public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;

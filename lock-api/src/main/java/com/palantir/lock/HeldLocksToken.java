@@ -37,6 +37,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A token representing a set of locks being held by a client and the
  * expiration date of the locks (leases). The expiration date can be extended by
@@ -155,6 +157,7 @@ import com.google.common.collect.Iterables;
         return versionId;
     }
 
+    @SuppressFBWarnings("NP_METHOD_PARAMETER_TIGHTENS_ANNOTATION") // Avoid breaking existing API
     @Override public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;

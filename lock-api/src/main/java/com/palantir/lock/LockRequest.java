@@ -39,6 +39,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * An encapsulation of all parameters needed to make a locking request to the
  * lock server.
@@ -163,6 +165,7 @@ import com.google.common.collect.Iterables;
         return creatingThreadName;
     }
 
+    @SuppressFBWarnings("NP_METHOD_PARAMETER_TIGHTENS_ANNOTATION") // Avoid breaking existing API
     @Override public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;

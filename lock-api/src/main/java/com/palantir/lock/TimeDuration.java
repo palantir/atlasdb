@@ -21,6 +21,8 @@ import javax.annotation.Nullable;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A container class to encapsulate a {@link TimeUnit} with a {@code long}
  * duration.
@@ -61,6 +63,7 @@ public interface TimeDuration extends Comparable<TimeDuration> {
      * are equal.
      */
     @Override
+    @SuppressFBWarnings("NP_METHOD_PARAMETER_TIGHTENS_ANNOTATION") // Avoid breaking existing API
     boolean equals(@Nullable Object obj);
 
     /** Returns {@code com.google.common.base.Objects.hashCode(toNanos())}. */
