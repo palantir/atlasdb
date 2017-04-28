@@ -39,8 +39,8 @@ public class FetchTimestamp extends AbstractTimestampCommand {
 
     @Option(name = {"-d", "--date-time"},
             type = OptionType.COMMAND,
-            description = "Return the earliest approximate wall clock datetime at which the chosen timestamp" +
-                    " could have been used in a transaction.")
+            description = "Return the earliest approximate wall clock datetime at which the chosen timestamp"
+                    + " could have been used in a transaction.")
     private boolean dateTime;
 
     private static final String IMMUTABLE_STRING = "Immutable";
