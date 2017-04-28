@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
@@ -38,7 +37,7 @@ public class TableCellValDeserializer extends StdDeserializer<TableCellVal> {
     }
 
     @Override
-    public TableCellVal deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+    public TableCellVal deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
         JsonNode node = jp.readValueAsTree();
         String tableName = node.get("table").textValue();
         TableMetadata metadata = metadataCache.getMetadata(tableName);
