@@ -25,7 +25,7 @@ import com.google.common.base.Preconditions;
  *
  * @author jtamer
  */
-public class ByteArrayLockDescriptor {
+public final class ByteArrayLockDescriptor {
 
     private ByteArrayLockDescriptor() {
         // cannot instantiate
@@ -33,7 +33,7 @@ public class ByteArrayLockDescriptor {
 
     /** Returns a {@code LockDescriptor} instance for the given lock ID. */
     public static LockDescriptor of(byte[] bytes) {
-        Preconditions.checkNotNull(bytes);
+        Preconditions.checkNotNull(bytes, "bytes cannot be null");
         return new LockDescriptor(bytes.clone());
     }
 }
