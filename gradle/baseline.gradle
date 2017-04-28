@@ -1,6 +1,5 @@
 List<String> blacklistedBaselineProjects = [
         'atlasdb-cli',
-        'atlasdb-client',
         'atlasdb-client-protobufs',
         'atlasdb-commons',
         'atlasdb-console',
