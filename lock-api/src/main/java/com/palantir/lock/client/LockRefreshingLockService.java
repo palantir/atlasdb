@@ -34,7 +34,7 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 
-@SuppressWarnings("FinalClass") // Avoid breaking API in case someone extended this
+@SuppressWarnings("checkstyle:FinalClass") // Avoid breaking API in case someone extended this
 public class LockRefreshingLockService extends ForwardingLockService {
     private static final Logger log = LoggerFactory.getLogger(LockRefreshingLockService.class);
 
@@ -150,7 +150,7 @@ public class LockRefreshingLockService extends ForwardingLockService {
     }
 
     @Override
-    @SuppressWarnings("NoFinalizer") // TODO (jkong): Can we safely remove this without breaking things?
+    @SuppressWarnings("checkstyle:NoFinalizer") // TODO (jkong): Can we safely remove this without breaking things?
     protected void finalize() throws Throwable {
         super.finalize();
         if (!isClosed) {
