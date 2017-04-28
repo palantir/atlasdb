@@ -36,7 +36,7 @@ import com.google.common.base.Preconditions;
  * @author jtamer
  */
 @Immutable public final class HeldLocksGrant implements ExpiringToken, Serializable {
-    private static final long serialVersionUID = 0xcdf42e080ef965dcl;
+    private static final long serialVersionUID = 0xcdf42e080ef965dcL;
 
     private final BigInteger grantId;
     private final long creationDateMs;
@@ -49,7 +49,7 @@ import com.google.common.base.Preconditions;
      * These grants should not be constructed by users.  Only the lock service should hand them out.
      */
     public HeldLocksGrant(BigInteger grantId) {
-        this.grantId = Preconditions.checkNotNull(grantId);
+        this.grantId = Preconditions.checkNotNull(grantId, "grantId should not be null");
         creationDateMs = System.currentTimeMillis();
         expirationDateMs = -1;
         lockMap = LockCollections.of();
@@ -63,7 +63,7 @@ import com.google.common.base.Preconditions;
     public HeldLocksGrant(BigInteger grantId, long creationDateMs, long expirationDateMs,
             SortedLockCollection<LockDescriptor> lockMap, TimeDuration lockTimeout,
             @Nullable Long versionId) {
-        this.grantId = Preconditions.checkNotNull(grantId);
+        this.grantId = Preconditions.checkNotNull(grantId, "grantId should not be null");
         this.creationDateMs = creationDateMs;
         this.expirationDateMs = expirationDateMs;
         this.lockMap = lockMap;
@@ -168,8 +168,8 @@ import com.google.common.base.Preconditions;
     /**
      * This should only be called by the Lock Service.  Calling this method won't actually refresh the grant.
      */
-    public HeldLocksGrant refresh(long expirationDateMs) {
-        return new HeldLocksGrant(grantId, creationDateMs, expirationDateMs, lockMap, lockTimeout, versionId);
+    public HeldLocksGrant refresh(long newExpirationDateMs) {
+        return new HeldLocksGrant(grantId, creationDateMs, newExpirationDateMs, lockMap, lockTimeout, versionId);
     }
 
     private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
@@ -182,7 +182,7 @@ import com.google.common.base.Preconditions;
     }
 
     private static class SerializationProxy implements Serializable {
-        private static final long serialVersionUID = 0xb9d2975ea14a7762l;
+        private static final long serialVersionUID = 0xb9d2975ea14a7762L;
 
         private final BigInteger grantId;
         private final long creationDateMs;

@@ -22,7 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
-public class LockCollections {
+public final class LockCollections {
 
     private LockCollections() {
         // cannot instantiate

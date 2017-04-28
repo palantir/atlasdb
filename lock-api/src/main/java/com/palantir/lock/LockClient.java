@@ -37,7 +37,7 @@ import com.google.common.base.Strings;
  * @author jtamer
  */
 @Immutable public final class LockClient implements Serializable {
-    private static final long serialVersionUID = 0xf5637f2c8d7c94bdl;
+    private static final long serialVersionUID = 0xf5637f2c8d7c94bdL;
 
     /**
      * An anonymous client of the lock server. Anonymous clients cannot acquire
@@ -94,8 +94,12 @@ import com.google.common.base.Strings;
     }
 
     @Override public boolean equals(@Nullable Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof LockClient)) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof LockClient)) {
+            return false;
+        }
         return Objects.equal(clientId, ((LockClient) obj).clientId);
     }
 
@@ -113,7 +117,7 @@ import com.google.common.base.Strings;
     }
 
     private static class SerializationProxy implements Serializable {
-        private static final long serialVersionUID = 0x495befe620789284l;
+        private static final long serialVersionUID = 0x495befe620789284L;
 
         @Nullable private final String clientId;
 
@@ -122,8 +126,12 @@ import com.google.common.base.Strings;
         }
 
         Object readResolve() {
-            if (Strings.isNullOrEmpty(clientId)) return ANONYMOUS;
-            if (clientId.equals(INTERNAL_LOCK_GRANT_CLIENT_ID)) return INTERNAL_LOCK_GRANT_CLIENT;
+            if (Strings.isNullOrEmpty(clientId)) {
+                return ANONYMOUS;
+            }
+            if (clientId.equals(INTERNAL_LOCK_GRANT_CLIENT_ID)) {
+                return INTERNAL_LOCK_GRANT_CLIENT;
+            }
             return of(clientId);
         }
     }

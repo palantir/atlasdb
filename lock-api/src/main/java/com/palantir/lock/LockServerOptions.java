@@ -100,8 +100,12 @@ import com.google.common.base.Objects;
     }
 
     @Override public final boolean equals(@Nullable Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof LockServerOptions)) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof LockServerOptions)) {
+            return false;
+        }
         LockServerOptions other = (LockServerOptions) obj;
         return Objects.equal(isStandaloneServer(), other.isStandaloneServer())
                 && Objects.equal(getMaxAllowedLockTimeout(), other.getMaxAllowedLockTimeout())
@@ -134,7 +138,7 @@ import com.google.common.base.Objects;
                 .toString();
     }
 
-    private final void readObject(@SuppressWarnings("unused") ObjectInputStream in)
+    private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
             throws InvalidObjectException {
         throw new InvalidObjectException("proxy required");
     }

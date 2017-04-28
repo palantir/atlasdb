@@ -40,7 +40,7 @@ import com.google.common.collect.ImmutableSortedMap;
  * @author jtamer
  */
 @Immutable public final class LockResponse implements Serializable {
-    private static final long serialVersionUID = 0xd67972b13e30eff7l;
+    private static final long serialVersionUID = 0xd67972b13e30eff7L;
 
     @Nullable private final HeldLocksToken token;
     private final boolean isBlockAndRelease;
@@ -143,7 +143,7 @@ import com.google.common.collect.ImmutableSortedMap;
     }
 
     private static class SerializationProxy implements Serializable {
-        private static final long serialVersionUID = 0xcff22b33b08dd857l;
+        private static final long serialVersionUID = 0xcff22b33b08dd857L;
 
         @Nullable private final HeldLocksToken token;
         private final ImmutableSortedMap<LockDescriptor, LockClient> lockHolders;
