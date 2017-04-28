@@ -219,6 +219,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
             return Objects.equal(firstComponentHash, other.firstComponentHash) && Objects.equal(id, other.id);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ firstComponentHash, id });
@@ -713,5 +714,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "c/cTT5PKiP2GKKO3ZgKOXw==";
+    static String __CLASS_HASH = "Vn50INJJjQ96rUiLUid4wA==";
 }

@@ -211,6 +211,7 @@ public final class SweepProgressTable implements
             return Objects.equal(dummy, other.dummy);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(dummy);
@@ -1236,5 +1237,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "8cD0KD8qcKYtclo7WmxNsg==";
+    static String __CLASS_HASH = "ygsfpSeBY33205EpjiR1dQ==";
 }
