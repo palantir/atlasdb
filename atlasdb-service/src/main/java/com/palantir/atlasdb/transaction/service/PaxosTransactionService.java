@@ -26,13 +26,13 @@ import com.palantir.paxos.PaxosRoundFailureException;
 
 public class PaxosTransactionService implements TransactionService {
     private final PaxosProposer proposer;
-    private final TransactionKVSWrapper kvStore;
+    private final TransactionKvsWrapper kvStore;
 
-    public static TransactionService create(PaxosProposer proposer, TransactionKVSWrapper kvStore) {
+    public static TransactionService create(PaxosProposer proposer, TransactionKvsWrapper kvStore) {
         return new PaxosTransactionService(proposer, kvStore);
     }
 
-    private PaxosTransactionService(PaxosProposer proposer, TransactionKVSWrapper kvStore) {
+    private PaxosTransactionService(PaxosProposer proposer, TransactionKvsWrapper kvStore) {
         this.proposer = proposer;
         this.kvStore = kvStore;
     }
