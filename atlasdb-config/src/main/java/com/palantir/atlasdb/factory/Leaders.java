@@ -28,6 +28,7 @@ import javax.net.ssl.SSLSocketFactory;
 import org.immutables.value.Value;
 
 import com.codahale.metrics.InstrumentedExecutorService;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -113,23 +114,29 @@ public final class Leaders {
         Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(
                 remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory, userAgent);
 
-        InstrumentedExecutorService instrumentedExecutor = new InstrumentedExecutorService(
+        PaxosProposer proposer = createPaxosProposer(ourLearner, acceptors, learners, config.quorumSize(),
+                new InstrumentedExecutorService(
+                        Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                                .setNameFormat("atlas-proposer-%d")
+                                .setDaemon(true)
+                                .build()),
+                        AtlasDbMetrics.getMetricRegistry(),
+                        MetricRegistry.name(PaxosProposer.class, "executor")));
+
+        InstrumentedExecutorService leaderElectionExecutor = new InstrumentedExecutorService(
                 Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-                        .setNameFormat("atlas-leaders-%d")
+                        .setNameFormat("atlas-leaders-election-%d")
                         .setDaemon(true)
                         .build()),
-                AtlasDbMetrics.getMetricRegistry());
-
-        PaxosProposer proposer = createPaxosProposer(ourLearner, acceptors, learners, config.quorumSize(),
-                instrumentedExecutor);
-
+                AtlasDbMetrics.getMetricRegistry(),
+                MetricRegistry.name(PaxosLeaderElectionService.class, "executor"));
         PaxosLeaderElectionService leader = new PaxosLeaderElectionServiceBuilder()
                 .proposer(proposer)
                 .knowledge(ourLearner)
                 .potentialLeadersToHosts(otherLeaders)
                 .acceptors(acceptors)
                 .learners(learners)
-                .executor(instrumentedExecutor)
+                .executor(leaderElectionExecutor)
                 .pingRateMs(config.pingRateMs())
                 .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
