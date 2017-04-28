@@ -42,8 +42,7 @@ import com.palantir.nexus.db.pool.RetriableWriteTransaction;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
-// TODO: switch to using ptdatabase sql running, which more gracefully
-// supports multiple db types.
+// TODO(hsaraogi): switch to using ptdatabase sql running, which more gracefully supports multiple db types.
 public class InDbTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(InDbTimestampBoundStore.class);
 

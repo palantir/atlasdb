@@ -112,7 +112,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
                     break;
                 } catch (PalantirSqlException e) {
                     // we can't do atomic put if not exists, so retry if we get constraint violations
-                    // TODO: Actually you can. Evaluate use of MERGE or UPSERT here.
+                    // TODO(jboreiko): Actually you can. Evaluate use of MERGE or UPSERT here.
                     if (!ExceptionCheck.isUniqueConstraintViolation(e)) {
                         throw e;
                     }

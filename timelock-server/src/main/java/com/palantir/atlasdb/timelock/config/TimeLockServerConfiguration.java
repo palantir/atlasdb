@@ -111,7 +111,7 @@ public class TimeLockServerConfiguration extends Configuration {
         int selectorThreads = connectorFactory.getSelectorThreads();
         int acceptorThreads = connectorFactory.getAcceptorThreads();
 
-        //TODO consider reserving numClients more threads or something similar for unlocks
+        // TODO(gmaretic): consider reserving numClients more threads or something similar for unlocks
         return maxServerThreads - selectorThreads - acceptorThreads - 1;
     }
 }
