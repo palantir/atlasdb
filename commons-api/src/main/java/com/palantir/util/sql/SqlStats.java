@@ -28,7 +28,7 @@ import com.palantir.util.Pair;
 /**
  * MXBean which tracks statistics for all SQL queries made by the server.
  */
-public class SqlStats implements SqlStatsMBean {
+public final class SqlStats implements SqlStatsMBean {
     public static final SqlStats INSTANCE = createSqlStats();
 
     private static SqlStats createSqlStats() {
@@ -55,6 +55,7 @@ public class SqlStats implements SqlStatsMBean {
 
     private static final String OBJECT_NAME_STRING = "com.palantir.util.sql:type=DatabaseCalls"; //$NON-NLS-1$
 
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Don't wish to break the API
     public void registerWithJMX() {
         JMXUtils.registerMBeanCatchAndLogExceptions(this, OBJECT_NAME_STRING);
     }
@@ -84,6 +85,7 @@ public class SqlStats implements SqlStatsMBean {
      * @param timeInNs the total amount of time in nanoseconds spent executing
      *        the query.
      */
+    @SuppressWarnings("ParameterAssignment") // I don't want to copy the query key for perf reasons
     public synchronized void updateStats(String sqlName,
                                          String rawSql,
                                          long timeInNs) {
@@ -118,10 +120,10 @@ public class SqlStats implements SqlStatsMBean {
     }
 
     /**
-     * Returns a textual summary of the top n queries ordered by total time.
+     * Returns a textual summary of the top numQueries queries ordered by total time.
      */
     @Override
-    public synchronized String getTopQueriesByTotalTime(int n) {
+    public synchronized String getTopQueriesByTotalTime(int numQueries) {
         List<Pair<Long, SqlCallStats>> entries = new ArrayList<Pair<Long, SqlCallStats>>();
         for (SqlCallStats stats : statsByName.values()) {
             entries.add(new Pair<Long, SqlCallStats>(stats.getTotalTime(), stats));
@@ -131,7 +133,7 @@ public class SqlStats implements SqlStatsMBean {
         Collections.reverse(entries);
 
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < Math.min(entries.size(), n); ++i) {
+        for (int i = 0; i < Math.min(entries.size(), numQueries); ++i) {
             long totalTimeMs = entries.get(i).lhSide;
             SqlCallStats stats = entries.get(i).rhSide;
             String line = String.format(
@@ -146,7 +148,7 @@ public class SqlStats implements SqlStatsMBean {
         String name = namesByUnregisteredSql.get(rawSql);
         if (name == null) {
             name = String.format("UNREGISTERED_QUERY_%03d", //$NON-NLS-1$
-                    (namesByUnregisteredSql.size() + 1));
+                    namesByUnregisteredSql.size() + 1);
             namesByUnregisteredSql.put(rawSql, name);
         }
         return name;

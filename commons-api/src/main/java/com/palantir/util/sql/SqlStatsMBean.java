@@ -20,14 +20,14 @@ import javax.management.MXBean;
 
 @MXBean
 public interface SqlStatsMBean {
-    public boolean isCollectCallStatsEnabled();
+    boolean isCollectCallStatsEnabled();
 
-    public void setCollectCallStatsEnabled(boolean enabled);
+    void setCollectCallStatsEnabled(boolean enabled);
 
-    public void clearAllStats();
+    void clearAllStats();
 
-    public String getTopQueriesByTotalTime(int n);
+    String getTopQueriesByTotalTime(int numQueries);
 
-    public long getClearTempTableByDeleteCount();
-    public long getClearTempTableByTruncateCount();
+    long getClearTempTableByDeleteCount();
+    long getClearTempTableByTruncateCount();
 }

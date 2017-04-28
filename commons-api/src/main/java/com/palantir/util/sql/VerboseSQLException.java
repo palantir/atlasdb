@@ -26,20 +26,21 @@ import java.sql.SQLException;
  * information, the error message is <i>not</i> serialized when transported from
  * the server to the client.
  */
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Don't wish to break the API.
 public class VerboseSQLException extends SQLException {
     private static final long serialVersionUID = 1L;
 
     // Transient so detailed debugging information is not shipped to the client.
-    private transient String verboseErrorMessage;
+    private final transient String verboseErrorMessage;
 
-    public VerboseSQLException(SQLException e, String verboseErrorMessage) {
-        super(e.getMessage(), e.getSQLState(), e.getErrorCode());
-        setNextException(e.getNextException());
-        setStackTrace(e.getStackTrace());
-        if (e.getCause() != null) {
-            initCause(e.getCause());
-        } else if (e.getNextException() != null){
-            initCause(e.getNextException());
+    public VerboseSQLException(SQLException exception, String verboseErrorMessage) {
+        super(exception.getMessage(), exception.getSQLState(), exception.getErrorCode());
+        setNextException(exception.getNextException());
+        setStackTrace(exception.getStackTrace());
+        if (exception.getCause() != null) {
+            initCause(exception.getCause());
+        } else if (exception.getNextException() != null) {
+            initCause(exception.getNextException());
         }
         this.verboseErrorMessage = verboseErrorMessage;
     }
