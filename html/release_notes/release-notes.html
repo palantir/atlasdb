@@ -230,6 +230,25 @@ For more information, see the <a class="reference internal" href="../configurati
 This should reduce the need for users to manually reset the <code class="docutils literal"><span class="pre">_persisted_locks</span></code> table in the event that they restarted a service while it was holding the lock.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1847">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>Our dependency on immutables was bumped from 2.2.4 to 2.4.0, in order to fix an issue with static code analysis reporting errors in generated code.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1853">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><p class="first">Renamed the following classes to match baseline rules. In each case, acronyms were lowercased, e.g. <code class="docutils literal"><span class="pre">CQL</span></code> becomes <code class="docutils literal"><span class="pre">Cql</span></code>.</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">CqlExpiringKeyValueService</span></code></li>
+<li><code class="docutils literal"><span class="pre">CqlKeyValueService</span></code></li>
+<li><code class="docutils literal"><span class="pre">CqlKeyValueServices</span></code></li>
+<li><code class="docutils literal"><span class="pre">CqlStatementCache</span></code></li>
+<li><code class="docutils literal"><span class="pre">KvTableMappingService</span></code></li>
+<li><code class="docutils literal"><span class="pre">TransactionKvsWrapper</span></code></li>
+</ul>
+</div></blockquote>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1853">Pull Request</a>)</p>
+</td>
+</tr>
 <tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
 <td><code class="docutils literal"><span class="pre">ConflictDetectionManagers.createDefault(KeyValueService)</span></code> has been deprecated.
 If you use this method, please replace it with <code class="docutils literal"><span class="pre">ConflictDetectionManagers.create(KeyValueService)</span></code>.
