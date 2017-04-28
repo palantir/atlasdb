@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - The Lock Descriptor classes (``AtlasCellLockDescriptor`` etc.), static factories (e.g. ``LockCollections``) and ``LockClient`` have been made final.
+           If this is a concern, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1857>`__)
 
     *    - |improved|
          - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS. This is designed for applications
