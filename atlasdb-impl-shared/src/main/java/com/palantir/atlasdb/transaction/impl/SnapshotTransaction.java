@@ -780,7 +780,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // Handle 1 specially because the underlying store could have an optimization for 1
             return 1;
         }
-        //TODO: carrino: tune the param here based on how likely we are to post filter
+        // TODO(carrino): tune the param here based on how likely we are to post filter
         // rows out and have deleted rows
         int preFilterBatchSize = userRequestedSize + ((userRequestedSize + 9) / 10);
         if (preFilterBatchSize > AtlasDbPerformanceConstants.MAX_BATCH_SIZE
@@ -1667,7 +1667,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        // TODO: This can have better performance if we have a blockAndReturn method in lock server
+        // TODO(carrino): This can have better performance if we have a blockAndReturn method in lock server
         // However lock server blocking is an issue if we fill up all our requests
         try {
             lockService.lock(

@@ -45,7 +45,7 @@ public class StartTsToCommitTsCacheLoader extends CacheLoader<Long, Long> {
         // Roll back this transaction (note that rolling back arbitrary transactions
         // can never cause correctness issues, only liveness issues)
         try {
-            // TODO: carrino: use the batched version of putUnlessExists when it is available.
+            // TODO(carrino): use the batched version of putUnlessExists when it is available.
             transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
         } catch (KeyAlreadyExistsException e) {
             String msg = "Could not roll back transaction with start timestamp " + startTs + "; either"

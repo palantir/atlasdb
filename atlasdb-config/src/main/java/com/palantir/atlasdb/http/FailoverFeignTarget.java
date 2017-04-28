@@ -59,7 +59,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private final AtomicLong numSwitches = new AtomicLong();
     private final AtomicLong startTimeOfFastFailover = new AtomicLong();
 
-    final ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<>();
+    private final ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<>();
 
     public FailoverFeignTarget(Collection<String> servers, Class<T> type) {
         this(servers, DEFAULT_MAX_BACKOFF_MILLIS, type);
