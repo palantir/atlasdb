@@ -33,7 +33,7 @@ public interface TimestampService {
     long getFreshTimestamp();
 
     /**
-     * @return never null. Inclusive LongRange of timestamps.  Will always have at least 1 value.
+     * @return never null; inclusive LongRange of timestamps that always has at least 1 value
      * This range may have less than the requested amount.
      */
     @POST // This has to be POST because we can't allow caching.
