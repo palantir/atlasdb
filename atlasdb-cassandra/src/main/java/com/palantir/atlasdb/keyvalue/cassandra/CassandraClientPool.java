@@ -669,10 +669,10 @@ public class CassandraClientPool {
                 if (ex instanceof TTransportException
                         && ex.getCause() != null
                         && (ex.getCause().getClass() == SocketException.class)) {
-                    String msg = "Error writing to Cassandra socket. "
+                    final String msg = "Error writing to Cassandra socket. "
                             + "Likely cause: Exceeded maximum thrift frame size; "
                             + "unlikely cause: network issues.";
-                    String logMessage = "Tried to connect to cassandra {} times. " + msg;
+                    final String logMessage = "Tried to connect to cassandra {} times. " + msg;
                     log.error(logMessage, numTries, ex);
                     throw (K) new TTransportException(((TTransportException) ex).getType(), msg, ex);
                 } else {

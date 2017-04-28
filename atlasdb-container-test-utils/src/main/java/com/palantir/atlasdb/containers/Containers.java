@@ -51,8 +51,7 @@ public class Containers extends ExternalResource {
 
     private static final Set<Container> containersToStart = new HashSet<>();
     private static final Set<Container> containersStarted = new HashSet<>();
-    private static final LoadingCache<String, String> dockerComposeFilesToTemporaryCopies =
-            CacheBuilder.<String, String>newBuilder()
+    private static final LoadingCache<String, String> dockerComposeFilesToTemporaryCopies = CacheBuilder.newBuilder()
                     .build(CacheLoader.from(Containers::getDockerComposeFile));
 
     private static volatile DockerComposeRule dockerComposeRule;

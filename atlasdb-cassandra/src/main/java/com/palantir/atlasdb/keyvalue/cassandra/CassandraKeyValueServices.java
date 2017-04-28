@@ -91,7 +91,7 @@ public final class CassandraKeyValueServices {
         } while (System.currentTimeMillis() < start + schemaTimeoutMillis);
 
         StringBuilder sb = new StringBuilder();
-        String messageTemplate = "Cassandra cluster cannot come to agreement on schema versions,"
+        final String messageTemplate = "Cassandra cluster cannot come to agreement on schema versions,"
                 + " after attempting to modify table {}. {}"
                 + " \nFind the nodes above that diverge from the majority schema"
                 + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"

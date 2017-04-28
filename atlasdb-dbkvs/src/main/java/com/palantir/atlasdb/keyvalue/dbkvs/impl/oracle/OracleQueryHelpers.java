@@ -70,7 +70,7 @@ public final class OracleQueryHelpers {
         }
     }
 
-    private static final List<String> VAL_ONLY = ImmutableList.of("val");
-    private static final List<String> VAL_AND_OVERFLOW = ImmutableList.of("val", "overflow");
+    private static final ImmutableList<String> VAL_ONLY = ImmutableList.of("val");
+    private static final ImmutableList<String> VAL_AND_OVERFLOW = ImmutableList.of("val", "overflow");
 
 }

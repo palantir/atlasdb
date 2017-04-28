@@ -95,8 +95,10 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
         long run(Connection connection, @Nullable Long oldLimit) throws SQLException;
     }
 
+    @GuardedBy("this")
     private long runOperation(final Operation operation) {
         TransactionResult<Long> result = RetriableTransactions.run(connManager, new RetriableWriteTransaction<Long>() {
+            @GuardedBy("InDbTimestampBoundStore.this")
             @Override
             public Long run(Connection connection) throws SQLException {
                 Long oldLimit = readLimit(connection);
@@ -237,6 +239,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
         return tablePrefix + timestampTable.getQualifiedName();
     }
 
+    @GuardedBy("this")
     private DBType getDbType(Connection connection) {
         if (dbType == null) {
             dbType = ConnectionDbTypes.getDbType(connection);

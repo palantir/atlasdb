@@ -35,6 +35,14 @@ List<String> blacklistedBaselineProjects = [
 
 if (!blacklistedBaselineProjects.contains(project.name)) {
     apply plugin: 'com.palantir.baseline-checkstyle'
+    apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone
+    apply plugin: 'com.palantir.baseline-error-prone'
+
+    configurations.errorprone {
+        resolutionStrategy {
+            force 'com.google.guava:guava:21.0'
+        }
+    }
 }
 
 apply plugin: 'com.palantir.baseline-eclipse'

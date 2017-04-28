@@ -58,7 +58,7 @@ public class SimpleCleaner implements Cleaner {
         try {
             scrubber.scrubImmediately(txManager, tableRefToCell, scrubTimestamp, commitTimestamp);
         } catch (RuntimeException e) {
-            String message = "Scrubbing has failed during aggressive hard delete.  "
+            final String message = "Scrubbing has failed during aggressive hard delete.  "
                     + "Deleted values will no longer be visible to any Palantir clients, but the deleted values"
                     + " will still remain in the underlying KVS until the background scrub task has finished"
                     + " scrubbing.";
