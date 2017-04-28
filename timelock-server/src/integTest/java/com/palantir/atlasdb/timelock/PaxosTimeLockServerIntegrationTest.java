@@ -18,9 +18,12 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +105,12 @@ public class PaxosTimeLockServerIntegrationTest {
             .blockForAtMost(SimpleTimeDuration.of(200, TimeUnit.MILLISECONDS))
             .build();
 
+    private static final LockRequest REQUEST_LOCK_WITH_LONG_TIMEOUT = LockRequest
+            .builder(ImmutableSortedMap.of(StringLockDescriptor.of("lock2"), LockMode.WRITE))
+            .timeoutAfter(SimpleTimeDuration.of(10, TimeUnit.MINUTES))
+            .blockForAtMost(SimpleTimeDuration.of(2, TimeUnit.SECONDS))
+            .build();
+
     private final TimestampService timestampService = getTimestampService(CLIENT_1);
     private final TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
 
@@ -153,6 +162,49 @@ public class PaxosTimeLockServerIntegrationTest {
         });
 
         return exceptionCounter.get();
+    }
+
+    @Test
+    public void throwOnMultipleClientsRequestingSameLoc2() throws Exception {
+        // Lock. Unlock all the other threads requesting it have returned.
+        RemoteLockService lockService = getLockService(CLIENT_1);
+        LockRefreshToken lockRefreshToken = lockService.lock(CLIENT_1, REQUEST_LOCK_WITH_LONG_TIMEOUT);
+        assertNotNull(lockRefreshToken);
+
+        // Request same lock on other client.
+        int numThreads = 80;
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+        List<Future<LockRefreshToken>> futures = new ArrayList<>();
+        for (int i = 0; i < numThreads; i++) {
+            futures.add(executorService.submit(() -> lockService.lock(CLIENT_2, REQUEST_LOCK_WITH_LONG_TIMEOUT)));
+        }
+
+        // Count number of exceptions.
+        int threadsRetuningWithoutException = 0;
+        int exceptionCounter = 0;
+
+        for (Future<LockRefreshToken> future : futures) {
+            try {
+                LockRefreshToken futureToken = future.get();
+                assertNull(futureToken);
+                threadsRetuningWithoutException++;
+            } catch (Exception e) {
+                assertThat(e).hasMessageContaining(TOO_MANY_REQUESTS_CODE);
+                exceptionCounter++;
+            }
+        }
+
+        executorService.awaitTermination(2, TimeUnit.SECONDS);
+
+        // availableThreads = 100 - 4 - 8 - 1 = 87
+        // localThreadPoolSize = (87 / 2) / 5 = 8
+        // sharedThreadPoolSize = 87 - 8 * 5 = 47
+        // threads usable by one client = 8 + 47 = 55
+        int threadsUsableByOneClient = 55;
+        assertEquals(threadsRetuningWithoutException, threadsUsableByOneClient);
+        assertEquals(exceptionCounter, numThreads - threadsUsableByOneClient);
+
+        lockService.unlock(lockRefreshToken);
     }
 
     @Test
