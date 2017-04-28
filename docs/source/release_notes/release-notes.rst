@@ -42,6 +42,9 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - Removed package ``atlasdb-exec``. If you require this package, please file a ticket to have it reinstated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1861>`__)
 
     *    - |improved|
          - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS. This is designed for applications
