@@ -45,5 +45,5 @@ public interface PaxosProposer {
     /**
      * Returns a unique string identifier for the proposer.
      */
-    String getUUID();
+    String getUuid();
 }

@@ -37,44 +37,44 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
 
     final long number;
     @Nonnull
-    private final String proposerUUID;
+    private final String proposerUuid;
 
     public PaxosProposalId(@JsonProperty("number") long number,
-                           @JsonProperty("proposerUUID") String proposerUUID) {
+                           @JsonProperty("proposerUUID") String proposerUuid) {
         this.number = number;
-        this.proposerUUID = Preconditions.checkNotNull(proposerUUID, "proposerUUID cannot be null");
+        this.proposerUuid = Preconditions.checkNotNull(proposerUuid, "proposerUUID cannot be null");
     }
 
     @Override
     public int compareTo(PaxosProposalId paxosProposalId) {
         return new CompareToBuilder()
             .append(getNumber(), paxosProposalId.getNumber())
-            .append(getProposerUUID(), paxosProposalId.getProposerUUID())
+            .append(getProposerUuid(), paxosProposalId.getProposerUuid())
             .toComparison();
     }
 
     public PaxosPersistence.PaxosProposalId persistToProto() {
         return PaxosPersistence.PaxosProposalId.newBuilder()
                 .setNumber(getNumber())
-                .setProposerUUID(getProposerUUID())
+                .setProposerUUID(getProposerUuid())
                 .build();
     }
 
     public static PaxosProposalId hydrateFromProto(PaxosPersistence.PaxosProposalId message) {
         long number = message.getNumber();
-        String proposerUUID = "";
+        String proposerUuid = "";
         if (message.hasProposerUUID()) {
-            proposerUUID = message.getProposerUUID();
+            proposerUuid = message.getProposerUUID();
         }
-        return new PaxosProposalId(number, proposerUUID);
+        return new PaxosProposalId(number, proposerUuid);
     }
 
     public long getNumber() {
         return number;
     }
 
-    public String getProposerUUID() {
-        return proposerUUID;
+    public String getProposerUuid() {
+        return proposerUuid;
     }
 
     @Override
@@ -83,7 +83,7 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
         int result = 1;
         result = prime * result + (int) (number ^ (number >>> 32));
         result = prime * result
-                + ((proposerUUID == null) ? 0 : proposerUUID.hashCode());
+                + ((proposerUuid == null) ? 0 : proposerUuid.hashCode());
         return result;
     }
 
@@ -102,11 +102,11 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
         if (number != other.number) {
             return false;
         }
-        if (proposerUUID == null) {
-            if (other.proposerUUID != null) {
+        if (proposerUuid == null) {
+            if (other.proposerUuid != null) {
                 return false;
             }
-        } else if (!proposerUUID.equals(other.proposerUUID)) {
+        } else if (!proposerUuid.equals(other.proposerUuid)) {
             return false;
         }
         return true;
@@ -115,6 +115,6 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
     @Override
     public String toString() {
         return "PaxosProposalId [number=" + number + ", proposerUUID="
-                + proposerUUID + "]";
+                + proposerUuid + "]";
     }
 }
