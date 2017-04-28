@@ -222,12 +222,17 @@ This behavior can be enabled with the flag <code class="docutils literal"><span 
 For more information, see the <a class="reference internal" href="../configuration/external_timelock_service_configs/timelock_server_config.html#timelock-server-further-config"><span class="std std-ref">docs</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1785">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>On graceful shutdown, the background sweeper will now release the backup lock if it holds it.
+This should reduce the need for users to manually reset the <code class="docutils literal"><span class="pre">_persisted_locks</span></code> table in the event that they restarted a service while it was holding the lock.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1847">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
 <td><code class="docutils literal"><span class="pre">ConflictDetectionManagers.createDefault(KeyValueService)</span></code> has been deprecated.
 If you use this method, please replace it with <code class="docutils literal"><span class="pre">ConflictDetectionManagers.create(KeyValueService)</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1822">Pull Request 1</a>) and (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1850">Pull Request 2</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Atlas Console tables now have a join() method.  See <code class="docutils literal"><span class="pre">help(&quot;join&quot;)</span></code> in Atlas Console for more details.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1814">Pull Request</a>)</td>
 </tr>
