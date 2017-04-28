@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 
 import com.google.common.collect.Lists;
@@ -31,7 +32,7 @@ import com.palantir.atlasdb.schema.SweepSchema;
  * Regenerate all atlas schemas, useful when you touch TableRenderer.
  *
  */
-public class RegenerateCodeForSchemas {
+public abstract class RegenerateCodeForSchemas {
     private static final Logger log = org.slf4j.LoggerFactory.getLogger(RegenerateCodeForSchemas.class);
 
     public static void main(String[] args) {
@@ -41,7 +42,8 @@ public class RegenerateCodeForSchemas {
             try {
                 log.info("Attempting to generate source code for schema: {}", schema.getClass().getCanonicalName());
 
-                Path location = Paths.get(schema.getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
+                Path location = Paths.get(
+                        schema.getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
                 log.info("Generating source directory related to classes in {}", location);
                 if (location.toString().endsWith("jar")) {
                     log.error("You need to set your classpaths to not come from jars / ivy / whatever.");
@@ -64,8 +66,7 @@ public class RegenerateCodeForSchemas {
                 log.info("Placing source in: {}", sourceDirLocation);
                 schema.getLatestSchema().renderTables(sourceDirLocation.toFile());
             } catch (IOException e) {
-                e.printStackTrace();
-            }
+                log.error(ExceptionUtils.getStackTrace(e));            }
         }
     }
 

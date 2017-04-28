@@ -17,8 +17,13 @@ package com.palantir.atlasdb.cli.command;
 
 import java.io.IOException;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
@@ -26,6 +31,8 @@ import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
 
 public abstract class SingleBackendCommand extends AbstractCommand {
+    private static final Logger log = LoggerFactory.getLogger(SingleBackendCommand.class);
+    private static final OutputPrinter out = new OutputPrinter(log);
 
     @Override
     public Integer call() {
@@ -34,7 +41,7 @@ public abstract class SingleBackendCommand extends AbstractCommand {
         try (AtlasDbServices services = connect()) {
             return execute(services);
         } catch (Exception e) {
-            e.printStackTrace();
+            out.error(ExceptionUtils.getStackTrace(e));
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
