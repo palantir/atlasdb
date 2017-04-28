@@ -40,8 +40,8 @@ public class CreationData {
         }
 
         @Override
-        public byte[] persistToBytes(CreationData t) {
-            return PtBytes.toBytes(t.timeCreated);
+        public byte[] persistToBytes(CreationData creationData) {
+            return PtBytes.toBytes(creationData.timeCreated);
         }
     }
 

@@ -44,46 +44,69 @@ public class ProfileSchema implements AtlasSchema {
                 Namespace.DEFAULT_NAMESPACE,
                 OptionalType.JAVA8);
 
-        schema.addTableDefinition("user_profile", new TableDefinition() {{
-            rowName();
+        schema.addTableDefinition("user_profile", new TableDefinition() {
+            {
+                rowName();
                 rowComponent("id", ValueType.UUID);
-            columns();
+
+                columns();
                 column("metadata", "m", ProfilePersistence.UserProfile.class);
                 column("create", "c", CreationData.Persister.class);
                 column("json", "j", JsonNodePersister.class);
                 column("photo_stream_id", "p", ValueType.FIXED_LONG);
-        }});
+            }
+        });
 
-        schema.addIndexDefinition("user_birthdays", new IndexDefinition(IndexType.CELL_REFERENCING) {{
-            onTable("user_profile");
-            rowName();
+        schema.addIndexDefinition("user_birthdays", new IndexDefinition(IndexType.CELL_REFERENCING) {
+            {
+                onTable("user_profile");
+
+                rowName();
                 componentFromColumn("birthday", ValueType.VAR_SIGNED_LONG, "metadata", "_value.getBirthEpochDay()");
-            dynamicColumns();
-                componentFromRow("id", ValueType.UUID);
-            rangeScanAllowed();
-            ignoreHotspottingChecks();
-        }});
 
-        schema.addIndexDefinition("created", new IndexDefinition(IndexType.CELL_REFERENCING) {{
-            onTable("user_profile");
-            rowName();
+                dynamicColumns();
+                componentFromRow("id", ValueType.UUID);
+
+                rangeScanAllowed();
+                ignoreHotspottingChecks();
+            }
+        });
+
+        schema.addIndexDefinition("created", new IndexDefinition(IndexType.CELL_REFERENCING) {
+            {
+                onTable("user_profile");
+
+                rowName();
                 componentFromColumn("time", ValueType.VAR_LONG, "create", "_value.getTimeCreated()");
-            dynamicColumns();
-                componentFromRow("id", ValueType.UUID);
-            rangeScanAllowed();
-            ignoreHotspottingChecks();
-        }});
 
-        schema.addIndexDefinition("cookies", new IndexDefinition(IndexType.CELL_REFERENCING) {{
-            onTable("user_profile");
-            rowName();
-                componentFromIterableColumn("cookie", ValueType.STRING, ValueByteOrder.ASCENDING, "json", "com.palantir.example.profile.schema.ProfileSchema.getCookies(_value)");
-            dynamicColumns();
-                componentFromRow("id", ValueType.UUID);
-            rangeScanAllowed();
-        }});
 
-        schema.addStreamStoreDefinition(new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG).build());
+                dynamicColumns();
+                componentFromRow("id", ValueType.UUID);
+
+
+                rangeScanAllowed();
+                ignoreHotspottingChecks();
+            }
+        });
+
+        schema.addIndexDefinition("cookies", new IndexDefinition(IndexType.CELL_REFERENCING) {
+            {
+                onTable("user_profile");
+
+                rowName();
+                componentFromIterableColumn("cookie", ValueType.STRING, ValueByteOrder.ASCENDING, "json",
+                        "com.palantir.example.profile.schema.ProfileSchema.getCookies(_value)");
+
+                dynamicColumns();
+                componentFromRow("id", ValueType.UUID);
+
+                rangeScanAllowed();
+            }
+        });
+
+        schema.addStreamStoreDefinition(
+                new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG)
+                        .build());
 
         return schema;
     }

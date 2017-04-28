@@ -41,12 +41,12 @@ import com.palantir.util.crypto.Sha256Hash;
 
 public class ProfileStore {
     final TransactionManager txnMgr;
-    final Transaction t;
+    final Transaction tx;
     final ProfileTableFactory tables = ProfileTableFactory.of();
 
-    public ProfileStore(TransactionManager txnMgr, Transaction t) {
+    public ProfileStore(TransactionManager txnMgr, Transaction tx) {
         this.txnMgr = txnMgr;
-        this.t = t;
+        this.tx = tx;
     }
 
     private UUID getNewId() {
@@ -55,13 +55,13 @@ public class ProfileStore {
 
     public UUID storeNewUser(UserProfile data) {
         UUID userId = getNewId();
-        UserProfileTable table = tables.getUserProfileTable(t);
+        UserProfileTable table = tables.getUserProfileTable(tx);
         table.putMetadata(UserProfileRow.of(userId), data);
         return userId;
     }
 
     public UserProfile getUserData(UUID userId) {
-        UserProfileTable table = tables.getUserProfileTable(t);
+        UserProfileTable table = tables.getUserProfileTable(tx);
         Map<UserProfileRow, UserProfile> result = table.getMetadatas(ImmutableSet.of(UserProfileRow.of(userId)));
         if (result.isEmpty()) {
             return null;
@@ -71,7 +71,7 @@ public class ProfileStore {
     }
 
     private Long getPhotoStreamId(UUID userId) {
-        UserProfileTable table = tables.getUserProfileTable(t);
+        UserProfileTable table = tables.getUserProfileTable(tx);
         Map<UserProfileRow, Long> result = table.getPhotoStreamIds(ImmutableSet.of(UserProfileRow.of(userId)));
         if (result.isEmpty()) {
             return null;
@@ -86,24 +86,26 @@ public class ProfileStore {
             return null;
         }
         UserPhotosStreamStore streamStore = UserPhotosStreamStore.of(txnMgr, tables);
-        return streamStore.loadStream(t, photoId);
+        return streamStore.loadStream(tx, photoId);
     }
 
     public void updateImage(UUID userId, Sha256Hash hash, InputStream imageData) {
         UserProfile userData = getUserData(userId);
-        Preconditions.checkNotNull(userData);
+        Preconditions.checkNotNull(userData, "userData cannot be null");
 
         UserPhotosStreamStore streamStore = UserPhotosStreamStore.of(txnMgr, tables);
         Long oldStreamId = getPhotoStreamId(userId);
         if (oldStreamId != null) {
             // Unmark old stream before we overwrite it.
-            streamStore.unmarkStreamAsUsed(t, oldStreamId, EncodingUtils.encodeUUID(userId));
+            streamStore.unmarkStreamAsUsed(tx, oldStreamId, EncodingUtils.encodeUUID(userId));
         }
 
-        // This will either store a new stream and mark it as used or return an old stream that matches the hash and mark it as used.
-        long streamId = streamStore.getByHashOrStoreStreamAndMarkAsUsed(t, hash, imageData, EncodingUtils.encodeUUID(userId));
+        // This will either store a new stream and mark it as used
+        // or return an old stream that matches the hash and mark it as used.
+        long streamId =
+                streamStore.getByHashOrStoreStreamAndMarkAsUsed(tx, hash, imageData, EncodingUtils.encodeUUID(userId));
 
-        UserProfileTable table = tables.getUserProfileTable(t);
+        UserProfileTable table = tables.getUserProfileTable(tx);
         table.putPhotoStreamId(UserProfileRow.of(userId), streamId);
     }
 
@@ -112,15 +114,15 @@ public class ProfileStore {
         if (streamId == null) {
             return;
         }
-        UserProfileTable table = tables.getUserProfileTable(t);
+        UserProfileTable table = tables.getUserProfileTable(tx);
         table.deletePhotoStreamId(UserProfileRow.of(userId));
 
         UserPhotosStreamStore streamStore = UserPhotosStreamStore.of(txnMgr, tables);
-        streamStore.unmarkStreamAsUsed(t, streamId, EncodingUtils.encodeUUID(userId));
+        streamStore.unmarkStreamAsUsed(tx, streamId, EncodingUtils.encodeUUID(userId));
     }
 
     public Set<UUID> getUsersWithBirthday(long birthEpochDays) {
-        UserProfileTable table = tables.getUserProfileTable(t);
+        UserProfileTable table = tables.getUserProfileTable(tx);
         UserBirthdaysIdxTable idx = UserBirthdaysIdxTable.of(table);
         List<UserBirthdaysIdxColumnValue> columns = idx.getRowColumns(UserBirthdaysIdxRow.of(birthEpochDays));
 
