@@ -54,6 +54,7 @@ public class TimeLockMigrator {
      * is unreadable.
      */
     @Idempotent
+    @SuppressWarnings("CheckReturnValue") // errorprone doesn't pick up "when=NEVER"
     public void migrate() {
         try {
             destination.ping();
