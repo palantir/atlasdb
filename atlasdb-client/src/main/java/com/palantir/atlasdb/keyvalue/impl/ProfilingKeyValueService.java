@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -450,6 +451,18 @@ public class ProfilingKeyValueService implements KeyValueService {
             logTimeAndTable("compactInternally", tableRef.getQualifiedName(), stopwatch);
         } else {
             delegate.compactInternally(tableRef);
+        }
+    }
+
+    @Override
+    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
+        if (log.isTraceEnabled()) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            NodeAvailabilityStatus nodeAvailabilityStatus = delegate.getNodeAvailabilityStatus();
+            logTime("getNodeAvailabilityStatus", stopwatch);
+            return nodeAvailabilityStatus;
+        } else {
+            return delegate.getNodeAvailabilityStatus();
         }
     }
 

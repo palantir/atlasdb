@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,19 +15,21 @@
  */
 package com.palantir.cassandra.multinode;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMultimap;
-import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 
-public class OneNodeDownDeleteTest {
+public abstract class AbstractNodeAvailabilityTest {
 
     @Test
-    public void deletingThrows() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.delete(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP)))
-                .isInstanceOf(PalantirRuntimeException.class);
+    public void nodeAvailabilityStatusShouldBeAsExpected() {
+        assertEquals(expectedNodeAvailabilityStatus(), getKeyValueService().getNodeAvailabilityStatus());
     }
+
+    protected abstract NodeAvailabilityStatus expectedNodeAvailabilityStatus();
+
+    protected abstract KeyValueService getKeyValueService();
 }

@@ -106,6 +106,13 @@ public interface TransactionManager extends AutoCloseable {
     long getImmutableTimestamp();
 
     /**
+     * Return the {@link KeyValueServiceStatus} depending on the availability of the underlying key-value store.
+     *
+     * @return status of the key value service, can be used by the application to decide its own health
+     */
+    KeyValueServiceStatus getKeyValueServiceStatus();
+
+    /**
      * Returns the timestamp that is before any open start timestamps. This is different from the immutable
      * timestamp, because it takes into account open read-only transactions. There is likely to be NO
      * running transactions open at a timestamp before the unreadable timestamp, however this cannot be guaranteed.
