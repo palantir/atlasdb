@@ -40,10 +40,25 @@ public final class ConflictDetectionManagers {
                 });
     }
 
+    /**
+     * @deprecated use {@link #create(KeyValueService)} instead. This constructor will be removed in a future release.
+     */
+    @Deprecated
+    public static ConflictDetectionManager createDefault(KeyValueService kvs) {
+        return create(kvs);
+    }
+
+    /**
+     * Creates a ConflictDetectionManager and kicks off an asynchronous thread to warm the cache that is used for
+     * conflict detection.
+     */
     public static ConflictDetectionManager create(KeyValueService kvs) {
         return create(kvs, true);
     }
 
+    /**
+     * Creates a ConflictDetectionManager without warming the cache.
+     */
     public static ConflictDetectionManager createWithoutWarmingCache(KeyValueService kvs) {
         return create(kvs, false);
     }
