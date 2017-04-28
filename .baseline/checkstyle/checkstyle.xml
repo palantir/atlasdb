@@ -73,7 +73,8 @@
         </module>
         <module name="AvoidStarImport"/> <!-- Java Style Guide: No wildcard imports -->
         <module name="AvoidStaticImport"> <!-- Java Style Guide: No static imports -->
-            <property name="excludes" value="org.junit.Assert.*,org.junit.Assume.*,org.hamcrest.Matchers.*,org.mockito.ArgumentMatchers.*,org.mockito.Mockito.*,org.mockito.Matchers.*,org.assertj.core.api.Assertions.*,com.google.common.base.Preconditions.*,org.apache.commons.lang3.Validate.*,com.google.common.truth.Truth.*"/>
+            <property name="excludes" value="org.junit.Assert.*,org.junit.Assume.*,org.hamcrest.Matchers.*,org.mockito.ArgumentMatchers.*,org.mockito.Mockito.*,org.mockito.Matchers.*,org.assertj.core.api.Assertions.*,com.google.common.base.Preconditions.*,org.apache.commons.lang3.Validate.*,com.google.common.truth.Truth.*,
+                                             com.github.tomakehurst.wiremock.client.WireMock.*"/>
         </module>
         <module name="ClassTypeParameterName"> <!-- Java Style Guide: Type variable names -->
             <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>
@@ -151,7 +152,7 @@
             <!-- <property name="groups" value="/.*/"/> -->
             <property name="groups" value="java,javax,org,com"/>
             <property name="option" value="top"/>
-            <property name="sortStaticImportsAlphabetically" value="true"/>
+            <property name="sortStaticImportsAlphabetically" value="false"/>
         </module>
         <module name="Indentation"> <!-- Java Style Guide: Block indentation: +4 spaces -->
             <property name="arrayInitIndent" value="8"/>
@@ -329,7 +330,7 @@
         </module> -->
         <module name="RightCurly"> <!-- Java Style Guide: Nonempty blocks: K & R style -->
             <property name="option" value="same"/>
-            <property name="tokens" value="LITERAL_TRY, LITERAL_CATCH, LITERAL_FINALLY, LITERAL_IF, LITERAL_ELSE, LITERAL_DO"/>
+            <property name="tokens" value="LITERAL_TRY, LITERAL_CATCH, LITERAL_FINALLY, LITERAL_IF, LITERAL_ELSE"/>
         </module>
         <module name="RightCurly"> <!-- Java Style Guide: Nonempty blocks: K & R style -->
             <property name="option" value="alone"/>
@@ -361,7 +362,8 @@
             <property name="processJavadoc" value="true"/>
         </module>
         <module name="UpperEll"/> <!-- Java Style Guide: Numeric Literals -->
-        <module name="VisibilityModifier"/> <!-- Java Coding Guidelines: Minimize mutability -->
+<!-- Temporarily suppress, because too many errors. TODO(gsheasby): unsuppress
+        <module name="VisibilityModifier"/> --><!-- Java Coding Guidelines: Minimize mutability -->
         <module name="WhitespaceAfter"/> <!-- Java Style Guide: Horizontal whitespace -->
         <module name="WhitespaceAround"> <!-- Java Style Guide: Horizontal whitespace -->
             <property name="allowEmptyConstructors" value="true"/>
