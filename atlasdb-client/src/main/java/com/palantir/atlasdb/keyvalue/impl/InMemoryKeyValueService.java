@@ -55,6 +55,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -547,6 +548,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public void compactInternally(TableReference tableRef) {
         // nothing to do
+    }
+
+    @Override
+    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
+        return NodeAvailabilityStatus.ALL_AVAILABLE;
     }
 
     private static class Key implements Comparable<Key> {

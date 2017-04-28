@@ -43,7 +43,7 @@ public class CommandLineEteTest {
     public void consoleShouldLoadAndConnectToDb() throws IOException, InterruptedException {
         String output = EteSetup.runCliCommand("echo | service/bin/atlasdb-ete atlasdb console var/conf/atlasdb-ete.yml");
 
-        assertThat(output).contains("//AtlasConsole started!");
+        assertThat(output).contains("//AtlasConsole started");
     }
 
     private int fetchTimestamp() throws IOException, InterruptedException {

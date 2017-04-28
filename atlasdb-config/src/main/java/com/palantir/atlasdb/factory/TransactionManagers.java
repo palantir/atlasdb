@@ -65,11 +65,9 @@ import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
-import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -246,10 +244,10 @@ public final class TransactionManagers {
                 kvs,
                 persistentLockManager,
                 ImmutableList.of(follower));
-        SweepTaskRunner sweepRunner = new SweepTaskRunnerImpl(
+        SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,
-                getUnreadableTsSupplier(transactionManager),
-                getImmutableTsSupplier(transactionManager),
+                transactionManager::getUnreadableTimestamp,
+                transactionManager::getImmutableTimestamp,
                 transactionService,
                 sweepStrategyManager,
                 cellsSweeper);
@@ -278,14 +276,6 @@ public final class TransactionManagers {
         env.register(pls);
         env.register(new CheckAndSetExceptionMapper());
         return pls;
-    }
-
-    private static Supplier<Long> getImmutableTsSupplier(final TransactionManager txManager) {
-        return () -> txManager.getImmutableTimestamp();
-    }
-
-    private static Supplier<Long> getUnreadableTsSupplier(final TransactionManager txManager) {
-        return () -> txManager.getUnreadableTimestamp();
     }
 
     /**

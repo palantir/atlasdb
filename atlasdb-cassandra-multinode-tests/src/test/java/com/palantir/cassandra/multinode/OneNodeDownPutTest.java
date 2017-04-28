@@ -41,14 +41,14 @@ public class OneNodeDownPutTest {
 
     @Test
     public void canPut() {
-        OneNodeDownTestSuite.db.put(OneNodeDownTestSuite.TEST_TABLE,
+        OneNodeDownTestSuite.kvs.put(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, newContents), newTimestamp);
         OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_1, newValue);
     }
 
     @Test
     public void canPutWithTimestamps() {
-        OneNodeDownTestSuite.db.putWithTimestamps(OneNodeDownTestSuite.TEST_TABLE,
+        OneNodeDownTestSuite.kvs.putWithTimestamps(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_2, newValue));
         OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_2, newValue);
     }
@@ -59,14 +59,14 @@ public class OneNodeDownPutTest {
                 OneNodeDownTestSuite.CELL_2_1, newContents,
                 OneNodeDownTestSuite.CELL_2_2, newContents);
 
-        OneNodeDownTestSuite.db.multiPut(ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, entries), newTimestamp);
+        OneNodeDownTestSuite.kvs.multiPut(ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, entries), newTimestamp);
         OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_2_1, newValue);
         OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_2_2, newValue);
     }
 
     @Test
     public void canPutUnlessExists() {
-        OneNodeDownTestSuite.db.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
+        OneNodeDownTestSuite.kvs.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMap.of(OneNodeDownTestSuite.CELL_4_1, OneNodeDownTestSuite.DEFAULT_CONTENTS));
         OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_4_1,
                 Value.create(OneNodeDownTestSuite.DEFAULT_CONTENTS, AtlasDbConstants.TRANSACTION_TS));
@@ -74,11 +74,11 @@ public class OneNodeDownPutTest {
 
     @Test
     public void putUnlessExistsThrowsOnExists() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
+        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_CONTENTS)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
 
-        Map<Cell, Value> result = OneNodeDownTestSuite.db.get(OneNodeDownTestSuite.TEST_TABLE,
+        Map<Cell, Value> result = OneNodeDownTestSuite.kvs.get(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, AtlasDbConstants.TRANSACTION_TS));
         assertThat(Value.create(OneNodeDownTestSuite.DEFAULT_CONTENTS, AtlasDbConstants.TRANSACTION_TS))
                 .isNotEqualTo(result.get(OneNodeDownTestSuite.CELL_1_1));
@@ -86,9 +86,9 @@ public class OneNodeDownPutTest {
 
     @Test
     public void canAddGarbageCollectionSentinelValues() {
-        OneNodeDownTestSuite.db.addGarbageCollectionSentinelValues(OneNodeDownTestSuite.TEST_TABLE,
+        OneNodeDownTestSuite.kvs.addGarbageCollectionSentinelValues(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableSet.of(OneNodeDownTestSuite.CELL_3_1));
-        Map<Cell, Long> latestTimestamp = OneNodeDownTestSuite.db.getLatestTimestamps(OneNodeDownTestSuite.TEST_TABLE,
+        Map<Cell, Long> latestTimestamp = OneNodeDownTestSuite.kvs.getLatestTimestamps(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMap.of(OneNodeDownTestSuite.CELL_3_1, Long.MAX_VALUE));
         assertEquals(Value.INVALID_VALUE_TIMESTAMP,
                 latestTimestamp.get(OneNodeDownTestSuite.CELL_3_1).longValue());

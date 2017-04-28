@@ -42,6 +42,12 @@ develop
     *    - Type
          - Change
 
+
+    *    - |improved|
+         - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS. This is designed for applications
+           to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1832>`__)
+
     *    - |improved|
          - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
@@ -67,6 +73,15 @@ develop
          - On graceful shutdown, the background sweeper will now release the backup lock if it holds it.
            This should reduce the need for users to manually reset the ``_persisted_locks`` table in the event that they restarted a service while it was holding the lock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1847>`__)
+
+    *    - |deprecated|
+         - ``ConflictDetectionManagers.createDefault(KeyValueService)`` has been deprecated.
+           If you use this method, please replace it with ``ConflictDetectionManagers.create(KeyValueService)``.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1822>`__) and (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1850>`__)
+
+    *    - |new|
+         - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1814>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
