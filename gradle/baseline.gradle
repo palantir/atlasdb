@@ -29,7 +29,6 @@ List<String> blacklistedBaselineProjects = [
         'lock-impl',
         'profile-client',
         'profile-client-protobufs',
-        'timestamp-api',
         'timestamp-impl']
 
 

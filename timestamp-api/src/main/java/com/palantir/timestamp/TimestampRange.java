@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author bdorne
  */
+@SuppressWarnings("FinalClass") // Don't want to break the API
 public class TimestampRange implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -55,6 +56,8 @@ public class TimestampRange implements Serializable {
     }
 
     /**
+     * Returns the lower bound of this TimestampRange (inclusive).
+     *
      * @return the lower bound of the TimestampRange
      */
     public long getLowerBound() {
@@ -62,6 +65,8 @@ public class TimestampRange implements Serializable {
     }
 
     /**
+     * Returns the upper bound of this TimestampRange (inclusive).
+     *
      * @return the upper bound of the TimestampRange
      */
     public long getUpperBound() {
