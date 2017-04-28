@@ -122,7 +122,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
             }
         }));
         LockClient client = LockClient.of("in memory atlasdb instance");
-        ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(keyValueService);
+        ConflictDetectionManager conflictManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         CleanupFollower follower = CleanupFollower.create(schemas);

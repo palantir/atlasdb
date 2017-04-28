@@ -50,7 +50,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRow;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRowResult;
@@ -205,7 +204,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             if (result == null) {
                 result = chooseNextTableToSweep(new SweepTransaction(
                         tx,
-                        sweepRunner.getSweepTimestamp(SweepStrategy.CONSERVATIVE)));
+                        sweepRunner.getConservativeSweepTimestamp()));
             }
             return result;
         });

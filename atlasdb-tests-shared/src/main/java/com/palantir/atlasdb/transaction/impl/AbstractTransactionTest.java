@@ -95,11 +95,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 timestampService.getFreshTimestamp(),
-                ImmutableMap.of(
+                TestConflictDetectionManagers.createWithStaticConflictDetection(ImmutableMap.of(
                         TEST_TABLE,
                         ConflictHandler.RETRY_ON_WRITE_WRITE,
                         TransactionConstants.TRANSACTION_TABLE,
-                        ConflictHandler.IGNORE_ALL),
+                        ConflictHandler.IGNORE_ALL)),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache);

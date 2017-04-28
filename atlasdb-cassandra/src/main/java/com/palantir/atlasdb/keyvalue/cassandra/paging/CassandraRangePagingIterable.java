@@ -33,11 +33,11 @@ import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class CassandraRangePagingIterable<T, U>
-        extends AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> {
+public class CassandraRangePagingIterable<T>
+        extends AbstractPagingIterable<RowResult<T>, TokenBackedBasicResultsPage<RowResult<T>, byte[]>> {
     private final ColumnGetter columnGetter;
     private final RangeRequest rangeRequest;
-    private final Supplier<ResultsExtractor<T, U>> resultsExtractor;
+    private final Supplier<ResultsExtractor<T>> resultsExtractor;
     private final long timestamp;
 
     private final int batchHint;
@@ -48,7 +48,7 @@ public class CassandraRangePagingIterable<T, U>
             RowGetter rowGetter,
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,
-            Supplier<ResultsExtractor<T, U>> resultsExtractor,
+            Supplier<ResultsExtractor<T>> resultsExtractor,
             long timestamp) {
         this.rowGetter = rowGetter;
         this.columnGetter = columnGetter;
@@ -62,21 +62,21 @@ public class CassandraRangePagingIterable<T, U>
     }
 
     @Override
-    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
+    protected TokenBackedBasicResultsPage<RowResult<T>, byte[]> getFirstPage() throws Exception {
         return getSinglePage(rangeRequest.getStartInclusive());
     }
 
     @Override
-    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
-            TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous)
+    protected TokenBackedBasicResultsPage<RowResult<T>, byte[]> getNextPage(
+            TokenBackedBasicResultsPage<RowResult<T>, byte[]> previous)
             throws Exception {
         return getSinglePage(previous.getTokenForNextPage());
     }
 
-    private TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(byte[] startKey) throws Exception {
+    private TokenBackedBasicResultsPage<RowResult<T>, byte[]> getSinglePage(byte[] startKey) throws Exception {
         List<KeySlice> rows = getRows(startKey);
         Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = getColumns(rows);
-        TokenBackedBasicResultsPage<RowResult<U>, byte[]> page = getPage(columnsByRow);
+        TokenBackedBasicResultsPage<RowResult<T>, byte[]> page = getPage(columnsByRow);
 
         if (page.moreResultsAvailable() && pageShouldBeLastPage(rows)) {
             return pageWithNoMoreResultsAvailable(page);
@@ -94,7 +94,7 @@ public class CassandraRangePagingIterable<T, U>
         return columnGetter.getColumnsByRow(firstPage);
     }
 
-    private TokenBackedBasicResultsPage<RowResult<U>, byte[]> getPage(
+    private TokenBackedBasicResultsPage<RowResult<T>, byte[]> getPage(
             Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey) {
         return resultsExtractor.get().getPageFromRangeResults(
                 colsByKey, timestamp, selection, rangeRequest.getEndExclusive());
@@ -106,8 +106,8 @@ public class CassandraRangePagingIterable<T, U>
         return rows.size() < batchHint;
     }
 
-    private TokenBackedBasicResultsPage<RowResult<U>, byte[]> pageWithNoMoreResultsAvailable(
-            TokenBackedBasicResultsPage<RowResult<U>, byte[]> page) {
+    private TokenBackedBasicResultsPage<RowResult<T>, byte[]> pageWithNoMoreResultsAvailable(
+            TokenBackedBasicResultsPage<RowResult<T>, byte[]> page) {
         return SimpleTokenBackedResultsPage.create(rangeRequest.getEndExclusive(), page.getResults(), false);
     }
 

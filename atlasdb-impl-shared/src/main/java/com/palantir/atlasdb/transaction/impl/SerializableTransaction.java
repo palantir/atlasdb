@@ -310,7 +310,9 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     boolean isSerializableTable(TableReference table) {
-        return getConflictHandlerForTable(table) == ConflictHandler.SERIALIZABLE;
+        // If the metadata is null, we assume that the conflict handler is not SERIALIZABLE.
+        // In that case the transaction will fail on commit if it has writes.
+        return conflictDetectionManager.get(table) == ConflictHandler.SERIALIZABLE;
     }
 
 
@@ -712,7 +714,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 defaultTransactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(commitTs + 1),
-                ConflictDetectionManagers.withoutConflictDetection(keyValueService),
+                ConflictDetectionManagers.createWithNoConflictDetection(),
                 sweepStrategyManager,
                 immutableTimestamp,
                 Collections.emptyList(),

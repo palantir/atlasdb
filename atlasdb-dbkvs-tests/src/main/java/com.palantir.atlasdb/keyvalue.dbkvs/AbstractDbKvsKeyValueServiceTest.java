@@ -36,7 +36,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.sweep.EquivalenceCountingIterator;
-import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
+import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueServiceTest {
@@ -68,7 +68,7 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
                 normalRange(10),
                 62)) {
             EquivalenceCountingIterator<RowResult<Set<Long>>> iterator =
-                    new EquivalenceCountingIterator<>(rowResults, 10, SweepTaskRunnerImpl.sameRowEquivalence());
+                    new EquivalenceCountingIterator<>(rowResults, 10, SweepTaskRunner.sameRowEquivalence());
 
             assertRowColumnsTimestamps(iterator.next(), 1, ImmutableSet.of(1, 2, 3, 4),
                     10L, 20L, 21L, 30L, 31L, 32L, 40L, 41L, 42L, 43L);
@@ -100,7 +100,7 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
                 reverseRange(5),
                 100)) {
             EquivalenceCountingIterator<RowResult<Set<Long>>> iterator =
-                    new EquivalenceCountingIterator<>(rowResults, 5, SweepTaskRunnerImpl.sameRowEquivalence());
+                    new EquivalenceCountingIterator<>(rowResults, 5, SweepTaskRunner.sameRowEquivalence());
 
             assertRowColumnsTimestamps(iterator.next(), 9, ImmutableSet.of(9),
                     90L, 91L, 92L, 93L, 94L, 95L, 96L, 97L, 98L);

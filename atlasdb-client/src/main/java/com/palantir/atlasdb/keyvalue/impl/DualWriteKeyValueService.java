@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -223,6 +224,17 @@ public class DualWriteKeyValueService implements KeyValueService {
     public void compactInternally(TableReference tableRef) {
         delegate1.compactInternally(tableRef);
         delegate2.compactInternally(tableRef);
+    }
+
+    @Override
+    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
+        NodeAvailabilityStatus nodeAvailabilityStatus1 = delegate1.getNodeAvailabilityStatus();
+        NodeAvailabilityStatus nodeAvailabilityStatus2 = delegate2.getNodeAvailabilityStatus();
+
+        if (nodeAvailabilityStatus1.compareTo(nodeAvailabilityStatus2) < 0) {
+            return nodeAvailabilityStatus1;
+        }
+        return nodeAvailabilityStatus2;
     }
 
     @Override

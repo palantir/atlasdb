@@ -116,4 +116,6 @@ public class AtlasConsoleServiceImpl implements AtlasConsoleService {
     private <T> T fromJson(String data, Class<T> type) throws IOException {
         return mapper.getFactory().createParser(data).readValueAs(type);
     }
+
+
 }

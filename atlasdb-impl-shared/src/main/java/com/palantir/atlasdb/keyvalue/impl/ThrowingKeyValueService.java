@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -236,6 +237,11 @@ public class ThrowingKeyValueService implements KeyValueService {
 
     @Override
     public void compactInternally(TableReference tableRef) {
+        throw throwEx();
+    }
+
+    @Override
+    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
         throw throwEx();
     }
 

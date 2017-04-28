@@ -97,6 +97,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -889,7 +890,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                 rangeRequest,
                 timestamp,
                 readConsistency,
-                ValueExtractor.SUPPLIER);
+                ValueExtractor::create);
     }
 
     @Override
@@ -902,20 +903,20 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                 rangeRequest,
                 timestamp,
                 deleteConsistency,
-                TimestampExtractor.SUPPLIER);
+                TimestampExtractor::new);
     }
 
-    public <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
+    public <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp,
             com.datastax.driver.core.ConsistencyLevel consistency,
-            Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+            Supplier<ResultsExtractor<T>> resultsExtractor) {
         if (rangeRequest.isReverse()) {
             throw new UnsupportedOperationException();
         }
         if (rangeRequest.isEmptyRange()) {
-            return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
+            return ClosableIterators.wrap(ImmutableList.<RowResult<T>>of().iterator());
         }
         final int batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
         final ColumnSelection selection = rangeRequest.getColumnNames().isEmpty()
@@ -932,21 +933,21 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         final String getLastRowQuery = "SELECT * FROM " + getFullTableName(tableRef) + " WHERE "
                 + fieldNameProvider.row() + " = ?";
         return ClosableIterators.wrap(
-                new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
+                new AbstractPagingIterable<RowResult<T>, TokenBackedBasicResultsPage<RowResult<T>, byte[]>>() {
                     @Override
-                    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage()
+                    protected TokenBackedBasicResultsPage<RowResult<T>, byte[]> getFirstPage()
                             throws Exception {
                         return getPage(rangeRequest.getStartInclusive());
                     }
 
                     @Override
-                    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
-                            TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous)
+                    protected TokenBackedBasicResultsPage<RowResult<T>, byte[]> getNextPage(
+                            TokenBackedBasicResultsPage<RowResult<T>, byte[]> previous)
                             throws Exception {
                         return getPage(previous.getTokenForNextPage());
                     }
 
-                    TokenBackedBasicResultsPage<RowResult<U>, byte[]> getPage(final byte[] startKey)
+                    TokenBackedBasicResultsPage<RowResult<T>, byte[]> getPage(final byte[] startKey)
                             throws Exception {
                         BoundStatement boundStatement = getPreparedStatement(tableRef, bindQuery.toString(), session)
                                 .setConsistencyLevel(consistency)
@@ -961,7 +962,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                         cqlKeyValueServices.logTracedQuery(
                                 bindQuery.toString(), resultSet, session, cqlStatementCache.normalQuery);
                         byte[] maxRow = null;
-                        ResultsExtractor<T, U> extractor = resultsExtractor.get();
+                        ResultsExtractor<T> extractor = resultsExtractor.get();
                         for (Row row : rows) {
                             byte[] rowName = getRowName(row);
                             if (maxRow == null) {
@@ -998,7 +999,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                                     getValue(row),
                                     getTs(row));
                         }
-                        SortedMap<byte[], SortedMap<byte[], U>> resultsByRow =
+                        SortedMap<byte[], SortedMap<byte[], T>> resultsByRow =
                                 Cells.breakCellsUpByRow(extractor.asMap());
                         return ResultsExtractor.getRowResults(endExclusive, maxRow, resultsByRow);
                     }
@@ -1243,6 +1244,11 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                     CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
             CqlKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables post-compaction", this);
         }
+    }
+
+    @Override
+    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
+        return NodeAvailabilityStatus.ALL_AVAILABLE;
     }
 
     private void alterTableForCompaction(TableReference tableRef, int gcGraceSeconds, float tombstoneThreshold) {

@@ -107,7 +107,7 @@ public class AtlasConsoleMain {
                 setupScript += "\n" + Joiner.on('\n').join(cli.getOptionValues(EVAL_FLAG_SHORT));
             }
 
-            setupScript += "\n//AtlasConsole started!";
+            setupScript += "\n//AtlasConsole started, type help() for more info!";
             List<String> args = new ArrayList<String>(Arrays.asList(cli.getArgs()));
             args.add(setupScript);
             if(cli.hasOption(CLASSPATH_FLAG_SHORT)) {

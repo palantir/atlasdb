@@ -94,7 +94,7 @@ public abstract class TransactionTestSetup {
         timestampService = new InMemoryTimestampService();
 
         transactionService = TransactionServices.createTransactionService(keyValueService);
-        conflictDetectionManager = ConflictDetectionManagers.createDefault(keyValueService);
+        conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         txMgr = getManager();
     }

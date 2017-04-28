@@ -55,7 +55,6 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
-    private static final int AVAILABLE_PORT = 8080;
     private static final String USER_AGENT = "user-agent (3.14159265)";
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final long EMBEDDED_BOUND = 3;
@@ -75,12 +74,9 @@ public class TransactionManagersTest {
             = "/" + CLIENT + "/timestamp-management/fast-forward?currentTimestamp=" + EMBEDDED_BOUND;
     private static final MappingBuilder TIMELOCK_FF_MAPPING = post(urlEqualTo(TIMELOCK_FF_PATH));
 
-    private static final TimeLockClientConfig MOCK_CLIENT_CONFIG
-            = getTimelockConfigForServers(ImmutableList.of(getUriForPort(AVAILABLE_PORT)));
-
-    private static final ServerListConfig RAW_REMOTE_SERVICE_CONFIG = ImmutableServerListConfig.builder()
-            .addServers(getUriForPort(AVAILABLE_PORT))
-            .build();
+    private int availablePort;
+    private TimeLockClientConfig mockClientConfig;
+    private ServerListConfig rawRemoteServerConfig;
 
     private AtlasDbConfig config;
     private TransactionManagers.Environment environment;
@@ -90,7 +86,7 @@ public class TransactionManagersTest {
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Rule
-    public WireMockRule availableServer = new WireMockRule(AVAILABLE_PORT);
+    public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     @Before
     public void setup() {
@@ -109,19 +105,25 @@ public class TransactionManagersTest {
 
         invalidator = mock(TimestampStoreInvalidator.class);
         when(invalidator.backupAndInvalidate()).thenReturn(EMBEDDED_BOUND);
+
+        availablePort = availableServer.port();
+        mockClientConfig = getTimelockConfigForServers(ImmutableList.of(getUriForPort(availablePort)));
+        rawRemoteServerConfig = ImmutableServerListConfig.builder()
+                .addServers(getUriForPort(availablePort))
+                .build();
     }
 
     @Test
     public void userAgentsPresentOnRequestsToTimelockServer() {
-        when(config.timelock()).thenReturn(Optional.of(MOCK_CLIENT_CONFIG));
+        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
 
         verifyUserAgentOnTimelockTimestampAndLockRequests();
     }
 
     @Test
     public void userAgentsPresentOnRequestsToRemoteTimestampAndLockServices() {
-        when(config.timestamp()).thenReturn(Optional.of(RAW_REMOTE_SERVICE_CONFIG));
-        when(config.lock()).thenReturn(Optional.of(RAW_REMOTE_SERVICE_CONFIG));
+        when(config.timestamp()).thenReturn(Optional.of(rawRemoteServerConfig));
+        when(config.lock()).thenReturn(Optional.of(rawRemoteServerConfig));
 
         verifyUserAgentOnRawTimestampAndLockRequests();
     }
@@ -129,8 +131,8 @@ public class TransactionManagersTest {
     @Test
     public void userAgentsPresentOnRequestsWithLeaderBlockConfigured() throws IOException {
         when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
-                .localServer(getUriForPort(AVAILABLE_PORT))
-                .addLeaders(getUriForPort(AVAILABLE_PORT))
+                .localServer(getUriForPort(availablePort))
+                .addLeaders(getUriForPort(availablePort))
                 .acceptorLogDir(temporaryFolder.newFolder())
                 .learnerLogDir(temporaryFolder.newFolder())
                 .quorumSize(1)

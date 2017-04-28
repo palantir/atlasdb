@@ -15,56 +15,49 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
 
-import com.google.common.collect.Maps;
+import javax.annotation.Nullable;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class ConflictDetectionManager {
-    private final Supplier<Map<TableReference, ConflictHandler>> supplier;
-    private final Map<TableReference, ConflictHandler> overrides;
-    private final RecomputingSupplier<Map<TableReference, ConflictHandler>> cachedResult;
+    private final LoadingCache<TableReference, ConflictHandler> cache;
 
     /**
-     * @param supplier A {@link Supplier} which returns the current conflict detection
-     *                 configuration to the database. Note that the result is cached,
-     *                 so changes to configuration must be followed by a call to
-     *                 {@link #recompute()} in order to be picked up.
+     *  This class does not make the mistake of attempting cache invalidation,
+     *  so a table dropped by another instance may still be cached here.
+     *
+     *  This is okay in the case of a simple drop, but a same-name table drop
+     *  and re-addition with a different Conflict Handler
+     *  (where an external atlas instance handles both of these operations)
+     *  will be incorrect. This is an unrealistic workflow
+     *  and I'm fine with just documenting this behavior.
+     *
+     *  (This has always been the behavior of this class; I'm simply calling it out)
      */
-    ConflictDetectionManager(Supplier<Map<TableReference, ConflictHandler>> supplier) {
-        this.supplier = supplier;
-        this.overrides = Maps.newConcurrentMap();
-        this.cachedResult = RecomputingSupplier.create(() -> {
-            Map<TableReference, ConflictHandler> ret = new HashMap<>(this.supplier.get());
-            ret.putAll(overrides);
-            return Collections.unmodifiableMap(ret);
-        });
+    public ConflictDetectionManager(CacheLoader<TableReference, ConflictHandler> loader) {
+        this.cache = CacheBuilder.newBuilder()
+                .maximumSize(100_000)
+                .build(loader);
     }
 
-    public void setConflictDetectionMode(TableReference table, ConflictHandler handler) {
-        overrides.put(table, handler);
-        cachedResult.recompute();
+    public void warmCacheWith(Map<TableReference, ConflictHandler> preload) {
+        cache.putAll(preload);
     }
 
-    public void removeConflictDetectionMode(TableReference table) {
-        overrides.remove(table);
-        cachedResult.recompute();
+    @VisibleForTesting
+    public Map<TableReference, ConflictHandler> getCachedValues() {
+        return cache.asMap();
     }
 
-    public boolean isEmptyOrContainsTable(TableReference tableRef) {
-        Map<TableReference, ConflictHandler> tableToConflict = cachedResult.get();
-        return tableToConflict.isEmpty() || tableToConflict.containsKey(tableRef);
-    }
-
-    public Map<TableReference, ConflictHandler> get() {
-        return cachedResult.get();
-    }
-
-    public void recompute() {
-        cachedResult.recompute();
+    @Nullable
+    public ConflictHandler get(TableReference tableReference) {
+        return cache.getUnchecked(tableReference);
     }
 }

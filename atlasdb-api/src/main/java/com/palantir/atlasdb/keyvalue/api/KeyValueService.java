@@ -479,6 +479,9 @@ public interface KeyValueService extends AutoCloseable {
 
     /**
      * Drop the table, and also delete its table metadata.
+     *
+     * Do not fall into the trap of performing drop & immediate re-create of tables;
+     * instead use 'truncate' for this task.
      */
     @DELETE
     @Path("drop-table")
@@ -492,6 +495,9 @@ public interface KeyValueService extends AutoCloseable {
      * Drops many tables in idempotent fashion. If you are dropping many tables at once,
      * use this call as the implementation can be much faster/less error-prone on some KVSs.
      * Also deletes corresponding table metadata.
+     *
+     * Do not fall into the trap of performing drop & immediate re-create of tables;
+     * instead use 'truncate' for this task.
      */
     @DELETE
     @Path("drop-tables")
@@ -548,6 +554,13 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     byte[] getMetadataForTable(@QueryParam("tableRef") TableReference tableRef);
 
+    /**
+     * Gets the metadata for all known user-created Atlas tables.
+     * Consider not using this if you will be running against an Atlas instance with a large number of tables.
+     *
+     * @return a Map from TableReference to byte array representing the metadata for the table
+     * Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating
+     */
     @POST
     @Path("get-metadata-for-tables")
     @Produces(MediaType.APPLICATION_JSON)
@@ -617,4 +630,14 @@ public interface KeyValueService extends AutoCloseable {
     @Path("compact-internally")
     @Consumes(MediaType.APPLICATION_JSON)
     void compactInternally(TableReference tableRef);
+
+    /**
+     * Checks if the KVS has a quorum available to successfully perform reads/writes.
+     *
+     * This call must be implemented so that it completes synchronously.
+     */
+    @POST
+    @Path("node-availability-status")
+    @Consumes(MediaType.APPLICATION_JSON)
+    NodeAvailabilityStatus getNodeAvailabilityStatus();
 }

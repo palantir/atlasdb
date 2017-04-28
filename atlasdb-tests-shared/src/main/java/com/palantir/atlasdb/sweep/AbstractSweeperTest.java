@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -110,15 +111,15 @@ public abstract class AbstractSweeperTest {
         txService = TransactionServices.createTransactionService(kvs);
         Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
-        ConflictDetectionManager cdm = ConflictDetectionManagers.createDefault(kvs);
+        ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
         txManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService,
                 constraints, cdm, ssm, cleaner, false);
         setupTables(kvs);
-        Supplier<Long> tsSupplier = sweepTimestamp::get;
+        LongSupplier tsSupplier = sweepTimestamp::get;
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
-        sweepRunner = new SweepTaskRunnerImpl(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+        sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
         setupBackgroundSweeper(DEFAULT_BATCH_SIZE);
     }
 

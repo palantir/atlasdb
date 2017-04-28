@@ -649,5 +649,4 @@ public class StreamTest extends AtlasDbTestCase {
         new Random(0).nextBytes(data);
         return data;
     }
-
 }

@@ -35,14 +35,8 @@ import com.palantir.util.Pair;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public abstract class ResultsExtractor<T, U> {
+public abstract class ResultsExtractor<T> {
     @SuppressWarnings("VisibilityModifier")
-    protected final T collector;
-
-    ResultsExtractor(T collector) {
-        this.collector = collector;
-    }
-
     public final byte[] extractResults(
             Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
             long startTs,
@@ -64,13 +58,13 @@ public abstract class ResultsExtractor<T, U> {
         return maxRow;
     }
 
-    public TokenBackedBasicResultsPage<RowResult<U>, byte[]> getPageFromRangeResults(
+    public TokenBackedBasicResultsPage<RowResult<T>, byte[]> getPageFromRangeResults(
             Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
             long startTs,
             ColumnSelection selection,
             byte[] endExclusive) {
         byte[] lastRow = extractResults(colsByKey, startTs, selection);
-        SortedMap<byte[], SortedMap<byte[], U>> resultsByRow = Cells.breakCellsUpByRow(asMap());
+        SortedMap<byte[], SortedMap<byte[], T>> resultsByRow = Cells.breakCellsUpByRow(asMap());
         return getRowResults(endExclusive, lastRow, resultsByRow);
     }
 
@@ -96,5 +90,5 @@ public abstract class ResultsExtractor<T, U> {
                                                byte[] val,
                                                long ts);
 
-    public abstract Map<Cell, U> asMap();
+    public abstract Map<Cell, T> asMap();
 }

@@ -19,7 +19,9 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -132,6 +134,24 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     @Override
     public long getImmutableTimestamp() {
         return Long.MAX_VALUE;
+    }
+
+    @Override
+    public KeyValueServiceStatus getKeyValueServiceStatus() {
+        NodeAvailabilityStatus nodeAvailabilityStatus = keyValueService.getNodeAvailabilityStatus();
+        switch (nodeAvailabilityStatus) {
+            case ALL_AVAILABLE:
+            case QUORUM_AVAILABLE:
+                return KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS;
+            case NO_QUORUM_AVAILABLE:
+                return KeyValueServiceStatus.UNHEALTHY;
+            case TERMINAL:
+                return KeyValueServiceStatus.TERMINAL;
+            default:
+                log.warn("The kvs returned a non-standard availability status: {}", nodeAvailabilityStatus);
+                return KeyValueServiceStatus.UNHEALTHY;
+        }
+        // TODO: terminal state
     }
 
     @Override
