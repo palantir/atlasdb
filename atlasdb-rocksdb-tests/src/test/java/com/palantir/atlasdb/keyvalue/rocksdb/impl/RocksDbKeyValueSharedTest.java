@@ -15,8 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -51,5 +55,12 @@ public class RocksDbKeyValueSharedTest extends AbstractKeyValueServiceTest {
                         || !tableRef.getTablename().equals("_metadata"))
                 .collect(Collectors.toSet());
         db.dropTables(nonMetadataTables);
+    }
+
+    @Override
+    @Test
+    public void clusterAvailabilityStatusShouldBeAllAvailable() {
+        assertThatThrownBy(() -> getKeyValueService().getClusterAvailabilityStatus()).isInstanceOf(
+                UnsupportedOperationException.class);
     }
 }

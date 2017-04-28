@@ -1371,7 +1371,7 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
-    public void nodeAvailabilityStatusShouldBeAllAvailable() {
+    public void clusterAvailabilityStatusShouldBeAllAvailable() {
         assertThat(keyValueService.getClusterAvailabilityStatus(), is(ClusterAvailabilityStatus.ALL_AVAILABLE));
     }
 
