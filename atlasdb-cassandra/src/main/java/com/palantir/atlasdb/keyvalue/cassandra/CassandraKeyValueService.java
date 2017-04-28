@@ -88,10 +88,10 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -2125,11 +2125,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        if (!doesConfigReplicationFactorMatchWithCluster()) {
-            return NodeAvailabilityStatus.TERMINAL;
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        ClusterAvailabilityStatus clusterStatus = getStatusByRunningOperationsOnEachHost();
+        if (isClusterQuorumAvaialble(clusterStatus) && !doesConfigReplicationFactorMatchWithCluster()) {
+            return ClusterAvailabilityStatus.TERMINAL;
         }
-        return getStatusByRunningOperationsOnEachHost();
+        return clusterStatus;
+    }
+
+    private boolean isClusterQuorumAvaialble(ClusterAvailabilityStatus clusterStatus) {
+        return clusterStatus.equals(ClusterAvailabilityStatus.ALL_AVAILABLE)
+                || clusterStatus.equals(ClusterAvailabilityStatus.QUORUM_AVAILABLE);
     }
 
     private boolean doesConfigReplicationFactorMatchWithCluster() {
@@ -2144,19 +2150,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         });
     }
 
-    private NodeAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
+    private ClusterAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
         int countUnreachableNodes = 0;
         for (InetSocketAddress host : clientPool.currentPools.keySet()) {
             try {
                 clientPool.runOnHost(host, CassandraVerifier.healthCheck);
                 if (!partitionerIsValid(host)) {
-                    return NodeAvailabilityStatus.TERMINAL;
+                    return ClusterAvailabilityStatus.TERMINAL;
                 }
             } catch (Exception e) {
                 countUnreachableNodes++;
             }
         }
-        return getClusterAvailabilityStatus(countUnreachableNodes);
+        return getNodeAvailabilityStatus(countUnreachableNodes);
     }
 
     private boolean partitionerIsValid(InetSocketAddress host) {
@@ -2168,13 +2174,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    private NodeAvailabilityStatus getClusterAvailabilityStatus(int countUnreachableNodes) {
+    private ClusterAvailabilityStatus getNodeAvailabilityStatus(int countUnreachableNodes) {
         if (countUnreachableNodes == 0) {
-            return NodeAvailabilityStatus.ALL_AVAILABLE;
+            return ClusterAvailabilityStatus.ALL_AVAILABLE;
         } else if (isQuorumAvailable(countUnreachableNodes)) {
-            return NodeAvailabilityStatus.QUORUM_AVAILABLE;
+            return ClusterAvailabilityStatus.QUORUM_AVAILABLE;
         } else {
-            return NodeAvailabilityStatus.NO_QUORUM_AVAILABLE;
+            return ClusterAvailabilityStatus.NO_QUORUM_AVAILABLE;
         }
     }
 

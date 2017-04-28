@@ -639,5 +639,5 @@ public interface KeyValueService extends AutoCloseable {
     @POST
     @Path("node-availability-status")
     @Consumes(MediaType.APPLICATION_JSON)
-    NodeAvailabilityStatus getNodeAvailabilityStatus();
+    ClusterAvailabilityStatus getClusterAvailabilityStatus();
 }

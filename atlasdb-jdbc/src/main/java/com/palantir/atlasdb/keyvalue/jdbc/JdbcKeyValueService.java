@@ -112,12 +112,12 @@ import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -1026,8 +1026,8 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        return NodeAvailabilityStatus.ALL_AVAILABLE;
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        throw new UnsupportedOperationException("getClusterAvailabilityStatus has not been implemented for Jdbc KVS");
     }
 
     @Override

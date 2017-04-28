@@ -18,6 +18,8 @@ package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.junit.Test;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
@@ -51,5 +53,10 @@ public class RocksDbKeyValueSharedTest extends AbstractKeyValueServiceTest {
                         || !tableRef.getTablename().equals("_metadata"))
                 .collect(Collectors.toSet());
         db.dropTables(nonMetadataTables);
+    }
+
+    @Override
+    @Test
+    public void clusterAvailabilityStatusShouldBeAllAvailable() {
     }
 }

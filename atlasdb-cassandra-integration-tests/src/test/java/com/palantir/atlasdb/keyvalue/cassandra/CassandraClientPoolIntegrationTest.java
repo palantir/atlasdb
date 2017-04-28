@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -122,7 +123,7 @@ public class CassandraClientPoolIntegrationTest {
                                 MODIFIED_REPLICATION_FACTOR), false);
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra config");
             } catch (Exception e) {
-                // expected
+                assertReplicationFactorMismatchError(e);
             }
             return false;
         });
@@ -136,11 +137,17 @@ public class CassandraClientPoolIntegrationTest {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, CassandraContainer.KVS_CONFIG, false);
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra keyspace");
             } catch (Exception e) {
-                // expected
+                assertReplicationFactorMismatchError(e);
             }
             return false;
         });
         changeReplicationFactor(CassandraContainer.KVS_CONFIG.replicationFactor());
+    }
+
+    private void assertReplicationFactorMismatchError(Exception ex) {
+        assertThat(ex.getMessage(), is("Your current Cassandra keyspace (atlasdb) has a replication"
+                + " factor not matching your Atlas Cassandra configuration. Change them to match, but be mindful"
+                + " of what steps you'll need to take to correctly repair or cleanup existing data in your cluster."));
     }
 
     private void changeReplicationFactor(int replicationFactor) throws TException {

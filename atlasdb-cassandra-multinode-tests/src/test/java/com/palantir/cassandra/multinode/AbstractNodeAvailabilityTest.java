@@ -19,17 +19,17 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 
 public abstract class AbstractNodeAvailabilityTest {
 
     @Test
     public void nodeAvailabilityStatusShouldBeAsExpected() {
-        assertEquals(expectedNodeAvailabilityStatus(), getKeyValueService().getNodeAvailabilityStatus());
+        assertEquals(expectedNodeAvailabilityStatus(), getKeyValueService().getClusterAvailabilityStatus());
     }
 
-    protected abstract NodeAvailabilityStatus expectedNodeAvailabilityStatus();
+    protected abstract ClusterAvailabilityStatus expectedNodeAvailabilityStatus();
 
     protected abstract KeyValueService getKeyValueService();
 }
