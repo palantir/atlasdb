@@ -25,7 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author bdorne
  */
-@SuppressWarnings("FinalClass") // Don't want to break the API
+@SuppressWarnings("checkstyle:FinalClass") // Don't want to break the API
 public class TimestampRange implements Serializable {
     private static final long serialVersionUID = 1L;
 
