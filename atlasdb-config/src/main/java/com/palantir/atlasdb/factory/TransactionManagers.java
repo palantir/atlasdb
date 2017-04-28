@@ -93,6 +93,14 @@ public final class TransactionManagers {
     }
 
     /**
+     * Accepts a single {@link Schema}.
+     * @see TransactionManagers#createInMemory(Set)
+     */
+    public static SerializableTransactionManager createInMemory(Schema schema) {
+        return createInMemory(ImmutableSet.of(schema));
+    }
+
+    /**
      * Create a {@link SerializableTransactionManager} backed by an
      * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}.  This should be used for testing
      * purposes only.
