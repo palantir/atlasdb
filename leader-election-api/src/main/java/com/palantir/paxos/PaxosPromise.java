@@ -28,11 +28,10 @@ import com.palantir.common.annotation.Immutable;
 /**
  * A promise to not accept new proposals less than promisedID.
  *
- * REVIEW:
  * @author rullman
  */
 @Immutable
-public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
+public final class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
     private static final long serialVersionUID = 1L;
 
     final boolean ack;
@@ -67,7 +66,7 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
 
     private PaxosPromise(PaxosProposalId promisedId) {
         ack = false;
-        this.promisedId = Preconditions.checkNotNull(promisedId);
+        this.promisedId = Preconditions.checkNotNull(promisedId, "promiseId cannot be null");
         lastAcceptedId = null;
         lastAcceptedValue = null;
     }
@@ -76,7 +75,7 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
             PaxosProposalId lastAcceptedId,
             PaxosValue val) {
         ack = true;
-        this.promisedId = Preconditions.checkNotNull(promisedId);
+        this.promisedId = Preconditions.checkNotNull(promisedId, "promiseId cannot be null");
         this.lastAcceptedId = lastAcceptedId;
         this.lastAcceptedValue = val;
     }

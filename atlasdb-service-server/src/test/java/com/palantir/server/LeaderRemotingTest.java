@@ -47,7 +47,7 @@ public class LeaderRemotingTest {
         }
 
         @Override
-        public String getUUID() {
+        public String getUuid() {
             return UUID.randomUUID().toString();
         }
     });
@@ -68,7 +68,7 @@ public class LeaderRemotingTest {
                 .contract(new JAXRSContract())
                 .target(PingableLeader.class, pingable.baseUri().toString());
 
-        ping.getUUID();
+        ping.getUuid();
         ping.ping();
     }
 
@@ -98,7 +98,7 @@ public class LeaderRemotingTest {
         ObjectMapper mapper = new ObjectMapper();
 
         PaxosProposalId id = new PaxosProposalId(123123, UUID.randomUUID().toString());
-        PaxosProposal paxosProposal = new PaxosProposal(id, new PaxosValue(id.getProposerUUID(), 0, new byte[] {0, 1, 2, 4, 1}));
+        PaxosProposal paxosProposal = new PaxosProposal(id, new PaxosValue(id.getProposerUuid(), 0, new byte[] {0, 1, 2, 4, 1}));
 
 
         PaxosAcceptor accept = Feign.builder()

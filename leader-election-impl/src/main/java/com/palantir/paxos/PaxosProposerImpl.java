@@ -203,7 +203,7 @@ public class PaxosProposerImpl implements PaxosProposer {
     }
 
     @Override
-    public String getUUID() {
+    public String getUuid() {
         return uuid;
     }
 
