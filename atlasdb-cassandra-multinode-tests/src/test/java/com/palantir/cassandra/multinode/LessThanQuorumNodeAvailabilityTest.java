@@ -15,14 +15,14 @@
  */
 package com.palantir.cassandra.multinode;
 
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 
 public class LessThanQuorumNodeAvailabilityTest extends AbstractNodeAvailabilityTest {
 
     @Override
-    protected NodeAvailabilityStatus expectedNodeAvailabilityStatus() {
-        return NodeAvailabilityStatus.NO_QUORUM_AVAILABLE;
+    protected ClusterAvailabilityStatus expectedNodeAvailabilityStatus() {
+        return ClusterAvailabilityStatus.NO_QUORUM_AVAILABLE;
     }
 
     @Override

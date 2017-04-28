@@ -94,10 +94,10 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -1245,8 +1245,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        return NodeAvailabilityStatus.ALL_AVAILABLE;
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        return ClusterAvailabilityStatus.ALL_AVAILABLE;
     }
 
     private void alterTableForCompaction(TableReference tableRef, int gcGraceSeconds, float tombstoneThreshold) {

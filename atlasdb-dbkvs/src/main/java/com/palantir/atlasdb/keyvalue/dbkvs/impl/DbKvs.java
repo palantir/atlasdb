@@ -72,10 +72,10 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -1196,14 +1196,14 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         try {
             checkDatabaseVersion();
-            return NodeAvailabilityStatus.ALL_AVAILABLE;
+            return ClusterAvailabilityStatus.ALL_AVAILABLE;
         } catch (DbkvsVersionException e) {
-            return NodeAvailabilityStatus.TERMINAL;
+            return ClusterAvailabilityStatus.TERMINAL;
         } catch (Exception e) {
-            return NodeAvailabilityStatus.NO_QUORUM_AVAILABLE;
+            return ClusterAvailabilityStatus.NO_QUORUM_AVAILABLE;
         }
     }
 
