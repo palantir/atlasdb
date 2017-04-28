@@ -1,5 +1,5 @@
 /*
- * Copyright 2008 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2008 Palantir Technologies, Inc. All rights reserved., Inc. All rights reserved.
  */
 
 package com.palantir.annotations;
