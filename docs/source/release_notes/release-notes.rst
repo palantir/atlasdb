@@ -69,6 +69,18 @@ develop
            For more information, see the :ref:`docs <timelock-server-further-config>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
+    *    - |devbreak|
+         - Renamed the following classes to match baseline rules. In each case, acronyms were lowercased, e.g. ``CQL`` becomes ``Cql``.
+
+              - ``CqlExpiringKeyValueService``
+              - ``CqlKeyValueService``
+              - ``CqlKeyValueServices``
+              - ``CqlStatementCache``
+              - ``KvTableMappingService``
+              - ``TransactionKvsWrapper``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1853>`__)
+
     *    - |deprecated|
          - ``ConflictDetectionManagers.createDefault(KeyValueService)`` has been deprecated.
            If you use this method, please replace it with ``ConflictDetectionManagers.create(KeyValueService)``.
