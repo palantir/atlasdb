@@ -30,14 +30,17 @@ public final class ResourceTypes {
         // no
     }
 
-    public static final ResourceType<ConnectionManager, SQLException> CONNECTION_MANAGER = new ResourceType<ConnectionManager, SQLException>() {
+    public static final ResourceType<ConnectionManager, SQLException> CONNECTION_MANAGER
+            = new ResourceType<ConnectionManager, SQLException>() {
         @Override
-        public void close(ConnectionManager r) throws SQLException {
-            r.close();
+        public void close(ConnectionManager connectionManager) throws SQLException {
+            connectionManager.close();
         }
 
         @Override
-        public ConnectionManager closeWrapper(final ConnectionManager delegate, final ResourceOnClose<SQLException> onClose) {
+        public ConnectionManager closeWrapper(
+                final ConnectionManager delegate,
+                final ResourceOnClose<SQLException> onClose) {
             return new BaseConnectionManager() {
                 @Override
                 public Connection getConnection() throws SQLException {
@@ -67,10 +70,11 @@ public final class ResourceTypes {
         }
     };
 
-    public static final ResourceType<Connection, SQLException> CONNECTION = new ResourceType<Connection, SQLException>() {
+    public static final ResourceType<Connection, SQLException> CONNECTION
+            = new ResourceType<Connection, SQLException>() {
         @Override
-        public void close(Connection r) throws SQLException {
-            r.close();
+        public void close(Connection connection) throws SQLException {
+            connection.close();
         }
 
         @Override

@@ -44,19 +44,19 @@ public final class RetriableTransactions {
     private static final String TABLE_NAME = "pt_retriable_txn_log_v1";
 
     private static <T> TransactionResult<T> runSimple(ConnectionManager cm, RetriableWriteTransaction<T> tx) {
-        Connection c = null;
+        Connection connection = null;
         try {
-            c = cm.getConnection();
-            c.setAutoCommit(false);
-            T ret = tx.run(c);
-            c.commit();
+            connection = cm.getConnection();
+            connection.setAutoCommit(false);
+            T ret = tx.run(connection);
+            connection.commit();
             return TransactionResult.success(ret);
         } catch (Throwable t) {
             return TransactionResult.failure(t);
         } finally {
-            if (c != null) {
+            if (connection != null) {
                 try {
-                    c.close();
+                    connection.close();
                 } catch (Throwable t) {
                     log.warn("A problem happened trying to close a connection.", t);
                 }
@@ -64,13 +64,16 @@ public final class RetriableTransactions {
         }
     }
 
-    public static enum TransactionStatus {
+    public enum TransactionStatus {
         SUCCESSFUL, FAILED, UNKNOWN;
     }
+
+    @SuppressWarnings("checkstyle:FinalClass") // Uncertain if others may have extended this
     public static class TransactionResult<T> {
         private final TransactionStatus status;
         private final @Nullable T resultValue;
         private final Optional<Throwable> error;
+
         private TransactionResult(TransactionStatus status,
                                   @Nullable T resultValue,
                                   Optional<Throwable> error) {
@@ -97,7 +100,9 @@ public final class RetriableTransactions {
 
         // May only be called if the result is SUCCESSFUL.
         public @Nullable T getResultValue() {
-            Preconditions.checkState(status.equals(TransactionStatus.SUCCESSFUL), "Trying to get result from a transaction which never succeeded");
+            Preconditions.checkState(
+                    status.equals(TransactionStatus.SUCCESSFUL),
+                    "Trying to get result from a transaction which never succeeded");
             return resultValue;
         }
 
@@ -106,6 +111,7 @@ public final class RetriableTransactions {
             return error.get();
         }
     }
+
     /**
      * Run a {@link RetriableWriteTransaction}, see {@link RetriableWriteTransaction} for details.
      */
@@ -162,16 +168,27 @@ public final class RetriableTransactions {
                     } catch (SQLException e) {
                         long now = System.currentTimeMillis();
                         if (log.isTraceEnabled()) {
-                            log.trace("Got exception for retriable write transaction, startTimeMs = {}, attemptTimeMs = {}, now = {}", startTimeMs, attemptTimeMs, now, e);
+                            log.trace(
+                                    "Got exception for retriable write transaction,"
+                                            + " startTimeMs = {}, attemptTimeMs = {}, now = {}",
+                                    startTimeMs,
+                                    attemptTimeMs,
+                                    now,
+                                    e);
                         }
                         if (shouldStillRetry(startTimeMs, attemptTimeMs)) {
                             long attemptLengthMs = now - attemptTimeMs;
                             long totalLengthMs = now - startTimeMs;
-                            log.info("Swallowing possible transient exception for retriable transaction, last attempt took {} ms, total attempts have taken {}", attemptLengthMs, totalLengthMs, e);
+                            log.info("Swallowing possible transient exception for retriable transaction,"
+                                    + " last attempt took {} ms, total attempts have taken {}",
+                                    attemptLengthMs,
+                                    totalLengthMs,
+                                    e);
                             continue;
                         }
                         if (pending) {
-                            log.error("Giving up on [verification of] retriable write transaction that might have actually commited!", e);
+                            log.error("Giving up on [verification of] retriable write transaction that"
+                                    + " might have actually commited!", e);
                             return TransactionResult.unknown(e);
                         }
                         return TransactionResult.failure(e);
@@ -184,29 +201,29 @@ public final class RetriableTransactions {
             private void attemptTx() throws SQLException {
                 boolean ret = false;
                 try {
-                    Connection c = cm.getConnection();
+                    Connection connection = cm.getConnection();
                     try {
                         // Crash anywhere in here means no commit attempted and we stay in non-pending
-                        c.setAutoCommit(false);
-                        T newResult = tx.run(c);
+                        connection.setAutoCommit(false);
+                        T newResult = tx.run(connection);
                         UUID newId = UUID.randomUUID();
-                        addTxLog(c, newId);
+                        addTxLog(connection, newId);
 
                         // now we flip, since if the commit bails we need to figure out what happened
                         pending = true;
                         id = newId;
                         result = newResult;
-                        c.commit();
+                        connection.commit();
 
                         // if we got here we'll return even if cleanTxLog() throws
                         ret = true;
 
-                        cleanTxLog(c, id);
-                        c.commit();
+                        cleanTxLog(connection, id);
+                        connection.commit();
 
                         return;
                     } finally {
-                        c.close();
+                        connection.close();
                     }
                 } catch (SQLException e) {
                     if (ret) {
@@ -220,15 +237,15 @@ public final class RetriableTransactions {
             private boolean attemptVerify() throws SQLException {
                 boolean ret = false;
                 try {
-                    Connection c = cm.getConnection();
+                    Connection connection = cm.getConnection();
                     try {
-                        ret = checkTxLog(c, id);
+                        ret = checkTxLog(connection, id);
                         if (ret) {
-                            cleanTxLog(c, id);
+                            cleanTxLog(connection, id);
                         }
                         return ret;
                     } finally {
-                        c.close();
+                        connection.close();
                     }
                 } catch (SQLException e) {
                     if (ret) {
@@ -242,19 +259,24 @@ public final class RetriableTransactions {
                 }
             }
 
-            private void squelch(SQLException e) {
-                log.warn("Squelching SQLException while trying to clean up retriable write transaction id {}", id, e);
+            private void squelch(SQLException exception) {
+                log.warn(
+                        "Squelching SQLException while trying to clean up retriable write transaction id {}",
+                        id,
+                        exception);
             }
         }
         return new LexicalHelper().run();
     }
 
-    private static final LoadingCache<ConnectionManager, AtomicBoolean> createdTxTables = CacheBuilder.newBuilder().weakKeys().build(new CacheLoader<ConnectionManager, AtomicBoolean>() {
+    private static final LoadingCache<ConnectionManager, AtomicBoolean> createdTxTables
+            = CacheBuilder.newBuilder().weakKeys().build(new CacheLoader<ConnectionManager, AtomicBoolean>() {
         @Override
         public AtomicBoolean load(ConnectionManager cm) {
             return new AtomicBoolean(false);
         }
     });
+
     private static void createTxTable(ConnectionManager cm) throws SQLException {
         AtomicBoolean createdTxTable = createdTxTables.getUnchecked(cm);
         if (createdTxTable.get()) {
@@ -282,24 +304,26 @@ public final class RetriableTransactions {
         // I'd love to CREATE TABLE ... IF NOT EXISTS but Ye Olde Postgres (TM)
         // does not like it so we do something ugly.
         try {
-            Connection c = cm.getConnection();
+            Connection connection = cm.getConnection();
             try {
                 // Attempt to add to the table, but don't actually commit it.
-                c.setAutoCommit(false);
-                addTxLog(c, UUID.randomUUID());
-                c.rollback();
+                connection.setAutoCommit(false);
+                addTxLog(connection, UUID.randomUUID());
+                connection.rollback();
             } finally {
-                c.close();
+                connection.close();
             }
             // Great, that worked, fallthrough to below but don't commit.
         } catch (SQLException e) {
             log.info("The table {} has not been created yet, so we will try to create it.", TABLE_NAME);
-            log.debug("To check whether the table exists we tried to use it. This caused an exception indicating that it did not exist. The exception was: ", e);
-            Connection c = cm.getConnection();
+            log.debug("To check whether the table exists we tried to use it."
+                    + " This caused an exception indicating that it did not exist. The exception was: ", e);
+            Connection connection = cm.getConnection();
             try {
-                c.createStatement().execute("CREATE TABLE " + TABLE_NAME + " (id " + varcharType + "(36) PRIMARY KEY, created TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+                connection.createStatement().execute("CREATE TABLE " + TABLE_NAME + " (id " + varcharType + "(36)"
+                        + " PRIMARY KEY, created TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
             } finally {
-                c.close();
+                connection.close();
             }
             // Good enough, fallthrough to below.
         }
@@ -308,8 +332,8 @@ public final class RetriableTransactions {
         createdTxTable.set(true);
     }
 
-    private static void addTxLog(Connection c, UUID id) throws SQLException {
-        PreparedStatement ps = c.prepareStatement("INSERT INTO " + TABLE_NAME + " (id) VALUES (?)");
+    private static void addTxLog(Connection connection, UUID id) throws SQLException {
+        PreparedStatement ps = connection.prepareStatement("INSERT INTO " + TABLE_NAME + " (id) VALUES (?)");
         try {
             ps.setString(1, id.toString());
             ps.executeUpdate();
@@ -318,8 +342,8 @@ public final class RetriableTransactions {
         }
     }
 
-    private static boolean checkTxLog(Connection c, UUID id) throws SQLException {
-        PreparedStatement ps = c.prepareStatement("SELECT 1 FROM " + TABLE_NAME + " WHERE id = ?");
+    private static boolean checkTxLog(Connection connection, UUID id) throws SQLException {
+        PreparedStatement ps = connection.prepareStatement("SELECT 1 FROM " + TABLE_NAME + " WHERE id = ?");
         try {
             ps.setString(1, id.toString());
             ResultSet rs = ps.executeQuery();
@@ -333,8 +357,8 @@ public final class RetriableTransactions {
         }
     }
 
-    private static void cleanTxLog(Connection c, UUID id) throws SQLException {
-        PreparedStatement ps = c.prepareStatement("DELETE FROM " + TABLE_NAME + " WHERE id = ?");
+    private static void cleanTxLog(Connection connection, UUID id) throws SQLException {
+        PreparedStatement ps = connection.prepareStatement("DELETE FROM " + TABLE_NAME + " WHERE id = ?");
         try {
             ps.setString(1, id.toString());
             ps.executeUpdate();

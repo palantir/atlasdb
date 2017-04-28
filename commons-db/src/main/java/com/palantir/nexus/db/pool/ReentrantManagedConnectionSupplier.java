@@ -31,7 +31,7 @@ public class ReentrantManagedConnectionSupplier implements ReentrantConnectionSu
     private final ThreadLocal<ResourceSharer<Connection, SQLException>> threadLocal;
 
     public ReentrantManagedConnectionSupplier(final ConnectionManager delegate) {
-        this.delegate = Preconditions.checkNotNull(delegate);
+        this.delegate = Preconditions.checkNotNull(delegate, "delegate should not be null");
         this.threadLocal = new ThreadLocal<ResourceSharer<Connection, SQLException>>() {
             @Override
             protected ResourceSharer<Connection, SQLException> initialValue() {

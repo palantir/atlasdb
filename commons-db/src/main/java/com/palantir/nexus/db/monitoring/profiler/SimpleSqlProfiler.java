@@ -31,7 +31,8 @@ import com.palantir.util.sql.SqlCallStats;
 enum SimpleSqlProfiler implements SqlProfiler {
     INSTANCE;
 
-    private final ExecutorInheritableThreadLocal<ConcurrentMap<String, SqlCallStats>> currentTrace = new ExecutorInheritableThreadLocal<ConcurrentMap<String, SqlCallStats>>();
+    private final ExecutorInheritableThreadLocal<ConcurrentMap<String, SqlCallStats>> currentTrace =
+            new ExecutorInheritableThreadLocal<>();
 
     /**
      * Presumably, the rather obscure {@link CopyOnWriteArrayList} collection was chosen here to
@@ -58,7 +59,7 @@ enum SimpleSqlProfiler implements SqlProfiler {
             AssertUtils.assertAndLog(false, "Tracing already started.");
             return;
         }
-        currentTrace.set(Maps.<String, SqlCallStats> newConcurrentMap());
+        currentTrace.set(Maps.<String, SqlCallStats>newConcurrentMap());
     }
 
     @Override
@@ -67,16 +68,16 @@ enum SimpleSqlProfiler implements SqlProfiler {
             sqlProfilerListener.traceEvent(sqlKey != null ? sqlKey : rawSql, durationNs);
         }
 
-        ConcurrentMap<String, SqlCallStats> m = currentTrace.get();
-        if (m == null) {
+        ConcurrentMap<String, SqlCallStats> statsMap = currentTrace.get();
+        if (statsMap == null) {
             // Tracing is disabled.
             return;
         }
-        if (!m.containsKey(rawSql)) {
-            m.putIfAbsent(rawSql, new SqlCallStats(sqlKey, rawSql));
+        if (!statsMap.containsKey(rawSql)) {
+            statsMap.putIfAbsent(rawSql, new SqlCallStats(sqlKey, rawSql));
         }
-        SqlCallStats s = m.get(rawSql);
-        s.collectCallTimeNanos(durationNs);
+        SqlCallStats stats = statsMap.get(rawSql);
+        stats.collectCallTimeNanos(durationNs);
     }
 
     @Override

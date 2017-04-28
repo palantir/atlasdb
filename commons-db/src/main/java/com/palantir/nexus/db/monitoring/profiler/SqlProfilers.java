@@ -15,7 +15,11 @@
  */
 package com.palantir.nexus.db.monitoring.profiler;
 
-public class SqlProfilers {
+public final class SqlProfilers {
+    private SqlProfilers() {
+        // utility shouldn't be instantiated
+    }
+
     public static SqlProfiler getSqlProfiler() {
         return SimpleSqlProfiler.INSTANCE;
     }

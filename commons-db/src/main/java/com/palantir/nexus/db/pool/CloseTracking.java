@@ -28,7 +28,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.nexus.db.ResourceCreationLocation;
 
-public class CloseTracking {
+public final class CloseTracking {
     private static final Logger log = LoggerFactory.getLogger(CloseTracking.class);
 
     private CloseTracking() {
@@ -68,7 +68,7 @@ public class CloseTracking {
 
         private boolean closed = false;
 
-        public Tracking(String typeName) {
+        Tracking(String typeName) {
             this.typeName = typeName;
             this.createTrace = new ResourceCreationLocation("This is where the " + typeName + " was allocated");
         }
@@ -88,7 +88,7 @@ public class CloseTracking {
     private static final class MyReference<T> extends FinalizableWeakReference<T> {
         private final Tracking tracking;
 
-        public MyReference(T referent, Tracking tracking) {
+        MyReference(T referent, Tracking tracking) {
             super(referent, destructorQueue);
 
             this.tracking = tracking;
@@ -106,6 +106,7 @@ public class CloseTracking {
 
     // We maintain hard references to the custom weak references since
     // otherwise they themselves can get collected and thus never enqueued.
-    private static final Set<MyReference<?>> destructorReferences = Sets.newSetFromMap(Maps.<MyReference<?>, Boolean>newConcurrentMap());
+    private static final Set<MyReference<?>> destructorReferences =
+            Sets.newSetFromMap(Maps.<MyReference<?>, Boolean>newConcurrentMap());
     private static final FinalizableReferenceQueue destructorQueue = new FinalizableReferenceQueue();
 }

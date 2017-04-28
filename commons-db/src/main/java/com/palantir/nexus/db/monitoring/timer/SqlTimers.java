@@ -17,7 +17,11 @@ package com.palantir.nexus.db.monitoring.timer;
 
 import com.google.common.collect.ImmutableList;
 
-public class SqlTimers {
+public final class SqlTimers {
+    private SqlTimers() {
+        // cannot be instantiated
+    }
+
     public static DurationSqlTimer createDurationSqlTimer() {
         return new DurationSqlTimer();
     }
