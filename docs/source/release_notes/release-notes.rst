@@ -42,40 +42,6 @@ develop
     *    - Type
          - Change
 
-    *    - |devbreak| |fixed|
-         - Correct ``TransactionManager.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
-
-    *    - |improved|
-         - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS. This is designed for applications
-           to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1832>`__)
-
-    *    - |improved|
-         - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
-
-    *    - |devbreak|
-         - ``atlasdb-config`` now pulls in two more dependencies - the Jackson JDK 8 and JSR 310 modules (``jackson-datatype-jdk8`` and ``jackson-datatype-jsr310``).
-           These are required by the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
-           This behaviour is consistent with our existing behaviour for Jackson modules (JDK 7, Guava and Joda Time).
-           If you do encounter breaks due to this addition, please contact the AtlasDB team for support.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1810>`__)
-
-    *    - |userbreak|
-         - AtlasDB will refuse to start if backed by Postgres 9.5.0 or 9.5.1. These versions contain a known bug that causes incorrect results to be returned for certain queries.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
-
-    *    - |new|
-         - The lock server now can limit number of concurrent open lock requests from the same client.
-           This behavior can be enabled with the flag ``useClientRequestLimit``. The flag is disabled by default.
-           For more information, see the :ref:`docs <timelock-server-further-config>`.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
-
-    *    - |improved|
-         - On graceful shutdown, the background sweeper will now release the backup lock if it holds it.
-           This should reduce the need for users to manually reset the ``_persisted_locks`` table in the event that they restarted a service while it was holding the lock.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1847>`__)
-
     *    - |changed|
          - Our dependency on immutables was bumped from 2.2.4 to 2.4.0, in order to fix an issue with static code analysis reporting errors in generated code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1853>`__)
@@ -92,14 +58,62 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1853>`__)
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+
+======
+0.40.0
+======
+
+28 Apr 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |userbreak|
+         - AtlasDB will refuse to start if backed by Postgres 9.5.0 or 9.5.1.
+           These versions contain a known bug that causes incorrect results to be returned for certain queries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
+
+    *    - |devbreak| |fixed|
+         - Correct ``TransactionManager.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1859>`__)
+
+    *    - |new|
+         - The lock server can now limit the number of concurrent open lock requests from the same client.
+           This behavior can be enabled with the flag ``useClientRequestLimit``. It is disabled by default.
+           For more information, see the :ref:`docs <timelock-server-further-config>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
+
+    *    - |new|
+         - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS.
+           This is designed for applications to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1832>`__)
+
+    *    - |improved|
+         - On graceful shutdown, the background sweeper will now release the backup lock if it holds it.
+           This should reduce the need for users to manually reset the ``_persisted_locks`` table in the event that they restarted a service while it was holding the lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1847>`__)
+
+    *    - |improved|
+         - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
+
+    *    - |devbreak|
+         - ``atlasdb-config`` now pulls in two more dependencies - the Jackson JDK 8 and JSR 310 modules (``jackson-datatype-jdk8`` and ``jackson-datatype-jsr310``).
+           These are required by the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
+           This behaviour is consistent with our existing behaviour for Jackson modules (JDK 7, Guava and Joda Time).
+           If you do encounter breaks due to this addition, please contact the AtlasDB team for support.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1810>`__)
+
     *    - |deprecated|
          - ``ConflictDetectionManagers.createDefault(KeyValueService)`` has been deprecated.
            If you use this method, please replace it with ``ConflictDetectionManagers.create(KeyValueService)``.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1822>`__) and (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1850>`__)
-
-    *    - |new|
-         - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1814>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
