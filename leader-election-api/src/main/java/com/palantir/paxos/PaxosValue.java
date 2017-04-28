@@ -56,7 +56,7 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
     public PaxosValue(@JsonProperty("leaderUUID") String leaderUUID,
                       @JsonProperty("round") long round,
                       @JsonProperty("data") @Nullable byte[] data) {
-        this.leaderUUID = Preconditions.checkNotNull(leaderUUID);
+        this.leaderUUID = Preconditions.checkNotNull(leaderUUID, "leaderUUID should never be null");
         this.seq = round;
         this.data = data;
     }
@@ -74,12 +74,12 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
     }
 
     public PaxosPersistence.PaxosValue persistToProto() {
-        PaxosPersistence.PaxosValue.Builder b = PaxosPersistence.PaxosValue.newBuilder();
-        b.setLeaderUUID(leaderUUID).setSeq(seq);
+        PaxosPersistence.PaxosValue.Builder builder = PaxosPersistence.PaxosValue.newBuilder();
+        builder.setLeaderUUID(leaderUUID).setSeq(seq);
         if (data != null) {
-            b.setBytes(ByteString.copyFrom(data));
+            builder.setBytes(ByteString.copyFrom(data));
         }
-        return b.build();
+        return builder.build();
     }
 
     public static PaxosValue hydrateFromProto(PaxosPersistence.PaxosValue message) {

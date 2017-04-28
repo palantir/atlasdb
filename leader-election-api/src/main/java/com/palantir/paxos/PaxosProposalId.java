@@ -19,7 +19,7 @@ import java.io.Serializable;
 
 import javax.annotation.Nonnull;
 
-import org.apache.commons.lang.builder.CompareToBuilder;
+import org.apache.commons.lang3.builder.CompareToBuilder;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
@@ -42,14 +42,14 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
     public PaxosProposalId(@JsonProperty("number") long number,
                            @JsonProperty("proposerUUID") String proposerUUID) {
         this.number = number;
-        this.proposerUUID = Preconditions.checkNotNull(proposerUUID);
+        this.proposerUUID = Preconditions.checkNotNull(proposerUUID, "proposerUUID cannot be null");
     }
 
     @Override
-    public int compareTo(PaxosProposalId o) {
+    public int compareTo(PaxosProposalId paxosProposalId) {
         return new CompareToBuilder()
-            .append(getNumber(), o.getNumber())
-            .append(getProposerUUID(), o.getProposerUUID())
+            .append(getNumber(), paxosProposalId.getNumber())
+            .append(getProposerUUID(), paxosProposalId.getProposerUUID())
             .toComparison();
     }
 

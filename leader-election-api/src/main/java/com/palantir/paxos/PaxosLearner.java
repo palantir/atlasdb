@@ -41,28 +41,28 @@ public interface PaxosLearner {
     @POST
     @Path("learn/{seq:.+}")
     @Consumes(MediaType.APPLICATION_JSON)
-    public void learn(@PathParam("seq") long seq, PaxosValue val);
+    void learn(@PathParam("seq") long seq, PaxosValue val);
 
     /**
-     * @return learned value or null if non-exists
+     * Returns learned value or null if non-exists.
      */
     @Nullable
     @GET
     @Path("learned-value/{seq:.+}")
     @Produces(MediaType.APPLICATION_JSON)
-    public PaxosValue getLearnedValue(@PathParam("seq") long seq);
+    PaxosValue getLearnedValue(@PathParam("seq") long seq);
 
     /**
-     * @return the learned value for the greatest known round or null if nothing has been learned
+     * Returns the learned value for the greatest known round or null if nothing has been learned.
      */
     @Nullable
     @GET
     @Path("greatest-learned-value")
     @Produces(MediaType.APPLICATION_JSON)
-    public PaxosValue getGreatestLearnedValue();
+    PaxosValue getGreatestLearnedValue();
 
     /**
-     * Returns some collection of learned values since the seq-th round (inclusive)
+     * Returns some collection of learned values since the seq-th round (inclusive).
      *
      * @param seq lower round cutoff for returned values
      * @return some set of learned values for rounds since the seq-th round

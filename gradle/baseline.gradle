@@ -22,7 +22,6 @@ List<String> blacklistedBaselineProjects = [
         'commons-db',
         'commons-executors',
         'commons-proxy',
-        'leader-election-api',
         'leader-election-api-protobufs',
         'leader-election-impl',
         'lock-api',
