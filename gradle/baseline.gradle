@@ -18,7 +18,6 @@ List<String> blacklistedBaselineProjects = [
         'atlasdb-tests-shared',
         'cassandra-partitioner',
         'commons-annotations',
-        'commons-api',
         'commons-db',
         'commons-executors',
         'commons-proxy',

@@ -22,9 +22,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class PTStreams {
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Don't break the API
+public final class PTStreams {
     private PTStreams() {
-        //
+        // utility class
     }
 
     /**
@@ -41,10 +42,10 @@ public class PTStreams {
     public static long copy(InputStream input, OutputStream output, byte[] buffer)
             throws IOException {
         long count = 0;
-        int n = 0;
-        while (-1 != (n = input.read(buffer))) {
-            output.write(buffer, 0, n);
-            count += n;
+        int bytesRead = 0;
+        while (-1 != (bytesRead = input.read(buffer))) {
+            output.write(buffer, 0, bytesRead);
+            count += bytesRead;
         }
         return count;
     }
