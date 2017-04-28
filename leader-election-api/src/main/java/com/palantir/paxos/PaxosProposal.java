@@ -60,10 +60,10 @@ public class PaxosProposal implements Serializable {
     }
 
     public PaxosAcceptorPersistence.PaxosProposal persistToProto() {
-        return PaxosAcceptorPersistence.PaxosProposal.newBuilder().
-                setId(id.persistToProto()).
-                setVal(val.persistToProto()).
-                build();
+        return PaxosAcceptorPersistence.PaxosProposal.newBuilder()
+                .setId(id.persistToProto())
+                .setVal(val.persistToProto())
+                .build();
     }
 
     @Override

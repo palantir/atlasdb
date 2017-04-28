@@ -18,7 +18,7 @@ package com.palantir.paxos;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.commons.lang.builder.CompareToBuilder;
+import org.apache.commons.lang3.builder.CompareToBuilder;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -28,6 +28,7 @@ import com.palantir.common.annotation.Immutable;
 /**
  * A promise to not accept new proposals less than promisedID.
  *
+ * REVIEW:
  * @author rullman
  */
 @Immutable
@@ -82,9 +83,9 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
 
     @Override
     // XXX Contrary to common wisdom, this is NOT consistent with equals().
-    public int compareTo(PaxosPromise o) {
+    public int compareTo(PaxosPromise promise) {
         // nulls are less than non-nulls so nacks are less than acks
-        return new CompareToBuilder().append(lastAcceptedId, o.lastAcceptedId).toComparison();
+        return new CompareToBuilder().append(lastAcceptedId, promise.lastAcceptedId).toComparison();
     }
 
     @Override

@@ -24,7 +24,7 @@ import javax.ws.rs.core.MediaType;
 
 @Path("/acceptor")
 public interface PaxosAcceptor {
-    public final static long NO_LOG_ENTRY = -1L;
+    long NO_LOG_ENTRY = -1L;
 
     /**
      * The acceptor prepares for a given proposal by either promising not to accept future proposals
@@ -38,7 +38,7 @@ public interface PaxosAcceptor {
     @Path("prepare/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    public PaxosPromise prepare(@PathParam("seq") long seq, PaxosProposalId pid);
+    PaxosPromise prepare(@PathParam("seq") long seq, PaxosProposalId pid);
 
     /**
      * The acceptor decides whether to accept or reject a given proposal.
@@ -51,7 +51,7 @@ public interface PaxosAcceptor {
     @Path("accept/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    public BooleanPaxosResponse accept(@PathParam("seq") long seq, PaxosProposal proposal);
+    BooleanPaxosResponse accept(@PathParam("seq") long seq, PaxosProposal proposal);
 
     /**
      * Gets the sequence number of the acceptor's most recent known round.
@@ -62,5 +62,5 @@ public interface PaxosAcceptor {
     @POST // This is marked as a POST because we cannot accept stale or cached results for this method.
     @Path("latest-sequence-prepared-or-accepted")
     @Produces(MediaType.APPLICATION_JSON)
-    public long getLatestSequencePreparedOrAccepted();
+    long getLatestSequencePreparedOrAccepted();
 }
