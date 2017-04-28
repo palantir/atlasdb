@@ -48,6 +48,9 @@ dependencies {
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.github.tomakehurst', name: 'wiremock'
     testCompile group: 'org.assertj', name: 'assertj-core'
+    
+    // Needed for Jersey Response-based tests
+    testCompile group: 'org.glassfish.jersey.core', name: 'jersey-common'
 }
 
 shadowJar {
