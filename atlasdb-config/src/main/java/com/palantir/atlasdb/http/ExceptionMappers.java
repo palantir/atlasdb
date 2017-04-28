@@ -64,6 +64,6 @@ public final class ExceptionMappers {
     }
 
     private static List<StackTraceElement> getStackTraceElementsAsList(Exception exception) {
-        return exception.getStackTrace() == null ? null : Arrays.asList(exception.getStackTrace());
+        return Arrays.asList(exception.getStackTrace());
     }
 }
