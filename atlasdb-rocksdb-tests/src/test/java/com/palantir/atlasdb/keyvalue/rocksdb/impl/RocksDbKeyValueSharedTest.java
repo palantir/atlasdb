@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -60,7 +58,5 @@ public class RocksDbKeyValueSharedTest extends AbstractKeyValueServiceTest {
     @Override
     @Test
     public void clusterAvailabilityStatusShouldBeAllAvailable() {
-        assertThatThrownBy(() -> getKeyValueService().getClusterAvailabilityStatus()).isInstanceOf(
-                UnsupportedOperationException.class);
     }
 }
