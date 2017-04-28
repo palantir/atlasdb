@@ -15,10 +15,8 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.List;
 import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -33,7 +31,6 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -55,7 +52,6 @@ import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
-import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -97,21 +93,23 @@ public final class TransactionManagers {
     }
 
     /**
+     * Accepts a single {@link Schema}.
+     * @see TransactionManagers#createInMemory(Set)
+     */
+    public static SerializableTransactionManager createInMemory(Schema schema) {
+        return createInMemory(ImmutableSet.of(schema));
+    }
+
+    /**
      * Create a {@link SerializableTransactionManager} backed by an
      * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}.  This should be used for testing
      * purposes only.
      */
-    public static SerializableTransactionManager createInMemory(AtlasSchema schema, AtlasSchema... otherSchemas) {
+    public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         return create(ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build(),
-                getSchemaSet(Lists.asList(schema, otherSchemas)),
+                schemas,
                 x -> { },
                 false);
-    }
-
-    private static Set<Schema> getSchemaSet(List<AtlasSchema> schemas) {
-        return schemas.stream()
-                .map(AtlasSchema::getLatestSchema)
-                .collect(Collectors.toSet());
     }
 
     /**

@@ -42,6 +42,8 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak| |fixed|
+         - Correct ``TransactionManager.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
 
     *    - |improved|
          - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS. This is designed for applications

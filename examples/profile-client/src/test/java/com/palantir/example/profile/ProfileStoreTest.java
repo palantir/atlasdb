@@ -52,7 +52,7 @@ public class ProfileStoreTest {
             .build();
 
     private final TransactionManager txnMgr =
-            TransactionManagers.createInMemory(ProfileSchema.INSTANCE);
+            TransactionManagers.createInMemory(ProfileSchema.INSTANCE.getLatestSchema());
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
