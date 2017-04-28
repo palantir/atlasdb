@@ -69,6 +69,11 @@ develop
            For more information, see the :ref:`docs <timelock-server-further-config>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
+    *    - |deprecated|
+         - ``ConflictDetectionManagers.createDefault(KeyValueService)`` has been deprecated.
+           If you use this method, please replace it with ``ConflictDetectionManagers.create(KeyValueService)``.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1822>`__) and (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1850>`__)
+
     *    - |new|
          - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1814>`__)
