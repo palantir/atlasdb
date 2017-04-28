@@ -80,6 +80,7 @@ import com.palantir.common.collect.MapEntries;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
+@SuppressWarnings("checkstyle:all") // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     protected final TimestampCache timestampCache = TimestampCache.create();
