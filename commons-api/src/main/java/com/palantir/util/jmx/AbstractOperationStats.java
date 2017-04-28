@@ -24,8 +24,6 @@ import javax.management.MXBean;
 import com.palantir.annotations.PgNotExtendableApi;
 import com.palantir.annotations.PgPublicApi;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /*
  * TODO (carrino) consider abstracting this a little bit further so that this
  * isn't time-specific (e.g., this class could be useful for tracking statistics
@@ -50,7 +48,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
     final List<AtomicLong> underStatsMillis = new CopyOnWriteArrayList<AtomicLong>();
 
     @SuppressWarnings("cast")
-    @SuppressFBWarnings("VO_VOLATILE_INCREMENT") // The method is synchronized, no one else should access totalCalls
     protected synchronized void collectOperationTimeNanos(long timeInNanos) {
         operationTimeNanos += timeInNanos;
         totalCalls++;
