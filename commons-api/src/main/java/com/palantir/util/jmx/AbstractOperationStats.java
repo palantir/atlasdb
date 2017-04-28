@@ -24,6 +24,8 @@ import javax.management.MXBean;
 import com.palantir.annotations.PgNotExtendableApi;
 import com.palantir.annotations.PgPublicApi;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /*
  * TODO (carrino) consider abstracting this a little bit further so that this
  * isn't time-specific (e.g., this class could be useful for tracking statistics
@@ -48,6 +50,7 @@ import com.palantir.annotations.PgPublicApi;
     final List<AtomicLong> underStatsMillis = new CopyOnWriteArrayList<AtomicLong>();
 
     @SuppressWarnings("cast")
+    @SuppressFBWarnings("VO_VOLATILE_INCREMENT") // The method is synchronized, no one else should access totalCalls
     protected synchronized void collectOperationTimeNanos(long timeInNanos) {
         operationTimeNanos += timeInNanos;
         totalCalls++;
@@ -108,7 +111,7 @@ import com.palantir.annotations.PgPublicApi;
         double prev = 1.0 - ((double) underStatsMillis.get(comparisonPoint - 1).get()) / localTotalCalls;
         double next = 1.0 - ((double) underStatsMillis.get(comparisonPoint).get()) / localTotalCalls;
         // lerp(x0, y0, x1, y1, x) -> y
-        return 100.0 * lerp(upper / 2, prev, upper, next, millis);
+        return 100.0 * lerp(upper / 2.0, prev, upper, next, millis);
     }
 
     @Override
@@ -141,7 +144,7 @@ import com.palantir.annotations.PgPublicApi;
             prevPerc = percent;
             percent = 100.0 * ((double) underStatsMillis.get(comparisonPoint).get()) / localTotalCalls;
         }
-        double ret = lerp(prevPerc, millis / 2, percent, millis, mustBeBellow);
+        double ret = lerp(prevPerc, millis / 2.0, percent, millis, mustBeBellow);
         if (ret > maxInMillis) {
             return maxInMillis;
         }
