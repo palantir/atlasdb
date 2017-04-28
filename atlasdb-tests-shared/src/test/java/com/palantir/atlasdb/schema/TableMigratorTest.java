@@ -18,7 +18,7 @@ package com.palantir.atlasdb.schema;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -48,7 +48,6 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
-import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.concurrent.PTExecutors;
@@ -66,10 +65,12 @@ public class TableMigratorTest extends AtlasDbTestCase {
         }
     }
 
+    @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Table/IndexDefinition syntax
     @Test
     public void testMigrationToDifferentKvs() throws TableMappingNotFoundException {
         final TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, "table");
-        final TableReference namespacedTableRef = TableReference.createFromFullyQualifiedName("namespace." + tableRef.getTablename());
+        final TableReference namespacedTableRef = TableReference.createFromFullyQualifiedName(
+                "namespace." + tableRef.getTablename());
         TableDefinition definition = new TableDefinition() {{
                 rowName();
                 rowComponent("r", ValueType.BLOB);
@@ -87,12 +88,12 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final byte[] theValue = PtBytes.toBytes("v1");
         txManager.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
-            public Void execute(Transaction t) {
+            public Void execute(Transaction txn) {
                 Map<Cell, byte[]> values = ImmutableMap.of(
                         theCell,
                         theValue);
-                t.put(tableRef, values);
-                t.put(namespacedTableRef, values);
+                txn.put(tableRef, values);
+                txn.put(namespacedTableRef, values);
                 return null;
             }
         });
@@ -112,27 +113,29 @@ public class TableMigratorTest extends AtlasDbTestCase {
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
         kvs2.createTable(shortTableRef, definition.toTableMetadata().persistToBytes());
 
-        GeneralTaskCheckpointer checkpointer = new GeneralTaskCheckpointer(TableReference.create(Namespace.DEFAULT_NAMESPACE, "checkpoint"), kvs2, txManager2);
+        TableReference checkpointTable = TableReference.create(Namespace.DEFAULT_NAMESPACE, "checkpoint");
+        GeneralTaskCheckpointer checkpointer = new GeneralTaskCheckpointer(checkpointTable, kvs2, txManager2);
         // The namespaced table is migrated under the short name.
         for (final TableReference name : Lists.newArrayList(tableRef, shortTableRef)) {
-            TransactionRangeMigrator rangeMigrator = new TransactionRangeMigratorBuilder().
-                    srcTable(name).
-                    readTxManager(txManager).
-                    txManager(txManager2).
-                    checkpointer(checkpointer).
-                    build();
-            TableMigratorBuilder builder = new TableMigratorBuilder().
-                    srcTable(name).
-                    partitions(1).
-                    executor(Tracers.wrap(PTExecutors.newSingleThreadExecutor())).
-                    checkpointer(checkpointer).
-                    rangeMigrator(rangeMigrator);
+            TransactionRangeMigrator rangeMigrator = new TransactionRangeMigratorBuilder()
+                    .srcTable(name)
+                    .readTxManager(txManager)
+                    .txManager(txManager2)
+                    .checkpointer(checkpointer)
+                    .build();
+            TableMigratorBuilder builder = new TableMigratorBuilder()
+                    .srcTable(name)
+                    .partitions(1)
+                    .executor(Tracers.wrap(PTExecutors.newSingleThreadExecutor()))
+                    .checkpointer(checkpointer)
+                    .rangeMigrator(rangeMigrator);
             TableMigrator migrator = builder.build();
             migrator.migrate();
         }
         checkpointer.deleteCheckpoints();
 
-        final KeyValueService verifyKvs = NamespaceMappingKeyValueService.create(TableRemappingKeyValueService.create(kvs2, tableMap));
+        final KeyValueService verifyKvs = NamespaceMappingKeyValueService.create(
+                TableRemappingKeyValueService.create(kvs2, tableMap));
         final ConflictDetectionManager verifyCdm = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative(verifyKvs);
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
@@ -147,18 +150,15 @@ public class TableMigratorTest extends AtlasDbTestCase {
         for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {
             verifyTxManager.runTaskReadOnly(new TransactionTask<Void, RuntimeException>() {
                 @Override
-                public Void execute(Transaction t) {
-                    BatchingVisitable<RowResult<byte[]>> bv = t.getRange(name, RangeRequest.all());
-                    bv.batchAccept(1000, AbortingVisitors.batching(new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
-                        @Override
-                        public boolean visit(RowResult<byte[]> item) {
-                            Iterable<Entry<Cell, byte[]>> cells = item.getCells();
-                            Entry<Cell, byte[]> e = Iterables.getOnlyElement(cells);
-                            Assert.assertEquals(theCell, e.getKey());
-                            Assert.assertArrayEquals(theValue, e.getValue());
-                            count.increment();
-                            return true;
-                        }
+                public Void execute(Transaction txn) {
+                    BatchingVisitable<RowResult<byte[]>> bv = txn.getRange(name, RangeRequest.all());
+                    bv.batchAccept(1000, AbortingVisitors.batching(item -> {
+                        Iterable<Entry<Cell, byte[]>> cells = item.getCells();
+                        Entry<Cell, byte[]> entry = Iterables.getOnlyElement(cells);
+                        Assert.assertEquals(theCell, entry.getKey());
+                        Assert.assertArrayEquals(theValue, entry.getValue());
+                        count.increment();
+                        return true;
                     }));
                     return null;
                 }
