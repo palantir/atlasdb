@@ -18,17 +18,18 @@ package com.palantir.atlasdb.transaction.api;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.HeldLocksToken;
 
-public class LockAwareTransactionTasks {
+public final class LockAwareTransactionTasks {
 
     private LockAwareTransactionTasks() {
         // cannot instantiate
     }
 
-    public static <T, E extends Exception> LockAwareTransactionTask<T, E> asLockAware(final TransactionTask<T, E> task) {
+    public static <T, E extends Exception> LockAwareTransactionTask<T, E> asLockAware(
+            final TransactionTask<T, E> task) {
         return new LockAwareTransactionTask<T, E>() {
             @Override
-            public T execute(Transaction t, Iterable<HeldLocksToken> heldLocks) throws E {
-                return task.execute(t);
+            public T execute(Transaction tx, Iterable<HeldLocksToken> heldLocks) throws E {
+                return task.execute(tx);
             }
 
             @Override
@@ -38,15 +39,17 @@ public class LockAwareTransactionTasks {
         };
     }
 
-    public static <T, E extends Exception> TransactionTask<T, E> asLockUnaware(final LockAwareTransactionTask<T, E> task) {
+    public static <T, E extends Exception> TransactionTask<T, E> asLockUnaware(
+            final LockAwareTransactionTask<T, E> task) {
         return asLockUnaware(task, ImmutableSet.<HeldLocksToken>of());
     }
 
-    public static <T, E extends Exception> TransactionTask<T, E> asLockUnaware(final LockAwareTransactionTask<T, E> task, final Iterable<HeldLocksToken> locks) {
+    public static <T, E extends Exception> TransactionTask<T, E> asLockUnaware(
+            final LockAwareTransactionTask<T, E> task, final Iterable<HeldLocksToken> locks) {
         return new TransactionTask<T, E>() {
             @Override
-            public T execute(Transaction t) throws E {
-                return task.execute(t, locks);
+            public T execute(Transaction tx) throws E {
+                return task.execute(tx, locks);
             }
         };
     }
