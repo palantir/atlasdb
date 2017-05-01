@@ -21,7 +21,7 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.table.description.constraints.ForeignKeyConstraint;
 import com.palantir.atlasdb.table.description.constraints.tuples.TupleOf1;
 
-public class SelectDynamicColumnLong implements ForeignKeyConstraint{
+public class SelectDynamicColumnLong implements ForeignKeyConstraint {
     public static List<TupleOf1<Long>> getKeys(List<Long> longs) {
         List<TupleOf1<Long>> list = Lists.newArrayList();
         for(Long l: longs) {
