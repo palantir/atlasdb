@@ -102,8 +102,8 @@ public class ProfileStore {
 
         // This will either store a new stream and mark it as used
         // or return an old stream that matches the hash and mark it as used.
-        long streamId =
-                streamStore.getByHashOrStoreStreamAndMarkAsUsed(tx, hash, imageData, EncodingUtils.encodeUUID(userId));
+        long streamId = streamStore.getByHashOrStoreStreamAndMarkAsUsed(
+                tx, hash, imageData, EncodingUtils.encodeUUID(userId));
 
         UserProfileTable table = tables.getUserProfileTable(tx);
         table.putPhotoStreamId(UserProfileRow.of(userId), streamId);

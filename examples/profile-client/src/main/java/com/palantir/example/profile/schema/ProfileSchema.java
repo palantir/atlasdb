@@ -33,6 +33,7 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.example.profile.protos.generated.ProfilePersistence;
 
+@SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
 public class ProfileSchema implements AtlasSchema {
     public static final AtlasSchema INSTANCE = new ProfileSchema();
 
@@ -44,69 +45,48 @@ public class ProfileSchema implements AtlasSchema {
                 Namespace.DEFAULT_NAMESPACE,
                 OptionalType.JAVA8);
 
-        schema.addTableDefinition("user_profile", new TableDefinition() {
-            {
-                rowName();
+        schema.addTableDefinition("user_profile", new TableDefinition() {{
+            rowName();
                 rowComponent("id", ValueType.UUID);
-
-                columns();
+            columns();
                 column("metadata", "m", ProfilePersistence.UserProfile.class);
                 column("create", "c", CreationData.Persister.class);
                 column("json", "j", JsonNodePersister.class);
                 column("photo_stream_id", "p", ValueType.FIXED_LONG);
-            }
-        });
+        }});
 
-        schema.addIndexDefinition("user_birthdays", new IndexDefinition(IndexType.CELL_REFERENCING) {
-            {
-                onTable("user_profile");
-
-                rowName();
+        schema.addIndexDefinition("user_birthdays", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+            onTable("user_profile");
+            rowName();
                 componentFromColumn("birthday", ValueType.VAR_SIGNED_LONG, "metadata", "_value.getBirthEpochDay()");
-
-                dynamicColumns();
+            dynamicColumns();
                 componentFromRow("id", ValueType.UUID);
+            rangeScanAllowed();
+            ignoreHotspottingChecks();
+        }});
 
-                rangeScanAllowed();
-                ignoreHotspottingChecks();
-            }
-        });
-
-        schema.addIndexDefinition("created", new IndexDefinition(IndexType.CELL_REFERENCING) {
-            {
-                onTable("user_profile");
-
-                rowName();
+        schema.addIndexDefinition("created", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+            onTable("user_profile");
+            rowName();
                 componentFromColumn("time", ValueType.VAR_LONG, "create", "_value.getTimeCreated()");
-
-
-                dynamicColumns();
+            dynamicColumns();
                 componentFromRow("id", ValueType.UUID);
+            rangeScanAllowed();
+            ignoreHotspottingChecks();
+        }});
 
-
-                rangeScanAllowed();
-                ignoreHotspottingChecks();
-            }
-        });
-
-        schema.addIndexDefinition("cookies", new IndexDefinition(IndexType.CELL_REFERENCING) {
-            {
-                onTable("user_profile");
-
-                rowName();
+        schema.addIndexDefinition("cookies", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+            onTable("user_profile");
+            rowName();
                 componentFromIterableColumn("cookie", ValueType.STRING, ValueByteOrder.ASCENDING, "json",
                         "com.palantir.example.profile.schema.ProfileSchema.getCookies(_value)");
-
-                dynamicColumns();
+            dynamicColumns();
                 componentFromRow("id", ValueType.UUID);
-
-                rangeScanAllowed();
-            }
-        });
+            rangeScanAllowed();
+        }});
 
         schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG)
-                        .build());
+                new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG).build());
 
         return schema;
     }
