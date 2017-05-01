@@ -41,6 +41,7 @@ import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.MapEntries;
 
 @ThreadSafe
+@SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
 public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     public static class TableStats {
         final AtomicLong totalGetValueBytes = new AtomicLong(0L);
