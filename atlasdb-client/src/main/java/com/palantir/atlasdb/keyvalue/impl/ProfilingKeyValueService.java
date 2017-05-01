@@ -45,7 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class ProfilingKeyValueService implements KeyValueService {
+public final class ProfilingKeyValueService implements KeyValueService {
     private static final Logger log = LoggerFactory.getLogger(ProfilingKeyValueService.class);
 
     private static <T> long byteSize(Map<Cell, T> values) {
@@ -74,7 +74,8 @@ public class ProfilingKeyValueService implements KeyValueService {
         return new ProfilingKeyValueService(delegate);
     }
 
-    private static void logCellsAndSize(String method, String tableName, int numCells, long sizeInBytes, Stopwatch stopwatch) {
+    private static void logCellsAndSize(
+            String method, String tableName, int numCells, long sizeInBytes, Stopwatch stopwatch) {
         log.trace("Call to KVS.{} on table {} for {} cells of overall size {} bytes took {} ms.",
                 method, tableName, numCells, sizeInBytes, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
@@ -143,7 +144,8 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             delegate.delete(tableRef, keys);
-            logCellsAndSize("delete", tableRef.getQualifiedName(), keys.keySet().size(), byteSize(keys), stopwatch);
+            logCellsAndSize("delete", tableRef.getQualifiedName(), keys.keySet().size(),
+                    byteSize(keys), stopwatch);
         } else {
             delegate.delete(tableRef, keys);
         }
@@ -216,7 +218,8 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             Multimap<Cell, Long> result = delegate.getAllTimestamps(tableRef, cells, timestamp);
-            logCellsAndSize("getAllTimestamps", tableRef.getQualifiedName(), cells.size(), cells.size() * Longs.BYTES, stopwatch);
+            logCellsAndSize("getAllTimestamps", tableRef.getQualifiedName(), cells.size(),
+                    cells.size() * Longs.BYTES, stopwatch);
             return result;
         } else {
             return delegate.getAllTimestamps(tableRef, cells, timestamp);
@@ -229,10 +232,12 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result = delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
+            Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result = delegate
+                    .getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
             logTimeAndTable("getFirstBatchForRanges", tableRef.getQualifiedName(), stopwatch);
             return result;
         } else {
@@ -245,7 +250,8 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             Map<Cell, Long> result = delegate.getLatestTimestamps(tableRef, timestampByCell);
-            logCellsAndSize("getLatestTimestamps", tableRef.getQualifiedName(), timestampByCell.size(), byteSize(timestampByCell), stopwatch);
+            logCellsAndSize("getLatestTimestamps", tableRef.getQualifiedName(), timestampByCell.size(),
+                    byteSize(timestampByCell), stopwatch);
             return result;
         } else {
             return delegate.getLatestTimestamps(tableRef, timestampByCell);
@@ -277,7 +283,8 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Value>> getRange(
+            TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             ClosableIterator<RowResult<Value>> result = delegate.getRange(tableRef, rangeRequest, timestamp);
@@ -289,10 +296,12 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
+            TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            ClosableIterator<RowResult<Set<Long>>> result = delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+            ClosableIterator<RowResult<Set<Long>>> result = delegate
+                    .getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
             logTimeAndTableRange("getRangeOfTimestamps", tableRef.getQualifiedName(), rangeRequest, stopwatch);
             return result;
         } else {
@@ -301,7 +310,8 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+    public Map<Cell, Value> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             long sizeInBytes = 0;
@@ -309,7 +319,8 @@ public class ProfilingKeyValueService implements KeyValueService {
             for (Entry<Cell, Value> entry : result.entrySet()) {
                 sizeInBytes += Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length;
             }
-            log.trace("Call to KVS.getRows on table {} requesting {} columns from {} rows took {} ms and returned {} bytes.",
+            log.trace("Call to KVS.getRows on table {} requesting {} columns from"
+                            + " {} rows took {} ms and returned {} bytes.",
                     tableRef,
                     columnSelection.allColumnsSelected() ? "all" : Iterables.size(columnSelection.getSelectedColumns()),
                     Iterables.size(rows),
@@ -344,7 +355,8 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             delegate.put(tableRef, values, timestamp);
-            logCellsAndSize("put", tableRef.getQualifiedName(), values.keySet().size(), byteSize(values), stopwatch);
+            logCellsAndSize("put", tableRef.getQualifiedName(), values.keySet().size(),
+                    byteSize(values), stopwatch);
         } else {
             delegate.put(tableRef, values, timestamp);
         }
@@ -377,7 +389,8 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             delegate.putUnlessExists(tableRef, values);
-            logCellsAndSize("putUnlessExists", tableRef.getQualifiedName(), values.keySet().size(), byteSize(values), stopwatch);
+            logCellsAndSize("putUnlessExists", tableRef.getQualifiedName(), values.keySet().size(),
+                    byteSize(values), stopwatch);
         } else {
             delegate.putUnlessExists(tableRef, values);
         }
@@ -393,7 +406,8 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             delegate.checkAndSet(request);
-            logCellsAndSize("checkAndSet", request.table().getQualifiedName(), 1, request.newValue().length, stopwatch);
+            logCellsAndSize("checkAndSet", request.table().getQualifiedName(), 1,
+                    request.newValue().length, stopwatch);
         } else {
             delegate.checkAndSet(request);
         }
@@ -404,7 +418,8 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             delegate.putWithTimestamps(tableRef, values);
-            logCellsAndSize("putWithTimestamps", tableRef.getQualifiedName(), values.keySet().size(), byteSize(values), stopwatch);
+            logCellsAndSize("putWithTimestamps", tableRef.getQualifiedName(), values.keySet().size(),
+                    byteSize(values), stopwatch);
         } else {
             delegate.putWithTimestamps(tableRef, values);
         }
@@ -458,23 +473,29 @@ public class ProfilingKeyValueService implements KeyValueService {
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            ClusterAvailabilityStatus ClusterAvailabilityStatus = delegate.getClusterAvailabilityStatus();
+            ClusterAvailabilityStatus clusterAvailabilityStatus = delegate.getClusterAvailabilityStatus();
             logTime("getClusterAvailabilityStatus", stopwatch);
-            return ClusterAvailabilityStatus;
+            return clusterAvailabilityStatus;
         } else {
             return delegate.getClusterAvailabilityStatus();
         }
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-                                                                  BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             Map<byte[], RowColumnRangeIterator> result = delegate.getRowsColumnRange(tableRef, rows,
                     batchColumnRangeSelection, timestamp);
             log.trace("Call to KVS.getRowsColumnRange on table {} for {} rows with range {} took {} ms.",
-                    tableRef.getQualifiedName(), Iterables.size(rows), batchColumnRangeSelection, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                    tableRef.getQualifiedName(),
+                    Iterables.size(rows),
+                    batchColumnRangeSelection,
+                    stopwatch.elapsed(TimeUnit.MILLISECONDS));
             logTimeAndTable("getRowsColumnRange", tableRef.getQualifiedName(), stopwatch);
             return result;
         } else {
@@ -483,21 +504,23 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
+    public RowColumnRangeIterator getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            int cellBatchHint,
+            long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             RowColumnRangeIterator result =
                     delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
-            log.trace("Call to KVS.getRowsColumnRangeCellBatch on table {} for {} rows with range {} and batch hint {} took {} ms.",
-                      tableRef.getQualifiedName(),
-                      Iterables.size(rows),
-                      columnRangeSelection,
-                      cellBatchHint,
-                      stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            log.trace("Call to KVS.getRowsColumnRangeCellBatch on table {} for {} rows"
+                            + " with range {} and batch hint {} took {} ms.",
+                    tableRef.getQualifiedName(),
+                    Iterables.size(rows),
+                    columnRangeSelection,
+                    cellBatchHint,
+                    stopwatch.elapsed(TimeUnit.MILLISECONDS));
             logTimeAndTable("getRowsColumnRangeCellBatch", tableRef.getQualifiedName(), stopwatch);
             return result;
         } else {
