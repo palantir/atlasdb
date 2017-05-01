@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -36,89 +36,57 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.collect.IterableView;
 
-public class RowResults {
+public final class RowResults {
     private RowResults() { /* */ }
 
     public static <T> IterableView<RowResult<T>> viewOfMap(Map<byte[], SortedMap<byte[], T>> map) {
         return viewOfEntries(map.entrySet());
     }
 
-    public static <T> IterableView<RowResult<T>> viewOfEntries(Iterable<Map.Entry<byte[], SortedMap<byte[], T>>> mapEntries) {
-        return IterableView.of(mapEntries).transform(RowResults.<T>createRowResultFunction());
+    public static <T> IterableView<RowResult<T>> viewOfEntries(
+            Iterable<Map.Entry<byte[], SortedMap<byte[], T>>> mapEntries) {
+        return IterableView.of(mapEntries).transform(RowResults.createRowResultFunction());
+    }
+
+    public static <T> Iterator<RowResult<T>> viewOfEntries(
+            Iterator<Map.Entry<byte[], SortedMap<byte[], T>>> mapEntries) {
+        return Iterators.transform(mapEntries, createRowResultFunction());
     }
 
     private static <T> Function<Entry<byte[], SortedMap<byte[], T>>, RowResult<T>> createRowResultFunction() {
-        Function<Entry<byte[], SortedMap<byte[], T>>, RowResult<T>> function = new Function<Entry<byte[], SortedMap<byte[], T>>, RowResult<T>>() {
-            @Override
-            public RowResult<T> apply(Entry<byte[], SortedMap<byte[], T>> e) {
-                return RowResult.create(e.getKey(), e.getValue());
-            }
-        };
-        return function;
+        return e -> RowResult.create(e.getKey(), e.getValue());
     }
 
-    public static <T> Iterator<RowResult<T>> viewOfEntries(Iterator<Map.Entry<byte[], SortedMap<byte[], T>>> mapEntries) {
-        Function<Entry<byte[], SortedMap<byte[], T>>, RowResult<T>> f = createRowResultFunction();
-        return Iterators.transform(mapEntries, f);
-    }
-
-    public static <T> IterableView<Map.Entry<byte[], SortedMap<byte[], T>>> entriesViewFromRows(Iterable<RowResult<T>> rows) {
-        return IterableView.of(rows).transform(new Function<RowResult<T>, Entry<byte[], SortedMap<byte[], T>>>() {
-            @Override
-            public Entry<byte[], SortedMap<byte[], T>> apply(RowResult<T> row) {
-                return Maps.immutableEntry(row.getRowName(), row.getColumns());
-            }
-        });
+    public static <T> IterableView<Map.Entry<byte[], SortedMap<byte[], T>>> entriesViewFromRows(
+            Iterable<RowResult<T>> rows) {
+        return IterableView.of(rows).transform(row -> Maps.immutableEntry(row.getRowName(), row.getColumns()));
     }
 
     public static <T> SortedMap<byte[], RowResult<T>> viewOfSortedMap(SortedMap<byte[], SortedMap<byte[], T>> map) {
-        return Maps.transformEntries(map, new Maps.EntryTransformer<byte[], SortedMap<byte[], T>, RowResult<T>>() {
-            @Override
-            public RowResult<T> transformEntry(byte[] key, SortedMap<byte[], T> value) {
-                return RowResult.create(key, value);
-            }
-        });
+        return Maps.transformEntries(map, (key, value) -> RowResult.create(key, value));
     }
 
     public static <T> Predicate<RowResult<T>> createIsEmptyPredicate() {
-        return new Predicate<RowResult<T>>() {
-            @Override
-            public boolean apply(RowResult<T> input) {
-                return input.getColumns().isEmpty();
-            }
-        };
+        return input -> input.getColumns().isEmpty();
     }
 
     public static <T> Function<RowResult<T>, RowResult<T>> createFilterColumns(final Predicate<byte[]> keepColumn) {
-        return new Function<RowResult<T>, RowResult<T>>() {
-            @Override
-            public RowResult<T> apply(RowResult<T> row) {
-                return RowResult.create(row.getRowName(), Maps.filterKeys(row.getColumns(), keepColumn));
-            }
-        };
+        return row -> RowResult.create(row.getRowName(), Maps.filterKeys(row.getColumns(), keepColumn));
     }
 
-    public static Function<RowResult<byte[]>, RowResult<byte[]>> createFilterColumnValues(final Predicate<byte[]> keepValue) {
-        return new Function<RowResult<byte[]>, RowResult<byte[]>>() {
-            @Override
-            public RowResult<byte[]> apply(RowResult<byte[]> row) {
-                return RowResult.create(row.getRowName(), Maps.filterValues(row.getColumns(), keepValue));
-            }
-        };
+    public static Function<RowResult<byte[]>, RowResult<byte[]>> createFilterColumnValues(
+            final Predicate<byte[]> keepValue) {
+        return row -> RowResult.create(row.getRowName(), Maps.filterValues(row.getColumns(), keepValue));
     }
 
     public static <T, U> Function<RowResult<T>, RowResult<U>> transformValues(final Function<T, U> transform) {
-        return new Function<RowResult<T>, RowResult<U>>() {
-            @Override
-            public RowResult<U> apply(RowResult<T> row) {
-                return RowResult.create(row.getRowName(), Maps.transformValues(row.getColumns(), transform));
-            }
-        };
+        return row -> RowResult.create(row.getRowName(), Maps.transformValues(row.getColumns(), transform));
     }
 
     public static Iterator<RowResult<byte[]>> filterDeletedColumnsAndEmptyRows(final Iterator<RowResult<byte[]>> it) {
-        Iterator<RowResult<byte[]>> purgeDeleted = Iterators.transform(it, createFilterColumnValues(Predicates.not(Value.IS_EMPTY)));
-        return Iterators.filter(purgeDeleted, Predicates.not(RowResults.<byte[]>createIsEmptyPredicate()));
+        Iterator<RowResult<byte[]>> purgeDeleted = Iterators.transform(
+                it, createFilterColumnValues(Predicates.not(Value.IS_EMPTY)));
+        return Iterators.filter(purgeDeleted, Predicates.not(RowResults.createIsEmptyPredicate()));
     }
 
     public static <T> RowResult<T> merge(RowResult<T> base, RowResult<T> overwrite) {
