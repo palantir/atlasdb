@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -90,9 +89,9 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     /**
+     * Returns a new fixed size thread pool with a keep alive time of 1 minute.
      * @param threadNamePrefix thread name prefix
      * @param poolSize fixed thread pool size
-     * @return a new fixed size thread pool with a keep alive time of 1 minute.
      */
     protected static ExecutorService createFixedThreadPool(String threadNamePrefix, int poolSize) {
         ThreadPoolExecutor executor = PTExecutors.newFixedThreadPool(poolSize,
@@ -137,7 +136,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         ImmutableMap.Builder<TableReference, byte[]> builder = ImmutableMap.builder();
-        for (TableReference table: getAllTableNames()) {
+        for (TableReference table : getAllTableNames()) {
             builder.put(table, getMetadataForTable(table));
         }
         return builder.build();
@@ -155,7 +154,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
      * @see com.palantir.atlasdb.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
      */
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp) throws KeyAlreadyExistsException {
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp)
+            throws KeyAlreadyExistsException {
         List<Callable<Void>> callables = Lists.newArrayList();
         for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
             final TableReference table = e.getKey();
@@ -164,29 +164,23 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
 
             Iterable<List<Entry<Cell, byte[]>>> partitions = partitionByCountAndBytes(sortedMap.entrySet(),
-                    getMultiPutBatchCount(), getMultiPutBatchSizeBytes(), table, new Function<Entry<Cell, byte[]>, Long>(){
-
-                        @Override
-                        public Long apply(Entry<Cell, byte[]> entry) {
-                            long totalSize = 0;
-                            totalSize += entry.getValue().length;
-                            totalSize += Cells.getApproxSizeOfCell(entry.getKey());
-                            return totalSize;
-                        }});
+                    getMultiPutBatchCount(), getMultiPutBatchSizeBytes(), table, entry -> {
+                        long totalSize = 0;
+                        totalSize += entry.getValue().length;
+                        totalSize += Cells.getApproxSizeOfCell(entry.getKey());
+                        return totalSize;
+                    });
 
 
             for (final List<Entry<Cell, byte[]>> p : partitions) {
-                callables.add(new Callable<Void>() {
-                    @Override
-                    public Void call() {
-                        String originalName = Thread.currentThread().getName();
-                        Thread.currentThread().setName("Atlas multiPut of " + p.size() + " cells into " + table);
-                        try {
-                            put(table, Maps2.fromEntries(p), timestamp);
-                            return null;
-                        } finally {
-                            Thread.currentThread().setName(originalName);
-                        }
+                callables.add(() -> {
+                    String originalName = Thread.currentThread().getName();
+                    Thread.currentThread().setName("Atlas multiPut of " + p.size() + " cells into " + table);
+                    try {
+                        put(table, Maps2.fromEntries(p), timestamp);
+                        return null;
+                    } finally {
+                        Thread.currentThread().setName(originalName);
                     }
                 });
             }
@@ -214,7 +208,9 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                                                              final long maximumBytesPerPartition,
                                                              final TableReference tableRef,
                                                              final Function<T, Long> sizingFunction) {
-        return partitionByCountAndBytes(iterable, maximumCountPerPartition, maximumBytesPerPartition, tableRef.getQualifiedName(), sizingFunction);
+        return partitionByCountAndBytes(
+                iterable, maximumCountPerPartition, maximumBytesPerPartition, tableRef.getQualifiedName(),
+                sizingFunction);
     }
 
     protected <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
@@ -222,54 +218,49 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                                                              final long maximumBytesPerPartition,
                                                              final String tableName,
                                                              final Function<T, Long> sizingFunction) {
-        return new Iterable<List<T>>() {
+        return () -> new UnmodifiableIterator<List<T>>() {
+            PeekingIterator<T> pi = Iterators.peekingIterator(iterable.iterator());
+            private int remainingEntries = Iterables.size(iterable);
+
             @Override
-            public Iterator<List<T>> iterator() {
-                return new UnmodifiableIterator<List<T>>() {
-                    PeekingIterator<T> pi = Iterators.peekingIterator(iterable.iterator());
-                    private int remainingEntries = Iterables.size(iterable);
+            public boolean hasNext() {
+                return pi.hasNext();
+            }
+            @Override
+            public List<T> next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                List<T> entries =
+                        Lists.newArrayListWithCapacity(Math.min(maximumCountPerPartition, remainingEntries));
+                long runningSize = 0;
 
-                    @Override
-                    public boolean hasNext() {
-                        return pi.hasNext();
+                // limit on: maximum count, pending data, maximum size, but allow at least one even if it's too huge
+                T firstEntry = pi.next();
+                runningSize += sizingFunction.apply(firstEntry);
+                entries.add(firstEntry);
+                if (runningSize > maximumBytesPerPartition && log.isWarnEnabled()) {
+                    String message = "Encountered an entry of approximate size {} bytes,"
+                            + " larger than maximum size of {} defined per entire batch,"
+                            + " while doing a write to {}. Attempting to batch anyways.";
+                    if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(
+                            TableReference.createWithEmptyNamespace(tableName))) {
+                        log.warn(message, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
+                    } else {
+                        String longerMessage = message + " This can potentially cause out-of-memory errors.";
+                        log.warn(longerMessage, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
                     }
-                    @Override
-                    public List<T> next() {
-                        if (!hasNext()) {
-                            throw new NoSuchElementException();
-                        }
-                        List<T> entries =
-                                Lists.newArrayListWithCapacity(Math.min(maximumCountPerPartition, remainingEntries));
-                        long runningSize = 0;
+                }
 
-                        // limit on: maximum count, pending data, maximum size, but allow at least one even if it's too huge
-                        T firstEntry = pi.next();
-                        runningSize += sizingFunction.apply(firstEntry);
-                        entries.add(firstEntry);
-                        if (runningSize > maximumBytesPerPartition && log.isWarnEnabled()) {
-                            String message = "Encountered an entry of approximate size {} bytes, "
-                                    + "larger than maximum size of {} defined per entire batch, "
-                                    + "while doing a write to {}. Attempting to batch anyways.";
-                            if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(
-                                    TableReference.createWithEmptyNamespace(tableName))) {
-                                log.warn(message, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
-                            } else {
-                                String longerMessage = message + " This can potentially cause out-of-memory errors.";
-                                log.warn(longerMessage, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
-                            }
-                        }
-
-                        while (pi.hasNext() && entries.size() < maximumCountPerPartition) {
-                            runningSize += sizingFunction.apply(pi.peek());
-                            if (runningSize > maximumBytesPerPartition) {
-                                break;
-                            }
-                            entries.add(pi.next());
-                        }
-                        remainingEntries -= entries.size();
-                        return entries;
+                while (pi.hasNext() && entries.size() < maximumCountPerPartition) {
+                    runningSize += sizingFunction.apply(pi.peek());
+                    if (runningSize > maximumBytesPerPartition) {
+                        break;
                     }
-                };
+                    entries.add(pi.next());
+                }
+                remainingEntries -= entries.size();
+                return entries;
             }
         };
     }
@@ -283,7 +274,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
-        try (ClosableIterator<RowResult<Set<Long>>> iterator = getRangeOfTimestamps(tableRef, range, AtlasDbConstants.MAX_TS)) {
+        try (ClosableIterator<RowResult<Set<Long>>> iterator = getRangeOfTimestamps(
+                tableRef, range, AtlasDbConstants.MAX_TS)) {
             while (iterator.hasNext()) {
                 RowResult<Set<Long>> rowResult = iterator.next();
                 Multimap<Cell, Long> cellsToDelete = HashMultimap.create();
