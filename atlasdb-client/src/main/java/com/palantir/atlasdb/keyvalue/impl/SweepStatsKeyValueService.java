@@ -63,7 +63,7 @@ import com.palantir.timestamp.TimestampService;
  * since the last time the table was completely swept. This is used when
  * deciding the order in which tables should be swept.
  */
-public class SweepStatsKeyValueService extends ForwardingKeyValueService {
+public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(SweepStatsKeyValueService.class);
     private static final int CLEAR_WEIGHT = 1 << 14;
@@ -71,13 +71,15 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     private static final long FLUSH_DELAY_SECONDS = 42;
 
     // This is gross and won't work if someone starts namespacing sweep differently
-    private static final TableReference SWEEP_PRIORITY_TABLE = TableReference.create(SweepSchema.INSTANCE.getNamespace(), SweepPriorityTable.getRawTableName());
+    private static final TableReference SWEEP_PRIORITY_TABLE = TableReference.create(
+            SweepSchema.INSTANCE.getNamespace(), SweepPriorityTable.getRawTableName());
 
     private final KeyValueService delegate;
     private final TimestampService timestampService;
     private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
 
-    private final Set<TableReference> clearedTables = Collections.newSetFromMap(new ConcurrentHashMap<TableReference, Boolean>());
+    private final Set<TableReference> clearedTables = Collections.newSetFromMap(
+            new ConcurrentHashMap<TableReference, Boolean>());
 
     private final AtomicInteger totalModifications = new AtomicInteger();
     private final Lock flushLock = new ReentrantLock();
@@ -91,7 +93,8 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
                                      TimestampService timestampService) {
         this.delegate = delegate;
         this.timestampService = timestampService;
-        this.flushExecutor.scheduleWithFixedDelay(createFlushTask(), FLUSH_DELAY_SECONDS, FLUSH_DELAY_SECONDS, TimeUnit.SECONDS);
+        this.flushExecutor.scheduleWithFixedDelay(
+                createFlushTask(), FLUSH_DELAY_SECONDS, FLUSH_DELAY_SECONDS, TimeUnit.SECONDS);
     }
 
     @VisibleForTesting
@@ -240,7 +243,11 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
                 Cell cell = Cell.create(row, col);
                 Value oldValue = oldWriteCounts.get(cell);
                 long oldCount = oldValue == null || oldValue.getContents().length == 0 ? 0 :
-                    SweepPriorityTable.WriteCount.BYTES_HYDRATOR.hydrateFromBytes(oldValue.getContents()).getValue();
+                        SweepPriorityTable
+                                .WriteCount
+                                .BYTES_HYDRATOR
+                                .hydrateFromBytes(oldValue.getContents())
+                                .getValue();
                 long newValue = clears.contains(tableRef) ? writes.count(tableRef) : oldCount + writes.count(tableRef);
                 log.debug("Sweep priority for {} has {} writes (was {})", tableRef, newValue, oldCount);
                 newWriteCounts.put(cell, SweepPriorityTable.WriteCount.of(newValue).persistValue());
