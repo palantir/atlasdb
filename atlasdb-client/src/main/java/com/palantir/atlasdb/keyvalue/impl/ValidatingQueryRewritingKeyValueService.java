@@ -19,12 +19,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -56,7 +54,8 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  */
 public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueService implements KeyValueService {
     private static final Logger log = LoggerFactory.getLogger(ValidatingQueryRewritingKeyValueService.class);
-    private static String TRANSACTION_ERROR = "shouldn't be putting into the transaction table at this level of KVS abstraction";
+    private static final String TRANSACTION_ERROR = "shouldn't be putting into the transaction table"
+            + " at this level of KVS abstraction";
 
     public static ValidatingQueryRewritingKeyValueService create(KeyValueService delegate) {
         return new ValidatingQueryRewritingKeyValueService(delegate);
@@ -149,7 +148,8 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         if (Iterables.isEmpty(rangeRequests)) {
             return ImmutableMap.of();
         }
@@ -165,7 +165,8 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+    public Map<Cell, Value> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         if (Iterables.isEmpty(rows) || columnSelection.noColumnsSelected()) {
             return ImmutableMap.of();
         }
@@ -173,12 +174,15 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) throws KeyAlreadyExistsException {
+    public void multiPut(
+            Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
+            throws KeyAlreadyExistsException {
         if (valuesByTable.isEmpty()) {
             return;
         }
         if (valuesByTable.size() == 1) {
-            Entry<TableReference, ? extends Map<Cell, byte[]>> entry = Iterables.getOnlyElement(valuesByTable.entrySet());
+            Entry<TableReference, ? extends Map<Cell, byte[]>> entry = Iterables.getOnlyElement(
+                    valuesByTable.entrySet());
             put(entry.getKey(), entry.getValue(), timestamp);
             return;
         }
@@ -186,7 +190,8 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) throws KeyAlreadyExistsException {
+    public void put(
+            TableReference tableRef, Map<Cell, byte[]> values, long timestamp) throws KeyAlreadyExistsException {
         Validate.isTrue(timestamp != Long.MAX_VALUE);
         Validate.isTrue(timestamp >= 0);
         Validate.isTrue(!tableRef.equals(TransactionConstants.TRANSACTION_TABLE), TRANSACTION_ERROR);
@@ -218,7 +223,8 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException {
+    public void putWithTimestamps(
+            TableReference tableRef, Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException {
         if (cellValues.isEmpty()) {
             return;
         }
@@ -237,20 +243,17 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
         }
 
         if (allAtSameTimestamp) {
-            Multimap<Cell, byte[]> cellValuesWithStrippedTimestamp = Multimaps.transformValues(cellValues, Value.GET_VALUE);
+            Multimap<Cell, byte[]> cellValuesWithStrippedTimestamp = Multimaps.transformValues(
+                    cellValues, Value.GET_VALUE);
 
-            Map<Cell, byte[]> putMap = Maps.transformValues(cellValuesWithStrippedTimestamp.asMap(), new Function<Collection<byte[]>, byte[]>() {
-
-                @Override
-                public byte[] apply(Collection<byte[]> input) {
-                    try {
-                        return Iterables.getOnlyElement(input);
-                    } catch (IllegalArgumentException e) {
-                        log.error("Application tried to put multiple same-cell values in at same timestamp; attempting to perform last-write-wins, but ordering is not guaranteed.");
-                        return Iterables.getLast(input);
-                    }
+            Map<Cell, byte[]> putMap = Maps.transformValues(cellValuesWithStrippedTimestamp.asMap(), input -> {
+                try {
+                    return Iterables.getOnlyElement(input);
+                } catch (IllegalArgumentException e) {
+                    log.error("Application tried to put multiple same-cell values in at same timestamp;"
+                            + " attempting to perform last-write-wins, but ordering is not guaranteed.");
+                    return Iterables.getLast(input);
                 }
-
             });
 
             put(tableRef, putMap, lastTimestamp);
