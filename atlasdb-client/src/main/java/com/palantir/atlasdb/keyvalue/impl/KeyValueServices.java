@@ -56,7 +56,7 @@ import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class KeyValueServices {
+public final class KeyValueServices {
     private static final Logger log = LoggerFactory.getLogger(KeyValueServices.class);
 
     private KeyValueServices() {/**/}
@@ -96,7 +96,7 @@ public class KeyValueServices {
                 ret.put(request, SimpleTokenBackedResultsPage.create(request.getEndExclusive(), results, false));
                 return;
             }
-            RowResult<Value> last = results.get(results.size()-1);
+            RowResult<Value> last = results.get(results.size() - 1);
             byte[] lastRowName = last.getRowName();
             if (RangeRequests.isTerminalRow(request.isReverse(), lastRowName)) {
                 ret.put(request, SimpleTokenBackedResultsPage.create(lastRowName, results, false));
@@ -113,7 +113,8 @@ public class KeyValueServices {
         }
     }
 
-    public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRangesUsingGetRangeConcurrent(
+    public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>
+            getFirstBatchForRangesUsingGetRangeConcurrent(
             ExecutorService executor,
             final KeyValueService kv,
             final TableReference tableRef,
@@ -138,7 +139,8 @@ public class KeyValueServices {
         }
     }
 
-    public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRangesUsingGetRange(
+    public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>
+            getFirstBatchForRangesUsingGetRange(
             KeyValueService kv,
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
@@ -150,7 +152,8 @@ public class KeyValueServices {
         return ret;
     }
 
-    public static Collection<Map.Entry<Cell, Value>> toConstantTimestampValues(final Collection<Map.Entry<Cell, byte[]>> cells, final long timestamp) {
+    public static Collection<Map.Entry<Cell, Value>> toConstantTimestampValues(
+            final Collection<Map.Entry<Cell, byte[]>> cells, final long timestamp) {
         return Collections2.transform(cells, new Function<Map.Entry<Cell, byte[]>, Map.Entry<Cell, Value>>() {
             @Override
             public Map.Entry<Cell, Value> apply(Map.Entry<Cell, byte[]> entry) {
@@ -159,10 +162,15 @@ public class KeyValueServices {
         });
     }
 
-    // TODO: kill this when we can properly implement this on all KVSes
-    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection, long timestamp) {
-        log.warn("Using inefficient postfiltering for getRowsColumnRange because the KVS doesn't support it natively. Production " +
-                "environments should use a KVS with a proper implementation.");
+    // TODO kill this when we can properly implement this on all KVSes
+    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(
+            KeyValueService kvs,
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection columnRangeSelection,
+            long timestamp) {
+        log.warn("Using inefficient postfiltering for getRowsColumnRange because the KVS doesn't support it natively."
+                + "Production environments should use a KVS with a proper implementation.");
         Map<Cell, Value> allValues = kvs.getRows(tableRef, rows, ColumnSelection.all(), timestamp);
         Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMap();
         Map<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> rowsToColumns = Maps.newHashMap();
@@ -200,12 +208,13 @@ public class KeyValueServices {
         return results;
     }
 
-    public static RowColumnRangeIterator mergeGetRowsColumnRangeIntoSingleIterator(KeyValueService kvs,
-                                                                                   TableReference tableRef,
-                                                                                   Iterable<byte[]> rows,
-                                                                                   ColumnRangeSelection columnRangeSelection,
-                                                                                   int batchHint,
-                                                                                   long timestamp) {
+    public static RowColumnRangeIterator mergeGetRowsColumnRangeIntoSingleIterator(
+            KeyValueService kvs,
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            int batchHint,
+            long timestamp) {
         if (Iterables.isEmpty(rows)) {
             return new LocalRowColumnRangeIterator(Collections.emptyIterator());
         }
