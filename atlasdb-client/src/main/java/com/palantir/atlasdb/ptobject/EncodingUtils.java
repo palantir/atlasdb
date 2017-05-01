@@ -33,7 +33,8 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteO
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.annotation.Output;
 
-public class EncodingUtils {
+// REVIEW would leave mathematic symbols and parenthesis as is
+public final class EncodingUtils {
     private EncodingUtils() {
         // empty
     }
