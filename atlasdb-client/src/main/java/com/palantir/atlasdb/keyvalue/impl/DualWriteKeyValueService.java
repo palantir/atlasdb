@@ -140,14 +140,14 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Value>> getRange(
+            TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         return delegate1.getRange(tableRef, rangeRequest, timestamp);
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
-                                                                                                           Iterable<RangeRequest> rangeRequests,
-                                                                                                           long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         return delegate1.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
@@ -204,7 +204,8 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
+            TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         return delegate1.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
     }
 
@@ -238,7 +239,9 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection,
+            long timestamp) {
         return delegate1.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
     }
 
