@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,8 +42,7 @@ import com.palantir.nexus.db.pool.RetriableWriteTransaction;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
-// TODO: switch to using ptdatabase sql running, which more gracefully
-// supports multiple db types.
+// TODO(hsaraogi): switch to using ptdatabase sql running, which more gracefully supports multiple db types.
 public class InDbTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(InDbTimestampBoundStore.class);
 
@@ -96,8 +95,10 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
         long run(Connection connection, @Nullable Long oldLimit) throws SQLException;
     }
 
+    @GuardedBy("this")
     private long runOperation(final Operation operation) {
         TransactionResult<Long> result = RetriableTransactions.run(connManager, new RetriableWriteTransaction<Long>() {
+            @GuardedBy("InDbTimestampBoundStore.this")
             @Override
             public Long run(Connection connection) throws SQLException {
                 Long oldLimit = readLimit(connection);
@@ -238,6 +239,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
         return tablePrefix + timestampTable.getQualifiedName();
     }
 
+    @GuardedBy("this")
     private DBType getDbType(Connection connection) {
         if (dbType == null) {
             dbType = ConnectionDbTypes.getDbType(connection);

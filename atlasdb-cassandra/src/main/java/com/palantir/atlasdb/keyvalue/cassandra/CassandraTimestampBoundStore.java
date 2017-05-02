@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,7 +85,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     @Override
     public synchronized long getUpperLimit() {
         DebugLogger.logger.debug("[GET] Getting upper limit");
-        return clientPool.runWithRetry(new FunctionCheckedException<Client, Long, RuntimeException>() {
+        Long upperLimit = clientPool.runWithRetry(new FunctionCheckedException<Client, Long, RuntimeException>() {
+            @GuardedBy("CassandraTimestampBoundStore.this")
             @Override
             public Long apply(Client client) {
                 ByteBuffer rowName = getRowName();
@@ -105,9 +106,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     cas(client, null, CassandraTimestampUtils.INITIAL_VALUE);
                     return CassandraTimestampUtils.INITIAL_VALUE;
                 }
-                currentLimit = extractUpperLimit(result);
-                DebugLogger.logger.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
-                return currentLimit;
+                return extractUpperLimit(result);
             }
 
             private long extractUpperLimit(ColumnOrSuperColumn result) {
@@ -125,12 +124,18 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                 }
             }
         });
+
+        DebugLogger.logger.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
+        currentLimit = upperLimit;
+        return currentLimit;
     }
 
     @Override
     public synchronized void storeUpperLimit(final long limit) {
         DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
+
         clientPool.runWithRetry(new FunctionCheckedException<Client, Void, RuntimeException>() {
+            @GuardedBy("CassandraTimestampBoundStore.this")
             @Override
             public Void apply(Client client) {
                 cas(client, currentLimit, limit);
@@ -139,6 +144,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         });
     }
 
+    @GuardedBy("this")
     private void cas(Client client, Long oldVal, long newVal) {
         final CASResult result;
         try {
@@ -156,7 +162,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             throw Throwables.throwUncheckedException(e);
         }
         if (!result.isSuccess()) {
-            String msg = "Unable to CAS from {} to {}."
+            final String msg = "Unable to CAS from {} to {}."
                     + " Timestamp limit changed underneath us (limit in memory: {}, stored in DB: {})."
                     + " This may indicate that another timestamp service is running against this cassandra keyspace."
                     + " This is likely caused by multiple copies of a service running without a configured set of"

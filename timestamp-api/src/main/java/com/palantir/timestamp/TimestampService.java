@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ public interface TimestampService {
     long getFreshTimestamp();
 
     /**
-     * @return never null. Inclusive LongRange of timestamps.  Will always have at least 1 value.
+     * @return never null; inclusive LongRange of timestamps that always has at least 1 value
      * This range may have less than the requested amount.
      */
     @POST // This has to be POST because we can't allow caching.

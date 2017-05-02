@@ -79,6 +79,9 @@ configurations.all {
                 case 'org.glassfish.jersey.core':
                     details.useVersion libVersions.timelock_jersey
                     break
+                case 'com.google.guava':
+                    details.useVersion libVersions.timelock_guava
+                    break
             }
         }
         forcedModules = [

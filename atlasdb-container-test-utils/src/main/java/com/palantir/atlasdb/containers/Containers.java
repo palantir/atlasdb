@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,8 +51,7 @@ public class Containers extends ExternalResource {
 
     private static final Set<Container> containersToStart = new HashSet<>();
     private static final Set<Container> containersStarted = new HashSet<>();
-    private static final LoadingCache<String, String> dockerComposeFilesToTemporaryCopies =
-            CacheBuilder.<String, String>newBuilder()
+    private static final LoadingCache<String, String> dockerComposeFilesToTemporaryCopies = CacheBuilder.newBuilder()
                     .build(CacheLoader.from(Containers::getDockerComposeFile));
 
     private static volatile DockerComposeRule dockerComposeRule;
