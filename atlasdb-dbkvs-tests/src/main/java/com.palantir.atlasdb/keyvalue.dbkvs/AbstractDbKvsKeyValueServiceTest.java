@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Collectors;
@@ -25,7 +26,10 @@ import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -35,8 +39,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
-import com.palantir.atlasdb.sweep.EquivalenceCountingIterator;
-import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueServiceTest {
@@ -67,27 +69,25 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
                 TEST_TABLE,
                 normalRange(10),
                 62)) {
-            EquivalenceCountingIterator<RowResult<Set<Long>>> iterator =
-                    new EquivalenceCountingIterator<>(rowResults, 10, SweepTaskRunner.sameRowEquivalence());
+            List<RowResult<Set<Long>>> resultList = ImmutableList.copyOf(rowResults);
 
-            assertRowColumnsTimestamps(iterator.next(), 1, ImmutableSet.of(1, 2, 3, 4),
+            assertRowColumnsTimestamps(resultList.get(0), 1, ImmutableSet.of(1, 2, 3, 4),
                     10L, 20L, 21L, 30L, 31L, 32L, 40L, 41L, 42L, 43L);
-            assertRowColumnsTimestamps(iterator.next(), 1, ImmutableSet.of(5, 6),
+            assertRowColumnsTimestamps(resultList.get(1), 1, ImmutableSet.of(5, 6),
                     50L, 51L, 52L, 53L, 54L, 60L, 61L);
-            assertRowColumnsTimestamps(iterator.next(), 2, ImmutableSet.of(2, 3, 4),
+            assertRowColumnsTimestamps(resultList.get(2), 2, ImmutableSet.of(2, 3, 4),
                     20L, 21L, 30L, 31L, 32L, 40L, 41L, 42L, 43L);
-            assertRowColumnsTimestamps(iterator.next(), 2, ImmutableSet.of(5, 6),
+            assertRowColumnsTimestamps(resultList.get(3), 2, ImmutableSet.of(5, 6),
                     50L, 51L, 52L, 53L, 54L, 60L, 61L);
-            assertRowColumnsTimestamps(iterator.next(), 3, ImmutableSet.of(3, 4),
+            assertRowColumnsTimestamps(resultList.get(4), 3, ImmutableSet.of(3, 4),
                     30L, 31L, 32L, 40L, 41L, 42L, 43L);
-            assertRowColumnsTimestamps(iterator.next(), 3, ImmutableSet.of(5, 6),
+            assertRowColumnsTimestamps(resultList.get(5), 3, ImmutableSet.of(5, 6),
                     50L, 51L, 52L, 53L, 54L, 60L, 61L);
-            assertRowColumnsTimestamps(iterator.next(), 4, ImmutableSet.of(4, 5),
+            assertRowColumnsTimestamps(resultList.get(6), 4, ImmutableSet.of(4, 5),
                     40L, 41L, 42L, 43L, 50L, 51L, 52L, 53L, 54L);
-            assertRowColumnsTimestamps(iterator.next(), 4, ImmutableSet.of(6),
+            assertRowColumnsTimestamps(resultList.get(7), 4, ImmutableSet.of(6),
                     60L, 61L);
-            exhaustIterator(iterator);
-            assertThat(iterator.size()).isEqualTo(6);
+            assertNumberOfUniqueRows(resultList, 6);
         }
     }
 
@@ -99,28 +99,27 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
                 TEST_TABLE,
                 reverseRange(5),
                 100)) {
-            EquivalenceCountingIterator<RowResult<Set<Long>>> iterator =
-                    new EquivalenceCountingIterator<>(rowResults, 5, SweepTaskRunner.sameRowEquivalence());
+            List<RowResult<Set<Long>>> resultList = ImmutableList.copyOf(rowResults);
 
-            assertRowColumnsTimestamps(iterator.next(), 9, ImmutableSet.of(9),
+            assertRowColumnsTimestamps(resultList.get(0), 9, ImmutableSet.of(9),
                     90L, 91L, 92L, 93L, 94L, 95L, 96L, 97L, 98L);
-            assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(8),
+            assertRowColumnsTimestamps(resultList.get(1), 8, ImmutableSet.of(8),
                     80L, 81L, 82L, 83L, 84L, 85L, 86L, 87L);
-            assertRowColumnsTimestamps(iterator.next(), 8, ImmutableSet.of(9),
+            assertRowColumnsTimestamps(resultList.get(2), 8, ImmutableSet.of(9),
                     90L, 91L, 92L, 93L, 94L, 95L, 96L, 97L, 98L);
-            assertRowColumnsTimestamps(iterator.next(), 7, ImmutableSet.of(7, 8),
+            assertRowColumnsTimestamps(resultList.get(3), 7, ImmutableSet.of(7, 8),
                     70L, 71L, 72L, 73L, 74L, 75L, 76L, 80L, 81L, 82L, 83L, 84L, 85L, 86L, 87L);
-            exhaustIterator(iterator);
-            assertThat(iterator.size()).isEqualTo(5);
-            assertRowColumnsTimestamps(iterator.lastItem(), 5, ImmutableSet.of(9),
+            assertRowColumnsTimestamps(resultList.get(10), 5, ImmutableSet.of(9),
                     90L, 91L, 92L, 93L, 94L, 95L, 96L, 97L, 98L);
         }
     }
 
-    private void exhaustIterator(EquivalenceCountingIterator<RowResult<Set<Long>>> iterator) {
-        while (iterator.hasNext()) {
-            iterator.next();
+    private static <T> void assertNumberOfUniqueRows(List<RowResult<T>> rowResults, int expectedRows) {
+        Set<byte[]> uniqueRows = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+        for (RowResult<T> rr : rowResults) {
+            uniqueRows.add(rr.getRowName());
         }
+        assertThat(uniqueRows.size()).isEqualTo(expectedRows);
     }
 
     /**
@@ -163,4 +162,5 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         DbKvsTestUtils.setupTestTable(keyValueService, TEST_TABLE, null);
     }
+
 }

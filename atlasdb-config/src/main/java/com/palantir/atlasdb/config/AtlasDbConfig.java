@@ -154,21 +154,29 @@ public abstract class AtlasDbConfig {
     }
 
     /**
-     * The number of rows to process per batch by the background
-     * sweeper.
+     * The number of (cell, timestamp) pairs to delete at once while sweeping.
      */
     @Value.Default
-    public int getSweepBatchSize() {
-        return AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE;
+    public int getSweepDeleteBatchSize() {
+        return AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_SIZE;
     }
 
     /**
-     * The maximum number of cells to process per batch by the background
-     * sweeper.
+     * The number of candidate (cell, timestamp) pairs to load per batch while sweeping.
+     */
+    @Value.Default
+    public int getSweepBatchSize() {
+        // TODO(gbonik): rename config fields?
+        return AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_SIZE;
+    }
+
+    /**
+     * The maximum number of (cell, timestamp) pairs to examine in a single run of the background sweeper.
      */
     @Value.Default
     public int getSweepCellBatchSize() {
-        return AtlasDbConstants.DEFAULT_SWEEP_CELL_BATCH_SIZE;
+        // TODO(gbonik): rename config fields?
+        return AtlasDbConstants.DEFAULT_SWEEP_MAX_CELL_TS_PAIRS_TO_EXAMINE;
     }
 
     @Value.Check

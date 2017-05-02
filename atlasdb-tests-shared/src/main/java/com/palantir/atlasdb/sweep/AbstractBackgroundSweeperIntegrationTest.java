@@ -63,6 +63,11 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     private BackgroundSweeperImpl backgroundSweeper;
     private int batchSize = 8;
     private int cellBatchSize = 15;
+    private SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
+            .deleteBatchSize(8)
+            .candidateBatchSize(15)
+            .maxCellTsPairsToExamine(1000)
+            .build();
     private TransactionService txService;
 
     @Before
@@ -84,8 +89,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 sweepRunner,
                 () -> true, // sweepEnabled
                 () -> 10L, // sweepPauseMillis
-                () -> batchSize,
-                () -> cellBatchSize,
+                () -> sweepBatchConfig,
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 persistentLockManager);

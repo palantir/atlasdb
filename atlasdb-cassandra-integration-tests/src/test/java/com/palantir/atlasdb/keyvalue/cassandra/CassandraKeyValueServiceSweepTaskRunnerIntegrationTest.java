@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-
 import java.util.Arrays;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -34,7 +31,6 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 
@@ -75,9 +71,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         insertMultipleValues(numInsertions);
 
         long sweepTimestamp = numInsertions + 1;
-        SweepResults sweepResults = completeSweep(sweepTimestamp);
-
-        assertThat(sweepResults.getCellsDeleted(), equalTo(numInsertions - 1));
+        completeSweep(sweepTimestamp, numInsertions - 1, 1);
     }
 
     @Test
@@ -89,9 +83,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
             put("row", "col2", "value", ts + 5);
         }
 
-        SweepResults sweepResults = completeSweep(350);
-
-        assertThat(sweepResults.getCellsDeleted(), equalTo(28L));
+        completeSweep(350, 28, 2);
     }
 
     private void insertMultipleValues(long numInsertions) {

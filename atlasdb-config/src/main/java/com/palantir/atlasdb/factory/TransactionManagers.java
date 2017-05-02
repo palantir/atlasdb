@@ -58,8 +58,10 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.CellsSweeper;
+import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
 import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
+import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -249,14 +251,19 @@ public final class TransactionManagers {
                 transactionService,
                 sweepStrategyManager,
                 cellsSweeper);
+        // TODO(gbonik): we need to rename AtlasDbConfig fields to make more sense
+        SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
+                .maxCellTsPairsToExamine(config.getSweepCellBatchSize())
+                .candidateBatchSize(config.getSweepBatchSize())
+                .deleteBatchSize(config.getSweepDeleteBatchSize())
+                .build();
         BackgroundSweeper backgroundSweeper = BackgroundSweeperImpl.create(
                 transactionManager,
                 kvs,
                 sweepRunner,
                 Suppliers.ofInstance(config.enableSweep()),
                 Suppliers.ofInstance(config.getSweepPauseMillis()),
-                Suppliers.ofInstance(config.getSweepBatchSize()),
-                Suppliers.ofInstance(config.getSweepCellBatchSize()),
+                Suppliers.ofInstance(sweepBatchConfig),
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 persistentLockManager);
