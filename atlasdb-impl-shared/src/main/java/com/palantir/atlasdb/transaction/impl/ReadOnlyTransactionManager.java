@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,10 @@ package com.palantir.atlasdb.transaction.impl;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -132,6 +134,23 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     @Override
     public long getImmutableTimestamp() {
         return Long.MAX_VALUE;
+    }
+
+    @Override
+    public KeyValueServiceStatus getKeyValueServiceStatus() {
+        ClusterAvailabilityStatus clusterAvailabilityStatus = keyValueService.getClusterAvailabilityStatus();
+        switch (clusterAvailabilityStatus) {
+            case ALL_AVAILABLE:
+            case QUORUM_AVAILABLE:
+                return KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS;
+            case NO_QUORUM_AVAILABLE:
+                return KeyValueServiceStatus.UNHEALTHY;
+            case TERMINAL:
+                return KeyValueServiceStatus.TERMINAL;
+            default:
+                log.warn("The kvs returned a non-standard availability status: {}", clusterAvailabilityStatus);
+                return KeyValueServiceStatus.UNHEALTHY;
+        }
     }
 
     @Override

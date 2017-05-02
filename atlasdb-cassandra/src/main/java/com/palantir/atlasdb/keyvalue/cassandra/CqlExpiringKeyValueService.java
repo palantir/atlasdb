@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,27 +35,27 @@ import com.palantir.atlasdb.keyvalue.api.ExpiringKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.TransactionType;
+import com.palantir.atlasdb.keyvalue.cassandra.CqlKeyValueServices.TransactionType;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.common.base.Throwables;
 
 
-public final class CQLExpiringKeyValueService extends CQLKeyValueService implements ExpiringKeyValueService {
+public final class CqlExpiringKeyValueService extends CqlKeyValueService implements ExpiringKeyValueService {
 
-    public static CQLExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
+    public static CqlExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
         Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
 
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CQLExpiringKeyValueService kvs = new CQLExpiringKeyValueService(configManager, compactionManager);
+        CqlExpiringKeyValueService kvs = new CqlExpiringKeyValueService(configManager, compactionManager);
         kvs.initializeConnectionPool();
         kvs.performInitialSetup();
         return kvs;
     }
 
-    private CQLExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager,
+    private CqlExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager,
                                        Optional<CassandraJmxCompactionManager> compactionManager) {
         super(configManager, compactionManager);
     }
@@ -106,7 +106,7 @@ public final class CQLExpiringKeyValueService extends CQLKeyValueService impleme
                     getMultiPutBatchCount(),
                     getMultiPutBatchSizeBytes(),
                     table,
-                    CQLKeyValueServices.MULTIPUT_ENTRY_SIZING_FUNCTION);
+                    CqlKeyValueServices.MULTIPUT_ENTRY_SIZING_FUNCTION);
 
 
             for (final List<Entry<Cell, byte[]>> p : partitions) {

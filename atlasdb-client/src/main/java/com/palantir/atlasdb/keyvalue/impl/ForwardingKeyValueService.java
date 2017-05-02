@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -207,5 +208,10 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     @Override
     public void compactInternally(TableReference tableRef) {
         delegate().compactInternally(tableRef);
+    }
+
+    @Override
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        return delegate().getClusterAvailabilityStatus();
     }
 }

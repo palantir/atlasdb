@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,14 +20,14 @@ import javax.management.MXBean;
 
 @MXBean
 public interface SqlStatsMBean {
-    public boolean isCollectCallStatsEnabled();
+    boolean isCollectCallStatsEnabled();
 
-    public void setCollectCallStatsEnabled(boolean enabled);
+    void setCollectCallStatsEnabled(boolean enabled);
 
-    public void clearAllStats();
+    void clearAllStats();
 
-    public String getTopQueriesByTotalTime(int n);
+    String getTopQueriesByTotalTime(int numQueries);
 
-    public long getClearTempTableByDeleteCount();
-    public long getClearTempTableByTruncateCount();
+    long getClearTempTableByDeleteCount();
+    long getClearTempTableByTruncateCount();
 }

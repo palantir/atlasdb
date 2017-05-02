@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,6 +72,7 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -95,6 +96,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ImmediateSingleBatchTaskRu
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ParallelTaskRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleGetRange;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowValueLoader;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.DbkvsVersionException;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresGetRange;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresPrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRange;
@@ -1191,6 +1193,18 @@ public final class DbKvs extends AbstractKeyValueService {
                 return null;
             }
         });
+    }
+
+    @Override
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        try {
+            checkDatabaseVersion();
+            return ClusterAvailabilityStatus.ALL_AVAILABLE;
+        } catch (DbkvsVersionException e) {
+            return ClusterAvailabilityStatus.TERMINAL;
+        } catch (Exception e) {
+            return ClusterAvailabilityStatus.NO_QUORUM_AVAILABLE;
+        }
     }
 
     public void checkDatabaseVersion() {

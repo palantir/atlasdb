@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,6 +112,7 @@ import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -1023,6 +1024,11 @@ public class JdbcKeyValueService implements KeyValueService {
                 }
             });
         }
+    }
+
+    @Override
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        throw new UnsupportedOperationException("getClusterAvailabilityStatus has not been implemented for Jdbc KVS");
     }
 
     @Override

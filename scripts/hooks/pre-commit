@@ -1,20 +1,20 @@
-#!/bin/bash
-
-echo_and_run() {
-    echo "\$ $@"
-    "$@"
-}
-
-FILES_CHANGED=$(git diff --cached --name-only)
-if [ -z "$FILES_CHANGED" ]; then
-    echo "No file changes detected"
-    exit 0
-fi
-
-PROJECTS_CHANGED=$(comm -12 <(echo "$FILES_CHANGED" | sed -n 's#^\([^/]*\)/.*#\1#p' | sort | uniq) <(sed -n 's/^include ":\(.*\)"$/\1/p' settings.gradle | sort))
-if [ -z "$PROJECTS_CHANGED" ]; then
-    echo "No project changes detected"
-    exit 0
-fi
-
+#!/bin/bash        
+        
+echo_and_run() {        
+    echo "\$ $@"        
+    "$@"        
+}        
+        
+FILES_CHANGED=$(git diff --cached --name-only)        
+if [ -z "$FILES_CHANGED" ]; then        
+    echo "No file changes detected"        
+    exit 0        
+fi        
+        
+PROJECTS_CHANGED=$(comm -12 <(echo "$FILES_CHANGED" | sed -n 's#^\([^/]*\)/.*#\1#p' | sort | uniq) <(sed -n 's/^include ":\(.*\)"$/\1/p' settings.gradle | sort))        
+if [ -z "$PROJECTS_CHANGED" ]; then        
+    echo "No project changes detected"        
+    exit 0        
+fi        
+        
 echo_and_run ./gradlew --continue -x test -x integTest -x jepsenTest $(echo "$PROJECTS_CHANGED" | sed "s#\(.*\)#:\1:check#" | tr "\n" " ")

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.base.Supplier;
+import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -53,6 +54,11 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     @Override
     public long getImmutableTimestamp() {
         return delegate().getImmutableTimestamp();
+    }
+
+    @Override
+    public KeyValueServiceStatus getKeyValueServiceStatus() {
+        return delegate().getKeyValueServiceStatus();
     }
 
     @Override

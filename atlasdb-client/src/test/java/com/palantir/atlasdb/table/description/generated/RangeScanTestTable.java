@@ -211,6 +211,7 @@ public final class RangeScanTestTable implements
             return Objects.equal(component1, other.component1);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(component1);
@@ -710,5 +711,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "alt49Cpv8pXByJA4vI0iIQ==";
+    static String __CLASS_HASH = "ef8yxFRHZOgjdg0lSSe1EQ==";
 }

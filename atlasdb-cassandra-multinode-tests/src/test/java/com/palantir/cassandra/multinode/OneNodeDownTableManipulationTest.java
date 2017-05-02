@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,70 +32,70 @@ public class OneNodeDownTableManipulationTest {
 
     @Test
     public void createTableThrows() {
-        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).doesNotContain(NEW_TABLE);
+        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(NEW_TABLE);
         assertThatThrownBy(
-                () -> OneNodeDownTestSuite.db.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA))
+                () -> OneNodeDownTestSuite.kvs.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA))
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("At schema version UNREACHABLE");
         // This documents and verifies the current behaviour, creating the table in spite of the exception
         // Seems to be inconsistent with the API
-        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).contains(NEW_TABLE);
+        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(NEW_TABLE);
     }
 
     @Test
     public void createTablesThrows() {
-        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).doesNotContain(NEW_TABLE2);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.createTables(
+        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(NEW_TABLE2);
+        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.createTables(
                 ImmutableMap.of(NEW_TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA)))
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("At schema version UNREACHABLE");
         // This documents and verifies the current behaviour, creating the table in spite of the exception
         // Seems to be inconsistent with the API
-        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).contains(NEW_TABLE2);
+        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(NEW_TABLE2);
     }
 
     @Test
     public void dropTableThrows() {
-        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.dropTable(OneNodeDownTestSuite.TEST_TABLE_TO_DROP))
+        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
+        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.dropTable(OneNodeDownTestSuite.TEST_TABLE_TO_DROP))
                 .isExactlyInstanceOf(IllegalStateException.class);
         // This documents and verifies the current behaviour, dropping the table in spite of the exception
         // Seems to be inconsistent with the API
-        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
+        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
     }
 
     @Test
     public void dropTablesThrows() {
-        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.dropTables(
+        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
+        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.dropTables(
                 ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2)))
                 .isExactlyInstanceOf(IllegalStateException.class);
         // This documents and verifies the current behaviour, dropping the table in spite of the exception
         // Seems to be inconsistent with the API
-        assertThat(OneNodeDownTestSuite.db.getAllTableNames())
+        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames())
                 .doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
     }
 
     @Test
     public void canCompactInternally() {
-        OneNodeDownTestSuite.db.compactInternally(OneNodeDownTestSuite.TEST_TABLE);
+        OneNodeDownTestSuite.kvs.compactInternally(OneNodeDownTestSuite.TEST_TABLE);
     }
 
     @Test
     public void canCleanUpSchemaMutationLockTablesState() throws Exception {
-        OneNodeDownTestSuite.db.cleanUpSchemaMutationLockTablesState();
+        OneNodeDownTestSuite.kvs.cleanUpSchemaMutationLockTablesState();
     }
 
     @Test
     public void truncateTableThrows() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.truncateTable(OneNodeDownTestSuite.TEST_TABLE))
+        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.truncateTable(OneNodeDownTestSuite.TEST_TABLE))
                 .isExactlyInstanceOf(PalantirRuntimeException.class)
                 .hasMessage("Truncating tables requires all Cassandra nodes to be up and available.");
     }
 
     @Test
     public void truncateTablesThrows() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.truncateTables(
+        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.truncateTables(
                 ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE)))
                 .isExactlyInstanceOf(PalantirRuntimeException.class)
                 .hasMessage("Truncating tables requires all Cassandra nodes to be up and available.");

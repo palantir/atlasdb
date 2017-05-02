@@ -209,6 +209,7 @@ public final class GenericRangeScanTestTable implements
             return Objects.equal(component1, other.component1);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(component1);
@@ -300,6 +301,7 @@ public final class GenericRangeScanTestTable implements
             return Objects.equal(component2, other.component2);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(component2);
@@ -768,5 +770,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "CxjBhoru+hYea5dPeicstg==";
+    static String __CLASS_HASH = "4LtpdhCyA21Pw4rl0Oa+gw==";
 }
