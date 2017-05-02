@@ -251,10 +251,12 @@ This behavior can be enabled with the flag <code class="docutils literal"><span 
 For more information, see the <a class="reference internal" href="../configuration/external_timelock_service_configs/timelock_server_config.html#timelock-server-further-config"><span class="std std-ref">docs</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1785">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td><code class="docutils literal"><span class="pre">TransactionManager</span></code> now has an API <code class="docutils literal"><span class="pre">getKeyValueServiceStatus</span></code> that can return the health of the underlying KVS.
-This is designed for applications to implement their availability status taking into account the <a class="reference internal" href="../miscellaneous/kvs-status-check.html#kvs-status-check"><span class="std std-ref">kvs health</span></a>
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1832">Pull Request</a>)</td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-new">NEW</span></td>
+<td><p class="first"><code class="docutils literal"><span class="pre">TransactionManager</span></code> now has an API <code class="docutils literal"><span class="pre">getKeyValueServiceStatus</span></code> that can return the health of the underlying KVS.
+This is designed for applications to implement their availability status taking into account the <a class="reference internal" href="../miscellaneous/kvs-status-check.html#kvs-status-check"><span class="std std-ref">kvs health</span></a>.</p>
+<p class="last">This is breaking for applications that have custom <code class="docutils literal"><span class="pre">KeyValueService</span></code> implementations, as they must implement the new method.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1832">Pull Request</a>)</p>
+</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>On graceful shutdown, the background sweeper will now release the backup lock if it holds it.
