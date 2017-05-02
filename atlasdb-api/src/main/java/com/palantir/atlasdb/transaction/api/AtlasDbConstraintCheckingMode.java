@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings("NM_CLASS_NOT_EXCEPTION")
 public enum AtlasDbConstraintCheckingMode {
     FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS(ShouldThrow.YES),
     FULL_CONSTRAINT_CHECKING_LOGS_EXCEPTIONS(ShouldThrow.NO),
