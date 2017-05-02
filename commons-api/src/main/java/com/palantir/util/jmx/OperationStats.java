@@ -23,39 +23,37 @@ import com.palantir.annotations.PgPublicApi;
 public interface OperationStats {
 
     /**
-     * This returns the percentage of calls that were returned in {@code millis} milliseconds
+     * This returns the percentage of calls that were returned in {@code millis} milliseconds.
      *
      * These are often referred to as understats u2000 is the percentage of calls finished in 2ms
      * {@code percentCallsFinishedInMillis(2000)} is also known as u2000
      *
-     *
-     * @param millis
-     * @return
+     * @param millis the time bound we want to retrieve percentages for
+     * @return the percentage of calls finishing in the specified number of milliseconds
      */
-    public abstract double getPercentCallsFinishedInMillis(int millis);
+    double getPercentCallsFinishedInMillis(int millis);
 
     /**
-     * This returns the approximate number of milliseconds for a given percentile
+     * This returns the approximate number of milliseconds for a given percentile.
      *
      * {@code getPercentileMillis(90)} is also known as tp90
      * {@code getPercentileMillis(50)} is the median
      */
-    public abstract double getPercentileMillis(double perc);
+    double getPercentileMillis(double perc);
 
-    public abstract void clearStats();
+    void clearStats();
 
-    public abstract long getTotalTime();
+    long getTotalTime();
 
-    public abstract long getTotalCalls();
+    long getTotalCalls();
 
-    public abstract long getTimePerCallInMillis();
+    long getTimePerCallInMillis();
 
-    public abstract double getStandardDeviationInMillis();
+    double getStandardDeviationInMillis();
 
-    public abstract long getMaxCallTime();
+    long getMaxCallTime();
 
-    public abstract long getMinCallTime();
+    long getMinCallTime();
 
-    public abstract double getMedianTimeRequestInMillis();
-
+    double getMedianTimeRequestInMillis();
 }
