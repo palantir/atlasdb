@@ -71,6 +71,10 @@ develop
          - Relax the signature of KeyValueService.addGarbageCollectionSentinelValues() to take an Iterable instead of a Set.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1843>`__)
 
+    *    - |fixed|
+         - Fixed DbKvs.getRangeOfTimestamps() only returning the first page of results rather than paging through the whole range.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1872>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
