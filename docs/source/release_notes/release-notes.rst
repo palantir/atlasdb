@@ -93,9 +93,11 @@ develop
            For more information, see the :ref:`docs <timelock-server-further-config>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
-    *    - |new|
+    *    - |devbreak| |new|
          - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS.
-           This is designed for applications to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`
+           This is designed for applications to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`.
+
+           This is breaking for applications that have custom ``KeyValueService`` implementations, as they must implement the new method.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1832>`__)
 
     *    - |improved|
