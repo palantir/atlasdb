@@ -94,10 +94,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
     *    - |devbreak| |new|
-         - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS.
+         - The ``TransactionManager`` interface has a new method ``getKeyValueServiceStatus()`` that can return the health of the underlying KVS.
            This is designed for applications to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`.
 
-           This is breaking for applications that have custom ``KeyValueService`` implementations, as they must implement the new method.
+           This is breaking for applications that have custom implementations or either ``KeyValueService`` or ``TransactionManager``, as they must implement the new methods.
+           ``KeyValueService`` has a new method ``getClusterAvailabilityStatus()``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1832>`__)
 
     *    - |improved|
