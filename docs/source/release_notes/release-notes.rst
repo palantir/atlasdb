@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - Removed package ``atlasdb-exec``. If you require this package, please file a ticket to have it reinstated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1861>`__)
+
     *    - |changed|
          - Our dependency on immutables was bumped from 2.2.4 to 2.4.0, in order to fix an issue with static code analysis reporting errors in generated code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1853>`__)
