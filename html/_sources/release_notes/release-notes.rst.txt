@@ -84,7 +84,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
 
     *    - |devbreak| |fixed|
-         - Correct ``TransactionManager.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
+         - Correct ``TransactionManagers.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1859>`__)
 
     *    - |new|
