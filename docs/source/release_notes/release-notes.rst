@@ -62,6 +62,10 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1853>`__)
 
+    *    - |devbreak|
+         - Relax the signature of KeyValueService.addGarbageCollectionSentinelValues() to take an Iterable instead of a Set.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1843>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 

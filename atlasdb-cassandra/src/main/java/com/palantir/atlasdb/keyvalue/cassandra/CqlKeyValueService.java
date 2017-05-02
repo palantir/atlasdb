@@ -1157,7 +1157,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         }
     }
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         try {
             final Value value = Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP);
             putInternal(
