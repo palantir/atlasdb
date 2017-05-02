@@ -31,6 +31,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -58,8 +59,10 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.CellsSweeper;
+import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
 import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
+import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -255,14 +258,31 @@ public final class TransactionManagers {
                 sweepRunner,
                 Suppliers.ofInstance(config.enableSweep()),
                 Suppliers.ofInstance(config.getSweepPauseMillis()),
-                Suppliers.ofInstance(config.getSweepBatchSize()),
-                Suppliers.ofInstance(config.getSweepCellBatchSize()),
+                Suppliers.ofInstance(getSweepBatchConfig(config)),
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 persistentLockManager);
         backgroundSweeper.runInBackground();
 
         return transactionManager;
+    }
+
+    private static SweepBatchConfig getSweepBatchConfig(AtlasDbConfig config) {
+        if (config.getSweepBatchSize().isPresent() || config.getSweepCellBatchSize().isPresent()) {
+            log.error("Configuration parameters 'sweepBatchSize' and 'sweepCellBatchSize' have been deprecated"
+                    + " in favor of 'sweepMaxCellTsPairsToExamine', 'sweepCandidateBatchSize'"
+                    + " and 'sweepDeleteBatchSize'. Please update your configuration files.");
+        }
+        return ImmutableSweepBatchConfig.builder()
+                .maxCellTsPairsToExamine(config.getSweepMaxCellTsPairsToExamine().orElse(
+                        config.getSweepCellBatchSize().orElse(
+                            AtlasDbConstants.DEFAULT_SWEEP_MAX_CELL_TS_PAIRS_TO_EXAMINE)))
+                .candidateBatchSize(config.getSweepCandidateBatchSize().orElse(
+                        config.getSweepBatchSize().orElse(
+                            AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_SIZE)))
+                .deleteBatchSize(config.getSweepDeleteBatchSize().orElse(
+                        AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_SIZE))
+                .build();
     }
 
     private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {

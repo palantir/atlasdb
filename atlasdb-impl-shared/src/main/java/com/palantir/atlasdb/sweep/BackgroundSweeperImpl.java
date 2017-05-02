@@ -60,14 +60,14 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private final SweepTaskRunner sweepRunner;
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
-    private final Supplier<Integer> sweepRowBatchSize;
-    private final Supplier<Integer> sweepCellBatchSize;
+    private final Supplier<SweepBatchConfig> sweepBatchConfig;
     private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
     private final SweepMetrics sweepMetrics;
     private final PersistentLockManager persistentLockManager;
     private final Clock wallClock;
 
-    private volatile float batchSizeMultiplier = 1.0f;
+    private volatile double batchSizeMultiplier = 1.0;
+
     private Thread daemon;
 
     @VisibleForTesting
@@ -81,8 +81,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             SweepTaskRunner sweepRunner,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
-            Supplier<Integer> sweepBatchSize,
-            Supplier<Integer> sweepCellBatchSize,
+            Supplier<SweepBatchConfig> sweepBatchConfig,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
             SweepMetrics sweepMetrics,
             PersistentLockManager persistentLockManager,
@@ -96,8 +95,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         this.sweepRunner = sweepRunner;
         this.isSweepEnabled = isSweepEnabled;
         this.sweepPauseMillis = sweepPauseMillis;
-        this.sweepRowBatchSize = sweepBatchSize;
-        this.sweepCellBatchSize = sweepCellBatchSize;
+        this.sweepBatchConfig = sweepBatchConfig;
         this.sweepPerfLogger = sweepPerfLogger;
         this.sweepMetrics = sweepMetrics;
         this.persistentLockManager = persistentLockManager;
@@ -110,8 +108,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             SweepTaskRunner sweepRunner,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
-            Supplier<Integer> sweepBatchSize,
-            Supplier<Integer> sweepCellBatchSize,
+            Supplier<SweepBatchConfig> sweepBatchConfig,
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
             PersistentLockManager persistentLockManager) {
@@ -129,8 +126,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 sweepRunner,
                 isSweepEnabled,
                 sweepPauseMillis,
-                sweepBatchSize,
-                sweepCellBatchSize,
+                sweepBatchConfig,
                 sweepPerfLogger,
                 sweepMetrics,
                 persistentLockManager,
@@ -196,15 +192,15 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             if (checkAndRepairTableDrop()) {
                 log.error("The table being swept by the background sweeper was dropped, moving on...");
             } else {
-                int sweepBatchSize = (int) (batchSizeMultiplier * sweepRowBatchSize.get());
-                log.error("The background sweep job failed unexpectedly with a batch size of {}"
-                        + ". Attempting to continue with a lower batch size...", sweepBatchSize, e);
+                SweepBatchConfig lastBatchConfig = getAdjustedBatchConfig();
+                log.error("The background sweep job failed unexpectedly with batch config {}"
+                        + ". Attempting to continue with a lower batch size...", lastBatchConfig, e);
                 // Cut batch size in half, always sweep at least one row (we round down).
-                batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5f / sweepRowBatchSize.get());
+                batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
             }
         }
         if (sweptSuccessfully) {
-            batchSizeMultiplier = Math.min(1.0f, batchSizeMultiplier * 1.01f);
+            batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
             return sweepPauseMillis.get();
         } else {
             return 20 * (1000 + sweepPauseMillis.get());
@@ -225,17 +221,15 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private void runOnceForTable(TableToSweep tableToSweep) {
-        int rowBatchSize = Math.max(1, (int) (sweepRowBatchSize.get() * batchSizeMultiplier));
-        int cellBatchSize = sweepCellBatchSize.get();
         Stopwatch watch = Stopwatch.createStarted();
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
         sweepMetrics.registerMetricsIfNecessary(tableRef);
+        SweepBatchConfig batchConfig = getAdjustedBatchConfig();
         try {
             SweepResults results = sweepRunner.run(
                     tableRef,
-                    rowBatchSize,
-                    cellBatchSize,
+                    batchConfig,
                     startRow);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
             log.debug("Swept {} unique cells from {} starting at {}"
@@ -252,13 +246,25 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             saveSweepResults(tableToSweep, results);
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
-            log.debug("Failed to sweep {} with row batch size {} and cell batch size {} starting from row {}",
+            log.debug("Failed to sweep {} with batch config {} starting from row {}",
                     tableRef,
-                    rowBatchSize,
-                    cellBatchSize,
+                    batchConfig,
                     startRowToHex(startRow));
             throw e;
         }
+    }
+
+    private SweepBatchConfig getAdjustedBatchConfig() {
+        SweepBatchConfig baseConfig = sweepBatchConfig.get();
+        return ImmutableSweepBatchConfig.builder()
+                .maxCellTsPairsToExamine(adjustBatchParameter(baseConfig.maxCellTsPairsToExamine()))
+                .candidateBatchSize(adjustBatchParameter(baseConfig.candidateBatchSize()))
+                .deleteBatchSize(adjustBatchParameter(baseConfig.deleteBatchSize()))
+                .build();
+    }
+
+    private int adjustBatchParameter(int parameterValue) {
+        return Math.max(1, (int) (batchSizeMultiplier * parameterValue));
     }
 
     private static String startRowToHex(@Nullable byte[] row) {
@@ -298,9 +304,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             return progress == null ? OptionalLong.empty() : OptionalLong.of(progress.minimumSweptTimestamp());
         }
 
-        @Nullable
         byte[] getStartRow() {
-            return progress == null ? null : progress.startRow();
+            return progress == null ? PtBytes.EMPTY_BYTE_ARRAY : progress.startRow();
         }
     }
 

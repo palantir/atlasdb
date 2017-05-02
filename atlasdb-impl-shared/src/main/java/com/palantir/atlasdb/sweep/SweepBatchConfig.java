@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,18 +15,25 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Set;
-
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
-
 @Value.Immutable
-public abstract class CellAndTimestamps {
-    public abstract Cell cell();
-    public abstract Set<Long> timestamps();
+public interface SweepBatchConfig {
 
-    public static CellAndTimestamps of(Cell cell, Set<Long> timestamps) {
-        return ImmutableCellAndTimestamps.builder().cell(cell).timestamps(timestamps).build();
-    }
+    /**
+     * The target maximum number of (cell, timestamp) pairs to examine in a single run of SweepTaskRunner.
+     */
+    int maxCellTsPairsToExamine();
+
+    /**
+     * The target number of (cell, timestamp) pairs in a batch of candidate to process at once.
+     */
+    int candidateBatchSize();
+
+    /**
+     * The target number of total (cell, timestamp) pairs to delete in a single batch.
+     * The actual number will vary.
+     */
+    int deleteBatchSize();
+
 }

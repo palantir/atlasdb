@@ -81,6 +81,15 @@ develop
          - Fixed a bug with import ordering and license generation in IntelliJ not respecting Baseline conventions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1893>`__)
 
+    *    - |new| |improved| |userbreak| |devbreak|
+         - Configuration parameters ``sweepBatchSize`` and ``sweepCellBatchSize`` have been deprecated
+           in favor of ``sweepMaxCellTsPairsToExamine``, ``sweepCandidateBatchSize`` and ``sweepDeleteBatchSize``.
+           Sweep will now also perform another layer of batching before deleting cells from the KVS.
+           This should improve performace on relatively clean tables by deleting more cells at a time.
+           The new configuration parameter ``sweepDeleteBatchSize`` determines the approximate number
+           of (cell, timestamp) pairs deleted in a single batch.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
