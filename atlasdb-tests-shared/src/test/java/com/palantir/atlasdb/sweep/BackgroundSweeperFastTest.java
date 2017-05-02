@@ -63,8 +63,8 @@ public class BackgroundSweeperFastTest {
                 sweepTaskRunner,
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis
-                () -> 100,
-                () -> 200,
+                () -> ImmutableSweepBatchConfig.builder()
+                        .deleteBatchSize(100).candidateBatchSize(200).maxCellTsPairsToExamine(1000).build(),
                 Mockito.mock(BackgroundSweeperPerformanceLogger.class),
                 sweepMetrics,
                 Mockito.mock(PersistentLockManager.class),
@@ -239,8 +239,7 @@ public class BackgroundSweeperFastTest {
     }
 
     private void setupTaskRunner(SweepResults results) {
-        Mockito.doReturn(results).when(sweepTaskRunner)
-                .run(Mockito.eq(TABLE_REF), Mockito.anyInt(), Mockito.anyInt(), Mockito.any());
+        Mockito.doReturn(results).when(sweepTaskRunner).run(Mockito.eq(TABLE_REF), Mockito.any(), Mockito.any());
     }
 
     private static TransactionManager mockTxManager() {

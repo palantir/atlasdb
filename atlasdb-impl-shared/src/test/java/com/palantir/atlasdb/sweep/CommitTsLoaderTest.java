@@ -28,14 +28,16 @@ import org.junit.Test;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
-public class StartTsToCommitTsCacheLoaderTest {
+import gnu.trove.set.hash.TLongHashSet;
+
+public class CommitTsLoaderTest {
     private static final Long VALID_START_TIMESTAMP = 100L;
     private static final Long VALID_COMMIT_TIMESTAMP = 200L;
     private static final Long ROLLBACK_TIMESTAMP = -1L;
     private static final Long NO_TIMESTAMP = null;
 
     private final TransactionService mockTransactionService = mock(TransactionService.class);
-    private final StartTsToCommitTsCacheLoader loader = new StartTsToCommitTsCacheLoader(mockTransactionService);
+    private final CommitTsLoader loader = CommitTsLoader.create(mockTransactionService, new TLongHashSet());
 
     @Test
     public void loadShouldReturnTheValidTimestamp() throws Exception {
