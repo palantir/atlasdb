@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import com.palantir.common.base.AbortingVisitor;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -49,6 +48,7 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
+import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.concurrent.PTExecutors;
