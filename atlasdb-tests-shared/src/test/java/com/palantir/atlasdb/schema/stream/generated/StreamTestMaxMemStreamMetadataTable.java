@@ -211,6 +211,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
             return Objects.equal(id, other.id);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(id);
@@ -704,5 +705,5 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jL6IJYz4FztWs2LE6ofNvA==";
+    static String __CLASS_HASH = "HKvQ9TJunorh9i3zxTM3Jw==";
 }

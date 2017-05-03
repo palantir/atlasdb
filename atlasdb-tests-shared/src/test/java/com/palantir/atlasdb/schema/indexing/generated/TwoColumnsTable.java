@@ -211,6 +211,7 @@ public final class TwoColumnsTable implements
             return Objects.equal(id, other.id);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(id);
@@ -980,6 +981,7 @@ public final class TwoColumnsTable implements
                 return Objects.equal(foo, other.foo);
             }
 
+            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Objects.hashCode(foo);
@@ -1124,6 +1126,7 @@ public final class TwoColumnsTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
             }
 
+            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
@@ -1613,6 +1616,7 @@ public final class TwoColumnsTable implements
                 return Objects.equal(firstComponentHash, other.firstComponentHash) && Objects.equal(foo, other.foo);
             }
 
+            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ firstComponentHash, foo });
@@ -1758,6 +1762,7 @@ public final class TwoColumnsTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
             }
 
+            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
@@ -2198,5 +2203,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "cd+whj4Gr111pBt3IF93sA==";
+    static String __CLASS_HASH = "Hfs95/vRL/BSxtxMQ/Kq/Q==";
 }

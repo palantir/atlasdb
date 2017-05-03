@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,12 +29,13 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
+@SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Expectations syntax
 public class TableSplittingKeyValueServiceTest {
     private static final Namespace NAMESPACE = Namespace.create("namespace");
     private static final TableReference TABLE = TableReference.create(NAMESPACE, "table");
     private static final Cell CELL = Cell.create("row".getBytes(), "column".getBytes());
     private static final byte[] VALUE = "value".getBytes();
-    private static final long TIMESTAMP = 123l;
+    private static final long TIMESTAMP = 123L;
     public static final ImmutableMap<Cell, byte[]> VALUES = ImmutableMap.of(CELL, VALUE);
 
     private final Mockery mockery = new Mockery();
@@ -130,7 +131,9 @@ public class TableSplittingKeyValueServiceTest {
         splittingKvs.createTables(merge(tableSpec1, tableSpec2));
     }
 
-    private Map<TableReference, byte[]> merge(ImmutableMap<TableReference, byte[]> left, ImmutableMap<TableReference, byte[]> right) {
+    private Map<TableReference, byte[]> merge(
+            ImmutableMap<TableReference, byte[]> left,
+            ImmutableMap<TableReference, byte[]> right) {
         return ImmutableMap.<TableReference, byte[]>builder()
                 .putAll(left)
                 .putAll(right)

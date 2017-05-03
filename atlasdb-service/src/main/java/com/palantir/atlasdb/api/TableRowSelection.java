@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,8 +36,8 @@ public class TableRowSelection {
     private final ColumnSelection columnSelection;
 
     public TableRowSelection(String tableName, Iterable<byte[]> rows, ColumnSelection columnSelection) {
-        this.tableName = Preconditions.checkNotNull(tableName);
-        this.rows = Preconditions.checkNotNull(rows);
+        this.tableName = Preconditions.checkNotNull(tableName, "tableName must not be null!");
+        this.rows = Preconditions.checkNotNull(rows, "rows must not be null!");
         this.columnSelection = columnSelection;
     }
 

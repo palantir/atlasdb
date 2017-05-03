@@ -44,10 +44,6 @@
         "com.palantir.atlasdb:leader-election-api-protobufs": {
             "project": true
         },
-        "commons-lang:commons-lang": {
-            "locked": "2.6",
-            "requested": "2.6"
-        },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
@@ -66,6 +62,9 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
+        },
+        "org.apache.commons:commons-lang3": {
+            "locked": "3.1"
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
@@ -120,10 +119,6 @@
         "com.palantir.atlasdb:leader-election-api-protobufs": {
             "project": true
         },
-        "commons-lang:commons-lang": {
-            "locked": "2.6",
-            "requested": "2.6"
-        },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
@@ -142,6 +137,9 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
+        },
+        "org.apache.commons:commons-lang3": {
+            "locked": "3.1"
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -780,7 +780,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // Handle 1 specially because the underlying store could have an optimization for 1
             return 1;
         }
-        //TODO: carrino: tune the param here based on how likely we are to post filter
+        // TODO(carrino): tune the param here based on how likely we are to post filter
         // rows out and have deleted rows
         int preFilterBatchSize = userRequestedSize + ((userRequestedSize + 9) / 10);
         if (preFilterBatchSize > AtlasDbPerformanceConstants.MAX_BATCH_SIZE
@@ -1261,11 +1261,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
             if (!expiredLocks.isEmpty()) {
-                String errorMessage =
-                        "This isn't a bug but it should happen very infrequently. Required locks are no longer"
-                        + " valid but we have already committed successfully. "
-                        + getExpiredLocksErrorString(commitLocksToken, expiredLocks);
-                log.error(errorMessage, new TransactionFailedRetriableException(errorMessage));
+                final String baseMsg = "This isn't a bug but it should happen very infrequently. "
+                        + "Required locks are no longer valid but we have already committed successfully. ";
+                String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
+                log.error(baseMsg + "{}", expiredLocksErrorString,
+                        new TransactionFailedRetriableException(baseMsg + expiredLocksErrorString));
             }
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
@@ -1316,10 +1316,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void throwIfExternalAndCommitLocksNotValid(@Nullable LockRefreshToken commitLocksToken) {
         Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
         if (!expiredLocks.isEmpty()) {
-            String errorMessage = "Required locks are no longer valid. "
-                    + getExpiredLocksErrorString(commitLocksToken, expiredLocks);
-            TransactionLockTimeoutException ex = new TransactionLockTimeoutException(errorMessage);
-            log.error(errorMessage, ex);
+            final String baseMsg = "Required locks are no longer valid. ";
+            String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
+            TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
+            log.error(baseMsg + "{}", expiredLocksErrorString, ex);
             throw ex;
         }
     }
@@ -1408,8 +1408,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, CellConflict> cellToConflict = Maps.newHashMap();
         Map<Cell, Long> cellToTs = Maps.newHashMap();
         for (CellConflict c : Sets.union(spanningWrites, dominatingWrites)) {
-            cellToConflict.put(c.cell, c);
-            cellToTs.put(c.cell, c.theirStart + 1);
+            cellToConflict.put(c.getCell(), c);
+            cellToTs.put(c.getCell(), c.getTheirStart() + 1);
         }
 
         Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(table, cellToTs.keySet());
@@ -1544,16 +1544,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             log.debug("For table: {} we are deleting values of an uncommitted transaction: {}", tableRef, keysToDelete);
             keyValueService.delete(tableRef, Multimaps.forMap(keysToDelete));
         } catch (RuntimeException e) {
-            String msg = "This isn't a bug but it should be infrequent if all nodes of your KV service are running. "
-                    + "Delete has stronger consistency semantics than read/write and must talk to all nodes "
-                    + "instead of just talking to a quorum of nodes. "
-                    + "Failed to delete keys for table" + tableRef
-                    + " from an uncommitted transaction; "
+            final String msg = "This isn't a bug but it should be infrequent if all nodes of your KV service are"
+                    + " running. Delete has stronger consistency semantics than read/write and must talk to all nodes"
+                    + " instead of just talking to a quorum of nodes. "
+                    + "Failed to delete keys for table: {} from an uncommitted transaction; "
                     + " sweep should eventually clean this when it processes this table.";
             if (log.isDebugEnabled()) {
-                msg += " The keys that failed to be deleted during rollback were " + keysToDelete;
+                log.warn(msg + " The keys that failed to be deleted during rollback were {}", tableRef, keysToDelete);
+            } else {
+                log.warn(msg, tableRef, e);
             }
-            log.warn(msg, e);
         }
 
         return true;
@@ -1655,7 +1655,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        // TODO: This can have better performance if we have a blockAndReturn method in lock server
+        // TODO(carrino): This can have better performance if we have a blockAndReturn method in lock server
         // However lock server blocking is an issue if we fill up all our requests
         try {
             lockService.lock(

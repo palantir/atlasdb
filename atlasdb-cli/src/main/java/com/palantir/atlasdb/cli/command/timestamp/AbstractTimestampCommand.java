@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
@@ -36,7 +36,8 @@ import io.airlift.airline.OptionType;
 
 public abstract class AbstractTimestampCommand extends SingleBackendCommand {
 
-    private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(AbstractTimestampCommand.class));
+    private static final OutputPrinter printer = new OutputPrinter(
+            LoggerFactory.getLogger(AbstractTimestampCommand.class));
 
     @Option(name = {"-f", "--file"},
             title = "TIMESTAMP_FILE",
@@ -62,7 +63,8 @@ public abstract class AbstractTimestampCommand extends SingleBackendCommand {
 
     private void initialize() {
         if (!requireTimestamp() && timestamp != null) {
-            throw new IllegalArgumentException("This command does not require an input timestamp but you specified one.");
+            throw new IllegalArgumentException("This command does not require an input timestamp"
+                    + " but you specified one.");
         } else if (requireTimestamp() && ((timestamp == null && file == null) || (timestamp != null && file != null))) {
             throw new IllegalArgumentException("This command requires an input timestamp, "
                     + "so you must specify one and only one (either directly or via a file).");

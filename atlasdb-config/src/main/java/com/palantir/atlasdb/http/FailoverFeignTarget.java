@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private final AtomicLong numSwitches = new AtomicLong();
     private final AtomicLong startTimeOfFastFailover = new AtomicLong();
 
-    final ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<>();
+    private final ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<>();
 
     public FailoverFeignTarget(Collection<String> servers, Class<T> type) {
         this(servers, DEFAULT_MAX_BACKOFF_MILLIS, type);

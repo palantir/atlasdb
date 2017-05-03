@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -104,12 +105,12 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             delegate.addGarbageCollectionSentinelValues(tableRef, cells);
             log.trace("Call to KVS.addGarbageCollectionSentinelValues on table {} over {} cells took {} ms.",
-                    tableRef, cells.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                    tableRef, Iterables.size(cells), stopwatch.elapsed(TimeUnit.MILLISECONDS));
         } else {
             delegate.addGarbageCollectionSentinelValues(tableRef, cells);
         }
@@ -450,6 +451,18 @@ public class ProfilingKeyValueService implements KeyValueService {
             logTimeAndTable("compactInternally", tableRef.getQualifiedName(), stopwatch);
         } else {
             delegate.compactInternally(tableRef);
+        }
+    }
+
+    @Override
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        if (log.isTraceEnabled()) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            ClusterAvailabilityStatus ClusterAvailabilityStatus = delegate.getClusterAvailabilityStatus();
+            logTime("getClusterAvailabilityStatus", stopwatch);
+            return ClusterAvailabilityStatus;
+        } else {
+            return delegate.getClusterAvailabilityStatus();
         }
     }
 

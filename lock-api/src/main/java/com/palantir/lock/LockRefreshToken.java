@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ public final class LockRefreshToken implements Serializable {
     @JsonCreator
     public LockRefreshToken(@JsonProperty("tokenId") BigInteger tokenId,
                             @JsonProperty("expirationDateMs") long expirationDateMs) {
-        this.tokenId = Preconditions.checkNotNull(tokenId);
+        this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId should not be null");
         this.expirationDateMs = expirationDateMs;
     }
 

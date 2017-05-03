@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -51,5 +53,10 @@ public class RocksDbKeyValueSharedTest extends AbstractKeyValueServiceTest {
                         || !tableRef.getTablename().equals("_metadata"))
                 .collect(Collectors.toSet());
         db.dropTables(nonMetadataTables);
+    }
+
+    @Override
+    @Test
+    public void clusterAvailabilityStatusShouldBeAllAvailable() {
     }
 }

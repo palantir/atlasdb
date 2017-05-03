@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,8 +55,8 @@ public class TableCellVal {
     private final Map<Cell, byte[]> results;
 
     public TableCellVal(String tableName, Map<Cell, byte[]> results) {
-        this.tableName = Preconditions.checkNotNull(tableName);
-        this.results = Preconditions.checkNotNull(results);
+        this.tableName = Preconditions.checkNotNull(tableName, "tableName must not be null!");
+        this.results = Preconditions.checkNotNull(results, "results must not be null!");
     }
 
     public String getTableName() {

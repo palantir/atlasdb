@@ -217,6 +217,7 @@ public final class StreamTestWithHashStreamIdxTable implements
             return Objects.equal(firstComponentHash, other.firstComponentHash) && Objects.equal(id, other.id);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ firstComponentHash, id });
@@ -309,6 +310,7 @@ public final class StreamTestWithHashStreamIdxTable implements
             return Arrays.equals(reference, other.reference);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(reference);
@@ -743,5 +745,5 @@ public final class StreamTestWithHashStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "f1j0VTFFPWNn7lPXgCKTVw==";
+    static String __CLASS_HASH = "P2jOITY87SvZmGEA7Bgc2g==";
 }

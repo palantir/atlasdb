@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import com.google.common.base.Strings;
  *
  * @author jtamer
  */
-public class AtlasRowLockDescriptor {
+public final class AtlasRowLockDescriptor {
 
     private AtlasRowLockDescriptor() {
         // cannot instantiate
@@ -35,7 +35,7 @@ public class AtlasRowLockDescriptor {
     /** Returns a {@code LockDescriptor} instance for the given table and row. */
     public static LockDescriptor of(String tableName, byte[] rowName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName));
-        Preconditions.checkNotNull(rowName);
+        Preconditions.checkNotNull(rowName, "rowName should not be null");
         byte[] tableBytes = tableName.getBytes();
         byte[] bytes = new byte[tableBytes.length + 1 + rowName.length];
         System.arraycopy(tableBytes, 0, bytes, 0, tableBytes.length);

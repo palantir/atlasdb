@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,8 +39,8 @@ public class FetchTimestamp extends AbstractTimestampCommand {
 
     @Option(name = {"-d", "--date-time"},
             type = OptionType.COMMAND,
-            description = "Return the earliest approximate wall clock datetime at which the chosen timestamp" +
-                    " could have been used in a transaction.")
+            description = "Return the earliest approximate wall clock datetime at which the chosen timestamp"
+                    + " could have been used in a transaction.")
     private boolean dateTime;
 
     private static final String IMMUTABLE_STRING = "Immutable";

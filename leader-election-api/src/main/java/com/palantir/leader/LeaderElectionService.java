@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,11 @@ import com.google.common.base.Optional;
 import com.google.common.net.HostAndPort;
 
 public interface LeaderElectionService {
-    public static interface LeadershipToken extends Serializable {
-        public boolean sameAs(LeadershipToken o);
+    interface LeadershipToken extends Serializable {
+        boolean sameAs(LeadershipToken token);
     }
 
-    public static enum StillLeadingStatus {
+    enum StillLeadingStatus {
         LEADING,
         NOT_LEADING,
         /**
@@ -33,14 +33,13 @@ public interface LeaderElectionService {
          * However we have not observed reason to believe another node is the leader.
          * Usually we should just retry in this case.
          */
-        NO_QUORUM;
+        NO_QUORUM
     }
 
     /**
      * This method will block until this node becomes the leader and is supported by a quorum of nodes.
      *
      * @return a leadership token to be used with {@link #isStillLeading}
-     * @throws InterruptedException
      */
     LeadershipToken blockOnBecomingLeader() throws InterruptedException;
 
@@ -50,7 +49,7 @@ public interface LeaderElectionService {
      * may not respond to requests and must get back in line by calling {@link #blockOnBecomingLeader()}.
      *
      * @param token leadership token
-     * @return LEADING if the token is still the leader.
+     * @return LEADING if the token is still the leader
      */
     StillLeadingStatus isStillLeading(LeadershipToken token);
 

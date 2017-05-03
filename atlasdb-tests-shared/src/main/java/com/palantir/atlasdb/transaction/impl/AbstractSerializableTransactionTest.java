@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -182,7 +182,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         final Transaction t1 = startTransaction();
         ExecutorService exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
-        Future<?> f = exec.submit(new Callable<Void>() {
+        Future<?> future = exec.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 withdrawMoney(t1, true, false);
@@ -198,7 +198,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         barrier.await();
         t2.commit();
         try {
-            f.get();
+            future.get();
             fail();
         } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
@@ -247,7 +247,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         }
     }
 
-    @Test(expected=TransactionFailedRetriableException.class)
+    @Test(expected = TransactionFailedRetriableException.class)
     public void testConcurrentWriteSkewCell() throws InterruptedException, BrokenBarrierException {
         Transaction t0 = startTransaction();
         put(t0, "row1", "col1", "100");
@@ -258,14 +258,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         final Transaction t1 = startTransaction();
         ExecutorService exec = PTExecutors.newCachedThreadPool();
-        Future<?> f = exec.submit( new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                withdrawMoney(t1, true, true);
-                barrier.await();
-                t1.commit();
-                return null;
-            }
+        Future<?> future = exec.submit((Callable<Void>) () -> {
+            withdrawMoney(t1, true, true);
+            barrier.await();
+            t1.commit();
+            return null;
         });
 
         Transaction t2 = startTransaction();
@@ -274,7 +271,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         barrier.await();
         t2.commit();
         try {
-            f.get();
+            future.get();
             fail();
         } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
@@ -282,9 +279,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
 
-    private void withdrawMoney(Transaction t, boolean account, boolean isCellGet) {
-        long account1 = Long.valueOf(isCellGet ? getCell(t, "row1", "col1") : get(t, "row1", "col1"));
-        long account2 = Long.valueOf(isCellGet ? getCell(t, "row2", "col1") : get(t, "row2", "col1"));
+    private void withdrawMoney(Transaction txn, boolean account, boolean isCellGet) {
+        long account1 = Long.valueOf(isCellGet ? getCell(txn, "row1", "col1") : get(txn, "row1", "col1"));
+        long account2 = Long.valueOf(isCellGet ? getCell(txn, "row2", "col1") : get(txn, "row2", "col1"));
         if (account) {
             account1 -= 150;
         } else {
@@ -292,9 +289,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         }
         Assert.assertTrue(account1 + account2 >= 0);
         if (account) {
-            put(t, "row1", "col1", String.valueOf(account1));
+            put(txn, "row1", "col1", String.valueOf(account1));
         } else {
-            put(t, "row2", "col1", String.valueOf(account2));
+            put(txn, "row2", "col1", String.valueOf(account2));
         }
     }
 
@@ -484,13 +481,14 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     public void testColumnSelection() {
         String initialValue = "100";
         Transaction t0 = startTransaction();
-        put(t0, "row1", "col1", initialValue);
+        String firstCol = "col1";
+        put(t0, "row1", firstCol, initialValue);
         put(t0, "row1", "col2", initialValue);
-        put(t0, "row2", "col1", initialValue);
+        put(t0, "row2", firstCol, initialValue);
         t0.commit();
 
         Transaction t1 = startTransaction();
-        BatchingVisitables.copyToList(t1.getRange(TEST_TABLE, RangeRequest.builder().retainColumns(ImmutableList.of(PtBytes.toBytes("col1"))).build()));
+        BatchingVisitables.copyToList(getRangeRetainingCol(t1, firstCol));
         get(t1, "row1", "col2");
 
         // We need to do at least one put so we don't get caught by the read only code path
@@ -509,13 +507,18 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t0.commit();
 
         Transaction t1 = startTransaction();
-        BatchingVisitables.copyToList(t1.getRange(TEST_TABLE, RangeRequest.builder().retainColumns(ImmutableList.of(PtBytes.toBytes("col1"))).build()));
-        BatchingVisitables.copyToList(t1.getRange(TEST_TABLE, RangeRequest.builder().retainColumns(ImmutableList.of(PtBytes.toBytes("col2"))).build()));
+        BatchingVisitables.copyToList(getRangeRetainingCol(t1, "col1"));
+        BatchingVisitables.copyToList(getRangeRetainingCol(t1, "col2"));
 
         // We need to do at least one put so we don't get caught by the read only code path
         put(t1, "row22", "col2", initialValue);
 
         t1.commit();
+    }
+
+    private BatchingVisitable<RowResult<byte[]>> getRangeRetainingCol(Transaction txn, String col) {
+        return txn.getRange(TEST_TABLE,
+                RangeRequest.builder().retainColumns(ImmutableList.of(PtBytes.toBytes(col))).build());
     }
 
     @Test
@@ -525,7 +528,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         // Serializable transaction records only the first column as read.
         Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
         assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
@@ -551,7 +555,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         // Serializable transaction records only the first column as read.
         Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
         assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
@@ -578,7 +583,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         // Serializable transaction records only the first column as read.
         Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
         assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
@@ -598,7 +604,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
         assertNull(BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values())));
         // Write to avoid the read only path.
         put(t1, "row1_1", "col0", "v0");
@@ -621,7 +628,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
         // Intentionally not reading anything from the result, so we shouldn't get a conflict.
         // Write to avoid the read only path.
         put(t1, "row1_1", "col0", "v0");
@@ -639,8 +647,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         byte[] row = PtBytes.toBytes("row1");
         // Record expected results using byte ordering
         ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap
-                .orderedBy(Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(key -> key.getColumnName()));
-        for (int i = 0 ; i < totalPuts ; i++) {
+                .orderedBy(Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
+        for (int i = 0; i < totalPuts; i++) {
             put(t1, "row1", "col" + i, "v" + i);
             writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
         }

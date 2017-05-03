@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +49,8 @@ public interface RemoteLockService {
     @Path("try-lock/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    HeldLocksToken lockAndGetHeldLocks(@PathParam("client") String client, LockRequest request) throws InterruptedException;
+    HeldLocksToken lockAndGetHeldLocks(@PathParam("client") String client, LockRequest request)
+            throws InterruptedException;
 
     /**
      * Attempts to release the set of locks represented by the
@@ -71,7 +72,7 @@ public interface RemoteLockService {
     /**
      * Refreshes the given lock tokens.
      *
-     * @return the subset of tokens which are still valid after being refreshed.
+     * @return the subset of tokens which are still valid after being refreshed
      */
     @POST
     @Path("refresh-lock-tokens")
@@ -88,7 +89,8 @@ public interface RemoteLockService {
     @Path("min-locked-in-version/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @Idempotent @Nullable Long getMinLockedInVersionId(@PathParam("client") String client);
+    @Idempotent
+    @Nullable Long getMinLockedInVersionId(@PathParam("client") String client);
 
     /** Returns the current time in milliseconds on the server. */
     @POST

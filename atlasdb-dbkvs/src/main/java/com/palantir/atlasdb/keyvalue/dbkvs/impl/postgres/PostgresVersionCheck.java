@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ public final class PostgresVersionCheck {
                     + " please contact Palantir support for assistance.", version, MIN_POSTGRES_VERSION);
         } else if (VersionStrings.compareVersions(version, "9.5") >= 0
                 && VersionStrings.compareVersions(version, "9.5.2") < 0) {
-            throw new RuntimeException(
+            throw new DbkvsVersionException(
                     "You are running Postgres " + version + ". Versions 9.5.0 and 9.5.1 contain a known bug "
                             + "that causes incorrect results to be returned for certain queries. "
                             + "Please update your Postgres distribution.");

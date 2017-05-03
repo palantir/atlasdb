@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,8 @@ import io.airlift.airline.Command;
         + "provided.")
 public class CleanTransactionRange extends AbstractTimestampCommand {
 
-    private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(CleanTransactionRange.class));
+    private static final OutputPrinter printer = new OutputPrinter(
+            LoggerFactory.getLogger(CleanTransactionRange.class));
 
     @Override
     public boolean isOnlineRunSupported() {
@@ -67,9 +68,10 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
             Value value;
             try {
                 value = row.getOnlyColumnValue();
-            } catch (IllegalStateException e){
+            } catch (IllegalStateException e) {
                 //this should never happen
-                printer.error("Found a row in the transactions table that didn't have 1 and only 1 column value: start={}", startTs);
+                printer.error("Found a row in the transactions table that didn't have 1"
+                        + " and only 1 column value: start={}", startTs);
                 continue;
             }
 
@@ -78,7 +80,8 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
                 continue; // this is a valid transaction
             }
 
-            printer.info("Found and cleaning possibly inconsistent transaction: [start={}, commit={}]", startTs, commitTs);
+            printer.info("Found and cleaning possibly inconsistent transaction: [start={}, commit={}]",
+                    startTs, commitTs);
 
             Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
             toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L

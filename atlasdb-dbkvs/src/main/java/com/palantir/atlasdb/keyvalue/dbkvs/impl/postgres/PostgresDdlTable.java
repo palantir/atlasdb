@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,8 +32,6 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class PostgresDdlTable implements DbDdlTable {
     private static final int POSTGRES_NAME_LENGTH_LIMIT = 63;
     public static final int ATLASDB_POSTGRES_TABLE_NAME_LIMIT = POSTGRES_NAME_LENGTH_LIMIT
@@ -53,7 +51,7 @@ public class PostgresDdlTable implements DbDdlTable {
     }
 
     @Override
-    @SuppressFBWarnings("SLF4J_FORMAT_SHOULD_BE_CONST")
+    @SuppressWarnings("Slf4jConstantLogMessage")
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
                 "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
@@ -76,14 +74,14 @@ public class PostgresDdlTable implements DbDdlTable {
                 log.error("Error occurred trying to create the table", e);
                 throw e;
             } else if (prefixedTableName.length() > ATLASDB_POSTGRES_TABLE_NAME_LIMIT) {
-                String msg = String.format("The table name is longer than the postgres limit of %d characters. "
+                final String msg = String.format("The table name is longer than the postgres limit of %d characters. "
                                 + "Attempted to truncate the name but the truncated table name or truncated primary "
                                 + "key constraint name already exists. Please ensure all your table names have unique "
                                 + "first %d characters.",
                         ATLASDB_POSTGRES_TABLE_NAME_LIMIT,
                         ATLASDB_POSTGRES_TABLE_NAME_LIMIT);
 
-                String logMessage = "Failed to create the table {}. " + msg;
+                final String logMessage = "Failed to create the table {}. " + msg;
                 log.error(logMessage, prefixedTableName, e);
 
                 throw new RuntimeException("Failed to create the table" + prefixedTableName + "." + msg, e);

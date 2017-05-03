@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,9 @@ public class StreamTestSchema implements AtlasSchema {
         });
 
         // test defaults
-        schema.addStreamStoreDefinition(new StreamStoreDefinitionBuilder("stream_test", "stream_test", ValueType.VAR_LONG).build());
+        schema.addStreamStoreDefinition(
+                new StreamStoreDefinitionBuilder("stream_test", "stream_test", ValueType.VAR_LONG)
+                        .build());
 
         // test all the things!
         schema.addStreamStoreDefinition(

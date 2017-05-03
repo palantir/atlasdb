@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,8 +53,8 @@ public class TableCell {
     private final Iterable<Cell> cells;
 
     public TableCell(String tableName, Iterable<Cell> cells) {
-        this.tableName = Preconditions.checkNotNull(tableName);
-        this.cells = Preconditions.checkNotNull(cells);
+        this.tableName = Preconditions.checkNotNull(tableName, "tableName must not be null!");
+        this.cells = Preconditions.checkNotNull(cells, "cells must not be null!");
     }
 
     public String getTableName() {

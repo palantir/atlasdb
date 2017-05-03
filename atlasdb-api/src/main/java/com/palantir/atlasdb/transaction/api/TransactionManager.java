@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -104,6 +104,13 @@ public interface TransactionManager extends AutoCloseable {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     long getImmutableTimestamp();
+
+    /**
+     * Return the {@link KeyValueServiceStatus} depending on the availability of the underlying key-value store.
+     *
+     * @return status of the key value service, can be used by the application to decide its own health
+     */
+    KeyValueServiceStatus getKeyValueServiceStatus();
 
     /**
      * Returns the timestamp that is before any open start timestamps. This is different from the immutable

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,9 +37,9 @@ public class LockWithMode {
 
     @Override
     public String toString() {
-        return "LockWithMode{" +
-                "lockDescriptor=" + lockDescriptor +
-                ", lockMode=" + lockMode +
-                '}';
+        return "LockWithMode{"
+                + "lockDescriptor=" + lockDescriptor
+                + ", lockMode=" + lockMode
+                + '}';
     }
 }

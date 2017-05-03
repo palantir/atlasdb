@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import com.palantir.atlasdb.containers.CassandraEnvironment;
         TodoEteTest.class,
         ServiceExposureEteTest.class,
         CommandLineEteTest.class
-})
+        })
 public class CassandraNoLeaderTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
 

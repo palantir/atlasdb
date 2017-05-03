@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,15 +54,15 @@ public class TableRange {
                       byte[] endRow,
                       Iterable<byte[]> columns,
                       int batchSize) {
-        this.tableName = Preconditions.checkNotNull(tableName);
+        this.tableName = Preconditions.checkNotNull(tableName, "tableName must not be null!");
         this.startRow = startRow;
         this.endRow = endRow;
         this.columns = columns;
         this.batchSize = batchSize;
     }
 
-    public TableRange withStartRow(byte[] startRow) {
-        return new TableRange(tableName, startRow, endRow, columns, batchSize);
+    public TableRange withStartRow(byte[] startingRow) {
+        return new TableRange(tableName, startingRow, endRow, columns, batchSize);
     }
 
     public String getTableName() {
