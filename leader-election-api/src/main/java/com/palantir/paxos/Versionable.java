@@ -17,7 +17,7 @@ package com.palantir.paxos;
 
 public interface Versionable {
     /**
-     * @return a version number
+     * Returns a version number.
      */
     long getVersion();
 }

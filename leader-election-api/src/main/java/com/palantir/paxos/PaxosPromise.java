@@ -18,7 +18,7 @@ package com.palantir.paxos;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.commons.lang.builder.CompareToBuilder;
+import org.apache.commons.lang3.builder.CompareToBuilder;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -31,7 +31,7 @@ import com.palantir.common.annotation.Immutable;
  * @author rullman
  */
 @Immutable
-public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
+public final class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
     private static final long serialVersionUID = 1L;
 
     final boolean ack;
@@ -66,7 +66,7 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
 
     private PaxosPromise(PaxosProposalId promisedId) {
         ack = false;
-        this.promisedId = Preconditions.checkNotNull(promisedId);
+        this.promisedId = Preconditions.checkNotNull(promisedId, "promisedId cannot be null");
         lastAcceptedId = null;
         lastAcceptedValue = null;
     }
@@ -75,16 +75,16 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
             PaxosProposalId lastAcceptedId,
             PaxosValue val) {
         ack = true;
-        this.promisedId = Preconditions.checkNotNull(promisedId);
+        this.promisedId = Preconditions.checkNotNull(promisedId, "promisedId cannot be null");
         this.lastAcceptedId = lastAcceptedId;
         this.lastAcceptedValue = val;
     }
 
     @Override
     // XXX Contrary to common wisdom, this is NOT consistent with equals().
-    public int compareTo(PaxosPromise o) {
+    public int compareTo(PaxosPromise promise) {
         // nulls are less than non-nulls so nacks are less than acks
-        return new CompareToBuilder().append(lastAcceptedId, o.lastAcceptedId).toComparison();
+        return new CompareToBuilder().append(lastAcceptedId, promise.lastAcceptedId).toComparison();
     }
 
     @Override

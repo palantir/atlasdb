@@ -20,15 +20,15 @@ import javax.annotation.Nullable;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence.PaxosPromiseProto;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence.PaxosPromiseProto.Builder;
 
-public class PaxosPromises {
+public final class PaxosPromises {
     private PaxosPromises() {
         // No instances.
     }
 
     public static PaxosPromiseProto toProto(PaxosPromise result) {
-        Builder builder = PaxosPromiseProto.newBuilder().
-                setAck(result.ack).
-                setPromisedId(result.promisedId.persistToProto());
+        Builder builder = PaxosPromiseProto.newBuilder()
+                .setAck(result.ack)
+                .setPromisedId(result.promisedId.persistToProto());
         if (result.lastAcceptedId != null) {
             builder.setLastAcceptedId(result.lastAcceptedId.persistToProto());
         }

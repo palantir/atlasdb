@@ -317,8 +317,8 @@ public class PaxosTimestampBoundStoreTest {
         }
 
         @Override
-        public String getUUID() {
-            return delegate.getUUID();
+        public String getUuid() {
+            return delegate.getUuid();
         }
     }
 }
