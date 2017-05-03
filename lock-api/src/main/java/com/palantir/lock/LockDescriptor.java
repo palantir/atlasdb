@@ -48,7 +48,7 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
     }
 
     @JsonIgnore
-    @SuppressWarnings("checkstyle:RegexpSinglelineJava") // JDK StandardCharsets is only a feature in 1.7+
+    @SuppressWarnings("checkstyle:jdkStandardCharsets") // StandardCharsets only in JDK 1.7+
     public String getLockIdAsString() {
         return new String(bytes, Charsets.UTF_8);
     }
