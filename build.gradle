@@ -22,7 +22,7 @@ buildscript {
         classpath 'com.netflix.nebula:nebula-dependency-recommender:3.6.3'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:4.9.1'
         classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
-        classpath "com.palantir.sls-packaging:gradle-sls-packaging:2.3.0"
+        classpath "com.palantir.sls-packaging:gradle-sls-packaging:2.0.0"
     }
 }
 
