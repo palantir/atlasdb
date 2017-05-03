@@ -74,8 +74,8 @@ public class SweepCommand extends SingleBackendCommand {
     int cellBatchSize = AtlasDbConstants.DEFAULT_SWEEP_CELL_BATCH_SIZE;
 
     @Option(name = {"--sleep"},
-            description = "Time to wait in milliseconds after each sweep batch "
-                    + "(throttles long-running sweep jobs, default: 0)")
+            description = "Time to wait in milliseconds after each sweep batch"
+                    + " (throttles long-running sweep jobs, default: 0)")
     long sleepTimeInMs = 0;
 
     @Option(name = {"--dry-run"},
