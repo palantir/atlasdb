@@ -256,9 +256,10 @@ For more information, see the <a class="reference internal" href="../configurati
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1785">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-new">NEW</span></td>
-<td><p class="first"><code class="docutils literal"><span class="pre">TransactionManager</span></code> now has an API <code class="docutils literal"><span class="pre">getKeyValueServiceStatus</span></code> that can return the health of the underlying KVS.
-This is designed for applications to implement their availability status taking into account the <a class="reference internal" href="../miscellaneous/kvs-status-check.html#kvs-status-check"><span class="std std-ref">kvs health</span></a>.</p>
-<p class="last">This is breaking for applications that have custom <code class="docutils literal"><span class="pre">KeyValueService</span></code> implementations, as they must implement the new method.
+<td><p class="first">The <code class="docutils literal"><span class="pre">TransactionManager</span></code> and <code class="docutils literal"><span class="pre">KeyValueService</span></code> interfaces have new methods that must be implemented by applications that have custom implementations of those interfaces.
+These new methods are <code class="docutils literal"><span class="pre">TransactionManager.getKeyValueServiceStatus()</span></code> and <code class="docutils literal"><span class="pre">KeyValueService.getClusterAvailabilityStatus()</span></code>.</p>
+<p class="last">Applications can now call <code class="docutils literal"><span class="pre">TransactionManager.getKeyValueServiceStatus()</span></code> to determine the health of the underlying KVS.
+This is designed for applications to implement their availability status taking into account the <a class="reference internal" href="../miscellaneous/kvs-status-check.html#kvs-status-check"><span class="std std-ref">kvs health</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1832">Pull Request</a>)</p>
 </td>
 </tr>
@@ -268,7 +269,7 @@ This should reduce the need for users to manually reset the <code class="docutil
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1847">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
+<td>Improved performance of <code class="docutils literal"><span class="pre">getRange()</span></code> on DbKvs. Range requests are now done with a single round trip to the database.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1805">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
