@@ -62,11 +62,11 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
     public String toString() {
         String lockIdAsString = getLockIdAsString();
         return getClass().getSimpleName() + " ["
-                + getLockIdString(lockIdAsString)
+                + encodeToAscii(lockIdAsString)
                 + "]";
     }
 
-    private String getLockIdString(String lockIdAsString) {
+    private String encodeToAscii(String lockIdAsString) {
         return BASIC_PRINTABLE_ASCII.matchesAllOf(lockIdAsString)
                 ? lockIdAsString
                 : BaseEncoding.base16().encode(bytes);
