@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.ete;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,7 +28,7 @@ import java.nio.file.Paths;
 import org.apache.commons.io.IOUtils;
 import org.junit.rules.ExternalResource;
 
-public class Gradle extends ExternalResource {
+public final class Gradle extends ExternalResource {
 
     private final String command;
 
@@ -43,14 +43,16 @@ public class Gradle extends ExternalResource {
     @Override
     protected void before() throws Throwable {
         if (isRunningOutsideOfGradle()) {
-            System.out.println("It looks like you are not running in gradle, performing the required gradle command: " + command);  // (authorized)
-            gradle(command);
+            System.out.println("It looks like you are not running in gradle,"
+                    + " performing the required gradle command: " + command);  // (authorized)
+            gradle();
         } else {
-            System.out.println("You are running in gradle, allowing gradle task dependencies to make sure " + command + " is run");  // (authorized)
+            System.out.println("You are running in gradle,"
+                    + " allowing gradle task dependencies to make sure " + command + " is run");  // (authorized)
         }
     }
 
-    private void gradle(String command) {
+    private void gradle() {
         try {
             Path pathToGradlew = Paths.get("..", "gradlew");
 

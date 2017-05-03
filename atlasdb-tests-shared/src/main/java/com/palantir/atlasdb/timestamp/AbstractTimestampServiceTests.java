@@ -51,11 +51,11 @@ public abstract class AbstractTimestampServiceTests {
     @Test
     public void canRequestTimestampRangeWithGetFreshTimestamps() {
         int expectedNumTimestamps = 5;
-        TimestampRange timestampRange = timestampService.getFreshTimestamps(expectedNumTimestamps);
+        TimestampRange range = timestampService.getFreshTimestamps(expectedNumTimestamps);
 
-        Assertions.assertThat((int) timestampRange.size())
+        Assertions.assertThat((int) range.size())
                 .withFailMessage("Expected %d timestamps, got %d timestamps. (The returned range was: %d-%d)",
-                        expectedNumTimestamps, timestampRange.size(), timestampRange.getLowerBound(), timestampRange.getUpperBound())
+                        expectedNumTimestamps, range.size(), range.getLowerBound(), range.getUpperBound())
                 .isGreaterThanOrEqualTo(1)
                 .isLessThanOrEqualTo(expectedNumTimestamps);
     }
@@ -109,7 +109,7 @@ public abstract class AbstractTimestampServiceTests {
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldThrowIfRequestingNegativeNumbersOfTimestamps() {
-       timestampService.getFreshTimestamps(-1);
+        timestampService.getFreshTimestamps(-1);
     }
 
     @Test(expected = IllegalArgumentException.class)

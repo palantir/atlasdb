@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cli.command;
 
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 
 import org.junit.BeforeClass;
@@ -28,7 +29,6 @@ import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.services.AtlasDbServices;
-
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
 import io.airlift.airline.Help;
@@ -36,8 +36,8 @@ import io.airlift.airline.Option;
 
 public class TestSingleBackendCommand {
 
-    private static String SIMPLE_CONFIG_FILE;
-    private static String NESTED_CONFIG_FILE;
+    private static String simpleConfigFile;
+    private static String nestedConfigFile;
 
     @Command(name = "test", description = "test functionality")
     public static class TestCommand extends SingleBackendCommand {
@@ -68,7 +68,9 @@ public class TestSingleBackendCommand {
                 TableReference table = TableReference.createUnsafe(flag2);
                 services.getKeyValueService().createTable(table, AtlasDbConstants.GENERIC_TABLE_METADATA);
                 Preconditions.checkArgument(services.getKeyValueService().getAllTableNames().contains(table),
-                        "kvs contains tables %s, but not table %s", services.getKeyValueService().getAllTableNames(), table.getQualifiedName());
+                        "kvs contains tables %s, but not table %s",
+                        services.getKeyValueService().getAllTableNames(),
+                        table.getQualifiedName());
                 services.getKeyValueService().dropTable(table);
             }
             return 0;
@@ -78,8 +80,9 @@ public class TestSingleBackendCommand {
 
     @BeforeClass
     public static void setup() throws URISyntaxException {
-        SIMPLE_CONFIG_FILE = AbstractTestRunner.getResourcePath(InMemoryTestRunner.CONFIG_LOCATION);
-        NESTED_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("nested_cli_test_config.yml").toURI()).toString();
+        simpleConfigFile = AbstractTestRunner.getResourcePath(InMemoryTestRunner.CONFIG_LOCATION);
+        nestedConfigFile = Paths.get(TestSingleBackendCommand.class.getClassLoader()
+                .getResource("nested_cli_test_config.yml").toURI()).toString();
     }
 
     @Test
@@ -95,22 +98,24 @@ public class TestSingleBackendCommand {
 
     @Test
     public void testRun() {
-        assertSuccessful(runTest(new String[] { "--config", SIMPLE_CONFIG_FILE, "test"}));
+        assertSuccessful(runTest(new String[] {"--config", simpleConfigFile, "test"}));
     }
 
     @Test
     public void testFlag1Run() {
-        assertSuccessful(runTest(new String[] { "--config", SIMPLE_CONFIG_FILE, "test", "--flag1"}));
+        assertSuccessful(runTest(new String[] {"--config", simpleConfigFile, "test", "--flag1"}));
     }
 
     @Test
     public void testFlag2Run() {
-        assertSuccessful(runTest(new String[] { "-c", SIMPLE_CONFIG_FILE, "test", "--flag2", "test.new_table"}));
+        assertSuccessful(runTest(new String[] {"-c", simpleConfigFile, "test", "--flag2", "test.new_table"}));
     }
 
     @Test
     public void testRunNestedConfig() {
-        assertSuccessful(runTest(new String[] { "-c", NESTED_CONFIG_FILE, "--config-root", "/config/dropwizardConfig/real/atlasdb", "test", "-f1", "-f2", "test.new_table"}));
+        assertSuccessful(runTest(new String[] {"-c", nestedConfigFile,
+                                               "--config-root", "/config/dropwizardConfig/real/atlasdb",
+                                               "test", "-f1", "-f2", "test.new_table"}));
     }
 
     @Test
@@ -128,7 +133,7 @@ public class TestSingleBackendCommand {
             parser.parse(args).call();
             return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(String.format("Exception running test %s: %s", Arrays.toString(args), e));
             return 1;
         }
     }

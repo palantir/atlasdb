@@ -30,7 +30,8 @@ import io.airlift.airline.Command;
 @Command(name = "clean-cass-locks-state", description = "Clean up and get the schema mutation "
         + "locks for the CassandraKVS into a good state")
 public class CleanCassLocksStateCommand extends AbstractCommand {
-    private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(CleanCassLocksStateCommand.class));
+    private static final OutputPrinter printer = new OutputPrinter(
+            LoggerFactory.getLogger(CleanCassLocksStateCommand.class));
 
     @Override
     public Integer call() throws Exception {

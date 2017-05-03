@@ -21,7 +21,7 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public interface TestTransactionManager extends LockAwareTransactionManager {
-    Transaction commitAndStartNewTransaction(Transaction t);
+    Transaction commitAndStartNewTransaction(Transaction txn);
     Transaction createNewTransaction();
     void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler);
 }

@@ -20,5 +20,5 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 
 public abstract class SimpleTransactionTask<T> implements TransactionTask<T, RuntimeException> {
     @Override
-    public abstract T execute(Transaction t);
+    public abstract T execute(Transaction txn);
 }

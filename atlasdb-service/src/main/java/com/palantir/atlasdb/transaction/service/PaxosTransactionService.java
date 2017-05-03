@@ -24,7 +24,7 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosRoundFailureException;
 
-public class PaxosTransactionService implements TransactionService {
+public final class PaxosTransactionService implements TransactionService {
     private final PaxosProposer proposer;
     private final TransactionKvsWrapper kvStore;
 
@@ -59,7 +59,8 @@ public class PaxosTransactionService implements TransactionService {
                 // this case isn't worrisome
             }
             if (commitTimestamp != finalCommitTs) {
-                throw new KeyAlreadyExistsException("Key " + startTimestamp + " already exists and is mapped to " + finalCommitTs);
+                throw new KeyAlreadyExistsException(
+                        "Key " + startTimestamp + " already exists and is mapped to " + finalCommitTs);
             }
         } catch (PaxosRoundFailureException e) {
             throw new ServiceNotAvailableException("Could not store trascaction");

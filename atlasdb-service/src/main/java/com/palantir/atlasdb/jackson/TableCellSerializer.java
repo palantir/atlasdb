@@ -17,7 +17,6 @@ package com.palantir.atlasdb.jackson;
 
 import java.io.IOException;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
@@ -41,39 +40,34 @@ public class TableCellSerializer extends StdSerializer<TableCell> {
     }
 
     @Override
-    public void serialize(TableCell value,
-                          JsonGenerator jgen,
-                          SerializerProvider provider) throws IOException, JsonGenerationException {
+    public void serialize(TableCell value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
         TableMetadata metadata = metadataCache.getMetadata(value.getTableName());
         Preconditions.checkNotNull(metadata, "Unknown table %s", value.getTableName());
-        jgen.writeStartObject(); {
-            jgen.writeStringField("table", value.getTableName());
-            jgen.writeArrayFieldStart("data"); {
-                for (Cell cell : value.getCells()) {
-                    serialize(jgen, metadata, cell);
-                }
-            } jgen.writeEndArray();
-        } jgen.writeEndObject();
+        jgen.writeStartObject();
+        jgen.writeStringField("table", value.getTableName());
+        jgen.writeArrayFieldStart("data");
+        for (Cell cell : value.getCells()) {
+            serialize(jgen, metadata, cell);
+        }
+        jgen.writeEndArray();
+        jgen.writeEndObject();
     }
 
-    private static void serialize(JsonGenerator jgen,
-                                  TableMetadata metadata,
-                                  Cell cell) throws IOException, JsonGenerationException {
+    private static void serialize(JsonGenerator jgen, TableMetadata metadata, Cell cell) throws IOException {
         byte[] row = cell.getRowName();
         byte[] col = cell.getColumnName();
 
-        jgen.writeStartObject(); {
-            AtlasSerializers.serializeRow(jgen, metadata.getRowMetadata(), row);
-
-            ColumnMetadataDescription columns = metadata.getColumns();
-            if (columns.hasDynamicColumns()) {
-                DynamicColumnDescription dynamicColumn = columns.getDynamicColumn();
-                AtlasSerializers.serializeDynamicColumn(jgen, dynamicColumn, col);
-            } else {
-                String shortName = PtBytes.toString(col);
-                jgen.writeStringField("col", getLongColumnName(columns, shortName));
-            }
-        } jgen.writeEndObject();
+        jgen.writeStartObject();
+        AtlasSerializers.serializeRow(jgen, metadata.getRowMetadata(), row);
+        ColumnMetadataDescription columns = metadata.getColumns();
+        if (columns.hasDynamicColumns()) {
+            DynamicColumnDescription dynamicColumn = columns.getDynamicColumn();
+            AtlasSerializers.serializeDynamicColumn(jgen, dynamicColumn, col);
+        } else {
+            String shortName = PtBytes.toString(col);
+            jgen.writeStringField("col", getLongColumnName(columns, shortName));
+        }
+        jgen.writeEndObject();
     }
 
     private static String getLongColumnName(ColumnMetadataDescription colDescription,

@@ -105,12 +105,12 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             delegate.addGarbageCollectionSentinelValues(tableRef, cells);
             log.trace("Call to KVS.addGarbageCollectionSentinelValues on table {} over {} cells took {} ms.",
-                    tableRef, cells.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                    tableRef, Iterables.size(cells), stopwatch.elapsed(TimeUnit.MILLISECONDS));
         } else {
             delegate.addGarbageCollectionSentinelValues(tableRef, cells);
         }

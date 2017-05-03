@@ -20,7 +20,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 
-public class DynamicColumnTable {
+public final class DynamicColumnTable {
+    private DynamicColumnTable() {
+        // uninstantiable
+    }
+
+    @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Table/IndexDefinition syntax
     private static final TableDefinition DYNAMIC_COLUMNS_TABLE = new TableDefinition() {{
         rowName();
             rowComponent("id", ValueType.FIXED_LONG);
