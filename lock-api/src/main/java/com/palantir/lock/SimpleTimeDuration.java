@@ -19,7 +19,6 @@ import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -36,7 +35,7 @@ import com.google.common.primitives.Longs;
  * @author jtamer
  */
 @Immutable public final class SimpleTimeDuration implements TimeDuration, Serializable {
-    private static final long serialVersionUID = 0x221d07e843433df7l;
+    private static final long serialVersionUID = 0x221d07e843433df7L;
 
     private final long time;
     private final TimeUnit unit;
@@ -48,7 +47,7 @@ import com.google.common.primitives.Longs;
     }
 
     public static SimpleTimeDuration of(TimeDuration duration) {
-        Preconditions.checkNotNull(duration);
+        Preconditions.checkNotNull(duration, "duration should not be null");
         if (duration instanceof SimpleTimeDuration) {
             return (SimpleTimeDuration) duration;
         }
@@ -57,7 +56,7 @@ import com.google.common.primitives.Longs;
 
     private SimpleTimeDuration(long time, TimeUnit unit) {
         this.time = time;
-        this.unit = Preconditions.checkNotNull(unit);
+        this.unit = Preconditions.checkNotNull(unit, "unit should not be null");
     }
 
     @Override
@@ -106,8 +105,8 @@ import com.google.common.primitives.Longs;
     }
 
     @Override
-    public long to(TimeUnit unit) {
-        return unit.convert(time, this.unit);
+    public long to(TimeUnit timeUnit) {
+        return timeUnit.convert(time, this.unit);
     }
 
     @Override
@@ -126,8 +125,8 @@ import com.google.common.primitives.Longs;
     }
 
     @Override
-    public int compareTo(TimeDuration o) {
-        return Longs.compare(toNanos(), o.toNanos());
+    public int compareTo(TimeDuration other) {
+        return Longs.compare(toNanos(), other.toNanos());
     }
 
     @Override public boolean equals(@Nullable Object obj) {
@@ -159,7 +158,7 @@ import com.google.common.primitives.Longs;
     }
 
     private static class SerializationProxy implements Serializable {
-        private static final long serialVersionUID = 0xc60879b1484ec2cl;
+        private static final long serialVersionUID = 0xc60879b1484ec2cL;
 
         private final long time;
         private final TimeUnit unit;

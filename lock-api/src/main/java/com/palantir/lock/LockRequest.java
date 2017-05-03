@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -45,12 +44,20 @@ import com.google.common.collect.Iterables;
  *
  * @author jtamer
  */
-@JsonDeserialize(builder=LockRequest.SerializationProxy.class)
+@JsonDeserialize(builder = LockRequest.SerializationProxy.class)
 @Immutable public final class LockRequest implements Serializable {
-    private static final long serialVersionUID = 0xf6c12b970b44af68l;
+    private static final long serialVersionUID = 0xf6c12b970b44af68L;
 
     /** The default amount of time that it takes a lock (lease) to expire. */
     public static final TimeDuration DEFAULT_LOCK_TIMEOUT = SimpleTimeDuration.of(120, TimeUnit.SECONDS);
+
+    private static final Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode> TO_LOCK_WITH_MODE_FUNCTION =
+            new Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode>() {
+        @Override
+        public LockWithMode apply(Map.Entry<LockDescriptor, LockMode> input) {
+            return new LockWithMode(input.getKey(), input.getValue());
+        }
+    };
 
     private static volatile String localServerName = "";
 
@@ -100,12 +107,7 @@ import com.google.common.collect.Iterables;
     }
 
     public List<LockWithMode> getLocks() {
-        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), new Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode>() {
-            @Override
-            public LockWithMode apply(Map.Entry<LockDescriptor, LockMode> input) {
-                return new LockWithMode(input.getKey(), input.getValue());
-            }
-        }));
+        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), TO_LOCK_WITH_MODE_FUNCTION));
     }
 
     /**
@@ -245,12 +247,12 @@ import com.google.common.collect.Iterables;
          * which have not been refreshed in the past 120 seconds. You may not
          * call this method multiple times.
          */
-        public Builder timeoutAfter(TimeDuration lockTimeout) {
-            Preconditions.checkArgument(lockTimeout.toMillis() > 0);
+        public Builder timeoutAfter(TimeDuration newLockTimeout) {
+            Preconditions.checkArgument(newLockTimeout.toMillis() > 0);
             if ((lockMap == null) || (this.lockTimeout != null)) {
                 throw new IllegalStateException();
             }
-            this.lockTimeout = SimpleTimeDuration.of(lockTimeout);
+            this.lockTimeout = SimpleTimeDuration.of(newLockTimeout);
             return this;
         }
 
@@ -260,9 +262,9 @@ import com.google.common.collect.Iterables;
          * indefinitely. You may not call this method multiple times, and you
          * may not call both {@link #doNotBlock()} and this method.
          */
-        public Builder blockForAtMost(TimeDuration blockingDuration) {
-            Preconditions.checkNotNull(blockingDuration);
-            TimeDuration realBlockingDuration = SimpleTimeDuration.of(blockingDuration);
+        public Builder blockForAtMost(TimeDuration newBlockingDuration) {
+            Preconditions.checkNotNull(newBlockingDuration, "newBlockingDuration should not be null");
+            TimeDuration realBlockingDuration = SimpleTimeDuration.of(newBlockingDuration);
             Preconditions.checkArgument(realBlockingDuration.toNanos() >= 0);
             if (realBlockingDuration.toNanos() == 0) {
                 return doNotBlock();
@@ -334,16 +336,16 @@ import com.google.common.collect.Iterables;
          *
          * @see LockService#getMinLockedInVersionId()
          */
-        public Builder withLockedInVersionId(long versionId) {
+        public Builder withLockedInVersionId(long newVersionId) {
             if ((lockMap == null) || (this.versionId != null)) {
                 throw new IllegalStateException();
             }
-            this.versionId = versionId;
+            this.versionId = newVersionId;
             return this;
         }
 
-        public Builder withCreatingThreadName(String creatingThreadName) {
-            this.creatingThreadName = creatingThreadName;
+        public Builder withCreatingThreadName(String threadName) {
+            this.creatingThreadName = threadName;
             return this;
         }
 
@@ -359,7 +361,7 @@ import com.google.common.collect.Iterables;
                 throw new IllegalStateException();
             }
             String serverName = "";
-            if ( !localServerName.isEmpty()) {
+            if (!localServerName.isEmpty()) {
                 serverName = " (on server " + localServerName + ")";
             }
             LockRequest request = new LockRequest(lockMap,
@@ -385,7 +387,7 @@ import com.google.common.collect.Iterables;
     }
 
     static class SerializationProxy implements Serializable {
-        private static final long serialVersionUID = 0xd6b8378030ed100dl;
+        private static final long serialVersionUID = 0xd6b8378030ed100dL;
 
         private final SortedLockCollection<LockDescriptor> lockMap;
         private final TimeDuration lockTimeout;
@@ -406,14 +408,15 @@ import com.google.common.collect.Iterables;
         }
 
         @JsonCreator
-        public SerializationProxy(@JsonProperty("locks") List<LockWithMode> locks,
-                                  @JsonProperty("lockTimeout") TimeDuration lockTimeout,
-                                  @JsonProperty("lockGroupBehavior") LockGroupBehavior lockGroupBehavior,
-                                  @JsonProperty("blockingMode") BlockingMode blockingMode,
-                                  @JsonProperty("blockingDuration") TimeDuration blockingDuration,
-                                  @JsonProperty("versionId") Long versionId,
-                                  @JsonProperty("creatingThreadName") String creatingThreadName) {
-            ImmutableSortedMap.Builder<LockDescriptor, LockMode> localLockMapBuilder = ImmutableSortedMap.naturalOrder();
+        SerializationProxy(@JsonProperty("locks") List<LockWithMode> locks,
+                           @JsonProperty("lockTimeout") TimeDuration lockTimeout,
+                           @JsonProperty("lockGroupBehavior") LockGroupBehavior lockGroupBehavior,
+                           @JsonProperty("blockingMode") BlockingMode blockingMode,
+                           @JsonProperty("blockingDuration") TimeDuration blockingDuration,
+                           @JsonProperty("versionId") Long versionId,
+                           @JsonProperty("creatingThreadName") String creatingThreadName) {
+            ImmutableSortedMap.Builder<LockDescriptor, LockMode> localLockMapBuilder
+                    = ImmutableSortedMap.naturalOrder();
             for (LockWithMode lock : locks) {
                 localLockMapBuilder.put(lock.getLockDescriptor(), lock.getLockMode());
             }

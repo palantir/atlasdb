@@ -16,7 +16,6 @@
 package com.palantir.lock;
 
 import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -27,7 +26,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
  *
  * @author jtamer
  */
-@JsonDeserialize(as=SimpleTimeDuration.class)
+@JsonDeserialize(as = SimpleTimeDuration.class)
 public interface TimeDuration extends Comparable<TimeDuration> {
 
     long getTime();

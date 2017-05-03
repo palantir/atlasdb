@@ -13,7 +13,6 @@ List<String> blacklistedBaselineProjects = [
         'commons-db',
         'commons-executors',
         'leader-election-impl',
-        'lock-api',
         'lock-impl',
         'profile-client-protobufs',
         'timestamp-impl']

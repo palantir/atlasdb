@@ -19,7 +19,6 @@ import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -100,8 +99,12 @@ import com.google.common.base.Objects;
     }
 
     @Override public final boolean equals(@Nullable Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof LockServerOptions)) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof LockServerOptions)) {
+            return false;
+        }
         LockServerOptions other = (LockServerOptions) obj;
         return Objects.equal(isStandaloneServer(), other.isStandaloneServer())
                 && Objects.equal(getMaxAllowedLockTimeout(), other.getMaxAllowedLockTimeout())
@@ -134,7 +137,7 @@ import com.google.common.base.Objects;
                 .toString();
     }
 
-    private final void readObject(@SuppressWarnings("unused") ObjectInputStream in)
+    private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
             throws InvalidObjectException {
         throw new InvalidObjectException("proxy required");
     }

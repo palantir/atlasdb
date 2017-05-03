@@ -118,6 +118,9 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
         return delegate().useGrant(client, grantId);
     }
 
+    /**
+     * @deprecated Please use getMinLockedInVersionId(LockClient.ANONYMOUS) instead
+     */
     @Override
     @Deprecated
     public Long getMinLockedInVersionId() {

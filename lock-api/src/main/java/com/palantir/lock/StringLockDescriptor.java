@@ -27,15 +27,16 @@ import com.google.common.base.Strings;
  *
  * @author jtamer
  */
-public class StringLockDescriptor {
+public final class StringLockDescriptor {
 
     private StringLockDescriptor() {
         // cannot instantiate
     }
 
     /** Returns a {@code LockDescriptor} instance for the given lock ID. */
+    @SuppressWarnings("checkstyle:jdkStandardCharsets") // StandardCharsets only in JDK 1.7+
     public static LockDescriptor of(String lockId) {
-        Preconditions.checkNotNull(lockId);
+        Preconditions.checkNotNull(lockId, "lockId should not be null");
         Preconditions.checkArgument(!Strings.isNullOrEmpty(lockId));
         return new LockDescriptor(lockId.getBytes(Charsets.UTF_8));
     }

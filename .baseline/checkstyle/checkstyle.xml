@@ -304,6 +304,7 @@
             <property name="ignoreComments" value="true"/>
         </module>
         <module name="RegexpSinglelineJava">
+            <property name="id" value="jdkStandardCharsets"/>
             <property name="format" value="\bCharsets\."/>
             <property name="message" value="Use JDK StandardCharsets instead of alternatives."/>
         </module>

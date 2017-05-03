@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 
-public class HeldLocksTokens {
+public final class HeldLocksTokens {
     private HeldLocksTokens() {/**/}
 
     public static Function<HeldLocksToken, LockRefreshToken> getRefreshTokenFun() {
