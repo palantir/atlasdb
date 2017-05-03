@@ -62,6 +62,10 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1853>`__)
 
+    *    - |devbreak|
+         - Relax the signature of KeyValueService.addGarbageCollectionSentinelValues() to take an Iterable instead of a Set.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1843>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
@@ -84,7 +88,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
 
     *    - |devbreak| |fixed|
-         - Correct ``TransactionManager.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
+         - Correct ``TransactionManagers.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1859>`__)
 
     *    - |new|
@@ -93,9 +97,12 @@ develop
            For more information, see the :ref:`docs <timelock-server-further-config>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
-    *    - |new|
-         - ``TransactionManager`` now has an API ``getKeyValueServiceStatus`` that can return the health of the underlying KVS.
-           This is designed for applications to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`
+    *    - |devbreak| |new|
+         - The ``TransactionManager`` and ``KeyValueService`` interfaces have new methods that must be implemented by applications that have custom implementations of those interfaces.
+           These new methods are ``TransactionManager.getKeyValueServiceStatus()`` and ``KeyValueService.getClusterAvailabilityStatus()``.
+
+           Applications can now call ``TransactionManager.getKeyValueServiceStatus()`` to determine the health of the underlying KVS.
+           This is designed for applications to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1832>`__)
 
     *    - |improved|
@@ -104,7 +111,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1847>`__)
 
     *    - |improved|
-         - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
+         - Improved performance of ``getRange()`` on DbKvs. Range requests are now done with a single round trip to the database.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
 
     *    - |devbreak|
