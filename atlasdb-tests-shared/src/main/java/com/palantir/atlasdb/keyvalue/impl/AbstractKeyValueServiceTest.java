@@ -88,22 +88,22 @@ public abstract class AbstractKeyValueServiceTest {
     protected static final TableReference TEST_NONEXISTING_TABLE = TableReference.createFromFullyQualifiedName(
             "ns2.some_nonexisting_table");
 
-    protected static final byte[] row0 = "row0".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] row1 = "row1".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] row2 = "row2".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] column0 = "column0".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] column1 = "column1".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] column2 = "column2".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] value00 = "value00".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] value01 = "value01".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] value10 = "value10".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] value12 = "value12".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] value21 = "value21".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] value22 = "value22".getBytes(StandardCharsets.UTF_8);
+    protected static final byte[] row0 = PtBytes.toBytes("row0");
+    protected static final byte[] row1 = PtBytes.toBytes("row1");
+    protected static final byte[] row2 = PtBytes.toBytes("row2");
+    protected static final byte[] column0 = PtBytes.toBytes("column0");
+    protected static final byte[] column1 = PtBytes.toBytes("column1");
+    protected static final byte[] column2 = PtBytes.toBytes("column2");
+    protected static final byte[] value00 = PtBytes.toBytes("value00");
+    protected static final byte[] value01 = PtBytes.toBytes("value01");
+    protected static final byte[] value10 = PtBytes.toBytes("value10");
+    protected static final byte[] value12 = PtBytes.toBytes("value12");
+    protected static final byte[] value21 = PtBytes.toBytes("value21");
+    protected static final byte[] value22 = PtBytes.toBytes("value22");
 
-    protected static final byte[] value0_t0 = "value0_t0".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] value0_t1 = "value1_t1".getBytes(StandardCharsets.UTF_8);
-    protected static final byte[] value0_t5 = "value5_t5".getBytes(StandardCharsets.UTF_8);
+    protected static final byte[] value0_t0 = PtBytes.toBytes("value0_t0");
+    protected static final byte[] value0_t1 = PtBytes.toBytes("value1_t1");
+    protected static final byte[] value0_t5 = PtBytes.toBytes("value5_t5");
 
     protected static final Cell TEST_CELL = Cell.create(row0, column0);
     protected static final long TEST_TIMESTAMP = 1000000L;
@@ -712,77 +712,77 @@ public abstract class AbstractKeyValueServiceTest {
         TableReference tableRef = createTableWithNamedColumns(numColumnsInMetadata);
 
         Map<Cell, byte[]> values = new HashMap<Cell, byte[]>();
-        values.put(Cell.create("00".getBytes(StandardCharsets.UTF_8), "c1".getBytes(StandardCharsets.UTF_8)),
-                "a".getBytes(StandardCharsets.UTF_8));
-        values.put(Cell.create("00".getBytes(StandardCharsets.UTF_8), "c2".getBytes(StandardCharsets.UTF_8)),
-                "b".getBytes(StandardCharsets.UTF_8));
+        values.put(Cell.create(PtBytes.toBytes("00"), PtBytes.toBytes("c1")),
+                PtBytes.toBytes("a"));
+        values.put(Cell.create(PtBytes.toBytes("00"), PtBytes.toBytes("c2")),
+                PtBytes.toBytes("b"));
 
-        values.put(Cell.create("01".getBytes(StandardCharsets.UTF_8), RangeRequests.getFirstRowName()),
-                "c".getBytes(StandardCharsets.UTF_8));
+        values.put(Cell.create(PtBytes.toBytes("01"), RangeRequests.getFirstRowName()),
+                PtBytes.toBytes("c"));
 
-        values.put(Cell.create("02".getBytes(StandardCharsets.UTF_8), "c1".getBytes(StandardCharsets.UTF_8)),
-                "d".getBytes(StandardCharsets.UTF_8));
-        values.put(Cell.create("02".getBytes(StandardCharsets.UTF_8), "c2".getBytes(StandardCharsets.UTF_8)),
-                "e".getBytes(StandardCharsets.UTF_8));
+        values.put(Cell.create(PtBytes.toBytes("02"), PtBytes.toBytes("c1")),
+                PtBytes.toBytes("d"));
+        values.put(Cell.create(PtBytes.toBytes("02"), PtBytes.toBytes("c2")),
+                PtBytes.toBytes("e"));
 
-        values.put(Cell.create("03".getBytes(StandardCharsets.UTF_8), "c1".getBytes(StandardCharsets.UTF_8)),
-                "f".getBytes(StandardCharsets.UTF_8));
+        values.put(Cell.create(PtBytes.toBytes("03"), PtBytes.toBytes("c1")),
+                PtBytes.toBytes("f"));
 
-        values.put(Cell.create("04".getBytes(StandardCharsets.UTF_8), "c1".getBytes(StandardCharsets.UTF_8)),
-                "g".getBytes(StandardCharsets.UTF_8));
-        values.put(Cell.create("04".getBytes(StandardCharsets.UTF_8), RangeRequests.getLastRowName()),
-                "h".getBytes(StandardCharsets.UTF_8));
+        values.put(Cell.create(PtBytes.toBytes("04"), PtBytes.toBytes("c1")),
+                PtBytes.toBytes("g"));
+        values.put(Cell.create(PtBytes.toBytes("04"), RangeRequests.getLastRowName()),
+                PtBytes.toBytes("h"));
 
-        values.put(Cell.create("05".getBytes(StandardCharsets.UTF_8), "c1".getBytes(StandardCharsets.UTF_8)),
-                "i".getBytes(StandardCharsets.UTF_8));
-        values.put(Cell.create(RangeRequests.getLastRowName(), "c1".getBytes(StandardCharsets.UTF_8)),
-                "j".getBytes(StandardCharsets.UTF_8));
+        values.put(Cell.create(PtBytes.toBytes("05"), PtBytes.toBytes("c1")),
+                PtBytes.toBytes("i"));
+        values.put(Cell.create(RangeRequests.getLastRowName(), PtBytes.toBytes("c1")),
+                PtBytes.toBytes("j"));
         keyValueService.put(tableRef, values, TEST_TIMESTAMP);
 
         RangeRequest request = RangeRequest.builder(reverse).batchHint(batchSizeHint).build();
         try (ClosableIterator<RowResult<Value>> iter = keyValueService.getRange(tableRef, request, Long.MAX_VALUE)) {
             List<RowResult<Value>> results = ImmutableList.copyOf(iter);
             List<RowResult<Value>> expected = ImmutableList.of(
-                    RowResult.create("00".getBytes(StandardCharsets.UTF_8),
+                    RowResult.create(PtBytes.toBytes("00"),
                         ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
-                            .put("c1".getBytes(StandardCharsets.UTF_8),
-                                    Value.create("a".getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP))
-                            .put("c2".getBytes(StandardCharsets.UTF_8),
-                                    Value.create("b".getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP))
+                            .put(PtBytes.toBytes("c1"),
+                                    Value.create(PtBytes.toBytes("a"), TEST_TIMESTAMP))
+                            .put(PtBytes.toBytes("c2"),
+                                    Value.create(PtBytes.toBytes("b"), TEST_TIMESTAMP))
                             .build()),
-                    RowResult.create("01".getBytes(StandardCharsets.UTF_8),
+                    RowResult.create(PtBytes.toBytes("01"),
                         ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
                             .put(RangeRequests.getFirstRowName(),
-                                    Value.create("c".getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP))
+                                    Value.create(PtBytes.toBytes("c"), TEST_TIMESTAMP))
                             .build()),
-                    RowResult.create("02".getBytes(StandardCharsets.UTF_8),
+                    RowResult.create(PtBytes.toBytes("02"),
                         ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
-                            .put("c1".getBytes(StandardCharsets.UTF_8),
-                                    Value.create("d".getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP))
-                            .put("c2".getBytes(StandardCharsets.UTF_8),
-                                    Value.create("e".getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP))
+                            .put(PtBytes.toBytes("c1"),
+                                    Value.create(PtBytes.toBytes("d"), TEST_TIMESTAMP))
+                            .put(PtBytes.toBytes("c2"),
+                                    Value.create(PtBytes.toBytes("e"), TEST_TIMESTAMP))
                             .build()),
-                    RowResult.create("03".getBytes(StandardCharsets.UTF_8),
+                    RowResult.create(PtBytes.toBytes("03"),
                         ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
-                            .put("c1".getBytes(StandardCharsets.UTF_8),
-                                    Value.create("f".getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP))
+                            .put(PtBytes.toBytes("c1"),
+                                    Value.create(PtBytes.toBytes("f"), TEST_TIMESTAMP))
                             .build()),
-                    RowResult.create("04".getBytes(StandardCharsets.UTF_8),
+                    RowResult.create(PtBytes.toBytes("04"),
                         ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
-                            .put("c1".getBytes(StandardCharsets.UTF_8),
-                                    Value.create("g".getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP))
+                            .put(PtBytes.toBytes("c1"),
+                                    Value.create(PtBytes.toBytes("g"), TEST_TIMESTAMP))
                             .put(RangeRequests.getLastRowName(),
-                                    Value.create("h".getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP))
+                                    Value.create(PtBytes.toBytes("h"), TEST_TIMESTAMP))
                             .build()),
-                    RowResult.create("05".getBytes(StandardCharsets.UTF_8),
+                    RowResult.create(PtBytes.toBytes("05"),
                         ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
-                            .put("c1".getBytes(StandardCharsets.UTF_8),
-                                    Value.create("i".getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP))
+                            .put(PtBytes.toBytes("c1"),
+                                    Value.create(PtBytes.toBytes("i"), TEST_TIMESTAMP))
                             .build()),
                     RowResult.create(RangeRequests.getLastRowName(),
                         ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
-                            .put("c1".getBytes(StandardCharsets.UTF_8),
-                                    Value.create("j".getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP))
+                            .put(PtBytes.toBytes("c1"),
+                                    Value.create(PtBytes.toBytes("j"), TEST_TIMESTAMP))
                             .build())
             );
             assertEquals(reverse ? Lists.reverse(expected) : expected, results);
@@ -803,8 +803,8 @@ public abstract class AbstractKeyValueServiceTest {
         TableReference tableRef = createTableWithNamedColumns(numColumnsInMetadata);
         byte[] last = reverse ? RangeRequests.getFirstRowName() : RangeRequests.getLastRowName();
         Map<Cell, byte[]> values = ImmutableMap.of(
-                Cell.create(last, "c1".getBytes(StandardCharsets.UTF_8)), "a".getBytes(StandardCharsets.UTF_8),
-                Cell.create(last, last), "b".getBytes(StandardCharsets.UTF_8));
+                Cell.create(last, PtBytes.toBytes("c1")), PtBytes.toBytes("a"),
+                Cell.create(last, last), PtBytes.toBytes("b"));
         keyValueService.put(tableRef, values, TEST_TIMESTAMP);
 
         RangeRequest request = RangeRequest.builder(reverse).batchHint(batchSizeHint).build();
@@ -813,9 +813,9 @@ public abstract class AbstractKeyValueServiceTest {
             List<RowResult<Value>> expected = ImmutableList.of(
                     RowResult.create(last,
                         ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
-                                .put("c1".getBytes(StandardCharsets.UTF_8),
-                                        Value.create("a".getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP))
-                                .put(last, Value.create("b".getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP))
+                                .put(PtBytes.toBytes("c1"),
+                                        Value.create(PtBytes.toBytes("a"), TEST_TIMESTAMP))
+                                .put(last, Value.create(PtBytes.toBytes("b"), TEST_TIMESTAMP))
                                 .build()));
             assertEquals(expected, results);
         }
@@ -847,7 +847,7 @@ public abstract class AbstractKeyValueServiceTest {
             for (long col = 1; col <= row; ++col) {
                 byte[] rowName = PtBytes.toBytes(Long.MIN_VALUE ^ row);
                 byte[] colName = PtBytes.toBytes(Long.MIN_VALUE ^ col);
-                values.put(Cell.create(rowName, colName), (row + "," + col).getBytes(StandardCharsets.UTF_8));
+                values.put(Cell.create(rowName, colName), PtBytes.toBytes(row + "," + col));
             }
         }
         keyValueService.truncateTable(TEST_TABLE);
@@ -883,7 +883,7 @@ public abstract class AbstractKeyValueServiceTest {
                     UnsignedBytes.lexicographicalComparator());
             for (long col = 1; col <= row && col <= numColsInSelection; ++col) {
                 byte[] colName = PtBytes.toBytes(Long.MIN_VALUE ^ col);
-                builder.put(colName, Value.create((row + "," + col).getBytes(StandardCharsets.UTF_8), TEST_TIMESTAMP));
+                builder.put(colName, Value.create(PtBytes.toBytes(row + "," + col), TEST_TIMESTAMP));
             }
             SortedMap<byte[], Value> columns = builder.build();
             if (!columns.isEmpty()) {
@@ -981,21 +981,21 @@ public abstract class AbstractKeyValueServiceTest {
     public void testDeleteRangeReverse() {
         Assume.assumeTrue(reverseRangesSupported());
         // should delete only row1
-        setupTestRowsZeroOneAndTwoAndDeleteFrom("row1b".getBytes(StandardCharsets.UTF_8), row0, true);
+        setupTestRowsZeroOneAndTwoAndDeleteFrom(PtBytes.toBytes("row1b"), row0, true);
         checkThatTableIsNowOnly(row0, row2);
     }
 
     @Test
     public void testDeleteRangeStartRowInclusivity() {
         // should delete row0 and row1
-        setupTestRowsZeroOneAndTwoAndDeleteFrom(row0, "row1b".getBytes(StandardCharsets.UTF_8));
+        setupTestRowsZeroOneAndTwoAndDeleteFrom(row0, PtBytes.toBytes("row1b"));
         checkThatTableIsNowOnly(row2);
     }
 
     @Test
     public void testDeleteRangeEndRowExclusivity() {
         // should delete row0 only
-        setupTestRowsZeroOneAndTwoAndDeleteFrom("row".getBytes(StandardCharsets.UTF_8), row1);
+        setupTestRowsZeroOneAndTwoAndDeleteFrom(PtBytes.toBytes("row"), row1);
         checkThatTableIsNowOnly(row1, row2);
     }
 
@@ -1008,8 +1008,8 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testDeleteRangeNone() {
-        setupTestRowsZeroOneAndTwoAndDeleteFrom("a".getBytes(StandardCharsets.UTF_8),
-                "a".getBytes(StandardCharsets.UTF_8));
+        setupTestRowsZeroOneAndTwoAndDeleteFrom(PtBytes.toBytes("a"),
+                PtBytes.toBytes("a"));
         checkThatTableIsNowOnly(row0, row1, row2);
     }
 
