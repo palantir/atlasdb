@@ -185,7 +185,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
         CompletionService<Void> executor = new ExecutorCompletionService<Void>(
                 Tracers.wrap(PTExecutors.newFixedThreadPool(8)));
-        final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
         t1.commit();
@@ -218,7 +218,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void testConcurrentWriteWriteConflicts() throws InterruptedException, ExecutionException {
         CompletionService<Void> executor = new ExecutorCompletionService<Void>(
                 Tracers.wrap(PTExecutors.newFixedThreadPool(8)));
-        final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
         t1.commit();
@@ -266,7 +266,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     // If lock happens concurrent with get, we aren't sure that we can rollback the transaction
     @Test
     public void testLockAfterGet() throws Exception {
-        byte[] rowName = "1".getBytes();
+        byte[] rowName = PtBytes.toBytes("1");
         Mockery m = new Mockery();
         final KeyValueService kvMock = m.mock(KeyValueService.class);
         final LockService lockMock = m.mock(LockService.class);
@@ -310,7 +310,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @SuppressWarnings("unchecked")
     @Test
     public void testPutCleanup() throws Exception {
-        byte[] rowName = "1".getBytes();
+        byte[] rowName = PtBytes.toBytes("1");
         Mockery m = new Mockery();
         final KeyValueService kvMock = m.mock(KeyValueService.class);
         KeyValueService kv = MultiDelegateProxy.newProxyInstance(KeyValueService.class, keyValueService, kvMock);
@@ -398,7 +398,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     results.batchAccept(1, AbortingVisitors.batching(new AbortingVisitor<RowResult<byte[]>, Exception>() {
                         @Override
                         public boolean visit(RowResult<byte[]> row) throws Exception {
-                            byte[] dataBytes = row.getColumns().get("data".getBytes());
+                            byte[] dataBytes = row.getColumns().get(PtBytes.toBytes("data"));
                             BigInteger dataValue = new BigInteger(dataBytes);
                             nextIndex.setValue(Math.max(nextIndex.toInteger(), dataValue.intValue() + 1));
                             return true;
@@ -409,7 +409,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     // rows to the table.
                     for (int j = 0; j < 5; j++) {
                         int rowNumber = nextIndex.toInteger() + j;
-                        Cell cell = Cell.create(("row" + rowNumber).getBytes(), "data".getBytes());
+                        Cell cell = Cell.create(PtBytes.toBytes("row" + rowNumber), PtBytes.toBytes("data"));
                         transaction.put(tableRef,
                                 ImmutableMap.of(cell, BigInteger.valueOf(rowNumber).toByteArray()));
                         Thread.yield();
@@ -451,7 +451,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         Transaction initTransaction = txManager.createNewTransaction();
         for (int i = 0; i < numColumns; i++) {
-            Cell cell = Cell.create("row".getBytes(), ("column" + i).getBytes());
+            Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column" + i));
             BigInteger cellValue = BigInteger.valueOf(i);
             initTransaction.put(TABLE, ImmutableMap.of(cell, cellValue.toByteArray()));
         }
@@ -487,7 +487,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             } else if (actionCode < 15) {
                 // Write a new value to a random column
                 int columnNumber = random.nextInt(numColumns);
-                Cell cell = Cell.create("row".getBytes(), ("column" + columnNumber).getBytes());
+                Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column" + columnNumber));
 
                 BigInteger newValue = BigInteger.valueOf(random.nextInt(100000));
                 t.put(TABLE, ImmutableMap.of(cell, newValue.toByteArray()));
@@ -495,7 +495,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             } else {
                 // Read and verify the value of a random column
                 int columnNumber = random.nextInt(numColumns);
-                Cell cell = Cell.create("row".getBytes(), ("column" + columnNumber).getBytes());
+                Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column" + columnNumber));
                 byte[] storedValue = t.get(TABLE, Collections.singleton(cell)).get(cell);
                 BigInteger expectedValue = writtenValues.get(transactionIndex).get(columnNumber);
                 assertEquals(expectedValue, new BigInteger(storedValue));
@@ -507,9 +507,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void testTransactionWriteWriteConflicts() throws Exception {
         // This test creates various types of conflicting writes and makes sure that write-write
         // conflicts are thrown when necessary, and not thrown when there actually isn't a conflict.
-        Cell row1Column1 = Cell.create("row1".getBytes(), "column1".getBytes());
-        Cell row1Column2 = Cell.create("row1".getBytes(), "column2".getBytes());
-        Cell row2Column1 = Cell.create("row2".getBytes(), "column1".getBytes());
+        Cell row1Column1 = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        Cell row1Column2 = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column2"));
+        Cell row2Column1 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column1"));
 
         // First transaction commits first, second tries to commit same write
         Transaction t1 = txManager.createNewTransaction();
@@ -597,7 +597,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final int batchHint = 1;
 
         tasks.add(Pair.of("get", (t, heldLocks) -> {
-            t.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(Cell.create("row1".getBytes(), "column1".getBytes())));
+            t.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"))));
             return null;
         }));
 
@@ -612,14 +612,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }));
 
         tasks.add(Pair.of("getRows", (t, heldLocks) -> {
-            t.getRows(TABLE_SWEPT_THOROUGH, ImmutableSet.of("row1".getBytes()), ColumnSelection.all());
+            t.getRows(TABLE_SWEPT_THOROUGH, ImmutableSet.of(PtBytes.toBytes("row1")), ColumnSelection.all());
             return null;
         }));
 
         tasks.add(Pair.of("getRowsColumnRange(TableReference, Iterable<byte[]>, BatchColumnRangeSelection)",
                 (t, heldLocks) -> {
                     Collection<BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
-                            t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton("row1".getBytes()),
+                            t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
                                     BatchColumnRangeSelection.create(new ColumnRangeSelection(null, null), batchHint))
                                     .values();
                     results.forEach(result -> result.batchAccept(batchHint, AbortingVisitors.alwaysTrue()));
@@ -628,7 +628,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         tasks.add(Pair.of("getRowsColumnRange(TableReference, Iterable<byte[]>, ColumnRangeSelection, int)",
                 (t, heldLocks) -> {
-                    t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton("row1".getBytes()),
+                    t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
                             new ColumnRangeSelection(null, null), batchHint);
                     return null;
                 }));
@@ -638,7 +638,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     SnapshotTransaction snapshotTx = unwrapSnapshotTransaction(t);
                     snapshotTx.getRowsIgnoringLocalWrites(
                             TABLE_SWEPT_THOROUGH,
-                            Collections.singleton("row1".getBytes()));
+                            Collections.singleton(PtBytes.toBytes("row1")));
                     return null;
                 }));
 
@@ -646,7 +646,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 (t, heldLocks) -> {
                     SnapshotTransaction snapshotTx = unwrapSnapshotTransaction(t);
                     snapshotTx.getIgnoringLocalWrites(TABLE_SWEPT_THOROUGH,
-                            Collections.singleton(Cell.create("row1".getBytes(), "column1".getBytes())));
+                            Collections.singleton(Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"))));
                     return null;
                 }));
 
@@ -656,7 +656,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void testWriteChangedConflictsNoThrow() {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
-        final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
         t1.delete(TABLE, ImmutableSet.of(cell));
@@ -668,7 +668,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void testWriteChangedConflictsThrow() {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
-        final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
         t1.delete(TABLE, ImmutableSet.of(cell));
@@ -721,7 +721,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void testWriteWriteConflictsDeletedThrow() {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE);
-        final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
         t1.delete(TABLE, ImmutableSet.of(cell));
@@ -737,16 +737,16 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test (expected = IllegalArgumentException.class)
     public void disallowPutOnEmptyObject() {
-        final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Test
     public void partiallyFilledRowsShouldBeVisible() {
-        byte[] defaultRow = "row1".getBytes();
-        final Cell emptyCell = Cell.create(defaultRow, "column1".getBytes());
-        final Cell writtenCell = Cell.create(defaultRow, "column2".getBytes());
+        byte[] defaultRow = PtBytes.toBytes("row1");
+        final Cell emptyCell = Cell.create(defaultRow, PtBytes.toBytes("column1"));
+        final Cell writtenCell = Cell.create(defaultRow, PtBytes.toBytes("column2"));
         writeCells(TABLE, ImmutableMap.of(writtenCell, PtBytes.toBytes("writtenCell")));
 
         RowResult<byte[]> rowResult = readRow(defaultRow);
@@ -758,7 +758,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void noRetryOnExpiredLockTokens() throws InterruptedException {
-        Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         HeldLocksToken expiredLockToken = getExpiredHeldLocksToken();
         try {
             txManager.runTaskWithLocksWithRetry(ImmutableList.of(expiredLockToken), () -> null, (tx, locks) -> {
