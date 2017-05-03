@@ -70,11 +70,12 @@ public class SweepCommand extends SingleBackendCommand {
     int batchSize = AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE;
 
     @Option(name = {"--cell-batch-size"},
-            description = "Sweeper cell batch size (default: " + AtlasDbConstants.DEFAULT_SWEEP_CELL_BATCH_SIZE+ ")")
+            description = "Sweeper cell batch size (default: " + AtlasDbConstants.DEFAULT_SWEEP_CELL_BATCH_SIZE + ")")
     int cellBatchSize = AtlasDbConstants.DEFAULT_SWEEP_CELL_BATCH_SIZE;
 
     @Option(name = {"--sleep"},
-            description = "Time to wait in milliseconds after each sweep batch (throttles long-running sweep jobs, default: 0)")
+            description = "Time to wait in milliseconds after each sweep batch"
+                    + " (throttles long-running sweep jobs, default: 0)")
     long sleepTimeInMs = 0;
 
     @Option(name = {"--dry-run"},
@@ -86,8 +87,8 @@ public class SweepCommand extends SingleBackendCommand {
         return true;
     }
 
-	@Override
-	public int execute(final AtlasDbServices services) {
+    @Override
+    public int execute(final AtlasDbServices services) {
         SweepTaskRunner sweepRunner = services.getSweepTaskRunner();
 
         if (!((namespace != null) ^ (table != null) ^ sweepAllTables)) {
@@ -95,7 +96,8 @@ public class SweepCommand extends SingleBackendCommand {
             return 1;
         }
         if ((namespace != null) && (row != null)) {
-            printer.error("Cannot specify a start row (" + row + ") when sweeping multiple tables (in namespace " + namespace + ")");
+            printer.error("Cannot specify a start row (" + row
+                    + ") when sweeping multiple tables (in namespace " + namespace + ")");
             return 1;
         }
 
@@ -121,10 +123,10 @@ public class SweepCommand extends SingleBackendCommand {
                 tableToStartRow.put(tableInNamespace, new byte[0]);
             }
         } else if (sweepAllTables) {
-            tableToStartRow.putAll(
-                    Maps.asMap(
-                            Sets.difference(services.getKeyValueService().getAllTableNames(), AtlasDbConstants.hiddenTables),
-                            Functions.constant(new byte[0])));
+            tableToStartRow.putAll(Maps.asMap(
+                    Sets.difference(
+                            services.getKeyValueService().getAllTableNames(), AtlasDbConstants.hiddenTables),
+                    Functions.constant(new byte[0])));
         }
 
         for (Map.Entry<TableReference, byte[]> entry : tableToStartRow.entrySet()) {
@@ -141,7 +143,8 @@ public class SweepCommand extends SingleBackendCommand {
                         ? sweepRunner.dryRun(tableToSweep, batchSize, cellBatchSize, startRow.get())
                         : sweepRunner.run(tableToSweep, batchSize, cellBatchSize, startRow.get());
                 printer.info(
-                        "Swept from {} to {} in table {} in {} ms, examined {} unique cells, {}deleted {} stale versions of those cells.",
+                        "Swept from {} to {} in table {} in {} ms, examined {} unique cells,"
+                                + " {}deleted {} stale versions of those cells.",
                         encodeStartRow(startRow),
                         encodeEndRow(results.getNextStartRow()),
                         tableToSweep,
@@ -183,7 +186,7 @@ public class SweepCommand extends SingleBackendCommand {
             }
         }
         return 0;
-	}
+    }
 
     private void maybeSleep() {
         if (sleepTimeInMs > 0) {

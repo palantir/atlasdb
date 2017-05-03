@@ -30,9 +30,11 @@ import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
 
-public class AtlasCli {
+public final class AtlasCli {
 
     private static final Logger log = LoggerFactory.getLogger(AtlasCli.class);
+
+    private AtlasCli() {}
 
     public static Cli<Callable> buildCli() {
         Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("atlasdb")
