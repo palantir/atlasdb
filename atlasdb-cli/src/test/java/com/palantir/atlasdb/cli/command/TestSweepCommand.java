@@ -115,7 +115,8 @@ public class TestSweepCommand {
             Scanner scanner = new Scanner(stdout);
             final long uniqueCells = Long.parseLong(scanner.findInLine("\\d+ unique cells").split(" ")[0]);
             final long deletedCells = dryRun
-                    ? Long.parseLong(scanner.findInLine("would have deleted \\d+ stale versions of those cells").split(" ")[3])
+                    ? Long.parseLong(
+                            scanner.findInLine("would have deleted \\d+ stale versions of those cells").split(" ")[3])
                     : Long.parseLong(scanner.findInLine("deleted \\d+ stale versions of those cells").split(" ")[1]);
             Assert.assertEquals(1, uniqueCells);
             Assert.assertEquals(1, deletedCells);
@@ -139,7 +140,8 @@ public class TestSweepCommand {
             String stdout = sweep(runner, ts5);
 
             Assert.assertFalse(stdout.contains("Swept from"));
-            Assert.assertTrue(stdout.contains(String.format("The table %s passed in to sweep does not exist", NON_EXISTING_TABLE)));
+            Assert.assertTrue(stdout.contains(
+                    String.format("The table %s passed in to sweep does not exist", NON_EXISTING_TABLE)));
         }
     }
 
@@ -210,7 +212,8 @@ public class TestSweepCommand {
     @Test
     public void testSweepStartRow() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(
-                paramsWithDryRunSet(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName(), "-r", BaseEncoding.base16().encode("foo".getBytes())))) {
+                paramsWithDryRunSet(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName(),
+                        "-r", BaseEncoding.base16().encode("foo".getBytes())))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
@@ -228,7 +231,8 @@ public class TestSweepCommand {
             Assert.assertEquals(deletedValue("bar"), get(kvs, TABLE_ONE, "foo", mid(ts1, ts3)));
             Assert.assertEquals(deletedValue("biz"), get(kvs, TABLE_ONE, "foo", mid(ts2, ts4)));
             Assert.assertEquals("biz", get(kvs, TABLE_ONE, "boo", mid(ts3, ts5)));
-            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts1), deletedTimestamp(ts2), ts4), getAllTs(kvs, TABLE_ONE, "foo"));
+            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts1), deletedTimestamp(ts2), ts4),
+                    getAllTs(kvs, TABLE_ONE, "foo"));
             Assert.assertEquals(ImmutableSet.of(ts3), getAllTs(kvs, TABLE_ONE, "boo"));
         }
     }
@@ -253,7 +257,7 @@ public class TestSweepCommand {
     }
 
     private long mid(long low, long high) {
-        return low + ((high -low) / 2);
+        return low + ((high - low) / 2);
     }
 
     private String sweep(SingleBackendCliTestRunner runner, long ts) {
@@ -280,7 +284,10 @@ public class TestSweepCommand {
         });
     }
 
-    private void createTable(KeyValueService kvs, TableReference table, final TableMetadataPersistence.SweepStrategy sweepStrategy) {
+    @SuppressWarnings("checkstyle:RightCurly") // TableDefinition syntax
+    private void createTable(KeyValueService kvs,
+            TableReference table,
+            final TableMetadataPersistence.SweepStrategy sweepStrategy) {
         kvs.createTable(table,
                 new TableDefinition() {{
                     rowName();
