@@ -559,8 +559,8 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     private static <V, T extends Iterator<RowResult<V>>> void assertRangeSizeAndOrdering(T it,
-            int expectedSize, RangeRequest
-            rangeRequest) {
+            int expectedSize,
+            RangeRequest rangeRequest) {
         if (!it.hasNext()) {
             assertEquals(expectedSize, 0);
             return;
@@ -1246,16 +1246,10 @@ public abstract class AbstractKeyValueServiceTest {
         }
     }
 
-    @Test
+    @Test(expected = RuntimeException.class)
     public void testGetRangeOfTimestampsThrowsOnError() {
-        try {
-            assertFalse("getRangeOfTimestamps must throw on failure",
-                    keyValueService.getRangeOfTimestamps(TEST_NONEXISTING_TABLE,
-                            RangeRequest.all(),
-                            AtlasDbConstants.MAX_TS).hasNext());
-        } catch (RuntimeException e) {
-            // Expected
-        }
+        keyValueService.getRangeOfTimestamps(TEST_NONEXISTING_TABLE, RangeRequest.all(), AtlasDbConstants.MAX_TS)
+                .hasNext();
     }
 
     @Test
