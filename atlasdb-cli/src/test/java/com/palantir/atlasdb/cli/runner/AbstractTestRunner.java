@@ -48,6 +48,7 @@ public abstract class AbstractTestRunner<S extends AtlasDbServices> implements S
         return services;
     }
 
+    @Override
     public void freshCommand() throws URISyntaxException {
         cmd = buildCommand(cmdClass, buildArgs());
     }

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -213,7 +214,7 @@ public class TestSweepCommand {
     public void testSweepStartRow() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(
                 paramsWithDryRunSet(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName(),
-                        "-r", BaseEncoding.base16().encode("foo".getBytes())))) {
+                        "-r", BaseEncoding.base16().encode("foo".getBytes(StandardCharsets.UTF_8))))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
@@ -266,20 +267,20 @@ public class TestSweepCommand {
     }
 
     private String get(KeyValueService kvs, TableReference table, String row, long ts) {
-        Cell cell = Cell.create(row.getBytes(), COL.getBytes());
+        Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), COL.getBytes(StandardCharsets.UTF_8));
         Value val = kvs.get(table, ImmutableMap.of(cell, ts)).get(cell);
         return val == null ? null : new String(val.getContents());
     }
 
     private Set<Long> getAllTs(KeyValueService kvs, TableReference table, String row) {
-        Cell cell = Cell.create(row.getBytes(), COL.getBytes());
+        Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), COL.getBytes(StandardCharsets.UTF_8));
         return ImmutableSet.copyOf(kvs.getAllTimestamps(table, ImmutableSet.of(cell), Long.MAX_VALUE).get(cell));
     }
 
     private long put(SerializableTransactionManager txm, TableReference table, String row, String val) {
-        Cell cell = Cell.create(row.getBytes(), COL.getBytes());
+        Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), COL.getBytes(StandardCharsets.UTF_8));
         return txm.runTaskWithRetry(t -> {
-            t.put(table, ImmutableMap.of(cell, val.getBytes()));
+            t.put(table, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8)));
             return t.getTimestamp();
         });
     }
