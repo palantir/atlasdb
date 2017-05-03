@@ -209,6 +209,7 @@ public final class UserPhotosStreamHashAidxTable implements
             return Objects.equal(hash, other.hash);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(hash);
@@ -300,6 +301,7 @@ public final class UserPhotosStreamHashAidxTable implements
             return Objects.equal(streamId, other.streamId);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(streamId);
@@ -734,5 +736,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "xCy5bWaUF/rgrMJgqWl5Nw==";
+    static String __CLASS_HASH = "hOcVe8o+P0SRTvwBh77p+Q==";
 }

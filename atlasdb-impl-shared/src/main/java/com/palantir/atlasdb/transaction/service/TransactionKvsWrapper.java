@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,14 +26,14 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-public class TransactionKVSWrapper {
+public class TransactionKvsWrapper {
     // The maximum key-value store timestamp (exclusive) at which data is stored in transaction table.
     // All entries in transaction table are stored with timestamp 0
     private static final long MAX_TIMESTAMP = 1L;
 
     private final KeyValueService keyValueService;
 
-    public TransactionKVSWrapper(KeyValueService keyValueService) {
+    public TransactionKvsWrapper(KeyValueService keyValueService) {
         this.keyValueService = keyValueService;
     }
 

@@ -50,6 +50,7 @@ ext.libVersions =
     // This is supported by Dropwizard starting v1.0.0.
     // http://www.dropwizard.io/1.0.6/docs/manual/configuration.html#http-2-over-tls
     timelock_dropwizard: '1.0.6',
+    timelock_guava: '21.0',
     timelock_jetty: '9.3.9.v20160517',
     timelock_jersey: '2.23.2',
     timelock_jackson: '2.6.7',

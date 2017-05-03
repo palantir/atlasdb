@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,9 +60,8 @@ import com.palantir.remoting1.tracing.Tracers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
-public final class CQLKeyValueServices {
-    private static final Logger log = LoggerFactory.getLogger(CQLKeyValueService.class); // not a typo
+public final class CqlKeyValueServices {
+    private static final Logger log = LoggerFactory.getLogger(CqlKeyValueService.class); // not a typo
 
     // this is used as a fallback when the user is using small server-side limiting of batches
     static final int UNCONFIGURED_DEFAULT_BATCH_SIZE_BYTES = 50 * 1024;
@@ -162,7 +161,7 @@ public final class CQLKeyValueServices {
         }
     }
 
-    @SuppressFBWarnings("URF_UNREAD_FIELD")
+    @SuppressWarnings("VisibilityModifier")
     static class Peer {
         InetAddress peer;
         String dataCenter;
@@ -194,7 +193,7 @@ public final class CQLKeyValueServices {
         return peers;
     }
 
-    @SuppressFBWarnings("URF_UNREAD_FIELD")
+    @SuppressWarnings("VisibilityModifier")
     static class Local {
         String dataCenter;
         String rack;
@@ -212,7 +211,7 @@ public final class CQLKeyValueServices {
 
     public static void waitForSchemaVersionsToCoalesce(
             String encapsulatingOperationDescription,
-            CQLKeyValueService kvs) {
+            CqlKeyValueService kvs) {
         PreparedStatement peerInfoQuery = kvs.getPreparedStatement(
                 CassandraConstants.NO_TABLE,
                 "select peer, schema_version from system.peers;",
@@ -232,8 +231,7 @@ public final class CQLKeyValueServices {
                 return;
             }
             sleepTime = Math.min(sleepTime * 2, 5000);
-        }
-        while (System.currentTimeMillis() < start + CassandraConstants.SECONDS_WAIT_FOR_VERSIONS * 1000);
+        } while (System.currentTimeMillis() < start + CassandraConstants.SECONDS_WAIT_FOR_VERSIONS * 1000);
 
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("Cassandra cluster cannot come to agreement on schema versions,"
@@ -252,10 +250,10 @@ public final class CQLKeyValueServices {
         throw new IllegalStateException(sb.toString());
     }
 
-    void createTableWithSettings(TableReference tableRef, byte[] rawMetadata, CQLKeyValueService kvs) {
+    void createTableWithSettings(TableReference tableRef, byte[] rawMetadata, CqlKeyValueService kvs) {
         StringBuilder queryBuilder = new StringBuilder();
 
-        int explicitCompressionBlockSizeKB = 0;
+        int explicitCompressionBlockSizeKb = 0;
         boolean negativeLookups = false;
         double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
         boolean appendHeavyAndReadLight = false;
@@ -263,7 +261,7 @@ public final class CQLKeyValueServices {
 
         if (rawMetadata != null && rawMetadata.length != 0) {
             TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
-            explicitCompressionBlockSizeKB = tableMetadata.getExplicitCompressionBlockSizeKB();
+            explicitCompressionBlockSizeKb = tableMetadata.getExplicitCompressionBlockSizeKB();
             negativeLookups = tableMetadata.hasNegativeLookups();
             appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
         }
@@ -275,8 +273,8 @@ public final class CQLKeyValueServices {
         }
 
         int chunkLength = AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB;
-        if (explicitCompressionBlockSizeKB != 0) {
-            chunkLength = explicitCompressionBlockSizeKB;
+        if (explicitCompressionBlockSizeKb != 0) {
+            chunkLength = explicitCompressionBlockSizeKb;
         }
 
         queryBuilder.append("CREATE TABLE IF NOT EXISTS " + kvs.getFullTableName(tableRef) + " ( "
@@ -316,15 +314,15 @@ public final class CQLKeyValueServices {
         }
     }
 
-    static void setSettingsForTable(TableReference tableRef, byte[] rawMetadata, CQLKeyValueService kvs) {
-        int explicitCompressionBlockSizeKB = 0;
+    static void setSettingsForTable(TableReference tableRef, byte[] rawMetadata, CqlKeyValueService kvs) {
+        int explicitCompressionBlockSizeKb = 0;
         boolean negativeLookups = false;
         double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
         boolean appendHeavyAndReadLight = false;
 
         if (rawMetadata != null && rawMetadata.length != 0) {
             TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
-            explicitCompressionBlockSizeKB = tableMetadata.getExplicitCompressionBlockSizeKB();
+            explicitCompressionBlockSizeKb = tableMetadata.getExplicitCompressionBlockSizeKB();
             negativeLookups = tableMetadata.hasNegativeLookups();
             appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
         }
@@ -336,8 +334,8 @@ public final class CQLKeyValueServices {
         }
 
         int chunkLength = AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB;
-        if (explicitCompressionBlockSizeKB != 0) {
-            chunkLength = explicitCompressionBlockSizeKB;
+        if (explicitCompressionBlockSizeKb != 0) {
+            chunkLength = explicitCompressionBlockSizeKb;
         }
 
         StringBuilder sb = new StringBuilder();
@@ -367,17 +365,21 @@ public final class CQLKeyValueServices {
     }
 
 
-    interface ThreadSafeCQLResultVisitor extends Visitor<Multimap<Cell, Value>> {
+    interface ThreadSafeCqlResultVisitor extends Visitor<Multimap<Cell, Value>> {
         // marker
     }
 
-    static class StartTsResultsCollector implements ThreadSafeCQLResultVisitor {
-        final Map<Cell, Value> collectedResults = Maps.newConcurrentMap();
-        final ValueExtractor extractor = new ValueExtractor(collectedResults);
-        final long startTs;
+    static class StartTsResultsCollector implements ThreadSafeCqlResultVisitor {
+        private final Map<Cell, Value> collectedResults = Maps.newConcurrentMap();
+        private final ValueExtractor extractor = new ValueExtractor(collectedResults);
+        private final long startTs;
 
         StartTsResultsCollector(long startTs) {
             this.startTs = startTs;
+        }
+
+        public Map<Cell, Value> getCollectedResults() {
+            return collectedResults;
         }
 
         @Override
@@ -391,8 +393,12 @@ public final class CQLKeyValueServices {
         }
     }
 
-    static class AllTimestampsCollector implements ThreadSafeCQLResultVisitor {
-        final Multimap<Cell, Long> collectedResults = HashMultimap.create();
+    static class AllTimestampsCollector implements ThreadSafeCqlResultVisitor {
+        private final Multimap<Cell, Long> collectedResults = HashMultimap.create();
+
+        public Multimap<Cell, Long> getCollectedResults() {
+            return collectedResults;
+        }
 
         @Override
         public synchronized void visit(Multimap<Cell, Value> results) {
