@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -94,19 +94,19 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.AllTimestampsCollector;
-import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.Local;
-import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.Peer;
-import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.StartTsResultsCollector;
-import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.TransactionType;
+import com.palantir.atlasdb.keyvalue.cassandra.CqlKeyValueServices.AllTimestampsCollector;
+import com.palantir.atlasdb.keyvalue.cassandra.CqlKeyValueServices.Local;
+import com.palantir.atlasdb.keyvalue.cassandra.CqlKeyValueServices.Peer;
+import com.palantir.atlasdb.keyvalue.cassandra.CqlKeyValueServices.StartTsResultsCollector;
+import com.palantir.atlasdb.keyvalue.cassandra.CqlKeyValueServices.TransactionType;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
@@ -124,8 +124,9 @@ import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class CQLKeyValueService extends AbstractKeyValueService {
-    private static final Logger log = LoggerFactory.getLogger(CQLKeyValueService.class);
+@SuppressWarnings("VisibilityModifier")
+public class CqlKeyValueService extends AbstractKeyValueService {
+    private static final Logger log = LoggerFactory.getLogger(CqlKeyValueService.class);
 
     private Cluster cluster;
     private Cluster longRunningQueryCluster;
@@ -135,8 +136,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
-    protected CQLStatementCache cqlStatementCache;
-    protected CQLKeyValueServices cqlKeyValueServices;
+    protected CqlStatementCache cqlStatementCache;
+    protected CqlKeyValueServices cqlKeyValueServices;
 
     Session session;
     Session longRunningQuerySession;
@@ -144,16 +145,16 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     private boolean limitBatchSizesToServerDefaults = false;
 
-    public static CQLKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
+    public static CqlKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        final CQLKeyValueService ret = new CQLKeyValueService(configManager, compactionManager);
+        final CqlKeyValueService ret = new CqlKeyValueService(configManager, compactionManager);
         ret.initializeConnectionPool();
         ret.performInitialSetup();
         return ret;
     }
 
-    protected CQLKeyValueService(CassandraKeyValueServiceConfigManager configManager,
+    protected CqlKeyValueService(CassandraKeyValueServiceConfigManager configManager,
                                  Optional<CassandraJmxCompactionManager> compactionManager) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas CQL KVS", configManager.getConfig().poolSize()));
         fieldNameProvider = new CqlFieldNameProvider(configManager.getConfig());
@@ -161,6 +162,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         this.compactionManager = compactionManager;
     }
 
+    @SuppressWarnings("CyclomaticComplexity")
     protected void initializeConnectionPool() {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         Collection<InetSocketAddress> configuredHosts = config.servers();
@@ -239,8 +241,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         longRunningQueryCluster = clusterBuilder.build();
         longRunningQuerySession = longRunningQueryCluster.connect();
 
-        cqlStatementCache = new CQLStatementCache(session, longRunningQuerySession);
-        cqlKeyValueServices = new CQLKeyValueServices();
+        cqlStatementCache = new CqlStatementCache(session, longRunningQuerySession);
+        cqlKeyValueServices = new CqlKeyValueServices();
 
         if (log.isInfoEnabled()) {
             StringBuilder hostInfo = new StringBuilder();
@@ -260,7 +262,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void close() {
-        log.info("Closing CQLKeyValueService");
+        log.info("Closing CqlKeyValueService");
         session.close();
         cluster.close();
         cqlKeyValueServices.shutdown();
@@ -284,7 +286,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
 
 
-        Set<Peer> peers = CQLKeyValueServices.getPeers(session);
+        Set<Peer> peers = CqlKeyValueServices.getPeers(session);
 
         boolean allNodesHaveSaneNumberOfVnodes = Iterables.all(peers, new Predicate<Peer>() {
             @Override
@@ -318,7 +320,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     private String getLocalDataCenter() {
-        Local local = CQLKeyValueServices.getLocal(session);
+        Local local = CqlKeyValueServices.getLocal(session);
         return local.dataCenter;
     }
 
@@ -338,7 +340,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             try {
                 StartTsResultsCollector collector = new StartTsResultsCollector(startTs);
                 loadWithTs(tableRef, cells, startTs, false, collector, readConsistency);
-                return collector.collectedResults;
+                return collector.getCollectedResults();
             } catch (Throwable t) {
                 throw Throwables.throwUncheckedException(t);
             }
@@ -411,7 +413,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(firstTs);
                 loadWithTs(tableRef, timestampByCell.keySet(), firstTs, false, collector, readConsistency);
-                return collector.collectedResults;
+                return collector.getCollectedResults();
             }
 
             SetMultimap<Long, Cell> cellsByTs = HashMultimap.create();
@@ -420,7 +422,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(ts);
                 loadWithTs(tableRef, cellsByTs.get(ts), ts, false, collector, readConsistency);
-                builder.putAll(collector.collectedResults);
+                builder.putAll(collector.getCollectedResults());
             }
             return builder.build();
         } catch (Throwable t) {
@@ -483,7 +485,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    // todo use this for insert and delete batch-to-owner-coordinator mapping
+    // TODO(unknown): use this for insert and delete batch-to-owner-coordinator mapping
     private Map<byte[], List<Cell>> partitionCellsByPrimaryKey(Collection<Cell> cells) {
         return Multimaps.asMap(Multimaps.index(cells, Cells.getRowFunction()));
     }
@@ -629,7 +631,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     getMultiPutBatchCount(),
                     getMultiPutBatchSizeBytes(),
                     table,
-                    CQLKeyValueServices.MULTIPUT_ENTRY_SIZING_FUNCTION);
+                    CqlKeyValueServices.MULTIPUT_ENTRY_SIZING_FUNCTION);
 
 
             for (final List<Entry<Cell, byte[]>> p : partitions) {
@@ -671,14 +673,14 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         List<ResultSetFuture> resultSetFutures = Lists.newArrayList();
         int mutationBatchCount = configManager.getConfig().mutationBatchCount();
         long mutationBatchSizeBytes = limitBatchSizesToServerDefaults
-                ? CQLKeyValueServices.UNCONFIGURED_DEFAULT_BATCH_SIZE_BYTES
+                ? CqlKeyValueServices.UNCONFIGURED_DEFAULT_BATCH_SIZE_BYTES
                 : configManager.getConfig().mutationBatchSizeBytes();
         for (List<Entry<Cell, Value>> partition : partitionByCountAndBytes(
                 values,
                 mutationBatchCount,
                 mutationBatchSizeBytes,
                 tableRef,
-                CQLKeyValueServices.PUT_ENTRY_SIZING_FUNCTION)) {
+                CqlKeyValueServices.PUT_ENTRY_SIZING_FUNCTION)) {
             resultSetFutures.add(getPutPartitionResultSetFuture(tableRef, partition, transactionType));
         }
 
@@ -812,7 +814,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             }
         }
 
-        CQLKeyValueServices.waitForSchemaVersionsToCoalesce(
+        CqlKeyValueServices.waitForSchemaVersionsToCoalesce(
                 "truncateTables(" + tablesToTruncate.size() + " tables)",
                 this);
     }
@@ -859,7 +861,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    // TODO: after cassandra change: handle multiRanges
+    // TODO(unknown): after cassandra change: handle multiRanges
     @Override
     @Idempotent
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
@@ -876,8 +878,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 concurrency);
     }
 
-    // TODO: after cassandra change: handle reverse ranges
-    // TODO: after cassandra change: handle column filtering
+    // TODO(unknown): after cassandra change: handle reverse ranges
+    // TODO(unknown): after cassandra change: handle column filtering
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
@@ -1030,10 +1032,10 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             }
         }
 
-        CQLKeyValueServices.waitForSchemaVersionsToCoalesce("dropTables(" + tablesToDrop.size() + " tables)", this);
+        CqlKeyValueServices.waitForSchemaVersionsToCoalesce("dropTables(" + tablesToDrop.size() + " tables)", this);
 
         put(AtlasDbConstants.DEFAULT_METADATA_TABLE, Maps.toMap(
-                        Lists.transform(Lists.newArrayList(tablesToDrop), CQLKeyValueServices::getMetadataCell),
+                        Lists.transform(Lists.newArrayList(tablesToDrop), CqlKeyValueServices::getMetadataCell),
                         Functions.constant(PtBytes.EMPTY_BYTE_ARRAY)),
                 System.currentTimeMillis());
     }
@@ -1053,7 +1055,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                         .setConsistencyLevel(ConsistencyLevel.ALL)
                         .bind());
 
-        CQLKeyValueServices.waitForSchemaVersionsToCoalesce("Initial creation of the Atlas keyspace", this);
+        CqlKeyValueServices.waitForSchemaVersionsToCoalesce("Initial creation of the Atlas keyspace", this);
     }
 
     @Override
@@ -1088,7 +1090,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
 
         if (!tablesToCreate.isEmpty()) {
-            CQLKeyValueServices.waitForSchemaVersionsToCoalesce("createTables(" + tableRefsToTableMetadata.size()
+            CqlKeyValueServices.waitForSchemaVersionsToCoalesce("createTables(" + tableRefsToTableMetadata.size()
                     + " tables)", this);
         }
 
@@ -1113,7 +1115,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
-        Cell cell = CQLKeyValueServices.getMetadataCell(tableRef);
+        Cell cell = CqlKeyValueServices.getMetadataCell(tableRef);
         Value value = get(AtlasDbConstants.DEFAULT_METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).get(
                 cell);
         if (value == null) {
@@ -1140,22 +1142,22 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         for (Entry<TableReference, byte[]> tableEntry : tableNameToMetadata.entrySet()) {
             byte[] existingMetadata = getMetadataForTable(tableEntry.getKey());
             if (!Arrays.equals(existingMetadata, tableEntry.getValue())) {
-                cellToMetadata.put(CQLKeyValueServices.getMetadataCell(tableEntry.getKey()), tableEntry.getValue());
+                cellToMetadata.put(CqlKeyValueServices.getMetadataCell(tableEntry.getKey()), tableEntry.getValue());
                 if (possiblyNeedToPerformSettingsChanges) {
-                    CQLKeyValueServices.setSettingsForTable(tableEntry.getKey(), tableEntry.getValue(), this);
+                    CqlKeyValueServices.setSettingsForTable(tableEntry.getKey(), tableEntry.getValue(), this);
                 }
             }
         }
         if (!cellToMetadata.isEmpty()) {
             put(AtlasDbConstants.DEFAULT_METADATA_TABLE, cellToMetadata, System.currentTimeMillis());
             if (possiblyNeedToPerformSettingsChanges) {
-                CQLKeyValueServices.waitForSchemaVersionsToCoalesce(
+                CqlKeyValueServices.waitForSchemaVersionsToCoalesce(
                         "putMetadataForTables(" + tableNameToMetadata.size() + " tables)", this);
             }
         }
     }
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         try {
             final Value value = Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP);
             putInternal(
@@ -1182,7 +1184,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         } catch (Throwable t) {
             throw Throwables.throwUncheckedException(t);
         }
-        return collector.collectedResults;
+        return collector.getCollectedResults();
     }
 
     @Override
@@ -1228,7 +1230,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         long compactionTimeoutSeconds = config.jmx().get().compactionTimeoutSeconds();
         try {
             alterTableForCompaction(tableRef, 0, 0.0f);
-            CQLKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables for compaction", this);
+            CqlKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables for compaction", this);
             compactionManager.get().performTombstoneCompaction(compactionTimeoutSeconds, config.keyspace(), tableRef);
         } catch (TimeoutException e) {
             log.error("Compaction could not finish in {} seconds. {}", compactionTimeoutSeconds, e.getMessage());
@@ -1240,13 +1242,13 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     tableRef,
                     CassandraConstants.GC_GRACE_SECONDS,
                     CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
-            CQLKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables post-compaction", this);
+            CqlKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables post-compaction", this);
         }
     }
 
     @Override
-    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        return NodeAvailabilityStatus.ALL_AVAILABLE;
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        throw new UnsupportedOperationException("getClusterAvailabilityStatus has not been implemented for CQL KVS");
     }
 
     private void alterTableForCompaction(TableReference tableRef, int gcGraceSeconds, float tombstoneThreshold) {

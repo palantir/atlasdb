@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ import com.palantir.docker.proxy.DockerProxyRule;
 
 // **** Important: Some internal tests depend on this class,
 // please recompile them if any breaking changes are made to the setup ***
-public class EteSetup {
+public abstract class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
 

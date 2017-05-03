@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ public final class CassandraKeyValueServiceConfigManager {
     private final long initDelay;
     private final long refreshInterval;
     private CassandraKeyValueServiceConfig config;
-    boolean isShutdown = false;
+    private boolean isShutdown = false;
 
     private static final long DEFAULT_INIT_DELAY = 1000 * 60;
     private static final long DEFAULT_REFRESH_INTERVAL = 1000 * 10;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,10 @@ import java.util.Iterator;
 
 import com.google.common.base.Splitter;
 
-public class VersionStrings {
+public final class VersionStrings {
+    private VersionStrings() {
+        // utility class
+    }
 
     public static int compareVersions(String v1, String v2) {
         Iterator<String> v1Iter = Splitter.on('.').trimResults().split(v1).iterator();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class TransactionRemotingTest {
     public final static AtlasSchema schema = SweepSchema.INSTANCE;
-    public final SerializableTransactionManager txMgr = TransactionManagers.createInMemory(schema);
+    public final SerializableTransactionManager txMgr = TransactionManagers.createInMemory(schema.getLatestSchema());
     public final KeyValueService kvs = txMgr.getKeyValueService();
     public final TableMetadataCache cache = new TableMetadataCache(kvs);
     public final ObjectMapper mapper = new ObjectMapper(); { mapper.registerModule(new AtlasJacksonModule(cache).createModule()); }

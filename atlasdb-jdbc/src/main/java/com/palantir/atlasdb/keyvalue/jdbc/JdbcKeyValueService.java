@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,12 +112,12 @@ import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.NodeAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -535,13 +535,14 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(final TableReference tableRef, Set<Cell> cells) {
-        if (cells.isEmpty()) {
+    public void addGarbageCollectionSentinelValues(final TableReference tableRef, Iterable<Cell> cells) {
+        int numCells = Iterables.size(cells);
+        if (numCells == 0) {
             return;
         }
         Long timestamp = Value.INVALID_VALUE_TIMESTAMP;
         byte[] value = new byte[0];
-        final RowN[] rows = new RowN[cells.size()];
+        final RowN[] rows = new RowN[numCells];
         int i = 0;
         for (Cell cell : cells) {
             rows[i++] = row(new Object[] {cell.getRowName(), cell.getColumnName(), timestamp, value});
@@ -1026,8 +1027,8 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public NodeAvailabilityStatus getNodeAvailabilityStatus() {
-        return NodeAvailabilityStatus.ALL_AVAILABLE;
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        throw new UnsupportedOperationException("getClusterAvailabilityStatus has not been implemented for Jdbc KVS");
     }
 
     @Override

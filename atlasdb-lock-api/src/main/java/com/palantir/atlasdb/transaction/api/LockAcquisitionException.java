@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,15 +18,15 @@ package com.palantir.atlasdb.transaction.api;
 public class LockAcquisitionException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
-    public LockAcquisitionException(String message, Throwable t) {
-        super(message, t);
+    public LockAcquisitionException(String message, Throwable throwable) {
+        super(message, throwable);
     }
 
     public LockAcquisitionException(String message) {
         super(message);
     }
 
-    public LockAcquisitionException(Throwable t) {
-        super(t);
+    public LockAcquisitionException(Throwable throwable) {
+        super(throwable);
     }
 }
