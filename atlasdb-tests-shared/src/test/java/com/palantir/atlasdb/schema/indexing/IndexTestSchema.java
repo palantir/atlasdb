@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ public class IndexTestSchema implements AtlasSchema {
 
     private static final Schema INDEX_TEST_SCHEMA = generateSchema();
 
+    @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Table/IndexDefinition syntax
     private static Schema generateSchema() {
         Schema schema = new Schema("IndexTest",
                 IndexTest.class.getPackage().getName() + ".generated",
@@ -63,15 +64,27 @@ public class IndexTestSchema implements AtlasSchema {
         schema.addIndexDefinition("index3", new IndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("data");
             rowName();
-                componentFromIterableColumn("value", ValueType.FIXED_LONG, ValueByteOrder.ASCENDING, "value", "ImmutableList.of(_value)");
+                componentFromIterableColumn("value",
+                        ValueType.FIXED_LONG,
+                        ValueByteOrder.ASCENDING,
+                        "value",
+                        "ImmutableList.of(_value)");
             rangeScanAllowed();
         }});
 
         schema.addIndexDefinition("index4", new IndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("data");
             rowName();
-                componentFromIterableColumn("value1", ValueType.FIXED_LONG, ValueByteOrder.ASCENDING, "value", "ImmutableList.of(_value)");
-                componentFromIterableColumn("value2", ValueType.FIXED_LONG, ValueByteOrder.ASCENDING, "value", "ImmutableList.of(_value)");
+                componentFromIterableColumn("value1",
+                        ValueType.FIXED_LONG,
+                        ValueByteOrder.ASCENDING,
+                        "value",
+                        "ImmutableList.of(_value)");
+                componentFromIterableColumn("value2",
+                        ValueType.FIXED_LONG,
+                        ValueByteOrder.ASCENDING,
+                        "value",
+                        "ImmutableList.of(_value)");
             rangeScanAllowed();
         }});
 

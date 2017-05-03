@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package com.palantir.atlasdb.jackson;
 
 import java.io.IOException;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
@@ -36,25 +35,23 @@ public class TableRowSelectionSerializer extends StdSerializer<TableRowSelection
     }
 
     @Override
-    public void serialize(TableRowSelection value,
-                          JsonGenerator jgen,
-                          SerializerProvider provider) throws IOException, JsonGenerationException {
+    public void serialize(TableRowSelection value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
         TableMetadata metadata = metadataCache.getMetadata(value.getTableName());
         Preconditions.checkNotNull(metadata, "Unknown table %s", value.getTableName());
-        jgen.writeStartObject(); {
-            jgen.writeStringField("table", value.getTableName());
-            jgen.writeArrayFieldStart("rows"); {
-                for (byte[] row : value.getRows()) {
-                    AtlasSerializers.serializeRowish(jgen, metadata.getRowMetadata(), row);
-                }
-            } jgen.writeEndArray();
-            if (!value.getColumnSelection().allColumnsSelected()) {
-                jgen.writeArrayFieldStart("cols"); {
-                    for (byte[] col : value.getColumnSelection().getSelectedColumns()) {
-                        jgen.writeUTF8String(col, 0, col.length);
-                    }
-                } jgen.writeEndArray();
+        jgen.writeStartObject();
+        jgen.writeStringField("table", value.getTableName());
+        jgen.writeArrayFieldStart("rows");
+        for (byte[] row : value.getRows()) {
+            AtlasSerializers.serializeRowish(jgen, metadata.getRowMetadata(), row);
+        }
+        jgen.writeEndArray();
+        if (!value.getColumnSelection().allColumnsSelected()) {
+            jgen.writeArrayFieldStart("cols");
+            for (byte[] col : value.getColumnSelection().getSelectedColumns()) {
+                jgen.writeUTF8String(col, 0, col.length);
             }
-        } jgen.writeEndObject();
+            jgen.writeEndArray();
+        }
+        jgen.writeEndObject();
     }
 }

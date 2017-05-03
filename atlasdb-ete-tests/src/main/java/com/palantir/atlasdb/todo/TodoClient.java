@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.todo;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -40,7 +39,8 @@ public class TodoClient {
 
     public void addTodo(Todo todo) {
         transactionManager.runTaskWithRetry((transaction) -> {
-            Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(random.nextLong()), TodoSchema.todoTextColumn());
+            Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(random.nextLong()),
+                    TodoSchema.todoTextColumn());
             Map<Cell, byte[]> write = ImmutableMap.of(thisCell, ValueType.STRING.convertFromJava(todo.text()));
 
             transaction.put(TodoSchema.todoTable(), write);
@@ -50,7 +50,8 @@ public class TodoClient {
 
     public List<Todo> getTodoList() {
         ImmutableList<RowResult<byte[]>> results = transactionManager.runTaskWithRetry((transaction) -> {
-            BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable = transaction.getRange(TodoSchema.todoTable(), RangeRequest.all());
+            BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable = transaction.getRange(
+                    TodoSchema.todoTable(), RangeRequest.all());
             ImmutableList.Builder<RowResult<byte[]>> rowResults = ImmutableList.builder();
 
             rowResultBatchingVisitable.batchAccept(1000, items -> {
@@ -65,6 +66,6 @@ public class TodoClient {
                 .map(RowResult::getOnlyColumnValue)
                 .map(ValueType.STRING::convertToString)
                 .map(ImmutableTodo::of)
-                .collect(toList());
+                .collect(Collectors.toList());
     }
 }

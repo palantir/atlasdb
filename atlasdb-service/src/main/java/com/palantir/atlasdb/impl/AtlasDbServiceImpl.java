@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,18 +52,18 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.RawTransaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
-import com.palantir.lock.LockRefreshToken;
 
 public class AtlasDbServiceImpl implements AtlasDbService {
     private static final TableMetadata RAW_METADATA = new TableMetadata(
             NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("row", ValueType.STRING))),
-            new ColumnMetadataDescription(new DynamicColumnDescription(NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("col", ValueType.STRING))), ColumnValueDescription.forType(ValueType.STRING))),
+            new ColumnMetadataDescription(new DynamicColumnDescription(NameMetadataDescription.create(
+                    ImmutableList.of(new NameComponentDescription("col", ValueType.STRING))),
+                    ColumnValueDescription.forType(ValueType.STRING))),
             ConflictHandler.SERIALIZABLE);
 
     private final KeyValueService kvs;
@@ -74,8 +74,8 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     @Inject
     public AtlasDbServiceImpl(KeyValueService kvs,
-                              SerializableTransactionManager txManager,
-                              TableMetadataCache metadataCache) {
+            SerializableTransactionManager txManager,
+            TableMetadataCache metadataCache) {
         this.kvs = kvs;
         this.txManager = txManager;
         this.metadataCache = metadataCache;
@@ -98,78 +98,65 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     @Override
     public TableRowResult getRows(TransactionToken token,
-                                  final TableRowSelection rows) {
-        return runReadOnly(token, new RuntimeTransactionTask<TableRowResult>() {
-            @Override
-            public TableRowResult execute(Transaction t) {
-                Collection<RowResult<byte[]>> values = t.getRows(
-                        getTableRef(rows.getTableName()), rows.getRows(), rows.getColumnSelection()).values();
-                return new TableRowResult(rows.getTableName(), values);
-            }
+            final TableRowSelection rows) {
+        return runReadOnly(token, transaction -> {
+            Collection<RowResult<byte[]>> values = transaction.getRows(
+                    getTableRef(rows.getTableName()), rows.getRows(), rows.getColumnSelection()).values();
+            return new TableRowResult(rows.getTableName(), values);
         });
     }
 
     @Override
     public TableCellVal getCells(TransactionToken token,
-                                 final TableCell cells) {
-        return runReadOnly(token, new RuntimeTransactionTask<TableCellVal>() {
-            @Override
-            public TableCellVal execute(Transaction t) {
-                Map<Cell, byte[]> values = t.get(getTableRef(cells.getTableName()), ImmutableSet.copyOf(cells.getCells()));
-                return new TableCellVal(cells.getTableName(), values);
-            }
+            final TableCell cells) {
+        return runReadOnly(token, transaction -> {
+            Map<Cell, byte[]> values = transaction.get(getTableRef(cells.getTableName()),
+                    ImmutableSet.copyOf(cells.getCells()));
+            return new TableCellVal(cells.getTableName(), values);
         });
     }
 
     @Override
     public RangeToken getRange(TransactionToken token,
-                               final TableRange range) {
-        return runReadOnly(token, new RuntimeTransactionTask<RangeToken>() {
-            @Override
-            public RangeToken execute(Transaction t) {
-                int limit = range.getBatchSize() + 1;
-                RangeRequest request = RangeRequest.builder()
+            final TableRange range) {
+        return runReadOnly(token, transaction -> {
+            int limit = range.getBatchSize() + 1;
+            RangeRequest request = RangeRequest.builder()
                     .startRowInclusive(range.getStartRow())
                     .endRowExclusive(range.getEndRow())
                     .batchHint(limit)
                     .retainColumns(range.getColumns())
                     .build();
-                BatchingVisitable<RowResult<byte[]>> visitable = t.getRange(getTableRef(range.getTableName()), request);
-                List<RowResult<byte[]>> results = BatchingVisitables.limit(visitable, limit).immutableCopy();
-                if (results.size() == limit) {
-                    TableRowResult data = new TableRowResult(range.getTableName(), results.subList(0, limit - 1));
-                    RowResult<byte[]> lastResultInBatch = results.get(limit - 1);
-                    TableRange nextRange = range.withStartRow(lastResultInBatch.getRowName());
-                    return new RangeToken(data, nextRange);
-                } else {
-                    TableRowResult data = new TableRowResult(range.getTableName(), results);
-                    return new RangeToken(data, null);
-                }
+            BatchingVisitable<RowResult<byte[]>> visitable = transaction.getRange(getTableRef(range.getTableName()),
+                    request);
+            List<RowResult<byte[]>> results = BatchingVisitables.limit(visitable, limit).immutableCopy();
+            if (results.size() == limit) {
+                TableRowResult data = new TableRowResult(range.getTableName(), results.subList(0, limit - 1));
+                RowResult<byte[]> lastResultInBatch = results.get(limit - 1);
+                TableRange nextRange = range.withStartRow(lastResultInBatch.getRowName());
+                return new RangeToken(data, nextRange);
+            } else {
+                TableRowResult data = new TableRowResult(range.getTableName(), results);
+                return new RangeToken(data, null);
             }
         });
     }
 
     @Override
     public void put(TransactionToken token,
-                    final TableCellVal data) {
-        runWithRetry(token, new TxTask() {
-            @Override
-            public Void execute(Transaction t) {
-                t.put(getTableRef(data.getTableName()), data.getResults());
-                return null;
-            }
+            final TableCellVal data) {
+        runWithRetry(token, (TxTask) transaction -> {
+            transaction.put(getTableRef(data.getTableName()), data.getResults());
+            return null;
         });
     }
 
     @Override
     public void delete(TransactionToken token,
-                       final TableCell cells) {
-        runWithRetry(token, new TxTask() {
-            @Override
-            public Void execute(Transaction t) {
-                t.delete(getTableRef(cells.getTableName()), ImmutableSet.copyOf(cells.getCells()));
-                return null;
-            }
+            final TableCell cells) {
+        runWithRetry(token, (TxTask) transaction -> {
+            transaction.delete(getTableRef(cells.getTableName()), ImmutableSet.copyOf(cells.getCells()));
+            return null;
         });
     }
 
@@ -202,7 +189,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     public TransactionToken startTransaction() {
         String id = UUID.randomUUID().toString();
         TransactionToken token = new TransactionToken(id);
-        RawTransaction tx = txManager.setupRunTaskWithLocksThrowOnConflict(ImmutableList.<LockRefreshToken>of());
+        RawTransaction tx = txManager.setupRunTaskWithLocksThrowOnConflict(ImmutableList.of());
         transactions.put(token, tx);
         return token;
     }
@@ -211,12 +198,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     public void commit(TransactionToken token) {
         RawTransaction tx = transactions.getIfPresent(token);
         if (tx != null) {
-            txManager.finishRunTaskWithLockThrowOnConflict(tx, new TxTask() {
-                @Override
-                public Void execute(Transaction t) {
-                    return null;
-                }
-            });
+            txManager.finishRunTaskWithLockThrowOnConflict(tx, (TxTask) transaction -> null);
             transactions.invalidate(token);
         }
     }
@@ -225,12 +207,9 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     public void abort(TransactionToken token) {
         RawTransaction tx = transactions.getIfPresent(token);
         if (tx != null) {
-            txManager.finishRunTaskWithLockThrowOnConflict(tx, new TxTask() {
-                @Override
-                public Void execute(Transaction t) {
-                    t.abort();
-                    return null;
-                }
+            txManager.finishRunTaskWithLockThrowOnConflict(tx, (TxTask) transaction -> {
+                transaction.abort();
+                return null;
             });
             transactions.invalidate(token);
         }

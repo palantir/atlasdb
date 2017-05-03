@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,8 @@ import io.airlift.airline.Command;
 @Command(name = "clean-cass-locks-state", description = "Clean up and get the schema mutation "
         + "locks for the CassandraKVS into a good state")
 public class CleanCassLocksStateCommand extends AbstractCommand {
-    private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(CleanCassLocksStateCommand.class));
+    private static final OutputPrinter printer = new OutputPrinter(
+            LoggerFactory.getLogger(CleanCassLocksStateCommand.class));
 
     @Override
     public Integer call() throws Exception {

@@ -211,6 +211,7 @@ public final class UserProfileTable implements
             return Objects.equal(id, other.id);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(id);
@@ -1329,15 +1330,16 @@ public final class UserProfileTable implements
                 return Objects.equal(cookie, other.cookie);
             }
 
+            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Objects.hashCode(cookie);
             }
 
             @Override
-            public int compareTo(CookiesIdxRow o) {
+            public int compareTo(CookiesIdxRow cookiesIdxRow) {
                 return ComparisonChain.start()
-                    .compare(this.cookie, o.cookie)
+                    .compare(this.cookie, cookiesIdxRow.cookie)
                     .result();
             }
         }
@@ -1473,6 +1475,7 @@ public final class UserProfileTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
             }
 
+            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
@@ -1988,6 +1991,7 @@ public final class UserProfileTable implements
                 return Objects.equal(time, other.time);
             }
 
+            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Objects.hashCode(time);
@@ -2132,6 +2136,7 @@ public final class UserProfileTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
             }
 
+            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
@@ -2647,6 +2652,7 @@ public final class UserProfileTable implements
                 return Objects.equal(birthday, other.birthday);
             }
 
+            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Objects.hashCode(birthday);
@@ -2791,6 +2797,7 @@ public final class UserProfileTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
             }
 
+            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
@@ -3265,5 +3272,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "cIwNLcXkK+Bu7Li9MpRLvw==";
+    static String __CLASS_HASH = "O3tAHyT0cLSDTg2WMe1aww==";
 }

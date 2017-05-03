@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 
-public class DynamicColumnTable {
+public final class DynamicColumnTable {
+    private DynamicColumnTable() {
+        // uninstantiable
+    }
+
+    @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Table/IndexDefinition syntax
     private static final TableDefinition DYNAMIC_COLUMNS_TABLE = new TableDefinition() {{
         rowName();
             rowComponent("id", ValueType.FIXED_LONG);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,11 @@ import com.google.protobuf.UnknownFieldSet;
  * @author wenboz@google.com Wenbo Zhu
  * @author kenton@google.com Kenton Varda
  */
-public class ForkedJsonFormat {
+public final class ForkedJsonFormat {
+
+    private ForkedJsonFormat() {
+        // utility
+    }
 
     /**
      * Outputs a textual representation of the Protocol Message supplied into the parameter output.
@@ -80,6 +84,21 @@ public class ForkedJsonFormat {
         generator.print("}");
     }
 
+    protected static void print(Message message, JsonGenerator generator) throws IOException {
+        for (Iterator<Map.Entry<FieldDescriptor, Object>> iter = message.getAllFields().entrySet().iterator();
+                iter.hasNext(); ) {
+            Map.Entry<FieldDescriptor, Object> field = iter.next();
+            printField(field.getKey(), field.getValue(), generator);
+            if (iter.hasNext()) {
+                generator.print(",");
+            }
+        }
+        if (message.getUnknownFields().asMap().size() > 0) {
+            generator.print(", ");
+        }
+        printUnknownFields(message.getUnknownFields(), generator);
+    }
+
     /**
      * Like {@code print()}, but writes directly to a {@code String} and returns it.
      */
@@ -90,7 +109,7 @@ public class ForkedJsonFormat {
             return text.toString();
         } catch (IOException e) {
             throw new RuntimeException("Writing to a StringBuilder threw an IOException (should never happen).",
-                                       e);
+                    e);
         }
     }
 
@@ -104,39 +123,24 @@ public class ForkedJsonFormat {
             return text.toString();
         } catch (IOException e) {
             throw new RuntimeException("Writing to a StringBuilder threw an IOException (should never happen).",
-                                       e);
+                    e);
         }
-    }
-
-    protected static void print(Message message, JsonGenerator generator) throws IOException {
-
-        for (Iterator<Map.Entry<FieldDescriptor, Object>> iter = message.getAllFields().entrySet().iterator(); iter.hasNext();) {
-            Map.Entry<FieldDescriptor, Object> field = iter.next();
-            printField(field.getKey(), field.getValue(), generator);
-            if (iter.hasNext()) {
-                generator.print(",");
-            }
-        }
-        if (message.getUnknownFields().asMap().size() > 0)
-            generator.print(", ");
-        printUnknownFields(message.getUnknownFields(), generator);
     }
 
     public static void printField(FieldDescriptor field, Object value, JsonGenerator generator) throws IOException {
-
         printSingleField(field, value, generator);
     }
 
     private static void printSingleField(FieldDescriptor field,
-                                         Object value,
-                                         JsonGenerator generator) throws IOException {
+            Object value,
+            JsonGenerator generator) throws IOException {
         if (field.isExtension()) {
             generator.print("\"");
             // We special-case MessageSet elements for compatibility with proto1.
             if (field.getContainingType().getOptions().getMessageSetWireFormat()
-                && (field.getType() == FieldDescriptor.Type.MESSAGE) && (field.isOptional())
-                // object equality
-                && (field.getExtensionScope() == field.getMessageType())) {
+                    && (field.getType() == FieldDescriptor.Type.MESSAGE) && (field.isOptional())
+                    // object equality
+                    && (field.getExtensionScope() == field.getMessageType())) {
                 generator.print(field.getMessageType().getFullName());
             } else {
                 generator.print(field.getFullName());
@@ -166,7 +170,7 @@ public class ForkedJsonFormat {
         if (field.isRepeated()) {
             // Repeated field. Print each element.
             generator.print("[");
-            for (Iterator<?> iter = ((List<?>) value).iterator(); iter.hasNext();) {
+            for (Iterator<?> iter = ((List<?>) value).iterator(); iter.hasNext(); ) {
                 printFieldValue(field, iter.next(), generator);
                 if (iter.hasNext()) {
                     generator.print(",");
@@ -181,7 +185,8 @@ public class ForkedJsonFormat {
         }
     }
 
-    private static void printFieldValue(FieldDescriptor field, Object value, JsonGenerator generator) throws IOException {
+    private static void printFieldValue(FieldDescriptor field, Object value, JsonGenerator generator)
+            throws IOException {
         switch (field.getType()) {
             case INT32:
             case INT64:
@@ -232,16 +237,22 @@ public class ForkedJsonFormat {
                 print((Message) value, generator);
                 generator.print("}");
                 break;
+
+            default:
         }
     }
 
-    protected static void printUnknownFields(UnknownFieldSet unknownFields, JsonGenerator generator) throws IOException {
+    protected static void printUnknownFields(UnknownFieldSet unknownFields, JsonGenerator generator)
+            throws IOException {
         boolean firstField = true;
         for (Map.Entry<Integer, UnknownFieldSet.Field> entry : unknownFields.asMap().entrySet()) {
             UnknownFieldSet.Field field = entry.getValue();
 
-            if (firstField) {firstField = false;}
-            else {generator.print(", ");}
+            if (firstField) {
+                firstField = false;
+            } else {
+                generator.print(", ");
+            }
 
             generator.print("\"");
             generator.print(entry.getKey().toString());
@@ -250,30 +261,45 @@ public class ForkedJsonFormat {
 
             boolean firstValue = true;
             for (long value : field.getVarintList()) {
-                if (firstValue) {firstValue = false;}
-                else {generator.print(", ");}
+                if (firstValue) {
+                    firstValue = false;
+                } else {
+                    generator.print(", ");
+                }
                 generator.print(unsignedToString(value));
             }
             for (int value : field.getFixed32List()) {
-                if (firstValue) {firstValue = false;}
-                else {generator.print(", ");}
+                if (firstValue) {
+                    firstValue = false;
+                } else {
+                    generator.print(", ");
+                }
                 generator.print(String.format((Locale) null, "0x%08x", value));
             }
             for (long value : field.getFixed64List()) {
-                if (firstValue) {firstValue = false;}
-                else {generator.print(", ");}
+                if (firstValue) {
+                    firstValue = false;
+                } else {
+                    generator.print(", ");
+                }
                 generator.print(String.format((Locale) null, "0x%016x", value));
             }
             for (ByteString value : field.getLengthDelimitedList()) {
-                if (firstValue) {firstValue = false;}
-                else {generator.print(", ");}
+                if (firstValue) {
+                    firstValue = false;
+                } else {
+                    generator.print(", ");
+                }
                 generator.print("\"");
                 generator.print(escapeBytes(value));
                 generator.print("\"");
             }
             for (UnknownFieldSet value : field.getGroupList()) {
-                if (firstValue) {firstValue = false;}
-                else {generator.print(", ");}
+                if (firstValue) {
+                    firstValue = false;
+                } else {
+                    generator.print(", ");
+                }
                 generator.print("{");
                 printUnknownFields(value, generator);
                 generator.print("}");
@@ -289,7 +315,7 @@ public class ForkedJsonFormat {
         if (value >= 0) {
             return Integer.toString(value);
         } else {
-            return Long.toString((value) & 0x00000000FFFFFFFFL);
+            return Long.toString(value & 0x00000000FFFFFFFFL);
         }
     }
 
@@ -418,23 +444,23 @@ public class ForkedJsonFormat {
         // We use possesive quantifiers (*+ and ++) because otherwise the Java
         // regex matcher has stack overflows on large inputs.
         private static final Pattern WHITESPACE =
-          Pattern.compile("(\\s|(#.*$))++", Pattern.MULTILINE);
+                Pattern.compile("(\\s|(#.*$))++", Pattern.MULTILINE);
         private static final Pattern TOKEN = Pattern.compile(
-          "[a-zA-Z_][0-9a-zA-Z_+-]*+|" +                // an identifier
-          "[.]?[0-9+-][0-9a-zA-Z_.+-]*+|" +             // a number
-          "\"([^\"\n\\\\]|\\\\.)*+(\"|\\\\?$)|" +       // a double-quoted string
-          "\'([^\'\n\\\\]|\\\\.)*+(\'|\\\\?$)",         // a single-quoted string
-          Pattern.MULTILINE);
+                "[a-zA-Z_][0-9a-zA-Z_+-]*+|" +                // an identifier
+                        "[.]?[0-9+-][0-9a-zA-Z_.+-]*+|" +             // a number
+                        "\"([^\"\n\\\\]|\\\\.)*+(\"|\\\\?$)|" +       // a double-quoted string
+                        "\'([^\'\n\\\\]|\\\\.)*+(\'|\\\\?$)",         // a single-quoted string
+                Pattern.MULTILINE);
 
         private static final Pattern DOUBLE_INFINITY = Pattern.compile(
-          "-?inf(inity)?",
-          Pattern.CASE_INSENSITIVE);
+                "-?inf(inity)?",
+                Pattern.CASE_INSENSITIVE);
         private static final Pattern FLOAT_INFINITY = Pattern.compile(
-          "-?inf(inity)?f?",
-          Pattern.CASE_INSENSITIVE);
+                "-?inf(inity)?f?",
+                Pattern.CASE_INSENSITIVE);
         private static final Pattern FLOAT_NAN = Pattern.compile(
-          "nanf?",
-          Pattern.CASE_INSENSITIVE);
+                "nanf?",
+                Pattern.CASE_INSENSITIVE);
 
         /**
          * Construct a tokenizer that parses tokens from the given text.
@@ -446,7 +472,7 @@ public class ForkedJsonFormat {
             nextToken();
         }
 
-        /**
+        /*
          * Are we at the end of the input?
          */
         public boolean atEnd() {
@@ -531,8 +557,8 @@ public class ForkedJsonFormat {
                 return false;
             }
 
-            char c = currentToken.charAt(0);
-            return (('0' <= c) && (c <= '9')) || (c == '-') || (c == '+');
+            char ch = currentToken.charAt(0);
+            return (('0' <= ch) && (ch <= '9')) || (ch == '-') || (ch == '+');
         }
 
         /**
@@ -543,11 +569,12 @@ public class ForkedJsonFormat {
                 return false;
             }
 
-            return ("true".equals(currentToken) || "false".equals(currentToken));
+            return "true".equals(currentToken) || "false".equals(currentToken);
         }
 
         /**
-         * @return currentToken to which the Tokenizer is pointing.
+         * Return current token.
+         * @return currentToken to which the Tokenizer is pointing
          */
         public String currentToken() {
             return currentToken;
@@ -559,12 +586,12 @@ public class ForkedJsonFormat {
          */
         public String consumeIdentifier() throws ParseException {
             for (int i = 0; i < currentToken.length(); i++) {
-                char c = currentToken.charAt(i);
-                if ((('a' <= c) && (c <= 'z')) || (('A' <= c) && (c <= 'Z'))
-                    || (('0' <= c) && (c <= '9')) || (c == '_') || (c == '.') || (c == '"')) {
+                char ch = currentToken.charAt(i);
+                if ((('a' <= ch) && (ch <= 'z')) || (('A' <= ch) && (ch <= 'Z'))
+                        || (('0' <= ch) && (ch <= '9')) || (ch == '_') || (ch == '.') || (ch == '"')) {
                     // OK
                 } else {
-                    throw parseException("Expected identifier. -" + c);
+                    throw parseException("Expected identifier. -" + ch);
                 }
             }
 
@@ -702,25 +729,25 @@ public class ForkedJsonFormat {
          * throw a {@link ParseException}.
          */
         public String consumeString() throws ParseException {
-          char quote = currentToken.length() > 0 ? currentToken.charAt(0) : '\0';
-          if ((quote != '\"') && (quote != '\'')) {
-              throw parseException("Expected string.");
-          }
+            char quote = currentToken.length() > 0 ? currentToken.charAt(0) : '\0';
+            if ((quote != '\"') && (quote != '\'')) {
+                throw parseException("Expected string.");
+            }
 
-          if ((currentToken.length() < 2)
-              || (currentToken.charAt(currentToken.length() - 1) != quote)) {
-              throw parseException("String missing ending quote.");
-          }
+            if ((currentToken.length() < 2)
+                    || (currentToken.charAt(currentToken.length() - 1) != quote)) {
+                throw parseException("String missing ending quote.");
+            }
 
-          try {
-              String escaped = currentToken.substring(1, currentToken.length() - 1);
-              String result = unescapeText(escaped);
-              nextToken();
-              return result;
-          } catch (InvalidEscapeSequence e) {
-              throw parseException(e.getMessage());
-          }
-      }
+            try {
+                String escaped = currentToken.substring(1, currentToken.length() - 1);
+                String result = unescapeText(escaped);
+                nextToken();
+                return result;
+            } catch (InvalidEscapeSequence e) {
+                throw parseException(e.getMessage());
+            }
+        }
 
         /**
          * If the next token is a string, consume it, unescape it as a
@@ -734,7 +761,7 @@ public class ForkedJsonFormat {
             }
 
             if ((currentToken.length() < 2)
-                || (currentToken.charAt(currentToken.length() - 1) != quote)) {
+                    || (currentToken.charAt(currentToken.length() - 1) != quote)) {
                 throw parseException("String missing ending quote.");
             }
 
@@ -764,23 +791,23 @@ public class ForkedJsonFormat {
         public ParseException parseExceptionPreviousToken(String description) {
             // Note: People generally prefer one-based line and column numbers.
             return new ParseException((previousLine + 1) + ":" + (previousColumn + 1) + ": "
-                                      + description);
+                    + description);
         }
 
         /**
          * Constructs an appropriate {@link ParseException} for the given {@code
          * NumberFormatException} when trying to parse an integer.
          */
-        private ParseException integerParseException(NumberFormatException e) {
-            return parseException("Couldn't parse integer: " + e.getMessage());
+        private ParseException integerParseException(NumberFormatException exception) {
+            return parseException("Couldn't parse integer: " + exception.getMessage());
         }
 
         /**
          * Constructs an appropriate {@link ParseException} for the given {@code
          * NumberFormatException} when trying to parse a float or double.
          */
-        private ParseException floatParseException(NumberFormatException e) {
-            return parseException("Couldn't parse number: " + e.getMessage());
+        private ParseException floatParseException(NumberFormatException exception) {
+            return parseException("Couldn't parse number: " + exception.getMessage());
         }
     }
 
@@ -814,9 +841,31 @@ public class ForkedJsonFormat {
      * Parse a text-format message from {@code input} and merge the contents into {@code builder}.
      * Extensions will be recognized if they are registered in {@code extensionRegistry}.
      */
+    public static void merge(CharSequence input,
+            ExtensionRegistry extensionRegistry,
+            Message.Builder builder) throws ParseException {
+        Tokenizer tokenizer = new Tokenizer(input);
+
+        // Based on the state machine @ http://json.org/
+
+        tokenizer.consume("{"); // Needs to happen when the object starts.
+        while (!tokenizer.tryConsume("}")) { // Continue till the object is done
+            mergeField(tokenizer, extensionRegistry, builder);
+        }
+        // Test to make sure the tokenizer has reached the end of the stream.
+        if (!tokenizer.atEnd()) {
+            throw tokenizer.parseException("Expecting the end of the stream, but there seems to be more data! "
+                    + "Check the input for a valid JSON format.");
+        }
+    }
+
+    /**
+     * Parse a text-format message from {@code input} and merge the contents into {@code builder}.
+     * Extensions will be recognized if they are registered in {@code extensionRegistry}.
+     */
     public static void merge(Readable input,
-                             ExtensionRegistry extensionRegistry,
-                             Message.Builder builder) throws IOException {
+            ExtensionRegistry extensionRegistry,
+            Message.Builder builder) throws IOException {
         // Read the entire input to a String then parse that.
 
         // If StreamTokenizer were not quite so crippled, or if there were a kind
@@ -836,48 +885,27 @@ public class ForkedJsonFormat {
         StringBuilder text = new StringBuilder();
         CharBuffer buffer = CharBuffer.allocate(BUFFER_SIZE);
         while (true) {
-            int n = input.read(buffer);
-            if (n == -1) {
+            int num = input.read(buffer);
+            if (num == -1) {
                 break;
             }
             buffer.flip();
-            text.append(buffer, 0, n);
+            text.append(buffer, 0, num);
         }
         return text;
     }
 
-    /**
-     * Parse a text-format message from {@code input} and merge the contents into {@code builder}.
-     * Extensions will be recognized if they are registered in {@code extensionRegistry}.
-     */
-    public static void merge(CharSequence input,
-                             ExtensionRegistry extensionRegistry,
-                             Message.Builder builder) throws ParseException {
-        Tokenizer tokenizer = new Tokenizer(input);
-
-        // Based on the state machine @ http://json.org/
-
-        tokenizer.consume("{"); // Needs to happen when the object starts.
-        while (!tokenizer.tryConsume("}")) { // Continue till the object is done
-            mergeField(tokenizer, extensionRegistry, builder);
-        }
-        // Test to make sure the tokenizer has reached the end of the stream.
-        if (!tokenizer.atEnd()) {
-            throw tokenizer.parseException("Expecting the end of the stream, but there seems to be more data!  Check the input for a valid JSON format.");
-        }
-    }
-
     private static final Pattern DIGITS = Pattern.compile(
-          "[0-9]",
-          Pattern.CASE_INSENSITIVE);
+            "[0-9]",
+            Pattern.CASE_INSENSITIVE);
 
     /**
      * Parse a single field from {@code tokenizer} and merge it into {@code builder}. If a ',' is
      * detected after the field ends, the next field will be parsed automatically
      */
     protected static void mergeField(Tokenizer tokenizer,
-                                   ExtensionRegistry extensionRegistry,
-                                   Message.Builder builder) throws ParseException {
+            ExtensionRegistry extensionRegistry,
+            Message.Builder builder) throws ParseException {
         FieldDescriptor field;
         Descriptor type = builder.getDescriptorForType();
         ExtensionRegistry.ExtensionInfo extension = null;
@@ -901,7 +929,7 @@ public class ForkedJsonFormat {
         }
         // Again, special-case group names as described above.
         if ((field != null) && (field.getType() == FieldDescriptor.Type.GROUP)
-            && !field.getMessageType().getName().equals(name)) {
+                && !field.getMessageType().getName().equals(name)) {
             field = null;
         }
 
@@ -916,9 +944,9 @@ public class ForkedJsonFormat {
         extension = extensionRegistry.findExtensionByName(name);
         if (extension != null) {
             if (extension.descriptor.getContainingType() != type) {
-              throw tokenizer.parseExceptionPreviousToken("Extension \"" + name
-                                                          + "\" does not extend message type \""
-                                                          + type.getFullName() + "\".");
+                throw tokenizer.parseExceptionPreviousToken("Extension \"" + name
+                        + "\" does not extend message type \""
+                        + type.getFullName() + "\".");
             }
             field = extension.descriptor;
         }
@@ -952,8 +980,8 @@ public class ForkedJsonFormat {
     }
 
     private static void handleMissingField(Tokenizer tokenizer,
-                                           ExtensionRegistry extensionRegistry,
-                                           Message.Builder builder) throws ParseException {
+            ExtensionRegistry extensionRegistry,
+            Message.Builder builder) throws ParseException {
         tokenizer.tryConsume(":");
         if ("{".equals(tokenizer.currentToken())) {
             // Message structure
@@ -985,11 +1013,11 @@ public class ForkedJsonFormat {
     }
 
     private static void handleValue(Tokenizer tokenizer,
-                                    ExtensionRegistry extensionRegistry,
-                                    Message.Builder builder,
-                                    FieldDescriptor field,
-                                    ExtensionRegistry.ExtensionInfo extension,
-                                    boolean unknown) throws ParseException {
+            ExtensionRegistry extensionRegistry,
+            Message.Builder builder,
+            FieldDescriptor field,
+            ExtensionRegistry.ExtensionInfo extension,
+            boolean unknown) throws ParseException {
 
         Object value = null;
         if (field.getJavaType() == FieldDescriptor.JavaType.MESSAGE) {
@@ -1068,18 +1096,18 @@ public class ForkedJsonFormat {
                     value = enumType.findValueByNumber(number);
                     if (value == null) {
                         throw tokenizer.parseExceptionPreviousToken("Enum type \""
-                                                                    + enumType.getFullName()
-                                                                    + "\" has no value with number "
-                                                                    + number + "");
+                                + enumType.getFullName()
+                                + "\" has no value with number "
+                                + number + "");
                     }
                 } else {
                     String id = tokenizer.consumeIdentifier();
                     value = enumType.findValueByName(id);
                     if (value == null) {
                         throw tokenizer.parseExceptionPreviousToken("Enum type \""
-                                                                    + enumType.getFullName()
-                                                                    + "\" has no value named \""
-                                                                    + id + "\".");
+                                + enumType.getFullName()
+                                + "\" has no value named \""
+                                + id + "\".");
                     }
                 }
 
@@ -1088,17 +1116,18 @@ public class ForkedJsonFormat {
 
             case MESSAGE:
             case GROUP:
+            default:
                 throw new RuntimeException("Can't get here.");
         }
         return value;
     }
 
     private static Object handleObject(Tokenizer tokenizer,
-                                       ExtensionRegistry extensionRegistry,
-                                       Message.Builder builder,
-                                       FieldDescriptor field,
-                                       ExtensionRegistry.ExtensionInfo extension,
-                                       boolean unknown) throws ParseException {
+            ExtensionRegistry extensionRegistry,
+            Message.Builder builder,
+            FieldDescriptor field,
+            ExtensionRegistry.ExtensionInfo extension,
+            boolean unknown) throws ParseException {
 
         Message.Builder subBuilder;
         if (extension == null) {
@@ -1180,7 +1209,7 @@ public class ForkedJsonFormat {
 
         private static final long serialVersionUID = 1L;
 
-        public InvalidEscapeSequence(String description) {
+        InvalidEscapeSequence(String description) {
             super(description);
         }
     }
@@ -1188,159 +1217,163 @@ public class ForkedJsonFormat {
     /**
      * Implements JSON string escaping as specified <a href="http://www.ietf.org/rfc/rfc4627.txt">here</a>.
      * <ul>
-     *  <li>The following characters are escaped by prefixing them with a '\' : \b,\f,\n,\r,\t,\,"</li>
-     *  <li>Other control characters in the range 0x0000-0x001F are escaped using the \\uXXXX notation</li>
-     *  <li>UTF-16 surrogate pairs are encoded using the \\uXXXX\\uXXXX notation</li>
-     *  <li>any other character is printed as-is</li>
+     * <li>The following characters are escaped by prefixing them with a '\' : \b,\f,\n,\r,\t,\,"</li>
+     * <li>Other control characters in the range 0x0000-0x001F are escaped using the \\uXXXX notation</li>
+     * <li>UTF-16 surrogate pairs are encoded using the \\uXXXX\\uXXXX notation</li>
+     * <li>any other character is printed as-is</li>
      * </ul>
      */
-    static String escapeText(String input) {
+    private static String escapeText(String input) {
         StringBuilder builder = new StringBuilder(input.length());
         CharacterIterator iter = new StringCharacterIterator(input);
-        for(char c = iter.first(); c != CharacterIterator.DONE; c = iter.next()) {
-            switch(c) {
+        for (char c = iter.first(); c != CharacterIterator.DONE; c = iter.next()) {
+            switch (c) {
                 case '\b':
-                  builder.append("\\b");
-                  break;
+                    builder.append("\\b");
+                    break;
                 case '\f':
-                  builder.append("\\f");
-                  break;
+                    builder.append("\\f");
+                    break;
                 case '\n':
-                  builder.append("\\n");
-                  break;
+                    builder.append("\\n");
+                    break;
                 case '\r':
-                  builder.append("\\r");
-                  break;
+                    builder.append("\\r");
+                    break;
                 case '\t':
-                  builder.append("\\t");
-                  break;
+                    builder.append("\\t");
+                    break;
                 case '\\':
-                  builder.append("\\\\");
-                  break;
+                    builder.append("\\\\");
+                    break;
                 case '"':
-                  builder.append("\\\"");
-                  break;
+                    builder.append("\\\"");
+                    break;
                 default:
-                  // Check for other control characters
-                  if(c >= 0x0000 && c <= 0x001F) {
-                      appendEscapedUnicode(builder, c);
-                  } else if(Character.isHighSurrogate(c)) {
-                      // Encode the surrogate pair using 2 six-character sequence (\\uXXXX\\uXXXX)
-                      appendEscapedUnicode(builder, c);
-                      c = iter.next();
-                      if(c == CharacterIterator.DONE) throw new IllegalArgumentException("invalid unicode string: unexpected high surrogate pair value without corresponding low value.");
-                      appendEscapedUnicode(builder, c);
-                  } else {
-                      // Anything else can be printed as-is
-                      builder.append(c);
-                  }
-                  break;
+                    // Check for other control characters
+                    if (c >= 0x0000 && c <= 0x001F) {
+                        appendEscapedUnicode(builder, c);
+                    } else if (Character.isHighSurrogate(c)) {
+                        // Encode the surrogate pair using 2 six-character sequence (\\uXXXX\\uXXXX)
+                        appendEscapedUnicode(builder, c);
+                        char next = iter.next();
+                        if (next == CharacterIterator.DONE) {
+                            throw new IllegalArgumentException("invalid unicode string: unexpected high surrogate pair "
+                                    + "value without corresponding low value.");
+                        }
+                        appendEscapedUnicode(builder, next);
+                    } else {
+                        // Anything else can be printed as-is
+                        builder.append(c);
+                    }
+                    break;
             }
         }
         return builder.toString();
     }
 
     static void appendEscapedUnicode(StringBuilder builder, char ch) {
-      String prefix = "\\u";
-      if(ch < 0x10) {
-        prefix = "\\u000";
-      } else if(ch < 0x100) {
-        prefix = "\\u00";
-      } else if(ch < 0x1000) {
-        prefix = "\\u0";
-      }
-      builder.append(prefix).append(Integer.toHexString(ch));
+        String prefix = "\\u";
+        if (ch < 0x10) {
+            prefix = "\\u000";
+        } else if (ch < 0x100) {
+            prefix = "\\u00";
+        } else if (ch < 0x1000) {
+            prefix = "\\u0";
+        }
+        builder.append(prefix).append(Integer.toHexString(ch));
     }
 
     /**
      * Un-escape a text string as escaped using {@link #escapeText(String)}.
      */
+    @SuppressWarnings("checkstyle:modifiedcontrolvariable")
     static String unescapeText(String input) throws InvalidEscapeSequence {
-      StringBuilder builder = new StringBuilder();
-      char[] array = input.toCharArray();
-      for(int i = 0; i < array.length; i++) {
-        char c = array[i];
-        if(c == '\\') {
-          if(i + 1 < array.length) {
-            ++i;
-            c = array[i];
-            switch(c) {
-            case 'b':
-              builder.append('\b');
-              break;
-            case 'f':
-              builder.append('\f');
-              break;
-            case 'n':
-              builder.append('\n');
-              break;
-            case 'r':
-              builder.append('\r');
-              break;
-            case 't':
-              builder.append('\t');
-              break;
-            case '\\':
-              builder.append('\\');
-              break;
-            case '"':
-              builder.append('\"');
-              break;
-            case '\'':
-              builder.append('\'');
-              break;
-            case 'u':
-              // read the next 4 chars
-              if(i + 4 < array.length) {
-                ++i;
-                int code = Integer.parseInt(new String(array, i, 4), 16);
-                // this cast is safe because we know how many chars we read
-                builder.append((char)code);
-                i += 3;
-              } else {
-                throw new InvalidEscapeSequence("Invalid escape sequence: '\\u' at end of string.");
-              }
-              break;
-            default:
-              throw new InvalidEscapeSequence("Invalid escape sequence: '\\" + c + "'");
+        StringBuilder builder = new StringBuilder();
+        char[] array = input.toCharArray();
+        for (int i = 0; i < array.length; i++) {
+            char ch = array[i];
+            if (ch == '\\') {
+                if (i + 1 < array.length) {
+                    ++i;
+                    ch = array[i];
+                    switch (ch) {
+                        case 'b':
+                            builder.append('\b');
+                            break;
+                        case 'f':
+                            builder.append('\f');
+                            break;
+                        case 'n':
+                            builder.append('\n');
+                            break;
+                        case 'r':
+                            builder.append('\r');
+                            break;
+                        case 't':
+                            builder.append('\t');
+                            break;
+                        case '\\':
+                            builder.append('\\');
+                            break;
+                        case '"':
+                            builder.append('\"');
+                            break;
+                        case '\'':
+                            builder.append('\'');
+                            break;
+                        case 'u':
+                            // read the next 4 chars
+                            if (i + 4 < array.length) {
+                                ++i;
+                                int code = Integer.parseInt(new String(array, i, 4), 16);
+                                // this cast is safe because we know how many chars we read
+                                builder.append((char) code);
+                                i += 3;
+                            } else {
+                                throw new InvalidEscapeSequence("Invalid escape sequence: '\\u' at end of string.");
+                            }
+                            break;
+                        default:
+                            throw new InvalidEscapeSequence("Invalid escape sequence: '\\" + ch + "'");
+                    }
+                } else {
+                    throw new InvalidEscapeSequence("Invalid escape sequence: '\\' at end of string.");
+                }
+            } else {
+                builder.append(ch);
             }
-          } else {
-            throw new InvalidEscapeSequence("Invalid escape sequence: '\\' at end of string.");
-          }
-        } else {
-          builder.append(c);
         }
-      }
 
-      return builder.toString();
+        return builder.toString();
     }
 
-    /**
+    /*
      * Is this an octal digit?
      */
-    private static boolean isOctal(char c) {
-        return ('0' <= c) && (c <= '7');
+    private static boolean isOctal(char ch) {
+        return ('0' <= ch) && (ch <= '7');
     }
 
-    /**
+    /*
      * Is this a hex digit?
      */
-    private static boolean isHex(char c) {
-        return (('0' <= c) && (c <= '9')) || (('a' <= c) && (c <= 'f'))
-               || (('A' <= c) && (c <= 'F'));
+    private static boolean isHex(char ch) {
+        return (('0' <= ch) && (ch <= '9')) || (('a' <= ch) && (ch <= 'f'))
+                || (('A' <= ch) && (ch <= 'F'));
     }
 
     /**
      * Interpret a character as a digit (in any base up to 36) and return the numeric value. This is
      * like {@code Character.digit()} but we don't accept non-ASCII digits.
      */
-    private static int digitValue(char c) {
-        if (('0' <= c) && (c <= '9')) {
-            return c - '0';
-        } else if (('a' <= c) && (c <= 'z')) {
-            return c - 'a' + 10;
+    private static int digitValue(char ch) {
+        if (('0' <= ch) && (ch <= '9')) {
+            return ch - '0';
+        } else if (('a' <= ch) && (ch <= 'z')) {
+            return ch - 'a' + 10;
         } else {
-            return c - 'A' + 10;
+            return ch - 'A' + 10;
         }
     }
 
@@ -1419,12 +1452,12 @@ public class ForkedJsonFormat {
                 if (isSigned) {
                     if ((result > Integer.MAX_VALUE) || (result < Integer.MIN_VALUE)) {
                         throw new NumberFormatException("Number out of range for 32-bit signed integer: "
-                                                        + text);
+                                + text);
                     }
                 } else {
                     if ((result >= (1L << 32)) || (result < 0)) {
                         throw new NumberFormatException("Number out of range for 32-bit unsigned integer: "
-                                                        + text);
+                                + text);
                     }
                 }
             }
@@ -1439,24 +1472,24 @@ public class ForkedJsonFormat {
                 if (isSigned) {
                     if (bigValue.bitLength() > 31) {
                         throw new NumberFormatException("Number out of range for 32-bit signed integer: "
-                                                        + text);
+                                + text);
                     }
                 } else {
                     if (bigValue.bitLength() > 32) {
                         throw new NumberFormatException("Number out of range for 32-bit unsigned integer: "
-                                                        + text);
+                                + text);
                     }
                 }
             } else {
                 if (isSigned) {
                     if (bigValue.bitLength() > 63) {
                         throw new NumberFormatException("Number out of range for 64-bit signed integer: "
-                                                        + text);
+                                + text);
                     }
                 } else {
                     if (bigValue.bitLength() > 64) {
                         throw new NumberFormatException("Number out of range for 64-bit unsigned integer: "
-                                                        + text);
+                                + text);
                     }
                 }
             }

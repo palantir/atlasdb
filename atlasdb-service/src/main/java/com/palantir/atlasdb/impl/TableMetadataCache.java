@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,15 +36,15 @@ public class TableMetadataCache {
         this.cache = CacheBuilder.newBuilder()
                 .expireAfterAccess(15, TimeUnit.MINUTES)
                 .build(new CacheLoader<String, TableMetadata>() {
-            @Override
-            public TableMetadata load(String tableName) throws Exception {
-                byte[] rawMetadata = kvs.getMetadataForTable(TableReference.createUnsafe(tableName));
-                if (rawMetadata == null || rawMetadata.length == 0) {
-                    return EMPTY;
-                }
-                return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
-            }
-        });
+                    @Override
+                    public TableMetadata load(String tableName) throws Exception {
+                        byte[] rawMetadata = kvs.getMetadataForTable(TableReference.createUnsafe(tableName));
+                        if (rawMetadata == null || rawMetadata.length == 0) {
+                            return EMPTY;
+                        }
+                        return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
+                    }
+                });
     }
 
     @CheckForNull

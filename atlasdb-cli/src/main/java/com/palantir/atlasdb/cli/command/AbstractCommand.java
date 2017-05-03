@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
             description = "path to yaml configuration file for atlasdb")
     private File configFile;
 
-    // TODO: Hide this argument once https://github.com/airlift/airline/issues/51 is fixed
+    // TODO(bgrabham): Hide this argument once https://github.com/airlift/airline/issues/51 is fixed
     @Option(name = {"--inline-config"},
             title = "INLINE CONFIG",
             type = OptionType.GLOBAL,

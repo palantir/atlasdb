@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ public class PaxosProposal implements Serializable {
     public PaxosProposal(@JsonProperty("id") PaxosProposalId id,
                          @JsonProperty("value") PaxosValue val) {
         this.id = id;
-        this.val = Preconditions.checkNotNull(val);
+        this.val = Preconditions.checkNotNull(val, "value cannot be null");
     }
 
     public PaxosProposalId getId() {
@@ -60,10 +60,10 @@ public class PaxosProposal implements Serializable {
     }
 
     public PaxosAcceptorPersistence.PaxosProposal persistToProto() {
-        return PaxosAcceptorPersistence.PaxosProposal.newBuilder().
-                setId(id.persistToProto()).
-                setVal(val.persistToProto()).
-                build();
+        return PaxosAcceptorPersistence.PaxosProposal.newBuilder()
+                .setId(id.persistToProto())
+                .setVal(val.persistToProto())
+                .build();
     }
 
     @Override
