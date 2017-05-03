@@ -1343,7 +1343,7 @@ public abstract class AbstractKeyValueServiceTest {
                 ColumnSelection.all(),
                 AtlasDbConstants.MAX_TS);
 
-        assertThat(values, is(emptyMap()));
+        assertThat(values, is(Collections.emptyMap()));
     }
 
     @Test
