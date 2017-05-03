@@ -36,5 +36,4 @@ public enum AtlasDbConstraintCheckingMode {
     public boolean shouldThrowException() {
         return shouldThrow == ShouldThrow.YES;
     }
-
 }

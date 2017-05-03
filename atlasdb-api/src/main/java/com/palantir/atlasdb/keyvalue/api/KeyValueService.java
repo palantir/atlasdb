@@ -591,7 +591,7 @@ public interface KeyValueService extends AutoCloseable {
     @Path("add-gc-sentinel-values")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void addGarbageCollectionSentinelValues(@QueryParam("tableName") TableReference tableRef, Set<Cell> cells);
+    void addGarbageCollectionSentinelValues(@QueryParam("tableName") TableReference tableRef, Iterable<Cell> cells);
 
     /**
      * Gets timestamp values from the key-value store. For each cell, this returns all associated

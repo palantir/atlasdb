@@ -25,8 +25,9 @@ import com.palantir.timestamp.TimestampService;
 import io.airlift.airline.Command;
 
 @Command(name = "fast-forward", description = "Fast forward the stored upper limit of a persistent timestamp"
-        + " service to the specified timestamp.  Is used in the restore process to ensure that all future timestamps used are"
-        + " explicity greater than any that may have been used to write data to the KVS before backing up the underlying storage.")
+        + " service to the specified timestamp."
+        + " Is used in the restore process to ensure that all future timestamps used are explicity greater than any"
+        + " that may have been used to write data to the KVS before backing up the underlying storage.")
 public class FastForwardTimestamp extends AbstractTimestampCommand {
     private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(FastForwardTimestamp.class));
 

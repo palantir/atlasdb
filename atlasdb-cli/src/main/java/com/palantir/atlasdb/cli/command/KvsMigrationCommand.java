@@ -91,7 +91,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
             description = "run this cli offline")
     private boolean offline = false;
 
-    // TODO: Hide this argument once https://github.com/airlift/airline/issues/51 is fixed
+    // TODO(bgrabham): Hide this argument once https://github.com/airlift/airline/issues/51 is fixed
     @Option(name = {"--inline-config"},
             title = "INLINE CONFIG",
             type = OptionType.GLOBAL,

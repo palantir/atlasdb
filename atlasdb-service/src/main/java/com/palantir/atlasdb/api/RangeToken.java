@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
 
-/**
+/*
  * <pre>
  * {
  *   "data": &lt;results>,
@@ -33,7 +33,7 @@ public class RangeToken {
 
     public RangeToken(TableRowResult results,
                       @Nullable TableRange nextRange) {
-        this.results = Preconditions.checkNotNull(results);
+        this.results = Preconditions.checkNotNull(results, "results must not be null!");
         this.nextRange = nextRange;
     }
 

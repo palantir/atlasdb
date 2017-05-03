@@ -36,15 +36,15 @@ public class TableMetadataCache {
         this.cache = CacheBuilder.newBuilder()
                 .expireAfterAccess(15, TimeUnit.MINUTES)
                 .build(new CacheLoader<String, TableMetadata>() {
-            @Override
-            public TableMetadata load(String tableName) throws Exception {
-                byte[] rawMetadata = kvs.getMetadataForTable(TableReference.createUnsafe(tableName));
-                if (rawMetadata == null || rawMetadata.length == 0) {
-                    return EMPTY;
-                }
-                return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
-            }
-        });
+                    @Override
+                    public TableMetadata load(String tableName) throws Exception {
+                        byte[] rawMetadata = kvs.getMetadataForTable(TableReference.createUnsafe(tableName));
+                        if (rawMetadata == null || rawMetadata.length == 0) {
+                            return EMPTY;
+                        }
+                        return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
+                    }
+                });
     }
 
     @CheckForNull

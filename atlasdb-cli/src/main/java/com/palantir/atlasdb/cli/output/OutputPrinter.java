@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cli.output;
 import org.slf4j.Logger;
 import org.slf4j.helpers.MessageFormatter;
 
+@SuppressWarnings("Slf4jConstantLogMessage")
 public class OutputPrinter {
     private Logger logger;
 
