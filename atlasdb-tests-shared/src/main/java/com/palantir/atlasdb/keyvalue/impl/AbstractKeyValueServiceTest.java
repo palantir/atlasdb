@@ -1081,11 +1081,11 @@ public abstract class AbstractKeyValueServiceTest {
     @Test
     public void testGetRangeOfTimestampsReturnsAllRows() {
         keyValueService.put(TEST_TABLE,
-            ImmutableMap.of(
+                ImmutableMap.of(
                     Cell.create(row0, column0), value0_t0,
                     Cell.create(row1, column0), value0_t0,
                     Cell.create(row2, column0), value0_t0),
-            TEST_TIMESTAMP);
+                TEST_TIMESTAMP);
         RangeRequest range = RangeRequest.all().withBatchHint(1);
         List<RowResult<Set<Long>>> results = ImmutableList.copyOf(
                 keyValueService.getRangeOfTimestamps(TEST_TABLE, range, TEST_TIMESTAMP + 1));
