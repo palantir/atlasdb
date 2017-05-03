@@ -27,16 +27,16 @@ public class CookiesIdxColumnTest {
     @Test
     public void testHashCode() {
         UUID uuid = new UUID(3, 4);
-        CookiesIdxColumn a = CookiesIdxColumn.of(new byte[]{1}, new byte[]{2, 4}, uuid);
-        CookiesIdxColumn b = CookiesIdxColumn.of(new byte[]{1}, new byte[]{2, 4}, uuid);
-        Assert.assertEquals(a.hashCode(), b.hashCode());
+        CookiesIdxColumn column1 = CookiesIdxColumn.of(new byte[]{1}, new byte[]{2, 4}, uuid);
+        CookiesIdxColumn column2 = CookiesIdxColumn.of(new byte[]{1}, new byte[]{2, 4}, uuid);
+        Assert.assertEquals(column1.hashCode(), column2.hashCode());
     }
 
     @Test
     public void testHashCodeUnequal() {
         UUID uuid = new UUID(5, 6);
-        CookiesIdxColumn a = CookiesIdxColumn.of(new byte[]{1, 3}, new byte[]{2, 4}, uuid);
-        CookiesIdxColumn b = CookiesIdxColumn.of(new byte[]{1, 2}, new byte[]{2, 4}, uuid);
-        Assert.assertNotEquals(a.hashCode(), b.hashCode());
+        CookiesIdxColumn column1 = CookiesIdxColumn.of(new byte[]{1, 3}, new byte[]{2, 4}, uuid);
+        CookiesIdxColumn column2 = CookiesIdxColumn.of(new byte[]{1, 2}, new byte[]{2, 4}, uuid);
+        Assert.assertNotEquals(column1.hashCode(), column2.hashCode());
     }
 }
