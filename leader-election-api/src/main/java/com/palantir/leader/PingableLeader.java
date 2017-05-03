@@ -39,5 +39,6 @@ public interface PingableLeader {
     @GET
     @Path("uuid")
     @Produces(MediaType.TEXT_PLAIN)
-    String getUuid();
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Avoiding API break
+    String getUUID();
 }

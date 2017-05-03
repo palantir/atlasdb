@@ -195,7 +195,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
 
         // check leader cache
-        String uuid = value.getLeaderUuid();
+        String uuid = value.getLeaderUUID();
         if (uuidToServiceCache.containsKey(uuid)) {
             return Optional.of(uuidToServiceCache.get(uuid));
         }
@@ -218,7 +218,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 @Override
                 public Entry<String, PingableLeader> call() throws Exception {
                     return new AbstractMap.SimpleEntry<String, PingableLeader>(
-                            potentialLeader.getUuid(),
+                            potentialLeader.getUUID(),
                             potentialLeader);
                 }
             }));
@@ -307,14 +307,14 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             throw Throwables.rewrap(e);
         }
 
-        if (pingedServiceUuid.equals(getUuid())) {
+        if (pingedServiceUuid.equals(getUUID())) {
             log.error("Remote potential leader is claiming to be you!", e);
             throw Throwables.rewrap(e);
         }
     }
 
     @Override
-    public String getUuid() {
+    public String getUUID() {
         return proposer.getUuid();
     }
 
@@ -578,7 +578,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private boolean isLastConfirmedLeader(PaxosValue value) {
-        return value != null ? value.getLeaderUuid().equals(proposer.getUuid()) : false;
+        return value != null ? value.getLeaderUUID().equals(proposer.getUuid()) : false;
     }
 
     /**

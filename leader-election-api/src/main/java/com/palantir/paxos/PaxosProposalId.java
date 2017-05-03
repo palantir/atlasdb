@@ -49,14 +49,14 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
     public int compareTo(PaxosProposalId paxosProposalId) {
         return new CompareToBuilder()
             .append(getNumber(), paxosProposalId.getNumber())
-            .append(getProposerUuid(), paxosProposalId.getProposerUuid())
+            .append(getProposerUUID(), paxosProposalId.getProposerUUID())
             .toComparison();
     }
 
     public PaxosPersistence.PaxosProposalId persistToProto() {
         return PaxosPersistence.PaxosProposalId.newBuilder()
                 .setNumber(getNumber())
-                .setProposerUUID(getProposerUuid())
+                .setProposerUUID(getProposerUUID())
                 .build();
     }
 
@@ -73,7 +73,8 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
         return number;
     }
 
-    public String getProposerUuid() {
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Avoiding API break
+    public String getProposerUUID() {
         return proposerUuid;
     }
 

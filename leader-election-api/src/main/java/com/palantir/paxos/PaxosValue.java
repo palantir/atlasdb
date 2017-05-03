@@ -61,7 +61,8 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
         this.data = data;
     }
 
-    public String getLeaderUuid() {
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Avoiding API break
+    public String getLeaderUUID() {
         return leaderUuid;
     }
 

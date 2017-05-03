@@ -274,14 +274,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value)
             throws MultipleRunningTimestampServiceError {
-        if (!value.getLeaderUuid().equals(proposer.getUuid())) {
+        if (!value.getLeaderUUID().equals(proposer.getUuid())) {
             String errorMsg = String.format(
                     "Timestamp limit changed from under us for sequence '%s' (leader with UUID '%s' changed"
                             + " it, our UUID is '%s'). This suggests that another timestamp store for this"
                             + " namespace is running. The offending bound was '%s'; we tried to propose"
                             + " a bound of '%s'. (The offending Paxos value was '%s'.)",
                     newSeq,
-                    value.getLeaderUuid(),
+                    value.getLeaderUUID(),
                     proposer.getUuid(),
                     PtBytes.toLong(value.getData()),
                     limit,

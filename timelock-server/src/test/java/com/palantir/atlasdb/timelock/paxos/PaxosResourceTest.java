@@ -63,7 +63,7 @@ public class PaxosResourceTest {
         PaxosLearner learner = paxosResource.getPaxosLearner(CLIENT_1);
         learner.learn(PAXOS_ROUND_ONE, PAXOS_VALUE);
         assertThat(learner.getGreatestLearnedValue()).isNotNull();
-        assertThat(learner.getGreatestLearnedValue().getLeaderUuid()).isEqualTo(PAXOS_UUID);
+        assertThat(learner.getGreatestLearnedValue().getLeaderUUID()).isEqualTo(PAXOS_UUID);
         assertThat(learner.getGreatestLearnedValue().getData()).isEqualTo(PAXOS_DATA);
 
         PaxosAcceptor acceptor = paxosResource.getPaxosAcceptor(CLIENT_1);
