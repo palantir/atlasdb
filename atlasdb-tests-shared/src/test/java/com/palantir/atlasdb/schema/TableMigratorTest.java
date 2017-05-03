@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.schema;
 
+import com.palantir.common.base.AbortingVisitor;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -152,14 +153,18 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 @Override
                 public Void execute(Transaction txn) {
                     BatchingVisitable<RowResult<byte[]>> bv = txn.getRange(name, RangeRequest.all());
-                    bv.batchAccept(1000, AbortingVisitors.batching(item -> {
-                        Iterable<Entry<Cell, byte[]>> cells = item.getCells();
-                        Entry<Cell, byte[]> entry = Iterables.getOnlyElement(cells);
-                        Assert.assertEquals(theCell, entry.getKey());
-                        Assert.assertArrayEquals(theValue, entry.getValue());
-                        count.increment();
-                        return true;
-                    }));
+                    bv.batchAccept(1000, AbortingVisitors.batching(
+                            new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
+                                @Override
+                                public boolean visit(RowResult<byte[]> item) throws RuntimeException {
+                                    Iterable<Entry<Cell, byte[]>> cells = item.getCells();
+                                    Entry<Cell, byte[]> entry = Iterables.getOnlyElement(cells);
+                                    Assert.assertEquals(theCell, entry.getKey());
+                                    Assert.assertArrayEquals(theValue, entry.getValue());
+                                    count.increment();
+                                    return true;
+                                }
+                            }));
                     return null;
                 }
             });
