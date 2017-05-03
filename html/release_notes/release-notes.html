@@ -197,14 +197,19 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The Lock Descriptor classes (<code class="docutils literal"><span class="pre">AtlasCellLockDescriptor</span></code> etc.), static factories (e.g. <code class="docutils literal"><span class="pre">LockCollections</span></code>) and <code class="docutils literal"><span class="pre">LockClient</span></code> have been made final.
+If this is a concern, please contact the AtlasDB team.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1857">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Removed package <code class="docutils literal"><span class="pre">atlasdb-exec</span></code>. If you require this package, please file a ticket to have it reinstated.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1861">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>Our dependency on immutables was bumped from 2.2.4 to 2.4.0, in order to fix an issue with static code analysis reporting errors in generated code.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1853">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><p class="first">Renamed the following classes to match baseline rules. In each case, acronyms were lowercased, e.g. <code class="docutils literal"><span class="pre">CQL</span></code> becomes <code class="docutils literal"><span class="pre">Cql</span></code>.</p>
 <blockquote>
 <div><ul class="simple">
@@ -219,7 +224,7 @@
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1853">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Relax the signature of KeyValueService.addGarbageCollectionSentinelValues() to take an Iterable instead of a Set.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1843">Pull Request</a>)</td>
 </tr>
