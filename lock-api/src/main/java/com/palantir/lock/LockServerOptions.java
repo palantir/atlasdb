@@ -19,14 +19,11 @@ import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Provides the set of options which can be passed to the
@@ -101,7 +98,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
         return 10000;
     }
 
-    @SuppressFBWarnings("NP_METHOD_PARAMETER_TIGHTENS_ANNOTATION") // Avoid breaking existing API
     @Override public final boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;

@@ -20,8 +20,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * A descriptor for a {@link ReadWriteLock}, identified by a lock ID (a unique
  * string).
@@ -35,7 +33,6 @@ public final class AtlasCellLockDescriptor {
     }
 
     /** Returns a {@code LockDescriptor} instance for the given table, row, and column. */
-    @SuppressFBWarnings("DM_DEFAULT_ENCODING") // TODO (jkong): Investigate whether we can fix an encoding
     public static LockDescriptor of(String tableName, byte[] rowName, byte[] colName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName));
         Preconditions.checkNotNull(rowName, "rowName should not be null");

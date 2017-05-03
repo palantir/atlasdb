@@ -18,7 +18,6 @@ package com.palantir.lock;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -29,8 +28,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A client of the lock server. Clients who desire reentrancy are required to
@@ -95,7 +92,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
                 .toString();
     }
 
-    @SuppressFBWarnings("NP_METHOD_PARAMETER_TIGHTENS_ANNOTATION") // Avoid breaking existing API
     @Override public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;

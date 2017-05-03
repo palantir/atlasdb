@@ -19,7 +19,6 @@ import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -29,8 +28,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A simple, immutable implementation of {@link TimeDuration}.
@@ -132,7 +129,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
         return Longs.compare(toNanos(), other.toNanos());
     }
 
-    @SuppressFBWarnings("NP_METHOD_PARAMETER_TIGHTENS_ANNOTATION") // Avoid breaking existing API
     @Override public boolean equals(@Nullable Object obj) {
         if (obj == this) {
             return true;

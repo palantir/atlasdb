@@ -20,14 +20,11 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A grant for a set of locks which are currently held by the lock server. Lock
@@ -137,7 +134,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
         return versionId;
     }
 
-    @SuppressFBWarnings("NP_METHOD_PARAMETER_TIGHTENS_ANNOTATION") // Avoid breaking existing API
     @Override public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;
