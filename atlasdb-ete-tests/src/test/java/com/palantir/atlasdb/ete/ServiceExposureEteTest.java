@@ -20,8 +20,9 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-import com.palantir.timestamp.TimestampService;
 import org.junit.Test;
+
+import com.palantir.timestamp.TimestampService;
 
 public class ServiceExposureEteTest {
     @Test

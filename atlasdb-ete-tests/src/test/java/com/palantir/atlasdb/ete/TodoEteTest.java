@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
+import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
