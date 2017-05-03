@@ -94,11 +94,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
     *    - |devbreak| |new|
-         - The ``TransactionManager`` interface has a new method ``getKeyValueServiceStatus()`` that can return the health of the underlying KVS.
-           This is designed for applications to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`.
+         - The ``TransactionManager`` and ``KeyValueService`` interfaces have new methods that must be implemented by applications that have custom implementations of those interfaces.
+           These new methods are ``TransactionManager.getKeyValueServiceStatus()`` and ``KeyValueService.getClusterAvailabilityStatus()``.
 
-           This is breaking for applications that have custom implementations or either ``KeyValueService`` or ``TransactionManager``, as they must implement the new methods.
-           ``KeyValueService`` has a new method ``getClusterAvailabilityStatus()``.
+           Applications can now call ``TransactionManager.getKeyValueServiceStatus()`` to determine the health of the underlying KVS.
+           This is designed for applications to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1832>`__)
 
     *    - |improved|
@@ -107,7 +107,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1847>`__)
 
     *    - |improved|
-         - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
+         - Improved performance of ``getRange()`` on DbKvs. Range requests are now done with a single round trip to the database.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
 
     *    - |devbreak|
