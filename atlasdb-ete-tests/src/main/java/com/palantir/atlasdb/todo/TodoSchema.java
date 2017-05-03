@@ -37,11 +37,12 @@ public class TodoSchema implements AtlasSchema {
                 Namespace.DEFAULT_NAMESPACE);
 
         schema.addTableDefinition(TODO_TABLE, new TableDefinition() {{
-            rowName();
+                rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
-            columns();
+                columns();
                 column(TEXT_COLUMN, "t", ValueType.STRING);
-        }});
+            }
+        });
 
         return schema;
     }
