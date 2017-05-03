@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedMap;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -56,16 +56,22 @@ public class AssertLockedKeyValueService extends ForwardingKeyValueService {
             SortedMap<LockDescriptor, LockMode> mapToAssertLockHeld = Maps.newTreeMap();
             SortedMap<LockDescriptor, LockMode> mapToAssertLockNotHeld = Maps.newTreeMap();
             for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-                if (Arrays.equals(e.getValue(), TransactionConstants.getValueForTimestamp(TransactionConstants.FAILED_COMMIT_TS))) {
-                    mapToAssertLockNotHeld.put(AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), e.getKey().getRowName()), LockMode.READ);
+                LockDescriptor descriptor = AtlasRowLockDescriptor.of(tableRef.getQualifiedName(),
+                        e.getKey().getRowName());
+                if (Arrays.equals(e.getValue(),
+                        TransactionConstants.getValueForTimestamp(TransactionConstants.FAILED_COMMIT_TS))) {
+                    mapToAssertLockNotHeld.put(descriptor, LockMode.READ);
                 } else {
-                    mapToAssertLockHeld.put(AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), e.getKey().getRowName()), LockMode.READ);
+                    mapToAssertLockHeld.put(descriptor, LockMode.READ);
                 }
             }
 
             try {
                 if (!mapToAssertLockHeld.isEmpty()) {
-                    LockRequest request = LockRequest.builder(mapToAssertLockHeld).doNotBlock().lockAsManyAsPossible().build();
+                    LockRequest request = LockRequest.builder(mapToAssertLockHeld)
+                            .doNotBlock()
+                            .lockAsManyAsPossible()
+                            .build();
                     LockRefreshToken lock = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
                     Validate.isTrue(lock == null, "these should already be held");
                 }

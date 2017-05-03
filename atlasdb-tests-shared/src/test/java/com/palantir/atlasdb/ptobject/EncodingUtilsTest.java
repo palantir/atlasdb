@@ -38,6 +38,7 @@ import com.palantir.atlasdb.ptobject.EncodingUtils.EncodingType;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.util.crypto.Sha256Hash;
 
+@SuppressWarnings("checkstyle:all")
 public class EncodingUtilsTest {
     public final Random rand = new Random();
 

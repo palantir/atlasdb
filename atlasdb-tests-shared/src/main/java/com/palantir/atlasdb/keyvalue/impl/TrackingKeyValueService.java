@@ -34,8 +34,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
 public class TrackingKeyValueService extends ForwardingKeyValueService {
-    private final Set<TableReference> tablesWrittenTo = Sets.newSetFromMap(Maps.<TableReference, Boolean>newConcurrentMap());
-    private final Set<TableReference> tablesReadFrom = Sets.newSetFromMap(Maps.<TableReference, Boolean>newConcurrentMap());
+    private final Set<TableReference> tablesWrittenTo = Sets.newSetFromMap(Maps.newConcurrentMap());
+    private final Set<TableReference> tablesReadFrom = Sets.newSetFromMap(Maps.newConcurrentMap());
     private final KeyValueService delegate;
 
     public TrackingKeyValueService(KeyValueService delegate) {
@@ -61,7 +61,9 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
+            RangeRequest rangeRequest,
+            long timestamp) {
         tablesReadFrom.add(tableRef);
         return super.getRange(tableRef, rangeRequest, timestamp);
     }
