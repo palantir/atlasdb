@@ -12,7 +12,6 @@ List<String> blacklistedBaselineProjects = [
         'cassandra-partitioner',
         'commons-db',
         'commons-executors',
-        'leader-election-api-protobufs',
         'leader-election-impl',
         'lock-api',
         'lock-impl',
