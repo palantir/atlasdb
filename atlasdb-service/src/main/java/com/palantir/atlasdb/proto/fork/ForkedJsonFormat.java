@@ -573,7 +573,7 @@ public final class ForkedJsonFormat {
         }
 
         /**
-         * Retyrb current token.
+         * Return current token.
          * @return currentToken to which the Tokenizer is pointing
          */
         public String currentToken() {

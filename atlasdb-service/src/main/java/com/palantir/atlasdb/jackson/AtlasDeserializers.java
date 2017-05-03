@@ -177,8 +177,8 @@ public final class AtlasDeserializers {
 
     public static Map<Cell, byte[]> deserializeCellVals(final TableMetadata metadata,
             JsonNode node) {
-        Iterable<Iterable<Entry<Cell, byte[]>>> cellVals;
-        cellVals = new JsonNodeIterable<>(node, subNode -> deserializeCellVal(metadata, subNode));
+        Iterable<Iterable<Entry<Cell, byte[]>>> cellVals = new JsonNodeIterable<>(node,
+                subNode -> deserializeCellVal(metadata, subNode));
         ImmutableMap.Builder<Cell, byte[]> builder = ImmutableMap.builder();
         for (Iterable<Entry<Cell, byte[]>> entries : cellVals) {
             for (Entry<Cell, byte[]> entry : entries) {
