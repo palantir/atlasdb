@@ -42,6 +42,21 @@ develop
     *    - Type
          - Change
 
+======
+0.40.1
+======
+
+4 May 2017
+
+This release contains (almost) exclusively baseline-related changes.
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |devbreak|
          - The Lock Descriptor classes (``AtlasCellLockDescriptor`` etc.), static factories (e.g. ``LockCollections``) and ``LockClient`` have been made final.
            If this is a concern, please contact the AtlasDB team.
