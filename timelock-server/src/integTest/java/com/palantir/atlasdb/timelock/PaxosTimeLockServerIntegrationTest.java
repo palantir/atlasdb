@@ -101,7 +101,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static final LockRequest REQUEST_LOCK_WITH_LONG_TIMEOUT = LockRequest
             .builder(ImmutableSortedMap.of(StringLockDescriptor.of("lock"), LockMode.WRITE))
-            .timeoutAfter(SimpleTimeDuration.of(10, TimeUnit.MINUTES))
+            .timeoutAfter(SimpleTimeDuration.of(10, TimeUnit.SECONDS))
             .blockForAtMost(SimpleTimeDuration.of(2, TimeUnit.SECONDS))
             .build();
 
@@ -131,7 +131,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void throwOnSingleClientRequestingSameLock() throws Exception {
+    public void throwOnSingleClientRequestingSameLockTooManyTimes() throws Exception {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1));
         int exceedingRequests = 10;
@@ -142,14 +142,14 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void throwOnTwoClientsRequestingSameLock() throws Exception {
+    public void throwOnTwoClientsRequestingSameLockTooManyTimes() throws Exception {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1), getLockService(CLIENT_2));
-        int requestsPerClient = 80;
-        int maxRequestsForTwoClients = 2 * LOCAL_TC_LIMIT + SHARED_TC_LIMIT;
+        int exceedingRequests = SHARED_TC_LIMIT;
+        int requestsPerClient = LOCAL_TC_LIMIT + SHARED_TC_LIMIT;
 
         assertThat(lockAndUnlockAndCountExceptions(lockServiceList, requestsPerClient))
-                .isEqualTo(2 * requestsPerClient - maxRequestsForTwoClients);
+                .isEqualTo(exceedingRequests);
     }
 
     private int lockAndUnlockAndCountExceptions(List<RemoteLockService> lockServices, int numRequestsPerClient)
