@@ -15,20 +15,22 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
-import java.util.Map;
+import static java.util.Collections.singletonList;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
+import com.palantir.atlasdb.performance.benchmarks.table.Tables;
+import java.util.Map;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-
-import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 
 @State(Scope.Benchmark)
 public class KvsGetRowsBenchmarks {
@@ -45,6 +47,23 @@ public class KvsGetRowsBenchmarks {
         );
         Preconditions.checkState(result.size() == table.getRowList().size(),
                 "Should be %s rows, but were: %s", table.getRowList().size(), result.size());
+        return result;
+    }
+
+    private static final ColumnSelection SINGLE_COLUMN_SELECTION =
+            ColumnSelection.create(singletonList(Tables.COLUMN_NAME_IN_BYTES.array()));
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 5)
+    @Measurement(time = 40)
+    public Object getSingleRowWithGetRow(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        Map<Cell, Value> result = table.getKvs().getRows(
+                table.getTableRef(),
+                singletonList(Iterables.getFirst(table.getRowList(), null)),
+                SINGLE_COLUMN_SELECTION,
+                Long.MAX_VALUE
+        );
         return result;
     }
 }
