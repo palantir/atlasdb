@@ -42,8 +42,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Add instrumentation to the thread pool used to run quorum checks during leader elections. This will be useful for
+           debugging `PaxosQuorumChecker can leave hanging threads <https://github.com/palantir/atlasdb/issues/1823>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1849>`__)
 
 ======
 0.40.1
