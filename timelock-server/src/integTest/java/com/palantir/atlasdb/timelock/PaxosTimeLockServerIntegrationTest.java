@@ -101,8 +101,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static final LockRequest REQUEST_LOCK_WITH_LONG_TIMEOUT = LockRequest
             .builder(ImmutableSortedMap.of(StringLockDescriptor.of("lock"), LockMode.WRITE))
-            .timeoutAfter(SimpleTimeDuration.of(10, TimeUnit.SECONDS))
-            .blockForAtMost(SimpleTimeDuration.of(2, TimeUnit.SECONDS))
+            .timeoutAfter(SimpleTimeDuration.of(20, TimeUnit.SECONDS))
+            .blockForAtMost(SimpleTimeDuration.of(4, TimeUnit.SECONDS))
             .build();
 
     private final TimestampService timestampService = getTimestampService(CLIENT_1);
@@ -167,8 +167,8 @@ public class PaxosTimeLockServerIntegrationTest {
         for (RemoteLockService lockService : lockServices) {
             for (int i = 0; i < numRequestsPerClient; i++) {
                 int currentTrial = i;
-                futures.add(executorService.submit(
-                        () -> lockService.lock(CLIENT_2 + String.valueOf(currentTrial), REQUEST_LOCK_WITH_LONG_TIMEOUT)));
+                futures.add(executorService.submit(() -> lockService.lock(
+                                CLIENT_2 + String.valueOf(currentTrial), REQUEST_LOCK_WITH_LONG_TIMEOUT)));
             }
         }
 
