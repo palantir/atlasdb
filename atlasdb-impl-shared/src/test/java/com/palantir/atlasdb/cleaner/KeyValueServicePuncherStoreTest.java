@@ -17,6 +17,8 @@ package com.palantir.atlasdb.cleaner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,24 +29,26 @@ public class KeyValueServicePuncherStoreTest {
     private static final long TIMESTAMP_1 = 10L;
     private static final long TIMESTAMP_2 = 20L;
     private static final long TIMESTAMP_3 = 30L;
-    private static final long TIMESTAMP_BETWEEN_1_AND_2 = 15L;
+    private static final long TIMESTAMP_BETWEEN_1_AND_2 = mean(TIMESTAMP_1, TIMESTAMP_2);
 
     private static final long WALL_CLOCK_1 = 100L;
     private static final long WALL_CLOCK_2 = 200L;
     private static final long WALL_CLOCK_3 = 300L;
-    private static final long WALL_CLOCK_BETWEEN_1_AND_2 = 150L;
-    private static final long WALL_CLOCK_BETWEEN_2_AND_3 = 250L;
+    private static final long WALL_CLOCK_BETWEEN_1_AND_2 = mean(WALL_CLOCK_1, WALL_CLOCK_2);
 
     private static final ImmutableMap<Long, Long> PUNCHER_HISTORY = ImmutableMap.of(
             TIMESTAMP_1, WALL_CLOCK_1,
             TIMESTAMP_2, WALL_CLOCK_2,
             TIMESTAMP_3, WALL_CLOCK_3);
+    private static final ImmutableMap<Long, Long> PUNCHER_HISTORY_WITH_CLOCK_DRIFT = ImmutableMap.of(
+            TIMESTAMP_1, WALL_CLOCK_2,
+            TIMESTAMP_2, WALL_CLOCK_1);
 
-    private final PuncherStore puncherStore = KeyValueServicePuncherStore.create(new InMemoryKeyValueService(false));
+    private PuncherStore puncherStore;
 
     @Before
     public void setUp() {
-        PUNCHER_HISTORY.entrySet().forEach(entry -> puncherStore.put(entry.getKey(), entry.getValue()));
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY);
     }
 
     @Test
@@ -95,17 +99,27 @@ public class KeyValueServicePuncherStoreTest {
 
     @Test
     public void returnsGreatestPunchedTimeBeforeTimestampEvenIfNotAssociatedWithGreatestEligibleTimestamp() {
-        puncherStore.put(TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_BETWEEN_2_AND_3);
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY_WITH_CLOCK_DRIFT);
         assertThat(puncherStore.getMillisForTimestamp(TIMESTAMP_2))
-                .isEqualTo(WALL_CLOCK_BETWEEN_2_AND_3)
-                .isNotEqualTo(WALL_CLOCK_2); // strictly speaking not needed but better for readability
+                .isEqualTo(WALL_CLOCK_2)
+                .isNotEqualTo(WALL_CLOCK_1); // strictly speaking not needed but better for readability
     }
 
     @Test
     public void returnsTimestampAssociatedWithGreatestPunchedTimeEvenIfItIsNotGreatest() {
-        puncherStore.put(TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_BETWEEN_2_AND_3);
-        assertThat(puncherStore.get(WALL_CLOCK_BETWEEN_2_AND_3))
-                .isEqualTo(TIMESTAMP_BETWEEN_1_AND_2)
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY_WITH_CLOCK_DRIFT);
+        assertThat(puncherStore.get(WALL_CLOCK_2))
+                .isEqualTo(TIMESTAMP_1)
                 .isNotEqualTo(TIMESTAMP_2); // strictly speaking not needed but better for readability
+    }
+
+    private static long mean(long first, long second) {
+        return (first + second) / 2;
+    }
+
+    private static PuncherStore initializePuncherStore(Map<Long, Long> timestampMap) {
+        PuncherStore puncherStore = KeyValueServicePuncherStore.create(new InMemoryKeyValueService(false));
+        timestampMap.entrySet().forEach(entry -> puncherStore.put(entry.getKey(), entry.getValue()));
+        return puncherStore;
     }
 }
