@@ -18,7 +18,12 @@ free up the resources consumed by the request. Because
 
 ### Alternatives Considered
 
-#### Increase the Jetty idle timeout
+We considered alternatives that, broadly speaking, focus on two different approaches to the problem:
+
+* Prevent the idle timeout from ever reasonably triggering
+* Free resources when the stream is closed
+
+#### Significantly increase the Jetty idle timeout
 
 We could have configured the recommended idle timeout for TimeLock to be substantially longer than we expect any lock
 request to reasonably block for, such as 1 day.
@@ -41,13 +46,38 @@ of the lock service.
 
 #### Implement connection keep-alives / heartbeats
 
+We close the connection if no bytes have been sent or received for the idle timeout. Thus, we can reset this timeout
+by sending a *heartbeat message* from the client to the server or vice versa, at a frequency higher than the idle
+timeout. We would probably prefer this to live on the server, since the idle timeout is configured on the server-side.
+
+This solution seems reasonable, though it does not appear to readily be supported by Jetty.
+
+#### Send a last-gasp message to the lock service to free resources before the stream closes
+
+An idea we considered was to have Jetty free resources on the lock service before closing the HTTP/2 stream.
+
+This solution appears to be the cleanest of the "free resources"-based solutions, including the one we chose to
+implement. Unfortunately, while this feature has been requested in Jetty, as at time of writing this has not
+been implemented yet; see [Jetty issue #824](https://github.com/eclipse/jetty.project/issues/824).
+
 #### Have clients handle all lock splitting
-An alternative to 
+
+An alternative to having the server return `BlockingTimeoutException`s on long-running requests would be for clients
+to trim down any requests to an appropriate length (or, in the case of `BLOCK_INDEFINITELY`, indefinitely send
+requests of a suitable length). For example, with the default idle timeout of 30 seconds, a client wishing to block
+for 45 seconds could send a lock request for 30 seconds, and upon failure submit another request for just under
+15 seconds (suitably accounting for network overheads).
+
+This solution is relatively similar to what was implemented, though it requires clients to know what the
+aforementioned "appropriate length" should be (it needs to be the idle timeout or less) which is inappropriate as
+that timeout is configured on the server side.
 
 ## Consequences
 
 Exception serialization was changed.
 
 Locks may not be fair.
+
+Starvation possible if, though unlikely.
 
 TimeLock has an additional configuration parameter, though this is non-breaking as we have a sensible default.
