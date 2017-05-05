@@ -20,10 +20,10 @@ free up the resources consumed by the request. Because
 
 We considered alternatives that, broadly speaking, focus on two different approaches to the problem:
 
-* Prevent the idle timeout from ever reasonably triggering
-* Free resources when the stream is closed
+* Prevent the idle timeout from ever reasonably triggering (alternatives 1-3 below)
+* Free resources when the stream is closed (alternatives 4 and 5)
 
-#### Significantly increase the Jetty idle timeout
+#### 1. Significantly increase the Jetty idle timeout
 
 We could have configured the recommended idle timeout for TimeLock to be substantially longer than we expect any lock
 request to reasonably block for, such as 1 day.
@@ -34,7 +34,7 @@ possible that resources would be  allocated to the associated connections for lo
 introduce a dependency on the idle timeout on the HTTP client-side, which would also need to be increased to
 account for this (the current default is 60 seconds).
 
-#### Convert the lock service to a non-blocking API
+#### 2. Convert the lock service to a non-blocking API
 
 We could have changed the lock API such that lock requests return immediately regardless of whether the lock being
 asked for is available or not. If any lock being asked for was not available yet, the server would return a token
@@ -44,7 +44,7 @@ to ask if its request had been satisfied; alternatively, we could investigate HT
 This solution is likely to be the best long-term approach, though it does involve a significant change in the API
 of the lock service.
 
-#### Implement connection keep-alives / heartbeats
+#### 3. Implement connection keep-alives / heartbeats
 
 We close the connection if no bytes have been sent or received for the idle timeout. Thus, we can reset this timeout
 by sending a *heartbeat message* from the client to the server or vice versa, at a frequency higher than the idle
@@ -52,7 +52,7 @@ timeout. We would probably prefer this to live on the server, since the idle tim
 
 This solution seems reasonable, though it does not appear to readily be supported by Jetty.
 
-#### Send a last-gasp message to the lock service to free resources before the stream closes
+#### 4. Send a last-gasp message to the lock service to free resources before the stream closes
 
 An idea we considered was to have Jetty free resources on the lock service before closing the HTTP/2 stream.
 
@@ -60,7 +60,7 @@ This solution appears to be the cleanest of the "free resources"-based solutions
 implement. Unfortunately, while this feature has been requested in Jetty, as at time of writing this has not
 been implemented yet; see [Jetty issue #824](https://github.com/eclipse/jetty.project/issues/824).
 
-#### Have clients handle all lock splitting
+#### 5. Have clients truncate individual requests to the idle timeout
 
 An alternative to having the server return `BlockingTimeoutException`s on long-running requests would be for clients
 to trim down any requests to an appropriate length (or, in the case of `BLOCK_INDEFINITELY`, indefinitely send
