@@ -76,8 +76,14 @@ that timeout is configured on the server side.
 
 Exception serialization was changed.
 
-Locks may not be fair.
+Lock requests were previously fair - that is, if thread A blocks on acquiring the `LockServerSync` for a given
+lock before thread B, then under normal circumstances (barring exceptions, interruption or leader election),
+A would acquire the lock before B. While this is still true at the thread synchronization level, it no longer 
+necessarily holds at  the application layer, since it is possible that A would timeout and be interrupted, the lock 
+would become available and then B would grab it before A. As a consequence of this, starvation becomes possible.
+We believe this is acceptable, as lock requests remain fair as long as none of them blocks for longer than the idle
+timeout, and blocking for longer than the idle timeout is considered unexpected. Furthermore, under previous behaviour
+with HTTP/2, the lock request for A would never succeed as far as the client was concerned, owing to the retry problems
+flagged in [issue #1680](https://github.com/palantir/atlasdb/issues/1680).
 
-Starvation possible if, though unlikely.
-
-TimeLock has an additional configuration parameter, though this is non-breaking as we have a sensible default.
+TimeLock has an additional configuration parameter, though this is non-breaking as we provide a sensible default.
