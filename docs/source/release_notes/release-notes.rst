@@ -91,6 +91,10 @@ This release contains (almost) exclusively baseline-related changes.
          - Relax the signature of KeyValueService.addGarbageCollectionSentinelValues() to take an Iterable instead of a Set.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1843>`__)
 
+    *    - |fixed|
+         - Fixed a bug that would cause console to error on any range request that used a column selection and had more than one batch of results.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1876>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
