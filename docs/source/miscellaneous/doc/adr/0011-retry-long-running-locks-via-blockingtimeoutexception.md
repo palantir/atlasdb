@@ -9,12 +9,29 @@ Accepted
 ## Context
 
 Our implementation of AtlasDB clients and the TimeLock server were interacting in ways that were causing the TimeLock
-server to experience large thread buildups when running with HTTP/2 enabled 
-[issue #1680](https://github.com/palantir/atlasdb/issues/1680). This was eventually root caused to long-running
+server to experience large thread buildups when running with HTTP/2. This manifested in 
+[issue #1680](https://github.com/palantir/atlasdb/issues/1680). The issue was eventually root caused to long-running
 lock requests in excess of the Jetty idle timeout; the server would close the relevant HTTP/2 stream, but *not*
-free up the resources consumed by the request. Because
+free up the resources consumed by the request. Eventually, these would overwhelm the TimeLock server, resulting
+in a fresh leadership election. This is problematic as leader elections cause all locks to be lost, and thus most
+inflight transactions will fail. A concrete trace is as follows:
+
+1. Client A acquires lock L
+2. Client B blocks on acquiring lock L, with request B1
+3. The idle timeout for Client B's connection runs out
+4. Client B retries, and blocks on acquiring lock L, with request B2
+5. Client A releases L
+6. Request B1 is granted, but client B is no longer listening on it
+7. (2 minutes) The idle timeout for Client B will expire four times, and Client B retries with requests B3, B4, B5, B6
+8. The lock granted to request B1 is reaped, and request B2 is granted, but client B is not listening for it
+
+Since we retry every 30 seconds by default but only "service" one request every 2 minutes and 5 seconds, we accumulate
+a backlog of requests. Also, observe that setting the idle timeout to 2 minutes and 5 seconds does not solve the 
+problem (though it  does mitigate it), since multiple clients may be blocking on acquiring the same lock.
 
 ## Decision
+
+S
 
 ### Alternatives Considered
 
@@ -42,7 +59,7 @@ indicating that the request was to be satisfied. The client can then, at a later
 to ask if its request had been satisfied; alternatively, we could investigate HTTP/2 or WebSocket server push.
 
 This solution is likely to be the best long-term approach, though it does involve a significant change in the API
-of the lock service.
+of the lock service which we would prefer not to make at this time.
 
 #### 3. Implement connection keep-alives / heartbeats
 
@@ -74,7 +91,11 @@ that timeout is configured on the server side.
 
 ## Consequences
 
-Exception serialization was changed.
+Exception serialization was changed. Previously, if contacting a node that was not the leader we would send a 503
+with an empty response; otherwise, we would throw a `FeignException` with the underlying cause and stack trace as
+a string. We now serialize `NotCurrentLeaderException` and the new `BlockingTimeoutException` in a manner compatible
+with the Palantir [http-remoting library](https://github.com/palantir/http-remoting/), and throw an 
+`AtlasDbRemoteException` including serialized information about said exception.
 
 Lock requests were previously fair - that is, if thread A blocks on acquiring the `LockServerSync` for a given
 lock before thread B, then under normal circumstances (barring exceptions, interruption or leader election),
@@ -84,6 +105,7 @@ would become available and then B would grab it before A. As a consequence of th
 We believe this is acceptable, as lock requests remain fair as long as none of them blocks for longer than the idle
 timeout, and blocking for longer than the idle timeout is considered unexpected. Furthermore, under previous behaviour
 with HTTP/2, the lock request for A would never succeed as far as the client was concerned, owing to the retry problems
-flagged in [issue #1680](https://github.com/palantir/atlasdb/issues/1680).
+flagged in [issue #1680](https://github.com/palantir/atlasdb/issues/1680). If clients not using HTTP/2 wish to avoid
+this behaviour, they need not use this feature at all (it is configurable).
 
 TimeLock has an additional configuration parameter, though this is non-breaking as we provide a sensible default.
