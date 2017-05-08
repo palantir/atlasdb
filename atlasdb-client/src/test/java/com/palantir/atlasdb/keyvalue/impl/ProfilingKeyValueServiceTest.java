@@ -57,7 +57,7 @@ public class ProfilingKeyValueServiceTest {
     private KeyValueService delegate;
     private KeyValueService kvs;
 
-    private static Answer<Void> waitASecond = any -> {
+    private static final Answer<Void> waitASecond = any -> {
         Thread.sleep(1001);
         return (Void) null;
     };
@@ -66,8 +66,8 @@ public class ProfilingKeyValueServiceTest {
         @Override
         public boolean matches(final Object argument) {
             LoggingEvent ev = (LoggingEvent) argument;
-            return ev.getLoggerName() == ProfilingKeyValueService.SLOW_LOGGER_NAME &&
-                    ev.getLevel() == Level.WARN;
+            return ev.getLoggerName() == ProfilingKeyValueService.SLOW_LOGGER_NAME
+                    && ev.getLevel() == Level.WARN;
         }
     });
 
@@ -75,13 +75,13 @@ public class ProfilingKeyValueServiceTest {
         @Override
         public boolean matches(final Object argument) {
             LoggingEvent ev = (LoggingEvent) argument;
-            return ev.getLoggerName() == LoggerFactory.getLogger(ProfilingKeyValueService.class).getName() &&
-                    ev.getLevel() == Level.TRACE;
+            return ev.getLoggerName() == LoggerFactory.getLogger(ProfilingKeyValueService.class).getName()
+                    && ev.getLevel() == Level.TRACE;
         }
     });
 
     private Appender setLogLevelAndGetAppender(Level loglevel) {
-        Logger root = (Logger)LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         root.setLevel(loglevel);
 
         final Appender mockAppender = mock(Appender.class);
@@ -89,7 +89,6 @@ public class ProfilingKeyValueServiceTest {
         root.addAppender(mockAppender);
         return mockAppender;
     }
-
 
     @Before
     public void before() throws Exception {
@@ -225,7 +224,4 @@ public class ProfilingKeyValueServiceTest {
 
         verifyNoMoreInteractions(mockAppender);
     }
-
-
-
 }
