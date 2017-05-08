@@ -702,7 +702,7 @@ public final class DbKvs extends AbstractKeyValueService {
             Token token) {
         try (ClosableIterator<AgnosticLightResultRow> iterator = table
                 .getAllRows(rows, columns, timestamp, false, DbReadTable.Order.fromBoolean(isReverse))) {
-            return TimestampsByCellResultWithToken.create(iterator, token, batchSize);
+            return TimestampsByCellResultWithToken.create(iterator, token, batchSize, isReverse);
         }
     }
 
