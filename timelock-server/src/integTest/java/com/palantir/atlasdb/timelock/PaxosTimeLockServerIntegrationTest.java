@@ -66,8 +66,6 @@ import com.squareup.okhttp.Response;
 import io.dropwizard.testing.ResourceHelpers;
 
 public class PaxosTimeLockServerIntegrationTest {
-    private static final String TOO_MANY_REQUESTS_CODE = "429";
-
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
@@ -131,7 +129,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void throwOnSingleClientRequestingSameLockTooManyTimes() throws Exception {
+    public void throwsOnSingleClientRequestingSameLockTooManyTimes() throws Exception {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1));
         int exceedingRequests = 10;
@@ -142,7 +140,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void throwOnTwoClientsRequestingSameLockTooManyTimes() throws Exception {
+    public void throwsOnTwoClientsRequestingSameLockTooManyTimes() throws Exception {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1), getLockService(CLIENT_2));
         int exceedingRequests = SHARED_TC_LIMIT;
@@ -180,7 +178,7 @@ public class PaxosTimeLockServerIntegrationTest {
             try {
                 assertNull(future.get());
             } catch (Exception e) {
-                assertThat(e).hasMessageContaining(TOO_MANY_REQUESTS_CODE);
+                assertRemoteExceptionWithStatus(e, HttpStatus.TOO_MANY_REQUESTS_429);
                 exceptionCounter.getAndIncrement();
             }
         });
@@ -381,9 +379,13 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static void assertRemoteNotFoundException(Throwable throwable) {
+        assertRemoteExceptionWithStatus(throwable, HttpStatus.NOT_FOUND_404);
+    }
+
+    private static void assertRemoteExceptionWithStatus(Throwable throwable, int expectedStatus) {
         assertThat(throwable).isInstanceOf(AtlasDbRemoteException.class);
 
         AtlasDbRemoteException remoteException = (AtlasDbRemoteException) throwable;
-        assertThat(remoteException.getStatus()).isEqualTo(HttpStatus.NOT_FOUND_404);
+        assertThat(remoteException.getStatus()).isEqualTo(expectedStatus);
     }
 }
