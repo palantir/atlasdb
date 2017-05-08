@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package com.palantir.nexus.db.sql;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+
+import javax.annotation.Nullable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -212,15 +214,21 @@ public final class SqlConnectionHelper {
 
     AgnosticLightResultSet selectLightResultSetUnregisteredQuery(Connection c,
                                                                  String sql,
-                                                                 Object... vs)
-            throws PalantirSqlException, PalantirInterruptedException {
+                                                                 Object... vs) {
+        return selectLightResultSetUnregisteredQueryWithFetchSize(c, sql, null, vs);
+    }
+
+    AgnosticLightResultSet selectLightResultSetUnregisteredQueryWithFetchSize(Connection c,
+                                                                              String sql,
+                                                                              @Nullable Integer fetchSize,
+                                                                              Object... vs) {
         return basicSql.selectLightResultSetSpecifyingDBType(
                 c,
                 SQLString.getUnregisteredQuery(sql),
                 vs,
-                DBType.getTypeFromConnection(c));
+                DBType.getTypeFromConnection(c),
+                fetchSize);
     }
-
     AgnosticLightResultSet selectLightResultSet(Connection c, String key, Object... vs)
             throws PalantirSqlException, PalantirInterruptedException {
         return selectLightResultSet(c, SQLString.getByKey(key, c), vs);
@@ -232,7 +240,8 @@ public final class SqlConnectionHelper {
                 c,
                 finalSql,
                 vs,
-                DBType.getTypeFromConnection(c));
+                DBType.getTypeFromConnection(c),
+                null);
     }
 
     AgnosticLightResultSet selectLightResultSet(Connection c, RegisteredSQLString sql, Object... vs)
@@ -242,7 +251,8 @@ public final class SqlConnectionHelper {
                 c,
                 SQLString.getByKey(sql.getKey(), dbType),
                 vs,
-                dbType);
+                dbType,
+                null);
     }
 
     AgnosticResultSet selectResultSetUnregisteredQuery(Connection c, String sql, Object... vs)

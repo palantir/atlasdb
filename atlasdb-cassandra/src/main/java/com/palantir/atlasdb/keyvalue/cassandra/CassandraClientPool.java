@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,6 +90,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *   RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
  *   ... this is one of the reasons why there is a new system.
  **/
+@SuppressWarnings("VisibilityModifier")
 public class CassandraClientPool {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
     /**
@@ -668,10 +669,10 @@ public class CassandraClientPool {
                 if (ex instanceof TTransportException
                         && ex.getCause() != null
                         && (ex.getCause().getClass() == SocketException.class)) {
-                    String msg = "Error writing to Cassandra socket. "
+                    final String msg = "Error writing to Cassandra socket. "
                             + "Likely cause: Exceeded maximum thrift frame size; "
                             + "unlikely cause: network issues.";
-                    String logMessage = "Tried to connect to cassandra {} times. " + msg;
+                    final String logMessage = "Tried to connect to cassandra {} times. " + msg;
                     log.error(logMessage, numTries, ex);
                     throw (K) new TTransportException(((TTransportException) ex).getType(), msg, ex);
                 } else {

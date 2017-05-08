@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,8 +29,10 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTasks;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
@@ -288,5 +290,20 @@ import com.palantir.timestamp.TimestampService;
 
     public TimestampService getTimestampService() {
         return timestampService;
+    }
+
+    public KeyValueServiceStatus getKeyValueServiceStatus() {
+        ClusterAvailabilityStatus clusterAvailabilityStatus = keyValueService.getClusterAvailabilityStatus();
+        switch (clusterAvailabilityStatus) {
+            case TERMINAL:
+                return KeyValueServiceStatus.TERMINAL;
+            case ALL_AVAILABLE:
+                return KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS;
+            case QUORUM_AVAILABLE:
+                return KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES;
+            case NO_QUORUM_AVAILABLE:
+            default:
+                return KeyValueServiceStatus.UNHEALTHY;
+        }
     }
 }

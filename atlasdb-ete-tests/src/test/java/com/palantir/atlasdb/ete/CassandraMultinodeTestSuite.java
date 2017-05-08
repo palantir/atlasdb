@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,14 +23,14 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.containers.CassandraVersion;
+import com.palantir.atlasdb.containers.CassandraEnvironment;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
         ServiceExposureEteTest.class,
         CommandLineEteTest.class
-})
+        })
 public class CassandraMultinodeTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
 
@@ -39,5 +39,5 @@ public class CassandraMultinodeTestSuite extends EteSetup {
             CassandraMultinodeTestSuite.class,
             "docker-compose.cassandra.yml",
             CLIENTS,
-            CassandraVersion.getEnvironment());
+            CassandraEnvironment.get());
 }

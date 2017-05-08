@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 import com.palantir.lock.client.LockRefreshingLockServiceTest;
 import com.palantir.lock.impl.ClientAwareLockTest;
+import com.palantir.lock.logger.LockServiceStateLoggerTest;
 
 /**
  * Runs all lock server tests.
@@ -29,7 +30,8 @@ import com.palantir.lock.impl.ClientAwareLockTest;
  */
 @SuiteClasses(value = {
         ClientAwareLockTest.class,
-        LockServiceImplTest.class,
+        LockServiceStateLoggerTest.class,
+        LockServiceIntegrationTest.class,
         LockRefreshingLockServiceTest.class
 }) @RunWith(value = Suite.class) public final class AllLockTests {
     /* Empty; the annotations above take care of everything. */

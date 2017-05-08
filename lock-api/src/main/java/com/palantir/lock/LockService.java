@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,8 @@ import com.palantir.common.annotation.NonIdempotent;
     LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException;
 
     /**
+     * Unlocks a lock, given a provided lock token.
+     *
      * @deprecated use {@link #unlockSimple(SimpleHeldLocksToken)} instead
      * @see #unlockSimple(SimpleHeldLocksToken)
      */
@@ -91,7 +93,7 @@ import com.palantir.common.annotation.NonIdempotent;
      * Returns the set of all lock tokens that the given <code>client</code> is currently
      * holding, excluding any locks which are frozen.
      *
-     * @return the set of valid tokens held by the given client.
+     * @return the set of valid tokens held by the given client
      * @throws IllegalArgumentException if {@code client} is anonymous.
      */
     @Idempotent Set<HeldLocksToken> getTokens(LockClient client);
@@ -101,7 +103,7 @@ import com.palantir.common.annotation.NonIdempotent;
      *
      * @deprecated use {@link #refreshLockRefreshTokens(Iterable)} instead
      * @see #refreshLockRefreshTokens(Iterable)
-     * @return the subset of tokens which are still valid after being refreshed.
+     * @return the subset of tokens which are still valid after being refreshed
      */
     @Deprecated
     @Idempotent Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens);
@@ -112,7 +114,8 @@ import com.palantir.common.annotation.NonIdempotent;
      * @return the new {@link HeldLocksGrant} token if refreshed successfully,
      *         or {@code null} if the grant could not be refreshed.
      */
-    @Idempotent @Nullable HeldLocksGrant refreshGrant(HeldLocksGrant grant);
+    @Idempotent
+    @Nullable HeldLocksGrant refreshGrant(HeldLocksGrant grant);
 
     /**
      * Refreshes the lock grant identified by the given grant ID.
@@ -120,7 +123,8 @@ import com.palantir.common.annotation.NonIdempotent;
      * @return the new {@link HeldLocksGrant} token if refreshed successfully,
      *         or {@code null} if the grant could not be refreshed.
      */
-    @Idempotent @Nullable HeldLocksGrant refreshGrant(BigInteger grantId);
+    @Idempotent
+    @Nullable HeldLocksGrant refreshGrant(BigInteger grantId);
 
     /**
      * Converts the given token into a lock grant. The underlying locks are not
@@ -160,11 +164,12 @@ import com.palantir.common.annotation.NonIdempotent;
     @NonIdempotent HeldLocksToken useGrant(LockClient client, BigInteger grantId);
 
     /**
-     * This method is the same as <code>getMinLockedInVersionId(LockClient.ANONYMOUS)</code>
+     * This method is the same as <code>getMinLockedInVersionId(LockClient.ANONYMOUS)</code>.
      * @deprecated use {@link #getMinLockedInVersionId(LockClient)} instead
      */
     @Deprecated
-    @Idempotent @Nullable Long getMinLockedInVersionId();
+    @Idempotent
+    @Nullable Long getMinLockedInVersionId();
 
     /**
      * Returns the minimum version ID for all locks that are currently acquired

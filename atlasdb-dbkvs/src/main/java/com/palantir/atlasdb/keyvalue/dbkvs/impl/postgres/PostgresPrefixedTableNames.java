@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,10 @@ public class PostgresPrefixedTableNames implements PrefixedTableNames {
 
     @Override
     public String get(TableReference tableRef, ConnectionSupplier connectionSupplier) {
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+        return get(tableRef);
     }
 
+    public String get(TableReference tableRef) {
+        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+    }
 }

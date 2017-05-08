@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,14 +34,14 @@ public class OneNodeDownMetadataTest {
 
     @Test
     public void canGetMetadataForTable() {
-        byte[] metadata = OneNodeDownTestSuite.db.getMetadataForTable(OneNodeDownTestSuite.TEST_TABLE);
+        byte[] metadata = OneNodeDownTestSuite.kvs.getMetadataForTable(OneNodeDownTestSuite.TEST_TABLE);
         assertEquals(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(AtlasDbConstants.GENERIC_TABLE_METADATA),
                 TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata));
     }
 
     @Test
     public void canGetMetadataForAll() {
-        Map<TableReference, byte[]> metadataMap = OneNodeDownTestSuite.db.getMetadataForTables();
+        Map<TableReference, byte[]> metadataMap = OneNodeDownTestSuite.kvs.getMetadataForTables();
         assertEquals(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(AtlasDbConstants.GENERIC_TABLE_METADATA),
                 TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataMap.get(OneNodeDownTestSuite.TEST_TABLE)));
     }
@@ -50,7 +50,7 @@ public class OneNodeDownMetadataTest {
     public void putMetadataForTableThrows() {
         TableMetadata newTableMetadata = new TableMetadata(new NameMetadataDescription(),
                 new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.putMetadataForTable(OneNodeDownTestSuite.TEST_TABLE,
+        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putMetadataForTable(OneNodeDownTestSuite.TEST_TABLE,
                 newTableMetadata.persistToBytes())).isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("At schema version UNREACHABLE");
 
@@ -61,7 +61,7 @@ public class OneNodeDownMetadataTest {
     public void putMetadataForTablesThrows() {
         TableMetadata newTableMetadata = new TableMetadata(new NameMetadataDescription(),
                 new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.putMetadataForTables(
+        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putMetadataForTables(
                 ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, newTableMetadata.persistToBytes())))
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("At schema version UNREACHABLE");

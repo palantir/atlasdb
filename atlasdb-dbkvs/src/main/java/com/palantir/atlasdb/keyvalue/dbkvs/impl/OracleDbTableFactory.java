@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleRawQueryFactory;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableInitializer;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleWriteTable;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
@@ -34,11 +33,14 @@ public class OracleDbTableFactory implements DbTableFactory {
     private final OraclePrefixedTableNames oraclePrefixedTableNames;
     private final TableValueStyleCache valueStyleCache;
 
-    public OracleDbTableFactory(OracleDdlConfig config) {
+    public OracleDbTableFactory(OracleDdlConfig config,
+                                OracleTableNameGetter oracleTableNameGetter,
+                                OraclePrefixedTableNames oraclePrefixedTableNames,
+                                TableValueStyleCache valueStyleCache) {
         this.config = config;
-        oracleTableNameGetter = new OracleTableNameGetter(config);
-        oraclePrefixedTableNames = new OraclePrefixedTableNames(oracleTableNameGetter);
-        valueStyleCache = new TableValueStyleCache();
+        this.oracleTableNameGetter = oracleTableNameGetter;
+        this.oraclePrefixedTableNames = oraclePrefixedTableNames;
+        this.valueStyleCache = valueStyleCache;
     }
 
     @Override
@@ -61,32 +63,14 @@ public class OracleDbTableFactory implements DbTableFactory {
         TableValueStyle tableValueStyle =
                 valueStyleCache.getTableType(connectionSupplier, tableRef, config.metadataTable());
         String shortTableName = getTableName(connectionSupplier, tableRef);
-        DbQueryFactory queryFactory;
-        switch (tableValueStyle) {
-            case OVERFLOW:
-                String shortOverflowTableName = getOverflowTableName(connectionSupplier, tableRef);
-                queryFactory = new OracleOverflowQueryFactory(config, shortTableName, shortOverflowTableName);
-                break;
-            case RAW:
-                queryFactory = new OracleRawQueryFactory(shortTableName, config);
-                break;
-            default:
-                throw new EnumConstantNotPresentException(TableValueStyle.class, tableValueStyle.name());
-        }
+        DbQueryFactory queryFactory = new OracleQueryFactory(
+                config, shortTableName, tableValueStyle == TableValueStyle.OVERFLOW);
         return new DbReadTable(connectionSupplier, queryFactory);
     }
 
     private String getTableName(ConnectionSupplier connectionSupplier, TableReference tableRef) {
         try {
             return oracleTableNameGetter.getInternalShortTableName(connectionSupplier, tableRef);
-        } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
-        }
-    }
-
-    private String getOverflowTableName(ConnectionSupplier connectionSupplier, TableReference tableRef) {
-        try {
-            return oracleTableNameGetter.getInternalShortOverflowTableName(connectionSupplier, tableRef);
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }

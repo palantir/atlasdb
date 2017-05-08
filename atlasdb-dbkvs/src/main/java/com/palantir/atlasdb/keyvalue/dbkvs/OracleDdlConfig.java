@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleDbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.db.oracle.JdbcHandler;
 
@@ -59,11 +57,6 @@ public abstract class OracleDdlConfig extends DdlConfig {
     @Value.Default
     public boolean enableOracleEnterpriseFeatures() {
         return false;
-    }
-
-    @Override
-    public Supplier<DbTableFactory> tableFactorySupplier() {
-        return () -> new OracleDbTableFactory(this);
     }
 
     @Value.Default
@@ -109,5 +102,10 @@ public abstract class OracleDdlConfig extends DdlConfig {
                 overflowTablePrefix().length() <= AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH,
                 "Oracle 'overflowTablePrefix' cannot be more than %s characters long.",
                 AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH);
+    }
+
+    @Override
+    public <T> T accept(Visitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

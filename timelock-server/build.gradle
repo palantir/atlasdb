@@ -20,7 +20,7 @@ dependencies {
     compile project(":timestamp-impl")
     compile project(":lock-impl")
     compile project(":leader-election-impl")
-    compile project(":atlasdb-config")
+    compile project(path: ":atlasdb-config", configuration: "shadow")
 
     compile group: 'com.github.rholder', name: 'guava-retrying'
     compile group: 'com.palantir.remoting1', name: 'jersey-servers'
@@ -69,11 +69,18 @@ configurations.all {
                 case 'io.dropwizard':
                     details.useVersion libVersions.timelock_dropwizard
                     break
+                case 'com.fasterxml.jackson.core':
+                case 'com.fasterxml.jackson.datatype':
+                    details.useVersion libVersions.timelock_jackson
+                    break
                 case 'org.eclipse.jetty':
                     details.useVersion libVersions.timelock_jetty
                     break
                 case 'org.glassfish.jersey.core':
                     details.useVersion libVersions.timelock_jersey
+                    break
+                case 'com.google.guava':
+                    details.useVersion libVersions.timelock_guava
                     break
             }
         }

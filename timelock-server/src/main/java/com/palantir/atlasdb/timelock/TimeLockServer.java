@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,8 @@ public interface TimeLockServer {
      * Creates timestamp and lock services for the given client. It is expected that for each client there should
      * only be (up to) one active timestamp service, and one active lock service at any time.
      * @param client Client namespace to create the services for
+     * @param slowLogTriggerMillis response time for lock requests that triggers slow lock logging
      * @return Invalidating timestamp and lock services
      */
-    TimeLockServices createInvalidatingTimeLockServices(String client);
+    TimeLockServices createInvalidatingTimeLockServices(String client, long slowLogTriggerMillis);
 }

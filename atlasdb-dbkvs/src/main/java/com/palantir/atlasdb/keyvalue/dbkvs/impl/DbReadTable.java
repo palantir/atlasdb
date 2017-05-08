@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,14 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Queues;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -36,17 +33,20 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
-import com.palantir.nexus.db.sql.SqlConnection;
 
 public class DbReadTable {
     private static final int MAX_ROW_COLUMN_RANGES_FETCH_SIZE = 1000;
 
-    private final Supplier<SqlConnection> conns;
+    private final ConnectionSupplier conns;
     private final DbQueryFactory queryFactory;
 
     public DbReadTable(ConnectionSupplier conns, DbQueryFactory queryFactory) {
         this.conns = conns;
         this.queryFactory = queryFactory;
+    }
+
+    public ConnectionSupplier getConnectionSupplier() {
+        return conns;
     }
 
     public ClosableIterator<AgnosticLightResultRow> getLatestRows(
@@ -155,18 +155,6 @@ public class DbReadTable {
 
     public boolean hasOverflowValues() {
         return queryFactory.hasOverflowValues();
-    }
-
-    public ClosableIterator<AgnosticLightResultRow> getOverflow(Collection<OverflowValue> overflowIds) {
-        Collection<FullQuery> queries = queryFactory.getOverflowQueries(overflowIds);
-        if (queries.size() == 1) {
-            return run(Iterables.getOnlyElement(queries));
-        }
-        Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
-        for (FullQuery query : queries) {
-            futures.add(getSupplierFuture(() -> run(query)));
-        }
-        return new LazyClosableIterator<>(futures);
     }
 
     private static <T> Future<T> getSupplierFuture(Supplier<T> supplier) {

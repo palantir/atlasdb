@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Closeables;
-import com.palantir.atlasdb.memory.InMemoryAtlasDbFactory;
+import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -51,8 +51,8 @@ public class ProfileStoreTest {
             .setName("first last")
             .build();
 
-    private final TransactionManager txnMgr = InMemoryAtlasDbFactory
-            .createInMemoryTransactionManager(ProfileSchema.INSTANCE);
+    private final TransactionManager txnMgr =
+            TransactionManagers.createInMemory(ProfileSchema.INSTANCE.getLatestSchema());
 
     @Rule
     public ExpectedException exception = ExpectedException.none();

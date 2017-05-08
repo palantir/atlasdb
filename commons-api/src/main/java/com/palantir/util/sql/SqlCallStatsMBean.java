@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,22 +20,22 @@ import javax.management.MXBean;
 
 @MXBean
 public interface SqlCallStatsMBean {
-    public String getQueryName();
-    public String getRawSql();
+    String getQueryName();
+    String getRawSql();
 
-    public void clearStats();
-    public long getTotalTime();
-    public long getTotalCalls();
-    public long getTimePerCallInMillis();
-    public double getStandardDeviationInMillis();
-    public long getMaxCallTime();
-    public long getMinCallTime();
-    public double getPercentileMillis(double perc);
-    public double getPercentCallsFinishedInMillis(int millis);
-    public double getMedianTimeRequestInMillis();
+    void clearStats();
+    long getTotalTime();
+    long getTotalCalls();
+    long getTimePerCallInMillis();
+    double getStandardDeviationInMillis();
+    long getMaxCallTime();
+    long getMinCallTime();
+    double getPercentileMillis(double perc);
+    double getPercentCallsFinishedInMillis(int millis);
+    double getMedianTimeRequestInMillis();
 
     // The following are redundant with getPercentileMillis, but they should
     // make information easier to browse from jconsole.
-    public double get25thPercentileCallTimeMillis();
-    public double get75thPercentileCallTimeMillis();
+    double get25thPercentileCallTimeMillis();
+    double get75thPercentileCallTimeMillis();
 }

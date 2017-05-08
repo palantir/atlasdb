@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,6 +80,7 @@ import com.palantir.common.collect.MapEntries;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
+@SuppressWarnings({"checkstyle:all","DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     protected final TimestampCache timestampCache = TimestampCache.create();
@@ -95,11 +96,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 timestampService.getFreshTimestamp(),
-                ImmutableMap.of(
+                TestConflictDetectionManagers.createWithStaticConflictDetection(ImmutableMap.of(
                         TEST_TABLE,
                         ConflictHandler.RETRY_ON_WRITE_WRITE,
                         TransactionConstants.TRANSACTION_TABLE,
-                        ConflictHandler.IGNORE_ALL),
+                        ConflictHandler.IGNORE_ALL)),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache);

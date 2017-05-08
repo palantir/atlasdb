@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ package com.palantir.atlasdb.performance.benchmarks;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -63,6 +65,25 @@ public final class Benchmarks {
             }
         };
         kvs.createTable(tableRef, tableDef.toTableMetadata().persistToBytes());
+    }
+
+    public static void createTableWithStreaming(KeyValueService kvs,
+            TableReference tableRef,
+            String rowComponent,
+            String columnName) {
+        createTable(kvs, tableRef, rowComponent, columnName);
+        createStreamingTable(kvs, tableRef, columnName);
+    }
+
+    private static void createStreamingTable(KeyValueService kvs, TableReference parentTable, String columnName) {
+        StreamStoreDefinition ssd = new StreamStoreDefinitionBuilder(columnName, "Value", ValueType.VAR_LONG)
+                .inMemoryThreshold(1024 * 1024)
+                .build();
+
+        ssd.getTables().forEach((tableName, tableDefinition) -> {
+            TableReference streamingTable = TableReference.create(parentTable.getNamespace(), tableName);
+            kvs.createTable(streamingTable, tableDefinition.toTableMetadata().persistToBytes());
+        });
     }
 
     public static TableReference createTableWithDynamicColumns(KeyValueService kvs,

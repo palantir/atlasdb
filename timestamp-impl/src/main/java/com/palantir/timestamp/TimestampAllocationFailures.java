@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 
+import sun.misc.Contended;
+
 @ThreadSafe
 public class TimestampAllocationFailures {
 
@@ -32,7 +34,7 @@ public class TimestampAllocationFailures {
     private final Logger log;
 
     private volatile Throwable previousAllocationFailure;
-    private volatile boolean encounteredMultipleRunningTimestamps = false;
+    @Contended private volatile boolean encounteredMultipleRunningTimestamps = false;
 
     @VisibleForTesting
     TimestampAllocationFailures(Logger log) {

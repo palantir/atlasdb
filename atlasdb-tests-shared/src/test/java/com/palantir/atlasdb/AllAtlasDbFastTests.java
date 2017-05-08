@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ import com.palantir.atlasdb.keyvalue.impl.RangeRequestsTest;
                 PuncherTest.class,
                 InMemorySweeperTest.class,
                 AsyncPuncherTest.class,
-                RangeRequestsTest.class,
-    })
+                RangeRequestsTest.class
+        })
 public class AllAtlasDbFastTests {
 }

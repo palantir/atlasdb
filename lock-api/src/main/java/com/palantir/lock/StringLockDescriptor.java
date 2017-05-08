@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,15 +27,16 @@ import com.google.common.base.Strings;
  *
  * @author jtamer
  */
-public class StringLockDescriptor {
+public final class StringLockDescriptor {
 
     private StringLockDescriptor() {
         // cannot instantiate
     }
 
     /** Returns a {@code LockDescriptor} instance for the given lock ID. */
+    @SuppressWarnings("checkstyle:jdkStandardCharsets") // StandardCharsets only in JDK 1.7+
     public static LockDescriptor of(String lockId) {
-        Preconditions.checkNotNull(lockId);
+        Preconditions.checkNotNull(lockId, "lockId should not be null");
         Preconditions.checkArgument(!Strings.isNullOrEmpty(lockId));
         return new LockDescriptor(lockId.getBytes(Charsets.UTF_8));
     }

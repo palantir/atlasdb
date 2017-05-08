@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,11 @@ package com.palantir.atlasdb.cli.runner;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
-public class StandardStreamUtilities {
+public final class StandardStreamUtilities {
+    private StandardStreamUtilities() {
+        // Utility class
+    }
+
     private interface StandardStreamSetter {
         void set(PrintStream ps);
     }
@@ -43,12 +47,12 @@ public class StandardStreamUtilities {
         return wrapGenericStream(runnable, System.out, System::setOut, singleLine);
     }
 
-    public static String wrapSystemErr(Runnable runnable, boolean singleLine) {
-        return wrapGenericStream(runnable, System.err, System::setErr, singleLine);
-    }
-
     public static String wrapSystemOut(Runnable runnable) {
         return wrapSystemOut(runnable, true);
+    }
+
+    public static String wrapSystemErr(Runnable runnable, boolean singleLine) {
+        return wrapGenericStream(runnable, System.err, System::setErr, singleLine);
     }
 
     public static String wrapSystemErr(Runnable runnable) {

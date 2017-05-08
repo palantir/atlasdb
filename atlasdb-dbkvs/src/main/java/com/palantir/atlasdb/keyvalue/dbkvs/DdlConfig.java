@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
 @JsonSubTypes({
@@ -31,8 +29,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
         @JsonSubTypes.Type(H2DdlConfig.class)})
 public abstract class DdlConfig {
     public abstract String type();
-
-    public abstract Supplier<DbTableFactory> tableFactorySupplier();
 
     public abstract TableReference metadataTable();
 
@@ -67,4 +63,12 @@ public abstract class DdlConfig {
                 metadataTable().getNamespace().isEmptyNamespace(),
                 "'metadataTable' should have empty namespace'");
     }
+
+    public interface Visitor<T> {
+        T visit(PostgresDdlConfig postgresDdlConfig);
+        T visit(H2DdlConfig h2DdlConfig);
+        T visit(OracleDdlConfig oracleDdlConfig);
+    }
+
+    public abstract <T> T accept(Visitor<T> visitor);
 }

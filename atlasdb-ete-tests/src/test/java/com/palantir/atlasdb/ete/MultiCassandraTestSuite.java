@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import org.junit.runners.Suite;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.jayway.awaitility.Awaitility;
-import com.palantir.atlasdb.containers.CassandraVersion;
+import com.palantir.atlasdb.containers.CassandraEnvironment;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 
@@ -48,7 +48,7 @@ public class MultiCassandraTestSuite extends EteSetup {
             MultiCassandraTestSuite.class,
             "docker-compose.multiple-cassandra.yml",
             CLIENTS,
-            CassandraVersion.getEnvironment());
+            CassandraEnvironment.get());
 
     public static void killCassandraContainer(String containerName) {
         Container container = EteSetup.getContainer(containerName);

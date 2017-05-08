@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -165,15 +165,9 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 62 * 1000;
     }
 
-    /*
-        Only allow this many extra enqueued requests above the configured poolsize onto a given node in the pool.
-        Attempts to enqueue more than this will immediately fail and instead fail over to another node as coordinator.
-        A person needing to modify this may have not enough backpressure in their application,
-        or have too much parallelism.
-     */
     @Value.Default
-    public int cqlPoolMaxQueueSize() {
-        return 256;
+    public int cqlPoolTimeoutMillis() {
+        return 20 * 1000;
     }
 
     @Value.Default

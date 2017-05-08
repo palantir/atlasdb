@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ public class CheckAndSetPersistentValue {
 
     public void set(Optional<Long> value) {
         CheckAndSetTable checkAndSetTable = CheckAndSetSchemaTableFactory.of().getCheckAndSetTable(transaction);
-        if(value.isPresent()) {
+        if (value.isPresent()) {
             checkAndSetTable.putValue(CHECK_AND_SET_ROW, value.get());
         } else {
             checkAndSetTable.delete(CHECK_AND_SET_ROW);
@@ -47,7 +47,7 @@ public class CheckAndSetPersistentValue {
 
     public boolean checkAndSet(Optional<Long> oldValue, Optional<Long> newValue) {
         Optional<Long> existingValue = get();
-        if(Objects.equals(oldValue, existingValue)) {
+        if (Objects.equals(oldValue, existingValue)) {
             set(newValue);
             return true;
         } else {

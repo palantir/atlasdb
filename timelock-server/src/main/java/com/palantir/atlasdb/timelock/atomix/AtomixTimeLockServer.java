@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -104,7 +104,7 @@ public class AtomixTimeLockServer implements TimeLockServer {
     }
 
     @Override
-    public TimeLockServices createInvalidatingTimeLockServices(String client) {
+    public TimeLockServices createInvalidatingTimeLockServices(String client, long slowLogTriggerMillis) {
         DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(replica);
         DistributedLong timestamp = DistributedValues.getTimestampForClient(replica, client);
         Supplier<TimeLockServices> timeLockSupplier = () -> {

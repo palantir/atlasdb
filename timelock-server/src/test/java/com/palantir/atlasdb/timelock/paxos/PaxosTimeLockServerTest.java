@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,8 @@ public class PaxosTimeLockServerTest {
                     .addServers(LOCAL_ADDRESS_STRING)
                     .localServer(LOCAL_ADDRESS_STRING)
                     .build(),
-            TEST_CLIENTS);
+            TEST_CLIENTS,
+            false);
 
     private final Environment environment = mock(Environment.class);
     private final TimeLockServer implementation =

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -50,7 +51,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class ProfilingKeyValueService implements KeyValueService {
+public final class ProfilingKeyValueService implements KeyValueService {
     @VisibleForTesting
     static final String SLOW_LOGGER_NAME = "kvs-slow-log";
 
@@ -61,28 +62,11 @@ public class ProfilingKeyValueService implements KeyValueService {
 
     private final Predicate<Stopwatch> slowLogPredicate;
 
-    private static <T> long byteSize(Map<Cell, T> values) {
-        long sizeInBytes = 0;
-        for (Entry<Cell, T> valueEntry : values.entrySet()) {
-            sizeInBytes += Cells.getApproxSizeOfCell(valueEntry.getKey());
-            T value = valueEntry.getValue();
-            if (value instanceof byte[]) {
-                sizeInBytes += ((byte[]) value).length;
-            } else if (value instanceof Long) {
-                sizeInBytes += Longs.BYTES;
-            }
-        }
-        return sizeInBytes;
-    }
-
-    private static <T> long byteSize(Multimap<Cell, T> values) {
-        long sizeInBytes = 0;
-        for (Cell cell : values.keySet()) {
-            sizeInBytes += Cells.getApproxSizeOfCell(cell) + values.get(cell).size();
-        }
-        return sizeInBytes;
-    }
-
+    /**
+     * @deprecated in favour of ProfilingKeyValueService#create(KeyValueService delegate, long slowLogThresholdMillis).
+     * @param delegate the KeyValueService to be profiled
+     * @return ProfilingKeyValueService that profiles the delegate KeyValueService
+     */
     @Deprecated
     public static ProfilingKeyValueService create(KeyValueService delegate) {
         return new ProfilingKeyValueService(delegate, 1000);
@@ -179,11 +163,11 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         maybeLog(() -> delegate.addGarbageCollectionSentinelValues(tableRef, cells),
                 (logger, stopwatch) -> logger.log(
                         "Call to KVS.addGarbageCollectionSentinelValues on table {} over {} cells took {} ms.",
-                        tableRef, cells.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+                        tableRef, Iterables.size(cells), stopwatch.elapsed(TimeUnit.MILLISECONDS)));
     }
 
     @Override
@@ -425,6 +409,13 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        return maybeLog(() -> delegate.getClusterAvailabilityStatus(),
+                (logger, stopwatch) -> logTime(logger,
+                        "getClusterAvailabilityStatus", stopwatch));
+    }
+
+    @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         return maybeLog(() -> delegate.getRowsColumnRange(tableRef, rows,
@@ -447,7 +438,8 @@ public class ProfilingKeyValueService implements KeyValueService {
                         delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp),
                 (logger, stopwatch) -> {
                     logger.log(
-                            "Call to KVS.getRowsColumnRangeCellBatch on table {} for {} rows with range {} and batch hint {} took {} ms.",
+                            "Call to KVS.getRowsColumnRangeCellBatch on table {} for {} rows with range {} "
+                                    + "and batch hint {} took {} ms.",
                             tableRef,
                             Iterables.size(rows),
                             columnRangeSelection,
@@ -455,5 +447,27 @@ public class ProfilingKeyValueService implements KeyValueService {
                             stopwatch.elapsed(TimeUnit.MILLISECONDS));
                     logTimeAndTable(logger, "getRowsColumnRangeCellBatch", tableRef, stopwatch);
                 });
+    }
+
+    private static <T> long byteSize(Map<Cell, T> values) {
+        long sizeInBytes = 0;
+        for (Entry<Cell, T> valueEntry : values.entrySet()) {
+            sizeInBytes += Cells.getApproxSizeOfCell(valueEntry.getKey());
+            T value = valueEntry.getValue();
+            if (value instanceof byte[]) {
+                sizeInBytes += ((byte[]) value).length;
+            } else if (value instanceof Long) {
+                sizeInBytes += Longs.BYTES;
+            }
+        }
+        return sizeInBytes;
+    }
+
+    private static <T> long byteSize(Multimap<Cell, T> values) {
+        long sizeInBytes = 0;
+        for (Cell cell : values.keySet()) {
+            sizeInBytes += Cells.getApproxSizeOfCell(cell) + values.get(cell).size();
+        }
+        return sizeInBytes;
     }
 }

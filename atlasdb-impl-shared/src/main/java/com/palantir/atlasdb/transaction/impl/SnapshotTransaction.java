@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -177,7 +177,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
             Maps.newConcurrentMap();
-    private final ConflictDetectionManager conflictDetectionManager;
+    protected final ConflictDetectionManager conflictDetectionManager;
     private final AtomicLong byteCount = new AtomicLong();
 
     private final AtlasDbConstraintCheckingMode constraintCheckingMode;
@@ -242,7 +242,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         TransactionService transactionService,
                         Cleaner cleaner,
                         long startTimeStamp,
-                        Map<TableReference, ConflictHandler> tablesToWriteWrite,
+                        ConflictDetectionManager conflictDetectionManager,
                         AtlasDbConstraintCheckingMode constraintCheckingMode,
                         TransactionReadSentinelBehavior readSentinelBehavior,
                         TimestampCache timestampValidationReadCache) {
@@ -252,7 +252,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.cleaner = cleaner;
         this.lockService = lockService;
         this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
-        this.conflictDetectionManager = ConflictDetectionManagers.fromMap(tablesToWriteWrite);
+        this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.immutableTimestamp = 0;
         this.externalLocksTokens = ImmutableSet.of();
@@ -291,7 +291,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.cleaner = NoOpCleaner.INSTANCE;
         this.lockService = lockService;
         this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
-        this.conflictDetectionManager = ConflictDetectionManagers.withoutConflictDetection(keyValueService);
+        this.conflictDetectionManager = ConflictDetectionManagers.createWithNoConflictDetection();
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.timestampService = null;
         this.immutableTimestamp = startTimeStamp;
@@ -780,7 +780,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // Handle 1 specially because the underlying store could have an optimization for 1
             return 1;
         }
-        //TODO: carrino: tune the param here based on how likely we are to post filter
+        // TODO(carrino): tune the param here based on how likely we are to post filter
         // rows out and have deleted rows
         int preFilterBatchSize = userRequestedSize + ((userRequestedSize + 9) / 10);
         if (preFilterBatchSize > AtlasDbPerformanceConstants.MAX_BATCH_SIZE
@@ -1058,12 +1058,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
         Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
-        if (!validConflictDetection(tableRef)) {
-            conflictDetectionManager.recompute();
-            Preconditions.checkArgument(
-                    validConflictDetection(tableRef),
-                    "Not a valid table for this transaction.  Make sure this table name has a namespace: " + tableRef);
-        }
         if (values.isEmpty()) {
             return;
         }
@@ -1107,10 +1101,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             expiringValues.put(expiringCell, cellEntry.getValue());
         }
         return expiringValues;
-    }
-
-    private boolean validConflictDetection(TableReference tableRef) {
-        return conflictDetectionManager.isEmptyOrContainsTable(tableRef);
     }
 
     private void putWritesAndLogIfTooLarge(Map<Cell, byte[]> values, SortedMap<Cell, byte[]> writes) {
@@ -1271,11 +1261,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
             if (!expiredLocks.isEmpty()) {
-                String errorMessage =
-                        "This isn't a bug but it should happen very infrequently. Required locks are no longer"
-                        + " valid but we have already committed successfully. "
-                        + getExpiredLocksErrorString(commitLocksToken, expiredLocks);
-                log.error(errorMessage, new TransactionFailedRetriableException(errorMessage));
+                final String baseMsg = "This isn't a bug but it should happen very infrequently. "
+                        + "Required locks are no longer valid but we have already committed successfully. ";
+                String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
+                log.error(baseMsg + "{}", expiredLocksErrorString,
+                        new TransactionFailedRetriableException(baseMsg + expiredLocksErrorString));
             }
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
@@ -1311,11 +1301,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected ConflictHandler getConflictHandlerForTable(TableReference tableRef) {
-        Map<TableReference, ConflictHandler> tableToConflictHandler = conflictDetectionManager.get();
-        if (tableToConflictHandler.isEmpty()) {
-            return ConflictHandler.RETRY_ON_WRITE_WRITE;
-        }
-        return tableToConflictHandler.get(tableRef);
+        return Preconditions.checkNotNull(conflictDetectionManager.get(tableRef),
+            "Not a valid table for this transaction. Make sure this table name exists or has a valid namespace: %s",
+            tableRef);
     }
 
     private String getExpiredLocksErrorString(@Nullable LockRefreshToken commitLocksToken,
@@ -1328,10 +1316,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void throwIfExternalAndCommitLocksNotValid(@Nullable LockRefreshToken commitLocksToken) {
         Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
         if (!expiredLocks.isEmpty()) {
-            String errorMessage = "Required locks are no longer valid. "
-                    + getExpiredLocksErrorString(commitLocksToken, expiredLocks);
-            TransactionLockTimeoutException ex = new TransactionLockTimeoutException(errorMessage);
-            log.error(errorMessage, ex);
+            final String baseMsg = "Required locks are no longer valid. ";
+            String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
+            TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
+            log.error(baseMsg + "{}", expiredLocksErrorString, ex);
             throw ex;
         }
     }
@@ -1420,8 +1408,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, CellConflict> cellToConflict = Maps.newHashMap();
         Map<Cell, Long> cellToTs = Maps.newHashMap();
         for (CellConflict c : Sets.union(spanningWrites, dominatingWrites)) {
-            cellToConflict.put(c.cell, c);
-            cellToTs.put(c.cell, c.theirStart + 1);
+            cellToConflict.put(c.getCell(), c);
+            cellToTs.put(c.getCell(), c.getTheirStart() + 1);
         }
 
         Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(table, cellToTs.keySet());
@@ -1556,16 +1544,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             log.debug("For table: {} we are deleting values of an uncommitted transaction: {}", tableRef, keysToDelete);
             keyValueService.delete(tableRef, Multimaps.forMap(keysToDelete));
         } catch (RuntimeException e) {
-            String msg = "This isn't a bug but it should be infrequent if all nodes of your KV service are running. "
-                    + "Delete has stronger consistency semantics than read/write and must talk to all nodes "
-                    + "instead of just talking to a quorum of nodes. "
-                    + "Failed to delete keys for table" + tableRef
-                    + " from an uncommitted transaction; "
+            final String msg = "This isn't a bug but it should be infrequent if all nodes of your KV service are"
+                    + " running. Delete has stronger consistency semantics than read/write and must talk to all nodes"
+                    + " instead of just talking to a quorum of nodes. "
+                    + "Failed to delete keys for table: {} from an uncommitted transaction; "
                     + " sweep should eventually clean this when it processes this table.";
             if (log.isDebugEnabled()) {
-                msg += " The keys that failed to be deleted during rollback were " + keysToDelete;
+                log.warn(msg + " The keys that failed to be deleted during rollback were {}", tableRef, keysToDelete);
+            } else {
+                log.warn(msg, tableRef, e);
             }
-            log.warn(msg, e);
         }
 
         return true;
@@ -1667,7 +1655,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        // TODO: This can have better performance if we have a blockAndReturn method in lock server
+        // TODO(carrino): This can have better performance if we have a blockAndReturn method in lock server
         // However lock server blocking is an issue if we fill up all our requests
         try {
             lockService.lock(

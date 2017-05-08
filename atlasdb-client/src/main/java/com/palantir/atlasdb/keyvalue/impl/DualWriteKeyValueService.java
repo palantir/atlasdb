@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -192,7 +193,7 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         delegate1.addGarbageCollectionSentinelValues(tableRef, cells);
         delegate2.addGarbageCollectionSentinelValues(tableRef, cells);
     }
@@ -223,6 +224,17 @@ public class DualWriteKeyValueService implements KeyValueService {
     public void compactInternally(TableReference tableRef) {
         delegate1.compactInternally(tableRef);
         delegate2.compactInternally(tableRef);
+    }
+
+    @Override
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        ClusterAvailabilityStatus clusterAvailabilityStatus1 = delegate1.getClusterAvailabilityStatus();
+        ClusterAvailabilityStatus clusterAvailabilityStatus2 = delegate2.getClusterAvailabilityStatus();
+
+        if (clusterAvailabilityStatus1.compareTo(clusterAvailabilityStatus2) < 0) {
+            return clusterAvailabilityStatus1;
+        }
+        return clusterAvailabilityStatus2;
     }
 
     @Override

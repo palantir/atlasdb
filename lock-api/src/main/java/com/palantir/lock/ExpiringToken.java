@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,12 @@ public interface ExpiringToken {
     @Nullable LockClient getClient();
 
     /**
+     * Returns the set of locks which were successfully acquired as a map
+     * from descriptor to lock mode.
+     */
+    SortedLockCollection<LockDescriptor> getLockDescriptors();
+
+    /**
      * Returns the amount of time that it takes for these locks to
      * expire.
      */
@@ -59,7 +65,7 @@ public interface ExpiringToken {
     @Nullable Long getVersionId();
 
     /** A comparator which uses an {@code ExpiringToken}'s expiration date. */
-    static final Comparator<ExpiringToken> COMPARATOR = new Comparator<ExpiringToken>() {
+    Comparator<ExpiringToken> COMPARATOR = new Comparator<ExpiringToken>() {
         @Override
         public int compare(ExpiringToken o1, ExpiringToken o2) {
             return Longs.compare(o1.getExpirationDateMs(), o2.getExpirationDateMs());

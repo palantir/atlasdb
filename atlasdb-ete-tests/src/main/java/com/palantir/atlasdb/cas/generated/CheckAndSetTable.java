@@ -211,6 +211,7 @@ public final class CheckAndSetTable implements
             return Objects.equal(id, other.id);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(id);
@@ -680,5 +681,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "mnQBVzRvCDax9ITO9gvXyQ==";
+    static String __CLASS_HASH = "W4hd7/WZ6IQtpPnTfN+PSw==";
 }

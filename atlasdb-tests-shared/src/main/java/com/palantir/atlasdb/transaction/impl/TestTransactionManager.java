@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,13 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public interface TestTransactionManager extends LockAwareTransactionManager {
-    Transaction commitAndStartNewTransaction(Transaction t);
+    Transaction commitAndStartNewTransaction(Transaction txn);
     Transaction createNewTransaction();
+    void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler);
 }

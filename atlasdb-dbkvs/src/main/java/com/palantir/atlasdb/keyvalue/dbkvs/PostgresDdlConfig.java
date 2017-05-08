@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,8 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.PostgresDbTableFactory;
 
 @JsonDeserialize(as = ImmutablePostgresDdlConfig.class)
 @JsonSerialize(as = ImmutablePostgresDdlConfig.class)
@@ -32,11 +29,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.PostgresDbTableFactory;
 @Value.Immutable
 public abstract class PostgresDdlConfig extends DdlConfig {
     public static final String TYPE = "postgres";
-
-    @Override
-    public Supplier<DbTableFactory> tableFactorySupplier() {
-        return () -> new PostgresDbTableFactory(this);
-    }
 
     @Value.Default
     @Override
@@ -47,5 +39,10 @@ public abstract class PostgresDdlConfig extends DdlConfig {
     @Override
     public final String type() {
         return TYPE;
+    }
+
+    @Override
+    public <T> T accept(Visitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

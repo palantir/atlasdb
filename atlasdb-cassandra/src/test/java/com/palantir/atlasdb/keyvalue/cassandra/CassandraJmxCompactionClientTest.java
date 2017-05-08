@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ public class CassandraJmxCompactionClientTest {
     private static final TableReference TEST_TABLE_NAME = TableReference.createWithEmptyNamespace("testTableName");
 
     @Before
-    public void setUp() {
+    public void before() {
         jmxConnector = mock(JMXConnector.class);
         storageServiceProxy = mock(StorageServiceMBean.class);
         hintedHandoffProxy = mock(HintedHandOffManagerMBean.class);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,9 +29,10 @@ public class PostgresDbTableFactory implements DbTableFactory {
     private final PostgresDdlConfig config;
     private final PostgresPrefixedTableNames prefixedTableNames;
 
-    public PostgresDbTableFactory(PostgresDdlConfig config) {
+    public PostgresDbTableFactory(PostgresDdlConfig config,
+                                  PostgresPrefixedTableNames prefixedTableNames) {
         this.config = config;
-        this.prefixedTableNames = new PostgresPrefixedTableNames(config);
+        this.prefixedTableNames = prefixedTableNames;
     }
 
     @Override

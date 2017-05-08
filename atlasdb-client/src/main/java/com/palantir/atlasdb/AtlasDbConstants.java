@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ public class AtlasDbConstants {
     public static final boolean DEFAULT_ENABLE_SWEEP = false;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
     public static final long DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS = 30_000L;
-    public static final int DEFAULT_SWEEP_BATCH_SIZE = 1000;
+    public static final int DEFAULT_SWEEP_BATCH_SIZE = 100;
     public static final int DEFAULT_SWEEP_CELL_BATCH_SIZE = 10_000;
 
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;

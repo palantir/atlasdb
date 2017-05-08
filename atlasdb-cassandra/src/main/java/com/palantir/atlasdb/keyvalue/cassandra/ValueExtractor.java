@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,24 +17,20 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Map;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
-class ValueExtractor extends ResultsExtractor<Map<Cell, Value>, Value> {
-
-    static final Supplier<ResultsExtractor<Map<Cell, Value>, Value>> SUPPLIER =
-            new Supplier<ResultsExtractor<Map<Cell, Value>, Value>>() {
-        @Override
-        public ResultsExtractor<Map<Cell, Value>, Value> get() {
-            return new ValueExtractor(Maps.<Cell, Value>newHashMap());
-        }
-    };
+class ValueExtractor extends ResultsExtractor<Value> {
+    private final Map<Cell, Value> collector;
 
     ValueExtractor(Map<Cell, Value> collector) {
-        super(collector);
+        this.collector = collector;
+    }
+
+    static ValueExtractor create() {
+        return new ValueExtractor(Maps.newHashMap());
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -274,7 +274,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value)
             throws MultipleRunningTimestampServiceError {
-        if (!value.getLeaderUUID().equals(proposer.getUUID())) {
+        if (!value.getLeaderUUID().equals(proposer.getUuid())) {
             String errorMsg = String.format(
                     "Timestamp limit changed from under us for sequence '%s' (leader with UUID '%s' changed"
                             + " it, our UUID is '%s'). This suggests that another timestamp store for this"
@@ -282,7 +282,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                             + " a bound of '%s'. (The offending Paxos value was '%s'.)",
                     newSeq,
                     value.getLeaderUUID(),
-                    proposer.getUUID(),
+                    proposer.getUuid(),
                     PtBytes.toLong(value.getData()),
                     limit,
                     value);

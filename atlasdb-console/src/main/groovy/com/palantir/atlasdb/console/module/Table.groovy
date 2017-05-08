@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.console.module
 
 import com.palantir.atlasdb.api.TransactionToken
+import com.palantir.atlasdb.console.AtlasConsoleJoins
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
 import groovy.transform.CompileStatic
 
@@ -24,6 +25,8 @@ class Table {
     String name
     def desc = null
     AtlasConsoleServiceWrapper service
+
+    private static int DEFAULT_JOIN_BATCH_SIZE = 10000;
 
     Table(String name, AtlasConsoleServiceWrapper service) {
         this.name = name
@@ -36,7 +39,7 @@ class Table {
     }
 
     def getDescription() {
-        if(desc == null) {
+        if (desc == null) {
             desc = service.getMetadata(name)
         }
         return desc
@@ -51,7 +54,7 @@ class Table {
             println("columnNames cannot be called on a table with dynamic columns")
             return []
         }
-        getDescription()['columns'].collect { it['long_name'] }
+        getDescription()['columns'].collect {it['long_name']}
     }
 
 
@@ -174,6 +177,39 @@ class Table {
         }
         return new Range(service, service.getRange(query, token) as Map, token)
     }
+
+    /**
+     * Lazily joins against an Iterable of key/value pairs.
+     *
+     *
+     *
+     * Tip: Since it is hard to lazily transform Iterables in Groovy, use Guava.
+     *
+     * Example:
+     * <pre>
+     * FluentIterable = com.google.common.collect.FluentIterable
+     * input = FluentIterable.from(table("myTable").getRange()).transform{ [(it.row): it}
+     * output = table("myOtherTable").join(input)
+     * </pre>
+     * @param input Iterable of Map<joinKey, inputValue> where JOIN_KEY is the row key of this table.
+     * @param cols columns to select from this table.
+     * @param batchSize size of getRows calls against this table, default 1000.
+     * @param token.
+     * @return Iterable of Maps with size 3, structured as
+     * <pre>
+     * { JOIN_KEY: joinKey, INPUT_VALUE: inputValue, OUTPUT_VALUE: outputValue}
+     * </pre>
+     * where joinKey and inputValue map to the inputs, and outputValue is the corresponding row in this table.
+     */
+    public Iterable<Map<String, Object>> join(
+            Iterable<Map<?, ?>> input,
+            cols = null,
+            int batchSize = DEFAULT_JOIN_BATCH_SIZE,
+            TransactionToken token = service.getTransactionToken()) {
+
+        return AtlasConsoleJoins.join(input, batchSize, { keys -> getRows(keys, cols, token)});
+    }
+
 
     void put(entries, TransactionToken token = service.getTransactionToken()) {
         def query = [table:name as Object]

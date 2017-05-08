@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ public class TransactionGetBenchmarks {
     }
 
     private Map<Cell, byte[]> getCellsInner(ConsecutiveNarrowTable table) {
-        final int getCellsSize = (int) (0.1 * table.getNumRows());
+        final int getCellsSize = 1000;
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Set<Cell> request = table.getCellsRequest(getCellsSize);
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), request);
@@ -82,7 +82,7 @@ public class TransactionGetBenchmarks {
     }
 
     private List<RowResult<byte[]>> getRangeInner(ConsecutiveNarrowTable table) {
-        final int rangeRequestSize = (int) (0.1 * table.getNumRows());
+        final int rangeRequestSize = 1000;
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             RangeRequest request = Iterables.getOnlyElement(table.getRangeRequests(1, rangeRequestSize));
             List<RowResult<byte[]>> results = BatchingVisitables.copyToList(txn.getRange(
@@ -96,7 +96,7 @@ public class TransactionGetBenchmarks {
     private Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInner(ConsecutiveNarrowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Iterable<RangeRequest> requests =
-                    table.getRangeRequests((int) (table.getNumRows() * 0.1), RANGES_SINGLE_REQUEST_SIZE);
+                    table.getRangeRequests(1000, RANGES_SINGLE_REQUEST_SIZE);
             Iterable<BatchingVisitable<RowResult<byte[]>>> results =
                     txn.getRanges(table.getTableRef(), requests);
             results.forEach(bvs -> {

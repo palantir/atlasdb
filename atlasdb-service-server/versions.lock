@@ -36,7 +36,9 @@
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.palantir.atlasdb:atlasdb-client",
                 "io.dropwizard:dropwizard-jackson"
@@ -47,7 +49,9 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
@@ -84,10 +88,22 @@
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
         "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
             "locked": "2.6.7",
             "transitive": [
                 "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base": {
@@ -419,7 +435,6 @@
             "locked": "2.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl"
             ]
         },
@@ -642,6 +657,7 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "io.dropwizard:dropwizard-configuration",
                 "io.dropwizard:dropwizard-jersey"
@@ -931,7 +947,8 @@
         "org.yaml:snakeyaml": {
             "locked": "1.12",
             "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "com.palantir.atlasdb:lock-impl"
             ]
         }
     },
@@ -951,14 +968,14 @@
                 "io.dropwizard:dropwizard-logging"
             ]
         },
-        "com.carrotsearch:hppc": {
-            "locked": "0.5.4",
+        "com.codahale.metrics:metrics-core": {
+            "locked": "3.0.2",
             "transitive": [
-                "org.apache.cassandra:cassandra-thrift"
+                "com.datastax.cassandra:cassandra-driver-core"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.1.4",
+            "locked": "2.2.0-rc3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
@@ -984,7 +1001,9 @@
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.palantir.atlasdb:atlasdb-client",
                 "io.dropwizard:dropwizard-jackson"
@@ -995,7 +1014,9 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
@@ -1032,10 +1053,22 @@
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
         "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
             "locked": "2.6.7",
             "transitive": [
                 "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base": {
@@ -1067,43 +1100,6 @@
             "locked": "1.0.0",
             "transitive": [
                 "org.hibernate:hibernate-validator"
-            ]
-        },
-        "com.github.jnr:jffi": {
-            "locked": "1.2.10",
-            "transitive": [
-                "com.github.jnr:jnr-ffi"
-            ]
-        },
-        "com.github.jnr:jnr-constants": {
-            "locked": "0.9.0",
-            "transitive": [
-                "com.github.jnr:jnr-posix"
-            ]
-        },
-        "com.github.jnr:jnr-ffi": {
-            "locked": "2.0.7",
-            "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core",
-                "com.github.jnr:jnr-posix"
-            ]
-        },
-        "com.github.jnr:jnr-posix": {
-            "locked": "3.0.27",
-            "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core"
-            ]
-        },
-        "com.github.jnr:jnr-x86asm": {
-            "locked": "1.0.2",
-            "transitive": [
-                "com.github.jnr:jnr-ffi"
-            ]
-        },
-        "com.github.rholder:snowball-stemmer": {
-            "locked": "1.3.0.581.1",
-            "transitive": [
-                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.google.code.findbugs:annotations": {
@@ -1171,12 +1167,6 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:leader-election-api-protobufs",
                 "com.palantir.atlasdb:leader-election-impl"
-            ]
-        },
-        "com.googlecode.concurrent-trees:concurrent-trees": {
-            "locked": "2.4.0",
-            "transitive": [
-                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -1458,14 +1448,7 @@
             "locked": "2.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl"
-            ]
-        },
-        "de.jflex:jflex": {
-            "locked": "1.6.0",
-            "transitive": [
-                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "io.dropwizard.metrics:metrics-annotation": {
@@ -1478,7 +1461,6 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.tritium:tritium-metrics",
                 "io.dropwizard.metrics:metrics-jersey2",
@@ -1617,32 +1599,32 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.0.37.Final",
+            "locked": "4.0.27.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.0.37.Final",
+            "locked": "4.0.27.Final",
             "transitive": [
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.0.37.Final",
+            "locked": "4.0.27.Final",
             "transitive": [
                 "io.netty:netty-buffer"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.0.37.Final",
+            "locked": "4.0.27.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.0.37.Final",
+            "locked": "4.0.27.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler"
@@ -1716,20 +1698,8 @@
                 "io.dropwizard:dropwizard-core"
             ]
         },
-        "org.apache.ant:ant": {
-            "locked": "1.9.4",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-cassandra"
-            ]
-        },
-        "org.apache.ant:ant-launcher": {
-            "locked": "1.9.4",
-            "transitive": [
-                "org.apache.ant:ant"
-            ]
-        },
         "org.apache.cassandra:cassandra-thrift": {
-            "locked": "3.10",
+            "locked": "2.2.8",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
@@ -1738,6 +1708,7 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "io.dropwizard:dropwizard-configuration",
                 "io.dropwizard:dropwizard-jersey",
@@ -2011,40 +1982,6 @@
                 "com.palantir.tritium:tritium-metrics"
             ]
         },
-        "org.ow2.asm:asm": {
-            "locked": "5.0.4",
-            "transitive": [
-                "com.github.jnr:jnr-ffi",
-                "org.ow2.asm:asm-tree"
-            ]
-        },
-        "org.ow2.asm:asm-analysis": {
-            "locked": "5.0.3",
-            "transitive": [
-                "com.github.jnr:jnr-ffi"
-            ]
-        },
-        "org.ow2.asm:asm-commons": {
-            "locked": "5.0.3",
-            "transitive": [
-                "com.github.jnr:jnr-ffi"
-            ]
-        },
-        "org.ow2.asm:asm-tree": {
-            "locked": "5.0.3",
-            "transitive": [
-                "com.github.jnr:jnr-ffi",
-                "org.ow2.asm:asm-analysis",
-                "org.ow2.asm:asm-commons",
-                "org.ow2.asm:asm-util"
-            ]
-        },
-        "org.ow2.asm:asm-util": {
-            "locked": "5.0.3",
-            "transitive": [
-                "com.github.jnr:jnr-ffi"
-            ]
-        },
         "org.rocksdb:rocksdbjni": {
             "locked": "4.1.0",
             "transitive": [
@@ -2074,6 +2011,7 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
+                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.tritium:tritium-core",
@@ -2103,7 +2041,8 @@
         "org.yaml:snakeyaml": {
             "locked": "1.12",
             "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "com.palantir.atlasdb:lock-impl"
             ]
         }
     }

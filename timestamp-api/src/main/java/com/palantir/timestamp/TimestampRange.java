@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author bdorne
  */
+@SuppressWarnings("checkstyle:FinalClass") // Don't want to break the API
 public class TimestampRange implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -55,6 +56,8 @@ public class TimestampRange implements Serializable {
     }
 
     /**
+     * Returns the lower bound of this TimestampRange (inclusive).
+     *
      * @return the lower bound of the TimestampRange
      */
     public long getLowerBound() {
@@ -62,6 +65,8 @@ public class TimestampRange implements Serializable {
     }
 
     /**
+     * Returns the upper bound of this TimestampRange (inclusive).
+     *
      * @return the upper bound of the TimestampRange
      */
     public long getUpperBound() {

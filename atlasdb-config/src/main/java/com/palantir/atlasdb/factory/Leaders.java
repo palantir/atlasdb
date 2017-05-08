@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,8 @@ import javax.net.ssl.SSLSocketFactory;
 
 import org.immutables.value.Value;
 
+import com.codahale.metrics.InstrumentedExecutorService;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -38,6 +40,7 @@ import com.palantir.atlasdb.factory.TransactionManagers.Environment;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
@@ -111,20 +114,29 @@ public final class Leaders {
         Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(
                 remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory, userAgent);
 
-        ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-                .setNameFormat("atlas-leaders-%d")
-                .setDaemon(true)
-                .build());
+        PaxosProposer proposer = createPaxosProposer(ourLearner, acceptors, learners, config.quorumSize(),
+                new InstrumentedExecutorService(
+                        Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                                .setNameFormat("atlas-proposer-%d")
+                                .setDaemon(true)
+                                .build()),
+                        AtlasDbMetrics.getMetricRegistry(),
+                        MetricRegistry.name(PaxosProposer.class, "executor")));
 
-        PaxosProposer proposer = createPaxosProposer(ourLearner, acceptors, learners, config.quorumSize(), executor);
-
+        InstrumentedExecutorService leaderElectionExecutor = new InstrumentedExecutorService(
+                Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                        .setNameFormat("atlas-leaders-election-%d")
+                        .setDaemon(true)
+                        .build()),
+                AtlasDbMetrics.getMetricRegistry(),
+                MetricRegistry.name(PaxosLeaderElectionService.class, "executor"));
         PaxosLeaderElectionService leader = new PaxosLeaderElectionServiceBuilder()
                 .proposer(proposer)
                 .knowledge(ourLearner)
                 .potentialLeadersToHosts(otherLeaders)
                 .acceptors(acceptors)
                 .learners(learners)
-                .executor(executor)
+                .executor(leaderElectionExecutor)
                 .pingRateMs(config.pingRateMs())
                 .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
@@ -145,11 +157,11 @@ public final class Leaders {
             int quorumSize,
             ExecutorService executor) {
         return PaxosProposerImpl.newProposer(
-                    ourLearner,
-                    ImmutableList.copyOf(acceptors),
-                    ImmutableList.copyOf(learners),
-                    quorumSize,
-                    executor);
+                ourLearner,
+                ImmutableList.copyOf(acceptors),
+                ImmutableList.copyOf(learners),
+                quorumSize,
+                executor);
     }
 
     public static <T> List<T> createProxyAndLocalList(

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  * <p>
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package com.palantir.lock;
 
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
@@ -23,13 +23,12 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public final class LockClientTest {
-
-    private final ObjectMapper MAPPER = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
     public void testSerializationDeserialization() throws Exception {
         LockClient lockClient = new LockClient("foo");
-        LockClient deserializedLockClient = MAPPER.readValue(MAPPER.writeValueAsString(lockClient), LockClient.class);
+        LockClient deserializedLockClient = mapper.readValue(mapper.writeValueAsString(lockClient), LockClient.class);
 
         assertThat(lockClient.getClientId(), is(deserializedLockClient.getClientId()));
         assertThat(lockClient.isAnonymous(), is(deserializedLockClient.isAnonymous()));

@@ -100,8 +100,9 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.6.3",
+            "locked": "2.6.7",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
@@ -112,8 +113,9 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.6.3",
+            "locked": "2.6.7",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
@@ -467,7 +469,6 @@
             "locked": "2.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl"
             ]
         },
@@ -855,6 +856,7 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "io.dropwizard:dropwizard-configuration",
                 "io.dropwizard:dropwizard-jersey"
@@ -1190,9 +1192,10 @@
             ]
         },
         "org.yaml:snakeyaml": {
-            "locked": "1.15",
+            "locked": "1.12",
             "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "com.palantir.atlasdb:lock-impl"
             ]
         }
     },
@@ -1297,8 +1300,9 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.6.3",
+            "locked": "2.6.7",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
@@ -1309,8 +1313,9 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.6.3",
+            "locked": "2.6.7",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
@@ -1664,7 +1669,6 @@
             "locked": "2.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl"
             ]
         },
@@ -2052,6 +2056,7 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "io.dropwizard:dropwizard-configuration",
                 "io.dropwizard:dropwizard-jersey"
@@ -2388,9 +2393,10 @@
             ]
         },
         "org.yaml:snakeyaml": {
-            "locked": "1.15",
+            "locked": "1.12",
             "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "com.palantir.atlasdb:lock-impl"
             ]
         }
     }

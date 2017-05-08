@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,6 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Supplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.PostgresDbTableFactory;
 
 @JsonDeserialize(as = ImmutableH2DdlConfig.class)
 @JsonSerialize(as = ImmutableH2DdlConfig.class)
@@ -32,13 +29,12 @@ public abstract class H2DdlConfig extends DdlConfig {
     public static final String TYPE = "h2";
 
     @Override
-    public Supplier<DbTableFactory> tableFactorySupplier() {
-        return () -> new PostgresDbTableFactory(
-                ImmutablePostgresDdlConfig.builder().from(this).build());
+    public final String type() {
+        return TYPE;
     }
 
     @Override
-    public final String type() {
-        return TYPE;
+    public <T> T accept(Visitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

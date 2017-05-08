@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -153,20 +153,20 @@ public class PaxosConsensusFastTest {
 
     @Test
     public void simpleLogTest() {
-        String leaderUUID = "I-AM-DA-LEADER";
+        String leaderUuid = "I-AM-DA-LEADER";
         String dir = "log-test";
         long seq = 0;
 
         // write to log
         PaxosStateLog<PaxosValue> log = new PaxosStateLogImpl<PaxosValue>(dir);
-        log.writeRound(seq, new PaxosValue(leaderUUID, 0, null));
+        log.writeRound(seq, new PaxosValue(leaderUuid, 0, null));
 
         // read back from log
         try {
             byte[] bytes = log.readRound(seq);
             assertNotNull(bytes);
             PaxosValue p = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(bytes);
-            assertTrue(p.getLeaderUUID().equals(leaderUUID));
+            assertTrue(p.getLeaderUUID().equals(leaderUuid));
         } catch (IOException e1) {
             fail("IO exception when reading log");
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -44,9 +43,18 @@ import com.google.common.collect.Iterables;
  *
  * @author jtamer
  */
-@JsonDeserialize(builder=HeldLocksToken.SerializationProxy.class)
+@JsonDeserialize(builder =
+        HeldLocksToken.SerializationProxy.class)
 @Immutable public final class HeldLocksToken implements ExpiringToken, Serializable {
-    private static final long serialVersionUID = 0x99b3bb32bb98f83al;
+    private static final long serialVersionUID = 0x99b3bb32bb98f83aL;
+
+    private static final Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode> TO_LOCK_WITH_MODE_FUNCTION =
+            new Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode>() {
+        @Override
+        public LockWithMode apply(Map.Entry<LockDescriptor, LockMode> input) {
+            return new LockWithMode(input.getKey(), input.getValue());
+        }
+    };
 
     private final BigInteger tokenId;
     private final LockClient client;
@@ -55,20 +63,22 @@ import com.google.common.collect.Iterables;
     private final SortedLockCollection<LockDescriptor> lockMap;
     private final SimpleTimeDuration lockTimeout;
     @Nullable private final Long versionId;
+    private final String requestingThread;
 
     /**
-     * This should only be created by the Lock Service
+     * This should only be created by the Lock Service.
      */
     public HeldLocksToken(BigInteger tokenId, LockClient client, long creationDateMs,
             long expirationDateMs, SortedLockCollection<LockDescriptor> lockMap,
-            TimeDuration lockTimeout, @Nullable Long versionId) {
-        this.tokenId = Preconditions.checkNotNull(tokenId);
-        this.client = Preconditions.checkNotNull(client);
+            TimeDuration lockTimeout, @Nullable Long versionId, String requestingThread) {
+        this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId should not be null");
+        this.client = Preconditions.checkNotNull(client, "client should not be null");
         this.creationDateMs = creationDateMs;
         this.expirationDateMs = expirationDateMs;
         this.lockMap = lockMap;
         this.lockTimeout = SimpleTimeDuration.of(lockTimeout);
         this.versionId = versionId;
+        this.requestingThread = requestingThread;
         Preconditions.checkArgument(!this.lockMap.isEmpty());
     }
 
@@ -99,6 +109,10 @@ import com.google.common.collect.Iterables;
         return creationDateMs;
     }
 
+    public String getRequestingThread() {
+        return requestingThread;
+    }
+
     /**
      * Returns the time (in milliseconds since the epoch) when this token will
      * expire and become invalid.
@@ -113,17 +127,13 @@ import com.google.common.collect.Iterables;
      * from descriptor to lock mode.
      */
     @JsonIgnore
+    @Override
     public SortedLockCollection<LockDescriptor> getLockDescriptors() {
         return lockMap;
     }
 
     public List<LockWithMode> getLocks() {
-        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), new Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode>() {
-            @Override
-            public LockWithMode apply(Map.Entry<LockDescriptor, LockMode> input) {
-                return new LockWithMode(input.getKey(), input.getValue());
-            }
-        }));
+        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), TO_LOCK_WITH_MODE_FUNCTION));
     }
 
     /**
@@ -172,15 +182,16 @@ import com.google.common.collect.Iterables;
                 .add("lockCount", lockMap.size())
                 .add("firstLock", lockMap.entries().iterator().next())
                 .add("versionId", versionId)
+                .add("requestingThread", requestingThread)
                 .toString();
     }
 
     /**
      * This should only be created by the lock service.  This call will not actually refresh the token.
      */
-    public HeldLocksToken refresh(long expirationDateMs) {
-        return new HeldLocksToken(tokenId, client, creationDateMs, expirationDateMs, lockMap, lockTimeout,
-                versionId);
+    public HeldLocksToken refresh(long newExpirationDateMs) {
+        return new HeldLocksToken(tokenId, client, creationDateMs, newExpirationDateMs, lockMap, lockTimeout,
+                versionId, requestingThread);
     }
 
     private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
@@ -193,7 +204,7 @@ import com.google.common.collect.Iterables;
     }
 
     static class SerializationProxy implements Serializable {
-        private static final long serialVersionUID = 0xe0bc169ce5a280acl;
+        private static final long serialVersionUID = 0xe0bc169ce5a280acL;
 
         private final BigInteger tokenId;
         private final LockClient client;
@@ -202,6 +213,7 @@ import com.google.common.collect.Iterables;
         private final SortedLockCollection<LockDescriptor> lockMap;
         private final SimpleTimeDuration lockTimeout;
         @Nullable private final Long versionId;
+        private final String requestingThread;
 
         SerializationProxy(HeldLocksToken heldLocksToken) {
             tokenId = heldLocksToken.tokenId;
@@ -211,17 +223,20 @@ import com.google.common.collect.Iterables;
             lockMap = heldLocksToken.lockMap;
             lockTimeout = heldLocksToken.lockTimeout;
             versionId = heldLocksToken.versionId;
+            requestingThread = heldLocksToken.requestingThread;
         }
 
         @JsonCreator
-        public SerializationProxy(@JsonProperty("tokenId") BigInteger tokenId,
-                                  @JsonProperty("client") LockClient client,
-                                  @JsonProperty("creationDateMs") long creationDateMs,
-                                  @JsonProperty("expirationDateMs") long expirationDateMs,
-                                  @JsonProperty("locks") List<LockWithMode> locks,
-                                  @JsonProperty("lockTimeout") TimeDuration lockTimeout,
-                                  @JsonProperty("versionId") Long versionId) {
-            ImmutableSortedMap.Builder<LockDescriptor, LockMode> localLockMapBuilder = ImmutableSortedMap.naturalOrder();
+        SerializationProxy(@JsonProperty("tokenId") BigInteger tokenId,
+                @JsonProperty("client") LockClient client,
+                @JsonProperty("creationDateMs") long creationDateMs,
+                @JsonProperty("expirationDateMs") long expirationDateMs,
+                @JsonProperty("locks") List<LockWithMode> locks,
+                @JsonProperty("lockTimeout") TimeDuration lockTimeout,
+                @JsonProperty("versionId") Long versionId,
+                @JsonProperty("requestingThread") String requestingThread) {
+            ImmutableSortedMap.Builder<LockDescriptor, LockMode> localLockMapBuilder =
+                    ImmutableSortedMap.naturalOrder();
             for (LockWithMode lock : locks) {
                 localLockMapBuilder.put(lock.getLockDescriptor(), lock.getLockMode());
             }
@@ -232,6 +247,7 @@ import com.google.common.collect.Iterables;
             this.expirationDateMs = expirationDateMs;
             this.lockTimeout = SimpleTimeDuration.of(lockTimeout);
             this.versionId = versionId;
+            this.requestingThread = requestingThread;
             Preconditions.checkArgument(!this.lockMap.isEmpty());
         }
 
@@ -241,7 +257,7 @@ import com.google.common.collect.Iterables;
 
         Object readResolve() {
             return new HeldLocksToken(tokenId, client, creationDateMs, expirationDateMs, lockMap, lockTimeout,
-                    versionId);
+                    versionId, requestingThread);
         }
     }
 }

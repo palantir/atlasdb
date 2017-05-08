@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,13 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -40,24 +37,29 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionFailedException;
+import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.util.Pair;
 
 public class CachingTransaction extends ForwardingTransaction {
 
     private static final Logger log = LoggerFactory.getLogger(CachingTransaction.class);
+    private static final long DEFAULT_MAX_CACHED_CELLS = 10_000_000;
 
-    final Transaction delegate;
-
-    private final LoadingCache<String, ConcurrentMap<Cell, byte[]>> columnTableCache = CacheBuilder.newBuilder()
-            .softValues()
-            .build(new CacheLoader<String, ConcurrentMap<Cell, byte[]>>() {
-        @Override
-        public ConcurrentMap<Cell, byte[]> load(String key) throws Exception {
-            return Maps.newConcurrentMap();
-        }
-    });
+    private final Transaction delegate;
+    private final Cache<Pair<String, Cell>, byte[]> cellCache;
 
     public CachingTransaction(Transaction delegate) {
+        this(delegate, DEFAULT_MAX_CACHED_CELLS);
+    }
+
+    public CachingTransaction(Transaction delegate, long maxCachedCells) {
         this.delegate = delegate;
+        cellCache = CacheBuilder.newBuilder()
+                .maximumSize(maxCachedCells)
+                .softValues()
+                .recordStats()
+                .build();
     }
 
     @Override
@@ -73,10 +75,9 @@ public class CachingTransaction extends ForwardingTransaction {
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
 
-        ConcurrentMap<Cell, byte[]> colCache = getColCacheForTable(tableRef);
         if (columnSelection.allColumnsSelected()) {
             SortedMap<byte[], RowResult<byte[]>> loaded = super.getRows(tableRef, rows, columnSelection);
-            cacheLoadedRows(colCache, loaded.values());
+            cacheLoadedRows(tableRef, loaded.values());
             return loaded;
         } else {
             Set<byte[]> toLoad = Sets.newHashSet();
@@ -88,7 +89,7 @@ public class CachingTransaction extends ForwardingTransaction {
                 boolean nonEmpty = false;
                 boolean shouldLoad = false;
                 for (byte[] col : columnSelection.getSelectedColumns()) {
-                    byte[] val = colCache.get(Cell.create(row, col));
+                    byte[] val = getCachedCellIfPresent(tableRef, Cell.create(row, col));
                     if (val == null) {
                         shouldLoad = true;
                         break;
@@ -104,30 +105,9 @@ public class CachingTransaction extends ForwardingTransaction {
                 }
             }
             SortedMap<byte[], RowResult<byte[]>> results = super.getRows(tableRef, toLoad, columnSelection);
-            cacheLoadedRows(colCache, results.values());
+            cacheLoadedRows(tableRef, results.values());
             inCache.putAll(results);
             return inCache.build();
-        }
-    }
-
-    private void cacheLoadedRows(ConcurrentMap<Cell, byte[]> colCache,
-                                 Iterable<RowResult<byte[]>> rowView) {
-        for (RowResult<byte[]> loadedRow : rowView) {
-            for (Map.Entry<Cell, byte[]> e : loadedRow.getCells()) {
-                cacheLoadedColumns(colCache, ImmutableSet.of(e.getKey()), ImmutableMap.of(e.getKey(), e.getValue()));
-            }
-        }
-    }
-
-    private void cacheLoadedColumns(ConcurrentMap<Cell, byte[]> colCache,
-                                    Set<Cell> toLoad,
-                                    Map<Cell, byte[]> toCache) {
-        for (Cell key : toLoad) {
-            byte[] value = toCache.get(key);
-            if (value == null) {
-                value = PtBytes.EMPTY_BYTE_ARRAY;
-            }
-            colCache.putIfAbsent(key, value);
         }
     }
 
@@ -138,11 +118,10 @@ public class CachingTransaction extends ForwardingTransaction {
             return ImmutableMap.of();
         }
 
-        ConcurrentMap<Cell, byte[]> cache = getColCacheForTable(tableRef);
         Set<Cell> toLoad = Sets.newHashSet();
         Map<Cell, byte[]> cacheHit = Maps.newHashMapWithExpectedSize(cells.size());
         for (Cell cell : cells) {
-            byte[] val = cache.get(cell);
+            byte[] val = getCachedCellIfPresent(tableRef, cell);
             if (val != null) {
                 if (val.length > 0) {
                     cacheHit.put(cell, val);
@@ -154,7 +133,7 @@ public class CachingTransaction extends ForwardingTransaction {
 
         final Map<Cell, byte[]> loaded = super.get(tableRef, toLoad);
 
-        cacheLoadedColumns(cache, toLoad, loaded);
+        cacheLoadedCells(tableRef, toLoad, loaded);
         cacheHit.putAll(loaded);
         return cacheHit;
     }
@@ -162,28 +141,85 @@ public class CachingTransaction extends ForwardingTransaction {
     @Override
     final public void delete(TableReference tableRef, Set<Cell> cells) {
         super.delete(tableRef, cells);
-        addToColCache(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
+        addToCache(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
         super.put(tableRef, values);
-        addToColCache(tableRef, values);
+        addToCache(tableRef, values);
     }
 
-    private void addToColCache(TableReference tableRef, Map<Cell, byte[]> values) {
-        Map<Cell, byte[]> colCache = getColCacheForTable(tableRef);
+    private void addToCache(TableReference tableRef, Map<Cell, byte[]> values) {
         for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
             byte[] value = e.getValue();
             if (value == null) {
                 value = PtBytes.EMPTY_BYTE_ARRAY;
             }
-            colCache.put(e.getKey(), value);
+            cacheLoadedCell(tableRef, e.getKey(), value);
         }
     }
 
-    private ConcurrentMap<Cell, byte[]> getColCacheForTable(TableReference tableRef) {
-        String tableName = tableRef.getQualifiedName();
-        return columnTableCache.getUnchecked(tableName);
+    private void cacheLoadedRows(TableReference tableRef, Iterable<RowResult<byte[]>> rowView) {
+        for (RowResult<byte[]> loadedRow : rowView) {
+            for (Map.Entry<Cell, byte[]> e : loadedRow.getCells()) {
+                cacheLoadedCell(tableRef, e.getKey(), e.getValue());
+            }
+        }
+    }
+
+    private void cacheLoadedCells(TableReference tableRef, Set<Cell> toLoad, Map<Cell, byte[]> toCache) {
+        for (Cell key : toLoad) {
+            byte[] value = toCache.get(key);
+            if (value == null) {
+                value = PtBytes.EMPTY_BYTE_ARRAY;
+            }
+            cacheLoadedCell(tableRef, key, value);
+        }
+    }
+
+    private byte[] getCachedCellIfPresent(TableReference tableRef, Cell cell) {
+        return cellCache.getIfPresent(Pair.create(tableRef.getQualifiedName(), cell));
+    }
+
+    private void cacheLoadedCell(TableReference tableRef, Cell cell, byte[] value) {
+        cellCache.put(Pair.create(tableRef.getQualifiedName(), cell), value);
+    }
+
+
+    // Log cache stats on commit or abort.
+    // Note we check for logging enabled because actually getting stats is not necessarily trivial
+    // (it must aggregate stats from all cache segments)
+    @Override
+    public void commit() throws TransactionFailedException {
+        try {
+            super.commit();
+        } finally {
+            if (log.isDebugEnabled()) {
+                log.debug("CachingTransaction cache stats on commit: {}", cellCache.stats());
+            }
+        }
+    }
+
+    @Override
+    public void commit(TransactionService txService) throws TransactionFailedException {
+        try {
+            super.commit(txService);
+        } finally {
+            if (log.isDebugEnabled()) {
+                log.debug("CachingTransaction cache stats on commit(txService): {}", cellCache.stats());
+            }
+        }
+    }
+
+    @Override
+    public void abort() {
+        try {
+            super.abort();
+        } finally {
+            if (log.isDebugEnabled()) {
+                log.debug("CachingTransaction cache stats on abort: {}", cellCache.stats());
+            }
+        }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -63,7 +64,7 @@ public class TimeLockServerLauncherTest {
         algorithmConfiguration = mock(TimeLockAlgorithmConfiguration.class);
         timeLockServer = mock(TimeLockServer.class);
         when(algorithmConfiguration.createServerImpl(environment)).thenReturn(timeLockServer);
-        when(timeLockServer.createInvalidatingTimeLockServices(any()))
+        when(timeLockServer.createInvalidatingTimeLockServices(any(), anyLong()))
                 .thenReturn(mock(TimeLockServices.class));
     }
 
@@ -126,6 +127,7 @@ public class TimeLockServerLauncherTest {
                         .localServer(LOCAL_ADDRESS)
                         .addServers(LOCAL_ADDRESS)
                         .build(),
-                ImmutableSet.of(TEST_CLIENT));
+                ImmutableSet.of(TEST_CLIENT),
+                false);
     }
 }

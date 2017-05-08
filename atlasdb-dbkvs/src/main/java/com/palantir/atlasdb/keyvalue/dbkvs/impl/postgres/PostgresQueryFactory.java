@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.AbstractDbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValue;
 
 public class PostgresQueryFactory extends AbstractDbQueryFactory {
     private final String tableName;
@@ -246,11 +245,6 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
     @Override
     public boolean hasOverflowValues() {
         return false;
-    }
-
-    @Override
-    public Collection<FullQuery> getOverflowQueries(Collection<OverflowValue> overflowIds) {
-        throw new IllegalStateException("postgres tables don't have overflow fields");
     }
 
     private String numParams(int numParams) {

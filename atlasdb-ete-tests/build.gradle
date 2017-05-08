@@ -11,7 +11,7 @@ schemas = [
 dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
-    compile project(':atlasdb-config')
+    compile project(path: ':atlasdb-config', configuration: 'shadow')
     compile project(':atlasdb-dropwizard-bundle')
     compile project(':atlasdb-hikari')
     compile project(':atlasdb-rocksdb')
@@ -28,7 +28,6 @@ dependencies {
     processor group: 'org.immutables', name: 'value'
 
     testCompile project(':atlasdb-container-test-utils')
-    testCompile project(':atlasdb-docker-test-utils')
     testCompile project(':atlasdb-ete-test-utils')
 
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'

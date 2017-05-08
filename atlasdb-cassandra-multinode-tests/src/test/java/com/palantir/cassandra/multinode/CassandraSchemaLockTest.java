@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -33,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import java.util.stream.Stream;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
@@ -112,9 +114,9 @@ public class CassandraSchemaLockTest {
         return new TypeSafeDiagnosingMatcher<File>() {
             @Override
             protected boolean matchesSafely(File file, Description mismatchDescription) {
-                try {
-                    List<String> badLines = Files.lines(Paths.get(file.getAbsolutePath()), StandardCharsets.ISO_8859_1)
-                            .filter(line -> line.contains("Column family ID mismatch"))
+                Path path = Paths.get(file.getAbsolutePath());
+                try (Stream<String> lines = Files.lines(path, StandardCharsets.ISO_8859_1)) {
+                    List<String> badLines = lines.filter(line -> line.contains("Column family ID mismatch"))
                             .collect(Collectors.toList());
 
                     mismatchDescription

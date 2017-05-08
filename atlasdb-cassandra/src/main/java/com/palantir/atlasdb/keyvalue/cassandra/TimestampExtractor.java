@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,26 +18,15 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 
-class TimestampExtractor extends ResultsExtractor<SetMultimap<Cell, Long>, Set<Long>> {
+class TimestampExtractor extends ResultsExtractor<Set<Long>> {
 
-    static final Supplier<ResultsExtractor<SetMultimap<Cell, Long>, Set<Long>>> SUPPLIER =
-            new Supplier<ResultsExtractor<SetMultimap<Cell, Long>, Set<Long>>>() {
-        @Override
-        public ResultsExtractor<SetMultimap<Cell, Long>, Set<Long>> get() {
-            return new TimestampExtractor(HashMultimap.<Cell, Long>create());
-        }
-    };
-
-    TimestampExtractor(SetMultimap<Cell, Long> collector) {
-        super(collector);
-    }
+    private final SetMultimap<Cell, Long> collector = HashMultimap.create();
 
     @Override
     public void internalExtractResult(long startTs,

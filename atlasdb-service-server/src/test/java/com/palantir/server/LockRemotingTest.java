@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,9 +32,11 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.logger.LockServiceLoggerTestUtils;
 
 import feign.Feign;
 import feign.jackson.JacksonDecoder;
@@ -43,7 +45,12 @@ import feign.jaxrs.JAXRSContract;
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class LockRemotingTest {
-    static LockServiceImpl rawLock = LockServiceImpl.create();
+    private static LockServerOptions lockServerOptions = new LockServerOptions() {
+        @Override public String getLockStateLoggerDir() {
+            return LockServiceLoggerTestUtils.TEST_LOG_STATE_DIR;
+        }
+    };
+    private static LockServiceImpl rawLock = LockServiceImpl.create(lockServerOptions);
 
     @ClassRule
     public final static DropwizardClientRule lockService = new DropwizardClientRule(rawLock);
@@ -85,7 +92,11 @@ public class LockRemotingTest {
         Set<LockRefreshToken> refreshed = lock.refreshLockRefreshTokens(ImmutableList.of(token));
         Assert.assertEquals(1, refreshed.size());
         lock.unlock(token);
-        lock.logCurrentState();
+        try {
+            lock.logCurrentState();
+        } finally {
+            LockServiceLoggerTestUtils.cleanUpLogStateDir();
+        }
         lock.currentTimeMillis();
 
         HeldLocksToken token1 = lock.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), request);

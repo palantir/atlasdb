@@ -42,23 +42,245 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Add instrumentation to the thread pool used to run quorum checks during leader elections. This will be useful for
+           debugging `PaxosQuorumChecker can leave hanging threads <https://github.com/palantir/atlasdb/issues/1823>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1849>`__)
+
     *    - |fixed|
-         - Creating a postgres table with a long name throws if the truncated name (first sixty characters) is the same as that of a different existing table.
+         - Fixed DbKvs.getRangeOfTimestamps() only returning the first page of results rather than paging through the whole range.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1872>`__)
+
+    *    - |fixed|
+         - Fixed a bug that would cause console to error on any range request that used a column selection and had more than one batch of results.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1876>`__)
+
+    *    - |improved|
+         - ProfilingKeyValueService now has some additional logging mechanisms for logging long-running operations on WARN level, enabled by default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1801>`__)
+
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+
+======
+0.40.1
+======
+
+4 May 2017
+
+This release contains (almost) exclusively baseline-related changes.
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |devbreak|
+         - The Lock Descriptor classes (``AtlasCellLockDescriptor`` etc.), static factories (e.g. ``LockCollections``) and ``LockClient`` have been made final.
+           If this is a concern, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1857>`__)
+
+    *    - |devbreak|
+         - Removed package ``atlasdb-exec``. If you require this package, please file a ticket to have it reinstated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1861>`__)
+
+    *    - |changed|
+         - Our dependency on immutables was bumped from 2.2.4 to 2.4.0, in order to fix an issue with static code analysis reporting errors in generated code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1853>`__)
+
+    *    - |devbreak|
+         - Renamed the following classes to match baseline rules. In each case, acronyms were lowercased, e.g. ``CQL`` becomes ``Cql``.
+
+              - ``CqlExpiringKeyValueService``
+              - ``CqlKeyValueService``
+              - ``CqlKeyValueServices``
+              - ``CqlStatementCache``
+              - ``KvTableMappingService``
+              - ``TransactionKvsWrapper``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1853>`__)
+
+    *    - |devbreak|
+         - Relax the signature of KeyValueService.addGarbageCollectionSentinelValues() to take an Iterable instead of a Set.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1843>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+
+======
+0.40.0
+======
+
+28 Apr 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |userbreak|
+         - AtlasDB will refuse to start if backed by Postgres 9.5.0 or 9.5.1.
+           These versions contain a known bug that causes incorrect results to be returned for certain queries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
+
+    *    - |devbreak| |fixed|
+         - Correct ``TransactionManagers.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1859>`__)
+
+    *    - |new|
+         - The lock server can now limit the number of concurrent open lock requests from the same client.
+           This behavior can be enabled with the flag ``useClientRequestLimit``. It is disabled by default.
+           For more information, see the :ref:`docs <timelock-server-further-config>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
+
+    *    - |devbreak| |new|
+         - The ``TransactionManager`` and ``KeyValueService`` interfaces have new methods that must be implemented by applications that have custom implementations of those interfaces.
+           These new methods are ``TransactionManager.getKeyValueServiceStatus()`` and ``KeyValueService.getClusterAvailabilityStatus()``.
+
+           Applications can now call ``TransactionManager.getKeyValueServiceStatus()`` to determine the health of the underlying KVS.
+           This is designed for applications to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1832>`__)
+
+    *    - |improved|
+         - On graceful shutdown, the background sweeper will now release the backup lock if it holds it.
+           This should reduce the need for users to manually reset the ``_persisted_locks`` table in the event that they restarted a service while it was holding the lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1847>`__)
+
+    *    - |improved|
+         - Improved performance of ``getRange()`` on DbKvs. Range requests are now done with a single round trip to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
+
+    *    - |devbreak|
+         - ``atlasdb-config`` now pulls in two more dependencies - the Jackson JDK 8 and JSR 310 modules (``jackson-datatype-jdk8`` and ``jackson-datatype-jsr310``).
+           These are required by the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
+           This behaviour is consistent with our existing behaviour for Jackson modules (JDK 7, Guava and Joda Time).
+           If you do encounter breaks due to this addition, please contact the AtlasDB team for support.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1810>`__)
+
+    *    - |deprecated|
+         - ``ConflictDetectionManagers.createDefault(KeyValueService)`` has been deprecated.
+           If you use this method, please replace it with ``ConflictDetectionManagers.create(KeyValueService)``.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1822>`__) and (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1850>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+
+=======
+v0.39.0
+=======
+
+19 Apr 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Refactored ``AvailableTimestamps`` reducing overzealous synchronization.
+           Giving out timestamps is no longer blocking on refreshing the timestamp bound if there are enough timestamps to give out with the current bound.
+           This improves latency of timestamp requests under heavy load; we have seen an approximately 30 percent improvement on internal benchmarks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
+
+    *    - |new|
+         - The lock server now has a ``SlowLockLogger``, which logs at INFO in the service logs if a lock request receives a response after at least a given amount of time (10 seconds by default).
+           This is likely to be useful for debugging issues with long-running locks in production.
+
+           Specifically, the timelock server has a configuration parameter ``slowLockLogTriggerMillis`` which defaults to ``10000``.
+           Setting this parameter to zero (or any negative number) will disable the new logger.
+           If not using timelock, an application can modify the trigger value through ``LockServerOptions`` during initialization in ``TransactionManagers.create``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1791>`__)
+
+    *    - |deprecated|
+         - Deprecated ``InMemoryAtlasDbFactory#createInMemoryTransactionManager``, please instead use the supported ``TransactionManagers.createInMemory(...)`` for your testing.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1784>`__)
+
+    *    - |fixed|
+         - Proxies created via ``AtlasDbHttpClients`` now parse ``Retry-After`` headers correctly.
+           This manifests as Timelock clients failing over and trying other nodes when receiving a 503 with a ``Retry-After`` header from a remote (e.g. from a TimeLock non-leader).
+           Previously, these proxies would immediately retry the connection on the node with a 503 two times (for a total of three attempts) before failing over.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
+
+    *    - |improved|
+         - The lock server now will dump all held locks and outstanding lock requests in YAML file, when logging state requested, for easy readability and further processing.
+           This will make debuging lock congestions easier. Lock descriptors are changed with places holders and can be decoded using descriptors file,
+           which will be written in the folder. Information like requesting clients, requesting threads and other details can be found in the YAML.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1792>`__)
+
+    *    - |new|
+         - The ``atlasdb-config`` project now shadows the ``error-handling`` and ``jackson-support`` libraries from `http-remoting <https://github.com/palantir/http-remoting>`__.
+           This will be used to handle exceptions in a future release, and was done in this way to avoid causing dependency issues in upstream products.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1796>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+
+=======
+v0.38.0
+=======
+
+6 Apr 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - The default ``sweepBatchSize`` has been changed from 1000 to 100.
+           This has empirically shown to be a better batch size because it puts less stress on the underlying KVS.
+           For a full list of tunable sweep parameters and default settings, see :ref:`sweep tunable options <sweep_tunable_parameters>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1763>`__)
+
+    *    - |fixed|
+         - Reverted `#1524 <https://github.com/palantir/atlasdb/pull/1524>`__, which caused dependency issues in upstream products.
+           Once we have resolved these issues, we will reintroduce the change, which was originally part of AtlasDB 0.37.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1775>`__)
+
+    *    - |fixed|
+         - Creating a postgres table with a long name now throws a ``RuntimeException`` if the truncated name (first sixty characters) is the same as that of a different existing table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1729>`__)
+
+    *    - |fixed|
+         - Fixed a performance regression introduced in `#582 <https://github.com/palantir/atlasdb/pull/582>`__, which caused sub-optimal batching behaviour when getting large sets of rows in Cassandra.
+           The benchmark, intentionally set up in `#1770 <https://github.com/palantir/atlasdb/pull/1770>`__ to highlight the break, shows a 10x performance improvement.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1764>`__)
+
+    *    - |fixed|
+         - Correctness issue fixed in the ``clean-transactions-range`` CLI. This CLI is responsible for deleting potentially inconsistent transactions in the KVS upon restore from backup.
+           The CLI was not reading the entire ``_transactions`` table, and as a result missed deleting transactions that started before and committed after.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1759>`__)
 
     *    - |devbreak|
          - The ``atlasdb-remoting`` project was removed. We don't believe this was used anywhere, but if you encounter any problems due to the project having being removed, please contact AtlasDB support.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1750>`__)
 
     *    - |new|
-         - ProfilingKeyValueService now has some additional logging mechanisms for logging long-running operations on WARN level, enabled by defaultd by default.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1801>`__)
+         - ``InMemoryAtlasDbFactory`` now supports creating an in-memory transaction manager with multiple schemas.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1774>`__)
+
+    *    - |improved|
+         - Timelock users who start an embedded timestamp and lock service without :ref:`reverse-migrating <timelock-reverse-migration>` now encounter a more informative error message.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1755>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.37.0
 =======
 
-29 Mar 2017
+Removed 6 Apr 2017 due to dependency issues. Please use 0.38.0 instead.
+
+Released 29 Mar 2017
 
 .. list-table::
     :widths: 5 40
@@ -116,12 +338,6 @@ v0.37.0
            This should fix a bug (`#1654 <https://github.com/palantir/atlasdb/issues/1654>`__) that caused
            AtlasDB probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
            building up leaked connections, due to a bug in the underlying driver.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1524>`__)
-
-    *    - |fixed|
-         - Correctness issue fixed in the ``clean-transactions-range`` CLI. This CLI is responsible for deleting potentially inconsistent transactions in the KVS upon restore from backup.
-           The CLI was not reading the entire ``_transactions`` table, and as a result was missing deleting transactions whose start timestamp was before the backup timestamp and commit timestamp was after the backup timestamp.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1759>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
