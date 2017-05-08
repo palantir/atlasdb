@@ -69,6 +69,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
 
+    private TimeLockServerConfiguration timeLockServerConfiguration;
+
     public PaxosTimeLockServer(PaxosConfiguration configuration, Environment environment) {
         this.paxosConfiguration = configuration;
         this.environment = environment;
@@ -92,6 +94,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     private void registerLeaderElectionService(TimeLockServerConfiguration configuration) {
         remoteServers = getRemoteServerPaths(configuration);
+        timeLockServerConfiguration = configuration;
 
         LeaderConfig leaderConfig = getLeaderConfig(configuration);
 
@@ -155,12 +158,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 ManagedTimestampService.class,
                 createPaxosBackedTimestampService(client),
                 client);
-        LockServerOptions lockServerOptions = new LockServerOptions() {
-            @Override
-            public long slowLogTriggerMillis() {
-                return slowLogTriggerMillis;
-            }
-        };
+
         LockService lockService = instrument(
                 LockService.class,
                 createLockService(slowLogTriggerMillis),

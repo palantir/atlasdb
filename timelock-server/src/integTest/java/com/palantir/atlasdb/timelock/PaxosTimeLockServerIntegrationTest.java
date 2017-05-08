@@ -53,7 +53,6 @@ import com.squareup.okhttp.Response;
 import io.dropwizard.testing.ResourceHelpers;
 
 public class PaxosTimeLockServerIntegrationTest {
-    private static final String NOT_FOUND_CODE = "404";
 
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
@@ -276,9 +275,13 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static void assertRemoteNotFoundException(Throwable throwable) {
+        assertRemoteExceptionWithStatus(throwable, HttpStatus.NOT_FOUND_404);
+    }
+
+    private static void assertRemoteExceptionWithStatus(Throwable throwable, int expectedStatus) {
         assertThat(throwable).isInstanceOf(AtlasDbRemoteException.class);
 
         AtlasDbRemoteException remoteException = (AtlasDbRemoteException) throwable;
-        assertThat(remoteException.getStatus()).isEqualTo(HttpStatus.NOT_FOUND_404);
+        assertThat(remoteException.getStatus()).isEqualTo(expectedStatus);
     }
 }
