@@ -28,7 +28,6 @@ import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
-
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -48,7 +47,6 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-
         TimeLockServer serverImpl = configuration.algorithm().createServerImpl(environment);
         try {
             serverImpl.onStartup(configuration);
@@ -75,7 +73,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
                 client -> serverImpl.createInvalidatingTimeLockServices(client,
                         configuration.slowLockLogTriggerMillis())));
 
-        environment.jersey().register(new Jdk8Module());
+        environment.getObjectMapper().registerModule(new Jdk8Module());
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));
     }

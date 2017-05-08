@@ -49,14 +49,21 @@ public final class ExceptionMappers {
     }
 
     private static Response.ResponseBuilder encode503ResponseInternal(Exception exception) {
+        return encodeExceptionResponse(exception, 503);
+    }
+
+    /**
+     * Returns a response builder with the specified status code, with a JSON serialized form of the causing exception,
+     * and an appropriate HTTP header (Content-Type: application/json).
+     */
+    public static Response.ResponseBuilder encodeExceptionResponse(Exception exception, int statusCode) {
         return Response.serverError()
                 .entity(createSerializableError(exception))
-                .status(503)
+                .status(statusCode)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
     }
 
     private static SerializableError createSerializableError(Exception exception) {
-
         return SerializableError.of(
                 exception.getMessage(),
                 exception.getClass(),

@@ -28,12 +28,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.net.ssl.SSLSocketFactory;
 
 import org.assertj.core.util.Lists;
@@ -44,6 +44,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -62,7 +63,7 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
-
+import feign.RetryableException;
 import io.dropwizard.testing.ResourceHelpers;
 
 public class PaxosTimeLockServerIntegrationTest {
@@ -177,9 +178,12 @@ public class PaxosTimeLockServerIntegrationTest {
         futures.forEach(future -> {
             try {
                 assertNull(future.get());
-            } catch (Exception e) {
-                assertRemoteExceptionWithStatus(e, HttpStatus.TOO_MANY_REQUESTS_429);
+            } catch (ExecutionException e) {
+                RetryableException retryableException = (RetryableException) e.getCause();
+                assertRemoteExceptionWithStatus(retryableException.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
                 exceptionCounter.getAndIncrement();
+            } catch (InterruptedException e) {
+                throw Throwables.propagate(e);
             }
         });
 
