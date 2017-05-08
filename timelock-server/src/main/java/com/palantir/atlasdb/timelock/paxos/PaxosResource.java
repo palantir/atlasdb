@@ -27,6 +27,7 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
+import com.palantir.redaction.Safe;
 
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
         + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
@@ -62,12 +63,12 @@ public final class PaxosResource {
     }
 
     @Path("/learner")
-    public PaxosLearner getPaxosLearner(@PathParam("client") String client) {
+    public PaxosLearner getPaxosLearner(@Safe @PathParam("client") String client) {
         return paxosLearners.get(client);
     }
 
     @Path("/acceptor")
-    public PaxosAcceptor getPaxosAcceptor(@PathParam("client") String client) {
+    public PaxosAcceptor getPaxosAcceptor(@Safe @PathParam("client") String client) {
         return paxosAcceptors.get(client);
     }
 }
