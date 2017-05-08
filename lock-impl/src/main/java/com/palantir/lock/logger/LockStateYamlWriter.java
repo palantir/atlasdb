@@ -15,10 +15,12 @@
  */
 package com.palantir.lock.logger;
 
+import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -31,24 +33,24 @@ import org.yaml.snakeyaml.representer.Representer;
 class LockStateYamlWriter implements Closeable {
     private static final Yaml yaml = new Yaml(getRepresenter(), getDumperOptions());
 
-    private final FileWriter fileWriter;
+    private final Writer writer;
 
-    LockStateYamlWriter(FileWriter fileWriter) {
-        this.fileWriter = fileWriter;
+    LockStateYamlWriter(Writer fileWriter) {
+        this.writer = fileWriter;
     }
 
     /**
      * Creates a LockStateYamlWriter for the given file in append mode.
      */
     public static LockStateYamlWriter create(File file) throws IOException {
-        return new LockStateYamlWriter(new FileWriter(file, true));
+        return new LockStateYamlWriter(new BufferedWriter(new FileWriter(file, true)));
     }
 
     /**
      * Write an object to the file as YAML.
      */
     public void dumpObject(Object data) {
-        yaml.dump(data, fileWriter);
+        yaml.dump(data, writer);
     }
 
     /**
@@ -56,9 +58,9 @@ class LockStateYamlWriter implements Closeable {
      * The string must be a single line.
      */
     public void appendComment(String string) throws IOException {
-        fileWriter.append("# ");
-        fileWriter.append(string);
-        fileWriter.append("\n");
+        writer.append("# ");
+        writer.append(string);
+        writer.append("\n");
     }
 
     private static Representer getRepresenter() {
@@ -80,6 +82,6 @@ class LockStateYamlWriter implements Closeable {
 
     @Override
     public void close() throws IOException {
-        fileWriter.close();
+        writer.close();
     }
 }
