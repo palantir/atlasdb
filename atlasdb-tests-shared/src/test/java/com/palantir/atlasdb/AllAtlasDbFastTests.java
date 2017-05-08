@@ -31,7 +31,7 @@ import com.palantir.atlasdb.keyvalue.impl.RangeRequestsTest;
                 PuncherTest.class,
                 InMemorySweeperTest.class,
                 AsyncPuncherTest.class,
-                RangeRequestsTest.class,
-    })
+                RangeRequestsTest.class
+        })
 public class AllAtlasDbFastTests {
 }

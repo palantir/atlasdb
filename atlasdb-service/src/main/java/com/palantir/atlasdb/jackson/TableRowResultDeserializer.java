@@ -16,14 +16,13 @@
 package com.palantir.atlasdb.jackson;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedBytes;
@@ -43,25 +42,27 @@ public class TableRowResultDeserializer extends StdDeserializer<TableRowResult> 
     }
 
     @Override
-    public TableRowResult deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+    public TableRowResult deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
         JsonNode node = jp.readValueAsTree();
         String tableName = node.get("table").textValue();
         Collection<RowResult<byte[]>> rowResults = Lists.newArrayList();
         TableMetadata metadata = metadataCache.getMetadata(tableName);
         for (JsonNode rowResult : node.get("data")) {
             byte[] row = AtlasDeserializers.deserializeRow(metadata.getRowMetadata(), rowResult.get("row"));
-            ImmutableSortedMap.Builder<byte[], byte[]> cols = ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
+            ImmutableSortedMap.Builder<byte[], byte[]> cols = ImmutableSortedMap.orderedBy(
+                    UnsignedBytes.lexicographicalComparator());
             if (metadata.getColumns().hasDynamicColumns()) {
                 for (JsonNode colVal : rowResult.get("cols")) {
                     byte[] col = AtlasDeserializers.deserializeCol(metadata.getColumns(), colVal.get("col"));
-                    byte[] val = AtlasDeserializers.deserializeVal(metadata.getColumns().getDynamicColumn().getValue(), colVal.get("val"));
+                    byte[] val = AtlasDeserializers.deserializeVal(metadata.getColumns().getDynamicColumn().getValue(),
+                            colVal.get("val"));
                     cols.put(col, val);
                 }
             } else {
                 for (NamedColumnDescription namedCol : metadata.getColumns().getNamedColumns()) {
                     JsonNode valNode = rowResult.get(namedCol.getLongName());
                     if (valNode != null) {
-                        byte[] col = namedCol.getShortName().getBytes(Charsets.UTF_8);
+                        byte[] col = namedCol.getShortName().getBytes(StandardCharsets.UTF_8);
                         byte[] val = AtlasDeserializers.deserializeVal(namedCol.getValue(), valNode);
                         cols.put(col, val);
                     }

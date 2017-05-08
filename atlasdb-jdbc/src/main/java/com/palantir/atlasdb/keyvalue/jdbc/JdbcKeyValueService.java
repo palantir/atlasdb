@@ -535,13 +535,14 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(final TableReference tableRef, Set<Cell> cells) {
-        if (cells.isEmpty()) {
+    public void addGarbageCollectionSentinelValues(final TableReference tableRef, Iterable<Cell> cells) {
+        int numCells = Iterables.size(cells);
+        if (numCells == 0) {
             return;
         }
         Long timestamp = Value.INVALID_VALUE_TIMESTAMP;
         byte[] value = new byte[0];
-        final RowN[] rows = new RowN[cells.size()];
+        final RowN[] rows = new RowN[numCells];
         int i = 0;
         for (Cell cell : cells) {
             rows[i++] = row(new Object[] {cell.getRowName(), cell.getColumnName(), timestamp, value});

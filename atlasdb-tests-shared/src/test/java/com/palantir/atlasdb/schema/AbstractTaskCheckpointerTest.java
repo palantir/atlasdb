@@ -51,9 +51,9 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
 
         txManager.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
-            public Void execute(Transaction t) {
-                verifyCheckpoints(t1, startById1, t);
-                verifyCheckpoints(t2, startById2, t);
+            public Void execute(Transaction txn) {
+                verifyCheckpoints(t1, startById1, txn);
+                verifyCheckpoints(t2, startById2, txn);
                 return null;
             }
         });
@@ -73,12 +73,12 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
         final Map<Long, byte[]> next2 = createRandomCheckpoints();
         txManager.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
-            public Void execute(Transaction t) {
+            public Void execute(Transaction txn) {
                 for (Entry<Long, byte[]> e : next1.entrySet()) {
-                    checkpointer.checkpoint(t1, e.getKey(), e.getValue(), t);
+                    checkpointer.checkpoint(t1, e.getKey(), e.getValue(), txn);
                 }
                 for (Entry<Long, byte[]> e : next2.entrySet()) {
-                    checkpointer.checkpoint(t2, e.getKey(), e.getValue(), t);
+                    checkpointer.checkpoint(t2, e.getKey(), e.getValue(), txn);
                 }
                 return null;
             }
@@ -86,9 +86,9 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
 
         txManager.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
-            public Void execute(Transaction t) {
-                verifyCheckpoints(t1, next1, t);
-                verifyCheckpoints(t2, next2, t);
+            public Void execute(Transaction txn) {
+                verifyCheckpoints(t1, next1, txn);
+                verifyCheckpoints(t2, next2, txn);
                 return null;
             }
         });
@@ -104,9 +104,9 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
         final Map<Long, byte[]> next1 = createRandomCheckpoints();
         txManager.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
-            public Void execute(Transaction t) {
+            public Void execute(Transaction txn) {
                 for (Entry<Long, byte[]> e : next1.entrySet()) {
-                    checkpointer.checkpoint(t1, e.getKey(), new byte[0], t);
+                    checkpointer.checkpoint(t1, e.getKey(), new byte[0], txn);
                 }
                 return null;
             }
@@ -114,9 +114,9 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
 
         txManager.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
-            public Void execute(Transaction t) {
+            public Void execute(Transaction txn) {
                 for (long rangeId : next1.keySet()) {
-                    byte[] oldCheckpoint = checkpointer.getCheckpoint(t1, rangeId, t);
+                    byte[] oldCheckpoint = checkpointer.getCheckpoint(t1, rangeId, txn);
                     Assert.assertNull(oldCheckpoint);
                 }
                 return null;
@@ -126,10 +126,10 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
 
     private Map<Long, byte[]> createRandomCheckpoints() {
         byte[] bytes = new byte[64];
-        Random r = new Random();
+        Random random = new Random();
         Map<Long, byte[]> ret = Maps.newHashMap();
         for (int i = 0; i < 4; i++) {
-            r.nextBytes(bytes);
+            random.nextBytes(bytes);
             ret.put((long) i, bytes.clone());
         }
         return ret;
@@ -137,9 +137,9 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
 
     private void verifyCheckpoints(final String extraId,
                                    final Map<Long, byte[]> startById,
-                                   Transaction t) {
+                                   Transaction txn) {
         for (Entry<Long, byte[]> e : startById.entrySet()) {
-            byte[] oldCheckpoint = checkpointer.getCheckpoint(extraId, e.getKey(), t);
+            byte[] oldCheckpoint = checkpointer.getCheckpoint(extraId, e.getKey(), txn);
             byte[] currentCheckpoint = e.getValue();
             Assert.assertTrue(Arrays.equals(oldCheckpoint, currentCheckpoint));
         }

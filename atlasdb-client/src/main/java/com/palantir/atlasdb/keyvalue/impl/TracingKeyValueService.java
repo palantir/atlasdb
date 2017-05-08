@@ -70,10 +70,10 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("addGarbageCollectionSentinelValues({}, {} cells)",
-                tableRef, cells.size())) {
+                tableRef, Iterables.size(cells))) {
             delegate().addGarbageCollectionSentinelValues(tableRef, cells);
         }
     }

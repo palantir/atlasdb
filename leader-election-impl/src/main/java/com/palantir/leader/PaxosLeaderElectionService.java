@@ -315,7 +315,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public String getUUID() {
-        return proposer.getUUID();
+        return proposer.getUuid();
     }
 
     @Override
@@ -534,7 +534,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
 
         // check if node still has quorum
-        List<PaxosResponse> responses = PaxosQuorumChecker.<PaxosAcceptor, PaxosResponse> collectQuorumResponses(
+        List<PaxosResponse> responses = PaxosQuorumChecker.collectQuorumResponses(
                 acceptors,
                 new Function<PaxosAcceptor, PaxosResponse>() {
                     @Override
@@ -578,7 +578,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private boolean isLastConfirmedLeader(PaxosValue value) {
-        return value != null ? value.getLeaderUUID().equals(proposer.getUUID()) : false;
+        return value != null ? value.getLeaderUUID().equals(proposer.getUuid()) : false;
     }
 
     /**

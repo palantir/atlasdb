@@ -25,7 +25,7 @@ import com.google.common.primitives.Longs;
  *
  * @author jtamer
  */
-public class AtlasTimestampLockDescriptor {
+public final class AtlasTimestampLockDescriptor {
 
     private AtlasTimestampLockDescriptor() {
         // cannot instantiate

@@ -34,10 +34,11 @@ public interface PingableLeader {
     boolean ping();
 
     /**
-     * @return a unique string identifier for the leader election service
+     * Returns a unique string identifier for the leader election service.
      */
     @GET
     @Path("uuid")
     @Produces(MediaType.TEXT_PLAIN)
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Avoiding API break
     String getUUID();
 }

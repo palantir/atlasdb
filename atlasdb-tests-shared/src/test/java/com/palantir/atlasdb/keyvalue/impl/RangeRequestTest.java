@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,18 +28,18 @@ public class RangeRequestTest {
     @Test
     public void testPrefix() {
         byte[] end = RangeRequest.builder().prefixRange(new byte[] {-1}).build().getEndExclusive();
-        Assert.assertTrue(end.length == 0);
+        assertEquals(0, end.length);
         end = RangeRequest.builder().prefixRange(new byte[] {-2}).build().getEndExclusive();
-        Assert.assertTrue(end.length == 1);
-        Assert.assertTrue(end[0] == -1);
+        assertEquals(1, end.length);
+        assertEquals(-1, end[0]);
 
         end = RangeRequest.builder().prefixRange(new byte[] {0, -1}).build().getEndExclusive();
-        Assert.assertTrue(end.length == 1);
-        Assert.assertTrue(end[0] == 1);
+        assertEquals(1, end.length);
+        assertEquals(1, end[0]);
 
         end = RangeRequest.builder().prefixRange(new byte[] {0, -1, 0}).build().getEndExclusive();
-        Assert.assertTrue(end.length == 3);
-        Assert.assertTrue(end[2] == 1);
+        assertEquals(3, end.length);
+        assertEquals(1, end[2]);
     }
 
     @Test

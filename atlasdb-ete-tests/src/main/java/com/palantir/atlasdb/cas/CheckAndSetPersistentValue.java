@@ -33,7 +33,7 @@ public class CheckAndSetPersistentValue {
 
     public void set(Optional<Long> value) {
         CheckAndSetTable checkAndSetTable = CheckAndSetSchemaTableFactory.of().getCheckAndSetTable(transaction);
-        if(value.isPresent()) {
+        if (value.isPresent()) {
             checkAndSetTable.putValue(CHECK_AND_SET_ROW, value.get());
         } else {
             checkAndSetTable.delete(CHECK_AND_SET_ROW);
@@ -47,7 +47,7 @@ public class CheckAndSetPersistentValue {
 
     public boolean checkAndSet(Optional<Long> oldValue, Optional<Long> newValue) {
         Optional<Long> existingValue = get();
-        if(Objects.equals(oldValue, existingValue)) {
+        if (Objects.equals(oldValue, existingValue)) {
             set(newValue);
             return true;
         } else {

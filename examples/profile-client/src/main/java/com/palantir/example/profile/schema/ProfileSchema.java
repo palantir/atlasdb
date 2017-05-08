@@ -33,6 +33,7 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.example.profile.protos.generated.ProfilePersistence;
 
+@SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
 public class ProfileSchema implements AtlasSchema {
     public static final AtlasSchema INSTANCE = new ProfileSchema();
 
@@ -77,13 +78,15 @@ public class ProfileSchema implements AtlasSchema {
         schema.addIndexDefinition("cookies", new IndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("user_profile");
             rowName();
-                componentFromIterableColumn("cookie", ValueType.STRING, ValueByteOrder.ASCENDING, "json", "com.palantir.example.profile.schema.ProfileSchema.getCookies(_value)");
+                componentFromIterableColumn("cookie", ValueType.STRING, ValueByteOrder.ASCENDING, "json",
+                        "com.palantir.example.profile.schema.ProfileSchema.getCookies(_value)");
             dynamicColumns();
                 componentFromRow("id", ValueType.UUID);
             rangeScanAllowed();
         }});
 
-        schema.addStreamStoreDefinition(new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG).build());
+        schema.addStreamStoreDefinition(
+                new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG).build());
 
         return schema;
     }

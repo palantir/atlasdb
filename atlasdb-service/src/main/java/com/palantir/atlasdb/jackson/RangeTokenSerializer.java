@@ -19,7 +19,6 @@ import java.io.IOException;
 
 import javax.inject.Inject;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
@@ -34,14 +33,12 @@ public class RangeTokenSerializer extends StdSerializer<RangeToken> {
     }
 
     @Override
-    public void serialize(RangeToken value,
-                          JsonGenerator jgen,
-                          SerializerProvider provider) throws IOException, JsonGenerationException {
-        jgen.writeStartObject(); {
-            jgen.writeObjectField("data", value.getResults());
-            if (value.hasMoreResults()) {
-                jgen.writeObjectField("next", value.getNextRange());
-            }
-        } jgen.writeEndObject();
+    public void serialize(RangeToken value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+        jgen.writeStartObject();
+        jgen.writeObjectField("data", value.getResults());
+        if (value.hasMoreResults()) {
+            jgen.writeObjectField("next", value.getNextRange());
+        }
+        jgen.writeEndObject();
     }
 }

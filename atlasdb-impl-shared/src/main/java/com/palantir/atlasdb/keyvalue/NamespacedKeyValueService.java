@@ -145,7 +145,7 @@ public interface NamespacedKeyValueService extends KeyValueService {
     ////////////////////////////////////////////////////////////
 
     @Idempotent
-    void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells);
+    void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells);
 
     @Idempotent
     Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp);

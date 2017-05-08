@@ -56,13 +56,13 @@ public abstract class ForwardingInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
-        return delegate().read(b, off, len);
+    public int read(byte[] bytes, int off, int len) throws IOException {
+        return delegate().read(bytes, off, len);
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
-        return delegate().read(b);
+    public int read(byte[] bytes) throws IOException {
+        return delegate().read(bytes);
     }
 
     @Override
@@ -71,8 +71,8 @@ public abstract class ForwardingInputStream extends InputStream {
     }
 
     @Override
-    public long skip(long n) throws IOException {
-        return delegate().skip(n);
+    public long skip(long num) throws IOException {
+        return delegate().skip(num);
     }
 
     /**

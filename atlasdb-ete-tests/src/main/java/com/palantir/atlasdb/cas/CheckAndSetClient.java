@@ -37,6 +37,7 @@ public class CheckAndSetClient {
     }
 
     public boolean checkAndSet(Optional<Long> oldValue, Optional<Long> newValue) {
-        return transactionManager.runTaskWithRetry((transaction) -> new CheckAndSetPersistentValue(transaction).checkAndSet(oldValue, newValue));
+        return transactionManager.runTaskWithRetry(
+                (transaction) -> new CheckAndSetPersistentValue(transaction).checkAndSet(oldValue, newValue));
     }
 }

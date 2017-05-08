@@ -21,5 +21,5 @@ import com.palantir.common.annotation.Immutable;
 
 @Immutable
 public interface PaxosResponse extends Serializable {
-    public boolean isSuccessful();
+    boolean isSuccessful();
 }

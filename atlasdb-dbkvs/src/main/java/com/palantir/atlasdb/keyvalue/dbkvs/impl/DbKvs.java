@@ -702,7 +702,7 @@ public final class DbKvs extends AbstractKeyValueService {
             Token token) {
         try (ClosableIterator<AgnosticLightResultRow> iterator = table
                 .getAllRows(rows, columns, timestamp, false, DbReadTable.Order.fromBoolean(isReverse))) {
-            return TimestampsByCellResultWithToken.create(iterator, token, batchSize);
+            return TimestampsByCellResultWithToken.create(iterator, token, batchSize, isReverse);
         }
     }
 
@@ -1152,7 +1152,7 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         runWrite(tableRef, new Function<DbWriteTable, Void>() {
             @Override
             public Void apply(DbWriteTable table) {

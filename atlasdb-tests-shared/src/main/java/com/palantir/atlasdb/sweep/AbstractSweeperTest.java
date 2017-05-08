@@ -21,6 +21,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -676,9 +677,9 @@ public abstract class AbstractSweeperTest {
             Map<Cell, byte[]> toPut = new HashMap<>();
             for (int row = 0; row < 1000; ++row) {
                 Cell cell = Cell.create(
-                        Integer.toString(row).getBytes(),
-                        Integer.toString(col).getBytes());
-                toPut.put(cell, "foo".getBytes());
+                        Integer.toString(row).getBytes(StandardCharsets.UTF_8),
+                        Integer.toString(col).getBytes(StandardCharsets.UTF_8));
+                toPut.put(cell, "foo".getBytes(StandardCharsets.UTF_8));
             }
             kvs.put(TABLE_NAME, toPut, col + 1000);
             putTimestampIntoTransactionTable(col + 1000);
@@ -701,9 +702,9 @@ public abstract class AbstractSweeperTest {
         Map<Cell, byte[]> toPut = new HashMap<>();
         for (int col = 0; col < 10000; ++col) {
             Cell cell = Cell.create(
-                    "1".getBytes(),
-                    Integer.toString(col).getBytes());
-            toPut.put(cell, "foo".getBytes());
+                    "1".getBytes(StandardCharsets.UTF_8),
+                    Integer.toString(col).getBytes(StandardCharsets.UTF_8));
+            toPut.put(cell, "foo".getBytes(StandardCharsets.UTF_8));
         }
         for (int timestamp = 1; timestamp < 1001; ++timestamp) {
             kvs.put(TABLE_NAME, toPut, timestamp);
@@ -780,13 +781,13 @@ public abstract class AbstractSweeperTest {
     }
 
     private String get(String row, long ts) {
-        Cell cell = Cell.create(row.getBytes(), COL.getBytes());
+        Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), COL.getBytes(StandardCharsets.UTF_8));
         Value val = kvs.get(TABLE_NAME, ImmutableMap.of(cell, ts)).get(cell);
-        return val == null ? null : new String(val.getContents());
+        return val == null ? null : new String(val.getContents(), StandardCharsets.UTF_8);
     }
 
     private Set<Long> getAllTs(String row) {
-        Cell cell = Cell.create(row.getBytes(), COL.getBytes());
+        Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), COL.getBytes(StandardCharsets.UTF_8));
         return ImmutableSet.copyOf(kvs.getAllTimestamps(TABLE_NAME, ImmutableSet.of(cell), Long.MAX_VALUE).get(cell));
     }
 
@@ -803,8 +804,8 @@ public abstract class AbstractSweeperTest {
             final String column,
             final String val,
             final long ts) {
-        Cell cell = Cell.create(row.getBytes(), column.getBytes());
-        kvs.put(tableRef, ImmutableMap.of(cell, val.getBytes()), ts);
+        Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), column.getBytes(StandardCharsets.UTF_8));
+        kvs.put(tableRef, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8)), ts);
         putTimestampIntoTransactionTable(ts);
     }
 
@@ -813,8 +814,8 @@ public abstract class AbstractSweeperTest {
     }
 
     private void putUncommitted(final String row, final String val, final long ts) {
-        Cell cell = Cell.create(row.getBytes(), COL.getBytes());
-        kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
+        Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), COL.getBytes(StandardCharsets.UTF_8));
+        kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8)), ts);
     }
 
 

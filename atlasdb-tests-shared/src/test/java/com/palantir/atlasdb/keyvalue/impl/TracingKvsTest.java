@@ -33,10 +33,10 @@ import com.palantir.remoting1.tracing.SpanObserver;
 import com.palantir.remoting1.tracing.SpanType;
 import com.palantir.remoting1.tracing.Tracer;
 
-public class TracingKVSTest extends AbstractKeyValueServiceTest {
-    private static final Logger log = LoggerFactory.getLogger(TracingKVSTest.class);
+public class TracingKvsTest extends AbstractKeyValueServiceTest {
+    private static final Logger log = LoggerFactory.getLogger(TracingKvsTest.class);
 
-    private static final String TEST_OBSERVER_NAME = TracingKVSTest.class.getName();
+    private static final String TEST_OBSERVER_NAME = TracingKvsTest.class.getName();
 
     @Override
     protected KeyValueService getKeyValueService() {

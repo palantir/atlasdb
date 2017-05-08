@@ -42,6 +42,59 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Add instrumentation to the thread pool used to run quorum checks during leader elections. This will be useful for
+           debugging `PaxosQuorumChecker can leave hanging threads <https://github.com/palantir/atlasdb/issues/1823>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1849>`__)
+
+    *    - |fixed|
+         - Fixed DbKvs.getRangeOfTimestamps() only returning the first page of results rather than paging through the whole range.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1872>`__)
+
+    *    - |fixed|
+         - Fixed a bug that would cause console to error on any range request that used a column selection and had more than one batch of results.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1876>`__)
+
+    *    - |improved| |devbreak|
+         - The format of serialised exceptions occurring on a remote host has been brought in line with that of the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
+           This should generally improve readability and also allows for more meaningful messages to be sent; we would previously return message bodies with no content for some exceptions (such as ``NotCurrentLeaderException``).
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1831>`__,
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1808>`__)
+
+    *    - |new| |fixed|
+         - TimeLock clients may now receive a ``BlockingTimeoutException`` 503 if they make a lock request that blocks for longer than the server's idle timeout.
+           Previously, these requests would be failed with a HTTP-level exception that the stream was closed.
+           We have rewritten clients constructed via ``AtlasDbHttpClients`` to account for this new behaviour, but custom clients directly accessing the lock service may be affected.
+           This feature is disabled by default, but can be enabled following the TimeLock server configuration :ref:`docs <timelock-server-time-limiting>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1808>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+
+======
+0.40.1
+======
+
+4 May 2017
+
+This release contains (almost) exclusively baseline-related changes.
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |devbreak|
+         - The Lock Descriptor classes (``AtlasCellLockDescriptor`` etc.), static factories (e.g. ``LockCollections``) and ``LockClient`` have been made final.
+           If this is a concern, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1857>`__)
+
+    *    - |devbreak|
+         - Removed package ``atlasdb-exec``. If you require this package, please file a ticket to have it reinstated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1861>`__)
+
     *    - |changed|
          - Our dependency on immutables was bumped from 2.2.4 to 2.4.0, in order to fix an issue with static code analysis reporting errors in generated code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1853>`__)
@@ -58,19 +111,9 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1853>`__)
 
-    *    - |improved| |devbreak|
-         - The format of serialised exceptions occurring on a remote host has been brought in line with that of the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
-           This should generally improve readability and also allows for more meaningful messages to be sent; we would previously return message bodies with no content for some exceptions (such as ``NotCurrentLeaderException``).
-           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1831>`__,
-           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1808>`__)
-
-    *    - |new|
-         - TimeLock clients may now receive a ``BlockingTimeoutException`` 503 if they make a lock request that blocks for longer than the server's idle timeout.
-           Previously, these requests would be failed with a HTTP-level exception that the stream was closed.
-           We have rewritten clients constructed via ``AtlasDbHttpClients`` to account for this new behaviour, but custom clients directly accessing the lock service may be affected.
-           This feature is disabled by default, but can be enabled following the TimeLock server configuration :ref:`docs <timelock-server-time-limiting>`.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1808>`__)
-
+    *    - |devbreak|
+         - Relax the signature of KeyValueService.addGarbageCollectionSentinelValues() to take an Iterable instead of a Set.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1843>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -94,7 +137,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1820>`__)
 
     *    - |devbreak| |fixed|
-         - Correct ``TransactionManager.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
+         - Correct ``TransactionManagers.createInMemory(...)`` to conform with the rest of the api by accepting a ``Set<Schema>`` object.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1859>`__)
 
     *    - |new|
@@ -103,13 +146,21 @@ develop
            For more information, see the :ref:`docs <timelock-server-further-config>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1785>`__)
 
+    *    - |devbreak| |new|
+         - The ``TransactionManager`` and ``KeyValueService`` interfaces have new methods that must be implemented by applications that have custom implementations of those interfaces.
+           These new methods are ``TransactionManager.getKeyValueServiceStatus()`` and ``KeyValueService.getClusterAvailabilityStatus()``.
+
+           Applications can now call ``TransactionManager.getKeyValueServiceStatus()`` to determine the health of the underlying KVS.
+           This is designed for applications to implement their availability status taking into account the :ref:`kvs health <kvs-status-check>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1832>`__)
+
     *    - |improved|
          - On graceful shutdown, the background sweeper will now release the backup lock if it holds it.
            This should reduce the need for users to manually reset the ``_persisted_locks`` table in the event that they restarted a service while it was holding the lock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1847>`__)
 
     *    - |improved|
-         - Improved performance of getRange() on DbKvs. Range requests are now done with a single round trip to the database.
+         - Improved performance of ``getRange()`` on DbKvs. Range requests are now done with a single round trip to the database.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1805>`__)
 
     *    - |devbreak|

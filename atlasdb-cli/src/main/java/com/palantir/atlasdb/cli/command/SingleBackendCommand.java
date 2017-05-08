@@ -17,7 +17,9 @@ package com.palantir.atlasdb.cli.command;
 
 import java.io.IOException;
 
-import com.google.common.annotations.VisibleForTesting;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
@@ -26,6 +28,7 @@ import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
 
 public abstract class SingleBackendCommand extends AbstractCommand {
+    private static final Logger log = LoggerFactory.getLogger(SingleBackendCommand.class);
 
     @Override
     public Integer call() {
@@ -34,22 +37,22 @@ public abstract class SingleBackendCommand extends AbstractCommand {
         try (AtlasDbServices services = connect()) {
             return execute(services);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Exception encountered when running CLI", e);
+            System.err.println(String.format("Exception encountered when running CLI: %s", e));
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
-
-    public abstract int execute(AtlasDbServices services);
 
     private AtlasDbServices connect() throws IOException {
         ServicesConfigModule scm = ServicesConfigModule.create(getAtlasDbConfig());
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
-    @VisibleForTesting
     public <T extends AtlasDbServices> T connect(AtlasDbServicesFactory factory) throws IOException {
         return factory.connect(ServicesConfigModule.create(getAtlasDbConfig()));
     }
+
+    public abstract int execute(AtlasDbServices services);
 
     public abstract boolean isOnlineRunSupported();
 }
