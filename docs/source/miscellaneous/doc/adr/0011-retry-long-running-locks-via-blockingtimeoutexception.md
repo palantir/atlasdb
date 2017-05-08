@@ -18,7 +18,7 @@ inflight transactions will fail. A concrete trace is as follows:
 
 1. Client A acquires lock L
 2. Client B blocks on acquiring lock L, with request B1
-3. The idle timeout for Client B's connection runs out
+3. The idle timeout for Client B's connection runs out, and we close the HTTP/2 stream
 4. Client B retries, and blocks on acquiring lock L, with request B2
 5. Client A releases L
 6. Request B1 is granted, but client B is no longer listening on it
@@ -31,14 +31,23 @@ problem (though it  does mitigate it), since multiple clients may be blocking on
 
 ## Decision
 
-S
+### Time Limiting Lock Requests
+
+We decided that solutions to this problem should prevent the above pattern by satisfying one or both of the following:
+
+1. Prevent the idle timeout from reasonably occurring.
+2. Ensure resources are freed if the idle timeout triggers.
+
+We introduced a time limit for which a lock request is allowed to block - we call this the *blocking timeout*. 
+This is set to be lower than the Jetty idle timeout by a margin, thus achieving requirement 1. Even if we lose the
+race, we will still free the resources shortly after (requirement 2).
+
+In the event that a lock request blocks for longer than the blocking timeout, we interrupt the requesting thread and
+notify the client by sending a `SerializableError` which wraps a `BlockingTimeoutException`.
+
+C
 
 ### Alternatives Considered
-
-We considered alternatives that, broadly speaking, focus on two different approaches to the problem:
-
-* Prevent the idle timeout from ever reasonably triggering (alternatives 1-3 below)
-* Free resources when the stream is closed (alternatives 4 and 5)
 
 #### 1. Significantly increase the Jetty idle timeout
 
@@ -47,9 +56,9 @@ request to reasonably block for, such as 1 day.
 
 This solution is advantageous in that it is simple. However, the current default of 30 seconds is already longer than
 we would expect any lock requests to block for. Furthermore, in the event of client or link failures, it would be 
-possible that resources would be  allocated to the associated connections for longer periods of time. We would also
-introduce a dependency on the idle timeout on the HTTP client-side, which would also need to be increased to
-account for this (the current default is 60 seconds).
+possible that resources would be unproductively allocated to the associated connections for longer periods of time. 
+We would also introduce a dependency on the idle timeout on the HTTP client-side, which would also need to be 
+increased to account for this (the current default is 60 seconds).
 
 #### 2. Convert the lock service to a non-blocking API
 
@@ -82,8 +91,8 @@ been implemented yet; see [Jetty issue #824](https://github.com/eclipse/jetty.pr
 An alternative to having the server return `BlockingTimeoutException`s on long-running requests would be for clients
 to trim down any requests to an appropriate length (or, in the case of `BLOCK_INDEFINITELY`, indefinitely send
 requests of a suitable length). For example, with the default idle timeout of 30 seconds, a client wishing to block
-for 45 seconds could send a lock request for 30 seconds, and upon failure submit another request for just under
-15 seconds (suitably accounting for network overheads).
+for 45 seconds could send a lock request that blocks for 30 seconds, and upon failure submit another request that
+blocks for just under 15 seconds (suitably accounting for network overheads).
 
 This solution is relatively similar to what was implemented, though it requires clients to know what the
 aforementioned "appropriate length" should be (it needs to be the idle timeout or less) which is inappropriate as
@@ -91,11 +100,30 @@ that timeout is configured on the server side.
 
 ## Consequences
 
+#### BLOCK_FOR_AT_MOST Behaviour
+
+After implementation of Phase I, lock requests that block for less than the idle timeout, or that are 
+`BLOCK_INDEFINITELY` will behave correctly. However, lock requests that block for more than the idle timeout will
+be incorrect:
+
+1. Client A acquires lock L and repeatedly refreshes it
+2. (T = 0) Client B blocks on L; it wants to block for at most 45 seconds.
+3. (T = 30) Client B receives a `BlockingTimeoutException`, and retries - it blocks again on L for at most 45 seconds
+4. (T = 30k, for positive integer k) Client B receives a `BlockingTimeoutException` and retries on L...
+
+They will actually behave like `BLOCK_INDEFINITELY` requests unless the client retries correctly, by suitably
+reducing the blocking duration of lock requests when retrying. We can implement this by having lock service clients 
+modify their lock requests on retrying, though that should be the subject of a separate ADR.
+
+#### Exceptions
+
 Exception serialization was changed. Previously, if contacting a node that was not the leader we would send a 503
 with an empty response; otherwise, we would throw a `FeignException` with the underlying cause and stack trace as
 a string. We now serialize `NotCurrentLeaderException` and the new `BlockingTimeoutException` in a manner compatible
 with the Palantir [http-remoting library](https://github.com/palantir/http-remoting/), and throw an 
 `AtlasDbRemoteException` including serialized information about said exception.
+
+#### Fairness and Starvation
 
 Lock requests were previously fair - that is, if thread A blocks on acquiring the `LockServerSync` for a given
 lock before thread B, then under normal circumstances (barring exceptions, interruption or leader election),
@@ -107,5 +135,7 @@ timeout, and blocking for longer than the idle timeout is considered unexpected.
 with HTTP/2, the lock request for A would never succeed as far as the client was concerned, owing to the retry problems
 flagged in [issue #1680](https://github.com/palantir/atlasdb/issues/1680). If clients not using HTTP/2 wish to avoid
 this behaviour, they need not use this feature at all (it is configurable).
+
+#### Configuration
 
 TimeLock has an additional configuration parameter, though this is non-breaking as we provide a sensible default.
