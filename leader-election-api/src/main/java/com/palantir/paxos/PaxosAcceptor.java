@@ -22,6 +22,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.redaction.Safe;
+
 @Path("/acceptor")
 public interface PaxosAcceptor {
     long NO_LOG_ENTRY = -1L;
@@ -51,7 +53,7 @@ public interface PaxosAcceptor {
     @Path("accept/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    BooleanPaxosResponse accept(@PathParam("seq") long seq, PaxosProposal proposal);
+    BooleanPaxosResponse accept(@Safe @PathParam("seq") long seq, PaxosProposal proposal);
 
     /**
      * Gets the sequence number of the acceptor's most recent known round.
