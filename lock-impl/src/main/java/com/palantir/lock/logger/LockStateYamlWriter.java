@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.logger;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -25,27 +26,39 @@ import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 
 /**
- * Created by davidt on 4/20/17.
+ * A simple wrapper for writing lock state as YAML to a file.
  */
-class YamlWriter {
+class LockStateYamlWriter implements Closeable {
     private static final Yaml yaml = new Yaml(getRepresenter(), getDumperOptions());
 
     private final FileWriter fileWriter;
 
-    YamlWriter(FileWriter fileWriter) {
+    LockStateYamlWriter(FileWriter fileWriter) {
         this.fileWriter = fileWriter;
     }
 
-    public static YamlWriter create(File file) throws IOException {
-        return new YamlWriter(new FileWriter(file));
+    /**
+     * Creates a LockStateYamlWriter for the given file in append mode.
+     */
+    public static LockStateYamlWriter create(File file) throws IOException {
+        return new LockStateYamlWriter(new FileWriter(file, true));
     }
 
-    public void writeToYaml(Object data) {
+    /**
+     * Write an object to the file as YAML.
+     */
+    public void dumpObject(Object data) {
         yaml.dump(data, fileWriter);
     }
 
-    public void appendString(String string) throws IOException {
+    /**
+     * Write a string to the file as a YAML comment.
+     * The string must be a single line.
+     */
+    public void appendComment(String string) throws IOException {
+        fileWriter.append("# ");
         fileWriter.append(string);
+        fileWriter.append("\n");
     }
 
     private static Representer getRepresenter() {
@@ -61,6 +74,12 @@ class YamlWriter {
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setIndent(4);
         options.setAllowReadOnlyProperties(true);
+        options.setExplicitStart(true);
         return options;
+    }
+
+    @Override
+    public void close() throws IOException {
+        fileWriter.close();
     }
 }
