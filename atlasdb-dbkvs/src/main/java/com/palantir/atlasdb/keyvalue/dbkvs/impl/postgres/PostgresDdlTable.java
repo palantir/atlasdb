@@ -51,7 +51,6 @@ public class PostgresDdlTable implements DbDdlTable {
     }
 
     @Override
-    @SuppressWarnings("Slf4jConstantLogMessage")
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
                 "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
@@ -81,8 +80,7 @@ public class PostgresDdlTable implements DbDdlTable {
                         ATLASDB_POSTGRES_TABLE_NAME_LIMIT,
                         ATLASDB_POSTGRES_TABLE_NAME_LIMIT);
 
-                final String logMessage = "Failed to create the table {}. " + msg;
-                log.error(logMessage, prefixedTableName, e);
+                log.error("Failed to create the table {}. {}", prefixedTableName, msg, e);
 
                 throw new RuntimeException("Failed to create the table" + prefixedTableName + "." + msg, e);
             }

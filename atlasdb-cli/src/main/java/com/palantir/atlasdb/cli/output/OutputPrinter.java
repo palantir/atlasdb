@@ -18,7 +18,6 @@ package com.palantir.atlasdb.cli.output;
 import org.slf4j.Logger;
 import org.slf4j.helpers.MessageFormatter;
 
-@SuppressWarnings("Slf4jConstantLogMessage")
 public class OutputPrinter {
     private Logger logger;
 
@@ -27,12 +26,16 @@ public class OutputPrinter {
     }
 
     public void info(String message, Object... args) {
-        logger.info(message, args);
-        System.out.println(MessageFormatter.arrayFormat(message, args).getMessage());
+        final String errorMessage = MessageFormatter.arrayFormat(message, args).getMessage();
+
+        logger.info("{}", errorMessage);
+        System.out.println(errorMessage);
     }
 
     public void error(String message, Object... args) {
-        logger.error(message, args);
-        System.err.println(MessageFormatter.arrayFormat(message, args).getMessage());
+        final String errorMessage = MessageFormatter.arrayFormat(message, args).getMessage();
+
+        logger.error("{}", errorMessage);
+        System.err.println(errorMessage);
     }
 }
