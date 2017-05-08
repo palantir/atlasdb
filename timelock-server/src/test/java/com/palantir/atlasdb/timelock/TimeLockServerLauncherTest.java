@@ -33,6 +33,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockAlgorithmConfiguration;
@@ -70,6 +71,7 @@ public class TimeLockServerLauncherTest {
 
     private void setUpEnvironment() {
         when(environment.jersey()).thenReturn(mock(JerseyEnvironment.class));
+        when(environment.getObjectMapper()).thenReturn(new ObjectMapper());
         when(environment.metrics()).thenReturn(MetricRegistries.createWithHdrHistogramReservoirs());
 
         LifecycleEnvironment lifecycle = mock(LifecycleEnvironment.class);
