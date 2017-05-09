@@ -42,6 +42,8 @@ import com.palantir.timestamp.TimestampService;
 public class TimeLockMigrationEteTest {
     // Docker Engine daemon only has limited access to the filesystem, if the user is using Docker-Machine
     // Thus ensure the temporary folder is a subdirectory of the user's home directory
+    private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
+    private static final Gradle DOCKER_TASK = Gradle.ensureTaskHasRun(":timelock-server:dockerTag");
     private static final TemporaryFolder TEMPORARY_FOLDER
             = new TemporaryFolder(new File(System.getProperty("user.home")));
     private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE
@@ -58,7 +60,9 @@ public class TimeLockMigrationEteTest {
     private static final String TEST_CLIENT = "test";
 
     @ClassRule
-    public static final RuleChain RULE_CHAIN = RuleChain.outerRule(TEMPORARY_FOLDER)
+    public static final RuleChain RULE_CHAIN = RuleChain.outerRule(GRADLE_PREPARE_TASK)
+            .around(DOCKER_TASK)
+            .around(TEMPORARY_FOLDER)
             .around(CLIENT_ORCHESTRATION_RULE);
 
     @Rule

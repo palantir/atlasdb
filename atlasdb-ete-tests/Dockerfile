@@ -1,4 +1,4 @@
-FROM frolvlad/alpine-oraclejdk8:slim
+FROM centos:7
 
 RUN apk update && apk add libstdc++ bash wget
 
