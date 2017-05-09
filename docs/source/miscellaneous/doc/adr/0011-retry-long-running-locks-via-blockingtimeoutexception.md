@@ -102,6 +102,17 @@ This solution is relatively similar to what was implemented, though it requires 
 aforementioned "appropriate length" should be (it needs to be the idle timeout or less) which is inappropriate as
 that timeout is configured on the server side.
 
+#### 6. Implement a "magic" HTTP status code or header to ask clients to retry
+
+An alternative to serializing exceptions into `SerializableError`s could be defining a specific HTTP status code
+and/or custom header to indicate that a blocking timeout has occurred and/or clients should retry. This is used
+in practice e.g. in nginx, where a 495 indicates an error with a client's SSL certificates.
+
+This solution would be simpler than serializing exceptions; our existing `AtlasDbErrorDecoder` already switched on the
+status code returned in an HTTP response. However, we prefer not to introduce any custom status codes where feasible
+(since clients are unlikely to understand these status codes). A similar argument, though perhaps weaker, applies
+for headers as well.
+
 ## Consequences
 
 #### BLOCK_FOR_AT_MOST Behaviour
