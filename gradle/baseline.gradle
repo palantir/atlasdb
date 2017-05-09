@@ -1,4 +1,4 @@
-List<String> blacklistedBaselineProjects = [
+List<String> blacklistedBaselineAndErrorProneProjects = [
         'atlasdb-client',
         'atlasdb-client-protobufs',
         'atlasdb-commons',
@@ -17,17 +17,18 @@ List<String> blacklistedBaselineProjects = [
         'profile-client-protobufs',
         'timestamp-impl']
 
+List<String> whitelistedErrorProneProjects = [
+        'atlasdb-client']
+
 if (!blacklistedBaselineProjects.contains(project.name)) {
     apply plugin: 'com.palantir.baseline-checkstyle'
-
     // ./gradlew compileJava compileTestJava -PenableErrorProne=true
-    if (enableErrorProne.toBoolean()) {
-        apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone
-        apply plugin: 'com.palantir.baseline-error-prone'
+} else if (whitelistedErrorProneProjects.contains(project.name) && enableErrorProne.toBoolean()) {
+    apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone
+    apply plugin: 'com.palantir.baseline-error-prone'
 
-        configurations.errorprone {
-            resolutionStrategy { force('com.google.guava:guava:21.0') }
-        }
+    configurations.errorprone {
+        resolutionStrategy { force('com.google.guava:guava:21.0') }
     }
 }
 
