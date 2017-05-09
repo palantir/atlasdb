@@ -73,16 +73,17 @@ public class PostgresDdlTable implements DbDdlTable {
                 log.error("Error occurred trying to create the table", e);
                 throw e;
             } else if (prefixedTableName.length() > ATLASDB_POSTGRES_TABLE_NAME_LIMIT) {
-                final String msg = String.format("The table name is longer than the postgres limit of %d characters. "
-                                + "Attempted to truncate the name but the truncated table name or truncated primary "
-                                + "key constraint name already exists. Please ensure all your table names have unique "
-                                + "first %d characters.",
+                String errorMessage = String.format("Failed to create table %s."
+                                + " The table name is longer than the postgres limit of %d characters."
+                                + " Attempted to truncate the name but the truncated table name or truncated primary"
+                                + " key constraint name already exists. Please ensure all your table names have unique"
+                                + " first %d characters.",
+                        prefixedTableName,
                         ATLASDB_POSTGRES_TABLE_NAME_LIMIT,
                         ATLASDB_POSTGRES_TABLE_NAME_LIMIT);
 
-                log.error("Failed to create the table {}. {}", prefixedTableName, msg, e);
-
-                throw new RuntimeException("Failed to create the table" + prefixedTableName + "." + msg, e);
+                log.error("{}", errorMessage, e);
+                throw new RuntimeException(errorMessage, e);
             }
         }
 

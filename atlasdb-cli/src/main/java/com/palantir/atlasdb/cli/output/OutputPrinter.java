@@ -26,15 +26,13 @@ public class OutputPrinter {
     }
 
     public void info(String message, Object... args) {
-        final String errorMessage = MessageFormatter.arrayFormat(message, args).getMessage();
-
+        String errorMessage = MessageFormatter.arrayFormat(message, args).getMessage();
         logger.info("{}", errorMessage);
         System.out.println(errorMessage);
     }
 
     public void error(String message, Object... args) {
-        final String errorMessage = MessageFormatter.arrayFormat(message, args).getMessage();
-
+        String errorMessage = MessageFormatter.arrayFormat(message, args).getMessage();
         logger.error("{}", errorMessage);
         System.err.println(errorMessage);
     }
