@@ -12,8 +12,9 @@ Our implementation of AtlasDB clients and the TimeLock server were interacting i
 server to experience large thread buildups when running with HTTP/2. This manifested in 
 [issue #1680](https://github.com/palantir/atlasdb/issues/1680). The issue was eventually root caused to long-running
 lock requests in excess of the Jetty idle timeout; the server would close the relevant HTTP/2 stream, but *not*
-free up the resources consumed by the request. Eventually, these would overwhelm the TimeLock server, resulting
-in a fresh leadership election. This is problematic as leader elections cause all locks to be lost, and thus most
+free up the resources consumed by the request. Eventually, all server threads on the leader node would be busy handling 
+lock requests that had timed out. The leader would thus not respond to pings, resulting in other nodes proposing 
+leadership. This is problematic as leader elections cause all locks to be lost, and thus most
 inflight transactions will fail. A concrete trace is as follows:
 
 1. Client A acquires lock L
