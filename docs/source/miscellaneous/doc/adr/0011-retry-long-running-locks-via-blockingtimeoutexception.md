@@ -130,7 +130,8 @@ be incorrect:
 They will actually behave like `BLOCK_INDEFINITELY` requests unless the client retries correctly, by suitably
 reducing the blocking duration of lock requests when retrying. We can implement this by having lock service clients 
 modify their lock requests on retrying, though that should be the subject of a separate implementation and separate
-ADR.
+ADR (as there are some subtleties involving which sources of time one treats as authoritative, and it's also not
+certain that an authoritative source of time is strictly necessary).
 
 #### Exception Serialization
 
