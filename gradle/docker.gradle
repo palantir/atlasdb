@@ -5,7 +5,7 @@ def imageVersion = "${project.version.toString().replaceAll('\\+', '-')}"
 docker {
     name "palantirtechnologies/${project.name}:${imageVersion}"
     tags 'latest', 'snapshot'
-    dependsOn distTar
+    files distTar.outputs
 }
 
 // We disable pushing for the time being
