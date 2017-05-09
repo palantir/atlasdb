@@ -247,14 +247,15 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                         runningSize += sizingFunction.apply(firstEntry);
                         entries.add(firstEntry);
                         if (runningSize > maximumBytesPerPartition && log.isWarnEnabled()) {
-                            String message = "Encountered an entry of approximate size {} bytes, "
+                            final String message = "Encountered an entry of approximate size {} bytes, "
                                     + "larger than maximum size of {} defined per entire batch, "
                                     + "while doing a write to {}. Attempting to batch anyways.";
                             if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(
                                     TableReference.createWithEmptyNamespace(tableName))) {
                                 log.warn(message, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
                             } else {
-                                String longerMessage = message + " This can potentially cause out-of-memory errors.";
+                                final String longerMessage = message
+                                        + " This can potentially cause out-of-memory errors.";
                                 log.warn(longerMessage, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
                             }
                         }
