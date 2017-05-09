@@ -1,6 +1,6 @@
 # 11. Retry long-running locks via BlockingTimeoutException
 
-Date: 05/05/2017
+Date: 08/05/2017
 
 ## Status
 
@@ -27,7 +27,7 @@ inflight transactions will fail. A concrete trace is as follows:
 
 Since we retry every 30 seconds by default but only "service" one request every 2 minutes and 5 seconds, we accumulate
 a backlog of requests. Also, observe that setting the idle timeout to 2 minutes and 5 seconds does not solve the 
-problem (though it  does mitigate it), since multiple clients may be blocking on acquiring the same lock.
+problem (though it does mitigate it), since multiple clients may be blocking on acquiring the same lock.
 
 ## Decision
 
@@ -40,12 +40,16 @@ We decided that solutions to this problem should prevent the above pattern by sa
 
 We introduced a time limit for which a lock request is allowed to block - we call this the *blocking timeout*. 
 This is set to be lower than the Jetty idle timeout by a margin, thus achieving requirement 1. Even if we lose the
-race, we will still free the resources shortly after (requirement 2).
+race, we will still free the resources shortly after, thus achieving requirement 2.
 
 In the event that a lock request blocks for longer than the blocking timeout, we interrupt the requesting thread and
-notify the client by sending a `SerializableError` which wraps a `BlockingTimeoutException`.
+notify the client by sending a `SerializableError` which wraps a `BlockingTimeoutException`. Upon receiving a
+503, a client checks the nature of the error occurring on the server; in the event of `BlockingTimeoutException`,
+we retry on the same node, and reset the counter of the number of times we've failed to zero.
 
-C
+The timeout mechanism is implemented using Guava's `TimeLimiter`, and server time is thus considered authoritative; we
+believe this is reasonable as it is used for both our time limiting and for Jetty's handling of idle timeouts. Thus,
+we are relatively resilient to clock drift relative to the client or to other nodes in the TimeLock cluster.
 
 ### Alternatives Considered
 
@@ -102,7 +106,7 @@ that timeout is configured on the server side.
 
 #### BLOCK_FOR_AT_MOST Behaviour
 
-After implementation of Phase I, lock requests that block for less than the idle timeout, or that are 
+After implementation of the above, lock requests that block for less than the idle timeout, or that are 
 `BLOCK_INDEFINITELY` will behave correctly. However, lock requests that block for more than the idle timeout will
 be incorrect:
 
@@ -113,9 +117,10 @@ be incorrect:
 
 They will actually behave like `BLOCK_INDEFINITELY` requests unless the client retries correctly, by suitably
 reducing the blocking duration of lock requests when retrying. We can implement this by having lock service clients 
-modify their lock requests on retrying, though that should be the subject of a separate ADR.
+modify their lock requests on retrying, though that should be the subject of a separate implementation and separate
+ADR.
 
-#### Exceptions
+#### Exception Serialization
 
 Exception serialization was changed. Previously, if contacting a node that was not the leader we would send a 503
 with an empty response; otherwise, we would throw a `FeignException` with the underlying cause and stack trace as
@@ -123,12 +128,16 @@ a string. We now serialize `NotCurrentLeaderException` and the new `BlockingTime
 with the Palantir [http-remoting library](https://github.com/palantir/http-remoting/), and throw an 
 `AtlasDbRemoteException` including serialized information about said exception.
 
+This also means that receiving a 503 does not necessarily mean that one is not talking to the leader; one should
+interpret the message body of the HTTP response to see what caused said 503. We believe this is a positive change, as
+services may be unavailable for reasons other than not being the leader.
+
 #### Fairness and Starvation
 
 Lock requests were previously fair - that is, if thread A blocks on acquiring the `LockServerSync` for a given
 lock before thread B, then under normal circumstances (barring exceptions, interruption or leader election),
 A would acquire the lock before B. While this is still true at the thread synchronization level, it no longer 
-necessarily holds at  the application layer, since it is possible that A would timeout and be interrupted, the lock 
+necessarily holds at the application layer, since it is possible that A would timeout and be interrupted, the lock 
 would become available and then B would grab it before A. As a consequence of this, starvation becomes possible.
 We believe this is acceptable, as lock requests remain fair as long as none of them blocks for longer than the idle
 timeout, and blocking for longer than the idle timeout is considered unexpected. Furthermore, under previous behaviour
