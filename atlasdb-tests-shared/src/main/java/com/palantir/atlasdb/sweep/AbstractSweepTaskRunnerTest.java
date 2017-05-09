@@ -16,15 +16,8 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.never;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
@@ -32,21 +25,12 @@ import java.util.function.LongSupplier;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mockito;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.jayway.awaitility.Awaitility;
-import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.Cleaner;
-import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -58,35 +42,18 @@ import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
-import com.palantir.atlasdb.schema.SweepSchema;
-import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
-import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRowResult;
-import com.palantir.atlasdb.schema.generated.SweepProgressTable;
-import com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRowResult;
-import com.palantir.atlasdb.schema.generated.SweepTableFactory;
-import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
-import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
-import com.palantir.common.base.BatchingVisitables;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
-public abstract class AbstractSweeperTest {
+public abstract class AbstractSweepTaskRunnerTest {
     private static final String FULL_TABLE_NAME = "test_table.xyz_atlasdb_sweeper_test";
     protected static final TableReference TABLE_NAME = TableReference.createFromFullyQualifiedName(FULL_TABLE_NAME);
     private static final String COL = "c";
@@ -97,57 +64,22 @@ public abstract class AbstractSweeperTest {
     protected final AtomicLong sweepTimestamp = new AtomicLong();
     protected SweepTaskRunner sweepRunner;
     protected LockAwareTransactionManager txManager;
-    protected BackgroundSweeperImpl backgroundSweeper;
-    protected LockService lockService;
     protected TransactionService txService;
-    protected SweepMetrics sweepMetrics = Mockito.mock(SweepMetrics.class);
     protected PersistentLockManager persistentLockManager;
 
     @Before
     public void setup() {
         TimestampService tsService = new InMemoryTimestampService();
-        this.kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService);
-        LockClient lockClient = LockClient.of("sweep client");
-        lockService = LockServiceImpl.create(new LockServerOptions() {
-            @Override
-            public boolean isStandaloneServer() {
-                return false;
-            }
-        });
-        txService = TransactionServices.createTransactionService(kvs);
-        Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(
-                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
-        ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
+        kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
-        Cleaner cleaner = new NoOpCleaner();
-        txManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService,
-                constraints, cdm, ssm, cleaner, false);
-        setupTables(kvs);
+        txService = TransactionServices.createTransactionService(kvs);
+        txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
+        LongSupplier tsSupplier = sweepTimestamp::get;
         persistentLockManager = new PersistentLockManager(
                 getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
-        LongSupplier tsSupplier = sweepTimestamp::get;
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
         sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
-        setupBackgroundSweeper(DEFAULT_BATCH_SIZE);
-    }
-
-    protected static void setupTables(KeyValueService kvs) {
-        tearDownTables(kvs);
-        TransactionTables.createTables(kvs);
-        Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
-    }
-
-    private static void tearDownTables(KeyValueService kvs) {
-        Awaitility.await()
-                .timeout(Duration.FIVE_MINUTES)
-                .until(() -> {
-                    kvs.getAllTableNames().stream()
-                            .forEach(tableRef -> kvs.dropTable(tableRef));
-                    return true;
-                });
-        TransactionTables.deleteTables(kvs);
-        Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 
     private static PersistentLockService getPersistentLockService(KeyValueService kvs) {
@@ -156,17 +88,6 @@ public abstract class AbstractSweeperTest {
         } else {
             return new NoOpPersistentLockService();
         }
-    }
-
-    protected void setupBackgroundSweeper(int batchSize) {
-        Supplier<Boolean> sweepEnabledSupplier = () -> true;
-        Supplier<Long> sweepNoPause = () -> 0L;
-        Supplier<Integer> batchSizeSupplier = () -> batchSize;
-        Supplier<Integer> cellBatchSizeSupplier = () -> DEFAULT_CELL_BATCH_SIZE;
-
-        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause,
-                batchSizeSupplier, cellBatchSizeSupplier, SweepTableFactory.of(),
-                new NoOpBackgroundSweeperPerformanceLogger(), sweepMetrics, persistentLockManager);
     }
 
     @After
@@ -391,240 +312,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    public void testBackgroundSweepWritesPriorityTable() {
-        createTable(SweepStrategy.CONSERVATIVE);
-        putIntoDefaultColumn("foo", "bar", 50);
-        putIntoDefaultColumn("foo", "baz", 100);
-        putIntoDefaultColumn("foo", "buzz", 125);
-        runBackgroundSweep(120, 3);
-        List<SweepPriorityRowResult> results = txManager.runTaskReadOnly(t -> {
-            SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
-            return BatchingVisitables.copyToList(priorityTable.getAllRowsUnordered());
-        });
-
-        for (SweepPriorityRowResult result : results) {
-            Assert.assertEquals(Long.valueOf(120L), result.getMinimumSweptTimestamp());
-        }
-    }
-
-    @Test
-    public void testBackgroundSweepWritesPriorityTableWithDifferentTime() {
-        createTable(SweepStrategy.CONSERVATIVE);
-        putIntoDefaultColumn("foo", "bar", 50);
-        putIntoDefaultColumn("foo", "baz", 100);
-        putIntoDefaultColumn("foo", "buzz", 125);
-        // the expectation is that the sweep tables will be chosen first
-        // TODO ^ why? Alphabetical?
-        runBackgroundSweep(110, 2);
-        runBackgroundSweep(120, 1);
-        List<SweepPriorityRowResult> results = getPriorityTable();
-        for (SweepPriorityRowResult result : results) {
-            switch (result.getRowName().getFullTableName()) {
-                case "sweep.priority":
-                    Assert.assertEquals("priority has wrong sweep timestamp",
-                            Long.valueOf(110L),
-                            result.getMinimumSweptTimestamp());
-                    break;
-                case "sweep.progress":
-                    Assert.assertEquals("progress has wrong sweep timestamp",
-                            Long.valueOf(110L),
-                            result.getMinimumSweptTimestamp());
-                    break;
-                case FULL_TABLE_NAME:
-                    Assert.assertEquals("table has wrong sweep timestamp",
-                            Long.valueOf(120L),
-                            result.getMinimumSweptTimestamp());
-                    Assert.assertEquals(Long.valueOf(1L), result.getCellsDeleted());
-                    Assert.assertEquals(Long.valueOf(1L), result.getCellsExamined());
-                    break;
-                default:
-                    // Cruft table; nothing to check
-                    break;
-            }
-        }
-    }
-
-    @Test
-    public void testBackgroundSweeperWritesToProgressTable() {
-        setupBackgroundSweeper(2);
-        createTable(SweepStrategy.CONSERVATIVE);
-        putIntoDefaultColumn("foo", "bar", 50);
-        putIntoDefaultColumn("foo2", "bang", 75);
-        putIntoDefaultColumn("foo3", "baz", 100);
-        putIntoDefaultColumn("foo4", "buzz", 125);
-        runBackgroundSweep(150, 3);
-
-        confirmOnlyTableRowUnwritten();
-
-        List<SweepProgressTable.SweepProgressRowResult> progressResults = getProgressTable();
-
-        Assert.assertEquals(1, progressResults.size());
-        SweepProgressRowResult result = Iterables.getOnlyElement(progressResults);
-        Assert.assertEquals(Long.valueOf(150L), result.getMinimumSweptTimestamp());
-        Assert.assertEquals(TABLE_NAME.getQualifiedName(), result.getFullTableName());
-        Assert.assertEquals(Long.valueOf(0L), result.getCellsDeleted());
-        Assert.assertEquals(Long.valueOf(2L), result.getCellsExamined());
-    }
-
-    @Test
-    public void testBackgroundSweeperDoesNotOverwriteProgressMinimumTimestamp() {
-        setupBackgroundSweeper(2);
-        createTable(SweepStrategy.CONSERVATIVE);
-        putIntoDefaultColumn("foo", "bar", 50);
-        putIntoDefaultColumn("foo2", "bang", 75);
-        putIntoDefaultColumn("foo3", "baz", 100);
-        putIntoDefaultColumn("foo4", "buzz", 125);
-        putIntoDefaultColumn("foo5", "bing", 140);
-        runBackgroundSweep(150, 3);
-        runBackgroundSweep(175, 1);
-
-        confirmOnlyTableRowUnwritten();
-
-        List<SweepProgressTable.SweepProgressRowResult> progressResults = getProgressTable();
-        Assert.assertEquals(1, progressResults.size());
-        SweepProgressRowResult result = Iterables.getOnlyElement(progressResults);
-        Assert.assertEquals(Long.valueOf(150L), result.getMinimumSweptTimestamp());
-        Assert.assertEquals(TABLE_NAME.getQualifiedName(), result.getFullTableName());
-        Assert.assertEquals(Long.valueOf(0L), result.getCellsDeleted());
-        Assert.assertEquals(Long.valueOf(4L), result.getCellsExamined());
-    }
-
-    private void confirmOnlyTableRowUnwritten() {
-        List<SweepPriorityRowResult> results = getPriorityTable();
-        for (SweepPriorityRowResult result : results) {
-            switch (result.getRowName().getFullTableName()) {
-                case "sweep.priority":
-                    Assert.assertEquals(Long.valueOf(150L), result.getMinimumSweptTimestamp());
-                    break;
-                case "sweep.progress":
-                    Assert.assertEquals(Long.valueOf(150L), result.getMinimumSweptTimestamp());
-                    break;
-                case FULL_TABLE_NAME:
-                    Assert.assertNull(result.getMinimumSweptTimestamp());
-                    Assert.assertNull(result.getCellsDeleted());
-                    Assert.assertNull(result.getCellsExamined());
-                    break;
-                default:
-                    // Cruft table; nothing to check
-                    break;
-            }
-        }
-    }
-
-    @Test
-    public void testBackgroundSweeperWritesFromProgressToPriority() {
-        setupBackgroundSweeper(3);
-        createTable(SweepStrategy.CONSERVATIVE);
-        putIntoDefaultColumn("foo", "bar", 50);
-        putIntoDefaultColumn("foo2", "bang", 75);
-        putIntoDefaultColumn("foo3", "baz", 100);
-        putIntoDefaultColumn("foo4", "buzz", 125);
-        runBackgroundSweep(150, 3);
-        runBackgroundSweep(175, 1);
-        List<SweepPriorityRowResult> results = getPriorityTable();
-        List<SweepProgressTable.SweepProgressRowResult> progressResults = getProgressTable();
-        for (SweepPriorityRowResult result : results) {
-            switch (result.getRowName().getFullTableName()) {
-                case "sweep.priority":
-                    Assert.assertEquals(Long.valueOf(150L), result.getMinimumSweptTimestamp());
-                    break;
-                case "sweep.progress":
-                    Assert.assertEquals(Long.valueOf(150L), result.getMinimumSweptTimestamp());
-                    break;
-                case FULL_TABLE_NAME:
-                    Assert.assertEquals(Long.valueOf(150L), result.getMinimumSweptTimestamp());
-                    Assert.assertEquals(Long.valueOf(0L), result.getCellsDeleted());
-                    Assert.assertEquals(Long.valueOf(4L), result.getCellsExamined());
-                    break;
-                default:
-                    // Cruft table; nothing to check
-                    break;
-            }
-        }
-
-        Assert.assertEquals(0, progressResults.size());
-    }
-
-    @Test
-    public void testBackgroundSweepCanHandleNegativeImmutableTimestamp() {
-        createTable(SweepStrategy.CONSERVATIVE);
-        putIntoDefaultColumn("foo", "bar", 50);
-        putIntoDefaultColumn("foo", "baz", 100);
-        putIntoDefaultColumn("foo", "buzz", 125);
-        runBackgroundSweep(Long.MIN_VALUE, 3);
-        List<SweepPriorityRowResult> results = txManager.runTaskReadOnly(t -> {
-            SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
-            return BatchingVisitables.copyToList(priorityTable.getAllRowsUnordered());
-        });
-
-        for (SweepPriorityRowResult result : results) {
-            Assert.assertEquals(Long.valueOf(Long.MIN_VALUE), result.getMinimumSweptTimestamp());
-        }
-    }
-
-    @Test
-    public void testBackgroundSweeperSendsMetrics() {
-        createTable(SweepStrategy.CONSERVATIVE);
-        putIntoDefaultColumn("foo", "bar", 50);
-        putIntoDefaultColumn("foo", "bang", 75);
-        putIntoDefaultColumn("foo", "baz", 100);
-        putIntoDefaultColumn("foo", "buzz", 125);
-        runBackgroundSweep(150, 3);
-
-        Mockito.verify(sweepMetrics, atLeastOnce()).recordMetrics(eq(TABLE_NAME), any(SweepResults.class));
-    }
-
-    @Test
-    public void testMetricsAndBatching() {
-        createTable(SweepStrategy.CONSERVATIVE);
-        long sweepTs = 150L;
-
-        // put many rows
-        int numberOfRows = DEFAULT_BATCH_SIZE * 2 - 1;
-        for (int i = 0; i < numberOfRows; i++) {
-            String row = "foo" + i;
-            putUncommitted(row, "bar", 50);
-            putUncommitted(row, "baz", 75);
-        }
-        putTimestampIntoTransactionTable(50);
-        putTimestampIntoTransactionTable(75);
-
-        runBackgroundSweep(sweepTs, 3);
-        // check that TABLE_NAME has been partially swept by this point, but metrics were not recorded
-        List<SweepProgressTable.SweepProgressRowResult> progressResults = getProgressTable();
-        boolean tableSwept = false;
-        for (SweepProgressTable.SweepProgressRowResult result : progressResults) {
-            String fullTableName = result.getFullTableName();
-            if (fullTableName == null) {
-                continue;
-            }
-            switch (fullTableName) {
-                case FULL_TABLE_NAME:
-                    tableSwept = true;
-                    Assert.assertEquals(Long.valueOf(sweepTs), result.getMinimumSweptTimestamp());
-                    Assert.assertEquals(Long.valueOf(DEFAULT_BATCH_SIZE), result.getCellsDeleted());
-                    Assert.assertEquals(Long.valueOf(DEFAULT_BATCH_SIZE), result.getCellsExamined());
-                    break;
-                default:
-                    // Cruft table; nothing to check
-                    break;
-            }
-        }
-        assertTrue(tableSwept);
-        Mockito.verify(sweepMetrics, never()).recordMetrics(eq(TABLE_NAME), any(SweepResults.class));
-
-        runBackgroundSweep(sweepTs, 1);
-
-        // now metrics should have been recorded
-        SweepResults sweepResults = SweepResults.builder()
-                .cellsDeleted(numberOfRows)
-                .cellsExamined(numberOfRows)
-                .sweptTimestamp(sweepTs)
-                .build();
-        Mockito.verify(sweepMetrics).recordMetrics(TABLE_NAME, sweepResults);
-    }
-
-    @Test
     public void testSweeperFailsHalfwayThroughOnDeleteTable() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -664,59 +351,6 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(sweepResults.getCellsDeleted(), 1);
     }
 
-    /**
-     * Test case causing the sweep DbKvs OOM #982. Takes about an hour to run, so should be @Ignored unless specifically
-     * needed
-     */
-    @Ignore
-    @Test
-    public void testOom() {
-        createTable(SweepStrategy.CONSERVATIVE);
-
-        for (int col = 0; col < 10000; ++col) {
-            Map<Cell, byte[]> toPut = new HashMap<>();
-            for (int row = 0; row < 1000; ++row) {
-                Cell cell = Cell.create(
-                        Integer.toString(row).getBytes(StandardCharsets.UTF_8),
-                        Integer.toString(col).getBytes(StandardCharsets.UTF_8));
-                toPut.put(cell, "foo".getBytes(StandardCharsets.UTF_8));
-            }
-            kvs.put(TABLE_NAME, toPut, col + 1000);
-            putTimestampIntoTransactionTable(col + 1000);
-            if (col % 1000 == 0) {
-                kvs.put(TABLE_NAME, toPut, col + 11000);
-                putTimestampIntoTransactionTable(col + 11000);
-            }
-            System.out.println("inserted col " + col);
-        }
-        System.out.println("starting sweep");
-        SweepResults results = sweep(TABLE_NAME, 30000, 1000, 1000);
-        Assert.assertFalse(results.getNextStartRow().isPresent());
-        Assert.assertEquals(10000L, results.getCellsDeleted());
-    }
-
-    @Ignore
-    @Test
-    public void wideRowTest() {
-        createTable(SweepStrategy.CONSERVATIVE);
-        Map<Cell, byte[]> toPut = new HashMap<>();
-        for (int col = 0; col < 10000; ++col) {
-            Cell cell = Cell.create(
-                    "1".getBytes(StandardCharsets.UTF_8),
-                    Integer.toString(col).getBytes(StandardCharsets.UTF_8));
-            toPut.put(cell, "foo".getBytes(StandardCharsets.UTF_8));
-        }
-        for (int timestamp = 1; timestamp < 1001; ++timestamp) {
-            kvs.put(TABLE_NAME, toPut, timestamp);
-            putTimestampIntoTransactionTable(timestamp);
-            System.out.println("inserted timestamp " + timestamp);
-        }
-        System.out.println("starting sweep");
-        SweepResults results = sweep(TABLE_NAME, 30000, 1000, 1000);
-        Assert.assertFalse(results.getNextStartRow().isPresent());
-        Assert.assertEquals(999 * 10000L, results.getCellsDeleted());
-    }
-
     private void testSweepManyRows(SweepStrategy strategy) {
         createTable(strategy);
         putIntoDefaultColumn("foo", "bar1", 5);
@@ -728,27 +362,6 @@ public abstract class AbstractSweeperTest {
 
         Assert.assertEquals(2, results.getCellsDeleted());
         Assert.assertEquals(2, results.getCellsExamined());
-    }
-
-    private List<SweepProgressRowResult> getProgressTable() {
-        return txManager.runTaskReadOnly(t -> {
-            SweepProgressTable progressTable = SweepTableFactory.of().getSweepProgressTable(t);
-            return BatchingVisitables.copyToList(progressTable.getAllRowsUnordered());
-        });
-    }
-
-    private List<SweepPriorityRowResult> getPriorityTable() {
-        return txManager.runTaskReadOnly(t -> {
-            SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
-            return BatchingVisitables.copyToList(priorityTable.getAllRowsUnordered());
-        });
-    }
-
-    private void runBackgroundSweep(long sweepTs, int numberOfTimes) {
-        sweepTimestamp.set(sweepTs);
-        for (int i = 0; i < numberOfTimes; i++) {
-            backgroundSweeper.runOnce();
-        }
     }
 
     protected SweepResults completeSweep(long ts) {

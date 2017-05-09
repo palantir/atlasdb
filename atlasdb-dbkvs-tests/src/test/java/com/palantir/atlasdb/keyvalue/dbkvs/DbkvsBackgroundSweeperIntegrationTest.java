@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jdbc;
+package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.sweep.AbstractSweeperTest;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
+import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
 
-public class JdbcSweeperTest extends AbstractSweeperTest {
+public class DbkvsBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
     @Override
     protected KeyValueService getKeyValueService() {
-        return JdbcTests.createEmptyKvs();
+        return ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
     }
 }
