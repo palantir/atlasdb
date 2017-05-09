@@ -45,13 +45,44 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
                                        long ts,
                                        ColumnSelection columns,
                                        boolean includeValue) {
+        if (columns.allColumnsSelected()) {
+            return getLatestRowQueryWithAllColumns(row, ts, columns, includeValue);
+        }
+
+
+        String query = "SELECT cells.row_name, cells.col_name, data.ts, data.val " +
+                "FROM (SELECT t1.row_name AS row_name, t2.col_name AS col_name " +
+                "      FROM (SELECT unnest(array[?]) AS row_name) t1, (SELECT unnest(array["
+                + numParamsWithoutBrackets(Iterables.size(columns.getSelectedColumns()))
+                + "]) AS col_name) t2) cells " +
+                "INNER JOIN LATERAL (SELECT ts, val FROM " + prefixedTableName() + " tbl " +
+                "WHERE tbl.row_name = cells.row_name " +
+                "    AND tbl.col_name = cells.col_name " +
+                "    AND tbl.ts < ? " +
+                "    ORDER BY tbl.ts " +
+                "    DESC LIMIT 1) data " +
+                "ON true";
+
+        return new FullQuery(query).withArg(row).withArgs(columns.getSelectedColumns()).withArg(ts);
+    }
+
+    private String numParamsWithoutBrackets(int numParams) {
+        StringBuilder builder = new StringBuilder(2 * numParams - 1);
+        Joiner.on(',').appendTo(builder, Iterables.limit(Iterables.cycle('?'), numParams));
+        return builder.toString();
+    }
+
+    private FullQuery getLatestRowQueryWithAllColumns(byte[] row,
+            long ts,
+            ColumnSelection columns,
+            boolean includeValue) {
         String query = " /* GET_LATEST_ROW_INNER (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, max(m.ts) as ts "
                 + "   FROM " + prefixedTableName() + " m "
                 + "  WHERE m.row_name = ? "
                 + "    AND m.ts < ? "
                 + (columns.allColumnsSelected() ? "" :
-                    "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())))
+                "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())))
                 + " GROUP BY m.row_name, m.col_name";
         query = wrapQueryWithIncludeValue("GET_LATEST_ROW", query, includeValue);
         FullQuery fullQuery = new FullQuery(query).withArgs(row, ts);
