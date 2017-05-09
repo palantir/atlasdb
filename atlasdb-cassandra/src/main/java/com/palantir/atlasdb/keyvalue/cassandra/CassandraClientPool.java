@@ -662,19 +662,19 @@ public class CassandraClientPool {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private <K extends Exception> void handleException(int numTries, InetSocketAddress host, Exception ex) throws K {
         if (isRetriableException(ex) || isRetriableWithBackoffException(ex)) {
             if (numTries >= MAX_TRIES_TOTAL) {
                 if (ex instanceof TTransportException
                         && ex.getCause() != null
                         && (ex.getCause().getClass() == SocketException.class)) {
-                    final String msg = "Error writing to Cassandra socket. "
-                            + "Likely cause: Exceeded maximum thrift frame size; "
-                            + "unlikely cause: network issues.";
-                    final String logMessage = "Tried to connect to cassandra {} times. " + msg;
-                    log.error(logMessage, numTries, ex);
-                    throw (K) new TTransportException(((TTransportException) ex).getType(), msg, ex);
+                    String errorMessage = String.format("Tried to connect to cassandra %d times."
+                            + " Error writing to Cassandra socket."
+                            + " Likely cause: Exceeded maximum thrift frame size;"
+                            + " unlikely cause: network issues.",
+                            numTries);
+                    log.error("{}", errorMessage, ex);
+                    throw (K) new TTransportException(((TTransportException) ex).getType(), errorMessage, ex);
                 } else {
                     log.error("Tried to connect to cassandra {} times.", numTries, ex);
                     throw (K) ex;
@@ -694,7 +694,6 @@ public class CassandraClientPool {
     // consistent ring across all of it's nodes.  One node will think it owns more than the others
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
-    @SuppressFBWarnings("SLF4J_MANUALLY_PROVIDED_MESSAGE")
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost = HashMultimap.create();
         for (InetSocketAddress host : currentPools.keySet()) {
