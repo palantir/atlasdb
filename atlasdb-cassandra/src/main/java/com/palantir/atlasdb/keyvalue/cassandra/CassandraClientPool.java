@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TimedOutException;
@@ -45,6 +44,7 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
@@ -71,8 +71,6 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.remoting1.tracing.Tracers;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Feature breakdown:
@@ -668,13 +666,13 @@ public class CassandraClientPool {
                 if (ex instanceof TTransportException
                         && ex.getCause() != null
                         && (ex.getCause().getClass() == SocketException.class)) {
-                    String errorMessage = String.format("Tried to connect to cassandra %d times."
+                    final String logMessage = "Tried to connect to cassandra {} times."
                             + " Error writing to Cassandra socket."
                             + " Likely cause: Exceeded maximum thrift frame size;"
-                            + " unlikely cause: network issues.",
-                            numTries);
-                    log.error("{}", errorMessage, ex);
-                    throw (K) new TTransportException(((TTransportException) ex).getType(), errorMessage, ex);
+                            + " unlikely cause: network issues.";
+                    log.error(logMessage, numTries, ex);
+                    String errorMsg = MessageFormatter.format(logMessage, numTries).getMessage();
+                    throw (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
                 } else {
                     log.error("Tried to connect to cassandra {} times.", numTries, ex);
                     throw (K) ex;

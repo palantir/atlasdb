@@ -19,6 +19,7 @@ import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -73,17 +74,17 @@ public class PostgresDdlTable implements DbDdlTable {
                 log.error("Error occurred trying to create the table", e);
                 throw e;
             } else if (prefixedTableName.length() > ATLASDB_POSTGRES_TABLE_NAME_LIMIT) {
-                String errorMessage = String.format("Failed to create table %s."
-                                + " The table name is longer than the postgres limit of %d characters."
-                                + " Attempted to truncate the name but the truncated table name or truncated primary"
-                                + " key constraint name already exists. Please ensure all your table names have unique"
-                                + " first %d characters.",
-                        prefixedTableName,
-                        ATLASDB_POSTGRES_TABLE_NAME_LIMIT,
-                        ATLASDB_POSTGRES_TABLE_NAME_LIMIT);
-
-                log.error("{}", errorMessage, e);
-                throw new RuntimeException(errorMessage, e);
+                final String errorMessage = "Failed to create table {}."
+                        + " The table name is longer than the postgres limit of {} characters."
+                        + " Attempted to truncate the name but the truncated table name or truncated primary"
+                        + " key constraint name already exists. Please ensure all your table names have unique"
+                        + " first {} characters.";
+                log.error(errorMessage, prefixedTableName, ATLASDB_POSTGRES_TABLE_NAME_LIMIT,
+                        ATLASDB_POSTGRES_TABLE_NAME_LIMIT, e);
+                String exceptionMsg = MessageFormatter.arrayFormat(errorMessage, new Object[]{
+                        prefixedTableName, ATLASDB_POSTGRES_TABLE_NAME_LIMIT, ATLASDB_POSTGRES_TABLE_NAME_LIMIT})
+                        .getMessage();
+                throw new RuntimeException(exceptionMsg, e);
             }
         }
 
