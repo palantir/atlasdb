@@ -18,7 +18,8 @@ List<String> blacklistedBaselineAndErrorProneProjects = [
         'timestamp-impl']
 
 List<String> whitelistedErrorProneProjects = [
-        'atlasdb-client']
+        'atlasdb-client',
+        'atlasdb-client-protobufs']
 
 if (!blacklistedBaselineAndErrorProneProjects.contains(project.name)) {
     apply plugin: 'com.palantir.baseline-checkstyle'
