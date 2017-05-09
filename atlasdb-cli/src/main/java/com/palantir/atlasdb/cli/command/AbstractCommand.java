@@ -52,19 +52,28 @@ public abstract class AbstractCommand implements Callable<Integer> {
     private boolean offline = false;
 
     private AtlasDbConfig config;
+    private AtlasDbConfig rawConfig;
 
     protected AtlasDbConfig getAtlasDbConfig() {
         if (config == null) {
+            config = getRawAtlasDbConfig();
+            if (offline) {
+                config = config.toOfflineConfig();
+            }
+        }
+
+        return config;
+    }
+
+    protected AtlasDbConfig getRawAtlasDbConfig() {
+        if (rawConfig == null) {
             try {
                 if (configFile != null) {
-                    config = AtlasDbConfigs.load(configFile, configRoot);
+                    rawConfig = AtlasDbConfigs.load(configFile, configRoot);
                 } else if (inlineConfig != null) {
-                    config = AtlasDbConfigs.loadFromString(inlineConfig, "");
+                    rawConfig = AtlasDbConfigs.loadFromString(inlineConfig, "");
                 } else {
                     throw new IllegalArgumentException("Required option '-c' is missing");
-                }
-                if (offline) {
-                    config = config.toOfflineConfig();
                 }
             } catch (IOException e) {
                 throw new RuntimeException(String.format("IOException thrown reading configuration file: %s",
@@ -72,7 +81,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
             }
         }
 
-        return config;
+        return rawConfig;
     }
 
     protected boolean isOffline() {
