@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.helpers.MessageFormatter;
 
 public class OutputPrinter {
+    //TODO(ssouza): remove this class in a separate PR. It's not compliant with internal logging guidelines.
     private Logger logger;
 
     public OutputPrinter(Logger logger) {
