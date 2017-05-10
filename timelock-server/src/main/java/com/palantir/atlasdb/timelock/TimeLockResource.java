@@ -21,6 +21,7 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
+import com.codahale.metrics.annotation.Timed;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -33,16 +34,19 @@ public class TimeLockResource {
         this.clientToServices = clientToServices;
     }
 
+    @Timed
     @Path("/lock")
     public LockService getLockService(@PathParam("client") String client) {
         return getTimeLockServicesForClient(client).getLockService();
     }
 
+    @Timed
     @Path("/timestamp")
     public TimestampService getTimeService(@PathParam("client") String client) {
         return getTimeLockServicesForClient(client).getTimestampService();
     }
 
+    @Timed
     @Path("/timestamp-management")
     public TimestampManagementService getTimestampManagementService(@PathParam("client") String client) {
         return getTimeLockServicesForClient(client).getTimestampManagementService();

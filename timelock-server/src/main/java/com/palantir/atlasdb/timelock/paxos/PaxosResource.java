@@ -21,6 +21,7 @@ import java.util.Map;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
+import com.codahale.metrics.annotation.Timed;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.paxos.PaxosAcceptor;
@@ -61,11 +62,13 @@ public final class PaxosResource {
                 Paths.get(logDirectory, client, PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toString()));
     }
 
+    @Timed
     @Path("/learner")
     public PaxosLearner getPaxosLearner(@PathParam("client") String client) {
         return paxosLearners.get(client);
     }
 
+    @Timed
     @Path("/acceptor")
     public PaxosAcceptor getPaxosAcceptor(@PathParam("client") String client) {
         return paxosAcceptors.get(client);
