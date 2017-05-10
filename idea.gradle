@@ -32,6 +32,16 @@ class Xml {
     void set(Map<String, String> attr) {
         node.attributes().putAll(attr)
     }
+
+    Xml removeAllChildren() {
+        node.value = ""
+        new Xml(node: node)
+    }
+
+    Xml addChild(String tag, Map<String, String> attr) {
+        node.appendNode(tag, attr)
+        new Xml(node: node)
+    }
 }
 
 // This is intended to match the value in gradlew and/or gradle.properties
@@ -56,6 +66,13 @@ if (project == rootProject) {
                     .get('component', name: 'PropertiesComponent')
                     .get('property', name: 'show.inlinked.gradle.project.popup')
                     .set(value: 'false')
+            Xml.from(provider)
+                    .get('component', name: 'RunManager')
+                    .get('configuration', factoryName: 'JUnit')
+                    .get('envs')
+                    .removeAllChildren()
+                    .addChild('env', [name: 'CASSANDRA_MAX_HEAP_SIZE', value:'512m'])
+                    .addChild('env', [name: 'CASSANDRA_HEAP_NEWSIZE', value:'64m'])
         }
     }
 
