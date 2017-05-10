@@ -58,6 +58,7 @@ public class TimeLockServerLauncherTest {
     public void setUp() {
         setUpMockServerImplementation();
         setUpEnvironment();
+        System.out.println();
     }
 
     private void setUpMockServerImplementation() {
