@@ -42,6 +42,7 @@ import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -69,6 +70,10 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             List<PaxosAcceptor> acceptors,
             List<PaxosLearner> learners,
             long maximumWaitBeforeProposalMs) {
+        DebugLogger.logger.info("Creating PaxosTimestampBoundStore. The UUID of my proposer is {}."
+                + " Currently, I believe the timestamp bound is {}.",
+                proposer.getUuid(),
+                knowledge.getGreatestLearnedValue());
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.acceptors = acceptors;
@@ -276,7 +281,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             throws MultipleRunningTimestampServiceError {
         if (!value.getLeaderUUID().equals(proposer.getUuid())) {
             String errorMsg = String.format(
-                    "Timestamp limit changed from under us for sequence '%s' (leader with UUID '%s' changed"
+                    "Timestamp limit changed from under us for sequence '%s' (proposer with UUID '%s' changed"
                             + " it, our UUID is '%s'). This suggests that another timestamp store for this"
                             + " namespace is running. The offending bound was '%s'; we tried to propose"
                             + " a bound of '%s'. (The offending Paxos value was '%s'.)",
@@ -288,6 +293,10 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                     value);
             throw new MultipleRunningTimestampServiceError(errorMsg);
         }
+        DebugLogger.logger.info("Trying to store limit '{}' for sequence '{}' yielded consensus on the value '{}'.",
+                limit,
+                newSeq,
+                value);
     }
 
     /**
