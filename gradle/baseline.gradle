@@ -18,14 +18,6 @@ List<String> blacklistedBaselineProjects = [
         'timestamp-impl']
 
 List<String> blacklistedErrorProneProjects = [
-        'atlasdb-console',
-        'atlasdb-dbkvs-hikari',
-        'atlasdb-jdbc',
-        'atlasdb-jdbc-tests',
-        'atlasdb-rocksdb',
-        'atlasdb-rocksdb-tests',
-        'atlasdb-service-server',
-        'cassandra-partitioner',
         'commons-db',
         'commons-executors',
         'leader-election-impl',
