@@ -90,10 +90,20 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
                     : PaxosAcceptorState.newState(pid);
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
-                String lastAcceptedLeader = (oldState.lastAcceptedValue == null) ? null : oldState.lastAcceptedValue.getLeaderUUID();
+                PaxosProposalId lastPromisedId = null;
+                PaxosProposalId lastAcceptedId = null;
+                String lastAcceptedLeader = null;
+
+                if (oldState != null) {
+                    lastPromisedId = oldState.lastPromisedId;
+                    lastAcceptedId = oldState.lastAcceptedId;
+                    lastAcceptedLeader = (oldState.lastAcceptedValue == null) ? null : oldState.lastAcceptedValue.getLeaderUUID();
+                }
+
                 leaderLog.debug("Promised to accept proposal for seq #{} with ID {}; promise is " +
                         "(lastPromisedId={}, lastAcceptedId={}, lastAcceptedValue={})", seq, pid.getNumber(),
-                        oldState.lastPromisedId, oldState.lastAcceptedId, lastAcceptedLeader);
+                        lastPromisedId, lastAcceptedId, lastAcceptedLeader);
+
                 log.writeRound(seq, newState);
                 return new PaxosPromise(
                         newState.lastPromisedId,
