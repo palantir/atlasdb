@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,11 +79,11 @@ public class PuncherTest {
     }
 
     long timeMillis = 0;
-    
+
     final long firstPunchTimestamp = 33L;
     final long secondPunchTimestamp = 35L;
     final long thirdPunchTimestamp = 37L;
-    
+
     final long firstTimestampToGetMillis = 34L;
     final long secondTimestampToGetMillis = 35L;
     final long thirdTimestampToGetMillis = 36L;
@@ -92,34 +92,34 @@ public class PuncherTest {
     public void test() {
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(10000L));
         Supplier<Long> timestampSupplier = puncher.getTimestampSupplier();
-        
+
         timeMillis += 60000L;
         assertEquals(Long.MIN_VALUE, (long) timestampSupplier.get());
         timeMillis += 60000L;
         assertEquals(Long.MIN_VALUE, (long) timestampSupplier.get());
         timeMillis += 60000L;
-        
+
         final long firstExpectedMillis = timeMillis;
         puncher.punch(firstPunchTimestamp);
-        
+
         timeMillis += 60000L;
         assertEquals(firstPunchTimestamp, (long) timestampSupplier.get());
-        
+
         final long secondExpectedMillis = timeMillis;
         puncher.punch(secondPunchTimestamp);
-        
+
         assertEquals(firstPunchTimestamp, (long) timestampSupplier.get());
         timeMillis += 60000L;
         assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
         timeMillis += 10L;
         assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
-        
+
         puncher.punch(thirdPunchTimestamp);
-        
+
         assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
         timeMillis += 60000L;
         assertEquals(thirdPunchTimestamp, (long) timestampSupplier.get());
-        
+
         assertEquals(firstExpectedMillis, puncherStore.getMillisForTimestamp(firstTimestampToGetMillis));
         assertEquals(secondExpectedMillis, puncherStore.getMillisForTimestamp(secondTimestampToGetMillis));
         assertEquals(secondExpectedMillis, puncherStore.getMillisForTimestamp(thirdTimestampToGetMillis));
@@ -128,7 +128,7 @@ public class PuncherTest {
     @Test
     public void testBigTimestamp() {
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(10000L));
-        timeMillis = 1 << 60 - 3;
-        puncher.punch(1 << 62);
+        timeMillis = (1L << 60) - 3;
+        puncher.punch(1L << 62);
     }
 }

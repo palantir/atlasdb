@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,8 +55,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
         txMgr.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "v1");
+            public Void execute(Transaction txn) throws RuntimeException {
+                put(txn, "row1", "col1", "v1");
                 return null;
             }
         });
@@ -70,8 +70,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
         txMgr.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
             @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "v1");
+            public Void execute(Transaction txn) throws RuntimeException {
+                put(txn, "row1", "col1", "v1");
                 return null;
             }
         });
@@ -85,8 +85,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
         txMgr.runTaskReadOnly(new TransactionTask<Void, RuntimeException>() {
             @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "v1");
+            public Void execute(Transaction txn) throws RuntimeException {
+                put(txn, "row1", "col1", "v1");
                 return null;
             }
         });

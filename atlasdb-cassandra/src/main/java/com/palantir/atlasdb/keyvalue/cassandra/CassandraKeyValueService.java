@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  * <p>
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,6 +88,7 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -143,7 +144,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
             input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
 
+    @SuppressWarnings("VisibilityModifier")
     protected final CassandraKeyValueServiceConfigManager configManager;
+
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     private final CassandraClientPool clientPool;
     private SchemaMutationLock schemaMutationLock;
@@ -437,7 +440,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         StartTsResultsCollector collector = new StartTsResultsCollector(startTs);
         loadWithTs(tableRef, cells, startTs, false, collector, readConsistency);
-        return collector.collectedResults;
+        return collector.getCollectedResults();
     }
 
     /**
@@ -468,7 +471,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(firstTs);
                 loadWithTs(tableRef, timestampByCell.keySet(), firstTs, false, collector, readConsistency);
-                return collector.collectedResults;
+                return collector.getCollectedResults();
             }
 
             SetMultimap<Long, Cell> cellsByTs = Multimaps.invertFrom(
@@ -477,7 +480,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(ts);
                 loadWithTs(tableRef, cellsByTs.get(ts), ts, false, collector, readConsistency);
-                builder.putAll(collector.collectedResults);
+                builder.putAll(collector.getCollectedResults());
             }
             return builder.build();
         } catch (Exception e) {
@@ -521,7 +524,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         runAllTasksCancelOnFailure(tasks);
     }
 
-    // TODO: after cassandra api change: handle different column select per row
+    // TODO(unknown): after cassandra api change: handle different column select per row
     private List<Callable<Void>> getLoadWithTsTasksForSingleHost(final InetSocketAddress host,
                                                                  final TableReference tableRef,
                                                                  final Collection<Cell> cells,
@@ -863,7 +866,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        // TODO: optimize by only getting column name after cassandra api change
+        // TODO(unknown): optimize by only getting column name after cassandra api change
         return super.getLatestTimestamps(tableRef, timestampByCell);
     }
 
@@ -1257,7 +1260,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                     final Map<Cell, Collection<Long>> cellVersionsMap) {
         try {
             clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
-                int numVersions = 0;
+                private int numVersions = 0;
 
                 @Override
                 public Void apply(Client client) throws Exception {
@@ -1320,7 +1323,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return ColumnFamilyDefinitions.getCfDef(configManager.getConfig().keyspace(), tableRef, rawMetadata);
     }
 
-    //TODO: after cassandra change: handle multiRanges
+    // TODO(unknown): after cassandra change: handle multiRanges
     @Override
     @Idempotent
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
@@ -1333,8 +1336,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
 
-    // TODO: after cassandra change: handle reverse ranges
-    // TODO: after cassandra change: handle column filtering
+    // TODO(unknown): after cassandra change: handle reverse ranges
+    // TODO(unknown): after cassandra change: handle column filtering
     /**
      * For each row in the specified range, returns the most recent version strictly before timestamp.
      * <p>
@@ -1351,7 +1354,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, readConsistency, ValueExtractor.SUPPLIER);
+        return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, readConsistency, ValueExtractor::create);
     }
 
     /**
@@ -1388,7 +1391,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     rangeRequest,
                     timestamp,
                     deleteConsistency,
-                    TimestampExtractor.SUPPLIER);
+                    TimestampExtractor::new);
         }
     }
 
@@ -1403,35 +1406,35 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
         ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
 
-        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, TimestampExtractor.SUPPLIER, timestamp);
+        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, TimestampExtractor::new, timestamp);
     }
 
-    private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
+    private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp,
             ConsistencyLevel consistency,
-            Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+            Supplier<ResultsExtractor<T>> resultsExtractor) {
         RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ALL);
         ColumnGetter columnGetter = new ThriftColumnGetter();
 
         return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
     }
 
-    private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
+    private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
             RowGetter rowGetter,
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,
-            Supplier<ResultsExtractor<T, U>> resultsExtractor,
+            Supplier<ResultsExtractor<T>> resultsExtractor,
             long timestamp) {
         if (rangeRequest.isReverse()) {
             throw new UnsupportedOperationException();
         }
         if (rangeRequest.isEmptyRange()) {
-            return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
+            return ClosableIterators.wrap(ImmutableList.<RowResult<T>>of().iterator());
         }
 
-        CassandraRangePagingIterable<T, U> rowResults = new CassandraRangePagingIterable<>(
+        CassandraRangePagingIterable<T> rowResults = new CassandraRangePagingIterable<>(
                 rowGetter,
                 columnGetter,
                 rangeRequest,
@@ -1944,7 +1947,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * @param cells a set of cells to store the values in.
      */
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         try {
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
             putInternal(tableRef, Iterables.transform(cells, new Function<Cell, Map.Entry<Cell, Value>>() {
@@ -1977,7 +1980,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
         loadWithTs(tableRef, cells, ts, true, collector, deleteConsistency);
-        return collector.collectedResults;
+        return collector.getCollectedResults();
     }
 
     /**
@@ -2121,6 +2124,71 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     CassandraConstants.GC_GRACE_SECONDS,
                     CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
         }
+    }
+
+    @Override
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        ClusterAvailabilityStatus clusterStatus = getStatusByRunningOperationsOnEachHost();
+        if (isClusterQuorumAvaialble(clusterStatus) && !doesConfigReplicationFactorMatchWithCluster()) {
+            return ClusterAvailabilityStatus.TERMINAL;
+        }
+        return clusterStatus;
+    }
+
+    private boolean isClusterQuorumAvaialble(ClusterAvailabilityStatus clusterStatus) {
+        return clusterStatus.equals(ClusterAvailabilityStatus.ALL_AVAILABLE)
+                || clusterStatus.equals(ClusterAvailabilityStatus.QUORUM_AVAILABLE);
+    }
+
+    private boolean doesConfigReplicationFactorMatchWithCluster() {
+        return clientPool.run(client -> {
+            try {
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, configManager.getConfig(), false);
+                return true;
+            } catch (Exception e) {
+                log.warn("The config and Cassandra cluster do not agree on the replication factor.", e);
+                return false;
+            }
+        });
+    }
+
+    private ClusterAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
+        int countUnreachableNodes = 0;
+        for (InetSocketAddress host : clientPool.currentPools.keySet()) {
+            try {
+                clientPool.runOnHost(host, CassandraVerifier.healthCheck);
+                if (!partitionerIsValid(host)) {
+                    return ClusterAvailabilityStatus.TERMINAL;
+                }
+            } catch (Exception e) {
+                countUnreachableNodes++;
+            }
+        }
+        return getNodeAvailabilityStatus(countUnreachableNodes);
+    }
+
+    private boolean partitionerIsValid(InetSocketAddress host) {
+        try {
+            clientPool.runOnHost(host, clientPool.validatePartitioner);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private ClusterAvailabilityStatus getNodeAvailabilityStatus(int countUnreachableNodes) {
+        if (countUnreachableNodes == 0) {
+            return ClusterAvailabilityStatus.ALL_AVAILABLE;
+        } else if (isQuorumAvailable(countUnreachableNodes)) {
+            return ClusterAvailabilityStatus.QUORUM_AVAILABLE;
+        } else {
+            return ClusterAvailabilityStatus.NO_QUORUM_AVAILABLE;
+        }
+    }
+
+    private boolean isQuorumAvailable(int countUnreachableNodes) {
+        int replicationFactor = configManager.getConfig().replicationFactor();
+        return countUnreachableNodes < (replicationFactor + 1) / 2;
     }
 
     private void alterGcAndTombstone(

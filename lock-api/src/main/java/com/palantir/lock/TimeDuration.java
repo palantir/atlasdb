@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 package com.palantir.lock;
 
 import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -27,7 +26,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
  *
  * @author jtamer
  */
-@JsonDeserialize(as=SimpleTimeDuration.class)
+@JsonDeserialize(as = SimpleTimeDuration.class)
 public interface TimeDuration extends Comparable<TimeDuration> {
 
     long getTime();

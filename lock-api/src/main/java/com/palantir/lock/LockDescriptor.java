@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,23 +48,28 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
     }
 
     @JsonIgnore
+    @SuppressWarnings("checkstyle:jdkStandardCharsets") // StandardCharsets only in JDK 1.7+
     public String getLockIdAsString() {
         return new String(bytes, Charsets.UTF_8);
     }
 
     @Override
-    public int compareTo(LockDescriptor o) {
-        return UnsignedBytes.lexicographicalComparator().compare(this.bytes, o.bytes);
+    public int compareTo(LockDescriptor other) {
+        return UnsignedBytes.lexicographicalComparator().compare(this.bytes, other.bytes);
     }
 
     @Override
     public String toString() {
         String lockIdAsString = getLockIdAsString();
-        return getClass().getSimpleName() + " [" +
-                (BASIC_PRINTABLE_ASCII.matchesAllOf(lockIdAsString) ?
-                        lockIdAsString :
-                        BaseEncoding.base16().encode(bytes))
+        return getClass().getSimpleName() + " ["
+                + encodeToAscii(lockIdAsString)
                 + "]";
+    }
+
+    private String encodeToAscii(String lockIdAsString) {
+        return BASIC_PRINTABLE_ASCII.matchesAllOf(lockIdAsString)
+                ? lockIdAsString
+                : BaseEncoding.base16().encode(bytes);
     }
 
     public byte[] getBytes() {
@@ -81,15 +86,16 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         LockDescriptor other = (LockDescriptor) obj;
-        if (!Arrays.equals(bytes, other.bytes))
-            return false;
-        return true;
+        return Arrays.equals(bytes, other.bytes);
     }
 }

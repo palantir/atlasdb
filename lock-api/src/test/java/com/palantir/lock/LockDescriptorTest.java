@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  * <p>
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -103,6 +103,7 @@ public class LockDescriptorTest {
         return "LockDescriptor [" + BaseEncoding.base16().encode(lockId) + "]";
     }
 
+    @SuppressWarnings("checkstyle:jdkStandardCharsets") // StandardCharsets only in JDK 1.7+
     private static byte[] stringToBytes(String lockId) {
         return lockId.getBytes(Charsets.UTF_8);
     }

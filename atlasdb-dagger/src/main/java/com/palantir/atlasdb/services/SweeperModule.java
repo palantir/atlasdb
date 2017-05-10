@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
-import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -41,7 +40,7 @@ public class SweeperModule {
                                                   TransactionService transactionService,
                                                   SweepStrategyManager sweepStrategyManager,
                                                   Follower follower) {
-        return new SweepTaskRunnerImpl(
+        return new SweepTaskRunner(
                 kvs,
                 txm::getUnreadableTimestamp,
                 txm::getImmutableTimestamp,

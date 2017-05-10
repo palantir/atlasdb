@@ -131,13 +131,25 @@ default values.
      - The length of time between a follower initiating a ping to a leader and, if it hasn't received a response,
        believing the leader is down, in ms (default: ``5000``).
 
+.. _timelock-server-further-config:
+
 Further Configuration Parameters
 --------------------------------
+
+.. list-table::
+   :widths: 5 40
+   :header-rows: 1
+
    * - Property
      - Description
 
    * - slowLockLogTriggerMillis
      - Log at INFO if a lock request receives a response after given duration in milliseconds (default: ``10000`` i.e. 10s).
+
+   * - useClientRequestLimit
+     - Limit the number of concurrent lock requests from a single client.
+       Each request consumes a thread on the server.
+       When enabled, each client has a number of threads reserved for itself (default: ``false``).
 
 
 Dropwizard Configuration Parameters

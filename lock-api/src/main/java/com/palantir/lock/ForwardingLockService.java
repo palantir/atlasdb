@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -118,6 +118,9 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
         return delegate().useGrant(client, grantId);
     }
 
+    /**
+     * @deprecated Please use getMinLockedInVersionId(LockClient.ANONYMOUS) instead
+     */
     @Override
     @Deprecated
     public Long getMinLockedInVersionId() {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,10 +34,11 @@ public interface PingableLeader {
     boolean ping();
 
     /**
-     * @return a unique string identifier for the leader election service
+     * Returns a unique string identifier for the leader election service.
      */
     @GET
     @Path("uuid")
     @Produces(MediaType.TEXT_PLAIN)
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Avoiding API break
     String getUUID();
 }

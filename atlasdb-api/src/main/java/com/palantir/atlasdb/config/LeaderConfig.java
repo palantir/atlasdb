@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import com.palantir.remoting.ssl.SslConfiguration;
 @JsonDeserialize(as = ImmutableLeaderConfig.class)
 @JsonSerialize(as = ImmutableLeaderConfig.class)
 @Value.Immutable
+@SuppressWarnings("DesignForExtension")
 public abstract class LeaderConfig {
 
     public abstract int quorumSize();

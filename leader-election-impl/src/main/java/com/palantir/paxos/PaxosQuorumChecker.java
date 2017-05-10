@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package com.palantir.paxos;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -117,12 +116,7 @@ public final class PaxosQuorumChecker {
         // kick off all the requests
         List<Future<RESPONSE>> allFutures = Lists.newArrayList();
         for (final SERVICE remote : remotes) {
-            allFutures.add(responseCompletionService.submit(new Callable<RESPONSE>() {
-                @Override
-                public RESPONSE call() throws Exception {
-                    return request.apply(remote);
-                }
-            }));
+            allFutures.add(responseCompletionService.submit(() -> request.apply(remote)));
         }
 
         List<Throwable> toLog = Lists.newArrayList();

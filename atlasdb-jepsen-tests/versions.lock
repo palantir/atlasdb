@@ -397,7 +397,6 @@
             "locked": "2.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl"
             ]
         },
@@ -459,6 +458,7 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
@@ -909,7 +909,6 @@
             "locked": "2.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl"
             ]
         },
@@ -971,6 +970,7 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -69,10 +70,10 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("addGarbageCollectionSentinelValues({}, {} cells)",
-                tableRef, cells.size())) {
+                tableRef, Iterables.size(cells))) {
             delegate().addGarbageCollectionSentinelValues(tableRef, cells);
         }
     }
@@ -99,6 +100,14 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("compactInternally({})", tableRef)) {
             delegate().compactInternally(tableRef);
+        }
+    }
+
+    @Override
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTrace trace = startLocalTrace("getClusterAvailabilityStatus()")) {
+            return delegate().getClusterAvailabilityStatus();
         }
     }
 

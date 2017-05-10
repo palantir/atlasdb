@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
@@ -31,6 +30,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -42,7 +42,6 @@ import com.palantir.atlasdb.table.common.TableTasks;
 import com.palantir.atlasdb.table.common.TableTasks.DiffStats;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -62,7 +61,6 @@ public class TableTasksTest {
     private LockAwareTransactionManager txManager;
 
     @Before
-    @SuppressWarnings("serial")
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
         TimestampService tsService = new InMemoryTimestampService();
@@ -74,11 +72,13 @@ public class TableTasksTest {
             }
         });
         TransactionService txService = TransactionServices.createTransactionService(kvs);
-        Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
-        ConflictDetectionManager cdm = ConflictDetectionManagers.createDefault(kvs);
+        Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(
+                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
+        ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
+        SerializableTransactionManager transactionManager = new SerializableTransactionManager(
+                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
         txManager = transactionManager;
     }
 
@@ -93,20 +93,24 @@ public class TableTasksTest {
         TableReference table1 = TableReference.createWithEmptyNamespace("table1");
         TableReference table2 = TableReference.createWithEmptyNamespace("table2");
         Random rand = new Random();
-        kvs.createTable(table1, AtlasDbConstants.EMPTY_TABLE_METADATA);
-        kvs.createTable(table2, AtlasDbConstants.EMPTY_TABLE_METADATA);
-        HashMultimap<Integer, Integer> keys1 = HashMultimap.create();
-        HashMultimap<Integer, Integer> keys2 = HashMultimap.create();
+        kvs.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(table2, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        Multimap<Integer, Integer> keys1 = HashMultimap.create();
+        Multimap<Integer, Integer> keys2 = HashMultimap.create();
         int key = 0;
         for (int col = 0; col < 256; col++) {
-            int r = rand.nextInt(3);
-            if (r >= 1) {
+            int randomInt = rand.nextInt(3);
+            if (randomInt >= 1) {
                 keys1.put(key, col);
-                kvs.put(table1, ImmutableMap.of(Cell.create(new byte[]{(byte) key}, new byte[]{(byte) col}), new byte[] {0}), 1);
+                kvs.put(table1,
+                        ImmutableMap.of(Cell.create(new byte[]{(byte) key}, new byte[]{(byte) col}), new byte[] {0}),
+                        1);
             }
-            if (r <= 1) {
+            if (randomInt <= 1) {
                 keys2.put(key, col);
-                kvs.put(table2, ImmutableMap.of(Cell.create(new byte[]{(byte) key}, new byte[]{(byte) col}), new byte[] {0}), 1);
+                kvs.put(table2,
+                        ImmutableMap.of(Cell.create(new byte[]{(byte) key}, new byte[]{(byte) col}), new byte[] {0}),
+                        1);
             }
             if (rand.nextBoolean()) {
                 key++;
@@ -119,14 +123,23 @@ public class TableTasksTest {
         AtomicLong rowsVisited = new AtomicLong();
         AtomicLong cellsOnlyInSource = new AtomicLong();
         AtomicLong cellsInCommon = new AtomicLong();
-        DiffStats stats = new TableTasks.DiffStats(rowsOnlyInSource, rowsPartiallyInCommon, rowsCompletelyInCommon, rowsVisited, cellsOnlyInSource, cellsInCommon);
-        TableTasks.diff(txManager, MoreExecutors.newDirectExecutorService(), table1, table2, 10, 1, stats, new TableTasks.DiffVisitor() {
-            @Override
-            public void visit(Transaction transaction, Iterator<Cell> partialDiff) {
-                Iterators.size(partialDiff);
-            }
-        });
-        long sourceOnlyCells = 0, commonCells = 0;
+        DiffStats stats = new TableTasks.DiffStats(
+                rowsOnlyInSource,
+                rowsPartiallyInCommon,
+                rowsCompletelyInCommon,
+                rowsVisited,
+                cellsOnlyInSource,
+                cellsInCommon);
+        TableTasks.diff(txManager,
+                MoreExecutors.newDirectExecutorService(),
+                table1,
+                table2,
+                10,
+                1,
+                stats,
+                (transaction, partialDiff) -> Iterators.size(partialDiff));
+        long sourceOnlyCells = 0;
+        long commonCells = 0;
         for (Entry<Integer, Integer> cell : keys1.entries()) {
             if (keys2.containsEntry(cell.getKey(), cell.getValue())) {
                 commonCells++;
@@ -134,7 +147,9 @@ public class TableTasksTest {
                 sourceOnlyCells++;
             }
         }
-        long disjointRows = 0, partialRows = 0, commonRows = 0;
+        long disjointRows = 0;
+        long partialRows = 0;
+        long commonRows = 0;
         for (int k : keys1.keySet()) {
             if (Collections.disjoint(keys2.get(k), keys1.get(k))) {
                 disjointRows++;

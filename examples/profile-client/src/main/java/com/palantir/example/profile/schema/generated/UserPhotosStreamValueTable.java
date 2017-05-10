@@ -222,6 +222,7 @@ public final class UserPhotosStreamValueTable implements
             return Objects.equal(id, other.id) && Objects.equal(blockId, other.blockId);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ id, blockId });
@@ -692,5 +693,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "LjGmrYTrfFkNoyz4SYnMVA==";
+    static String __CLASS_HASH = "1NjDAKcv4RUJmYAuWL3LAA==";
 }

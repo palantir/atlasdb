@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ public class AtlasConsoleMain {
                 setupScript += "\n" + Joiner.on('\n').join(cli.getOptionValues(EVAL_FLAG_SHORT));
             }
 
-            setupScript += "\n//AtlasConsole started!";
+            setupScript += "\n//AtlasConsole started, type help() for more info!";
             List<String> args = new ArrayList<String>(Arrays.asList(cli.getArgs()));
             args.add(setupScript);
             if(cli.hasOption(CLASSPATH_FLAG_SHORT)) {

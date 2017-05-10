@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,13 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -42,6 +44,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -51,6 +54,9 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
+import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
+import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
@@ -95,6 +101,7 @@ public abstract class AbstractSweeperTest {
     protected LockService lockService;
     protected TransactionService txService;
     protected SweepMetrics sweepMetrics = Mockito.mock(SweepMetrics.class);
+    protected PersistentLockManager persistentLockManager;
 
     @Before
     public void setup() {
@@ -110,15 +117,18 @@ public abstract class AbstractSweeperTest {
         txService = TransactionServices.createTransactionService(kvs);
         Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
-        ConflictDetectionManager cdm = ConflictDetectionManagers.createDefault(kvs);
+        ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
         txManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService,
                 constraints, cdm, ssm, cleaner, false);
         setupTables(kvs);
-        Supplier<Long> tsSupplier = sweepTimestamp::get;
-        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
-        sweepRunner = new SweepTaskRunnerImpl(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+        persistentLockManager = new PersistentLockManager(
+                getPersistentLockService(kvs),
+                AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
+        LongSupplier tsSupplier = sweepTimestamp::get;
+        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
+        sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
         setupBackgroundSweeper(DEFAULT_BATCH_SIZE);
     }
 
@@ -140,6 +150,14 @@ public abstract class AbstractSweeperTest {
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 
+    private static PersistentLockService getPersistentLockService(KeyValueService kvs) {
+        if (kvs.supportsCheckAndSet()) {
+            return KvsBackedPersistentLockService.create(kvs);
+        } else {
+            return new NoOpPersistentLockService();
+        }
+    }
+
     protected void setupBackgroundSweeper(int batchSize) {
         Supplier<Boolean> sweepEnabledSupplier = () -> true;
         Supplier<Long> sweepNoPause = () -> 0L;
@@ -148,7 +166,7 @@ public abstract class AbstractSweeperTest {
 
         backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause,
                 batchSizeSupplier, cellBatchSizeSupplier, SweepTableFactory.of(),
-                new NoOpBackgroundSweeperPerformanceLogger(), sweepMetrics);
+                new NoOpBackgroundSweeperPerformanceLogger(), sweepMetrics, persistentLockManager);
     }
 
     @After
@@ -659,9 +677,9 @@ public abstract class AbstractSweeperTest {
             Map<Cell, byte[]> toPut = new HashMap<>();
             for (int row = 0; row < 1000; ++row) {
                 Cell cell = Cell.create(
-                        Integer.toString(row).getBytes(),
-                        Integer.toString(col).getBytes());
-                toPut.put(cell, "foo".getBytes());
+                        Integer.toString(row).getBytes(StandardCharsets.UTF_8),
+                        Integer.toString(col).getBytes(StandardCharsets.UTF_8));
+                toPut.put(cell, "foo".getBytes(StandardCharsets.UTF_8));
             }
             kvs.put(TABLE_NAME, toPut, col + 1000);
             putTimestampIntoTransactionTable(col + 1000);
@@ -684,9 +702,9 @@ public abstract class AbstractSweeperTest {
         Map<Cell, byte[]> toPut = new HashMap<>();
         for (int col = 0; col < 10000; ++col) {
             Cell cell = Cell.create(
-                    "1".getBytes(),
-                    Integer.toString(col).getBytes());
-            toPut.put(cell, "foo".getBytes());
+                    "1".getBytes(StandardCharsets.UTF_8),
+                    Integer.toString(col).getBytes(StandardCharsets.UTF_8));
+            toPut.put(cell, "foo".getBytes(StandardCharsets.UTF_8));
         }
         for (int timestamp = 1; timestamp < 1001; ++timestamp) {
             kvs.put(TABLE_NAME, toPut, timestamp);
@@ -763,13 +781,13 @@ public abstract class AbstractSweeperTest {
     }
 
     private String get(String row, long ts) {
-        Cell cell = Cell.create(row.getBytes(), COL.getBytes());
+        Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), COL.getBytes(StandardCharsets.UTF_8));
         Value val = kvs.get(TABLE_NAME, ImmutableMap.of(cell, ts)).get(cell);
-        return val == null ? null : new String(val.getContents());
+        return val == null ? null : new String(val.getContents(), StandardCharsets.UTF_8);
     }
 
     private Set<Long> getAllTs(String row) {
-        Cell cell = Cell.create(row.getBytes(), COL.getBytes());
+        Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), COL.getBytes(StandardCharsets.UTF_8));
         return ImmutableSet.copyOf(kvs.getAllTimestamps(TABLE_NAME, ImmutableSet.of(cell), Long.MAX_VALUE).get(cell));
     }
 
@@ -786,8 +804,8 @@ public abstract class AbstractSweeperTest {
             final String column,
             final String val,
             final long ts) {
-        Cell cell = Cell.create(row.getBytes(), column.getBytes());
-        kvs.put(tableRef, ImmutableMap.of(cell, val.getBytes()), ts);
+        Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), column.getBytes(StandardCharsets.UTF_8));
+        kvs.put(tableRef, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8)), ts);
         putTimestampIntoTransactionTable(ts);
     }
 
@@ -796,8 +814,8 @@ public abstract class AbstractSweeperTest {
     }
 
     private void putUncommitted(final String row, final String val, final long ts) {
-        Cell cell = Cell.create(row.getBytes(), COL.getBytes());
-        kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
+        Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), COL.getBytes(StandardCharsets.UTF_8));
+        kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8)), ts);
     }
 
 

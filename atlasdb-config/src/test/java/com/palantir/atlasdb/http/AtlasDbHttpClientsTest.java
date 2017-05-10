@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,18 +47,17 @@ public class AtlasDbHttpClientsTest {
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final String TEST_ENDPOINT = "/number";
     private static final MappingBuilder ENDPOINT_MAPPING = get(urlEqualTo(TEST_ENDPOINT));
-    private static final int AVAILABLE_PORT = 8080;
-    private static final int UNAVAILABLE_PORT = 8081;
     private static final int TEST_NUMBER = 12;
-    private static final Set<String> BOTH_URIS = ImmutableSet.of(
-            getUriForPort(UNAVAILABLE_PORT),
-            getUriForPort(AVAILABLE_PORT));
+
+    private int availablePort;
+    private int unavailablePort;
+    private Set<String> bothUris;
 
     @Rule
-    public WireMockRule availableServer = new WireMockRule(AVAILABLE_PORT);
+    public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     @Rule
-    public WireMockRule unavailableServer = new WireMockRule(UNAVAILABLE_PORT);
+    public WireMockRule unavailableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     public interface TestResource {
         @GET
@@ -71,13 +70,19 @@ public class AtlasDbHttpClientsTest {
     public void setup() {
         String testNumberAsString = Integer.toString(TEST_NUMBER);
         availableServer.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
+
+        availablePort = availableServer.port();
+        unavailablePort = unavailableServer.port();
+        bothUris = ImmutableSet.of(
+                getUriForPort(unavailablePort),
+                getUriForPort(availablePort));
     }
 
     @Test
     public void ifOneServerResponds503WithNoRetryHeaderTheRequestIsRerouted() {
         unavailableServer.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(503)));
 
-        TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, BOTH_URIS, TestResource.class);
+        TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, bothUris, TestResource.class);
         int response = client.getTestNumber();
 
         assertThat(response, equalTo(TEST_NUMBER));
@@ -87,7 +92,7 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void userAgentIsPresentOnClientRequests() {
         TestResource client =
-                AtlasDbHttpClients.createProxy(NO_SSL, getUriForPort(AVAILABLE_PORT), TestResource.class);
+                AtlasDbHttpClients.createProxy(NO_SSL, getUriForPort(availablePort), TestResource.class);
         client.getTestNumber();
 
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);

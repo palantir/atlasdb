@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ public class CheckAndSetClient {
     }
 
     public boolean checkAndSet(Optional<Long> oldValue, Optional<Long> newValue) {
-        return transactionManager.runTaskWithRetry((transaction) -> new CheckAndSetPersistentValue(transaction).checkAndSet(oldValue, newValue));
+        return transactionManager.runTaskWithRetry(
+                (transaction) -> new CheckAndSetPersistentValue(transaction).checkAndSet(oldValue, newValue));
     }
 }

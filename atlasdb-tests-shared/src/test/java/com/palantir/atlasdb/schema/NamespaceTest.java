@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.schema;
 
-import static junit.framework.TestCase.fail;
+import static org.junit.Assert.fail;
 
 import java.util.regex.Pattern;
 
@@ -25,14 +25,14 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 
 public class NamespaceTest {
 
-    private void expectSuccess(String s, Pattern p) {
-        Namespace.create(s, p);
+    private void expectSuccess(String string, Pattern pattern) {
+        Namespace.create(string, pattern);
     }
 
-    private void expectFailure(String s, Pattern p) {
+    private void expectFailure(String string, Pattern pattern) {
         try {
-            Namespace.create(s, p);
-            fail("Namespace '" + s + "' was not supposed to match pattern '" + p + "'");
+            Namespace.create(string, pattern);
+            fail("Namespace '" + string + "' was not supposed to match pattern '" + pattern + "'");
         } catch (Exception e) {
             // success
         }

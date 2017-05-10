@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class TransactionRemotingTest {
     public final static AtlasSchema schema = SweepSchema.INSTANCE;
-    public final SerializableTransactionManager txMgr = TransactionManagers.createInMemory(schema);
+    public final SerializableTransactionManager txMgr = TransactionManagers.createInMemory(schema.getLatestSchema());
     public final KeyValueService kvs = txMgr.getKeyValueService();
     public final TableMetadataCache cache = new TableMetadataCache(kvs);
     public final ObjectMapper mapper = new ObjectMapper(); { mapper.registerModule(new AtlasJacksonModule(cache).createModule()); }
@@ -155,7 +155,7 @@ public class TransactionRemotingTest {
     public void testGetCellsSome() {
         setupFooStatus1("sweep.priority");
         TransactionToken txId = service.startTransaction();
-        Map<Cell, byte[]> contents = getSweepPriorityTableContents();
+        Map<Cell, byte[]> contents = getSweepPriorityTableContents("foo");
         TableCellVal goodCells = service.getCells(txId, new TableCell(
                 "sweep.priority",
                 contents.keySet()));
@@ -194,9 +194,40 @@ public class TransactionRemotingTest {
     }
 
     @Test
+    public void testGetRangeMultipleBatchesWithColSelection() {
+        setupMultipleValues();
+
+        TransactionToken token = TransactionToken.autoCommit();
+
+        RangeToken range = service.getRange(token, new TableRange(
+                "sweep.priority",
+                new byte[0],
+                new byte[0],
+                ImmutableList.<byte[]>of("e".getBytes()),
+                2
+                ));
+        Assert.assertEquals(2, Iterables.size(range.getResults().getResults()));
+        Assert.assertNotNull(range.getNextRange());
+
+        // get second range
+        RangeToken range2 = service.getRange(token, range.getNextRange());
+        Assert.assertEquals(1, Iterables.size(range2.getResults().getResults()));
+        Assert.assertNull(range2.getNextRange());
+
+    }
+
+    private void setupMultipleValues() {
+        TransactionToken txId = service.startTransaction();
+        service.put(txId, new TableCellVal("sweep.priority", getSweepPriorityTableContents("foo")));
+        service.put(txId, new TableCellVal("sweep.priority", getSweepPriorityTableContents("bar")));
+        service.put(txId, new TableCellVal("sweep.priority", getSweepPriorityTableContents("baz")));
+        service.commit(txId);
+    }
+
+    @Test
     public void testDelete() {
         setupFooStatus1("sweep.priority");
-        Map<Cell, byte[]> contents = getSweepPriorityTableContents();
+        Map<Cell, byte[]> contents = getSweepPriorityTableContents("foo");
         TransactionToken token = TransactionToken.autoCommit();
         service.delete(token, new TableCell(
                 "sweep.priority",
@@ -214,7 +245,7 @@ public class TransactionRemotingTest {
     @Test
     public void testAbort() {
         TransactionToken txId = service.startTransaction();
-        service.put(txId, new TableCellVal("sweep.priority", getSweepPriorityTableContents()));
+        service.put(txId, new TableCellVal("sweep.priority", getSweepPriorityTableContents("foo")));
         service.abort(txId);
         service.commit(txId);
         txId = TransactionToken.autoCommit();
@@ -233,7 +264,7 @@ public class TransactionRemotingTest {
         String tableName = "ns.my_table";
         service.createTable(tableName);
         TransactionToken txId = service.startTransaction();
-        TableCellVal putArg = new TableCellVal(tableName, getSweepPriorityTableContents());
+        TableCellVal putArg = new TableCellVal(tableName, getSweepPriorityTableContents("foo"));
         String str = mapper.writeValueAsString(putArg);
         System.out.println(str);
         service.put(txId, putArg);
@@ -255,12 +286,12 @@ public class TransactionRemotingTest {
 
     private void setupFooStatus1(String table) {
         TransactionToken txId = service.startTransaction();
-        service.put(txId, new TableCellVal(table, getSweepPriorityTableContents()));
+        service.put(txId, new TableCellVal(table, getSweepPriorityTableContents("foo")));
         service.commit(txId);
     }
 
-    private Map<Cell, byte[]> getSweepPriorityTableContents() {
-        byte[] row = SweepPriorityRow.of("foo").persistToBytes();
+    private Map<Cell, byte[]> getSweepPriorityTableContents(String table) {
+        byte[] row = SweepPriorityRow.of(table).persistToBytes();
         CellsExamined status = CellsExamined.of(1L);
         Cell cell = Cell.create(row, status.persistColumnName());
         return ImmutableMap.of(cell, status.persistValue());

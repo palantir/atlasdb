@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 
+@SuppressWarnings("checkstyle:FinalClass") // Avoid breaking API in case someone extended this
 public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService {
     private static final Logger log = LoggerFactory.getLogger(LockRefreshingRemoteLockService.class);
 
@@ -53,12 +54,12 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
                 } finally {
                     long elapsed = System.currentTimeMillis() - startTime;
 
-                    if (elapsed > LockRequest.DEFAULT_LOCK_TIMEOUT.toMillis()/2) {
-                        log.error("Refreshing locks took {} milliseconds" +
-                                " for tokens: {}", elapsed,  ret.toRefresh);
+                    if (elapsed > LockRequest.DEFAULT_LOCK_TIMEOUT.toMillis() / 2) {
+                        log.error("Refreshing locks took {} milliseconds"
+                                + " for tokens: {}", elapsed,  ret.toRefresh);
                     } else if (elapsed > ret.refreshFrequencyMillis) {
-                        log.warn("Refreshing locks took {} milliseconds" +
-                                " for tokens: {}", elapsed, ret.toRefresh);
+                        log.warn("Refreshing locks took {} milliseconds"
+                                + " for tokens: {}", elapsed, ret.toRefresh);
                     }
                 }
             }
@@ -117,6 +118,7 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
     }
 
     @Override
+    @SuppressWarnings("checkstyle:NoFinalizer") // TODO (jkong): Can we safely remove this without breaking things?
     protected void finalize() throws Throwable {
         super.finalize();
         if (!isClosed) {

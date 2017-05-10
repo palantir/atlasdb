@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import com.google.common.base.Preconditions;
  *
  * @author jtamer
  */
-public class ByteArrayLockDescriptor {
+public final class ByteArrayLockDescriptor {
 
     private ByteArrayLockDescriptor() {
         // cannot instantiate
@@ -33,7 +33,7 @@ public class ByteArrayLockDescriptor {
 
     /** Returns a {@code LockDescriptor} instance for the given lock ID. */
     public static LockDescriptor of(byte[] bytes) {
-        Preconditions.checkNotNull(bytes);
+        Preconditions.checkNotNull(bytes, "bytes cannot be null");
         return new LockDescriptor(bytes.clone());
     }
 }

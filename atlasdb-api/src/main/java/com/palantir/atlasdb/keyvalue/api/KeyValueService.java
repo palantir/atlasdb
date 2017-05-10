@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -380,7 +380,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param tableRef the name of the table to truncate.
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
-     * @throws (? extends RuntimeException) if the table does not exist
+     * @throws RuntimeException or a subclass of RuntimeException if the table does not exist
      */
     @POST
     @Path("truncate-table")
@@ -396,7 +396,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param tableRefs the name of the tables to truncate.
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
-     * @throws (? extends RuntimeException) if the table does not exist
+     * @throws RuntimeException or a subclass of RuntimeException if the table does not exist
      */
     @POST
     @Path("truncate-tables")
@@ -479,6 +479,9 @@ public interface KeyValueService extends AutoCloseable {
 
     /**
      * Drop the table, and also delete its table metadata.
+     *
+     * Do not fall into the trap of performing drop & immediate re-create of tables;
+     * instead use 'truncate' for this task.
      */
     @DELETE
     @Path("drop-table")
@@ -492,6 +495,9 @@ public interface KeyValueService extends AutoCloseable {
      * Drops many tables in idempotent fashion. If you are dropping many tables at once,
      * use this call as the implementation can be much faster/less error-prone on some KVSs.
      * Also deletes corresponding table metadata.
+     *
+     * Do not fall into the trap of performing drop & immediate re-create of tables;
+     * instead use 'truncate' for this task.
      */
     @DELETE
     @Path("drop-tables")
@@ -548,6 +554,13 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     byte[] getMetadataForTable(@QueryParam("tableRef") TableReference tableRef);
 
+    /**
+     * Gets the metadata for all known user-created Atlas tables.
+     * Consider not using this if you will be running against an Atlas instance with a large number of tables.
+     *
+     * @return a Map from TableReference to byte array representing the metadata for the table
+     * Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating
+     */
     @POST
     @Path("get-metadata-for-tables")
     @Produces(MediaType.APPLICATION_JSON)
@@ -578,7 +591,7 @@ public interface KeyValueService extends AutoCloseable {
     @Path("add-gc-sentinel-values")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void addGarbageCollectionSentinelValues(@QueryParam("tableName") TableReference tableRef, Set<Cell> cells);
+    void addGarbageCollectionSentinelValues(@QueryParam("tableName") TableReference tableRef, Iterable<Cell> cells);
 
     /**
      * Gets timestamp values from the key-value store. For each cell, this returns all associated
@@ -617,4 +630,14 @@ public interface KeyValueService extends AutoCloseable {
     @Path("compact-internally")
     @Consumes(MediaType.APPLICATION_JSON)
     void compactInternally(TableReference tableRef);
+
+    /**
+     * Checks if the KVS has a quorum available to successfully perform reads/writes.
+     *
+     * This call must be implemented so that it completes synchronously.
+     */
+    @POST
+    @Path("node-availability-status")
+    @Consumes(MediaType.APPLICATION_JSON)
+    ClusterAvailabilityStatus getClusterAvailabilityStatus();
 }

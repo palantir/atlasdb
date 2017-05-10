@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,12 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
-public abstract class WrappingTestTransactionManager extends WrappingTransactionManager implements TestTransactionManager {
+public abstract class WrappingTestTransactionManager extends WrappingTransactionManager
+        implements TestTransactionManager {
     private final TestTransactionManager delegate;
 
     public WrappingTestTransactionManager(TestTransactionManager delegate) {
@@ -26,12 +29,17 @@ public abstract class WrappingTestTransactionManager extends WrappingTransaction
     }
 
     @Override
-    public Transaction commitAndStartNewTransaction(Transaction t) {
-        return wrap(delegate.commitAndStartNewTransaction(t));
+    public Transaction commitAndStartNewTransaction(Transaction txn) {
+        return wrap(delegate.commitAndStartNewTransaction(txn));
     }
 
     @Override
     public Transaction createNewTransaction() {
         return wrap(delegate.createNewTransaction());
+    }
+
+    @Override
+    public void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
+        delegate.overrideConflictHandlerForTable(table, conflictHandler);
     }
 }

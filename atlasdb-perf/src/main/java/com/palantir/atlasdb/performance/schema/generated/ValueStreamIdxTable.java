@@ -300,6 +300,7 @@ public final class ValueStreamIdxTable implements
             return Arrays.equals(reference, other.reference);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(reference);

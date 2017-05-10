@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,8 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.List;
 import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -33,7 +31,6 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -55,7 +52,6 @@ import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
-import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -63,12 +59,11 @@ import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
+import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
-import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -98,21 +93,23 @@ public final class TransactionManagers {
     }
 
     /**
+     * Accepts a single {@link Schema}.
+     * @see TransactionManagers#createInMemory(Set)
+     */
+    public static SerializableTransactionManager createInMemory(Schema schema) {
+        return createInMemory(ImmutableSet.of(schema));
+    }
+
+    /**
      * Create a {@link SerializableTransactionManager} backed by an
      * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}.  This should be used for testing
      * purposes only.
      */
-    public static SerializableTransactionManager createInMemory(AtlasSchema schema, AtlasSchema... otherSchemas) {
+    public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         return create(ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build(),
-                getSchemaSet(Lists.asList(schema, otherSchemas)),
+                schemas,
                 x -> { },
                 false);
-    }
-
-    private static Set<Schema> getSchemaSet(List<AtlasSchema> schemas) {
-        return schemas.stream()
-                .map(AtlasSchema::getLatestSchema)
-                .collect(Collectors.toSet());
     }
 
     /**
@@ -198,7 +195,7 @@ public final class TransactionManagers {
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
-        ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
+        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
 
         Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
@@ -237,16 +234,18 @@ public final class TransactionManagers {
                 cleaner,
                 allowHiddenTableAccess);
 
+        PersistentLockManager persistentLockManager = new PersistentLockManager(
+                persistentLockService,
+                config.getSweepPersistentLockWaitMillis());
         CellsSweeper cellsSweeper = new CellsSweeper(
                 transactionManager,
                 kvs,
-                persistentLockService,
-                config.getSweepPersistentLockWaitMillis(),
+                persistentLockManager,
                 ImmutableList.of(follower));
-        SweepTaskRunner sweepRunner = new SweepTaskRunnerImpl(
+        SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,
-                getUnreadableTsSupplier(transactionManager),
-                getImmutableTsSupplier(transactionManager),
+                transactionManager::getUnreadableTimestamp,
+                transactionManager::getImmutableTimestamp,
                 transactionService,
                 sweepStrategyManager,
                 cellsSweeper);
@@ -259,7 +258,8 @@ public final class TransactionManagers {
                 Suppliers.ofInstance(config.getSweepBatchSize()),
                 Suppliers.ofInstance(config.getSweepCellBatchSize()),
                 SweepTableFactory.of(),
-                new NoOpBackgroundSweeperPerformanceLogger());
+                new NoOpBackgroundSweeperPerformanceLogger(),
+                persistentLockManager);
         backgroundSweeper.runInBackground();
 
         return transactionManager;
@@ -274,14 +274,6 @@ public final class TransactionManagers {
         env.register(pls);
         env.register(new CheckAndSetExceptionMapper());
         return pls;
-    }
-
-    private static Supplier<Long> getImmutableTsSupplier(final TransactionManager txManager) {
-        return () -> txManager.getImmutableTimestamp();
-    }
-
-    private static Supplier<Long> getUnreadableTsSupplier(final TransactionManager txManager) {
-        return () -> txManager.getUnreadableTimestamp();
     }
 
     /**

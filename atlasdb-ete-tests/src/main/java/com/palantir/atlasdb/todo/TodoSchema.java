@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,11 +37,12 @@ public class TodoSchema implements AtlasSchema {
                 Namespace.DEFAULT_NAMESPACE);
 
         schema.addTableDefinition(TODO_TABLE, new TableDefinition() {{
-            rowName();
+                rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
-            columns();
+                columns();
                 column(TEXT_COLUMN, "t", ValueType.STRING);
-        }});
+            }
+        });
 
         return schema;
     }

@@ -10,5 +10,16 @@ cluster:
 clients:
   - test
   - test2
+  - test3
   - learner
   - acceptor
+
+useClientRequestLimit: true
+
+server:
+  minThreads: 1
+  maxThreads: 100
+  applicationConnectors:
+    - type: http
+      selectorThreads: 8
+      acceptorThreads: 4

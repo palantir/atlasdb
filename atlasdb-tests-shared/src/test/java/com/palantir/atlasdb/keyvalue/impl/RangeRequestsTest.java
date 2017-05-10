@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,29 +25,31 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 
 public class RangeRequestsTest {
 
+    private Random random = new Random();
+
     @Test
     public void testNextAndPrev() {
         assertNextPrevEqualsOrig(new byte[] {0});
         assertNextPrevEqualsOrig(new byte[] {(byte) 0xff});
 
-        for (int i = 0 ; i < 100000 ; i++) {
+        for (int i = 0; i < 100000; i++) {
             assertNextPrevEqualsOrig(generateRandomWithFreqLogLen());
         }
     }
 
-    Random r = new Random();
-
     private byte[] generateRandomWithFreqLogLen() {
-        long l = r.nextLong();
+        long randomLong = random.nextLong();
         // lg(n) distrobution of len
-        int len = Long.numberOfTrailingZeros(l) + 1;
+        int len = Long.numberOfTrailingZeros(randomLong) + 1;
         byte[] ret = new byte[len];
-        r.nextBytes(ret);
+        random.nextBytes(ret);
         return ret;
     }
 
-    private void assertNextPrevEqualsOrig(byte[] x) {
-        Assert.assertTrue(Arrays.equals(x, RangeRequests.nextLexicographicName(RangeRequests.previousLexicographicName(x))));
-        Assert.assertTrue(Arrays.equals(x, RangeRequests.previousLexicographicName(RangeRequests.nextLexicographicName(x))));
+    private void assertNextPrevEqualsOrig(byte[] value) {
+        Assert.assertTrue(Arrays.equals(value,
+                RangeRequests.nextLexicographicName(RangeRequests.previousLexicographicName(value))));
+        Assert.assertTrue(Arrays.equals(value,
+                RangeRequests.previousLexicographicName(RangeRequests.nextLexicographicName(value))));
     }
 }

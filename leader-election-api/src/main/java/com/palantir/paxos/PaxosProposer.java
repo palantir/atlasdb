@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ public interface PaxosProposer {
      *
      * @param seq the number identifying this instance of paxos
      * @param proposalValue default value to propose to the quorum
-     * @return the value accepted by the quorum.  This may not be the value you have proposed.
+     * @return the value accepted by the quorum.  This may not be the value you have proposed
      * @throws PaxosRoundFailureException if the proposal round fails. The primary reasons a round
      *         will fail are (1) the proposer cannot reach a quorum of acceptors and (2) the
      *         sequence number is too old (acceptor logs have been truncated). We do not place
@@ -34,16 +34,16 @@ public interface PaxosProposer {
      *         equipped to handle this case. PaxosProposerImpl will not throw in this case,
      *         but requires it be enforced on a higher level.
      */
-    public byte[] propose(long seq, @Nullable byte[] proposalValue)
+    byte[] propose(long seq, @Nullable byte[] proposalValue)
             throws PaxosRoundFailureException;
 
     /**
-     * @return the number of acceptors that need to support a successful request
+     * Returns the number of acceptors that need to support a successful request.
      */
-    public int getQuorumSize();
+    int getQuorumSize();
 
     /**
-     * @return a unique string identifier for the proposer
+     * Returns a unique string identifier for the proposer.
      */
-    public String getUUID();
+    String getUuid();
 }
