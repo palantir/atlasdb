@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock;
 
 import static org.mockito.Mockito.mock;
 
+import com.palantir.paxos.PaxosAcceptor;
 import javax.ws.rs.NotFoundException;
 
 import org.junit.Test;
@@ -37,7 +38,8 @@ public class TimeLockResourceTest {
     private static final TimeLockServices TIME_LOCK_SERVICES = TimeLockServices.create(
             TIMESTAMP_SERVICE,
             LOCK_SERVICE,
-            TIMESTAMP_MANAGEMENT_SERVICE);
+            TIMESTAMP_MANAGEMENT_SERVICE,
+            mock(PaxosAcceptor.class));
 
     private static final TimeLockResource RESOURCE = new TimeLockResource(
             ImmutableMap.of(EXISTING_CLIENT, TIME_LOCK_SERVICES));

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.atomix;
 
+import com.palantir.paxos.PaxosAcceptorImpl;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -109,7 +110,8 @@ public class AtomixTimeLockServer implements TimeLockServer {
         DistributedLong timestamp = DistributedValues.getTimestampForClient(replica, client);
         Supplier<TimeLockServices> timeLockSupplier = () -> {
             AtomixTimestampService atomixTimestampService = new AtomixTimestampService(timestamp);
-            return TimeLockServices.create(atomixTimestampService, LockServiceImpl.create(), atomixTimestampService);
+            return TimeLockServices.create(atomixTimestampService, LockServiceImpl.create(), atomixTimestampService,
+                    PaxosAcceptorImpl.newAcceptor("var/log"));
         };
         return InvalidatingLeaderProxy.create(
                 localMember,

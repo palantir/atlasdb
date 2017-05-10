@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import com.palantir.paxos.PaxosAcceptor;
 import org.immutables.value.Value;
 
 import com.palantir.lock.LockService;
@@ -26,15 +27,19 @@ public interface TimeLockServices {
     static TimeLockServices create(
             TimestampService timestampService,
             LockService lockService,
-            TimestampManagementService timestampManagementService) {
+            TimestampManagementService timestampManagementService,
+            PaxosAcceptor acceptor) {
         return ImmutableTimeLockServices.builder()
                 .timestampService(timestampService)
                 .lockService(lockService)
                 .timestampManagementService(timestampManagementService)
+                .leadershipAcceptor(acceptor)
                 .build();
     }
 
     TimestampManagementService getTimestampManagementService();
     TimestampService getTimestampService();
     LockService getLockService();
+
+    PaxosAcceptor getLeadershipAcceptor();
 }

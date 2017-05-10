@@ -15,22 +15,29 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Map;
-
-import org.eclipse.jetty.util.component.AbstractLifeCycle;
-import org.eclipse.jetty.util.component.LifeCycle;
-
 import com.codahale.metrics.MetricRegistry;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
-
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import java.io.IOException;
+import java.util.Map;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.component.LifeCycle;
 
 public class TimeLockServerLauncher extends Application<TimeLockServerConfiguration> {
     public static void main(String[] args) throws Exception {
@@ -73,8 +80,49 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
                 client -> serverImpl.createInvalidatingTimeLockServices(client,
                         configuration.slowLockLogTriggerMillis())));
 
+        for (Map.Entry<String, TimeLockServices> entry : clientToServices.entrySet()) {
+            environment.getApplicationContext().addServlet(
+                    new TimestampServletHolder(entry.getValue()), "/" + entry.getKey() + "/timestamp/fresh-timestamp");
+        }
+        environment.getApplicationContext().addServlet(
+                new PaxosLeadershipServletHolder(clientToServices.values().iterator().next().getLeadershipAcceptor()),
+                "/.internal/leaderPaxos/acceptor/latest-sequence-prepared-or-accepted");
+
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));
     }
 
+    private static class TimestampServletHolder extends ServletHolder {
+        TimestampServletHolder(TimeLockServices value) {
+            super(new HttpServlet() {
+                @Override
+                protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+                        throws ServletException, IOException {
+                    resp.addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
+                    resp.getWriter().write(
+                            new ObjectMapper().writeValueAsString(
+                                    value.getTimestampService().getFreshTimestamp()
+                            )
+                    );
+                }
+            });
+        }
+    }
+
+    private static class PaxosLeadershipServletHolder extends ServletHolder {
+        PaxosLeadershipServletHolder(PaxosAcceptor acceptor) {
+            super(new HttpServlet() {
+                @Override
+                protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+                        throws ServletException, IOException {
+                    resp.addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
+                    resp.getWriter().write(
+                            new ObjectMapper().writeValueAsString(
+                                    acceptor.getLatestSequencePreparedOrAccepted()
+                            )
+                    );
+                }
+            });
+        }
+    }
 }
