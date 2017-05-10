@@ -99,6 +99,12 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs"
             ]
         },
+        "com.googlecode.concurrent-trees:concurrent-trees": {
+            "locked": "2.4.0",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "com.googlecode.json-simple:json-simple": {
             "locked": "1.1.1",
             "transitive": [
@@ -193,7 +199,7 @@
             ]
         },
         "com.palantir.tritium:tritium-api": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -202,7 +208,7 @@
             ]
         },
         "com.palantir.tritium:tritium-core": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -210,19 +216,19 @@
             ]
         },
         "com.palantir.tritium:tritium-lib": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
@@ -300,8 +306,8 @@
             ]
         },
         "org.apache.cassandra:cassandra-thrift": {
-            "locked": "2.2.8",
-            "requested": "2.2.8"
+            "locked": "3.10",
+            "requested": "3.10"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.1",
@@ -486,6 +492,12 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs"
             ]
         },
+        "com.googlecode.concurrent-trees:concurrent-trees": {
+            "locked": "2.4.0",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "com.googlecode.json-simple:json-simple": {
             "locked": "1.1.1",
             "transitive": [
@@ -580,7 +592,7 @@
             ]
         },
         "com.palantir.tritium:tritium-api": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -589,7 +601,7 @@
             ]
         },
         "com.palantir.tritium:tritium-core": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -597,19 +609,19 @@
             ]
         },
         "com.palantir.tritium:tritium-lib": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
@@ -687,8 +699,8 @@
             ]
         },
         "org.apache.cassandra:cassandra-thrift": {
-            "locked": "2.2.8",
-            "requested": "2.2.8"
+            "locked": "3.10",
+            "requested": "3.10"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.1",
