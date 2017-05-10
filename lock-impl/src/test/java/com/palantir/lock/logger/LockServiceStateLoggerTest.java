@@ -17,7 +17,6 @@ package com.palantir.lock.logger;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
@@ -28,7 +27,6 @@ import org.junit.Test;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.MapMaker;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.lock.HeldLocksToken;
@@ -39,9 +37,6 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.impl.ClientAwareReadWriteLock;
-import com.palantir.lock.impl.LockClientIndices;
-import com.palantir.lock.impl.LockServerLock;
 import com.palantir.lock.impl.LockServiceImpl;
 
 public class LockServiceStateLoggerTest {
@@ -58,7 +53,7 @@ public class LockServiceStateLoggerTest {
         LockClient clientB = LockClient.of("Client B");
 
         LockDescriptor descriptor1 = StringLockDescriptor.of("logger-lock");
-        LockDescriptor descriptor2 = StringLockDescriptor.of("logger-BBB");
+        LockDescriptor descriptor2 = StringLockDescriptor.of("logger-AAA");
 
         LockRequest request1 = LockRequest.builder(LockCollections.of(ImmutableSortedMap.of(descriptor1, LockMode.WRITE)))
                 .blockForAtMost(SimpleTimeDuration.of(1000, TimeUnit.MILLISECONDS))
@@ -71,26 +66,20 @@ public class LockServiceStateLoggerTest {
         outstandingLockRequestMultimap.put(clientB, request2);
         outstandingLockRequestMultimap.put(clientA, request2);
 
-        HeldLocksToken token = getFakeHeldLocksToken("client A", "Fake thread", new BigInteger("1"));
-        HeldLocksToken token2 = getFakeHeldLocksToken("client B", "Fake thread 2", new BigInteger("2"));
+        HeldLocksToken token = getFakeHeldLocksToken("client A", "Fake thread", new BigInteger("1"), "held-lock-1", "logger-lock");
+        HeldLocksToken token2 = getFakeHeldLocksToken("client B", "Fake thread 2", new BigInteger("2"), "held-lock-2", "held-lock-3");
 
-        Map<ClientAwareReadWriteLock, LockMode> locks = Maps.newLinkedHashMap();
-        locks.put(new LockServerLock(StringLockDescriptor.of("logger-lock-2"), new LockClientIndices()), LockMode.WRITE);
-        locks.put(new LockServerLock(StringLockDescriptor.of("logger-lock"), new LockClientIndices()), LockMode.READ);
-
-        heldLocksTokenMap.putIfAbsent(token, LockServiceImpl.HeldLocks.of(token, LockCollections.of(locks)));
-
-        Map<ClientAwareReadWriteLock, LockMode> locks2 = Maps.newLinkedHashMap();
-        locks2.put(new LockServerLock(StringLockDescriptor.of("logger-lock-3"), new LockClientIndices()), LockMode.WRITE);
-        locks2.put(new LockServerLock(StringLockDescriptor.of("logger-lock-4"), new LockClientIndices()), LockMode.READ);
-        heldLocksTokenMap.putIfAbsent(token2, LockServiceImpl.HeldLocks.of(token2, LockCollections.of(locks2)));
+        heldLocksTokenMap.putIfAbsent(token, LockServiceImpl.HeldLocks.of(token, LockCollections.of()));
+        heldLocksTokenMap.putIfAbsent(token2, LockServiceImpl.HeldLocks.of(token2, LockCollections.of()));
     }
 
-    private HeldLocksToken getFakeHeldLocksToken(String clientName, String requestingThread, BigInteger tokenId) {
-        LockDescriptor descriptor1 = StringLockDescriptor.of("123");
+    private HeldLocksToken getFakeHeldLocksToken(String clientName, String requestingThread, BigInteger tokenId, String...descriptors) {
         ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder =
                 ImmutableSortedMap.naturalOrder();
-        builder.put(descriptor1, LockMode.WRITE);
+        for (String descriptor : descriptors) {
+            LockDescriptor descriptor1 = StringLockDescriptor.of(descriptor);
+            builder.put(descriptor1, LockMode.WRITE);
+        }
 
         return new HeldLocksToken(tokenId, LockClient.of(clientName),
                 System.currentTimeMillis(), System.currentTimeMillis(),

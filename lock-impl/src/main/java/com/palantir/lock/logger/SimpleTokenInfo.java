@@ -21,11 +21,13 @@ import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockMode;
 
 @Value.Immutable
 public abstract class SimpleTokenInfo {
-    public static SimpleTokenInfo of(HeldLocksToken token) {
+    public static SimpleTokenInfo of(HeldLocksToken token, LockMode lockMode) {
         return ImmutableSimpleTokenInfo.builder()
+                .lockMode(lockMode)
                 .expiresIn(token.getExpirationDateMs() - System.currentTimeMillis())
                 .createdAtTs(token.getCreationDateMs())
                 .tokenId(token.getTokenId().toString())
@@ -34,6 +36,9 @@ public abstract class SimpleTokenInfo {
                 .createAt(new Date(token.getCreationDateMs()).toString())
                 .build();
     }
+
+    @Value.Parameter
+    public abstract LockMode getLockMode();
 
     @Value.Parameter
     public abstract long getExpiresIn();

@@ -24,6 +24,8 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 
+import com.palantir.lock.LockDescriptor;
+
 /**
  * Created by davidt on 4/20/17.
  */
@@ -49,10 +51,11 @@ class YamlWriter {
     }
 
     private static Representer getRepresenter() {
-        Representer representer = new Representer();
+        Representer representer = new LockDescriptorAwareRepresenter();
         representer.addClassTag(ImmutableSimpleTokenInfo.class, Tag.MAP);
         representer.addClassTag(ImmutableSimpleLockRequest.class, Tag.MAP);
         representer.addClassTag(SimpleLockRequestsWithSameDescriptor.class, Tag.MAP);
+        representer.addClassTag(LockDescriptor.class, Tag.MAP);
         return representer;
     }
 
@@ -62,5 +65,11 @@ class YamlWriter {
         options.setIndent(4);
         options.setAllowReadOnlyProperties(true);
         return options;
+    }
+
+    private static class LockDescriptorAwareRepresenter extends Representer {
+        LockDescriptorAwareRepresenter() {
+            this.representers.put(LockDescriptor.class, data -> representScalar(Tag.STR, data.toString()));
+        }
     }
 }

@@ -129,7 +129,8 @@ public class LockServiceStateLogger {
         return request.getLocks().stream()
                 .map(lock ->
                         SimpleLockRequest.of(request,
-                                this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor().getLockIdAsString()),
+                                this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor()),
+                                lock.getLockMode(),
                                 client.getClientId()))
                 .collect(Collectors.toList());
     }
@@ -137,11 +138,12 @@ public class LockServiceStateLogger {
     private Map<String, Object> getDescriptorToTokenMap(HeldLocksToken heldLocksToken,
             LockServiceImpl.HeldLocks<HeldLocksToken> heldLocks) {
         Map<String, Object> lockToLockInfo = Maps.newHashMap();
-        heldLocks.getLockDescriptors()
-                .forEach(lockDescriptor ->
-                        lockToLockInfo.put(
-                                this.lockDescriptorMapper.getDescriptorMapping(lockDescriptor.getLockIdAsString()),
-                                SimpleTokenInfo.of(heldLocksToken)));
+
+        heldLocks.getRealToken().getLocks().forEach(
+                lock -> lockToLockInfo.put(
+                            this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor()),
+                            SimpleTokenInfo.of(heldLocksToken, lock.getLockMode()))
+        );
         return lockToLockInfo;
     }
 
