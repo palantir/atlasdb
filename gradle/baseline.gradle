@@ -18,7 +18,6 @@ List<String> blacklistedBaselineProjects = [
         'timestamp-impl']
 
 List<String> blacklistedErrorProneProjects = [
-        'commons-db',
         'commons-executors',
         'leader-election-impl',
         'lock-impl',
