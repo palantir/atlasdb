@@ -99,6 +99,12 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs"
             ]
         },
+        "com.googlecode.concurrent-trees:concurrent-trees": {
+            "locked": "2.4.0",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "com.googlecode.json-simple:json-simple": {
             "locked": "1.1.1",
             "transitive": [
@@ -314,8 +320,8 @@
             ]
         },
         "org.apache.cassandra:cassandra-thrift": {
-            "locked": "2.2.8",
-            "requested": "2.2.8"
+            "locked": "3.10",
+            "requested": "3.10"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.1",
@@ -500,6 +506,12 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs"
             ]
         },
+        "com.googlecode.concurrent-trees:concurrent-trees": {
+            "locked": "2.4.0",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "com.googlecode.json-simple:json-simple": {
             "locked": "1.1.1",
             "transitive": [
@@ -715,8 +727,8 @@
             ]
         },
         "org.apache.cassandra:cassandra-thrift": {
-            "locked": "2.2.8",
-            "requested": "2.2.8"
+            "locked": "3.10",
+            "requested": "3.10"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.1",
