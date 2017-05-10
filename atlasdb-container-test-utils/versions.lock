@@ -6,6 +6,12 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
+        "com.carrotsearch:hppc": {
+            "locked": "0.5.4",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "com.codahale.metrics:metrics-core": {
             "locked": "3.0.2",
             "transitive": [
@@ -67,6 +73,12 @@
                 "net.amygdalum:xrayinterface"
             ]
         },
+        "com.github.rholder:snowball-stemmer": {
+            "locked": "1.3.0.581.1",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "com.github.zafarkhaja:java-semver": {
             "locked": "0.9.0",
             "transitive": [
@@ -120,6 +132,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs"
+            ]
+        },
+        "com.googlecode.concurrent-trees:concurrent-trees": {
+            "locked": "2.4.0",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -304,6 +322,12 @@
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
+        "de.jflex:jflex": {
+            "locked": "1.6.0",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
@@ -390,8 +414,20 @@
                 "com.palantir.docker.proxy:docker-proxy-rule"
             ]
         },
+        "org.apache.ant:ant": {
+            "locked": "1.9.4",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "org.apache.ant:ant-launcher": {
+            "locked": "1.9.4",
+            "transitive": [
+                "org.apache.ant:ant"
+            ]
+        },
         "org.apache.cassandra:cassandra-thrift": {
-            "locked": "2.2.8",
+            "locked": "3.10",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
@@ -513,6 +549,12 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
+        "com.carrotsearch:hppc": {
+            "locked": "0.5.4",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "com.codahale.metrics:metrics-core": {
             "locked": "3.0.2",
             "transitive": [
@@ -574,6 +616,12 @@
                 "net.amygdalum:xrayinterface"
             ]
         },
+        "com.github.rholder:snowball-stemmer": {
+            "locked": "1.3.0.581.1",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "com.github.zafarkhaja:java-semver": {
             "locked": "0.9.0",
             "transitive": [
@@ -627,6 +675,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs"
+            ]
+        },
+        "com.googlecode.concurrent-trees:concurrent-trees": {
+            "locked": "2.4.0",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -811,6 +865,12 @@
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
+        "de.jflex:jflex": {
+            "locked": "1.6.0",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
@@ -897,8 +957,20 @@
                 "com.palantir.docker.proxy:docker-proxy-rule"
             ]
         },
+        "org.apache.ant:ant": {
+            "locked": "1.9.4",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "org.apache.ant:ant-launcher": {
+            "locked": "1.9.4",
+            "transitive": [
+                "org.apache.ant:ant"
+            ]
+        },
         "org.apache.cassandra:cassandra-thrift": {
-            "locked": "2.2.8",
+            "locked": "3.10",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]

@@ -11,6 +11,10 @@ dependencies {
 
   compile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
     exclude module: 'junit'
+
+    // override ant to a newer one that is shared with the version in jmock-->cglib
+    exclude module: 'ant'
+    compile 'org.apache.ant:ant:' + libVersions.ant
   }
   compile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
   compile group: 'com.google.guava', name: 'guava'
