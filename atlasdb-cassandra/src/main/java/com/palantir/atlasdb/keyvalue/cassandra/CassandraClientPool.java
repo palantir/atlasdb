@@ -91,6 +91,11 @@ import com.palantir.remoting1.tracing.Tracers;
 @SuppressWarnings("VisibilityModifier")
 public class CassandraClientPool {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
+    private static final String CONNECTION_FAILURE_MSG = "Tried to connect to cassandra {} times."
+            + " Error writing to Cassandra socket."
+            + " Likely cause: Exceeded maximum thrift frame size;"
+            + " unlikely cause: network issues.";
+
     /**
      * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
      * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
@@ -667,12 +672,8 @@ public class CassandraClientPool {
                 if (ex instanceof TTransportException
                         && ex.getCause() != null
                         && (ex.getCause().getClass() == SocketException.class)) {
-                    final String logMessage = "Tried to connect to cassandra {} times."
-                            + " Error writing to Cassandra socket."
-                            + " Likely cause: Exceeded maximum thrift frame size;"
-                            + " unlikely cause: network issues.";
-                    log.error(logMessage, numTries, ex);
-                    String errorMsg = MessageFormatter.format(logMessage, numTries).getMessage();
+                    log.error(CONNECTION_FAILURE_MSG, numTries, ex);
+                    String errorMsg = MessageFormatter.format(CONNECTION_FAILURE_MSG, numTries).getMessage();
                     throw (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
                 } else {
                     log.error("Tried to connect to cassandra {} times.", numTries, ex);
