@@ -45,6 +45,7 @@ import com.palantir.common.base.Throwables;
  * @author jtamer
  */
 public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
+    // TODO(ssouza): Move this class to the internal project.
 
     private static enum State { WAITING_TO_RUN, RUNNING, COMPLETED }
 

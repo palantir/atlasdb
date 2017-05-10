@@ -1,4 +1,4 @@
-List<String> blacklistedBaselineAndErrorProneProjects = [
+List<String> blacklistedBaselineProjects = [
         'atlasdb-client',
         'atlasdb-client-protobufs',
         'atlasdb-commons',
@@ -17,22 +17,25 @@ List<String> blacklistedBaselineAndErrorProneProjects = [
         'profile-client-protobufs',
         'timestamp-impl']
 
-List<String> whitelistedErrorProneProjects = [
-        'atlasdb-client',
-        'atlasdb-client-protobufs',
-        'atlasdb-commons']
+List<String> blacklistedErrorProneProjects = [
+        'atlasdb-console',
+        'atlasdb-dbkvs-hikari',
+        'atlasdb-jdbc',
+        'atlasdb-jdbc-tests',
+        'atlasdb-rocksdb',
+        'atlasdb-rocksdb-tests',
+        'atlasdb-service-server',
+        'cassandra-partitioner',
+        'commons-db',
+        'commons-executors',
+        'leader-election-impl',
+        'lock-impl',
+        'profile-client-protobufs',
+        'timestamp-impl']
 
-if (!blacklistedBaselineAndErrorProneProjects.contains(project.name)) {
+if (!blacklistedBaselineProjects.contains(project.name)) {
     apply plugin: 'com.palantir.baseline-checkstyle'
-    apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone
-    apply plugin: 'com.palantir.baseline-error-prone'
-
-    configurations.errorprone {
-        resolutionStrategy {
-            force 'com.google.guava:guava:21.0'
-        }
-    }
-} else if (whitelistedErrorProneProjects.contains(project.name)) {
+} else if (!blacklistedErrorProneProjects.contains(project.name)) {
     apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone
     apply plugin: 'com.palantir.baseline-error-prone'
 
