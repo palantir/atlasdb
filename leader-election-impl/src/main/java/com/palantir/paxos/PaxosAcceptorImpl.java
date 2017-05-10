@@ -74,7 +74,7 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
 
             // allow for the same propose to be repeated and return the same result.
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) == 0) {
-                String lastAcceptedLeader = (oldState.lastAcceptedValue == null) ? null : oldState.lastAcceptedValue.getLeaderUUID();
+                String lastAcceptedLeader = (oldState.lastAcceptedValue == null) ? "none" : oldState.lastAcceptedValue.getLeaderUUID();
                 leaderLog.debug("Accepted proposal request for seq #{} with ID {} as we've already made a promise with the same pid ({}): "+
                         "(lastPromisedId={}, lastAcceptedId={}, lastAcceptedValue={})", seq, pid.getNumber(), oldState.lastPromisedId,
                         oldState.lastAcceptedId, lastAcceptedLeader);
@@ -97,7 +97,7 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
                 if (oldState != null) {
                     lastPromisedId = oldState.lastPromisedId;
                     lastAcceptedId = oldState.lastAcceptedId;
-                    lastAcceptedLeader = (oldState.lastAcceptedValue == null) ? null : oldState.lastAcceptedValue.getLeaderUUID();
+                    lastAcceptedLeader = (oldState.lastAcceptedValue == null) ? "(none)" : oldState.lastAcceptedValue.getLeaderUUID();
                 }
 
                 leaderLog.debug("Promised to accept proposal for seq #{} with ID {}; promise is " +
