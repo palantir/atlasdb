@@ -41,6 +41,7 @@ public class SerializingUtils {
         });
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> T copy(T orig, ObjectInputStreamFactory factory) {
         T obj = null;
 

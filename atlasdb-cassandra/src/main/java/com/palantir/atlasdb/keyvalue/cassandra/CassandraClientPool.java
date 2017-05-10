@@ -660,6 +660,7 @@ public class CassandraClientPool {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private <K extends Exception> void handleException(int numTries, InetSocketAddress host, Exception ex) throws K {
         if (isRetriableException(ex) || isRetriableWithBackoffException(ex)) {
             if (numTries >= MAX_TRIES_TOTAL) {

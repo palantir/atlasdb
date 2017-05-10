@@ -109,6 +109,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 + "to ensure the TTransportException type is propagated correctly.");
     }
 
+    @SuppressWarnings("unchecked")
     private <V, K extends Exception> V runWithGoodResource(FunctionCheckedException<Client, V, K> fn)
             throws K {
         boolean shouldReuse = true;
