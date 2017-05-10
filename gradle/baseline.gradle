@@ -3,6 +3,7 @@ List<String> blacklistedBaselineProjects = [
         'atlasdb-client',
         'atlasdb-client-protobufs',
         'atlasdb-commons',
+        'atlasdb-config',
         'atlasdb-console',
         'atlasdb-dbkvs-hikari',
         'atlasdb-ete-test-utils',
@@ -29,6 +30,7 @@ List<String> blacklistedBaselineProjects = [
         'lock-impl',
         'profile-client',
         'profile-client-protobufs',
+        'timelock-server',
         'timestamp-api',
         'timestamp-impl']
 
