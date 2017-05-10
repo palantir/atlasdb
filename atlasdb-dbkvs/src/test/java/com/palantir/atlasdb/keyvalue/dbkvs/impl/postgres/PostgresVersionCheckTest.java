@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
+import static org.mockito.Matchers.contains;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class PostgresVersionCheckTest {
 
@@ -30,16 +29,12 @@ public class PostgresVersionCheckTest {
     public ExpectedException thrown = ExpectedException.none();
 
     @Test
-    @SuppressFBWarnings(value = "SLF4J_FORMAT_SHOULD_BE_CONST", justification = "I want to use a mockito matcher")
+    @SuppressWarnings(value = "Slf4jConstantLogMessage")
     public void shouldLogErrorOn_9_1_24() {
         Logger log = Mockito.mock(Logger.class);
         PostgresVersionCheck.checkDatabaseVersion("9.1.24", log);
-        Mockito.verify(log).error(Mockito.argThat(new ArgumentMatcher<String>() {
-            @Override
-            public boolean matches(Object arg) {
-                return ((String) arg).contains("The minimum supported version is {}");
-            }
-        }), Mockito.anyObject(), Mockito.eq("9.2"));
+        Mockito.verify(log).error(contains("The minimum supported version is {}"), Mockito.anyObject(),
+                Mockito.eq("9.2"));
         Mockito.verifyNoMoreInteractions(log);
     }
 
