@@ -46,7 +46,7 @@ public class LockServiceStateLogger {
 
     private static final String LOCKSTATE_FILE_PREFIX = "lockstate-";
     private static final String DESCRIPTORS_FILE_PREFIX = "descriptors-";
-    private static final String WARNING_LOCK_DESCRIPTORS = "# WARNING: Lock descriptors may contain sensitive information\n";
+    private static final String WARNING_LOCK_DESCRIPTORS = "WARNING: Lock descriptors may contain sensitive information";
     private static final String FILE_NOT_CREATED_LOG_ERROR = "Destination file [%s] either already exists"
             + "or can't be created. This is a very unlikely scenario."
             + "Retrigger logging or check if process has permitions on the folder";
@@ -169,17 +169,16 @@ public class LockServiceStateLogger {
 
     private void dumpYaml(Map<String, Object> generatedOutstandingRequests, Map<String, Object> generatedHeldLocks,
             File file) throws IOException {
-        YamlWriter writer = YamlWriter.create(file);
-
-        writer.writeToYaml(generatedOutstandingRequests);
-        writer.appendString("\n\n---\n\n");
-        writer.writeToYaml(generatedHeldLocks);
+        try (LockStateYamlWriter writer = LockStateYamlWriter.create(file)) {
+            writer.dumpObject(generatedOutstandingRequests);
+            writer.dumpObject(generatedHeldLocks);
+        }
     }
 
     private void dumpDescriptorsYaml(File descriptorsFile) throws IOException {
-        YamlWriter writer = YamlWriter.create(descriptorsFile);
-
-        writer.appendString(WARNING_LOCK_DESCRIPTORS);
-        writer.writeToYaml(this.lockDescriptorMapper.getReversedMapper());
+        try (LockStateYamlWriter writer = LockStateYamlWriter.create(descriptorsFile)) {
+            writer.appendComment(WARNING_LOCK_DESCRIPTORS);
+            writer.dumpObject(lockDescriptorMapper.getReversedMapper());
+        }
     }
 }

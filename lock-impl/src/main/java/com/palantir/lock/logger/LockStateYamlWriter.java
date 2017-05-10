@@ -15,9 +15,12 @@
  */
 package com.palantir.lock.logger;
 
+import java.io.BufferedWriter;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -25,27 +28,39 @@ import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 
 /**
- * Created by davidt on 4/20/17.
+ * A simple wrapper for writing lock state as YAML to a file.
  */
-class YamlWriter {
+class LockStateYamlWriter implements Closeable {
     private static final Yaml yaml = new Yaml(getRepresenter(), getDumperOptions());
 
-    private final FileWriter fileWriter;
+    private final Writer writer;
 
-    YamlWriter(FileWriter fileWriter) {
-        this.fileWriter = fileWriter;
+    LockStateYamlWriter(Writer fileWriter) {
+        this.writer = fileWriter;
     }
 
-    public static YamlWriter create(File file) throws IOException {
-        return new YamlWriter(new FileWriter(file));
+    /**
+     * Creates a LockStateYamlWriter for the given file in append mode.
+     */
+    public static LockStateYamlWriter create(File file) throws IOException {
+        return new LockStateYamlWriter(new BufferedWriter(new FileWriter(file, true)));
     }
 
-    public void writeToYaml(Object data) {
-        yaml.dump(data, fileWriter);
+    /**
+     * Write an object to the file as YAML.
+     */
+    public void dumpObject(Object data) {
+        yaml.dump(data, writer);
     }
 
-    public void appendString(String string) throws IOException {
-        fileWriter.append(string);
+    /**
+     * Write a string to the file as a YAML comment.
+     * The string must be a single line.
+     */
+    public void appendComment(String string) throws IOException {
+        writer.append("# ");
+        writer.append(string);
+        writer.append("\n");
     }
 
     private static Representer getRepresenter() {
@@ -61,6 +76,12 @@ class YamlWriter {
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setIndent(4);
         options.setAllowReadOnlyProperties(true);
+        options.setExplicitStart(true);
         return options;
+    }
+
+    @Override
+    public void close() throws IOException {
+        writer.close();
     }
 }
