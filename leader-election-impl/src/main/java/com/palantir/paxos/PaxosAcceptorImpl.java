@@ -74,8 +74,10 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
 
             // allow for the same propose to be repeated and return the same result.
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) == 0) {
-                leaderLog.debug("Accepted proposal request for seq #{} with ID {} as we've already made a promise with the same pid ({}) " +
-                        "for leader UUID {}", seq, pid.getNumber(), oldState.lastPromisedId, oldState.lastAcceptedValue.getLeaderUUID());
+                String lastAcceptedLeader = (oldState.lastAcceptedValue == null) ? null : oldState.lastAcceptedValue.getLeaderUUID();
+                leaderLog.debug("Accepted proposal request for seq #{} with ID {} as we've already made a promise with the same pid ({}): "+
+                        "(lastPromisedId={}, lastAcceptedId={}, lastAcceptedValue={})", seq, pid.getNumber(), oldState.lastPromisedId,
+                        oldState.lastAcceptedId, lastAcceptedLeader);
                 return new PaxosPromise(
                         oldState.lastPromisedId,
                         oldState.lastAcceptedId,
@@ -88,7 +90,10 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
                     : PaxosAcceptorState.newState(pid);
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
-                leaderLog.debug("Promised to accept proposal for seq #{} with ID {}", seq, pid.getNumber());
+                String lastAcceptedLeader = (oldState.lastAcceptedValue == null) ? null : oldState.lastAcceptedValue.getLeaderUUID();
+                leaderLog.debug("Promised to accept proposal for seq #{} with ID {}; promise is " +
+                        "(lastPromisedId={}, lastAcceptedId={}, lastAcceptedValue={})", seq, pid.getNumber(),
+                        oldState.lastPromisedId, oldState.lastAcceptedId, lastAcceptedLeader);
                 log.writeRound(seq, newState);
                 return new PaxosPromise(
                         newState.lastPromisedId,
