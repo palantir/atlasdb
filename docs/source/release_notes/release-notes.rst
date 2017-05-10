@@ -57,7 +57,7 @@ develop
 
     *    - |fixed|
          - Fixed a bug with import ordering and license generation in IntelliJ not respecting Baseline conventions.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/TODO>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1893>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
