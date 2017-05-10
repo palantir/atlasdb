@@ -157,6 +157,10 @@ This release contains (almost) exclusively baseline-related changes.
            If you do encounter breaks due to this addition, please contact the AtlasDB team for support.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1810>`__)
 
+    *    - |improved|
+         - Improved memory footprint of lock state dumper and now it will include locking mode as well.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1891>`__)
+
     *    - |deprecated|
          - ``ConflictDetectionManagers.createDefault(KeyValueService)`` has been deprecated.
            If you use this method, please replace it with ``ConflictDetectionManagers.create(KeyValueService)``.
