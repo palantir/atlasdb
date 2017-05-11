@@ -178,7 +178,7 @@ public class RateLimitedTimestampService implements TimestampService {
         return true;
     }
 
-    private void sleepForRateLimiting() {
+    private synchronized void sleepForRateLimiting() {
         if (minTimeBetweenRequestsMillis == 0) {
             return;
         }

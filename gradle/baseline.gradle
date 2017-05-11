@@ -17,8 +17,7 @@ List<String> blacklistedBaselineProjects = [
         'profile-client-protobufs',
         'timestamp-impl']
 
-List<String> blacklistedErrorProneProjects = [
-        'timestamp-impl']
+List<String> blacklistedErrorProneProjects = []
 
 if (!blacklistedBaselineProjects.contains(project.name)) {
     apply plugin: 'com.palantir.baseline-checkstyle'
