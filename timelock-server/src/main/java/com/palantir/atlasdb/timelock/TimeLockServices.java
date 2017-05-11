@@ -15,15 +15,31 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import com.palantir.paxos.PaxosAcceptor;
-import org.immutables.value.Value;
-
+import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
+import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface TimeLockServices {
+    static TimeLockServices create(
+            TimestampService timestampService,
+            LockService lockService,
+            TimestampManagementService timestampManagementService,
+            PaxosAcceptor acceptor,
+            PaxosLeaderElectionService pingable) {
+        return ImmutableTimeLockServices.builder()
+                .timestampService(timestampService)
+                .lockService(lockService)
+                .timestampManagementService(timestampManagementService)
+                .leadershipAcceptor(acceptor)
+                .pingable(pingable)
+                .build();
+    }
+
     static TimeLockServices create(
             TimestampService timestampService,
             LockService lockService,
@@ -34,6 +50,7 @@ public interface TimeLockServices {
                 .lockService(lockService)
                 .timestampManagementService(timestampManagementService)
                 .leadershipAcceptor(acceptor)
+                .pingable(null)
                 .build();
     }
 
@@ -42,4 +59,7 @@ public interface TimeLockServices {
     LockService getLockService();
 
     PaxosAcceptor getLeadershipAcceptor();
+
+    @Nullable
+    PaxosLeaderElectionService getPingable();
 }

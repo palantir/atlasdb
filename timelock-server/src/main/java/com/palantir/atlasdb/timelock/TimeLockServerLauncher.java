@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
@@ -87,6 +88,10 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         environment.getApplicationContext().addServlet(
                 new PaxosLeadershipServletHolder(clientToServices.values().iterator().next().getLeadershipAcceptor()),
                 "/.internal/leaderPaxos/acceptor/latest-sequence-prepared-or-accepted");
+        environment.getApplicationContext().addServlet(
+                new LeaderPingServletHolder(
+                        clientToServices.values().iterator().next().getPingable()),
+                        "/leader/ping");
 
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));
@@ -119,6 +124,23 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
                     resp.getWriter().write(
                             new ObjectMapper().writeValueAsString(
                                     acceptor.getLatestSequencePreparedOrAccepted()
+                            )
+                    );
+                }
+            });
+        }
+    }
+
+    private static class LeaderPingServletHolder extends ServletHolder {
+        LeaderPingServletHolder(PaxosLeaderElectionService service) {
+            super(new HttpServlet() {
+                @Override
+                protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+                        throws ServletException, IOException {
+                    resp.addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
+                    resp.getWriter().write(
+                            new ObjectMapper().writeValueAsString(
+                                    service.ping()
                             )
                     );
                 }

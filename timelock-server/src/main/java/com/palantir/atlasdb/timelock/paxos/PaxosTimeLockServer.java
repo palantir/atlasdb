@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.palantir.leader.PaxosLeaderElectionService;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
@@ -171,7 +172,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
                         leaderElectionService),
                 client);
 
-        return TimeLockServices.create(timestampService, lockService, timestampService, ourAcceptor);
+        return TimeLockServices.create(timestampService, lockService, timestampService, ourAcceptor,
+                (PaxosLeaderElectionService) leaderElectionService);
     }
 
     private LockService createLockService(long slowLogTriggerMillis) {
