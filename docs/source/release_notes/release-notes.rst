@@ -55,6 +55,10 @@ develop
          - Fixed a bug that would cause console to error on any range request that used a column selection and had more than one batch of results.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1876>`__)
 
+    *    - |fixed|
+         - Fixed a bug with import ordering and license generation in IntelliJ not respecting Baseline conventions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1893>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
