@@ -90,6 +90,7 @@ class LockStateYamlWriter implements Closeable {
 
     private static class LockDescriptorAwareRepresenter extends Representer {
         LockDescriptorAwareRepresenter() {
+            super();
             this.representers.put(LockDescriptor.class, data -> representScalar(Tag.STR, data.toString()));
         }
     }
