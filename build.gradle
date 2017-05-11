@@ -97,7 +97,7 @@ subprojects {
 
 apply from: 'idea.gradle'
 
-// Setup copyright notice as JavaDoc and no newline after it
+// Setup copyright notice as a block comment, and no newline after it
 project.afterEvaluate {
     def ideaRootModel = project.rootProject.extensions.findByType(IdeaModel)
     if (ideaRootModel) {
@@ -109,6 +109,11 @@ project.afterEvaluate {
                     <option name="addBlankAfter" value="false" />
                     <option name="separateBefore" value="true" />
                     <option name="lenBefore" value="2" />
+                </LanguageOptions>
+                """.stripIndent()))
+            copyrightManager.append(new XmlParser().parseText("""
+                <LanguageOptions name="JAVA">
+                    <option name="fileTypeOverride" value="3" />
                 </LanguageOptions>
                 """.stripIndent()))
         }

@@ -59,6 +59,9 @@ develop
          - ProfilingKeyValueService now has some additional logging mechanisms for logging long-running operations on WARN level, enabled by default.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1801>`__)
 
+    *    - |fixed|
+         - Fixed a bug with import ordering and license generation in IntelliJ not respecting Baseline conventions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1893>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
