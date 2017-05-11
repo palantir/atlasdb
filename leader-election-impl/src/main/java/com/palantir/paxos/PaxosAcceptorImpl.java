@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 public class PaxosAcceptorImpl implements PaxosAcceptor {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
+    private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
 
     /**
      * @param logDir string path for directory to place durable logs
@@ -51,22 +52,31 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
 
     @Override
     public PaxosPromise prepare(long seq, PaxosProposalId pid) {
+        leaderLog.debug("Received proposal request for seq #" + seq + " with ID " + pid.getNumber() + " from node " + pid.getProposerUUID());
+
         try {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
-            logger.error("log read failed for request: {}", seq, e);
-            return PaxosPromise.reject(pid);
+            leaderLog.error("log read failed for request: " + seq + " during prepare phase; rejecting proposal request", e);
+            logger.error("log read failed for request: " + seq, e);
+            return PaxosPromise.reject(pid); // nack
         }
 
         for (;;) {
             PaxosAcceptorState oldState = state.get(seq);
 
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) < 0) {
+                leaderLog.debug("Refused proposal request for seq #{} with ID {} as we've already made a promise with a greater pid ({})",
+                        seq, pid.getNumber(), oldState.lastPromisedId);
                 return PaxosPromise.reject(oldState.lastPromisedId);
             }
 
             // allow for the same propose to be repeated and return the same result.
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) == 0) {
+                String lastAcceptedLeader = (oldState.lastAcceptedValue == null) ? "none" : oldState.lastAcceptedValue.getLeaderUUID();
+                leaderLog.debug("Accepted proposal request for seq #{} with ID {} as we've already made a promise with the same pid ({}): "+
+                        "(lastPromisedId={}, lastAcceptedId={}, lastAcceptedValue={})", seq, pid.getNumber(), oldState.lastPromisedId,
+                        oldState.lastAcceptedId, lastAcceptedLeader);
                 return PaxosPromise.accept(
                         oldState.lastPromisedId,
                         oldState.lastAcceptedId,
@@ -78,6 +88,20 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
                     : PaxosAcceptorState.newState(pid);
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
+                PaxosProposalId lastPromisedId = null;
+                PaxosProposalId lastAcceptedId = null;
+                String lastAcceptedLeader = null;
+
+                if (oldState != null) {
+                    lastPromisedId = oldState.lastPromisedId;
+                    lastAcceptedId = oldState.lastAcceptedId;
+                    lastAcceptedLeader = (oldState.lastAcceptedValue == null) ? "(none)" : oldState.lastAcceptedValue.getLeaderUUID();
+                }
+
+                leaderLog.debug("Promised to accept proposal for seq #{} with ID {}; promise is " +
+                        "(lastPromisedId={}, lastAcceptedId={}, lastAcceptedValue={})", seq, pid.getNumber(),
+                        lastPromisedId, lastAcceptedId, lastAcceptedLeader);
+
                 log.writeRound(seq, newState);
                 return PaxosPromise.accept(
                         newState.lastPromisedId,
@@ -89,10 +113,14 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
 
     @Override
     public BooleanPaxosResponse accept(long seq, PaxosProposal proposal) {
+        leaderLog.debug("Asked to accept proposal for seq #{} with ID {} from node {}",
+                seq, proposal.getId().getNumber(), proposal.getId().getProposerUUID());
+
         try {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
-            logger.error("log read failed for request: {}", seq, e);
+            leaderLog.error("log read failed for request: {} during accept phase; rejecting proposal", seq, e);
+            logger.error("log read failed for request: " + seq, e);
             return new BooleanPaxosResponse(false); // nack
         }
 
@@ -101,6 +129,8 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
 
             // nack
             if (oldState != null && proposal.id.compareTo(oldState.lastPromisedId) < 0) {
+                leaderLog.debug("Rejected proposal for seq #{} with ID {} as we already promised to accept ID {}",
+                        seq, proposal.getId().getNumber(), oldState.lastPromisedId);
                 return new BooleanPaxosResponse(false);
             }
 
@@ -110,6 +140,8 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
                     : PaxosAcceptorState.newState(proposal.id);
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
+                leaderLog.info("Accepted proposal for seq #{} with ID {}; proposed leader UUID is {}",
+                        seq, proposal.getId().getNumber(), proposal.getValue().getLeaderUUID());
                 log.writeRound(seq, newState);
                 return new BooleanPaxosResponse(true);
             }
