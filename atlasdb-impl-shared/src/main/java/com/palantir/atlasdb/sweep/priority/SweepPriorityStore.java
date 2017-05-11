@@ -35,22 +35,22 @@ public class SweepPriorityStore {
         this.sweepTableFactory = sweepTableFactory;
     }
 
-    public List<SweepPriority> loadOldPrioritites(Transaction tx, long sweepTimestamp) {
+    public List<SweepPriority> loadOldPriorities(Transaction tx, long sweepTimestamp) {
         return loadPriorities(new SweepPriorityTransaction(tx, sweepTimestamp));
     }
 
-    public List<SweepPriority> loadNewPrioritites(Transaction tx) {
+    public List<SweepPriority> loadNewPriorities(Transaction tx) {
         return loadPriorities(tx);
     }
 
     public void update(Transaction tx, TableReference tableRef, UpdateSweepPriority update) {
         SweepPriorityRow row = SweepPriorityRow.of(tableRef.getQualifiedName());
         SweepPriorityTable table = sweepTableFactory.getSweepPriorityTable(tx);
-        update.getNewCellsDeleted().ifPresent(n -> table.putCellsDeleted(row, n));
-        update.getNewCellsExamined().ifPresent(n -> table.putCellsExamined(row, n));
-        update.getNewLastSweepTimeMillis().ifPresent(t -> table.putLastSweepTime(row, t));
-        update.getNewMinimumSweptTimestamp().ifPresent(t -> table.putMinimumSweptTimestamp(row, t));
-        update.getNewWriteCount().ifPresent(c -> table.putWriteCount(row, c));
+        update.newCellsDeleted().ifPresent(n -> table.putCellsDeleted(row, n));
+        update.newCellsExamined().ifPresent(n -> table.putCellsExamined(row, n));
+        update.newLastSweepTimeMillis().ifPresent(t -> table.putLastSweepTime(row, t));
+        update.newMinimumSweptTimestamp().ifPresent(t -> table.putMinimumSweptTimestamp(row, t));
+        update.newWriteCount().ifPresent(c -> table.putWriteCount(row, c));
     }
 
     public void delete(Transaction tx, Collection<TableReference> tableRefs) {

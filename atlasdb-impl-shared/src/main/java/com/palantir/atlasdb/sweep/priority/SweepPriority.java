@@ -24,16 +24,16 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 @Value.Immutable
 public interface SweepPriority {
 
-    TableReference getTableRef();
+    TableReference tableRef();
 
-    long getWriteCount();
+    long writeCount();
 
-    OptionalLong getLastSweepTimeMillis();
+    OptionalLong lastSweepTimeMillis();
 
-    long getMinimumSweptTimestamp();
+    long minimumSweptTimestamp();
 
-    long getCellsDeleted();
+    long cellsDeleted();
 
-    long getCellsExamined();
+    long cellsExamined();
 
 }

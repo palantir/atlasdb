@@ -49,10 +49,10 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
         // We read priorities from the past because we should prioritize based on what the sweeper will
         // actually be able to sweep. We read priorities from the present to make sure we don't repeatedly
         // sweep the same table while waiting for the past to catch up.
-        List<SweepPriority> oldPriorities = sweepPriorityStore.loadOldPrioritites(tx, conservativeSweepTs);
-        List<SweepPriority> newPriorities = sweepPriorityStore.loadNewPrioritites(tx);
+        List<SweepPriority> oldPriorities = sweepPriorityStore.loadOldPriorities(tx, conservativeSweepTs);
+        List<SweepPriority> newPriorities = sweepPriorityStore.loadNewPriorities(tx);
         Map<TableReference, SweepPriority> newPrioritiesByTableName = newPriorities.stream().collect(
-                Collectors.toMap(SweepPriority::getTableRef, Function.identity()));
+                Collectors.toMap(SweepPriority::tableRef, Function.identity()));
         return getTableToSweep(tx, allTables, oldPriorities, newPrioritiesByTableName);
     }
 
@@ -66,47 +66,48 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
                 .stream().sorted(Comparator.comparing(TableReference::getTablename)).collect(Collectors.toList());
         if (!unsweptTables.isEmpty()) {
             return Optional.of(unsweptTables.get(0));
-        }
-        double maxPriority = 0.0;
-        Optional<TableReference> toSweep = Optional.empty();
-        Collection<TableReference> toDelete = Lists.newArrayList();
-        for (SweepPriority oldPriority : oldPriorities) {
-            if (allTables.contains(oldPriority.getTableRef())) {
-                SweepPriority newPriority = newPrioritiesByTableName.get(oldPriority.getTableRef());
-                double priority = getSweepPriority(oldPriority, newPriority);
-                if (priority > maxPriority) {
-                    maxPriority = priority;
-                    toSweep = Optional.of(oldPriority.getTableRef());
+        } else {
+            double maxPriority = 0.0;
+            Optional<TableReference> toSweep = Optional.empty();
+            Collection<TableReference> toDelete = Lists.newArrayList();
+            for (SweepPriority oldPriority : oldPriorities) {
+                if (allTables.contains(oldPriority.tableRef())) {
+                    SweepPriority newPriority = newPrioritiesByTableName.get(oldPriority.tableRef());
+                    double priority = getSweepPriority(oldPriority, newPriority);
+                    if (priority > maxPriority) {
+                        maxPriority = priority;
+                        toSweep = Optional.of(oldPriority.tableRef());
+                    }
+                } else {
+                    toDelete.add(oldPriority.tableRef());
                 }
-            } else {
-                toDelete.add(oldPriority.getTableRef());
             }
-        }
 
-        // Clean up rows for tables that no longer exist.
-        sweepPriorityStore.delete(tx, toDelete);
-        return toSweep;
+            // Clean up rows for tables that no longer exist.
+            sweepPriorityStore.delete(tx, toDelete);
+            return toSweep;
+        }
     }
 
     private double getSweepPriority(SweepPriority oldPriority, SweepPriority newPriority) {
-        if (AtlasDbConstants.hiddenTables.contains(newPriority.getTableRef())) {
+        if (AtlasDbConstants.hiddenTables.contains(newPriority.tableRef())) {
             // Never sweep hidden tables
             return 0.0;
         }
-        if (!newPriority.getLastSweepTimeMillis().isPresent()) {
+        if (!newPriority.lastSweepTimeMillis().isPresent()) {
             // Highest priority if we've never swept it before
             return Double.MAX_VALUE;
         }
-        if (oldPriority.getWriteCount() > newPriority.getWriteCount()) {
+        if (oldPriority.writeCount() > newPriority.writeCount()) {
             // We just swept this, or it got truncated.
             return 0.0;
         }
-        long cellsDeleted = Math.max(1, oldPriority.getCellsDeleted());
-        long cellsExamined = Math.max(1, oldPriority.getCellsExamined());
-        long writeCount = Math.max(1, oldPriority.getWriteCount());
+        long cellsDeleted = Math.max(1, oldPriority.cellsDeleted());
+        long cellsExamined = Math.max(1, oldPriority.cellsExamined());
+        long writeCount = Math.max(1, oldPriority.writeCount());
         double previousEfficacy = 1.0 * cellsDeleted / cellsExamined;
         double estimatedCellsToSweep = previousEfficacy * writeCount;
-        long millisSinceSweep = System.currentTimeMillis() - newPriority.getLastSweepTimeMillis().getAsLong();
+        long millisSinceSweep = System.currentTimeMillis() - newPriority.lastSweepTimeMillis().getAsLong();
 
         if (writeCount <= 100 + cellsExamined / 100
                 && TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS) < 180) {

@@ -99,12 +99,12 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
         createTable(TABLE_2, SweepStrategy.THOROUGH);
         createTable(TABLE_3, SweepStrategy.NOTHING);
-        put(TABLE_1, 100, 110);
-        put(TABLE_1, 103, 113);
-        put(TABLE_1, 105, 115);
-        put(TABLE_2, 101, 111);
-        put(TABLE_2, 104, 114);
-        put(TABLE_3, 120, 130);
+        putManyCells(TABLE_1, 100, 110);
+        putManyCells(TABLE_1, 103, 113);
+        putManyCells(TABLE_1, 105, 115);
+        putManyCells(TABLE_2, 101, 111);
+        putManyCells(TABLE_2, 104, 114);
+        putManyCells(TABLE_3, 120, 130);
         sweepTimestamp.set(150);
         try (BackgroundSweeperImpl.SweepLocks sweepLocks = backgroundSweeper.createSweepLocks()) {
             for (int i = 0; i < 50; ++i) {
@@ -114,9 +114,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         verifyTableSwept(TABLE_1, 75, true);
         verifyTableSwept(TABLE_2, 58, false);
         List<SweepPriority> priorities = txManager.runTaskReadOnly(
-                tx -> new SweepPriorityStore(SweepTableFactory.of()).loadNewPrioritites(tx));
-        Assert.assertTrue(priorities.stream().anyMatch(p -> p.getTableRef().equals(TABLE_1)));
-        Assert.assertTrue(priorities.stream().anyMatch(p -> p.getTableRef().equals(TABLE_2)));
+                tx -> new SweepPriorityStore(SweepTableFactory.of()).loadNewPriorities(tx));
+        Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_1)));
+        Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_2)));
     }
 
     protected abstract KeyValueService getKeyValueService();
@@ -158,7 +158,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         );
     }
 
-    private void put(TableReference tableRef, long startTs, long commitTs) {
+    private void putManyCells(TableReference tableRef, long startTs, long commitTs) {
         Map<Cell, byte[]> cells = Maps.newHashMap();
         for (int i = 0; i < 50; ++i) {
             cells.put(Cell.create(Ints.toByteArray(i), "c".getBytes()),

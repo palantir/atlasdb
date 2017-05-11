@@ -21,14 +21,14 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface UpdateSweepPriority {
 
-    OptionalLong getNewCellsDeleted();
+    OptionalLong newCellsDeleted();
 
-    OptionalLong getNewCellsExamined();
+    OptionalLong newCellsExamined();
 
-    OptionalLong getNewLastSweepTimeMillis();
+    OptionalLong newLastSweepTimeMillis();
 
-    OptionalLong getNewMinimumSweptTimestamp();
+    OptionalLong newMinimumSweptTimestamp();
 
-    OptionalLong getNewWriteCount();
+    OptionalLong newWriteCount();
 
 }

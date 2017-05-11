@@ -46,10 +46,10 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = useColumnBatchSize
                 ? ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
-                .withTimestampsGetterBatchSize(Optional.of(10))
+                    .withTimestampsGetterBatchSize(Optional.of(10))
                 : CassandraContainer.KVS_CONFIG;
-
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraContainer.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
+                CassandraContainer.LEADER_CONFIG);
     }
 }

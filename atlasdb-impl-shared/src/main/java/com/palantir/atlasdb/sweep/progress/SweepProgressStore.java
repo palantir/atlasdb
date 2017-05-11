@@ -46,11 +46,11 @@ public class SweepProgressStore {
     public void saveProgress(Transaction tx, SweepProgress progress) {
         SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
         SweepProgressRow row = SweepProgressRow.of(0);
-        progressTable.putFullTableName(row, progress.getTableRef().getQualifiedName());
-        progressTable.putStartRow(row, progress.getStartRow());
-        progressTable.putCellsDeleted(row, progress.getCellsDeleted());
-        progressTable.putCellsExamined(row, progress.getCellsExamined());
-        progressTable.putMinimumSweptTimestamp(row, progress.getMinimumSweptTimestamp());
+        progressTable.putFullTableName(row, progress.tableRef().getQualifiedName());
+        progressTable.putStartRow(row, progress.startRow());
+        progressTable.putCellsDeleted(row, progress.cellsDeleted());
+        progressTable.putCellsExamined(row, progress.cellsExamined());
+        progressTable.putMinimumSweptTimestamp(row, progress.minimumSweptTimestamp());
     }
 
     /**

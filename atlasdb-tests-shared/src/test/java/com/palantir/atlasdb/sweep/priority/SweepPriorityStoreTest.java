@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.OptionalLong;
 import java.util.concurrent.ExecutorService;
 
@@ -55,9 +57,9 @@ public class SweepPriorityStoreTest {
     @Test
     public void testLoadEmpty() {
         Assert.assertTrue(txManager.runTaskReadOnly(
-                tx -> priorityStore.loadOldPrioritites(tx, tx.getTimestamp())).isEmpty());
+                tx -> priorityStore.loadOldPriorities(tx, tx.getTimestamp())).isEmpty());
         Assert.assertTrue(txManager.runTaskReadOnly(
-                tx -> priorityStore.loadNewPrioritites(tx)).isEmpty());
+                tx -> priorityStore.loadNewPriorities(tx)).isEmpty());
     }
 
     @Test
@@ -75,7 +77,7 @@ public class SweepPriorityStoreTest {
         });
         Assert.assertEquals(
                 ImmutableSet.of(priority("foo.bar", 0), priority("qwe.rty", 1)),
-                ImmutableSet.copyOf(txManager.runTaskReadOnly(priorityStore::loadNewPrioritites)));
+                ImmutableSet.copyOf(txManager.runTaskReadOnly(priorityStore::loadNewPriorities)));
     }
 
     @Test
@@ -96,8 +98,8 @@ public class SweepPriorityStoreTest {
         });
         Assert.assertEquals(
                 ImmutableList.of(priority("foo.bar", 1)),
-                txManager.runTaskReadOnly(priorityStore::loadNewPrioritites));
-        // FIXME: this currently fails because the getTimestamp() override hack never worked.
+                txManager.runTaskReadOnly(priorityStore::loadNewPriorities));
+        // TODO: this currently fails because the getTimestamp() override hack never worked.
         // We should create a ticket to track this.
         //Assert.assertEquals(
         //        ImmutableList.of(priority("foo.bar", 0)),
@@ -117,16 +119,15 @@ public class SweepPriorityStoreTest {
                     fullUpdate(1));
             return null;
         });
-        Assert.assertEquals(
-                ImmutableSet.of(priority("foo.bar", 0), priority("qwe.rty", 1)),
-                ImmutableSet.copyOf(txManager.runTaskReadOnly(priorityStore::loadNewPrioritites)));
+        assertThat(txManager.runTaskReadOnly(priorityStore::loadNewPriorities))
+                .containsExactlyInAnyOrder(priority("foo.bar", 0), priority("qwe.rty", 1));
         txManager.runTaskWithRetry(tx -> {
             priorityStore.delete(tx, ImmutableList.of(TableReference.createFromFullyQualifiedName("foo.bar")));
             return null;
         });
         Assert.assertEquals(
                 ImmutableList.of(priority("qwe.rty", 1)),
-                txManager.runTaskReadOnly(priorityStore::loadNewPrioritites));
+                txManager.runTaskReadOnly(priorityStore::loadNewPriorities));
     }
 
     @Test
@@ -156,7 +157,7 @@ public class SweepPriorityStoreTest {
                     .minimumSweptTimestamp(456)
                     .writeCount(5)
                     .build()),
-                txManager.runTaskReadOnly(priorityStore::loadNewPrioritites));
+                txManager.runTaskReadOnly(priorityStore::loadNewPriorities));
     }
 
     @Test
@@ -179,16 +180,16 @@ public class SweepPriorityStoreTest {
                         .minimumSweptTimestamp(Long.MIN_VALUE)
                         .writeCount(0)
                         .build()),
-                txManager.runTaskReadOnly(priorityStore::loadNewPrioritites));
+                txManager.runTaskReadOnly(priorityStore::loadNewPriorities));
     }
 
-    private static UpdateSweepPriority fullUpdate(int number) {
+    private static UpdateSweepPriority fullUpdate(int increment) {
         return ImmutableUpdateSweepPriority.builder()
-                .newCellsDeleted(3 + number)
-                .newCellsExamined(10 + number)
-                .newLastSweepTimeMillis(123 + number)
-                .newMinimumSweptTimestamp(456 + number)
-                .newWriteCount(5 + number)
+                .newCellsDeleted(3 + increment)
+                .newCellsExamined(10 + increment)
+                .newLastSweepTimeMillis(123 + increment)
+                .newMinimumSweptTimestamp(456 + increment)
+                .newWriteCount(5 + increment)
                 .build();
     }
 

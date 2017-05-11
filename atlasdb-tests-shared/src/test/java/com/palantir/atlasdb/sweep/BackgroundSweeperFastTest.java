@@ -38,7 +38,8 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.RemoteLockService;
 
 public class BackgroundSweeperFastTest {
-    private static final TableReference TABLE_REF = TableReference.createUnsafe("foo.bar");
+    private static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName(
+            "backgroundsweeper.fasttest");
 
     private BackgroundSweeperImpl backgroundSweeper;
     private KeyValueService kvs = Mockito.mock(KeyValueService.class);
@@ -142,7 +143,7 @@ public class BackgroundSweeperFastTest {
     }
 
     @Test
-    public void testWriteZeroWriteCountAfterFreshIncompleteRun() {
+    public void testPutZeroWriteCountAfterFreshIncompleteRun() {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()

@@ -22,14 +22,14 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 @Value.Immutable
 public interface SweepProgress {
 
-    TableReference getTableRef();
+    TableReference tableRef();
 
-    byte[] getStartRow();
+    byte[] startRow();
 
-    long getCellsDeleted();
+    long cellsDeleted();
 
-    long getCellsExamined();
+    long cellsExamined();
 
-    long getMinimumSweptTimestamp();
+    long minimumSweptTimestamp();
 
 }

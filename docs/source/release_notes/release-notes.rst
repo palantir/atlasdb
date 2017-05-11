@@ -71,10 +71,6 @@ develop
          - Relax the signature of KeyValueService.addGarbageCollectionSentinelValues() to take an Iterable instead of a Set.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1843>`__)
 
-    *    - |improved|
-         - Split BackgroundSweeperImpl into several classes and rewrote the corresponding tests to make them less implementation-dependent.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1894>`__)
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
