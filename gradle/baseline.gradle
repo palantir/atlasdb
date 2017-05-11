@@ -19,7 +19,6 @@ List<String> blacklistedBaselineProjects = [
 
 List<String> blacklistedErrorProneProjects = [
         'lock-impl',
-        'profile-client-protobufs',
         'timestamp-impl']
 
 if (!blacklistedBaselineProjects.contains(project.name)) {
