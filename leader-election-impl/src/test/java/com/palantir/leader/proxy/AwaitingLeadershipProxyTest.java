@@ -30,6 +30,7 @@ import com.palantir.leader.LeaderElectionService;
 public class AwaitingLeadershipProxyTest {
 
     @Test
+    @SuppressWarnings("SelfEquals")
     public void shouldAllowObjectMethodsWhenLeading() throws Exception {
         Runnable mockRunnable = mock(Runnable.class);
         Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
@@ -48,6 +49,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
+    @SuppressWarnings("SelfEquals")
     public void shouldAllowObjectMethodsWhenNotLeading() throws Exception {
         Runnable mockRunnable = mock(Runnable.class);
         Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
