@@ -38,9 +38,6 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
-import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
-import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
-import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -76,18 +73,10 @@ public abstract class AbstractSweepTaskRunnerTest {
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
         LongSupplier tsSupplier = sweepTimestamp::get;
         persistentLockManager = new PersistentLockManager(
-                getPersistentLockService(kvs),
+                SweepTestUtils.getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
         sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
-    }
-
-    private static PersistentLockService getPersistentLockService(KeyValueService kvs) {
-        if (kvs.supportsCheckAndSet()) {
-            return KvsBackedPersistentLockService.create(kvs);
-        } else {
-            return new NoOpPersistentLockService();
-        }
     }
 
     @After

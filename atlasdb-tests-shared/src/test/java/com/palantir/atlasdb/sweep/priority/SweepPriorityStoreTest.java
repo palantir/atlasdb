@@ -99,7 +99,7 @@ public class SweepPriorityStoreTest {
         Assert.assertEquals(
                 ImmutableList.of(priority("foo.bar", 1)),
                 txManager.runTaskReadOnly(priorityStore::loadNewPriorities));
-        // TODO: this currently fails because the getTimestamp() override hack never worked.
+        // TODO(gbonik): This currently fails because the getTimestamp override hack never worked.
         // We should create a ticket to track this.
         //Assert.assertEquals(
         //        ImmutableList.of(priority("foo.bar", 0)),

@@ -21,6 +21,9 @@ import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
+import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
+import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -70,6 +73,14 @@ public final class SweepTestUtils {
                 lockService, txService, constraints, cdm, ssm, cleaner, false);
         setupTables(kvs);
         return txManager;
+    }
+
+    public static PersistentLockService getPersistentLockService(KeyValueService kvs) {
+        if (kvs.supportsCheckAndSet()) {
+            return KvsBackedPersistentLockService.create(kvs);
+        } else {
+            return new NoOpPersistentLockService();
+        }
     }
 
     private static void setupTables(KeyValueService kvs) {

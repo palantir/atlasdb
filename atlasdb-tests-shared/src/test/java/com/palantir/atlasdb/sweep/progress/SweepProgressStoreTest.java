@@ -37,6 +37,21 @@ public class SweepProgressStoreTest {
     private TransactionManager txManager;
     private SweepProgressStore progressStore;
 
+    private static final SweepProgress PROGRESS = ImmutableSweepProgress.builder()
+            .startRow(new byte[] {1, 2, 3})
+            .minimumSweptTimestamp(12345L)
+            .cellsDeleted(10L)
+            .cellsExamined(200L)
+            .tableRef(TableReference.createFromFullyQualifiedName("foo.bar"))
+            .build();
+    private static final SweepProgress OTHER_PROGRESS = ImmutableSweepProgress.builder()
+            .startRow(new byte[] {4, 5, 6})
+            .minimumSweptTimestamp(67890L)
+            .cellsDeleted(11L)
+            .cellsExamined(202L)
+            .tableRef(TableReference.createFromFullyQualifiedName("qwe.rty"))
+            .build();
+
     @Before
     public void setup() {
         exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
@@ -57,58 +72,30 @@ public class SweepProgressStoreTest {
 
     @Test
     public void testSaveAndLoad() {
-        SweepProgress progress = ImmutableSweepProgress.builder()
-                .startRow(new byte[] {1, 2, 3})
-                .minimumSweptTimestamp(12345L)
-                .cellsDeleted(10L)
-                .cellsExamined(200L)
-                .tableRef(TableReference.createFromFullyQualifiedName("foo.bar"))
-                .build();
         txManager.runTaskWithRetry(tx -> {
-            progressStore.saveProgress(tx, progress);
+            progressStore.saveProgress(tx, PROGRESS);
             return null;
         });
-        Assert.assertEquals(Optional.of(progress), txManager.runTaskReadOnly(progressStore::loadProgress));
+        Assert.assertEquals(Optional.of(PROGRESS), txManager.runTaskReadOnly(progressStore::loadProgress));
     }
 
     @Test
     public void testOverwrite() {
-        SweepProgress progress = ImmutableSweepProgress.builder()
-                .startRow(new byte[] {1, 2, 3})
-                .minimumSweptTimestamp(12345L)
-                .cellsDeleted(10L)
-                .cellsExamined(200L)
-                .tableRef(TableReference.createFromFullyQualifiedName("foo.bar"))
-                .build();
         txManager.runTaskWithRetry(tx -> {
-            progressStore.saveProgress(tx, progress);
+            progressStore.saveProgress(tx, PROGRESS);
             return null;
         });
-        SweepProgress newProgress = ImmutableSweepProgress.builder()
-                .startRow(new byte[] {4, 5, 6})
-                .minimumSweptTimestamp(67890L)
-                .cellsDeleted(11L)
-                .cellsExamined(202L)
-                .tableRef(TableReference.createFromFullyQualifiedName("qwe.rty"))
-                .build();
         txManager.runTaskWithRetry(tx -> {
-            progressStore.saveProgress(tx, newProgress);
+            progressStore.saveProgress(tx, OTHER_PROGRESS);
             return null;
         });
-        Assert.assertEquals(Optional.of(newProgress), txManager.runTaskReadOnly(progressStore::loadProgress));
+        Assert.assertEquals(Optional.of(OTHER_PROGRESS), txManager.runTaskReadOnly(progressStore::loadProgress));
     }
 
     @Test
     public void testClear() {
-        SweepProgress progress = ImmutableSweepProgress.builder()
-                .startRow(new byte[] {1, 2, 3})
-                .minimumSweptTimestamp(12345L)
-                .cellsDeleted(10L)
-                .cellsExamined(200L)
-                .tableRef(TableReference.createFromFullyQualifiedName("foo.bar"))
-                .build();
         txManager.runTaskWithRetry(tx -> {
-            progressStore.saveProgress(tx, progress);
+            progressStore.saveProgress(tx, PROGRESS);
             return null;
         });
         Assert.assertTrue(txManager.runTaskReadOnly(progressStore::loadProgress).isPresent());
