@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.palantir.atlasdb.timelock.TimeLockServerLauncher;
 import com.palantir.leader.PaxosLeaderElectionService;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -72,7 +73,6 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private PaxosResource paxosResource;
     private Semaphore sharedThreadPool = new Semaphore(-1);
     private TimeLockServerConfiguration timeLockServerConfiguration;
-    private PaxosAcceptor ourAcceptor;
 
     public PaxosTimeLockServer(PaxosConfiguration configuration, Environment environment) {
         this.paxosConfiguration = configuration;
@@ -114,7 +114,10 @@ public class PaxosTimeLockServer implements TimeLockServer {
                         .remoteLearnerUris(paxosSubresourceUris)
                         .build());
         leaderElectionService = localPaxosServices.leaderElectionService();
-        ourAcceptor = localPaxosServices.ourAcceptor();
+
+        environment.getApplicationContext().addServlet(
+                new TimeLockServerLauncher.PaxosAcceptorServletHolder(localPaxosServices.ourAcceptor()),
+                "/.internal/leaderPaxos/acceptor/latest-sequence-prepared-or-accepted");
 
         environment.jersey().register(leaderElectionService);
         environment.jersey().register(new LeadershipResource(
@@ -172,7 +175,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
                         leaderElectionService),
                 client);
 
-        return TimeLockServices.create(timestampService, lockService, timestampService, ourAcceptor,
+        return TimeLockServices.create(timestampService, lockService, timestampService, paxosResource,
                 (PaxosLeaderElectionService) leaderElectionService);
     }
 

@@ -84,10 +84,11 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         for (Map.Entry<String, TimeLockServices> entry : clientToServices.entrySet()) {
             environment.getApplicationContext().addServlet(
                     new TimestampServletHolder(entry.getValue()), "/" + entry.getKey() + "/timestamp/fresh-timestamp");
+            PaxosAcceptor myAcceptor = entry.getValue().getPaxosResource().getPaxosAcceptor(entry.getKey());
+            environment.getApplicationContext().addServlet(
+                    new PaxosAcceptorServletHolder(myAcceptor),
+                    "/" + entry.getKey() + "/acceptor/latest-sequence-prepared-or-accepted");
         }
-        environment.getApplicationContext().addServlet(
-                new PaxosLeadershipServletHolder(clientToServices.values().iterator().next().getLeadershipAcceptor()),
-                "/.internal/leaderPaxos/acceptor/latest-sequence-prepared-or-accepted");
         environment.getApplicationContext().addServlet(
                 new LeaderPingServletHolder(
                         clientToServices.values().iterator().next().getPingable()),
@@ -114,8 +115,8 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         }
     }
 
-    private static class PaxosLeadershipServletHolder extends ServletHolder {
-        PaxosLeadershipServletHolder(PaxosAcceptor acceptor) {
+    public static class PaxosAcceptorServletHolder extends ServletHolder {
+        public PaxosAcceptorServletHolder(PaxosAcceptor acceptor) {
             super(new HttpServlet() {
                 @Override
                 protected void doPost(HttpServletRequest req, HttpServletResponse resp)
