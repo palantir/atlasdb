@@ -28,12 +28,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.net.ssl.SSLSocketFactory;
 
 import org.assertj.core.util.Lists;
@@ -44,9 +44,11 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -61,13 +63,10 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
-
+import feign.RetryableException;
 import io.dropwizard.testing.ResourceHelpers;
 
 public class PaxosTimeLockServerIntegrationTest {
-    private static final String NOT_FOUND_CODE = "404";
-    private static final String TOO_MANY_REQUESTS_CODE = "429";
-
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
@@ -131,7 +130,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void throwOnSingleClientRequestingSameLockTooManyTimes() throws Exception {
+    public void throwsOnSingleClientRequestingSameLockTooManyTimes() throws Exception {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1));
         int exceedingRequests = 10;
@@ -142,7 +141,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void throwOnTwoClientsRequestingSameLockTooManyTimes() throws Exception {
+    public void throwsOnTwoClientsRequestingSameLockTooManyTimes() throws Exception {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1), getLockService(CLIENT_2));
         int exceedingRequests = SHARED_TC_LIMIT;
@@ -179,9 +178,12 @@ public class PaxosTimeLockServerIntegrationTest {
         futures.forEach(future -> {
             try {
                 assertNull(future.get());
-            } catch (Exception e) {
-                assertThat(e).hasMessageContaining(TOO_MANY_REQUESTS_CODE);
+            } catch (ExecutionException e) {
+                RetryableException retryableException = (RetryableException) e.getCause();
+                assertRemoteExceptionWithStatus(retryableException.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
                 exceptionCounter.getAndIncrement();
+            } catch (InterruptedException e) {
+                throw Throwables.propagate(e);
             }
         });
 
@@ -306,16 +308,16 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void returnsNotFoundOnQueryingNonexistentClient() {
-        RemoteLockService lockService = getLockService(NONEXISTENT_CLIENT);
-        assertThatThrownBy(lockService::currentTimeMillis)
-                .hasMessageContaining(NOT_FOUND_CODE);
+        RemoteLockService nonExistentLockService = getLockService(NONEXISTENT_CLIENT);
+        assertThatThrownBy(nonExistentLockService::currentTimeMillis)
+                .satisfies(PaxosTimeLockServerIntegrationTest::assertRemoteNotFoundException);
     }
 
     @Test
     public void returnsNotFoundOnQueryingTimestampWithNonexistentClient() {
         TimestampService nonExistentTimestampService = getTimestampService(NONEXISTENT_CLIENT);
         assertThatThrownBy(nonExistentTimestampService::getFreshTimestamp)
-                .hasMessageContaining(NOT_FOUND_CODE);
+                .satisfies(PaxosTimeLockServerIntegrationTest::assertRemoteNotFoundException);
     }
 
     @Test
@@ -378,5 +380,16 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static String getRootUriForClient(String client) {
         return String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
+    }
+
+    private static void assertRemoteNotFoundException(Throwable throwable) {
+        assertRemoteExceptionWithStatus(throwable, HttpStatus.NOT_FOUND_404);
+    }
+
+    private static void assertRemoteExceptionWithStatus(Throwable throwable, int expectedStatus) {
+        assertThat(throwable).isInstanceOf(AtlasDbRemoteException.class);
+
+        AtlasDbRemoteException remoteException = (AtlasDbRemoteException) throwable;
+        assertThat(remoteException.getStatus()).isEqualTo(expectedStatus);
     }
 }

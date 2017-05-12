@@ -21,13 +21,13 @@ import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
 
 import com.codahale.metrics.MetricRegistry;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
-
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -73,6 +73,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
                 client -> serverImpl.createInvalidatingTimeLockServices(client,
                         configuration.slowLockLogTriggerMillis())));
 
+        environment.getObjectMapper().registerModule(new Jdk8Module());
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));
     }

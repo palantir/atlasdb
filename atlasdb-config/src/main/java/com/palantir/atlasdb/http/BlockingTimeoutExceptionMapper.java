@@ -13,20 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock;
+package com.palantir.atlasdb.http;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
-import org.eclipse.jetty.http.HttpStatus;
+import com.palantir.lock.remoting.BlockingTimeoutException;
 
-import com.palantir.atlasdb.http.ExceptionMappers;
-import com.palantir.lock.impl.TooManyRequestsException;
-
-public class TooManyRequestsExceptionMapper implements ExceptionMapper<TooManyRequestsException> {
+public class BlockingTimeoutExceptionMapper implements ExceptionMapper<BlockingTimeoutException> {
     @Override
-    public Response toResponse(TooManyRequestsException exception) {
-        return ExceptionMappers.encodeExceptionResponse(exception, HttpStatus.TOO_MANY_REQUESTS_429)
-                .build();
+    public Response toResponse(BlockingTimeoutException exception) {
+        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
     }
 }

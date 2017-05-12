@@ -35,12 +35,14 @@ public class TimeLockServerConfiguration extends Configuration {
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
     private final boolean useClientRequestLimit;
+    private final TimeLimiterConfiguration timeLimiterConfiguration;
 
     public TimeLockServerConfiguration(
             @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients,
-            @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit) {
+            @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit,
+            @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration) {
         Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
         checkClientNames(clients);
         if (Boolean.TRUE.equals(useClientRequestLimit)) {
@@ -52,6 +54,8 @@ public class TimeLockServerConfiguration extends Configuration {
         this.cluster = cluster;
         this.clients = clients;
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
+        this.timeLimiterConfiguration =
+                MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
     }
 
     private void checkClientNames(Set<String> clientNames) {
@@ -87,6 +91,10 @@ public class TimeLockServerConfiguration extends Configuration {
 
     public boolean useClientRequestLimit() {
         return useClientRequestLimit;
+    }
+
+    public TimeLimiterConfiguration timeLimiterConfiguration() {
+        return timeLimiterConfiguration;
     }
 
     public int availableThreads() {
