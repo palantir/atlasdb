@@ -94,7 +94,11 @@ public final class DbkvsPostgresTestSuite {
                 kvs = ConnectionManagerAwareDbKvs.create(getKvsConfig());
                 return kvs.getConnectionManager().getConnection().isValid(5);
             } catch (Exception e) {
-                return false;
+                if (e.getMessage().contains("The connection attempt failed.")) {
+                    return  false;
+                } else {
+                    throw e;
+                }
             } finally {
                 if (kvs != null) {
                     kvs.close();
