@@ -21,14 +21,14 @@ import java.io.IOException;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MediaType;
 
-public class TextPlainResponseStrategy implements ResponseStrategy<String> {
+public class TextPlainResponseStrategy<V> implements ResponseStrategy<V> {
     @Override
     public String mediaType() {
         return MediaType.TEXT_PLAIN;
     }
 
     @Override
-    public void writeResponse(String valueToWrite, HttpServletResponse response) throws IOException {
-        response.getWriter().write(valueToWrite);
+    public void writeResponse(V valueToWrite, HttpServletResponse response) throws IOException {
+        response.getWriter().write(valueToWrite.toString());
     }
 }

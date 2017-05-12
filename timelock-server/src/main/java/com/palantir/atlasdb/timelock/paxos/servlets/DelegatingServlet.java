@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.HttpHeaders;
 
 import org.eclipse.jetty.http.HttpStatus;
 
@@ -29,28 +30,28 @@ import com.google.common.base.Throwables;
 
 public class DelegatingServlet<V> extends HttpServlet {
     private final Callable<V> function;
-    private final HttpMethod allowedMethod;
+    private final String httpMethod;
     private final ResponseStrategy<V> responseStrategy;
 
     public DelegatingServlet(
-            Callable<V> function, HttpMethod allowedMethod, ResponseStrategy<V> responseStrategy) {
+            Callable<V> function, String httpMethod, ResponseStrategy<V> responseStrategy) {
         this.function = function;
-        this.allowedMethod = allowedMethod;
+        this.httpMethod = httpMethod;
         this.responseStrategy = responseStrategy;
     }
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        writeResponseIfMethodMatches(response, HttpMethod.GET);
+        respondIfHttpMethodMatches(response, HttpMethod.GET);
     }
 
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        writeResponseIfMethodMatches(response, HttpMethod.POST);
+        respondIfHttpMethodMatches(response, HttpMethod.POST);
     }
 
-    private void writeResponseIfMethodMatches(HttpServletResponse response, String get) throws IOException {
-        if (allowedMethod.value().equals(get)) {
+    private void respondIfHttpMethodMatches(HttpServletResponse response, String method) throws IOException {
+        if (httpMethod.equals(method)) {
             writeResponse(response);
         } else {
             response.sendError(HttpStatus.METHOD_NOT_ALLOWED_405);
@@ -58,6 +59,7 @@ public class DelegatingServlet<V> extends HttpServlet {
     }
 
     private void writeResponse(HttpServletResponse response) throws IOException {
+        response.addHeader(HttpHeaders.CONTENT_TYPE, responseStrategy.mediaType());
         V valueToWrite;
         try {
             valueToWrite = function.call();
