@@ -106,7 +106,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         putManyCells(TABLE_2, 104, 114);
         putManyCells(TABLE_3, 120, 130);
         sweepTimestamp.set(150);
-        try (BackgroundSweeperImpl.SweepLocks sweepLocks = backgroundSweeper.createSweepLocks()) {
+        try (SweepLocks sweepLocks = backgroundSweeper.createSweepLocks()) {
             for (int i = 0; i < 50; ++i) {
                 backgroundSweeper.grabLocksAndRun(sweepLocks);
             }

@@ -29,8 +29,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -45,17 +43,13 @@ import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.time.Clock;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
-import com.palantir.lock.StringLockDescriptor;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
@@ -278,7 +272,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private final class TableToSweep {
-        private final TableReference tableReff;
+        private final TableReference tableRef;
         @Nullable private final SweepProgress progress;
 
         TableToSweep(TableReference tableRef, SweepProgress progress) {
@@ -434,37 +428,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @VisibleForTesting
     SweepLocks createSweepLocks() {
-        return new SweepLocks();
-    }
-
-    @VisibleForTesting
-    class SweepLocks implements AutoCloseable {
-        private LockRefreshToken token = null;
-
-        public void lockOrRefresh() throws InterruptedException {
-            if (token != null) {
-                Set<LockRefreshToken> refreshedTokens = lockService.refreshLockRefreshTokens(ImmutableList.of(token));
-                if (refreshedTokens.isEmpty()) {
-                    token = null;
-                }
-            } else {
-                LockDescriptor lock = StringLockDescriptor.of("atlas sweep");
-                LockRequest request = LockRequest.builder(
-                        ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
-                token = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
-            }
-        }
-
-        public boolean haveLocks() {
-            return token != null;
-        }
-
-        @Override
-        public void close() {
-            if (token != null) {
-                lockService.unlock(token);
-            }
-        }
+        return new SweepLocks(lockService);
     }
 
     @Override
