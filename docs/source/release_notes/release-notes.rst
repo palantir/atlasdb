@@ -55,7 +55,7 @@ develop
          - Fixed a bug that would cause console to error on any range request that used a column selection and had more than one batch of results.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1876>`__)
 
-    *    - |fixed|
+    *    - |new|
          - Timelock server now has jar publication in addition to dist publication.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1898>`__)
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
