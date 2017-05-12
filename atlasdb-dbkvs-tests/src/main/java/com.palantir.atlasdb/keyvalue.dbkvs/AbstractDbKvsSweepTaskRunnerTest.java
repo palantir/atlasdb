@@ -25,9 +25,9 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.sweep.AbstractSweeperTest;
+import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 
-public abstract class AbstractDbKvsSweeperTest extends AbstractSweeperTest {
+public abstract class AbstractDbKvsSweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
     @After
     public void resetMaxBatch() {
         setMaxRangeOfTimestampsBatchSize(DbKvs.DEFAULT_GET_RANGE_OF_TS_BATCH);

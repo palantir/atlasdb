@@ -40,7 +40,8 @@ import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 @SuiteClasses({
         DbkvsPostgresKeyValueServiceTest.class,
         DbkvsPostgresSerializableTransactionTest.class,
-        DbkvsPostgresSweeperTest.class,
+        DbkvsPostgresSweepTaskRunnerTest.class,
+        DbkvsBackgroundSweeperIntegrationTest.class,
         PostgresDbTimestampBoundStoreTest.class
         })
 public final class DbkvsPostgresTestSuite {
