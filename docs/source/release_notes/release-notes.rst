@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak| |changed|
+         - Projects ``atasdb-commons``, ``commons-annotations``, ``commons-api``, ``commons-executors``, ``commons-proxy``, and ``lock-api`` no longer force Java 6 compatibility. This eliminates the need for a Java 6 compiler to compile AtlasDB, but published artifacts for these projects will depend on Java 8 from now on.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1887>`__)
+
     *    - |improved|
          - Add instrumentation to the thread pool used to run quorum checks during leader elections. This will be useful for
            debugging `PaxosQuorumChecker can leave hanging threads <https://github.com/palantir/atlasdb/issues/1823>`.
