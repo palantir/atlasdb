@@ -18,8 +18,8 @@ package com.palantir.atlasdb.cli.output;
 import org.slf4j.Logger;
 import org.slf4j.helpers.MessageFormatter;
 
-@SuppressWarnings("Slf4jConstantLogMessage")
 public class OutputPrinter {
+    // TODO(ssouza): remove this class in a separate PR. It's not compliant with internal logging guidelines.
     private Logger logger;
 
     public OutputPrinter(Logger logger) {
@@ -27,12 +27,14 @@ public class OutputPrinter {
     }
 
     public void info(String message, Object... args) {
-        logger.info(message, args);
-        System.out.println(MessageFormatter.arrayFormat(message, args).getMessage());
+        String infoMessage = MessageFormatter.arrayFormat(message, args).getMessage();
+        logger.info("{}", infoMessage);
+        System.out.println(infoMessage);
     }
 
-    public void error(String message, Object... args) {
-        logger.error(message, args);
-        System.err.println(MessageFormatter.arrayFormat(message, args).getMessage());
+    public void error(final String message, Object... args) {
+        String errorMessage = MessageFormatter.arrayFormat(message, args).getMessage();
+        logger.error("{}", errorMessage);
+        System.err.println(errorMessage);
     }
 }

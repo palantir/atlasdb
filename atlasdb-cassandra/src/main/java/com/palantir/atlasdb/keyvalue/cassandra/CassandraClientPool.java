@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TimedOutException;
@@ -45,6 +44,7 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
@@ -72,8 +72,6 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.remoting1.tracing.Tracers;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * Feature breakdown:
  *   - Pooling
@@ -93,6 +91,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressWarnings("VisibilityModifier")
 public class CassandraClientPool {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
+    private static final String CONNECTION_FAILURE_MSG = "Tried to connect to cassandra {} times."
+            + " Error writing to Cassandra socket."
+            + " Likely cause: Exceeded maximum thrift frame size;"
+            + " unlikely cause: network issues.";
+
     /**
      * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
      * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
@@ -669,12 +672,9 @@ public class CassandraClientPool {
                 if (ex instanceof TTransportException
                         && ex.getCause() != null
                         && (ex.getCause().getClass() == SocketException.class)) {
-                    final String msg = "Error writing to Cassandra socket. "
-                            + "Likely cause: Exceeded maximum thrift frame size; "
-                            + "unlikely cause: network issues.";
-                    final String logMessage = "Tried to connect to cassandra {} times. " + msg;
-                    log.error(logMessage, numTries, ex);
-                    throw (K) new TTransportException(((TTransportException) ex).getType(), msg, ex);
+                    log.error(CONNECTION_FAILURE_MSG, numTries, ex);
+                    String errorMsg = MessageFormatter.format(CONNECTION_FAILURE_MSG, numTries).getMessage();
+                    throw (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
                 } else {
                     log.error("Tried to connect to cassandra {} times.", numTries, ex);
                     throw (K) ex;
@@ -694,7 +694,6 @@ public class CassandraClientPool {
     // consistent ring across all of it's nodes.  One node will think it owns more than the others
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
-    @SuppressFBWarnings("SLF4J_MANUALLY_PROVIDED_MESSAGE")
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost = HashMultimap.create();
         for (InetSocketAddress host : currentPools.keySet()) {
