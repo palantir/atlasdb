@@ -44,6 +44,7 @@ import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.paxos.PaxosAcceptor;
 
 import io.dropwizard.jersey.setup.JerseyEnvironment;
+import io.dropwizard.jetty.MutableServletContextHandler;
 import io.dropwizard.setup.Environment;
 
 public class PaxosTimeLockServerTest {
@@ -71,6 +72,7 @@ public class PaxosTimeLockServerTest {
     public void setUp() {
         when(environment.jersey()).thenReturn(mock(JerseyEnvironment.class));
         when(environment.healthChecks()).thenReturn(mock(HealthCheckRegistry.class));
+        when(environment.getApplicationContext()).thenReturn(mock(MutableServletContextHandler.class));
     }
 
     @Test

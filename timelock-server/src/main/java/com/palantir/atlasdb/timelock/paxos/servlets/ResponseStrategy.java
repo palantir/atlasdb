@@ -22,7 +22,8 @@ import javax.servlet.http.HttpServletResponse;
 
 public interface ResponseStrategy<V> {
     /**
-     * @return A String representation of the media type this ResponseStrategy is designed to handle
+     * Returns the media type this ResponseStrategy is designed to handle.
+     * @return A String representation of the media type this strategy handles
      */
     String mediaType();
 
