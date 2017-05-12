@@ -19,7 +19,6 @@ distribution {
 configurations.all {
     resolutionStrategy {
         eachDependency { details ->
-            //specifying a fixed version for all libraries with 'io.dropwizard' group
             switch (details.requested.group) {
                 case 'io.dropwizard':
                     details.useVersion libVersions.timelock_dropwizard
@@ -51,4 +50,8 @@ configurations.all {
                 'org.objenesis:objenesis:2.3',
         ]
     }
+}
+
+dependencyRecommendations {
+    strategy ConflictResolved
 }
