@@ -1,32 +1,39 @@
 apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 apply from: "../gradle/shared.gradle"
 
-dependencies {
-  compile project(":atlasdb-client")
-  compile project(":atlasdb-api")
-  compile project(":commons-api")
-  compile project(':timestamp-impl')
+configurations {
+  compile.extendsFrom(shadow)
+}
 
-  compile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
+dependencies {
+  shadow project(":atlasdb-client")
+  shadow project(":atlasdb-api")
+  shadow project(":commons-api")
+  shadow project(':timestamp-impl')
+
+  shadow ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
     exclude module: 'junit'
 
     // override ant to a newer one that is shared with the version in jmock-->cglib
+    // note that the version we are shading though I believe is the one originally transitively requested
     exclude module: 'ant'
     compile 'org.apache.ant:ant:' + libVersions.ant
   }
-  compile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
-  compile group: 'com.google.guava', name: 'guava'
 
-  compile 'org.apache.commons:commons-pool2:2.4.2'
+  shadow 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
+  shadow group: 'com.google.guava', name: 'guava'
 
-  compile group: 'com.palantir.remoting', name: 'ssl-config'
-  compile group: 'com.palantir.remoting1', name: 'tracing'
+  shadow 'org.apache.commons:commons-pool2:2.4.2'
 
-  compile group: 'com.google.code.findbugs', name: 'annotations'
+  shadow group: 'com.palantir.remoting', name: 'ssl-config'
+  shadow group: 'com.palantir.remoting1', name: 'tracing'
 
-  compile group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
+  shadow group: 'com.google.code.findbugs', name: 'annotations'
+
+  shadow group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
 
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
   testCompile group: 'org.mockito', name: 'mockito-core'
@@ -36,3 +43,16 @@ dependencies {
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 }
+
+shadowJar {
+  mergeServiceFiles()
+  classifier ''
+
+  relocate('jflex', atlasdb_shaded + 'jflex')
+  relocate('org.apache.tools.ant', atlasdb_shaded + 'ant')
+  relocate('org.tarturus.snowball', atlasdb_shaded + 'snowball')
+  relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
+}
+
+jar.dependsOn(shadowJar)
+jar.onlyIf { false }
