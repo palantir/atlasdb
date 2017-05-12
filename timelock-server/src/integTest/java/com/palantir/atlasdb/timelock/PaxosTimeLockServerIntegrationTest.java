@@ -18,6 +18,9 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,13 +28,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.net.ssl.SSLSocketFactory;
 
 import org.assertj.core.util.Lists;
@@ -42,9 +44,11 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -59,13 +63,10 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
-
+import feign.RetryableException;
 import io.dropwizard.testing.ResourceHelpers;
 
 public class PaxosTimeLockServerIntegrationTest {
-    private static final String NOT_FOUND_CODE = "404";
-    private static final String TOO_MANY_REQUESTS_CODE = "429";
-
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
@@ -97,9 +98,10 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
             new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
 
-    private static final LockRequest SLOW_REQUEST = LockRequest
+    private static final LockRequest REQUEST_LOCK_WITH_LONG_TIMEOUT = LockRequest
             .builder(ImmutableSortedMap.of(StringLockDescriptor.of("lock"), LockMode.WRITE))
-            .blockForAtMost(SimpleTimeDuration.of(200, TimeUnit.MILLISECONDS))
+            .timeoutAfter(SimpleTimeDuration.of(20, TimeUnit.SECONDS))
+            .blockForAtMost(SimpleTimeDuration.of(4, TimeUnit.SECONDS))
             .build();
 
     private final TimestampService timestampService = getTimestampService(CLIENT_1);
@@ -111,7 +113,7 @@ public class PaxosTimeLockServerIntegrationTest {
             .around(TIMELOCK_SERVER_HOLDER);
 
     @Test
-    public void notExceedingThreadCountLimitsSucceeds() throws Exception {
+    public void singleClientCanUseLocalAndSharedThreads() throws Exception {
         List<RemoteLockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
 
         assertThat(lockAndUnlockAndCountExceptions(lockService, LOCAL_TC_LIMIT + SHARED_TC_LIMIT))
@@ -119,7 +121,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void multipleClientsCanShareGlobalThreads() throws Exception {
+    public void multipleClientsCanUseSharedThreads() throws Exception {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
 
@@ -127,30 +129,65 @@ public class PaxosTimeLockServerIntegrationTest {
                 .isEqualTo(0);
     }
 
-    private int lockAndUnlockAndCountExceptions(List<RemoteLockService> lockServices, int numRequests)
-            throws Exception {
-        CountDownLatch countDownLatch = new CountDownLatch(lockServices.size() * numRequests);
-        ExecutorService executorService = Executors.newFixedThreadPool(lockServices.size() * numRequests);
-        Map<RemoteLockService, List<Future<LockRefreshToken>>> futureMap = new HashMap<>();
-        lockServices.forEach(
-                service -> futureMap.put(service, requestLocks(service, numRequests, executorService, countDownLatch)));
-        return futureMap.entrySet().stream()
-                .mapToInt(entry -> unlockAndCountExceptions(entry.getKey(), entry.getValue())).sum();
+    @Test
+    public void throwsOnSingleClientRequestingSameLockTooManyTimes() throws Exception {
+        List<RemoteLockService> lockServiceList = ImmutableList.of(
+                getLockService(CLIENT_1));
+        int exceedingRequests = 10;
+        int maxRequestsForOneClient = LOCAL_TC_LIMIT + SHARED_TC_LIMIT;
+
+        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, exceedingRequests + maxRequestsForOneClient))
+                .isEqualTo(exceedingRequests);
     }
 
-    private int unlockAndCountExceptions(RemoteLockService lockService, List<Future<LockRefreshToken>> futures) {
+    @Test
+    public void throwsOnTwoClientsRequestingSameLockTooManyTimes() throws Exception {
+        List<RemoteLockService> lockServiceList = ImmutableList.of(
+                getLockService(CLIENT_1), getLockService(CLIENT_2));
+        int exceedingRequests = SHARED_TC_LIMIT;
+        int requestsPerClient = LOCAL_TC_LIMIT + SHARED_TC_LIMIT;
+
+        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, requestsPerClient))
+                .isEqualTo(exceedingRequests);
+    }
+
+    private int lockAndUnlockAndCountExceptions(List<RemoteLockService> lockServices, int numRequestsPerClient)
+            throws Exception {
+        ExecutorService executorService = Executors.newFixedThreadPool(lockServices.size() * numRequestsPerClient);
+
+        Map<RemoteLockService, LockRefreshToken> tokenMap = new HashMap<>();
+        for (RemoteLockService service : lockServices) {
+            LockRefreshToken token = service.lock(CLIENT_1, REQUEST_LOCK_WITH_LONG_TIMEOUT);
+            assertNotNull(token);
+            tokenMap.put(service, token);
+        }
+
+        List<Future<LockRefreshToken>> futures = Lists.newArrayList();
+        for (RemoteLockService lockService : lockServices) {
+            for (int i = 0; i < numRequestsPerClient; i++) {
+                int currentTrial = i;
+                futures.add(executorService.submit(() -> lockService.lock(
+                                CLIENT_2 + String.valueOf(currentTrial), REQUEST_LOCK_WITH_LONG_TIMEOUT)));
+            }
+        }
+
+        executorService.shutdown();
+        executorService.awaitTermination(2, TimeUnit.SECONDS);
+
         AtomicInteger exceptionCounter = new AtomicInteger(0);
         futures.forEach(future -> {
             try {
-                LockRefreshToken token = future.get();
-                if (token != null) {
-                    lockService.unlock(token);
-                }
-            } catch (Exception e) {
-                assertThat(e).hasMessageContaining(TOO_MANY_REQUESTS_CODE);
+                assertNull(future.get());
+            } catch (ExecutionException e) {
+                RetryableException retryableException = (RetryableException) e.getCause();
+                assertRemoteExceptionWithStatus(retryableException.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
                 exceptionCounter.getAndIncrement();
+            } catch (InterruptedException e) {
+                throw Throwables.propagate(e);
             }
         });
+
+        tokenMap.forEach((service, token) -> assertTrue(service.unlock(token)));
 
         return exceptionCounter.get();
     }
@@ -271,16 +308,16 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void returnsNotFoundOnQueryingNonexistentClient() {
-        RemoteLockService lockService = getLockService(NONEXISTENT_CLIENT);
-        assertThatThrownBy(lockService::currentTimeMillis)
-                .hasMessageContaining(NOT_FOUND_CODE);
+        RemoteLockService nonExistentLockService = getLockService(NONEXISTENT_CLIENT);
+        assertThatThrownBy(nonExistentLockService::currentTimeMillis)
+                .satisfies(PaxosTimeLockServerIntegrationTest::assertRemoteNotFoundException);
     }
 
     @Test
     public void returnsNotFoundOnQueryingTimestampWithNonexistentClient() {
         TimestampService nonExistentTimestampService = getTimestampService(NONEXISTENT_CLIENT);
         assertThatThrownBy(nonExistentTimestampService::getFreshTimestamp)
-                .hasMessageContaining(NOT_FOUND_CODE);
+                .satisfies(PaxosTimeLockServerIntegrationTest::assertRemoteNotFoundException);
     }
 
     @Test
@@ -307,22 +344,6 @@ public class PaxosTimeLockServerIntegrationTest {
         String uriWithParam = getFastForwardUriForClientOne() + "?newMinimum=1200";
         Response response = makeEmptyPostToUri(uriWithParam);
         assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
-    }
-
-    private List<Future<LockRefreshToken>> requestLocks(RemoteLockService lockService,
-            int number,
-            ExecutorService executorService,
-            CountDownLatch countDownLatch) {
-        List<Future<LockRefreshToken>> futures = Lists.newArrayList();
-        for (int i = 0; i < number; i++) {
-            int currentTrial = i;
-            futures.add(executorService.submit(() -> {
-                countDownLatch.countDown();
-                countDownLatch.await();
-                return lockService.lock(lockService.toString() + String.valueOf(currentTrial), SLOW_REQUEST);
-            }));
-        }
-        return futures;
     }
 
     private static String getFastForwardUriForClientOne() {
@@ -359,5 +380,16 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static String getRootUriForClient(String client) {
         return String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
+    }
+
+    private static void assertRemoteNotFoundException(Throwable throwable) {
+        assertRemoteExceptionWithStatus(throwable, HttpStatus.NOT_FOUND_404);
+    }
+
+    private static void assertRemoteExceptionWithStatus(Throwable throwable, int expectedStatus) {
+        assertThat(throwable).isInstanceOf(AtlasDbRemoteException.class);
+
+        AtlasDbRemoteException remoteException = (AtlasDbRemoteException) throwable;
+        assertThat(remoteException.getStatus()).isEqualTo(expectedStatus);
     }
 }

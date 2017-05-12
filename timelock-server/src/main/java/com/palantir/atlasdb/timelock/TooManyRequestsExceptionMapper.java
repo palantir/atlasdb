@@ -20,11 +20,13 @@ import javax.ws.rs.ext.ExceptionMapper;
 
 import org.eclipse.jetty.http.HttpStatus;
 
+import com.palantir.atlasdb.http.ExceptionMappers;
 import com.palantir.lock.impl.TooManyRequestsException;
 
 public class TooManyRequestsExceptionMapper implements ExceptionMapper<TooManyRequestsException> {
     @Override
     public Response toResponse(TooManyRequestsException exception) {
-        return Response.status(HttpStatus.TOO_MANY_REQUESTS_429).build();
+        return ExceptionMappers.encodeExceptionResponse(exception, HttpStatus.TOO_MANY_REQUESTS_429)
+                .build();
     }
 }

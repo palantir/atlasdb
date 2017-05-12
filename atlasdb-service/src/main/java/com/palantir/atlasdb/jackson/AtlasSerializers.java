@@ -83,21 +83,20 @@ public final class AtlasSerializers {
         serializeVal(jgen, description.getValue(), val);
     }
 
-    public static ColumnValueDescription serializeCol(JsonGenerator jgen,
+    public static void serializeCol(JsonGenerator jgen,
             ColumnMetadataDescription colDescription,
             byte[] col) throws IOException {
         if (colDescription.hasDynamicColumns()) {
             DynamicColumnDescription dynMetadata = colDescription.getDynamicColumn();
             NameMetadataDescription description = dynMetadata.getColumnNameDesc();
             jgen.writeRawValue(description.renderToJson(col));
-            return dynMetadata.getValue();
         } else {
-            jgen.writeString(PtBytes.toString(col));
             Set<NamedColumnDescription> namedColumns = colDescription.getNamedColumns();
             for (NamedColumnDescription description : namedColumns) {
                 if (UnsignedBytes.lexicographicalComparator().compare(col,
                         PtBytes.toCachedBytes(description.getShortName())) == 0) {
-                    return description.getValue();
+                    jgen.writeString(description.getLongName());
+                    return;
                 }
             }
             throw new IllegalArgumentException(

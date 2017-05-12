@@ -22,17 +22,21 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.api.TableRange;
-import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.impl.TableMetadataCache;
+import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class TableRangeSerializer extends StdSerializer<TableRange> {
     private static final long serialVersionUID = 1L;
+    private final TableMetadataCache metadataCache;
 
-    public TableRangeSerializer() {
+    public TableRangeSerializer(TableMetadataCache metadataCache) {
         super(TableRange.class);
+        this.metadataCache = metadataCache;
     }
 
     @Override
     public void serialize(TableRange value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+        TableMetadata metadata = metadataCache.getMetadata(value.getTableName());
         jgen.writeStartObject();
         jgen.writeStringField("table", value.getTableName());
         jgen.writeBinaryField("raw_start", value.getStartRow());
@@ -41,7 +45,7 @@ public class TableRangeSerializer extends StdSerializer<TableRange> {
         if (!Iterables.isEmpty(value.getColumns())) {
             jgen.writeArrayFieldStart("cols");
             for (byte[] column : value.getColumns()) {
-                jgen.writeString(PtBytes.toString(column));
+                AtlasSerializers.serializeCol(jgen, metadata.getColumns(), column);
             }
             jgen.writeEndArray();
         }

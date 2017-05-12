@@ -534,7 +534,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
 
         // check if node still has quorum
-        List<PaxosResponse> responses = PaxosQuorumChecker.<PaxosAcceptor, PaxosResponse> collectQuorumResponses(
+        List<PaxosResponse> responses = PaxosQuorumChecker.collectQuorumResponses(
                 acceptors,
                 new Function<PaxosAcceptor, PaxosResponse>() {
                     @Override

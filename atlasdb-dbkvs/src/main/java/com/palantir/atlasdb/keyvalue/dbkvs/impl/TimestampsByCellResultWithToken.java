@@ -23,6 +23,7 @@ import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.SetMultimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 
@@ -35,17 +36,20 @@ final class TimestampsByCellResultWithToken {
     private SetMultimap<Cell, Long> rowBuffer;
     private boolean moreResults = false;
     private Token token = Token.INITIAL;
+    private final boolean reverse;
 
-    private TimestampsByCellResultWithToken(ClosableIterator<AgnosticLightResultRow> iterator) {
+    private TimestampsByCellResultWithToken(ClosableIterator<AgnosticLightResultRow> iterator, boolean reverse) {
         entries = HashMultimap.create();
         rowBuffer = HashMultimap.create();
         this.iterator = Iterators.peekingIterator(iterator);
+        this.reverse = reverse;
     }
 
     static TimestampsByCellResultWithToken create(ClosableIterator<AgnosticLightResultRow> iterator,
             Token oldToken,
-            long batchSize) {
-        return new TimestampsByCellResultWithToken(iterator)
+            long batchSize,
+            boolean reverse) {
+        return new TimestampsByCellResultWithToken(iterator, reverse)
                 .moveForward(oldToken)
                 .getBatchOfTimestamps(batchSize)
                 .checkNextEntryAndCreateToken();
@@ -123,6 +127,13 @@ final class TimestampsByCellResultWithToken {
             }
         } else {
             flushRowBuffer();
+            if (currentRow != null) {
+                byte[] nextRow = RangeRequests.getNextStartRowUnlessTerminal(reverse, currentRow);
+                if (nextRow != null) {
+                    moreResults = true;
+                    token = ImmutableToken.builder().row(nextRow).shouldSkip(false).build();
+                }
+            }
         }
         return this;
     }

@@ -208,9 +208,9 @@ public class PaxosTimestampBoundStoreTest {
     @Test
     public void canGetAgreedStateAfterNodeDown() {
         int nodeId = 1;
+        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(nodeId);
         failureToggles.get(nodeId).set(true);
         store.storeUpperLimit(TIMESTAMP_1);
-        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(nodeId);
         failureToggles.get(nodeId).set(false);
 
         assertThat(additionalStore.getAgreedState(2).getBound()).isEqualTo(TIMESTAMP_1);

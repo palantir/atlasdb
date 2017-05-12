@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
@@ -27,8 +26,12 @@ import com.palantir.leader.NotCurrentLeaderException;
  * @author carrino
  */
 public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
+
+    /**
+     * Returns a 503 response, with body corresponding to the serialized exception.
+     */
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
-        return Response.noContent().status(503).header(HttpHeaders.RETRY_AFTER, "0").build();
+        return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
     }
 }

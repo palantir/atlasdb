@@ -42,7 +42,7 @@ public class AtlasJacksonModule {
         module.addSerializer(new TableCellSerializer(cache));
         module.addSerializer(new TableCellValSerializer(cache));
         module.addSerializer(new TableMetadataSerializer());
-        module.addSerializer(new TableRangeSerializer());
+        module.addSerializer(new TableRangeSerializer(cache));
         module.addSerializer(new TableRowResultSerializer(cache));
         module.addSerializer(new TableRowSelectionSerializer(cache));
         module.addDeserializer(RangeToken.class, new RangeTokenDeserializer());
