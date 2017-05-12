@@ -201,9 +201,10 @@ these may be configured in turn, as well as additional configuration parameters.
 <li><a class="reference internal" href="#paxos-configuration" id="id5">Paxos Configuration</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#further-configuration-parameters" id="id6">Further Configuration Parameters</a></li>
-<li><a class="reference internal" href="#dropwizard-configuration-parameters" id="id7">Dropwizard Configuration Parameters</a><ul>
-<li><a class="reference internal" href="#configuring-http-2" id="id8">Configuring HTTP/2</a></li>
+<li><a class="reference internal" href="#time-limiting" id="id6">Time Limiting</a></li>
+<li><a class="reference internal" href="#further-configuration-parameters" id="id7">Further Configuration Parameters</a></li>
+<li><a class="reference internal" href="#dropwizard-configuration-parameters" id="id8">Dropwizard Configuration Parameters</a><ul>
+<li><a class="reference internal" href="#configuring-http-2" id="id9">Configuring HTTP/2</a></li>
 </ul>
 </li>
 </ul>
@@ -337,8 +338,54 @@ believing the leader is down, in ms (default: <code class="docutils literal"><sp
 </table>
 </div>
 </div>
+<div class="section" id="time-limiting">
+<span id="timelock-server-time-limiting"></span><h2><a class="toc-backref" href="#id6">Time Limiting</a><a class="headerlink" href="#time-limiting" title="Permalink to this headline">¶</a></h2>
+<p>Clients that make long-running lock requests will block a thread on TimeLock for the duration of their request. More
+significantly, if these requests are blocked for longer than the idle timeout of the server&#8217;s application connector
+on HTTP/2, then Jetty will send a stream closed message to the client. This can lead to an infinite buildup of threads
+and was the root cause of issue <a class="reference external" href="https://github.com/palantir/atlasdb/issues/1680">#1680</a>. We thus reap the thread
+for interruptible requests before the timeout expires, and send an exception to the client indicating that its request
+has timed out, but it is free to retry on the same node. Note that this issue may still occur if a <em>non-interruptible</em>
+method blocks for longer than the idle timeout, though we believe this is highly unlikely.</p>
+<p>This mechanism can be switched on and off, and the time interval between generating the <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code>
+and the actual idle timeout is configurable. Note that even if we lose the race between generating this exception and
+the idle timeout, we will retry on the same node. Even if this happens 3 times in a row we are fine, since we will fail
+over to non-leaders and they will redirect us back.</p>
+<p>Note that this may affect lock fairness in cases where timeouts occur; previously our locks were entirely fair, but
+now if the blocking time is longer than the connection timeout, then it is possible for the locks to not behave
+fairly.</p>
+<blockquote>
+<div><div class="code yaml highlight-default"><div class="highlight"><pre><span></span><span class="n">timeLimiter</span><span class="p">:</span>
+  <span class="n">enableTimeLimiting</span><span class="p">:</span> <span class="n">true</span>
+  <span class="n">blockingTimeoutErrorMargin</span><span class="p">:</span> <span class="mf">0.03</span>
+</pre></div>
+</div>
+</div></blockquote>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Property</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>enableTimeLimiting</td>
+<td>Whether to enable the time limiting mechanism or not (default: <code class="docutils literal"><span class="pre">false</span></code>).</td>
+</tr>
+<tr class="row-odd"><td>blockingTimeoutErrorMargin</td>
+<td>A value indicating the margin of error we leave before interrupting a long running request,
+since we wish to perform this interruption and return a BlockingTimeoutException <em>before</em> Jetty closes the
+stream. This margin is specified as a ratio of the smallest idle timeout - hence it must be strictly between
+0 and 1 (default: <code class="docutils literal"><span class="pre">0.03</span></code>).</td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="section" id="further-configuration-parameters">
-<span id="timelock-server-further-config"></span><h2><a class="toc-backref" href="#id6">Further Configuration Parameters</a><a class="headerlink" href="#further-configuration-parameters" title="Permalink to this headline">¶</a></h2>
+<span id="timelock-server-further-config"></span><h2><a class="toc-backref" href="#id7">Further Configuration Parameters</a><a class="headerlink" href="#further-configuration-parameters" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -362,12 +409,12 @@ When enabled, each client has a number of threads reserved for itself (default: 
 </table>
 </div>
 <div class="section" id="dropwizard-configuration-parameters">
-<h2><a class="toc-backref" href="#id7">Dropwizard Configuration Parameters</a><a class="headerlink" href="#dropwizard-configuration-parameters" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id8">Dropwizard Configuration Parameters</a><a class="headerlink" href="#dropwizard-configuration-parameters" title="Permalink to this headline">¶</a></h2>
 <p>The Timelock Server is implemented as a Dropwizard application, and may thus be suitably configured with a <code class="docutils literal"><span class="pre">server</span></code>
 block following <a class="reference external" href="http://www.dropwizard.io/1.0.6/docs/manual/configuration.html">Dropwizard&#8217;s configuration</a>. This
 may be useful if, for example, one needs to change the application and/or admin ports for the Timelock Server.</p>
 <div class="section" id="configuring-http-2">
-<span id="timelock-server-config-http2"></span><h3><a class="toc-backref" href="#id8">Configuring HTTP/2</a><a class="headerlink" href="#configuring-http-2" title="Permalink to this headline">¶</a></h3>
+<span id="timelock-server-config-http2"></span><h3><a class="toc-backref" href="#id9">Configuring HTTP/2</a><a class="headerlink" href="#configuring-http-2" title="Permalink to this headline">¶</a></h3>
 <p><a class="reference external" href="https://http2.github.io/">HTTP/2</a> is a newer version of the HTTP protocol that supports, among other features, connection multiplexing. This is
 extremely useful in improving the latency of timestamp and lock requests, which are usually fairly small.
 Timelock Server is compatible with HTTP/2 as of AtlasDB v0.34.0; to configure this, one should change the protocol

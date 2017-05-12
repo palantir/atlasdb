@@ -213,6 +213,20 @@ debugging <cite>PaxosQuorumChecker can leave hanging threads &lt;https://github.
 <td>Fixed a bug that would cause console to error on any range request that used a column selection and had more than one batch of results.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1876">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The format of serialised exceptions occurring on a remote host has been brought in line with that of the <a class="reference external" href="https://github.com/palantir/http-remoting">palantir/http-remoting</a> library.
+This should generally improve readability and also allows for more meaningful messages to be sent; we would previously return message bodies with no content for some exceptions (such as <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code>).
+In particular, the assumption that a status code of 503 definitively means that the node being contacted the leader is no longer valid. That said, existing AtlasDB clients will still behave correctly even with a new TimeLock.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1831">Pull Request 1</a>,
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1808">Pull Request 2</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-fixed">FIXED</span></td>
+<td>TimeLock clients may now receive a <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code> 503 if they make a lock request that blocks for longer than the server&#8217;s idle timeout.
+Previously, these requests would be failed with a HTTP-level exception that the stream was closed.
+We have rewritten clients constructed via <code class="docutils literal"><span class="pre">AtlasDbHttpClients</span></code> to account for this new behaviour, but custom clients directly accessing the lock service may be affected.
+This feature is disabled by default, but can be enabled following the TimeLock server configuration <a class="reference internal" href="../configuration/external_timelock_service_configs/timelock_server_config.html#timelock-server-time-limiting"><span class="std std-ref">docs</span></a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1808">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug with import ordering and license generation in IntelliJ not respecting Baseline conventions.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1893">Pull Request</a>)</td>
