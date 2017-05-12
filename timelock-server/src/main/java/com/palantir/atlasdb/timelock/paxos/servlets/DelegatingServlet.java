@@ -15,30 +15,28 @@
  */
 package com.palantir.atlasdb.timelock.paxos.servlets;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.palantir.remoting1.errors.SerializableError;
 import java.io.IOException;
 import java.util.concurrent.Callable;
+
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
+
 import org.eclipse.jetty.http.HttpStatus;
+
+import com.google.common.base.Throwables;
 
 public class DelegatingServlet<V> extends HttpServlet {
     private final Callable<V> function;
-    private final MediaType mediaType;
-    private final ObjectMapper mapper;
     private final HttpMethod allowedMethod;
+    private final ResponseStrategy<V> responseStrategy;
 
     public DelegatingServlet(
-            Callable<V> function, MediaType mediaType, ObjectMapper mapper, HttpMethod allowedMethod) {
+            Callable<V> function, HttpMethod allowedMethod, ResponseStrategy<V> responseStrategy) {
         this.function = function;
-        this.mediaType = mediaType;
-        this.mapper = mapper;
         this.allowedMethod = allowedMethod;
+        this.responseStrategy = responseStrategy;
     }
 
     @Override
@@ -60,13 +58,12 @@ public class DelegatingServlet<V> extends HttpServlet {
     }
 
     private void writeResponse(HttpServletResponse response) throws IOException {
-        response.addHeader(HttpHeaders.CONTENT_TYPE, mediaType.toString());
+        V valueToWrite;
         try {
-            response.getWriter().write(
-                    mapper.writeValueAsString(function.call()));
+            valueToWrite = function.call();
         } catch (Exception e) {
-            response.getWriter().write(
-                    mapper.writeValueAsString(SerializableError.of(e.getMessage(), e.getClass())));
+            throw Throwables.propagate(e);
         }
+        responseStrategy.writeResponse(valueToWrite, response);
     }
 }
