@@ -28,9 +28,28 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @SuppressFBWarnings("SLF4J_LOGGER_SHOULD_BE_PRIVATE")
 public final class DebugLogger {
-    public static final Logger logger = LoggerFactory.getLogger(DebugLogger.class);
+    private static final Logger logger = LoggerFactory.getLogger(DebugLogger.class);
 
     private DebugLogger() {
         // Logging utility class
     }
+
+    public static void handedOutTimestamps(TimestampRange range) {
+        long count = range.getUpperBound() - range.getLowerBound() + 1L;
+        logger.trace("Handing out {} timestamps, taking us to {}.", count, range.getUpperBound());
+    }
+
+    public static void createdPersistentTimestamp() {
+        logger.info("Creating PersistentTimestamp object on thread {}. This should only happen once.",
+                Thread.currentThread().getName());
+    }
+
+    public static void willStoreNewUpperLimit(long newLimit) {
+        logger.trace("storing new upper limit: {}.", newLimit);
+    }
+
+    public static void didStoreNewUpperLimit(long newLimit) {
+        logger.trace("Stored; upper limit is now {}.", newLimit);
+    }
+
 }

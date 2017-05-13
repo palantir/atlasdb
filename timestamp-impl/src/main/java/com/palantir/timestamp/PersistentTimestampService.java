@@ -15,47 +15,30 @@
  */
 package com.palantir.timestamp;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.annotation.concurrent.ThreadSafe;
 
 import com.google.common.base.Preconditions;
-import com.palantir.common.concurrent.PTExecutors;
 
 @ThreadSafe
 public class PersistentTimestampService implements TimestampService, TimestampManagementService {
-    private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
 
-    private final AvailableTimestamps availableTimestamps;
-    private final ExecutorService executor;
-    private final AtomicBoolean isAllocationTaskSubmitted;
+    private static final int MAX_TIMESTAMPS_PER_REQUEST = 10_000;
 
-    public PersistentTimestampService(AvailableTimestamps availableTimestamps, ExecutorService executor) {
-        DebugLogger.logger.info(
-                "Creating PersistentTimestampService object on thread {}."
-                        + " If you are running embedded AtlasDB, this should only happen once."
-                        + " If you are using Timelock, this should happen once per client per leadership election",
-                Thread.currentThread().getName());
+    private final PersistentTimestamp timestamp;
 
-        this.availableTimestamps = availableTimestamps;
-        this.executor = executor;
-        this.isAllocationTaskSubmitted = new AtomicBoolean(false);
+    public static PersistentTimestampService create(TimestampBoundStore store) {
+        return create(new ErrorCheckingTimestampBoundStore(store));
     }
 
-    public static PersistentTimestampService create(TimestampBoundStore tbs) {
-        PersistentUpperLimit upperLimit = new PersistentUpperLimit(tbs);
-        LastReturnedTimestamp lastReturned = new LastReturnedTimestamp(upperLimit.get());
-        AvailableTimestamps availableTimestamps = new AvailableTimestamps(lastReturned, upperLimit);
-        ExecutorService executor = PTExecutors.newSingleThreadExecutor(
-                PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
-
-        return new PersistentTimestampService(availableTimestamps, executor);
+    public static PersistentTimestampService create(ErrorCheckingTimestampBoundStore store) {
+        long latestTimestamp = store.getUpperLimit();
+        PersistentUpperLimit upperLimit = new PersistentUpperLimit(store);
+        PersistentTimestamp timestamp = new PersistentTimestamp(upperLimit, latestTimestamp);
+        return new PersistentTimestampService(timestamp);
     }
 
-    @SuppressWarnings("unused") // used by product
-    public long getUpperLimitTimestampToHandOutInclusive() {
-        return availableTimestamps.getUpperLimit();
+    public PersistentTimestampService(PersistentTimestamp timestamp) {
+        this.timestamp = timestamp;
     }
 
     @Override
@@ -65,22 +48,23 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        /*
-         * Under high concurrent load, this will be a hot method as clients request timestamps.
-         * It is important to minimize contention as much as possible on this path.
-         */
-        int numTimestampsToHandOut = cleanUpTimestampRequest(numTimestampsRequested);
-        TimestampRange handedOut = availableTimestamps.handOut(numTimestampsToHandOut);
-        asynchronouslyRefreshBuffer();
-        return handedOut;
+        int numTimestampsToReturn = cleanUpTimestampRequest(numTimestampsRequested);
+
+        TimestampRange range = timestamp.incrementBy(numTimestampsToReturn);
+        DebugLogger.handedOutTimestamps(range);
+        return range;
     }
 
     @Override
-    public void fastForwardTimestamp(long currentTimestamp) {
-        Preconditions.checkArgument(currentTimestamp != TimestampManagementService.SENTINEL_TIMESTAMP,
+    public void fastForwardTimestamp(long newTimestamp) {
+        checkFastForwardRequest(newTimestamp);
+        timestamp.increaseTo(newTimestamp);
+    }
+
+    private void checkFastForwardRequest(long newTimestamp) {
+        Preconditions.checkArgument(newTimestamp != TimestampManagementService.SENTINEL_TIMESTAMP,
                 "Cannot fast forward to the sentinel timestamp %s. If you accessed this timestamp service remotely"
-                        + " this is likely due to specifying an incorrect query parameter.", currentTimestamp);
-        availableTimestamps.fastForwardTo(currentTimestamp);
+                        + " this is likely due to specifying an incorrect query parameter.", newTimestamp);
     }
 
     private static int cleanUpTimestampRequest(int numTimestampsRequested) {
@@ -88,24 +72,9 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
             // explicitly not using Preconditions to optimize hot success path and avoid allocations
             throw new IllegalArgumentException(String.format(
                     "Number of timestamps requested must be greater than zero, was %s", numTimestampsRequested));
-        }
 
-        return Math.min(numTimestampsRequested, MAX_REQUEST_RANGE_SIZE);
-    }
-
-    /**
-     * Attempts to submit a task to refresh the buffer if one is not already in-flight; otherwise does nothing.
-     */
-    private void asynchronouslyRefreshBuffer() {
-        if (isAllocationTaskSubmitted.compareAndSet(false, true)) {
-            executor.submit(() -> {
-                try {
-                    availableTimestamps.refreshBuffer();
-                } finally {
-                    isAllocationTaskSubmitted.set(false);
-                }
-            });
         }
+        return Math.min(numTimestampsRequested, MAX_TIMESTAMPS_PER_REQUEST);
     }
 
 }
