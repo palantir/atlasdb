@@ -27,6 +27,10 @@ public class AtomicTimestamp {
     }
 
     public TimestampRange incrementBy(long delta) {
+        if (delta <= 0) {
+            throw new IllegalArgumentException("Timestamp must be increased by a positive number. Found " + delta);
+        }
+
         long upperBound = value.addAndGet(delta);
         long lowerBound = upperBound - delta + 1L;
         return TimestampRange.createInclusiveRange(lowerBound, upperBound);
