@@ -13,31 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cleaner;
+package com.palantir.atlasdb.jdbc;
 
-import java.io.File;
-
-import org.junit.After;
-
-import com.google.common.io.Files;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
-import com.palantir.atlasdb.sweep.AbstractSweeperTest;
+import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 
-public class RocksDbSweeperTest extends AbstractSweeperTest {
-    private File tempDir;
-
-    @After
-    public void tearDown() {
-        super.close();
-        for (File file : Files.fileTreeTraverser().postOrderTraversal(tempDir)) {
-            file.delete();
-        }
-    }
-
+public class JdbcSweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
     @Override
     protected KeyValueService getKeyValueService() {
-        tempDir = Files.createTempDir();
-        return RocksDbKeyValueService.create(tempDir.getAbsolutePath());
+        return JdbcTests.createEmptyKvs();
     }
 }

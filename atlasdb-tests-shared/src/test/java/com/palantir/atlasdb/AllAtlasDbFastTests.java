@@ -20,7 +20,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 import com.palantir.atlasdb.cleaner.AsyncPuncherTest;
-import com.palantir.atlasdb.cleaner.InMemorySweeperTest;
+import com.palantir.atlasdb.cleaner.InMemorySweepTaskRunnerTest;
 import com.palantir.atlasdb.cleaner.PuncherTest;
 import com.palantir.atlasdb.compress.CompressionUtilsTest;
 import com.palantir.atlasdb.keyvalue.impl.RangeRequestsTest;
@@ -29,7 +29,7 @@ import com.palantir.atlasdb.keyvalue.impl.RangeRequestsTest;
 @SuiteClasses({
                 CompressionUtilsTest.class,
                 PuncherTest.class,
-                InMemorySweeperTest.class,
+                InMemorySweepTaskRunnerTest.class,
                 AsyncPuncherTest.class,
                 RangeRequestsTest.class
         })

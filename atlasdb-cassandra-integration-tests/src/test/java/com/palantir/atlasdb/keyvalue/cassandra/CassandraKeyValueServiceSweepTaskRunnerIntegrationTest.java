@@ -36,12 +36,13 @@ import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.sweep.AbstractSweeperTest;
+import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 
 @RunWith(Parameterized.class)
-public class CassandraKeyValueServiceSweeperIntegrationTest extends AbstractSweeperTest {
+public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTest {
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceSweeperIntegrationTest.class)
+    public static final Containers CONTAINERS = new Containers(
+                CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class)
             .with(new CassandraContainer());
 
     @Parameterized.Parameter
