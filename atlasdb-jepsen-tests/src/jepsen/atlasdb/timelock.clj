@@ -19,7 +19,7 @@
         (c/exec :mkdir "/timelock-server")
         (c/exec :tar :xf "/timelock-server.tgz" "-C" "/timelock-server" "--strip-components" "1")
         (c/upload "resources/atlasdb/timelock.yml" "/timelock-server/var/conf")
-        (c/exec :sed :-i (format "s/<HOSTNAME>/%s/" (name node)) "/timelock-server/var/conf/timelock.yml")
+        (c/exec :sed :-i (format "s/<HOSTNAME>/%s/" (name node)) "/timelock-server-distribution/var/conf/timelock.yml")
         (info node "Starting timelock server")
         (c/exec :env "JAVA_HOME=/usr/lib/jvm/java-8-oracle" "/timelock-server/service/bin/init.sh" "start")))
 

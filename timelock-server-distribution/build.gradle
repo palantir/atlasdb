@@ -1,0 +1,18 @@
+apply plugin: 'com.palantir.java-distribution'
+
+apply from: "../gradle/docker.gradle"
+apply from: "../gradle/publish-dists.gradle"
+apply from: "../gradle/shared.gradle"
+apply from: "../gradle/timelock.gradle"
+
+dependencies {
+    runtime project(':timelock-server')
+    runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
+}
+
+distribution {
+    serviceName "timelock-server"
+    mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
+    args 'server', 'var/conf/timelock.yml'
+    defaultJvmOpts "-Xms512m", "-Xmx512m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
+}

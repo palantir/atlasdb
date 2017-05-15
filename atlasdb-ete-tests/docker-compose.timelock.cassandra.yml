@@ -2,7 +2,7 @@ version: '2'
 
 services:
   timelock:
-    image: palantirtechnologies/timelock-server
+    image: palantirtechnologies/timelock-server-distribution
     ports:
       - "8421"
       - "8422"

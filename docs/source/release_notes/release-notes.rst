@@ -59,6 +59,10 @@ develop
          - Fixed a bug that would cause console to error on any range request that used a column selection and had more than one batch of results.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1876>`__)
 
+    *    - |new|
+         - Timelock server now has jar publication in addition to dist publication.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1898>`__)
+
     *    - |improved| |devbreak|
          - The format of serialised exceptions occurring on a remote host has been brought in line with that of the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
            This should generally improve readability and also allows for more meaningful messages to be sent; we would previously return message bodies with no content for some exceptions (such as ``NotCurrentLeaderException``).
