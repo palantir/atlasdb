@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.persistentlock;
 
 public class MissingArgumentException extends IllegalArgumentException {
-    public MissingArgumentException(String s) {
-        super(s);
+    public MissingArgumentException(String str) {
+        super(str);
     }
 }
