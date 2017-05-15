@@ -73,4 +73,19 @@ public class TodoClient {
                 .map(ImmutableTodo::of)
                 .collect(Collectors.toList());
     }
+
+    public boolean isHealthy() {
+        try {
+            log.info("[TODO-CLIENT] Running health check for Todo client");
+            transactionManager.runTaskReadOnly((transaction) -> {
+                transaction.getRange(TodoSchema.todoTable(), RangeRequest.all());
+                return true;
+            });
+            log.info("[TODO-CLIENT] Health check returned successfully!");
+            return true;
+        } catch (Exception e) {
+            log.warn("[TODO-CLIENT] Health check failed with message {}.", e.getMessage());
+            return false;
+        }
+    }
 }

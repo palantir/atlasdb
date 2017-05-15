@@ -43,7 +43,7 @@ public class SimpleTodoResource implements TodoResource {
     @Override
     public void isHealthy() {
         log.info("Running healthcheck");
-        Preconditions.checkState(atlas.getTodoList() != null);
+        Preconditions.checkState(atlas.isHealthy());
     }
 }
 
