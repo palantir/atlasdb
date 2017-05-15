@@ -17,9 +17,13 @@ package com.palantir.atlasdb.todo;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 
 public class SimpleTodoResource implements TodoResource {
+    private static final Logger log = LoggerFactory.getLogger(SimpleTodoResource.class);
     private TodoClient atlas;
 
     public SimpleTodoResource(TodoClient atlas) {
@@ -38,6 +42,7 @@ public class SimpleTodoResource implements TodoResource {
 
     @Override
     public void isHealthy() {
+        log.info("Running healthcheck");
         Preconditions.checkState(atlas.getTodoList() != null);
     }
 }

@@ -20,6 +20,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -30,6 +33,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.BatchingVisitable;
 
 public class TodoClient {
+    private static final Logger log = LoggerFactory.getLogger(TodoClient.class);
     private final TransactionManager transactionManager;
     private final Random random = new Random();
 
@@ -50,6 +54,7 @@ public class TodoClient {
 
     public List<Todo> getTodoList() {
         ImmutableList<RowResult<byte[]>> results = transactionManager.runTaskWithRetry((transaction) -> {
+
             BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable = transaction.getRange(
                     TodoSchema.todoTable(), RangeRequest.all());
             ImmutableList.Builder<RowResult<byte[]>> rowResults = ImmutableList.builder();
