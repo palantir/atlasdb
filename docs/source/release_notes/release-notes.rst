@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak| |improved|
+         - The ``acquire-backup-lock`` endpoint of ``PersistentLockService`` now returns a 400 response instead of a 500 response when no reason for acquiring the lock is provided.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1909>`__)
+
     *    - |userbreak| |changed|
          - Projects ``atasdb-commons``, ``commons-annotations``, ``commons-api``, ``commons-executors``, ``commons-proxy``, and ``lock-api`` no longer force Java 6 compatibility. This eliminates the need for a Java 6 compiler to compile AtlasDB, but published artifacts for these projects will depend on Java 8 from now on.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1887>`__)
