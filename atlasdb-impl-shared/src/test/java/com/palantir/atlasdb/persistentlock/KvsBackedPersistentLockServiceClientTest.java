@@ -42,6 +42,7 @@ public class KvsBackedPersistentLockServiceClientTest {
     public static final DropwizardClientRule DW = new DropwizardClientRule(
             new KvsBackedPersistentLockService(LOCK_STORE),
             new CheckAndSetExceptionMapper(),
+            new MissingArgumentExceptionMapper(),
             HttpRemotingJerseyFeature.DEFAULT);
 
     private final PersistentLockService lockService = JaxRsClient.builder().build(
@@ -108,5 +109,13 @@ public class KvsBackedPersistentLockServiceClientTest {
 
         PersistentLockId newLockId = lockService.acquireBackupLock(REASON);
         assertThat(newLockId).isNotNull();
+    }
+
+    @Test
+    public void acquireWithoutReasonReturnsBadRequest() {
+        assertThatExceptionOfType(RemoteException.class)
+                .isThrownBy(() -> lockService.acquireBackupLock(null))
+                .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
+
     }
 }

@@ -40,7 +40,9 @@ public class KvsBackedPersistentLockService implements PersistentLockService {
 
     @Override
     public PersistentLockId acquireBackupLock(String reason) {
-        Preconditions.checkNotNull(reason, "Please provide a reason for acquiring the lock.");
+        if (reason == null) {
+            throw new MissingArgumentException("Please provide a reason for acquiring the lock.");
+        }
         return PersistentLockId.of(lockStore.acquireBackupLock(reason).instanceId());
     }
 

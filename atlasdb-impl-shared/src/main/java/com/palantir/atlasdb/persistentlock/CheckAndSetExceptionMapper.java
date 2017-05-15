@@ -35,8 +35,9 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
     @Override
     public Response toResponse(CheckAndSetException ex) {
         String errorId = UUID.randomUUID().toString();
-        log.error("Error handling a request: {}. Stored persistent lock: {}", errorId, extractStoredLockEntry(ex), ex);
-        return createErrorResponse(errorId);
+        LockEntry lockEntry = extractStoredLockEntry(ex);
+        log.error("Error handling a request: {}. Stored persistent lock: {}", errorId, lockEntry, ex);
+        return createErrorResponse(errorId, lockEntry);
     }
 
     private LockEntry extractStoredLockEntry(CheckAndSetException ex) {
@@ -52,13 +53,15 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
     }
 
     // This is needed to allow clients using http-remoting clients to properly receive RemoteExceptions
-    private Response createErrorResponse(String errorId) {
+    private Response createErrorResponse(String errorId, LockEntry lockEntry) {
+        String message = String.format("Error %s: Check and set failed. ", errorId)
+                + (lockEntry == null ? "" : "Lock was already open. ");
         return Response
                 .status(Response.Status.CONFLICT)
                 .type(MediaType.APPLICATION_JSON_TYPE)
                 .entity(ImmutableMap.of(
                         "exceptionClass", CheckAndSetException.class.getName(),
-                        "message", String.format("Error %s: Check and set failed.", errorId),
+                        "message", message,
                         "code", Response.Status.CONFLICT.getStatusCode()))
                 .build();
     }
