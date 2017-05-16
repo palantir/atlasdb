@@ -43,7 +43,9 @@ import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.time.Clock;
@@ -305,18 +307,21 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private Optional<TableToSweep> getTableToSweep() {
-        return txManager.runTaskWithRetry(tx -> {
-            Optional<SweepProgress> progress = sweepProgressStore.loadProgress(tx);
-            if (progress.isPresent()) {
-                return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
-            } else {
-                Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
-                        tx, sweepRunner.getConservativeSweepTimestamp());
-                if (nextTable.isPresent()) {
-                    log.debug("Now starting to sweep {}.", nextTable);
-                    return Optional.of(new TableToSweep(nextTable.get(), null));
+        return txManager.runTaskWithRetry(new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
+            @Override
+            public Optional<TableToSweep> execute(Transaction tx) {
+                Optional<SweepProgress> progress = sweepProgressStore.loadProgress(tx);
+                if (progress.isPresent()) {
+                    return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
                 } else {
-                    return Optional.empty();
+                    Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
+                            tx, sweepRunner.getConservativeSweepTimestamp());
+                    if (nextTable.isPresent()) {
+                        log.debug("Now starting to sweep {}.", nextTable);
+                        return Optional.of(new TableToSweep(nextTable.get(), null));
+                    } else {
+                        return Optional.empty();
+                    }
                 }
             }
         });
