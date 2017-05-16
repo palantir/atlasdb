@@ -50,7 +50,7 @@ public class AtomixTimeLockServerTest {
                     .build(),
             ImmutableSet.of("test"),
             null,
-            null);
+            null, null);
 
     private TimeLockServer implementation;
 

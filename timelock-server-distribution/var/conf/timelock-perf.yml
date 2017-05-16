@@ -1,0 +1,81 @@
+clients:
+  - test
+  - test2
+
+cluster:
+  localServer: localhost:9425
+  servers:
+    - localhost:9425
+
+atlas:
+  timelock:
+    client: test
+    serversList:
+      servers:
+        - https://il-pg-alpha-1086748.usw1.palantir.global:9421
+        - https://il-pg-alpha-1086749.usw1.palantir.global:9421
+        - https://il-pg-alpha-1086750.usw1.palantir.global:9421
+      sslConfiguration:
+        keyStorePath: var/security/keyStore.jks
+        keyStorePassword: keystore
+        trustStorePath: var/security/trustStore.jks
+  keyValueService:
+    type: memory
+#  keyValueService:
+#    type: cassandra
+#    keyspace: bob1
+#    ssl: true
+#    replicationFactor: 1
+#    sslConfiguration:
+#      keyStorePath: var/security/keyStore-cassandra.jks
+#      keyStorePassword: W04xkPDALcCTlsU4
+#      trustStorePath: var/security/trustStore-cassandra.jks
+#    servers:
+#      - 'il-pg-alpha-1423306.usw1.palantir.global:9160'
+#      - 'il-pg-alpha-1423307.usw1.palantir.global:9160'
+#      - 'il-pg-alpha-1423308.usw1.palantir.global:9160'
+
+algorithm:
+  type: paxos
+  sslConfiguration:
+    keyStorePath: var/security/keyStore.jks
+    keyStorePassword: keystore
+    trustStorePath: var/security/trustStore.jks
+
+server:
+  applicationConnectors:
+  - type: h2
+    port: 9425
+    keyStorePath: var/security/keyStore.jks
+    keyStorePassword: keystore
+    trustStorePath: var/security/trustStore.jks
+    validateCerts: false
+    supportedCipherSuites:
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_RSA_WITH_AES_256_CBC_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+      - TLS_ECDH_RSA_WITH_AES_256_CBC_SHA
+      - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA
+      - TLS_RSA_WITH_AES_256_CBC_SHA
+      - TLS_RSA_WITH_AES_128_CBC_SHA
+      - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
+
+  adminConnectors:
+  - type: http
+    port: 7425
+
+logging:
+  appenders:
+    - type: file
+      archive: false
+      currentLogFilename: var/log/service.log
+  level: WARN
+  loggers:
+    dualschema.perf: DEBUG

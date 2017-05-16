@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
+import java.util.Optional;
 import java.util.Set;
 
 import org.immutables.value.Value;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 
 import io.dropwizard.Configuration;
@@ -40,13 +42,15 @@ public class TimeLockServerConfiguration extends Configuration {
     private final Set<String> clients;
     private final boolean useClientRequestLimit;
     private final TimeLimiterConfiguration timeLimiterConfiguration;
+    private final AtlasDbConfig atlasDbConfig;
 
     public TimeLockServerConfiguration(
             @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients,
             @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit,
-            @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration) {
+            @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration,
+            @JsonProperty(value = "atlas", required = false) AtlasDbConfig atlasDbConfig) {
         checkClientNames(clients);
         if (Boolean.TRUE.equals(useClientRequestLimit)) {
             Preconditions.checkState(computeNumberOfAvailableThreads() > 0,
@@ -59,6 +63,7 @@ public class TimeLockServerConfiguration extends Configuration {
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
         this.timeLimiterConfiguration =
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
+        this.atlasDbConfig = atlasDbConfig;
 
         if (clients.isEmpty()) {
             log.warn("TimeLockServer initialised with an empty list of 'clients'. "
@@ -103,6 +108,10 @@ public class TimeLockServerConfiguration extends Configuration {
 
     public TimeLimiterConfiguration timeLimiterConfiguration() {
         return timeLimiterConfiguration;
+    }
+
+    public Optional<AtlasDbConfig> getAtlas() {
+        return Optional.ofNullable(atlasDbConfig);
     }
 
     public int availableThreads() {
