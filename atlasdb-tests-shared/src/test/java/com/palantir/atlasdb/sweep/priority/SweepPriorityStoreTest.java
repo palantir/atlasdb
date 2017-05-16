@@ -63,7 +63,7 @@ public class SweepPriorityStoreTest {
     }
 
     @Test
-    public void testStoreAndLoadNew() {
+    public void testStoreAndLoadNew() throws Exception {
         txManager.runTaskWithRetry(tx -> {
             priorityStore.update(
                     tx,
@@ -107,7 +107,7 @@ public class SweepPriorityStoreTest {
     }
 
     @Test
-    public void testDelete() {
+    public void testDelete() throws Exception {
         txManager.runTaskWithRetry(tx -> {
             priorityStore.update(
                     tx,
