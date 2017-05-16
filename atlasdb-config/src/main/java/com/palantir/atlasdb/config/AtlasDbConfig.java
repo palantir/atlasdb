@@ -203,6 +203,12 @@ public abstract class AtlasDbConfig {
         return 1000;
     }
 
+    /**
+     * The maximum number of background threads to use for asynchronous unlock operations during write transactions.
+     */
+    @Value.Default
+    public int getAsyncUnlockMaxThreads() { return AtlasDbConstants.DEFAULT_ASYNC_UNLOCK_MAX_THREADS; }
+
     @Value.Check
     protected final void check() {
         if (leader().isPresent()) {

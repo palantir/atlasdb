@@ -16,8 +16,10 @@
 package com.palantir.atlasdb.sweep;
 
 import com.google.common.base.Supplier;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
+import com.palantir.atlasdb.lock.AsyncUnlockingRemoteLockService;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -69,8 +71,10 @@ public final class SweepTestUtils {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
+        AsyncUnlockingRemoteLockService asyncLockService = new AsyncUnlockingRemoteLockService(lockService,
+                MoreExecutors.newDirectExecutorService());
         LockAwareTransactionManager txManager = new SerializableTransactionManager(kvs, tsService, lockClient,
-                lockService, txService, constraints, cdm, ssm, cleaner, false);
+                asyncLockService, txService, constraints, cdm, ssm, cleaner, false);
         setupTables(kvs);
         return txManager;
     }

@@ -20,6 +20,7 @@ import javax.inject.Singleton;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.lock.AsyncUnlockingRemoteLockService;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -95,7 +96,7 @@ public class TestTransactionManagerModule {
                 kvs,
                 lts.time(),
                 lockClient,
-                lts.lock(),
+                AsyncUnlockingRemoteLockService.synchronousWrapper(lts.lock()),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,

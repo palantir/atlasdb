@@ -23,6 +23,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -34,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
+import com.palantir.atlasdb.lock.AsyncUnlockingRemoteLockService;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -137,7 +139,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 keyValueService,
                 ts,
                 client,
-                lock,
+                new AsyncUnlockingRemoteLockService(lock, MoreExecutors.newDirectExecutorService()),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,

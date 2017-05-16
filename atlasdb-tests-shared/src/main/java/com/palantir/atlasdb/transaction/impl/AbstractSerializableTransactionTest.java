@@ -39,6 +39,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.lock.AsyncUnlockingRemoteLockService;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -86,7 +87,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 ConflictHandler.IGNORE_ALL);
         return new SerializableTransaction(
                 keyValueService,
-                lockService,
+                AsyncUnlockingRemoteLockService.synchronousWrapper(lockService),
                 timestampService,
                 transactionService,
                 NoOpCleaner.INSTANCE,

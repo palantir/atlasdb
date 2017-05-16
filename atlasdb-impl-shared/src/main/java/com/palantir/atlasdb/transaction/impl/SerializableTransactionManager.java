@@ -19,6 +19,7 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.lock.AsyncUnlockingRemoteLockService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -41,6 +42,27 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         this(keyValueService,
                 timestampService,
                 lockClient,
+                AsyncUnlockingRemoteLockService.synchronousWrapper(lockService),
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
+                false);
+    }
+
+    public SerializableTransactionManager(KeyValueService keyValueService,
+            TimestampService timestampService,
+            LockClient lockClient,
+            AsyncUnlockingRemoteLockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner) {
+        this(keyValueService,
+                timestampService,
+                lockClient,
                 lockService,
                 transactionService,
                 constraintModeSupplier,
@@ -53,7 +75,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public SerializableTransactionManager(KeyValueService keyValueService,
                                           TimestampService timestampService,
                                           LockClient lockClient,
-                                          RemoteLockService lockService,
+                                          AsyncUnlockingRemoteLockService lockService,
                                           TransactionService transactionService,
                                           Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
                                           ConflictDetectionManager conflictDetectionManager,

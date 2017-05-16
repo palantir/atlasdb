@@ -31,6 +31,7 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.lock.AsyncUnlockingRemoteLockService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
@@ -48,7 +49,6 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
@@ -57,7 +57,7 @@ import com.palantir.timestamp.TimestampService;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimestampService timestampService;
-    final RemoteLockService lockService;
+    final AsyncUnlockingRemoteLockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
     final SweepStrategyManager sweepStrategyManager;
     final LockClient lockClient;
@@ -70,7 +70,7 @@ import com.palantir.timestamp.TimestampService;
             KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
-            RemoteLockService lockService,
+            AsyncUnlockingRemoteLockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -84,7 +84,7 @@ import com.palantir.timestamp.TimestampService;
             KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
-            RemoteLockService lockService,
+            AsyncUnlockingRemoteLockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -161,7 +161,7 @@ import com.palantir.timestamp.TimestampService;
         try {
             result = runTaskThrowOnConflict(task, tx);
         } finally {
-            lockService.unlock(tx.getImmutableTsLock());
+            lockService.tryUnlockAsync(tx.getImmutableTsLock());
         }
         if ((tx.getTransactionType() == TransactionType.AGGRESSIVE_HARD_DELETE) && !tx.isAborted()) {
             // t.getCellsToScrubImmediately() checks that t has been committed
@@ -237,7 +237,7 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public RemoteLockService getLockService() {
+    public AsyncUnlockingRemoteLockService getLockService() {
         return lockService;
     }
 

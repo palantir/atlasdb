@@ -17,6 +17,8 @@ package com.palantir.atlasdb.factory;
 
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSocketFactory;
@@ -34,6 +36,8 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.google.common.collect.Queues;
+import com.palantir.atlasdb.lock.AsyncUnlockingRemoteLockService;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -78,6 +82,8 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
@@ -228,10 +234,11 @@ public final class TransactionManagers {
                 .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
                 .buildCleaner();
 
+        ExecutorService asyncUnlockExecutor = createAsyncUnlockExecutor(config);
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
                 lockAndTimestampServices.time(),
                 LOCK_CLIENT,
-                lockAndTimestampServices.lock(),
+                new AsyncUnlockingRemoteLockService(lockAndTimestampServices.lock(), asyncUnlockExecutor),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
@@ -298,6 +305,12 @@ public final class TransactionManagers {
         } else {
             return defaultValue;
         }
+    }
+    
+    private static ExecutorService createAsyncUnlockExecutor(AtlasDbConfig config) {
+        int maxAsyncUnlockThreads = Math.max(1, config.getAsyncUnlockMaxThreads());
+        return PTExecutors.newThreadPoolExecutor(1, maxAsyncUnlockThreads, 30, TimeUnit.SECONDS,
+                Queues.newLinkedBlockingQueue(), new NamedThreadFactory("async-unlocker", false));
     }
 
     private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {

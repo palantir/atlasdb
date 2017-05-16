@@ -59,6 +59,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.lock.AsyncUnlockingRemoteLockService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -72,7 +73,6 @@ import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
 
@@ -99,7 +99,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
 
     public SerializableTransaction(KeyValueService keyValueService,
-                                   RemoteLockService lockService,
+                                   AsyncUnlockingRemoteLockService lockService,
                                    TimestampService timestampService,
                                    TransactionService transactionService,
                                    Cleaner cleaner,

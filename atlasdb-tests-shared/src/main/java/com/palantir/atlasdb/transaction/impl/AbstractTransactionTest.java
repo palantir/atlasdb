@@ -47,6 +47,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.lock.AsyncUnlockingRemoteLockService;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -91,7 +92,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     protected Transaction startTransaction() {
         return new SnapshotTransaction(
                 keyValueService,
-                lockService,
+                AsyncUnlockingRemoteLockService.synchronousWrapper(lockService),
                 timestampService,
                 transactionService,
                 NoOpCleaner.INSTANCE,

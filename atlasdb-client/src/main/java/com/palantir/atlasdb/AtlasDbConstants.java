@@ -97,6 +97,8 @@ public class AtlasDbConstants {
     public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 100; // TODO(gsheasby): Bump up this default once getRangeOfTimestamps has been replaced.
     public static final int DEFAULT_SWEEP_READ_LIMIT = 1_000_000;
 
+    public static final int DEFAULT_ASYNC_UNLOCK_MAX_THREADS = 8;
+
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 
     public static final int MAX_TABLE_PREFIX_LENGTH = 7;
