@@ -50,7 +50,7 @@ public class PersistentTimestampTests {
         TimestampRange first = timestamp.incrementBy(10);
         TimestampRange second = timestamp.incrementBy(10);
 
-        assertThat(first.getUpperBound(), is(lessThan(second.getUpperBound())));
+        assertThat(first.getUpperBound(), is(lessThan(second.getLowerBound())));
     }
 
     @Test

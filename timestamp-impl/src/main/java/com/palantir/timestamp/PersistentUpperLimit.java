@@ -35,12 +35,10 @@ public class PersistentUpperLimit {
         return currentLimit;
     }
 
-    public long increaseToAtLeast(long newLimit) {
+    public void increaseToAtLeast(long newLimit) {
         if (newLimit > currentLimit) {
             updateLimit(newLimit);
         }
-
-        return currentLimit;
     }
 
     private synchronized void updateLimit(long newLimit) {
