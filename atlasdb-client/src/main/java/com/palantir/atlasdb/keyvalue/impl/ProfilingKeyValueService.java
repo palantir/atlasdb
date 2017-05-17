@@ -138,38 +138,79 @@ public final class ProfilingKeyValueService implements KeyValueService {
         return maybeLog(action, logger, (loggingFunction, result) -> { });
     }
 
-    private <T> T maybeLog(Supplier<T> supplier, BiConsumer<LoggingFunction, Stopwatch> logger,
+    private static class Monitor<R> {
+        private final Stopwatch stopwatch;
+        private final BiConsumer<LoggingFunction, Stopwatch> primaryLogger;
+        private final BiConsumer<LoggingFunction, R> additionalLoggerWithAccessToResult;
+        private final Predicate<Stopwatch> slowLogPredicate;
+
+        private R result;
+        private Exception exception;
+
+        private Monitor(Stopwatch stopwatch,
+                BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
+                BiConsumer<LoggingFunction, R> additionalLoggerWithAccessToResult,
+                Predicate<Stopwatch> slowLogPredicate) {
+            this.stopwatch = stopwatch;
+            this.primaryLogger = primaryLogger;
+            this.additionalLoggerWithAccessToResult = additionalLoggerWithAccessToResult;
+            this.slowLogPredicate = slowLogPredicate;
+        }
+
+        static <V> Monitor<V> createMonitor(BiConsumer<LoggingFunction,
+                Stopwatch> primaryLogger,
+                BiConsumer<LoggingFunction, V> additionalLoggerWithAccessToResult,
+                Predicate<Stopwatch> slowLogPredicate) {
+            return new Monitor<>(Stopwatch.createStarted(),
+                    primaryLogger,
+                    additionalLoggerWithAccessToResult,
+                    slowLogPredicate);
+        }
+
+        void registerResult(R res) {
+            this.result = res;
+        }
+
+        void registerException(Exception ex) {
+            this.exception = ex;
+        }
+
+        void log() {
+            stopwatch.stop();
+            Consumer<LoggingFunction> logger = (loggingMethod) -> {
+                primaryLogger.accept(loggingMethod, stopwatch);
+                if (result != null) additionalLoggerWithAccessToResult.accept(loggingMethod, result);
+                else if (exception != null) loggingMethod.log("This operation has thrown an exception {}", exception);
+            };
+
+            if (log.isTraceEnabled()) {
+                logger.accept(log::trace);
+            }
+            if (slowlogger.isWarnEnabled() && slowLogPredicate.test(stopwatch)) {
+                logger.accept(slowlogger::warn);
+            }
+        }
+    }
+
+    private <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
             BiConsumer<LoggingFunction, T> additonalLoggerWithAccessToResult) {
         if (log.isTraceEnabled() || slowlogger.isWarnEnabled()) {
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            Optional<T> result = Optional.empty();
-            Optional<Exception> exception = Optional.empty();
+            Monitor<T> monitor = Monitor.createMonitor(
+                    primaryLogger,
+                    additonalLoggerWithAccessToResult,
+                    slowLogPredicate);
             try {
-                T res = supplier.get();
-                result = Optional.ofNullable(res);
+                T res = action.get();
+                monitor.registerResult(res);
                 return res;
             } catch (Exception ex) {
-                exception = Optional.of(ex);
+                monitor.registerException(ex);
                 throw ex;
             } finally {
-                stopwatch.stop();
-                final Optional<T> finalResult = result;
-                final Optional<Exception> finalException = exception;
-                Consumer<LoggingFunction> doLogging = loggingFunction -> {
-                    logger.accept(loggingFunction, stopwatch);
-                    finalResult.ifPresent(res -> additonalLoggerWithAccessToResult.accept(loggingFunction, res));
-                    finalException.ifPresent(
-                            ex -> loggingFunction.log("This operation has thrown an exception {}", ex));
-                };
-                if (log.isTraceEnabled()) {
-                    doLogging.accept(log::trace);
-                }
-                if (slowlogger.isWarnEnabled() && this.slowLogPredicate.test(stopwatch)) {
-                    doLogging.accept(slowlogger::warn);
-                }
+                monitor.log();
             }
         } else {
-            return supplier.get();
+            return action.get();
         }
     }
 
