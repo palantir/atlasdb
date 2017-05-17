@@ -42,8 +42,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Timelock server can now start with an empty clients list.
+           Note that you currently need to restart timelock when adding clients to the configuration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1907>`__)
 
 ======
 0.41.0
