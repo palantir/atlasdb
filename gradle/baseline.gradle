@@ -9,7 +9,7 @@ List<String> blacklistedBaselineProjects = [
         'atlasdb-rocksdb',
         'atlasdb-rocksdb-tests',
         'atlasdb-service-server',
-        'cassandra-partitioner',
+//        'cassandra-partitioner',
         'commons-db',
         'commons-executors',
         'leader-election-impl',
