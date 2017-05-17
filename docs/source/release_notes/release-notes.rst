@@ -42,6 +42,22 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+======
+0.41.0
+======
+
+17 May 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |userbreak| |changed|
          - Projects ``atlasdb-commons``, ``commons-annotations``, ``commons-api``, ``commons-executors``, ``commons-proxy``, and ``lock-api`` no longer force Java 6 compatibility.
            This eliminates the need for a Java 6 compiler to compile AtlasDB.
