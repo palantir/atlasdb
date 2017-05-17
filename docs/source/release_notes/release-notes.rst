@@ -43,42 +43,47 @@ develop
          - Change
 
     *    - |userbreak| |changed|
-         - Projects ``atasdb-commons``, ``commons-annotations``, ``commons-api``, ``commons-executors``, ``commons-proxy``, and ``lock-api`` no longer force Java 6 compatibility. This eliminates the need for a Java 6 compiler to compile AtlasDB, but published artifacts for these projects will depend on Java 8 from now on.
+         - Projects ``atlasdb-commons``, ``commons-annotations``, ``commons-api``, ``commons-executors``, ``commons-proxy``, and ``lock-api`` no longer force Java 6 compatibility.
+           This eliminates the need for a Java 6 compiler to compile AtlasDB.
+           However, users can no longer compile against AtlasDB artifacts using Java 6 or 7; they must use Java 8 if depending on these AtlasDB projects.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1887>`__)
 
-    *    - |improved|
-         - Add instrumentation to the thread pool used to run quorum checks during leader elections. This will be useful for
-           debugging `PaxosQuorumChecker can leave hanging threads <https://github.com/palantir/atlasdb/issues/1823>`.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1849>`__)
-
-    *    - |fixed|
-         - Fixed DbKvs.getRangeOfTimestamps() only returning the first page of results rather than paging through the whole range.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1872>`__)
-
-    *    - |fixed|
-         - Fixed a bug that would cause console to error on any range request that used a column selection and had more than one batch of results.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1876>`__)
+    *    - |devbreak| |improved|
+         - The format of serialized exceptions occurring on a remote host has been brought in line with that of the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
+           This should generally improve readability and also allows for more meaningful messages to be sent; we would previously return message bodies with no content for some exceptions (such as ``NotCurrentLeaderException``).
+           In particular, the assumption that a status code of 503 definitively means that the node being contacted is not the leader is no longer valid.
+           That said, existing AtlasDB clients will still behave correctly even with a new TimeLock.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1831>`__,
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1808>`__)
 
     *    - |new|
          - Timelock server now has jar publication in addition to dist publication.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1898>`__)
 
-    *    - |improved| |devbreak|
-         - The format of serialised exceptions occurring on a remote host has been brought in line with that of the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
-           This should generally improve readability and also allows for more meaningful messages to be sent; we would previously return message bodies with no content for some exceptions (such as ``NotCurrentLeaderException``).
-           In particular, the assumption that a status code of 503 definitively means that the node being contacted the leader is no longer valid. That said, existing AtlasDB clients will still behave correctly even with a new TimeLock.
-           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1831>`__,
-           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1808>`__)
-
     *    - |new| |fixed|
-         - TimeLock clients may now receive a ``BlockingTimeoutException`` 503 if they make a lock request that blocks for longer than the server's idle timeout.
+         - TimeLock clients may now receive an HTTP response with status code 503, encapsulating a ``BlockingTimeoutException``.
+           This response is returned if a client makes a lock request that blocks for long enough that the server's idle timeout expires; clients may (immediately) retry the request.
            Previously, these requests would be failed with a HTTP-level exception that the stream was closed.
            We have rewritten clients constructed via ``AtlasDbHttpClients`` to account for this new behaviour, but custom clients directly accessing the lock service may be affected.
            This feature is disabled by default, but can be enabled following the TimeLock server configuration :ref:`docs <timelock-server-time-limiting>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1808>`__)
 
     *    - |fixed|
-         - Fixed a bug with import ordering and license generation in IntelliJ not respecting Baseline conventions.
+         - ``DbKvs.getRangeOfTimestamps()`` now returns the entire range of timestamps requested for.
+           Previously, this would only return a range corresponding to the first page of results.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1872>`__)
+
+    *    - |fixed|
+         - AtlasDB Console no longer errors on range requests that used a column selection and had more than one batch of results.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1876>`__)
+
+    *    - |improved|
+         - The ``PaxosQuorumChecker`` thread pool which is used to dispatch requests to other nodes during leadership elections is now instrumented with Dropwizard metrics.
+           This will be useful for debugging `PaxosQuorumChecker can leave hanging threads <https://github.com/palantir/atlasdb/issues/1823>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1849>`__)
+
+    *    - |fixed|
+         - Import ordering and license generation in generated IntelliJ project files now respect Baseline conventions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1893>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
