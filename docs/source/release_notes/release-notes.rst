@@ -70,6 +70,11 @@ develop
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1831>`__,
            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1808>`__)
 
+    *    - |improved|
+         - Timelock server can now start with an empty clients list.
+           Note that you currently need to restart timelock when adding clients to the configuration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1907>`__)
+
     *    - |new| |fixed|
          - TimeLock clients may now receive a ``BlockingTimeoutException`` 503 if they make a lock request that blocks for longer than the server's idle timeout.
            Previously, these requests would be failed with a HTTP-level exception that the stream was closed.
