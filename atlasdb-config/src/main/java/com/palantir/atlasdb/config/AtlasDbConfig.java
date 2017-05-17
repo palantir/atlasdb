@@ -163,14 +163,14 @@ public abstract class AtlasDbConfig {
     public abstract OptionalInt getSweepMaxCellTsPairsToExamine();
 
     /**
-     * The number of candidate (cell, timestamp) pairs to load per batch while sweeping.
+     * The target number of candidate (cell, timestamp) pairs to load per batch while sweeping.
      */
     // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
     // whether the field is present in the configuration file.
     public abstract OptionalInt getSweepCandidateBatchSize();
 
     /**
-     * The number of (cell, timestamp) pairs to delete at once while sweeping.
+     * The target number of (cell, timestamp) pairs to delete at once while sweeping.
      */
     // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
     // whether the field is present in the configuration file.

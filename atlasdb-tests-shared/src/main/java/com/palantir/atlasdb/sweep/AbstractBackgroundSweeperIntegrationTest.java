@@ -61,8 +61,6 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     protected LockAwareTransactionManager txManager;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
     private BackgroundSweeperImpl backgroundSweeper;
-    private int batchSize = 8;
-    private int cellBatchSize = 15;
     private SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
             .deleteBatchSize(8)
             .candidateBatchSize(15)

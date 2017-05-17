@@ -77,7 +77,7 @@ public class SweepableCellFilterTest {
         SweepableCellFilter filter = new SweepableCellFilter(
                 mockTransactionService, Sweeper.CONSERVATIVE, sweepTimestampHigherThanCommitTimestamp);
         List<CellToSweep> cells = filter.getCellsToSweep(candidates).cells();
-        assertThat(Iterables.getOnlyElement(cells).needSentinel()).isTrue();
+        assertThat(Iterables.getOnlyElement(cells).needsSentinel()).isTrue();
     }
 
     @Test
@@ -87,7 +87,7 @@ public class SweepableCellFilterTest {
         SweepableCellFilter filter = new SweepableCellFilter(
                 mockTransactionService, Sweeper.THOROUGH, sweepTimestampHigherThanCommitTimestamp);
         List<CellToSweep> cells = filter.getCellsToSweep(candidates).cells();
-        assertThat(Iterables.getOnlyElement(cells).needSentinel()).isFalse();
+        assertThat(Iterables.getOnlyElement(cells).needsSentinel()).isFalse();
     }
 
     @Test

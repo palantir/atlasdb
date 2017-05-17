@@ -269,7 +269,7 @@ public final class TransactionManagers {
 
     private static SweepBatchConfig getSweepBatchConfig(AtlasDbConfig config) {
         if (config.getSweepBatchSize().isPresent() || config.getSweepCellBatchSize().isPresent()) {
-            log.error("Configuration parameters 'sweepBatchSize' and 'sweepCellBatchSize' have been deprecated"
+            log.warn("Configuration parameters 'sweepBatchSize' and 'sweepCellBatchSize' have been deprecated"
                     + " in favor of 'sweepMaxCellTsPairsToExamine', 'sweepCandidateBatchSize'"
                     + " and 'sweepDeleteBatchSize'. Please update your configuration files.");
         }

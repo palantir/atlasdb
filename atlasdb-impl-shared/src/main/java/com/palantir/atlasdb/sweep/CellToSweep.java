@@ -26,5 +26,5 @@ import gnu.trove.list.TLongList;
 public interface CellToSweep {
     Cell cell();
     TLongList sortedTimestamps();
-    boolean needSentinel();
+    boolean needsSentinel();
 }

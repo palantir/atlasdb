@@ -17,6 +17,8 @@ package com.palantir.atlasdb.sweep;
 
 import org.immutables.value.Value;
 
+import com.google.common.base.Preconditions;
+
 @Value.Immutable
 public interface SweepBatchConfig {
 
@@ -36,4 +38,10 @@ public interface SweepBatchConfig {
      */
     int deleteBatchSize();
 
+    @Value.Check
+    default void check() {
+        Preconditions.checkState(maxCellTsPairsToExamine() > 0, "Number of cells to examine must be greater than zero");
+        Preconditions.checkState(candidateBatchSize() > 0, "Candidate batch size must be greater than zero");
+        Preconditions.checkState(deleteBatchSize() > 0, "Delete batch size must be greater than zero");
+    }
 }

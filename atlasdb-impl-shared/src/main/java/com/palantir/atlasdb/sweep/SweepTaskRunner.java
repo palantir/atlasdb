@@ -194,7 +194,8 @@ public class SweepTaskRunner {
                                                             SweepableCellFilter sweepableCellFilter,
                                                             ExaminedCellLimit limit) {
         Iterator<BatchOfCellsToSweep> cellsToSweep = Iterators.transform(
-                candidates, sweepableCellFilter::getCellsToSweep);
+                Iterators.filter(candidates, list -> !list.isEmpty()),
+                sweepableCellFilter::getCellsToSweep);
         return new CellsToSweepPartitioningIterator(cellsToSweep, batchConfig.deleteBatchSize(), limit);
     }
 
@@ -206,7 +207,7 @@ public class SweepTaskRunner {
         List<Cell> sentinels = Lists.newArrayList();
         for (CellToSweep cell : batch) {
             startTimestampsToSweepPerCell.putAll(cell.cell(), TDecorators.wrap(cell.sortedTimestamps()));
-            if (cell.needSentinel()) {
+            if (cell.needsSentinel()) {
                 sentinels.add(cell.cell());
             }
         }

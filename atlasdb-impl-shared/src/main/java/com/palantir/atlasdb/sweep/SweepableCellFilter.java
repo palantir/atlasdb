@@ -46,7 +46,8 @@ public class SweepableCellFilter {
     // Here we need to load the commit timestamps, and it's important to do that in bulk
     // to reduce the number of round trips to the database.
     public BatchOfCellsToSweep getCellsToSweep(List<CandidateCellForSweeping> candidates) {
-        Preconditions.checkArgument(!candidates.isEmpty());
+        Preconditions.checkArgument(!candidates.isEmpty(),
+                "Got an empty collection of candidates. This is a programming error.");
         CommitTsLoader commitTss = CommitTsLoader.create(transactionService, getAllTimestamps(candidates));
         ImmutableBatchOfCellsToSweep.Builder builder = ImmutableBatchOfCellsToSweep.builder();
         long numCellTsPairsExamined = 0;
@@ -104,7 +105,7 @@ public class SweepableCellFilter {
             return ImmutableCellToSweep.builder()
                 .cell(candidate.cell())
                 .sortedTimestamps(timestampsToSweep)
-                .needSentinel(needsSentinel)
+                .needsSentinel(needsSentinel)
                 .build();
         }
     }

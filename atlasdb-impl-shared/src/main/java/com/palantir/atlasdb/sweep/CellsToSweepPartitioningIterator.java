@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -33,6 +34,7 @@ public class CellsToSweepPartitioningIterator extends AbstractIterator<BatchOfCe
 
     public CellsToSweepPartitioningIterator(Iterator<BatchOfCellsToSweep> cellsToSweep, int tsBatchSize,
             ExaminedCellLimit limit) {
+        Preconditions.checkArgument(tsBatchSize > 0);
         this.cellsToSweep = cellsToSweep;
         this.tsBatchSize = tsBatchSize;
         this.limit = limit;
@@ -57,7 +59,7 @@ public class CellsToSweepPartitioningIterator extends AbstractIterator<BatchOfCe
 
     @Override
     protected BatchOfCellsToSweep computeNext() {
-        if (limitReached || !cellsToSweep.hasNext()) {
+        if (limitReached) {
             return endOfData();
         } else {
             List<CellToSweep> batch = Lists.newArrayList();
