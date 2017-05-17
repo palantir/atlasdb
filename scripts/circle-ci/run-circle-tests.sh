@@ -22,7 +22,7 @@ CONTAINER_5=(':atlasdb-ete-tests:longTest' ':lock-impl:check' ':atlasdb-dbkvs-te
 
 CONTAINER_6=(':atlasdb-ete-test-utils:check' ':atlasdb-cassandra:check' ':atlasdb-api:check' ':atlasdb-jepsen-tests:check' ':atlasdb-cli:check')
 
-CONTAINER_7=('checkstyle{Main,Test} -PenableErrorProne=true')
+CONTAINER_7=(':compileJava' ':compileTestJava')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}")
@@ -80,5 +80,5 @@ case $CIRCLE_NODE_INDEX in
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
     6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} -x :atlasdb-jepsen-tests:jepsenTest && checkDocsBuild ;;
-    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
+    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} -PenableErrorProne=true ;;
 esac
