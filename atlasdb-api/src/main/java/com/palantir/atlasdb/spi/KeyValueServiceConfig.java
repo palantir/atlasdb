@@ -27,4 +27,5 @@ public interface KeyValueServiceConfig {
 
     String type();
 
+    int pollForDataBaseOnStartUpMillis();
 }

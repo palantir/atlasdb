@@ -64,9 +64,31 @@ public class ServiceDiscoveringAtlasSupplier {
                         "No atlas provider for KeyValueService type " + config.type() + " could be found."
                         + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
-        keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
+        keyValueService = Suppliers.memoize(() -> pollForKeyValueService(atlasFactory));
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
+    }
+
+    private KeyValueService pollForKeyValueService(AtlasDbFactory atlasFactory) {
+        long checkStartTime = System.currentTimeMillis();
+        while (true) {
+            try {
+                return atlasFactory.createRawKeyValueService(config, leaderConfig);
+            } catch (Exception ex) {
+                if (System.currentTimeMillis() - checkStartTime > config.pollForDataBaseOnStartUpMillis()) {
+                    break;
+                } else {
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        //ignore for now
+                    }
+                }
+            }
+        }
+        log.warn("The KVS could not be initialized in %s ms", config.pollForDataBaseOnStartUpMillis());
+        throw new RuntimeException(
+                String.format("The KVS could not be initialized in %s ms", config.pollForDataBaseOnStartUpMillis()));
     }
 
     public KeyValueService getKeyValueService() {

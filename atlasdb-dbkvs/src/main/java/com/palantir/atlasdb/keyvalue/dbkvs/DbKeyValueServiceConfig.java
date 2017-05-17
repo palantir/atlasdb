@@ -40,6 +40,11 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
         return DbAtlasDbFactory.TYPE;
     }
 
+    @Override
+    public final int pollForDataBaseOnStartUpMillis() {
+        return 0;
+    }
+
     @Value.Check
     protected final void check() {
         Preconditions.checkArgument(ddl().type().equals(connection().type()),
