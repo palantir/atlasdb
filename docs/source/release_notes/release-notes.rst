@@ -81,6 +81,12 @@ develop
          - Fixed a bug with import ordering and license generation in IntelliJ not respecting Baseline conventions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1893>`__)
 
+    *    - |devbreak|
+         - Some downstream projects were using empty table metadata for dev-laziness reasons in their tests.
+           This is no longer permitted, as it leads to many (unsolved) questions about how to deal with such a table.
+           If this breaks your tests, you can fix it with making real schema for tests or switch to AtlasDbConstants.GENERIC_TABLE_METADATA
+           (`Pull Request <https://github.com/palantir/1925>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
