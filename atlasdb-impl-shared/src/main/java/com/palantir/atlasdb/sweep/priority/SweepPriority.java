@@ -32,8 +32,8 @@ public interface SweepPriority {
 
     long minimumSweptTimestamp();
 
-    long cellsDeleted();
+    long staleValuesDeleted();
 
-    long cellsExamined();
+    long cellTsPairsExamined();
 
 }

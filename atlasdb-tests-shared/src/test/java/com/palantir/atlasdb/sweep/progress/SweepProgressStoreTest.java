@@ -41,14 +41,14 @@ public class SweepProgressStoreTest {
             .startRow(new byte[] {1, 2, 3})
             .minimumSweptTimestamp(12345L)
             .staleValuesDeleted(10L)
-            .cellsExamined(200L)
+            .cellTsPairsExamined(200L)
             .tableRef(TableReference.createFromFullyQualifiedName("foo.bar"))
             .build();
     private static final SweepProgress OTHER_PROGRESS = ImmutableSweepProgress.builder()
             .startRow(new byte[] {4, 5, 6})
             .minimumSweptTimestamp(67890L)
             .staleValuesDeleted(11L)
-            .cellsExamined(202L)
+            .cellTsPairsExamined(202L)
             .tableRef(TableReference.createFromFullyQualifiedName("qwe.rty"))
             .build();
 

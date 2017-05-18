@@ -49,7 +49,7 @@ public class SweepProgressStore {
         progressTable.putFullTableName(row, progress.tableRef().getQualifiedName());
         progressTable.putStartRow(row, progress.startRow());
         progressTable.putCellsDeleted(row, progress.staleValuesDeleted());
-        progressTable.putCellsExamined(row, progress.cellsExamined());
+        progressTable.putCellsExamined(row, progress.cellTsPairsExamined());
         progressTable.putMinimumSweptTimestamp(row, progress.minimumSweptTimestamp());
     }
 
@@ -68,7 +68,7 @@ public class SweepProgressStore {
         return ImmutableSweepProgress.builder()
                 .tableRef(TableReference.createUnsafe(rr.getFullTableName()))
                 .startRow(rr.getStartRow())
-                .cellsExamined(rr.getCellsExamined())
+                .cellTsPairsExamined(rr.getCellsExamined())
                 .staleValuesDeleted(rr.getCellsDeleted())
                 .minimumSweptTimestamp(rr.getMinimumSweptTimestamp())
                 .build();
