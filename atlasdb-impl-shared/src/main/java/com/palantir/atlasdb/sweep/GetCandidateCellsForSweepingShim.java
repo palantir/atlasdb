@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
@@ -34,6 +33,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
