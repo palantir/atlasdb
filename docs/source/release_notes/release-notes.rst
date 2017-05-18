@@ -279,6 +279,14 @@ v0.38.0
          - Change
 
     *    - |improved|
+         - Default ``gc_grace_seconds`` set by AtlasDB for Cassandra tables has been changed from four days to one hour, allowing Cassandra to start cleaning up swept data sooner after sweeping.
+         
+           This parameter is set at table creation time, and it will only apply for future tables
+           We recommend existing customers update the ``gc_grace_seconds`` of existing tables to be one hour to receive this benefit.
+           There is no issue with having tables with different values for ``gc_grace_seconds``, and this can be updated at any time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1726>`__)
+
+    *    - |improved|
          - The default ``sweepBatchSize`` has been changed from 1000 to 100.
            This has empirically shown to be a better batch size because it puts less stress on the underlying KVS.
            For a full list of tunable sweep parameters and default settings, see :ref:`sweep tunable options <sweep_tunable_parameters>`.
