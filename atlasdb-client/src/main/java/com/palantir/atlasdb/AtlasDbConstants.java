@@ -94,7 +94,7 @@ public class AtlasDbConstants {
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
     public static final long DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS = 30_000L;
     public static final int DEFAULT_SWEEP_DELETE_BATCH_SIZE = 1000;
-    public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_SIZE = 1000;
+    public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_SIZE = 100; // TODO(gsheasby): Bump up this default once getRangeOfTimestamps has been replaced.
     public static final int DEFAULT_SWEEP_MAX_CELL_TS_PAIRS_TO_EXAMINE = 1_000_000;
 
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;

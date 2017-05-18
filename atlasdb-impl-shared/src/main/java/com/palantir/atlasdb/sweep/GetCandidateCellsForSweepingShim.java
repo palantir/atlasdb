@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
@@ -95,7 +96,8 @@ public class GetCandidateCellsForSweepingShim {
                 CandidateCellForSweepingRequest request) {
         RangeRequest range = RangeRequest.builder()
                 .startRowInclusive(request.startRowInclusive())
-                .batchHint(request.batchSizeHint().orElse(100)).build();
+                .batchHint(request.batchSizeHint().orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_SIZE))
+                .build();
         try (ReleasableCloseable<ClosableIterator<RowResult<Value>>> valueResults = new ReleasableCloseable<>(
                     getValues(tableRef, range, request.sweepTimestamp(), request.shouldCheckIfLatestValueIsEmpty()));
              ReleasableCloseable<ClosableIterator<RowResult<Set<Long>>>> tsResults = new ReleasableCloseable<>(
