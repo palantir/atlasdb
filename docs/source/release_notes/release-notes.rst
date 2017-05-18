@@ -54,6 +54,10 @@ develop
            Please refer to the :ref:`documentation <sweep_tunable_parameters>` for details of how to configure this.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
 
+    *    - |changed|
+         - :ref:`Sweep metrics <dropwizard-metrics>` now record counts of cell-timestamp pairs examined rather than the count of entire cells examined. This provides more accurate insight on the work done by the sweeper.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
+
     *    - |userbreak|
          - The Sweep CLI configuration parameters ``--batch-size`` and ``--cell-batch-size`` have been removed, as we now batch on cell-timestamp pairs rather than by rows and cells.
            Please use the ``--candidate-batch-size`` parameter instead of ``--batch-size``, and ``--max-cells-to-examine`` instead of ``--cell-batch-size`` (:ref:`docs <sweep_tunable_parameters>`).
