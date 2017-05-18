@@ -79,7 +79,7 @@ public class BackgroundSweeperFastTest {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
-                .cellsDeleted(2)
+                .staleValuesDeleted(2)
                 .cellsExamined(10)
                 .sweptTimestamp(12345L)
                 .build());
@@ -100,13 +100,13 @@ public class BackgroundSweeperFastTest {
     public void testWritePriorityAfterSecondRunCompletesSweep() {
         setProgress(ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
-                        .cellsDeleted(3)
+                        .staleValuesDeleted(3)
                         .cellsExamined(11)
                         .minimumSweptTimestamp(4567L)
                         .startRow(new byte[] {1, 2, 3})
                         .build());
         setupTaskRunner(ImmutableSweepResults.builder()
-                .cellsDeleted(2)
+                .staleValuesDeleted(2)
                 .cellsExamined(10)
                 .sweptTimestamp(9999L)
                 .previousStartRow(new byte[] {1, 2, 3})
@@ -128,7 +128,7 @@ public class BackgroundSweeperFastTest {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
-                .cellsDeleted(2)
+                .staleValuesDeleted(2)
                 .cellsExamined(10)
                 .sweptTimestamp(12345L)
                 .nextStartRow(new byte[] {1, 2, 3})
@@ -138,7 +138,7 @@ public class BackgroundSweeperFastTest {
                 Mockito.any(),
                 Mockito.eq(ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
-                        .cellsDeleted(2)
+                        .staleValuesDeleted(2)
                         .cellsExamined(10)
                         .minimumSweptTimestamp(12345L)
                         .startRow(new byte[] {1, 2, 3})
@@ -150,7 +150,7 @@ public class BackgroundSweeperFastTest {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
-                .cellsDeleted(2)
+                .staleValuesDeleted(2)
                 .cellsExamined(10)
                 .sweptTimestamp(12345L)
                 .nextStartRow(new byte[] {1, 2, 3})
@@ -169,7 +169,7 @@ public class BackgroundSweeperFastTest {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
-                .cellsDeleted(2)
+                .staleValuesDeleted(2)
                 .cellsExamined(10)
                 .sweptTimestamp(12345L)
                 .nextStartRow(new byte[] {1, 2, 3})
@@ -182,13 +182,13 @@ public class BackgroundSweeperFastTest {
     public void testRecordCumulativeMetricsAfterCompleteRun() {
         setProgress(ImmutableSweepProgress.builder()
                 .tableRef(TABLE_REF)
-                .cellsDeleted(3)
+                .staleValuesDeleted(3)
                 .cellsExamined(11)
                 .minimumSweptTimestamp(4567L)
                 .startRow(new byte[] {1, 2, 3})
                 .build());
         setupTaskRunner(ImmutableSweepResults.builder()
-                .cellsDeleted(2)
+                .staleValuesDeleted(2)
                 .cellsExamined(10)
                 .sweptTimestamp(12345L)
                 .build());
@@ -196,7 +196,7 @@ public class BackgroundSweeperFastTest {
         Mockito.verify(sweepMetrics).recordMetrics(
                 TABLE_REF,
                 ImmutableSweepResults.builder()
-                        .cellsDeleted(5)
+                        .staleValuesDeleted(5)
                         .cellsExamined(21)
                         .sweptTimestamp(4567L)
                         .build());
@@ -207,7 +207,7 @@ public class BackgroundSweeperFastTest {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
-                .cellsDeleted(1)
+                .staleValuesDeleted(1)
                 .cellsExamined(10)
                 .sweptTimestamp(12345L)
                 .build());
@@ -220,7 +220,7 @@ public class BackgroundSweeperFastTest {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
-                .cellsDeleted(0)
+                .staleValuesDeleted(0)
                 .cellsExamined(10)
                 .sweptTimestamp(12345L)
                 .build());

@@ -96,7 +96,7 @@ class SweepMetrics {
 
     void recordMetrics(TableReference tableRef, SweepResults results) {
         TableAndAggregateMetric.CELLS_EXAMINED_METRIC.recordMetric(tableRef, results.getCellsExamined());
-        TableAndAggregateMetric.STALE_VALUES_DELETED_METRIC.recordMetric(tableRef, results.getCellsDeleted());
+        TableAndAggregateMetric.STALE_VALUES_DELETED_METRIC.recordMetric(tableRef, results.getStaleValuesDeleted());
     }
 
     private void forAllMetrics(Consumer<TableAndAggregateMetric> action) {

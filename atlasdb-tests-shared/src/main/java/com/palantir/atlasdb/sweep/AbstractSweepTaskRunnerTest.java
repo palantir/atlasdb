@@ -102,7 +102,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("foo", "bar", 50);
         putIntoDefaultColumn("foo", "baz", 100);
         SweepResults results = completeSweep(175);
-        assertEquals(1, results.getCellsDeleted());
+        assertEquals(1, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(2);
         assertEquals("baz", get("foo", 150));
         assertEquals("", get("foo", 80));
@@ -114,7 +114,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
         SweepResults results = completeSweep(75);
-        assertEquals(0, results.getCellsDeleted());
+        assertEquals(0, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(1);
         assertEquals("bar", get("foo", 150));
         assertEquals(ImmutableSet.of(50L), getAllTs("foo"));
@@ -126,7 +126,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("foo", "bar", 50);
         putUncommitted("foo", "baz", 100);
         SweepResults results = completeSweep(175);
-        assertEquals(1, results.getCellsDeleted());
+        assertEquals(1, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(2);
         assertEquals("bar", get("foo", 750));
         assertEquals(ImmutableSet.of(50L), getAllTs("foo"));
@@ -141,7 +141,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
         SweepResults results = completeSweep(175);
-        assertEquals(4, results.getCellsDeleted());
+        assertEquals(4, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(5);
         assertEquals("buzz", get("foo", 200));
         assertEquals("", get("foo", 124));
@@ -162,7 +162,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
         SweepResults results = completeSweep(110);
-        assertEquals(2, results.getCellsDeleted());
+        assertEquals(2, results.getStaleValuesDeleted());
         // Future timestamps don't count towards the examined count
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(3);
         assertEquals(ImmutableSet.of(-1L, 100L, 125L, 150L), getAllTs("foo"));
@@ -174,7 +174,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("foo", "bar", 50);
         putIntoDefaultColumn("foo", "baz", 100);
         SweepResults results = completeSweep(175);
-        assertEquals(1, results.getCellsDeleted());
+        assertEquals(1, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(2);
         assertEquals("baz", get("foo", 150));
         assertNull(get("foo", 80));
@@ -186,7 +186,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
         SweepResults results = completeSweep(75);
-        assertEquals(0, results.getCellsDeleted());
+        assertEquals(0, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(1);
         assertEquals("bar", get("foo", 150));
         assertEquals(ImmutableSet.of(50L), getAllTs("foo"));
@@ -197,7 +197,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "", 50);
         SweepResults results = completeSweep(75);
-        assertEquals(1, results.getCellsDeleted());
+        assertEquals(1, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(1);
         assertNull(get("foo", 150));
         assertEquals(ImmutableSet.of(), getAllTs("foo"));
@@ -209,7 +209,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("foo", "bar", 50);
         putUncommitted("foo", "baz", 100);
         SweepResults results = completeSweep(175);
-        assertEquals(1, results.getCellsDeleted());
+        assertEquals(1, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(2);
         assertEquals("bar", get("foo", 750));
         assertEquals(ImmutableSet.of(50L), getAllTs("foo"));
@@ -224,7 +224,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
         SweepResults results = completeSweep(175);
-        assertEquals(4, results.getCellsDeleted());
+        assertEquals(4, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(5);
         assertEquals("buzz", get("foo", 200));
         assertNull(get("foo", 124));
@@ -247,13 +247,13 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("zzz", "bar", 51);
 
         SweepResults results = completeSweep(175);
-        assertEquals(4, results.getCellsDeleted());
+        assertEquals(4, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(6);
         assertEquals("", get("foo", 200));
         assertEquals(ImmutableSet.of(125L), getAllTs("foo"));
 
         results = completeSweep(175);
-        assertEquals(1, results.getCellsDeleted());
+        assertEquals(1, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(2);
         assertNull(get("foo", 200));
         assertEquals(ImmutableSet.of(), getAllTs("foo"));
@@ -268,7 +268,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("foo", "foo", 125);
         putUncommitted("foo", "", 150);
         SweepResults results = completeSweep(175);
-        assertEquals(4, results.getCellsDeleted());
+        assertEquals(4, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(5);
         assertEquals("foo", get("foo", 200));
         assertEquals(ImmutableSet.of(125L), getAllTs("foo"));
@@ -283,7 +283,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
         SweepResults results = completeSweep(110);
-        assertEquals(2, results.getCellsDeleted());
+        assertEquals(2, results.getStaleValuesDeleted());
         // Future timestamps don't count towards the examined count
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(3);
         assertEquals(ImmutableSet.of(100L, 125L, 150L), getAllTs("foo"));
@@ -338,11 +338,11 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("row", "val", 20);
 
         SweepResults results = completeSweep(30);
-        assertEquals(1, results.getCellsDeleted());
+        assertEquals(1, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(2);
 
         results = completeSweep(40);
-        assertEquals(0, results.getCellsDeleted());
+        assertEquals(0, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(1);
     }
 
@@ -354,7 +354,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         put(mixedCaseTable, "row", "col", "val", 20);
 
         SweepResults results = completeSweep(mixedCaseTable, 30);
-        assertEquals(1, results.getCellsDeleted());
+        assertEquals(1, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(2);
     }
 
@@ -365,7 +365,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("baz", "bar3", 15);
         putIntoDefaultColumn("baz", "bar4", 20);
         SweepResults results = completeSweep(175);
-        assertEquals(2, results.getCellsDeleted());
+        assertEquals(2, results.getStaleValuesDeleted());
         assertThat(results.getCellsExamined()).isGreaterThanOrEqualTo(4);
     }
 
@@ -376,7 +376,7 @@ public abstract class AbstractSweepTaskRunnerTest {
     protected SweepResults completeSweep(TableReference tableReference, long ts) {
         sweepTimestamp.set(ts);
         byte[] startRow = PtBytes.EMPTY_BYTE_ARRAY;
-        long totalCellsDeleted = 0;
+        long totalStaleValuesDeleted = 0;
         long totalCellsExamined = 0;
         for (int run = 0; run < 100; ++run) {
             SweepResults results = sweepRunner.run(
@@ -389,11 +389,11 @@ public abstract class AbstractSweepTaskRunnerTest {
                     startRow);
             assertEquals(ts, results.getSweptTimestamp());
             assertArrayEquals(startRow, results.getPreviousStartRow().orNull());
-            totalCellsDeleted += results.getCellsDeleted();
+            totalStaleValuesDeleted += results.getStaleValuesDeleted();
             totalCellsExamined += results.getCellsExamined();
             if (!results.getNextStartRow().isPresent()) {
                 return ImmutableSweepResults.builder()
-                        .cellsDeleted(totalCellsDeleted)
+                        .staleValuesDeleted(totalStaleValuesDeleted)
                         .cellsExamined(totalCellsExamined)
                         .sweptTimestamp(ts)
                         .build();

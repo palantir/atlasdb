@@ -36,7 +36,7 @@ public abstract class SweepResults {
      * The number of (cell, timestamp) pairs deleted.
      * TODO: we should rename this method to something like getCellTsPairsDeleted() or staleValuesDeleted()
      */
-    public abstract long getCellsDeleted();
+    public abstract long getStaleValuesDeleted();
 
     public abstract long getSweptTimestamp();
 
@@ -47,7 +47,7 @@ public abstract class SweepResults {
     public static SweepResults createEmptySweepResult() {
         return builder()
                 .cellsExamined(0)
-                .cellsDeleted(0)
+                .staleValuesDeleted(0)
                 .sweptTimestamp(0)
                 .build();
     }

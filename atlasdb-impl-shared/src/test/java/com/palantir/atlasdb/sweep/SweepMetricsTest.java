@@ -41,7 +41,7 @@ public class SweepMetricsTest {
     private static final long DELETED = 10L;
     private static final long EXAMINED = 15L;
     private static final SweepResults SWEEP_RESULTS_FOR_TABLE = SweepResults.builder()
-            .cellsDeleted(DELETED)
+            .staleValuesDeleted(DELETED)
             .cellsExamined(EXAMINED)
             .sweptTimestamp(1337L)
             .build();
@@ -49,7 +49,7 @@ public class SweepMetricsTest {
     private static final long OTHER_DELETED = 12L;
     private static final long OTHER_EXAMINED = 4L;
     private static final SweepResults SWEEP_RESULTS_FOR_OTHER_TABLE = SweepResults.builder()
-            .cellsDeleted(OTHER_DELETED)
+            .staleValuesDeleted(OTHER_DELETED)
             .cellsExamined(OTHER_EXAMINED)
             .sweptTimestamp(1338L)
             .build();

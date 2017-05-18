@@ -166,9 +166,9 @@ public class SweepCommand extends SingleBackendCommand {
                         watch.elapsed(TimeUnit.MILLISECONDS),
                         results.getCellsExamined(),
                         dryRun ? "would have " : "",
-                        results.getCellsDeleted());
+                        results.getStaleValuesDeleted());
                 startRow = results.getNextStartRow();
-                cellsDeleted.addAndGet(results.getCellsDeleted());
+                cellsDeleted.addAndGet(results.getStaleValuesDeleted());
                 cellsExamined.addAndGet(results.getCellsExamined());
                 maybeSleep();
             }

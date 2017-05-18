@@ -238,7 +238,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                             + " and performed {} deletions in {} ms"
                             + " up to timestamp {}.",
                     results.getCellsExamined(), tableRef, startRowToHex(startRow),
-                    results.getCellsDeleted(), elapsedMillis, results.getSweptTimestamp());
+                    results.getStaleValuesDeleted(), elapsedMillis, results.getSweptTimestamp());
             sweepPerfLogger.logSweepResults(
                     SweepPerformanceResults.builder()
                             .sweepResults(results)
@@ -294,8 +294,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             return progress != null;
         }
 
-        long getCellsDeletedPreviously() {
-            return progress == null ? 0L : progress.cellsDeleted();
+        long getStaleValuesDeletedPreviously() {
+            return progress == null ? 0L : progress.staleValuesDeleted();
         }
 
         long getCellsExaminedPreviously() {
@@ -333,13 +333,14 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private void saveSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
-        long cellsDeleted = tableToSweep.getCellsDeletedPreviously() + currentIteration.getCellsDeleted();
+        long staleValuesDeleted = tableToSweep.getStaleValuesDeletedPreviously()
+                + currentIteration.getStaleValuesDeleted();
         long cellsExamined = tableToSweep.getCellsExaminedPreviously() + currentIteration.getCellsExamined();
         long minimumSweptTimestamp = Math.min(
                 tableToSweep.getPreviousMinimumSweptTimestamp().orElse(Long.MAX_VALUE),
                 currentIteration.getSweptTimestamp());
         SweepResults cumulativeResults = SweepResults.builder()
-                .cellsDeleted(cellsDeleted)
+                .staleValuesDeleted(staleValuesDeleted)
                 .cellsExamined(cellsExamined)
                 .sweptTimestamp(minimumSweptTimestamp)
                 .nextStartRow(currentIteration.getNextStartRow())
@@ -349,14 +350,14 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         } else {
             saveFinalSweepResults(tableToSweep, cumulativeResults);
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
-            log.debug("Finished sweeping {}, examined {} unique cells, deleted {} cells.",
-                    tableToSweep.getTableRef(), cellsExamined, cellsDeleted);
+            log.debug("Finished sweeping {}, examined {} unique cells, deleted {} stale values.",
+                    tableToSweep.getTableRef(), cellsExamined, staleValuesDeleted);
             sweepProgressStore.clearProgress();
         }
     }
 
     private void performInternalCompactionIfNecessary(TableReference tableRef, SweepResults results) {
-        if (results.getCellsDeleted() > 0) {
+        if (results.getStaleValuesDeleted() > 0) {
             Stopwatch watch = Stopwatch.createStarted();
             kvs.compactInternally(tableRef);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
@@ -364,7 +365,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             sweepPerfLogger.logInternalCompaction(
                     SweepCompactionPerformanceResults.builder()
                             .tableName(tableRef.getQualifiedName())
-                            .cellsDeleted(results.getCellsDeleted())
+                            .cellsDeleted(results.getStaleValuesDeleted())
                             .cellsExamined(results.getCellsExamined())
                             .elapsedMillis(elapsedMillis)
                             .build());
@@ -384,7 +385,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             }
             SweepProgress newProgress = ImmutableSweepProgress.builder()
                     .tableRef(tableToSweep.getTableRef())
-                    .cellsDeleted(results.getCellsDeleted())
+                    .staleValuesDeleted(results.getStaleValuesDeleted())
                     .cellsExamined(results.getCellsExamined())
                     //noinspection OptionalGetWithoutIsPresent // covered by precondition above
                     .startRow(results.getNextStartRow().get())
@@ -398,7 +399,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults sweepResults) {
         txManager.runTaskWithRetry((TxTask) tx -> {
             ImmutableUpdateSweepPriority.Builder update = ImmutableUpdateSweepPriority.builder()
-                    .newCellsDeleted(sweepResults.getCellsDeleted())
+                    .newCellsDeleted(sweepResults.getStaleValuesDeleted())
                     .newCellsExamined(sweepResults.getCellsExamined())
                     .newLastSweepTimeMillis(wallClock.getTimeMillis())
                     .newMinimumSweptTimestamp(sweepResults.getSweptTimestamp());

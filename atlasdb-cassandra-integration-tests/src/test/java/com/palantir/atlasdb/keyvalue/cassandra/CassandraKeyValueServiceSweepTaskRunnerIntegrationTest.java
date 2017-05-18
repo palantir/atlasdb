@@ -74,7 +74,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
 
         long sweepTimestamp = numInsertions + 1;
         SweepResults results = completeSweep(sweepTimestamp);
-        Assert.assertEquals(numInsertions - 1, results.getCellsDeleted());
+        Assert.assertEquals(numInsertions - 1, results.getStaleValuesDeleted());
     }
 
     @Test
@@ -87,7 +87,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         }
 
         SweepResults results = completeSweep(350);
-        Assert.assertEquals(28, results.getCellsDeleted());
+        Assert.assertEquals(28, results.getStaleValuesDeleted());
     }
 
     private void insertMultipleValues(long numInsertions) {
