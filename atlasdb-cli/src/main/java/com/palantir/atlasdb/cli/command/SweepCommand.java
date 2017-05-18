@@ -68,20 +68,20 @@ public class SweepCommand extends SingleBackendCommand {
             description = "Sweep all tables")
     boolean sweepAllTables;
 
-    @Option(name = {"--delete-batch-size"},
+    @Option(name = {"--delete-batch-hint"},
             description = "Target number of (cell, timestamp) pairs to delete in a single batch (default: "
                     + AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT + ")")
-    int deleteBatchSize = AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT;
+    int deleteBatchHint = AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT;
 
-    @Option(name = {"--candidate-batch-size"},
+    @Option(name = {"--candidate-batch-hint"},
             description = "Approximate number of candidate (cell, timestamp) pairs to load at once (default: "
                     + AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT + ")")
-    int candidateBatchSize = AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT;
+    int candidateBatchHint = AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT;
 
-    @Option(name = {"--max-cells-to-examine"},
-            description = "Target maximum number of cells to examine (default: "
+    @Option(name = {"--read-limit"},
+            description = "Target number of (cell, timestamp) pairs to examine (default: "
                     + AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT + ")")
-    int maxCellTsPairsToExamine = AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT;
+    int readLimit = AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT;
 
     @Option(name = {"--sleep"},
             description = "Time to wait in milliseconds after each sweep batch"
@@ -140,9 +140,9 @@ public class SweepCommand extends SingleBackendCommand {
         }
 
         SweepBatchConfig batchConfig = ImmutableSweepBatchConfig.builder()
-                .deleteBatchSize(deleteBatchSize)
-                .candidateBatchSize(candidateBatchSize)
-                .maxCellTsPairsToExamine(maxCellTsPairsToExamine)
+                .deleteBatchSize(deleteBatchHint)
+                .candidateBatchSize(candidateBatchHint)
+                .maxCellTsPairsToExamine(readLimit)
                 .build();
         for (Map.Entry<TableReference, byte[]> entry : tableToStartRow.entrySet()) {
             final TableReference tableToSweep = entry.getKey();

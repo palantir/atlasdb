@@ -50,7 +50,7 @@ develop
     *    - |improved|
          - Sweep now batches delete calls before executing them.
            This should improve performance on relatively clean tables by deleting more cells at a time, leading to fewer DB operations and taking out the backup lock less frequently.
-           The new configuration parameter ``sweepDeleteBatchSize`` determines the approximate number of (cell, timestamp) pairs deleted in a single batch.
+           The new configuration parameter ``sweepDeleteBatchHint`` determines the approximate number of (cell, timestamp) pairs deleted in a single batch.
            Please refer to the :ref:`documentation <sweep_tunable_parameters>` for details of how to configure this.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
 
@@ -60,11 +60,11 @@ develop
 
     *    - |userbreak|
          - The Sweep CLI configuration parameters ``--batch-size`` and ``--cell-batch-size`` have been removed, as we now batch on cell-timestamp pairs rather than by rows and cells.
-           Please use the ``--candidate-batch-size`` parameter instead of ``--batch-size``, and ``--max-cells-to-examine`` instead of ``--cell-batch-size`` (:ref:`docs <sweep_tunable_parameters>`).
+           Please use the ``--candidate-batch-hint`` parameter instead of ``--batch-hint``, and ``--read-limit`` instead of ``--cell-batch-size`` (:ref:`docs <sweep_tunable_parameters>`).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
 
     *    - |deprecated|
-         - Configuration parameters ``sweepBatchSize`` and ``sweepCellBatchSize`` have been deprecated in favour of ``sweepCandidateBatchSize`` and ``sweepMaxCellTsPairsToExamine`` respectively.
+         - Configuration parameters ``sweepBatchSize`` and ``sweepCellBatchSize`` have been deprecated in favour of ``sweepCandidateBatchHint`` and ``sweepReadLimit`` respectively.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
 
 ======
