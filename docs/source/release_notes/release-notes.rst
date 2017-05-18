@@ -47,6 +47,14 @@ develop
            Note that you currently need to restart timelock when adding clients to the configuration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1907>`__)
 
+    *    - |improved|
+         - Default ``gc_grace_seconds`` set by AtlasDB for Cassandra tables has been changed from four days to one hour, allowing Cassandra to start cleaning up swept data sooner after sweeping.
+
+           This parameter is set at table creation time, and it will only apply for new tables.
+           Existing customers can update the ``gc_grace_seconds`` of existing tables to be one hour if they would like to receive this benefit now. We will also be adding functionality to auto-update this for existing tables in a future release.
+           There is no issue with having tables with different values for ``gc_grace_seconds``, and this can be updated at any time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1726>`__)
+
 ======
 0.41.0
 ======
@@ -277,14 +285,6 @@ v0.38.0
 
     *    - Type
          - Change
-
-    *    - |improved|
-         - Default ``gc_grace_seconds`` set by AtlasDB for Cassandra tables has been changed from four days to one hour, allowing Cassandra to start cleaning up swept data sooner after sweeping.
-         
-           This parameter is set at table creation time, and it will only apply for future tables
-           We recommend existing customers update the ``gc_grace_seconds`` of existing tables to be one hour to receive this benefit.
-           There is no issue with having tables with different values for ``gc_grace_seconds``, and this can be updated at any time.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1726>`__)
 
     *    - |improved|
          - The default ``sweepBatchSize`` has been changed from 1000 to 100.
