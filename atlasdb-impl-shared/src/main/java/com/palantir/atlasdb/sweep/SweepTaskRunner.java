@@ -182,7 +182,7 @@ public class SweepTaskRunner {
             return SweepResults.builder()
                     .previousStartRow(startRow)
                     .nextStartRow(Arrays.equals(startRow, lastRow) ? Optional.absent() : Optional.of(lastRow))
-                    .cellsExamined(totalCellTsPairsExamined)
+                    .cellTsPairsExamined(totalCellTsPairsExamined)
                     .staleValuesDeleted(totalCellTsPairsDeleted)
                     .sweptTimestamp(sweepTs)
                     .build();

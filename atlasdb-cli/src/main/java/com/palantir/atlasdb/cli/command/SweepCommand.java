@@ -164,12 +164,12 @@ public class SweepCommand extends SingleBackendCommand {
                         encodeEndRow(results.getNextStartRow()),
                         tableToSweep,
                         watch.elapsed(TimeUnit.MILLISECONDS),
-                        results.getCellsExamined(),
+                        results.getCellTsPairsExamined(),
                         dryRun ? "would have " : "",
                         results.getStaleValuesDeleted());
                 startRow = results.getNextStartRow();
                 cellsDeleted.addAndGet(results.getStaleValuesDeleted());
-                cellsExamined.addAndGet(results.getCellsExamined());
+                cellsExamined.addAndGet(results.getCellTsPairsExamined());
                 maybeSleep();
             }
 

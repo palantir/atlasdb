@@ -30,7 +30,7 @@ public abstract class SweepResults {
      * The approximate number of (cell, timestamp) pairs examined.
      * TODO: we should rename this method to something like getCellTsPairsExamined()
      */
-    public abstract long getCellsExamined();
+    public abstract long getCellTsPairsExamined();
 
     /**
      * The number of (cell, timestamp) pairs deleted.
@@ -46,7 +46,7 @@ public abstract class SweepResults {
 
     public static SweepResults createEmptySweepResult() {
         return builder()
-                .cellsExamined(0)
+                .cellTsPairsExamined(0)
                 .staleValuesDeleted(0)
                 .sweptTimestamp(0)
                 .build();

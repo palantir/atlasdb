@@ -80,7 +80,7 @@ public class BackgroundSweeperFastTest {
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
-                .cellsExamined(10)
+                .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
                 .build());
         backgroundSweeper.runOnce();
@@ -107,7 +107,7 @@ public class BackgroundSweeperFastTest {
                         .build());
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
-                .cellsExamined(10)
+                .cellTsPairsExamined(10)
                 .sweptTimestamp(9999L)
                 .previousStartRow(new byte[] {1, 2, 3})
                 .build());
@@ -129,7 +129,7 @@ public class BackgroundSweeperFastTest {
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
-                .cellsExamined(10)
+                .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
                 .nextStartRow(new byte[] {1, 2, 3})
                 .build());
@@ -151,7 +151,7 @@ public class BackgroundSweeperFastTest {
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
-                .cellsExamined(10)
+                .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
                 .nextStartRow(new byte[] {1, 2, 3})
                 .build());
@@ -170,7 +170,7 @@ public class BackgroundSweeperFastTest {
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
-                .cellsExamined(10)
+                .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
                 .nextStartRow(new byte[] {1, 2, 3})
                 .build());
@@ -189,7 +189,7 @@ public class BackgroundSweeperFastTest {
                 .build());
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
-                .cellsExamined(10)
+                .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
                 .build());
         backgroundSweeper.runOnce();
@@ -197,7 +197,7 @@ public class BackgroundSweeperFastTest {
                 TABLE_REF,
                 ImmutableSweepResults.builder()
                         .staleValuesDeleted(5)
-                        .cellsExamined(21)
+                        .cellTsPairsExamined(21)
                         .sweptTimestamp(4567L)
                         .build());
     }
@@ -208,7 +208,7 @@ public class BackgroundSweeperFastTest {
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(1)
-                .cellsExamined(10)
+                .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
                 .build());
         backgroundSweeper.runOnce();
@@ -221,7 +221,7 @@ public class BackgroundSweeperFastTest {
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(0)
-                .cellsExamined(10)
+                .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
                 .build());
         backgroundSweeper.runOnce();
