@@ -51,7 +51,7 @@ develop
          - Default ``gc_grace_seconds`` set by AtlasDB for Cassandra tables has been changed from four days to one hour, allowing Cassandra to start cleaning up swept data sooner after sweeping.
 
            This parameter is set at table creation time, and it will only apply for new tables.
-           Existing customers can update the ``gc_grace_seconds`` of existing tables to be one hour if they would like to receive this benefit now.
+           Existing customers can update the ``gc_grace_seconds`` of existing tables to be one hour if they would like to receive this benefit now. We will also be adding functionality to auto-update this for existing tables in a future release.
            There is no issue with having tables with different values for ``gc_grace_seconds``, and this can be updated at any time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1726>`__)
 
