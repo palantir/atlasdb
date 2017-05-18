@@ -45,9 +45,9 @@ public class TimeLockServerConfigurationTest {
     }
 
     @Test
-    public void shouldRequireAtLeastOneClient() {
-        assertThatThrownBy(() -> createSimpleConfig(CLUSTER, ImmutableSet.of()))
-                .isInstanceOf(IllegalStateException.class);
+    public void shouldStartWithNoClients() {
+        TimeLockServerConfiguration simpleConfig = createSimpleConfig(CLUSTER, ImmutableSet.of());
+        assertThat(simpleConfig.clients()).isEmpty();
     }
 
     @Test
