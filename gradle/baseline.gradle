@@ -44,7 +44,7 @@ if (!blacklistedBaselineProjects.contains(project.name)) {
         apply plugin: 'com.palantir.baseline-error-prone'
 
         configurations.errorprone {
-            resolutionStrategy {force('com.google.guava:guava:21.0')}
+            resolutionStrategy { force('com.google.guava:guava:21.0') }
         }
     }
 
