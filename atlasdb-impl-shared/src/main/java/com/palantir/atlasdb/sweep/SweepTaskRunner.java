@@ -173,9 +173,7 @@ public class SweepTaskRunner {
             byte[] lastRow = startRow;
             while (batchesToSweep.hasNext()) {
                 BatchOfCellsToSweep batch = batchesToSweep.next();
-                if (runType == RunType.FULL) {
-                    totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells());
-                }
+                totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells(), runType);
                 totalCellTsPairsExamined = batch.numCellTsPairsExaminedSoFar();
                 lastRow = batch.lastCellExamined().getRowName();
             }
@@ -202,7 +200,7 @@ public class SweepTaskRunner {
     /**
      * Returns the number of deleted (cell, timestamp) pairs.
      */
-    private int sweepBatch(TableReference tableRef, List<CellToSweep> batch) {
+    private int sweepBatch(TableReference tableRef, List<CellToSweep> batch, RunType runType) {
         Multimap<Cell, Long> startTimestampsToSweepPerCell = ArrayListMultimap.create();
         List<Cell> sentinels = Lists.newArrayList();
         for (CellToSweep cell : batch) {
@@ -211,7 +209,9 @@ public class SweepTaskRunner {
                 sentinels.add(cell.cell());
             }
         }
-        cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, sentinels);
+        if (runType == RunType.FULL) {
+            cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, sentinels);
+        }
         return startTimestampsToSweepPerCell.size();
     }
 
