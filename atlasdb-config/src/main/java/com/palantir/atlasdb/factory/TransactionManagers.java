@@ -274,14 +274,14 @@ public final class TransactionManagers {
                     + " and 'sweepDeleteBatchSize'. Please update your configuration files.");
         }
         return ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(config.getSweepMaxCellTsPairsToExamine().orElse(
+                .maxCellTsPairsToExamine(config.getSweepReadLimit().orElse(
                         config.getSweepCellBatchSize().orElse(
-                            AtlasDbConstants.DEFAULT_SWEEP_MAX_CELL_TS_PAIRS_TO_EXAMINE)))
-                .candidateBatchSize(config.getSweepCandidateBatchSize().orElse(
+                            AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)))
+                .candidateBatchSize(config.getSweepCandidateBatchHint().orElse(
                         config.getSweepBatchSize().orElse(
-                            AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_SIZE)))
-                .deleteBatchSize(config.getSweepDeleteBatchSize().orElse(
-                        AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_SIZE))
+                            AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT)))
+                .deleteBatchSize(config.getSweepDeleteBatchHint().orElse(
+                        AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT))
                 .build();
     }
 

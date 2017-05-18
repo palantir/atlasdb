@@ -156,36 +156,36 @@ public abstract class AtlasDbConfig {
     }
 
     /**
-     * The target maximum number of (cell, timestamp) pairs to examine in a single run of the background sweeper.
+     * The target number of (cell, timestamp) pairs to examine in a single run of the background sweeper.
      */
     // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
     // whether the field is present in the configuration file.
-    public abstract OptionalInt getSweepMaxCellTsPairsToExamine();
+    public abstract OptionalInt getSweepReadLimit();
 
     /**
      * The target number of candidate (cell, timestamp) pairs to load per batch while sweeping.
      */
     // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
     // whether the field is present in the configuration file.
-    public abstract OptionalInt getSweepCandidateBatchSize();
+    public abstract OptionalInt getSweepCandidateBatchHint();
 
     /**
      * The target number of (cell, timestamp) pairs to delete at once while sweeping.
      */
     // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
     // whether the field is present in the configuration file.
-    public abstract OptionalInt getSweepDeleteBatchSize();
+    public abstract OptionalInt getSweepDeleteBatchHint();
 
     /**
-     * @deprecated Use {@link #getSweepMaxCellTsPairsToExamine()}, {@link #getSweepCandidateBatchSize()}
-     * and {@link #getSweepDeleteBatchSize()} instead.
+     * @deprecated Use {@link #getSweepReadLimit()}, {@link #getSweepCandidateBatchHint()}
+     * and {@link #getSweepDeleteBatchHint()} instead.
      */
     @Deprecated
     public abstract OptionalInt getSweepBatchSize();
 
     /**
-     * @deprecated Use {@link #getSweepMaxCellTsPairsToExamine()}, {@link #getSweepCandidateBatchSize()}
-     * and {@link #getSweepDeleteBatchSize()} instead.
+     * @deprecated Use {@link #getSweepReadLimit()}, {@link #getSweepCandidateBatchHint()}
+     * and {@link #getSweepDeleteBatchHint()} instead.
      */
     @Deprecated
     public abstract OptionalInt getSweepCellBatchSize();
@@ -208,9 +208,9 @@ public abstract class AtlasDbConfig {
                 "Lock and timestamp server blocks must either both be present or both be absent.");
         if (getSweepBatchSize().isPresent() || getSweepCellBatchSize().isPresent()) {
             Preconditions.checkState(
-                    !getSweepMaxCellTsPairsToExamine().isPresent()
-                            && !getSweepCandidateBatchSize().isPresent()
-                            && !getSweepDeleteBatchSize().isPresent(),
+                    !getSweepReadLimit().isPresent()
+                            && !getSweepCandidateBatchHint().isPresent()
+                            && !getSweepDeleteBatchHint().isPresent(),
                     "Your configuration mixes both the old and the new parameters"
                             + " for setting sweep batch sizes. Please use 'sweepMaxCellTsPairsToExamine',"
                             + " 'sweepCandidateBatchSize' and 'sweepDeleteBatchSize' instead of the deprecated"

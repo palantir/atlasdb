@@ -70,18 +70,18 @@ public class SweepCommand extends SingleBackendCommand {
 
     @Option(name = {"--delete-batch-size"},
             description = "Target number of (cell, timestamp) pairs to delete in a single batch (default: "
-                    + AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_SIZE + ")")
-    int deleteBatchSize = AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_SIZE;
+                    + AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT + ")")
+    int deleteBatchSize = AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT;
 
     @Option(name = {"--candidate-batch-size"},
             description = "Approximate number of candidate (cell, timestamp) pairs to load at once (default: "
-                    + AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_SIZE + ")")
-    int candidateBatchSize = AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_SIZE;
+                    + AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT + ")")
+    int candidateBatchSize = AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT;
 
     @Option(name = {"--max-cells-to-examine"},
             description = "Target maximum number of cells to examine (default: "
-                    + AtlasDbConstants.DEFAULT_SWEEP_MAX_CELL_TS_PAIRS_TO_EXAMINE + ")")
-    int maxCellTsPairsToExamine = AtlasDbConstants.DEFAULT_SWEEP_MAX_CELL_TS_PAIRS_TO_EXAMINE;
+                    + AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT + ")")
+    int maxCellTsPairsToExamine = AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT;
 
     @Option(name = {"--sleep"},
             description = "Time to wait in milliseconds after each sweep batch"
