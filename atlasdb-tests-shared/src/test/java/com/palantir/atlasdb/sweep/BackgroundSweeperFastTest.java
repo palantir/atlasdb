@@ -64,7 +64,10 @@ public class BackgroundSweeperFastTest {
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis
                 () -> ImmutableSweepBatchConfig.builder()
-                        .deleteBatchSize(100).candidateBatchSize(200).maxCellTsPairsToExamine(1000).build(),
+                        .deleteBatchSize(100)
+                        .candidateBatchSize(200)
+                        .maxCellTsPairsToExamine(1000)
+                        .build(),
                 Mockito.mock(BackgroundSweeperPerformanceLogger.class),
                 sweepMetrics,
                 Mockito.mock(PersistentLockManager.class),

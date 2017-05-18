@@ -48,7 +48,7 @@ public class CellsToSweepPartitioningIteratorTest {
                         batchWithThreeTssPerCell(0, 2),
                         batchWithThreeTssPerCell(2, 2),
                         batchWithThreeTssPerCell(4, 2)),
-                // Request 12 timestamps per output batch: this should amount to
+                // Request 12 (cell, ts) pairs per output batch: this should amount to
                 // exactly two input batches per one output batch
                 12,
                 RangeRequests.getFirstRowName(),
@@ -66,7 +66,7 @@ public class CellsToSweepPartitioningIteratorTest {
                         batchWithThreeTssPerCell(0, 2),
                         batchWithThreeTssPerCell(2, 2),
                         batchWithThreeTssPerCell(4, 2)),
-                // Request 8 timestamps per output batch. The first input batch is not sufficient
+                // Request 8 (cell, ts) pairs per output batch. The first input batch is not sufficient
                 // to fill that, but the first two batches are.
                 8,
                 RangeRequests.getFirstRowName(),

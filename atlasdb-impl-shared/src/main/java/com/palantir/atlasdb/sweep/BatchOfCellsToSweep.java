@@ -25,6 +25,11 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 @Value.Immutable
 public interface BatchOfCellsToSweep {
     List<CellToSweep> cells();
+
+    /**
+     * Returns the total number of (cell, ts) pairs examined so far, for all batches up to and including this one.
+     */
     long numCellTsPairsExaminedSoFar();
+
     Cell lastCellExamined();
 }
