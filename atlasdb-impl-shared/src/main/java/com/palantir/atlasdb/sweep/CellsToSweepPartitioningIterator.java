@@ -34,7 +34,7 @@ public class CellsToSweepPartitioningIterator extends AbstractIterator<BatchOfCe
 
     public CellsToSweepPartitioningIterator(Iterator<BatchOfCellsToSweep> cellsToSweep, int tsBatchSize,
             ExaminedCellLimit limit) {
-        Preconditions.checkArgument(tsBatchSize > 0);
+        Preconditions.checkArgument(tsBatchSize > 0, "Iterator batch size must be positive");
         this.cellsToSweep = cellsToSweep;
         this.tsBatchSize = tsBatchSize;
         this.limit = limit;

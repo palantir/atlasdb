@@ -24,6 +24,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 
@@ -31,6 +32,13 @@ import gnu.trove.list.TLongList;
 import gnu.trove.list.array.TLongArrayList;
 
 public class CellsToSweepPartitioningIteratorTest {
+    @Test(expected = IllegalArgumentException.class)
+    public void canNotCreateIteratorWithZeroBatchSize() {
+        new CellsToSweepPartitioningIterator(
+                ImmutableList.of(batchWithThreeTssPerCell(1, 1)).iterator(),
+                0,
+                new CellsToSweepPartitioningIterator.ExaminedCellLimit(PtBytes.toBytes("row"), 1L));
+    }
 
     @Test
     public void exactPartition() {
