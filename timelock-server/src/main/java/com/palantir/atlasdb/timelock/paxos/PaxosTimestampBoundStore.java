@@ -81,6 +81,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         this.maximumWaitBeforeProposalMs = maximumWaitBeforeProposalMs;
     }
 
+    String myString = "a";
+
     /**
      * Contacts a quorum of nodes to find the latest sequence number prepared or accepted from acceptors,
      * and the bound associated with this sequence number. This method MUST be called at least once before
@@ -91,6 +93,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     @Override
     public synchronized long getUpperLimit() {
+        log.error(myString + "b");
         List<PaxosLong> responses = getLatestSequenceNumbersFromAcceptors();
         PaxosLong max = Ordering.natural().onResultOf(PaxosLong::getValue).max(responses);
         agreedState = getAgreedState(max.getValue());

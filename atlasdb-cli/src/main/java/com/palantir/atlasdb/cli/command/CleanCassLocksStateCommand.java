@@ -56,5 +56,4 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
         }
         return (CassandraKeyValueServiceConfig) kvsConfig;
     }
-
 }
