@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.config;
 
-import java.util.OptionalInt;
+import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
 
@@ -160,35 +160,40 @@ public abstract class AtlasDbConfig {
      */
     // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
     // whether the field is present in the configuration file.
-    public abstract OptionalInt getSweepReadLimit();
+    @Nullable
+    public abstract Integer getSweepReadLimit();
 
     /**
      * The target number of candidate (cell, timestamp) pairs to load per batch while sweeping.
      */
     // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
     // whether the field is present in the configuration file.
-    public abstract OptionalInt getSweepCandidateBatchHint();
+    @Nullable
+    public abstract Integer getSweepCandidateBatchHint();
 
     /**
      * The target number of (cell, timestamp) pairs to delete at once while sweeping.
      */
     // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
     // whether the field is present in the configuration file.
-    public abstract OptionalInt getSweepDeleteBatchHint();
+    @Nullable
+    public abstract Integer getSweepDeleteBatchHint();
 
     /**
      * @deprecated Use {@link #getSweepReadLimit()}, {@link #getSweepCandidateBatchHint()}
      * and {@link #getSweepDeleteBatchHint()} instead.
      */
     @Deprecated
-    public abstract OptionalInt getSweepBatchSize();
+    @Nullable
+    public abstract Integer getSweepBatchSize();
 
     /**
      * @deprecated Use {@link #getSweepReadLimit()}, {@link #getSweepCandidateBatchHint()}
      * and {@link #getSweepDeleteBatchHint()} instead.
      */
     @Deprecated
-    public abstract OptionalInt getSweepCellBatchSize();
+    @Nullable
+    public abstract Integer getSweepCellBatchSize();
 
     @Value.Check
     protected final void check() {
@@ -206,11 +211,11 @@ public abstract class AtlasDbConfig {
 
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
                 "Lock and timestamp server blocks must either both be present or both be absent.");
-        if (getSweepBatchSize().isPresent() || getSweepCellBatchSize().isPresent()) {
+        if (getSweepBatchSize() != null || getSweepCellBatchSize() != null) {
             Preconditions.checkState(
-                    !getSweepReadLimit().isPresent()
-                            && !getSweepCandidateBatchHint().isPresent()
-                            && !getSweepDeleteBatchHint().isPresent(),
+                    getSweepReadLimit() == null
+                            && getSweepCandidateBatchHint() == null
+                            && getSweepDeleteBatchHint() == null,
                     "Your configuration mixes both the old and the new parameters"
                             + " for setting sweep batch sizes. Please use 'sweepMaxCellTsPairsToExamine',"
                             + " 'sweepCandidateBatchSize' and 'sweepDeleteBatchSize' instead of the deprecated"

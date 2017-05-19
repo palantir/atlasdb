@@ -18,6 +18,7 @@ package com.palantir.atlasdb.factory;
 import java.util.ServiceLoader;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.net.ssl.SSLSocketFactory;
 
 import org.immutables.value.Value;
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -268,21 +270,34 @@ public final class TransactionManagers {
     }
 
     private static SweepBatchConfig getSweepBatchConfig(AtlasDbConfig config) {
-        if (config.getSweepBatchSize().isPresent() || config.getSweepCellBatchSize().isPresent()) {
+        if (config.getSweepBatchSize() != null || config.getSweepCellBatchSize() != null) {
             log.warn("Configuration parameters 'sweepBatchSize' and 'sweepCellBatchSize' have been deprecated"
                     + " in favor of 'sweepMaxCellTsPairsToExamine', 'sweepCandidateBatchSize'"
                     + " and 'sweepDeleteBatchSize'. Please update your configuration files.");
         }
         return ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(config.getSweepReadLimit().orElse(
-                        config.getSweepCellBatchSize().orElse(
-                            AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)))
-                .candidateBatchSize(config.getSweepCandidateBatchHint().orElse(
-                        config.getSweepBatchSize().orElse(
-                            AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT)))
-                .deleteBatchSize(config.getSweepDeleteBatchHint().orElse(
+                .maxCellTsPairsToExamine(chooseBestValue(
+                        config.getSweepReadLimit(),
+                        config.getSweepCellBatchSize(),
+                        AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT))
+                .candidateBatchSize(chooseBestValue(
+                        config.getSweepCandidateBatchHint(),
+                        config.getSweepBatchSize(),
+                        AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
+                .deleteBatchSize(MoreObjects.firstNonNull(
+                        config.getSweepDeleteBatchHint(),
                         AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT))
                 .build();
+    }
+
+    private static int chooseBestValue(@Nullable Integer newOption, @Nullable Integer oldOption, int defaultValue) {
+        if (newOption != null) {
+            return newOption;
+        } else if (oldOption != null) {
+            return oldOption;
+        } else {
+            return defaultValue;
+        }
     }
 
     private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
