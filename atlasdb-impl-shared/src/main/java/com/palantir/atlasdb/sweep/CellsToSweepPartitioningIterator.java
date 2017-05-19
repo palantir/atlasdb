@@ -28,15 +28,15 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 // so we want to re-partition them before deleting.
 public class CellsToSweepPartitioningIterator extends AbstractIterator<BatchOfCellsToSweep> {
     private final Iterator<BatchOfCellsToSweep> cellsToSweep;
-    private final int tsBatchSize;
+    private final int deleteBatchSize;
     private final ExaminedCellLimit limit;
     private boolean limitReached = false;
 
-    public CellsToSweepPartitioningIterator(Iterator<BatchOfCellsToSweep> cellsToSweep, int tsBatchSize,
+    public CellsToSweepPartitioningIterator(Iterator<BatchOfCellsToSweep> cellsToSweep, int deleteBatchSize,
             ExaminedCellLimit limit) {
-        Preconditions.checkArgument(tsBatchSize > 0, "Iterator batch size must be positive");
+        Preconditions.checkArgument(deleteBatchSize > 0, "Iterator batch size must be positive");
         this.cellsToSweep = cellsToSweep;
-        this.tsBatchSize = tsBatchSize;
+        this.deleteBatchSize = deleteBatchSize;
         this.limit = limit;
     }
 
@@ -63,14 +63,14 @@ public class CellsToSweepPartitioningIterator extends AbstractIterator<BatchOfCe
             return endOfData();
         } else {
             List<CellToSweep> batch = Lists.newArrayList();
-            int tsCount = 0;
+            int cellTsPairsToDelete = 0;
             long numCellTsPairsExaminedSoFar = 0;
             Cell lastCellExamined = null;
-            while (tsCount < tsBatchSize && cellsToSweep.hasNext()) {
+            while (cellTsPairsToDelete < deleteBatchSize && cellsToSweep.hasNext()) {
                 BatchOfCellsToSweep sourceBatch = cellsToSweep.next();
                 batch.addAll(sourceBatch.cells());
                 for (CellToSweep cell : sourceBatch.cells()) {
-                    tsCount += cell.sortedTimestamps().size();
+                    cellTsPairsToDelete += cell.sortedTimestamps().size();
                 }
                 numCellTsPairsExaminedSoFar = sourceBatch.numCellTsPairsExaminedSoFar();
                 lastCellExamined = sourceBatch.lastCellExamined();
