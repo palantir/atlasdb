@@ -42,6 +42,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - ``PaxosTimestampBoundStore``, the bound store for Timelock, will now throw ``NotCurrentLeaderException`` instead of ``MultipleRunningTimestampServiceError`` when a bound update fails.
+           The cases where this can happen are explained by a race condition that can occur after leadership change, and it is safe to let requests be retried on another server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1934>`__)
+
     *    - |improved|
          - Timelock server can now start with an empty clients list.
            Note that you currently need to restart timelock when adding clients to the configuration.
