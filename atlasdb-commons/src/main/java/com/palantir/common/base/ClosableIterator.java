@@ -20,7 +20,8 @@ import java.util.Iterator;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-@JsonTypeInfo(use= JsonTypeInfo.Id.CLASS, include= JsonTypeInfo.As.PROPERTY, property= "@class")
+@SuppressWarnings("DangerousJsonTypeInfoUsage")
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property= "@class")
 public interface ClosableIterator<T> extends Iterator<T>, Closeable {
     @Override
     void close();
