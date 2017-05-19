@@ -32,7 +32,9 @@ public class PersistentUpperLimit {
     private volatile long lastIncreasedTime;
 
     public PersistentUpperLimit(TimestampBoundStore tbs, Clock clock, TimestampAllocationFailures allocationFailures) {
-        DebugLogger.logger.info("Creating PersistentUpperLimit object on thread {}. This should only happen once.",
+        DebugLogger.logger.info("Creating PersistentUpperLimit object on thread {}. This should only happen once."
+                        + " If you are running embedded AtlasDB, this should only happen once."
+                        + " If you are using Timelock, this should happen once per client per leadership election",
                 Thread.currentThread().getName());
         this.tbs = tbs;
         this.clock = clock;
