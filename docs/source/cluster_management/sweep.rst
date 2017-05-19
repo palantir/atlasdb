@@ -51,8 +51,8 @@ You may set them as part of your :ref:`AtlasDB configuration <atlas-config>`, or
    :header: "AtlasDB Config", "CLI Option", "Default", "Description"
    :widths: 20, 20, 40, 200
 
-   (DEPRECATED) ``sweepBatchSize``, (REMOVED) ``--batch-size``, "100", "Maximum number of rows to sweep at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
-   (DEPRECATED) ``sweepCellBatchSize``, (REMOVED) ``--cell-batch-size``, "10,000", "Maximum number of cells to sweep at once. Similar to ``sweepBatchSize`` but provides finer control if the row widths vary greatly."
+   (DEPRECATED) ``sweepBatchSize``, (REMOVED), "100", "Maximum number of rows to sweep at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance. This parameter should be replaced by ``--candidate-batch-hint``."
+   (DEPRECATED) ``sweepCellBatchSize``, (REMOVED), "10,000", "Maximum number of cells to sweep at once. Similar to ``sweepBatchSize`` but provides finer control if the row widths vary greatly."
    ``sweepReadLimit``, ``--read-limit``, "1,000,000", "Target number of (cell, timestamp) pairs to examine in a single run."
    ``sweepCandidateBatchHint``, ``--candidate-batch-hint``, "100", "Approximate number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
    ``sweepDeleteBatchHint``, ``--delete-batch-hint``, "1,000", "Target number of (cell, timestamp) pairs to delete in a single batch."
