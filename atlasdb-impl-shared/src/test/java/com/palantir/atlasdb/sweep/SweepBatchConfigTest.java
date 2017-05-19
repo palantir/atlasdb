@@ -15,9 +15,14 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class SweepBatchConfigTest {
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
+
     @Test
     public void canCreateConfig() {
         ImmutableSweepBatchConfig.builder()
@@ -27,8 +32,11 @@ public class SweepBatchConfigTest {
                 .build();
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void canNotCreateConfigWithZeroCellsToExamine() {
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("cells to examine");
+
         ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(0)
                 .candidateBatchSize(1)
@@ -36,8 +44,11 @@ public class SweepBatchConfigTest {
                 .build();
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void canNotCreateConfigWithZeroCandidateBatchSize() {
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Candidate batch size");
+
         ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(1)
                 .candidateBatchSize(0)
@@ -45,8 +56,11 @@ public class SweepBatchConfigTest {
                 .build();
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void canNotCreateConfigWithZeroDeleteBatchSize() {
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Delete batch size");
+
         ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(1)
                 .candidateBatchSize(1)
