@@ -17,24 +17,18 @@ List<String> blacklistedBaselineProjects = [
         'profile-client-protobufs',
         'timestamp-impl']
 
-List<String> blacklistedErrorProneProjects = []
-
 if (!blacklistedBaselineProjects.contains(project.name)) {
     apply plugin: 'com.palantir.baseline-checkstyle'
 }
-if (!blacklistedErrorProneProjects.contains(project.name)) {
+// ./gradlew compileJava compileTestJava -PenableErrorProne=true
+if (enableErrorProne.toBoolean()) {
+    apply plugin: 'org.inferred.processors'
+    // installs the "processor" configuration needed for baseline-error-prone
+    apply plugin: 'com.palantir.baseline-error-prone'
 
-    // ./gradlew compileJava compileTestJava -PenableErrorProne=true
-    if (enableErrorProne.toBoolean()) {
-        apply plugin: 'org.inferred.processors'
-        // installs the "processor" configuration needed for baseline-error-prone
-        apply plugin: 'com.palantir.baseline-error-prone'
-
-        configurations.errorprone {
-            resolutionStrategy { force('com.google.guava:guava:21.0') }
-        }
+    configurations.errorprone {
+        resolutionStrategy { force('com.google.guava:guava:21.0') }
     }
-
 }
 
 apply plugin: 'com.palantir.baseline-eclipse'
