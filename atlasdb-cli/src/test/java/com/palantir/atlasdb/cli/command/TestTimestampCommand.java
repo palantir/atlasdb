@@ -152,6 +152,7 @@ public class TestTimestampCommand {
             String output = runner.run(true, false);
             try {
                 Scanner scanner = new Scanner(output);
+                scanner.nextLine(); // Skip deprecation warning
                 long timestamp = getTimestampFromStdout(scanner);
                 scanner.nextLine();
                 long wallClockTimestamp = getWallClockTimestamp(scanner);
@@ -212,6 +213,7 @@ public class TestTimestampCommand {
             String output = runner.run(true, false);
             try {
                 Scanner scanner = new Scanner(output);
+                scanner.nextLine(); // Skip deprecation warning
                 long timestamp = getTimestampFromFile(inputFileString);
                 scanner.nextLine();
                 long wallClockTimestamp = getWallClockTimestamp(scanner);
