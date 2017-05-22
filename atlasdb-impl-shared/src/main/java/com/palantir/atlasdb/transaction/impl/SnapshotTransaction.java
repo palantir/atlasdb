@@ -25,12 +25,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -114,6 +117,8 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.ForwardingClosableIterator;
+import com.palantir.common.base.Parallelism;
+import com.palantir.common.base.RequestLimitedExecutorService;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
@@ -690,6 +695,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     }
 
                 });
+    }
+
+    @Override
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            RequestLimitedExecutorService executor) {
+
+        return Parallelism.getAll(StreamSupport.stream(rangeRequests.spliterator(), false)
+                .map(rangeRequest ->
+                        (Callable<BatchingVisitable<RowResult<byte[]>>>) () -> getRange(tableRef, rangeRequest))
+                .collect(Collectors.toList()), executor);
     }
 
     private void validateExternalAndCommitLocksIfNecessary(TableReference tableRef) {

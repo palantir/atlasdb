@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.common.base.RequestLimitedExecutorService;
 
 /**
  * Provides the methods for a transaction with the key-value store.
@@ -81,6 +82,17 @@ public interface Transaction {
     Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests);
+
+    /**
+     * Same logic as {@link Transaction#getRanges(TableReference, Iterable)} but provides explicit control
+     * of parallelism. This should be favored over the former method to avoid unexpected concurrent calls
+     * hidden in the implementation.
+     */
+    @Idempotent
+    Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            RequestLimitedExecutorService executor);
 
     /**
      * Puts values into the key-value store. If you put a null or the empty byte array, then

@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.common.base.RequestLimitedExecutorService;
 
 public class ReadTransaction extends ForwardingTransaction {
 
@@ -71,6 +72,15 @@ public class ReadTransaction extends ForwardingTransaction {
                                                                     Iterable<RangeRequest> rangeRequests) {
         checkTableName(tableRef);
         return delegate().getRanges(tableRef, rangeRequests);
+    }
+
+    @Override
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            RequestLimitedExecutorService executor) {
+        checkTableName(tableRef);
+        return delegate().getRanges(tableRef, rangeRequests, executor);
     }
 
     @Override
