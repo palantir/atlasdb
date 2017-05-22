@@ -5,16 +5,19 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply from: "../gradle/shared.gradle"
 
 configurations {
-  compile.extendsFrom(shadow)
+  something
 }
 
 dependencies {
-  shadow project(":atlasdb-client")
-  shadow project(":atlasdb-api")
-  shadow project(":commons-api")
-  shadow project(':timestamp-impl')
 
-  shadow ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
+  // something begins here
+
+  something project(":atlasdb-client")
+  something project(":atlasdb-api")
+  something project(":commons-api")
+  something project(':timestamp-impl')
+
+  something ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
     exclude module: 'junit'
 
     // override ant to a newer one that is shared with the version in jmock-->cglib
@@ -23,17 +26,48 @@ dependencies {
     compile 'org.apache.ant:ant:' + libVersions.ant
   }
 
-  shadow 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
-  shadow group: 'com.google.guava', name: 'guava'
+  something 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
+  something group: 'com.google.guava', name: 'guava'
 
-  shadow 'org.apache.commons:commons-pool2:2.4.2'
+  something 'org.apache.commons:commons-pool2:2.4.2'
 
-  shadow group: 'com.palantir.remoting', name: 'ssl-config'
-  shadow group: 'com.palantir.remoting1', name: 'tracing'
+  something group: 'com.palantir.remoting', name: 'ssl-config'
+  something group: 'com.palantir.remoting1', name: 'tracing'
 
-  shadow group: 'com.google.code.findbugs', name: 'annotations'
+  something group: 'com.google.code.findbugs', name: 'annotations'
 
-  shadow group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
+  something group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
+
+
+  // something ends here
+
+  compile project(":atlasdb-client")
+  compile project(":atlasdb-api")
+  compile project(":commons-api")
+  compile project(':timestamp-impl')
+
+  compile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
+    exclude module: 'junit'
+
+    // override ant to a newer one that is shared with the version in jmock-->cglib
+    // note that the version we are shading though I believe is the one originally transitively requested
+    exclude module: 'ant'
+    compile 'org.apache.ant:ant:' + libVersions.ant
+  }
+
+  compile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
+  compile group: 'com.google.guava', name: 'guava'
+
+  compile 'org.apache.commons:commons-pool2:2.4.2'
+
+  compile group: 'com.palantir.remoting', name: 'ssl-config'
+  compile group: 'com.palantir.remoting1', name: 'tracing'
+
+  compile group: 'com.google.code.findbugs', name: 'annotations'
+
+  compile group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
+
+
 
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
   testCompile group: 'org.mockito', name: 'mockito-core'
@@ -47,6 +81,9 @@ dependencies {
 shadowJar {
   mergeServiceFiles()
   classifier ''
+
+  getConfigurations().clear()
+  setConfigurations([configurations.something])
 
   relocate('jflex', atlasdb_shaded + 'jflex')
   relocate('org.apache.tools.ant', atlasdb_shaded + 'ant')
