@@ -19,11 +19,6 @@ dependencies {
 
   something ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
     exclude module: 'junit'
-
-    // override ant to a newer one that is shared with the version in jmock-->cglib
-    // note that the version we are shading though I believe is the one originally transitively requested
-    exclude module: 'ant'
-    compile 'org.apache.ant:ant:' + libVersions.ant
   }
 
   something 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
@@ -47,12 +42,10 @@ dependencies {
   compile project(':timestamp-impl')
 
   compile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
-    exclude module: 'junit'
-
-    // override ant to a newer one that is shared with the version in jmock-->cglib
-    // note that the version we are shading though I believe is the one originally transitively requested
-    exclude module: 'ant'
-    compile 'org.apache.ant:ant:' + libVersions.ant
+    exclude(group: 'de.jflex', module: 'jflex')
+    exclude(group: 'org.apache.tools.ant', module: 'ant')
+    exclude(group: 'com.github.rholder', module: 'snowball-stemmer')
+    exclude(group: 'com.carrotsearch', module: 'hppc')
   }
 
   compile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
