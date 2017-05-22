@@ -55,6 +55,13 @@ develop
            There is no issue with having tables with different values for ``gc_grace_seconds``, and this can be updated at any time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1726>`__)
 
+    *    - |fixed|
+         - A 1s timeout has been added to the client when the client has queried all the servers of a cluster and received a NotCurrentLeaderException.
+
+           When the cluster is electing a leader, a ``getFreshTimestamp()`` call receives a NotCurrentLeaderException (status 503) response.
+           This answer would make the client trigger the same request with a 1ms backoff to all the nodes in the cluster, slowing down the election and making the cluster unable to proceed.
+           This behavior has been fixed by adding a 1s backoff when the client has received a NotCurrentLeaderException from all the nodes in the cluster before retrying.
+
 ======
 0.41.0
 ======
