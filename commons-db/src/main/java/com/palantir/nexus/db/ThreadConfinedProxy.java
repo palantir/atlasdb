@@ -178,7 +178,7 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
         threadName = newThread.getName();
     }
 
-    private void checkThreadChange(Thread oldThread, Thread newThread) {
+    private synchronized void checkThreadChange(Thread oldThread, Thread newThread) {
         if (oldThread.getId() != threadId) {
             String message = String.format(
                     "Thread confinement violation: tried to change threads from thread %s (ID %s) to thread %s (ID %s), but we expected thread %s (ID %s)",

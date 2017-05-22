@@ -60,6 +60,10 @@ develop
            Please use the ``timestamp-management/fast-forward`` and ``timestamp/fresh-timestamp`` endpoints instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1936>`__)
 
+    *    - |improved|
+         - ``ProfilingKeyValueService`` now has some additional logging mechanisms for logging long-running operations on WARN level, enabled by default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1801>`__)
+
 ======
 0.41.0
 ======
