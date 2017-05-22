@@ -1,0 +1,35 @@
+dependencyRecommendations {
+    strategy ConflictResolved
+}
+
+configurations.all {
+    resolutionStrategy {
+        eachDependency { details ->
+            switch (details.requested.group) {
+                case 'io.dropwizard':
+                    details.useVersion libVersions.timelock_dropwizard
+                    break
+                case 'com.fasterxml.jackson.core':
+                case 'com.fasterxml.jackson.datatype':
+                    details.useVersion libVersions.timelock_jackson
+                    break
+                case 'org.eclipse.jetty':
+                    details.useVersion libVersions.timelock_jetty
+                    break
+                case 'org.glassfish.jersey.core':
+                    details.useVersion libVersions.timelock_jersey
+                    break
+                case 'com.google.guava':
+                    details.useVersion libVersions.timelock_guava
+                    break
+            }
+        }
+        forcedModules = [
+                'ch.qos.logback:logback-classic:1.1.7',
+                'com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7',
+                'com.netflix.feign:feign-core:8.10.1',
+                'io.atomix.catalyst:catalyst-transport:1.1.2',
+                'org.objenesis:objenesis:2.3'
+        ]
+    }
+}

@@ -51,7 +51,8 @@ public class AtlasDbRemoteException extends RuntimeException {
         return remoteException.getRemoteException().getErrorName();
     }
 
-    // Cannot be named getStackTrace() because that returns a list of (non-serializable) StackTraceElements.
+    // Cannot be named getStackTrace() because that is a method on RuntimeException that returns a list of 
+    // (non-serializable) StackTraceElements.
     @Nullable // For consistency with HTTP-Remoting API
     public List<AtlasDbStackTraceElement> getRemoteStackTrace() {
         List<SerializableStackTraceElement> stackTraceElements = remoteException.getRemoteException().getStackTrace();

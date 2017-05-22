@@ -15,29 +15,29 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.concurrent.ExecutorService;
+import java.io.File;
 
 import org.junit.After;
 
+import com.google.common.io.Files;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.sweep.AbstractSweeperTest;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
+import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 
-public class InMemorySweeperTest extends AbstractSweeperTest {
-    private ExecutorService exec;
+public class RocksDbSweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
+    private File tempDir;
 
-    @Override
     @After
-    public void close() {
+    public void tearDown() {
         super.close();
-        exec.shutdown();
+        for (File file : Files.fileTreeTraverser().postOrderTraversal(tempDir)) {
+            file.delete();
+        }
     }
 
     @Override
     protected KeyValueService getKeyValueService() {
-        exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
-        return new InMemoryKeyValueService(false, exec);
+        tempDir = Files.createTempDir();
+        return RocksDbKeyValueService.create(tempDir.getAbsolutePath());
     }
 }

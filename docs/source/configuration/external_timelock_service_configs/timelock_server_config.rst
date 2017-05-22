@@ -16,8 +16,8 @@ Clients
 -------
 
 The ``clients`` block is a list of strings which corresponds to client namespaces that the server will respond to.
-At least one client must be configured for the Timelock Server to work. Querying an endpoint for a client that does not
-exist will result in a 404. Note that client names must consist of only alphanumeric characters, dashes and
+Querying an endpoint for a client that does not exist will result in a 404.
+Note that client names must consist of only alphanumeric characters, dashes and
 underscores (succinctly, ``[a-zA-Z0-9_-]+``) and for backwards compatibility cannot be the reserved word ``leader``.
 
    .. code:: yaml
@@ -130,6 +130,50 @@ default values.
    * - leaderPingWaitResponseMs
      - The length of time between a follower initiating a ping to a leader and, if it hasn't received a response,
        believing the leader is down, in ms (default: ``5000``).
+
+.. _timelock-server-time-limiting:
+
+Time Limiting
+-------------
+
+Clients that make long-running lock requests will block a thread on TimeLock for the duration of their request. More
+significantly, if these requests are blocked for longer than the idle timeout of the server's application connector
+on HTTP/2, then Jetty will send a stream closed message to the client. This can lead to an infinite buildup of threads
+and was the root cause of issue `#1680 <https://github.com/palantir/atlasdb/issues/1680>`__. We thus reap the thread
+for interruptible requests before the timeout expires, and send an exception to the client indicating that its request
+has timed out, but it is free to retry on the same node. Note that this issue may still occur if a *non-interruptible*
+method blocks for longer than the idle timeout, though we believe this is highly unlikely.
+
+This mechanism can be switched on and off, and the time interval between generating the ``BlockingTimeoutException``
+and the actual idle timeout is configurable. Note that even if we lose the race between generating this exception and
+the idle timeout, we will retry on the same node. Even if this happens 3 times in a row we are fine, since we will fail
+over to non-leaders and they will redirect us back.
+
+Note that this may affect lock fairness in cases where timeouts occur; previously our locks were entirely fair, but
+now if the blocking time is longer than the connection timeout, then it is possible for the locks to not behave
+fairly.
+
+   .. code:: yaml
+
+      timeLimiter:
+        enableTimeLimiting: true
+        blockingTimeoutErrorMargin: 0.03
+
+.. list-table::
+   :widths: 5 40
+   :header-rows: 1
+
+   * - Property
+     - Description
+
+   * - enableTimeLimiting
+     - Whether to enable the time limiting mechanism or not (default: ``false``).
+
+   * - blockingTimeoutErrorMargin
+     - A value indicating the margin of error we leave before interrupting a long running request,
+       since we wish to perform this interruption and return a BlockingTimeoutException *before* Jetty closes the
+       stream. This margin is specified as a ratio of the smallest idle timeout - hence it must be strictly between
+       0 and 1 (default: ``0.03``).
 
 .. _timelock-server-further-config:
 
