@@ -55,6 +55,11 @@ develop
            There is no issue with having tables with different values for ``gc_grace_seconds``, and this can be updated at any time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1726>`__)
 
+    *    - |deprecated|
+         - The FastForwardTimestamp and FetchTimestamp CLIs have been deprecated.
+           Please use the ``timestamp-management/fast-forward`` and ``timestamp/fresh-timestamp`` endpoints instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1936>`__)
+
 ======
 0.41.0
 ======
