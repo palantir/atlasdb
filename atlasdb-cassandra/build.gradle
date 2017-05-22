@@ -71,12 +71,12 @@ dependencies {
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 }
 
-shadowJar {
+task otherShadowJar(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
   mergeServiceFiles()
   classifier ''
 
-  getConfigurations().clear()
-  setConfigurations([configurations.something])
+  from sourceSets.main. output
+  configurations = [project.configurations.something]
 
   relocate('jflex', atlasdb_shaded + 'jflex')
   relocate('org.apache.tools.ant', atlasdb_shaded + 'ant')
@@ -84,5 +84,5 @@ shadowJar {
   relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
 }
 
-jar.dependsOn(shadowJar)
+jar.dependsOn(otherShadowJar)
 jar.onlyIf { false }
