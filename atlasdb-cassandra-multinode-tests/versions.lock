@@ -12,6 +12,9 @@
             "transitive": [
                 "org.apache.ant:ant"
             ]
+        },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1"
         }
     },
     "runtime": {
@@ -27,6 +30,9 @@
             "transitive": [
                 "org.apache.ant:ant"
             ]
+        },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1"
         }
     }
 }
