@@ -30,7 +30,7 @@ public class AvailableTimestamps {
     private final PersistentUpperLimit upperLimit;
 
     public AvailableTimestamps(LastReturnedTimestamp lastReturnedTimestamp, PersistentUpperLimit upperLimit) {
-        DebugLogger.logger.info("Creating AvailableTimestamps object on thread {}. This should only happen once."
+        DebugLogger.logger.info("Creating AvailableTimestamps object on thread {}."
                         + " If you are running embedded AtlasDB, this should only happen once."
                         + " If you are using Timelock, this should happen once per client per leadership election",
                 Thread.currentThread().getName());
