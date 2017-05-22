@@ -30,7 +30,7 @@ import com.palantir.leader.LeaderElectionService;
 public class AwaitingLeadershipProxyTest {
 
     @Test
-    @SuppressWarnings("SelfEquals")
+    @SuppressWarnings("SelfEquals") // We're asserting that calling .equals on a proxy does not redirect the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenLeading() throws Exception {
         Runnable mockRunnable = mock(Runnable.class);
         Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
@@ -49,7 +49,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    @SuppressWarnings("SelfEquals")
+    @SuppressWarnings("SelfEquals") // We're asserting that calling .equals on a proxy does not redirect the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenNotLeading() throws Exception {
         Runnable mockRunnable = mock(Runnable.class);
         Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
