@@ -17,7 +17,10 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Date;
@@ -26,6 +29,8 @@ import java.util.List;
 
 import org.apache.http.HttpStatus;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
@@ -144,6 +149,26 @@ public class FailoverFeignTargetTest {
             target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
             assertThat(target.url()).isEqualTo(currentUrl);
         }
+    }
+
+    @Test
+    public void blockingTimeout() {
+        final FailoverFeignTarget spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
+                SERVERS, 1, Object.class));
+        for (int i = 0; i < CLUSTER_SIZE; i++) {
+            spiedTarget.url();
+            spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+        }
+
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+        verify(spiedTarget, times(CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
+
+        List<Long> arguments = argument.getAllValues();
+        assertThat(arguments.size()).isEqualTo(CLUSTER_SIZE);
+        for (int i = 0; i < CLUSTER_SIZE - 1; i++) {
+            assertThat(arguments.get(i)).isEqualTo(1L);
+        }
+        assertThat(arguments.get(CLUSTER_SIZE - 1)).isEqualTo(1000L);
     }
 
     private void simulateRequest() {
