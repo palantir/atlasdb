@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -35,6 +36,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -326,6 +329,13 @@ public final class ProfilingKeyValueService implements KeyValueService {
             RangeRequest rangeRequest, long timestamp) {
         return maybeLog(() -> delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
                 logTimeAndTableRange("getRangeOfTimestamps", tableRef, rangeRequest));
+    }
+
+    @Override
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
+            CandidateCellForSweepingRequest request) {
+        return maybeLog(() -> delegate.getCandidateCellsForSweeping(tableRef, request),
+                logTime("getCandidateCellsForSweeping"));
     }
 
     @Override

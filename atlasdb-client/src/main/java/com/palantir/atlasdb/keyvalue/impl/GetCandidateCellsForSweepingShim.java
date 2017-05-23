@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweep;
+
+package com.palantir.atlasdb.keyvalue.impl;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -46,7 +47,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 
-// The plan is to make getCandidateCellsForSweeping() a method in KeyValueService.
 // This class provides a temporary implementation of the new call using existing KVS calls,
 // so that we can make this change in several smaller commits.
 public class GetCandidateCellsForSweepingShim {
@@ -56,41 +56,6 @@ public class GetCandidateCellsForSweepingShim {
         this.keyValueService = keyValueService;
     }
 
-    /**
-     * For a given range of rows, returns all candidate cells for sweeping (and their timestamps).
-     * Here is the precise definition of a candidate cell:
-     * <blockquote>
-     *      Let {@code Ts} be {@code request.sweepTimestamp()}<br>
-     *      Let {@code Tu} be {@code request.minUncommittedTimestamp()}<br>
-     *      Let {@code V} be {@code request.shouldCheckIfLatestValueIsEmpty()}<br>
-     *      Let {@code Ti} be set of timestamps in {@code request.timestampsToIgnore()}<br>
-     *      <p>
-     *      Consider a cell {@code C}. Let {@code Tc} be the set of all timestamps for {@code C} that are strictly
-     *      less than {@code Ts}. Let {@code T} be {@code Tc \ Ti} (i.e. the cell timestamps minus the ignored
-     *      timestamps).
-     *      <p>
-     *      Then {@code C} is a candidate for sweeping if and only if at least one of
-     *      the following conditions is true:
-     *      <ol>
-     *          <li> The set {@code T} has more than one element
-     *          <li> The set {@code T} contains an element that is greater than or equal to {@code Tu}
-     *             (that is, there is a timestamp that can possibly come from an uncommitted or aborted transaction)
-     *          <li> The set {@code T} contains {@link Value#INVALID_VALUE_TIMESTAMP}
-     *             (that is, there is a sentinel we can possibly clean up)
-     *          <li> {@code V} is true and the cell value corresponding to the maximum element of {@code T} is empty
-     *             (that is, the latest sweepable value is a 'soft-delete' tombstone)
-     *      </ol>
-     *
-     * </blockquote>
-     * This method will scan the semi-open range of rows from the start row specified in the {@code request}
-     * to the end of the table. If the given start row name is an empty byte array, the whole table will be
-     * scanned.
-     * <p>
-     * The returned cells will be lexicographically ordered.
-     * <p>
-     * We return an iterator of lists instead of a "flat" iterator of results so that we preserve the information
-     * about batching. The caller can always use Iterators.concat() or similar if this is undesired.
-     */
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
                 TableReference tableRef,
                 CandidateCellForSweepingRequest request) {

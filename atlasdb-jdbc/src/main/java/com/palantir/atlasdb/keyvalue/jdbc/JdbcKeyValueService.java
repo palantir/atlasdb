@@ -110,6 +110,8 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -124,6 +126,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.jdbc.impl.MultiTimestampPutBatch;
 import com.palantir.atlasdb.keyvalue.jdbc.impl.PutBatch;
@@ -724,6 +727,12 @@ public class JdbcKeyValueService implements KeyValueService {
             }
         };
         return ClosableIterators.wrap(iter.iterator());
+    }
+
+    @Override
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
+            CandidateCellForSweepingRequest request) {
+        return new GetCandidateCellsForSweepingShim(this).getCandidateCellsForSweeping(tableRef, request);
     }
 
     @Override

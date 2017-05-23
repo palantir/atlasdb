@@ -85,6 +85,8 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -111,6 +113,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.util.AnnotatedCallable;
@@ -1393,6 +1396,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     deleteConsistency,
                     TimestampExtractor::new);
         }
+    }
+
+    @Override
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
+            CandidateCellForSweepingRequest request) {
+        return new GetCandidateCellsForSweepingShim(this).getCandidateCellsForSweeping(tableRef, request);
     }
 
     private ClosableIterator<RowResult<Set<Long>>> getTimestampsInBatchesWithPageCreator(
