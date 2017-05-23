@@ -276,6 +276,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                             newLimit,
                             limit));
                 }
+                return;
             } catch (PaxosRoundFailureException e) {
                 waitForRandomBackoff(e, this::wait);
             }
