@@ -44,7 +44,7 @@ develop
 
     *    - |fixed|
          - ``PaxosTimestampBoundStore`` now throws ``NotCurrentLeaderException``, invalidating the timestamp store, if a bound update fails because another timestamp service on the same node proposed a smaller bound for the same sequence number.
-           This was added to address a very specific race condition leading to an infinite loop that would saturate the TimeLock cluster with spurious Paxos messages; see `issue 1941<https://github.com/palantir/atlasdb/issues/1941>`__ for more detail.
+           This was added to address a very specific race condition leading to an infinite loop that would saturate the TimeLock cluster with spurious Paxos messages; see `issue 1941 <https://github.com/palantir/atlasdb/issues/1941>`__ for more detail.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1942>`__)
 
     *    - |fixed|
