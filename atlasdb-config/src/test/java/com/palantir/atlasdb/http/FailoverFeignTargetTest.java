@@ -28,6 +28,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.apache.http.HttpStatus;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -164,11 +166,7 @@ public class FailoverFeignTargetTest {
         verify(spiedTarget, times(CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
 
         List<Long> arguments = argument.getAllValues();
-        assertThat(arguments.size()).isEqualTo(CLUSTER_SIZE);
-        for (int i = 0; i < CLUSTER_SIZE - 1; i++) {
-            assertThat(arguments.get(i)).isEqualTo(1L);
-        }
-        assertThat(arguments.get(CLUSTER_SIZE - 1)).isEqualTo(1000L);
+        MatcherAssert.assertThat(arguments, Matchers.contains(1L, 1L, 500L));
     }
 
     private void simulateRequest() {
