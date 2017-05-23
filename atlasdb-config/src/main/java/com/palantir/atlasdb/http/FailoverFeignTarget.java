@@ -43,6 +43,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private static final Logger log = LoggerFactory.getLogger(FailoverFeignTarget.class);
 
     public static final int DEFAULT_MAX_BACKOFF_MILLIS = 3000;
+    public static final long BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS = 500L;
 
     private static final double GOLDEN_RATIO = (Math.sqrt(5) + 1.0) / 2.0;
 
@@ -97,7 +98,12 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
         checkAndHandleFailure(ex);
         if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
-            pauseForBackOff(ex);
+            int numFailovers = failoverCount.get();
+            if (numFailovers > 0 && numFailovers % servers.size() == 0) {
+                pauseForBackoff(ex, BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS);
+            } else {
+                pauseForBackoff(ex);
+            }
         }
     }
 
@@ -143,11 +149,16 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
 
-    private void pauseForBackOff(RetryableException ex) {
-        double pow = Math.pow(
+    private void pauseForBackoff(RetryableException ex) {
+        double pauseTime = Math.pow(
                 GOLDEN_RATIO,
                 numSwitches.get() * failuresBeforeSwitching + failuresSinceLastSwitch.get());
-        long timeout = Math.min(maxBackoffMillis, Math.round(pow));
+        pauseForBackoff(ex, Math.round(pauseTime));
+    }
+
+    @VisibleForTesting
+    void pauseForBackoff(RetryableException ex, long pauseTime) {
+        long timeout = Math.min(maxBackoffMillis, pauseTime);
 
         try {
             log.trace("Pausing {}ms before retrying", timeout);

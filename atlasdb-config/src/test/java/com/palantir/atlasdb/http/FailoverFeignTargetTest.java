@@ -17,7 +17,10 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Date;
@@ -25,7 +28,11 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.apache.http.HttpStatus;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
@@ -144,6 +151,38 @@ public class FailoverFeignTargetTest {
             target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
             assertThat(target.url()).isEqualTo(currentUrl);
         }
+    }
+
+    @Test
+    public void blockingTimeout() {
+        final FailoverFeignTarget spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
+                SERVERS, 1, Object.class));
+        for (int i = 0; i < CLUSTER_SIZE; i++) {
+            spiedTarget.url();
+            spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+        }
+
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+        verify(spiedTarget, times(CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
+
+        List<Long> arguments = argument.getAllValues();
+        MatcherAssert.assertThat(arguments, Matchers.contains(1L, 1L, 500L));
+    }
+
+    @Test
+    public void blockingTimeoutManyTimes() {
+        final FailoverFeignTarget spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
+                SERVERS, 1, Object.class));
+        for (int i = 0; i < 3 * CLUSTER_SIZE; i++) {
+            spiedTarget.url();
+            spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+        }
+
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+        verify(spiedTarget, times(3 * CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
+
+        List<Long> arguments = argument.getAllValues();
+        MatcherAssert.assertThat(arguments, Matchers.contains(1L, 1L, 500L, 1L, 1L, 500L, 1L, 1L, 500L));
     }
 
     private void simulateRequest() {
