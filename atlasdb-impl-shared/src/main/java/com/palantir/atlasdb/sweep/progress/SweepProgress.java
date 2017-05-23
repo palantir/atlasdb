@@ -26,9 +26,9 @@ public interface SweepProgress {
 
     byte[] startRow();
 
-    long cellsDeleted();
+    long staleValuesDeleted();
 
-    long cellsExamined();
+    long cellTsPairsExamined();
 
     long minimumSweptTimestamp();
 

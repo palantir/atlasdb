@@ -102,14 +102,14 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
             // We just swept this, or it got truncated.
             return 0.0;
         }
-        long cellsDeleted = Math.max(1, oldPriority.cellsDeleted());
-        long cellsExamined = Math.max(1, oldPriority.cellsExamined());
+        long staleValuesDeleted = Math.max(1, oldPriority.staleValuesDeleted());
+        long cellTsPairsExamined = Math.max(1, oldPriority.cellTsPairsExamined());
         long writeCount = Math.max(1, oldPriority.writeCount());
-        double previousEfficacy = 1.0 * cellsDeleted / cellsExamined;
-        double estimatedCellsToSweep = previousEfficacy * writeCount;
+        double previousEfficacy = 1.0 * staleValuesDeleted / cellTsPairsExamined;
+        double estimatedCellTsPairsToSweep = previousEfficacy * writeCount;
         long millisSinceSweep = System.currentTimeMillis() - newPriority.lastSweepTimeMillis().getAsLong();
 
-        if (writeCount <= 100 + cellsExamined / 100
+        if (writeCount <= 100 + cellTsPairsExamined / 100
                 && TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS) < 180) {
             // Not worth the effort if fewer than 1% of cells are new and we've swept in the last 6 months.
             return 0.0;
@@ -117,7 +117,7 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
 
         // This ordering function weights one month of no sweeping
         // with the same priority as about 100000 expected cells to sweep.
-        return estimatedCellsToSweep + millisSinceSweep * MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT;
+        return estimatedCellTsPairsToSweep + millisSinceSweep * MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT;
     }
 
     // weights one month of no sweeping with the same priority as about 100000 expected cells to sweep.
