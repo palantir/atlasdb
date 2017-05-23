@@ -42,6 +42,17 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - ``PaxosTimestampBoundStore``, the bound store for Timelock, will now throw ``NotCurrentLeaderException`` instead of ``MultipleRunningTimestampServiceError`` when a bound update fails.
+           The cases where this can happen are explained by a race condition that can occur after leadership change, and it is safe to let requests be retried on another server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1934>`__)
+
+    *    - |fixed|
+         - A 500 ms backoff has been added to the our retry logic when the client has queried all the servers of a cluster and received a ``NotCurrentLeaderException``.
+           Previously in this case, our retry logic would dictate infinitely many retries with a 1 ms backoff.
+           The new backoff should reduce contention during leadership elections, when all nodes throw ``NotCurrentLeaderException``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1939>`__)
+
     *    - |improved|
          - Timelock server can now start with an empty clients list.
            Note that you currently need to restart timelock when adding clients to the configuration.
@@ -55,11 +66,9 @@ develop
            There is no issue with having tables with different values for ``gc_grace_seconds``, and this can be updated at any time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1726>`__)
 
-    *    - |fixed|
-         - A 500 ms backoff has been added to the our retry logic when the client has queried all the servers of a cluster and received a ``NotCurrentLeaderException``.
-           Previously in this case, our retry logic would dictate infinitely many retries with a 1 ms backoff.
-           The new backoff should reduce contention during leadership elections, when all nodes throw ``NotCurrentLeaderException``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1939>`__)
+    *    - |improved|
+         - ``ProfilingKeyValueService`` now has some additional logging mechanisms for logging long-running operations on WARN level, enabled by default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1801>`__)
 
 ======
 0.41.0
