@@ -34,6 +34,7 @@ import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
@@ -243,7 +244,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      *
      * @param limit the new upper limit to be stored
      * @throws IllegalArgumentException if trying to persist a limit smaller than the agreed limit
-     * @throws MultipleRunningTimestampServiceError if the timestamp limit has changed out from under us
+     * @throws NotCurrentLeaderException if the timestamp limit has changed out from under us
      */
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
@@ -275,15 +276,16 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * @param limit the limit our node has proposed
      * @param newSeq the sequence number for which our node has proposed the limit
      * @param value PaxosValue agreed upon by a quorum of nodes, for sequence number newSeq
-     * @throws MultipleRunningTimestampServiceError if the agreed timestamp bound (PaxosValue) changed under us
+     * @throws NotCurrentLeaderException if the agreed timestamp bound (PaxosValue) changed under us
      */
     private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value)
-            throws MultipleRunningTimestampServiceError {
+            throws NotCurrentLeaderException {
         if (!value.getLeaderUUID().equals(proposer.getUuid())) {
             String errorMsg = String.format(
                     "Timestamp limit changed from under us for sequence '%s' (proposer with UUID '%s' changed"
-                            + " it, our UUID is '%s'). This suggests that another timestamp store for this"
-                            + " namespace is running. The offending bound was '%s'; we tried to propose"
+                            + " it, our UUID is '%s'). This suggests that we have lost leadership, and another timelock"
+                            + " server has gained leadership and updated the timestamp bound."
+                            + " The offending bound was '%s'; we tried to propose"
                             + " a bound of '%s'. (The offending Paxos value was '%s'.)",
                     newSeq,
                     value.getLeaderUUID(),
@@ -291,7 +293,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                     PtBytes.toLong(value.getData()),
                     limit,
                     value);
-            throw new MultipleRunningTimestampServiceError(errorMsg);
+            throw new NotCurrentLeaderException(errorMsg);
         }
         DebugLogger.logger.info("Trying to store limit '{}' for sequence '{}' yielded consensus on the value '{}'.",
                 limit,
