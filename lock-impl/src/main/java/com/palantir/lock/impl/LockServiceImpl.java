@@ -46,6 +46,7 @@ import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -108,6 +109,14 @@ import com.palantir.util.JMXUtils;
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
+    private static final String GRANT_MESSAGE = "Lock client {} tried to use a lock grant that"
+            + " doesn't correspond to any held locks (grantId: {});"
+            + " it's likely that this lock grant has expired due to timeout";
+    private static final String UNLOCK_AND_FREEZE_FROM_ANONYMOUS_CLIENT = "Received .unlockAndFreeze()"
+            + " call for anonymous client with token {}";
+    private static final String UNLOCK_AND_FREEZE = "Received .unlockAndFreeze() call for read locks: {}";
+
+
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
 
@@ -319,6 +328,8 @@ import com.palantir.util.JMXUtils;
     }
 
     @Override
+    @SuppressWarnings("Slf4jConstantLogMessage")
+    // We're concerned about sanitizing logs at the info level and above. This method just logs at debug and info.
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
         Preconditions.checkNotNull(client);
         Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT);
@@ -480,6 +491,7 @@ import com.palantir.util.JMXUtils;
     }
 
     @VisibleForTesting
+    @SuppressWarnings("Slf4jConstantLogMessage")
     protected void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
         String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
@@ -561,17 +573,16 @@ import com.palantir.util.JMXUtils;
         if (client.isAnonymous()) {
             heldLocksTokenMap.put(token, heldLocks);
             lockTokenReaperQueue.add(token);
-            String errorMessage =
-                    "Received .unlockAndFreeze() call for anonymous client with token %s";
-            log.warn(replaceFormatSpecifiersByBraces(errorMessage), heldLocks.realToken);
-            throw new IllegalArgumentException(String.format(errorMessage, heldLocks.realToken));
+            log.warn(UNLOCK_AND_FREEZE_FROM_ANONYMOUS_CLIENT, heldLocks.realToken);
+            throw new IllegalArgumentException(
+                    MessageFormatter.format(UNLOCK_AND_FREEZE_FROM_ANONYMOUS_CLIENT, heldLocks.realToken).getMessage());
         }
         if (heldLocks.locks.hasReadLock()) {
             heldLocksTokenMap.put(token, heldLocks);
             lockTokenReaperQueue.add(token);
-            String errorMessage = "Received .unlockAndFreeze() call for read locks: %s";
-            log.warn(replaceFormatSpecifiersByBraces(errorMessage), heldLocks.realToken);
-            throw new IllegalArgumentException(String.format(errorMessage, heldLocks.realToken));
+            log.warn(UNLOCK_AND_FREEZE, heldLocks.realToken);
+            throw new IllegalArgumentException(
+                    MessageFormatter.format(UNLOCK_AND_FREEZE, heldLocks.realToken).getMessage());
         }
         for (ClientAwareReadWriteLock lock : heldLocks.locks.getKeys()) {
             lock.get(client, LockMode.WRITE).unlockAndFreeze();
@@ -817,10 +828,10 @@ import com.palantir.util.JMXUtils;
         HeldLocksGrant grant = new HeldLocksGrant(grantId);
         @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.remove(grant);
         if (heldLocks == null) {
-            String message = "Lock client %s tried to use a lock grant that doesn't correspond to any held locks "
-                           + "(grantId: %s); it's likely that this lock grant has expired due to timeout";
-            log.warn(replaceFormatSpecifiersByBraces(message), client, grantId.toString(Character.MAX_RADIX));
-            throw new IllegalArgumentException(String.format(message, client, grantId.toString(Character.MAX_RADIX)));
+            log.warn(GRANT_MESSAGE, client, grantId.toString(Character.MAX_RADIX));
+            String formattedMessage = MessageFormatter.format(
+                    GRANT_MESSAGE, client, grantId.toString(Character.MAX_RADIX)).getMessage();
+            throw new IllegalArgumentException(formattedMessage);
         }
         HeldLocksGrant realGrant = heldLocks.realToken;
         changeOwner(heldLocks.locks, INTERNAL_LOCK_GRANT_CLIENT, client);
@@ -831,10 +842,6 @@ import com.palantir.util.JMXUtils;
             log.trace(".useGrant({}, {}) returns {}", client, grantId.toString(Character.MAX_RADIX), token);
         }
         return token;
-    }
-
-    private String replaceFormatSpecifiersByBraces(String errorMessage) {
-        return errorMessage.replaceAll("%s", "{}");
     }
 
     private void changeOwner(LockCollection<? extends ClientAwareReadWriteLock> locks, LockClient oldClient,
