@@ -98,7 +98,8 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
         checkAndHandleFailure(ex);
         if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
-            if (failoverCount.get() % servers.size() == 0) {
+            int numFailovers = failoverCount.get();
+            if (numFailovers > 0 && numFailovers % servers.size() == 0) {
                 pauseForBackoff(ex, BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS);
             } else {
                 pauseForBackoff(ex);

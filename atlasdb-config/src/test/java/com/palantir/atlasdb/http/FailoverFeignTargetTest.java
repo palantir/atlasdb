@@ -169,6 +169,22 @@ public class FailoverFeignTargetTest {
         MatcherAssert.assertThat(arguments, Matchers.contains(1L, 1L, 500L));
     }
 
+    @Test
+    public void blockingTimeoutManyTimes() {
+        final FailoverFeignTarget spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
+                SERVERS, 1, Object.class));
+        for (int i = 0; i < 3 * CLUSTER_SIZE; i++) {
+            spiedTarget.url();
+            spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+        }
+
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+        verify(spiedTarget, times(3 * CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
+
+        List<Long> arguments = argument.getAllValues();
+        MatcherAssert.assertThat(arguments, Matchers.contains(1L, 1L, 500L, 1L, 1L, 500L, 1L, 1L, 500L));
+    }
+
     private void simulateRequest() {
         // This method is called as a part of a request being invoked.
         // We need to update the mostRecentServerIndex, for the FailoverFeignTarget to track failures properly.
