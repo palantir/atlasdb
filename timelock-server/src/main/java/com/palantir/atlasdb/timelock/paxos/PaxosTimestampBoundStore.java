@@ -261,8 +261,20 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 checkAgreedBoundIsOurs(limit, newSeq, value);
                 long newLimit = PtBytes.toLong(value.getData());
                 agreedState = ImmutableSequenceAndBound.of(newSeq, newLimit);
-                if (newLimit >= limit) {
-                    return;
+                if (newLimit < limit) {
+                    // The bound is ours, but is not high enough.
+                    // This is dangerous; proposing at the next sequence number is unsafe, as timestamp services
+                    // generally assume they have the ALLOCATION_BUFFER_SIZE timestamps up to this.
+                    // TODO (jkong): Devise a method that better preserves availability of the cluster.
+                    log.warn("It appears we updated the timestamp limit to {}, which was less than our target {}."
+                            + " This suggests we have another timestamp service running; possibly because we"
+                            + " lost and regained leadership. For safety, we are now stopping this service.",
+                            newLimit,
+                            limit);
+                    throw new NotCurrentLeaderException(String.format(
+                            "We updated the timestamp limit to %s, which was less than our target %s.",
+                            newLimit,
+                            limit));
                 }
             } catch (PaxosRoundFailureException e) {
                 waitForRandomBackoff(e, this::wait);
