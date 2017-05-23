@@ -218,14 +218,14 @@ Check the JMH source code for <code class="docutils literal"><span class="pre">S
 <h2>Writing a New Benchmark<a class="headerlink" href="#writing-a-new-benchmark" title="Permalink to this headline">¶</a></h2>
 <p>When writing a new benchmark, first consider exactly what you want to test.
 If you are looking to test an API endpoint, it might be appropriate to write several benchmarks with each one covering a relevant case.
-A good example is the <code class="docutils literal"><span class="pre">KvsGetRangeBenchmarks.java</span></code> suite, which tests AtlasDB&#8217;s <code class="docutils literal"><span class="pre">getRange()</span></code> in several different ways.</p>
+A good example is the <code class="docutils literal"><span class="pre">KvsGetRangeBenchmarks.java</span></code> suite, which tests AtlasDB’s <code class="docutils literal"><span class="pre">getRange()</span></code> in several different ways.</p>
 <p>Always include some form of validation in your benchmark.
 Validation not only ensures that your code does what you think it does, it also protects against regressions in the benchmarks themselves which can be introduced by changing the underlying State objects.
 Validation is often run during the benchmark itself, so care should be taken to avoid expensive operations in it.
 Validation that does not include client/server calls generally has a negligible impact on benchmark runtime.</p>
 <div class="admonition tip">
 <p class="first admonition-title">Tip</p>
-<p class="last">Pass the name of the benchmark you&#8217;re working on to the CLI in order to avoid running all benchmarks during development.</p>
+<p class="last">Pass the name of the benchmark you’re working on to the CLI in order to avoid running all benchmarks during development.</p>
 </div>
 </div>
 <div class="section" id="benchmarking-with-a-custom-key-value-store-kvs">

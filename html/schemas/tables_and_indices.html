@@ -214,8 +214,8 @@ variants.</p>
 <p>The <code class="docutils literal"><span class="pre">addTableDefinition</span></code> method takes two arguments: the name of the
 table to be used in the key-value store itself, and a table definition.
 The table name should be specified in snake_case. The details of the
-TableDefinition initialization will be covered in the &#8220;Table/Index
-Definition&#8221; section.</p>
+TableDefinition initialization will be covered in the “Table/Index
+Definition” section.</p>
 <p>If there are multiple tables which will have the same definition but
 will have different names, the first variation of the table definition
 can be used:</p>
@@ -241,7 +241,7 @@ never tested to see if it actually works.</p>
 <h2><a class="toc-backref" href="#id2">Indices</a><a class="headerlink" href="#indices" title="Permalink to this headline">¶</a></h2>
 <p>A common pattern in database schemas is to define an index table whose
 values are derived from and kept in sync with values from a base table.
-In standard RDBMS&#8217;s these are user-defined and db-managed, but AtlasDB
+In standard RDBMS’s these are user-defined and db-managed, but AtlasDB
 <span class="strike">is not so full-featured</span> requires you to think more carefully
 about performance.</p>
 <p>There are two kinds of indices which can be defined in AtlasDB: additive
@@ -288,7 +288,7 @@ trigger updates to the values in the index tables. Deletes to the base
 table however are not cascaded to the index tables, and must be done
 manually. Manual additions, updates, and deletes to an additive index
 table do not trigger actions on the base table. Additive indices will
-have a &#8220;_aidx&#8221; suffix added to their index names.</p>
+have a “_aidx” suffix added to their index names.</p>
 </div>
 <div class="section" id="cell-referencing">
 <h3>Cell-Referencing<a class="headerlink" href="#cell-referencing" title="Permalink to this headline">¶</a></h3>
@@ -299,7 +299,7 @@ column will automatically trigger insertions/updates to corresponding
 cells in the index table. Deletes to the base table are also cascaded to
 the index table. Manual additions, updates, and deletes to the
 cell-referencing table do not trigger actions on the base table.
-Cell-referencing indices have a &#8220;_idx&#8221; suffix added to their index
+Cell-referencing indices have a “_idx” suffix added to their index
 names.</p>
 <p>Note however that this automatic management comes at a performance cost:
 Writing to a table performs a read from each cell-referencing index (as
@@ -312,13 +312,13 @@ tables with cell-referencing indices.</p>
 <h3>Regular tables<a class="headerlink" href="#regular-tables" title="Permalink to this headline">¶</a></h3>
 <p>Technically there exists a third type of index, which is simply a
 regular table with data derived from another table. In this case the row
-name is a tuple composed of the field on which you&#8217;re indexing and the
+name is a tuple composed of the field on which you’re indexing and the
 primary key (i.e., row name) of the table from which the index table is
 derived. To look something up, the client can simply do a range scan of
-rows in the index the first component of which is what it&#8217;s looking for.
+rows in the index the first component of which is what it’s looking for.
 The client then gets back the row names that include that row component,
 and from there it can look at the remaining components (typically some
-sort of ID) to find what it&#8217;s looking for.</p>
+sort of ID) to find what it’s looking for.</p>
 <p>The disadvantage of creating such an index is that inserts, updates, and
 deletes to the table from which the index table is derived all have to
 be accounted for manually with extra logic.</p>
@@ -332,11 +332,11 @@ being stored in a given table.</p>
 <div class="section" id="table-index-definitions">
 <h2><a class="toc-backref" href="#id3">Table/Index Definitions</a><a class="headerlink" href="#table-index-definitions" title="Permalink to this headline">¶</a></h2>
 <p>The <code class="docutils literal"><span class="pre">TableDefinition</span></code> and <code class="docutils literal"><span class="pre">IndexDefinition</span></code> is often created as an
-anonymous class using &#8220;double-brace initialization&#8221;, which allows for
+anonymous class using “double-brace initialization”, which allows for
 more readable code than a conventional builder. Certain initialization
 methods, such as <code class="docutils literal"><span class="pre">javaName()</span></code>, can be called at any time in the
 method, while others, such as <code class="docutils literal"><span class="pre">column()</span></code>, need to be preceded by a
-&#8220;state transition&#8221; command, such as <code class="docutils literal"><span class="pre">columns()</span></code>. By convention, such
+“state transition” command, such as <code class="docutils literal"><span class="pre">columns()</span></code>. By convention, such
 definitions are broken down into the following sections:</p>
 <ul class="simple">
 <li><strong>Definition Parameters</strong> such as <code class="docutils literal"><span class="pre">javaName()</span></code> define basic
@@ -368,7 +368,7 @@ This section is usually at the end.</li>
 <p>This method specifies the name of the table to be used in generated java
 code for the schema. It should be specified in CamelCase and be as long
 as descriptive as is useful. If this method is not called, the value
-will be derived by converting the table&#8217;s AtlasDB name from snake_case
+will be derived by converting the table’s AtlasDB name from snake_case
 to CamelCase.</p>
 <div class="section" id="index-specific-parameters">
 <h4>Index-specific Parameters<a class="headerlink" href="#index-specific-parameters" title="Permalink to this headline">¶</a></h4>
@@ -474,10 +474,10 @@ representation, and will optionally also compress the byte array to save
 space using the method you specify. Columns can not be overloaded with
 multiple types - each <code class="docutils literal"><span class="pre">column()</span></code> call must contain unique column names
 and short names.</p>
-<p>If instead you don&#8217;t need the a row to have multiple columns and all
+<p>If instead you don’t need the a row to have multiple columns and all
 table information can be encapsulted in the row components, then the
 section can instead be specified with <code class="docutils literal"><span class="pre">noColumns()</span></code>, which defines the
-table to contain a single column &#8220;exists&#8221; with short name &#8220;e&#8221; and value
+table to contain a single column “exists” with short name “e” and value
 type VAR_LONG (always zero).</p>
 </div>
 <div class="section" id="table-dynamic-columns">
@@ -538,8 +538,8 @@ row/column component, which by default is assumed to be the same as the
 component name specified earlier. Note that for cell-referencing
 indexes, all index components derived from columns need to reference the
 same column.</p>
-<p>For components being derived from named columns, an additional &#8220;code to
-access value&#8221; argument is required. This argument allows value-type
+<p>For components being derived from named columns, an additional “code to
+access value” argument is required. This argument allows value-type
 index components to be extracted from more complicated protobuf or
 serializable column components. The argument must be a valid java source
 code expression, where <code class="docutils literal"><span class="pre">_value</span></code> is the value of the table component.</p>

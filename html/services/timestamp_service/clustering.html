@@ -203,7 +203,7 @@ However, this only requires one round trip to a quorum of nodes, as opposed to t
 <p>Our leader election allows us to guarantee that there will only be one leader at any time. Since only this leader
 is allowed to give out timestamps, and we require that it writes an upper bound <em>before</em> it is allowed to issue any
 timestamps that would take it past the previous upper bound, this is safe. Should the current leader fail mid-way and
-then recover, the cluster will have elected a new leader which would have seen the current leader&#8217;s upper bound.</p>
+then recover, the cluster will have elected a new leader which would have seen the current leader’s upper bound.</p>
 </div>
 <div class="section" id="liveness">
 <h2>Liveness<a class="headerlink" href="#liveness" title="Permalink to this headline">¶</a></h2>

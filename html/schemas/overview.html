@@ -227,8 +227,8 @@ in terms of cells; a Put of an existing cell overwrites the existing
 cell and can be thought of as an update to that cell. A table is said to
 contain a given row if there is at least one cell with the given row.</p>
 <p>The definition of a key-value pair as a row-column-value triplet allows
-for two different kinds of column layouts for a table, called &#8220;named&#8221;
-columns and &#8220;dynamic&#8221; columns. In a <strong>named column</strong> layout, the columns
+for two different kinds of column layouts for a table, called “named”
+columns and “dynamic” columns. In a <strong>named column</strong> layout, the columns
 come from a pre-defined set of string labels, and the type of the value
 can vary based on the column. In a <strong>dynamic column</strong> layout, the (sole)
 column type is a tuple of values with pre-defined types. Every value in
@@ -408,7 +408,7 @@ to ensure this is true.</td></tr>
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
 <tr><td class="label"><a class="fn-backref" href="#id2">[3]</a></td><td>This type can be useful on some key value stores because keys next
-to each other won&#8217;t be written next to each other.  This can be good because
+to each other won’t be written next to each other.  This can be good because
 it will spread out the load of writes to many different ranges.</td></tr>
 </tbody>
 </table>
@@ -458,14 +458,14 @@ to SQL overflow/LOB stores.</li>
 <li><strong>Cleanup Tasks</strong> are useful for cleaning up tables when the data
 they reference is deleted. Similar to ON DELETE CASCADE in SQL.</li>
 </ul>
-<p>In this section, we&#8217;ll give you a overview of what each object does and
+<p>In this section, we’ll give you a overview of what each object does and
 how to add it to a schema. Stream stores and CleanupTasks will have all
 definitions explained in detail, but table/index definition will be
-covered in the following section (Table/Index Definition) as it&#8217;s a much
+covered in the following section (Table/Index Definition) as it’s a much
 more complicated monster.</p>
 <p>NOTE: AtlasDB does not try to fully replicate a SQL language - many of
 the high-level constructs (cascades, joins, etc.) are not implemented.
-This is because we practically don&#8217;t have the time to replicate every
+This is because we practically don’t have the time to replicate every
 conceivable feature and philosophically want to be more explicit with
 our performance than with SQL queries. Things will not map 1:1 with SQL.</p>
 </div>

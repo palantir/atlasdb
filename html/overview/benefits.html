@@ -212,10 +212,10 @@ Whenever you write a row, you just update the index and it goes in a
 single transaction. This may be the most painful thing missing from K/V
 stores.</p>
 <p>One quick note is that some systems like Cassandra have indexes, but to
-query them you have to talk to all nodes. This is because they don&#8217;t
+query them you have to talk to all nodes. This is because they don’t
 have transactions so the indexes have to live locally with the primary
 data. An index lookup or range read in AtlasDB just talks to 1 node. It
-is efficient to answer the query &#8220;give me the next row after this row&#8221;.</p>
+is efficient to answer the query “give me the next row after this row”.</p>
 </div>
 <div class="section" id="clear-transaction-semantics">
 <h2>Clear Transaction Semantics<a class="headerlink" href="#clear-transaction-semantics" title="Permalink to this headline">¶</a></h2>
@@ -244,7 +244,7 @@ guarantee that either your transaction will be aborted, or any
 transaction that holds any of these locks will see your committed data
 (assuming these locks are exclusive locks).</p>
 <p>All AtlasDB transactions are optimistic, so this feature is useful if
-there are long running or heavy weight transactions that you don&#8217;t want
+there are long running or heavy weight transactions that you don’t want
 to run optimistically.</p>
 </div>
 </div>

@@ -183,7 +183,7 @@
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">The AtlasDB transaction protocol is inspired by, but different from
-Google&#8217;s Percolator transaction protocol. For additional reading,
+Google’s Percolator transaction protocol. For additional reading,
 please see <a class="reference external" href="http://research.google.com/pubs/pub36726.html">Percolator</a>.</p>
 </div>
 <p>AtlasDB is a standard multi-version concurrency control (MVCC) Snapshot Isolation
@@ -195,7 +195,7 @@ commit timestamp.</p>
 <div class="section" id="write-protocol">
 <h2>Write Protocol<a class="headerlink" href="#write-protocol" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
-<li>Complete all reads using the transaction&#8217;s start timestamp.  This is necessary to
+<li>Complete all reads using the transaction’s start timestamp.  This is necessary to
 determine the writes required by the transaction. Buffer writes in memory
 until commit time.</li>
 <li>At commit time we grab
@@ -210,14 +210,14 @@ startTs then we have a write conflict.</li>
 <li>Then (this is important) we make sure our locks are still valid. If
 our locks expire after this point that is ok, but they have to be
 valid now.</li>
-<li>Then we atomically do a &#8220;putUnlessExists&#8221; into the transaction table
+<li>Then we atomically do a “putUnlessExists” into the transaction table
 with our commit timestamp.</li>
 <li>Unlock the locks.</li>
 </ol>
 </div>
 <div class="section" id="read-protocol">
 <h2>Read Protocol<a class="headerlink" href="#read-protocol" title="Permalink to this headline">¶</a></h2>
-<p>Let&#8217;s assume we are reading Cell c.</p>
+<p>Let’s assume we are reading Cell c.</p>
 <ol class="arabic">
 <li><p class="first">Read from the KV store and get the most recent data with TS &lt;
 startTs.</p>
@@ -229,7 +229,7 @@ the transaction that wrote it is done.</p>
 <li><p class="first">Read the transaction table for the commitTs.</p>
 </li>
 <li><p class="first">One of two actions:</p>
-<p>a. If commitTs doesn&#8217;t exist, try to roll back this transaction and
+<p>a. If commitTs doesn’t exist, try to roll back this transaction and
 start over. If it is -1 (been rolled back), delete the associated data
 and start over.</p>
 <p>b. If c.commitTs greater than your startTs, skip it and move on to the
@@ -243,7 +243,7 @@ next highest TS for the cell.</p>
 transaction is referred to as the immutable timestamp. This is because
 nothing before this point in time will change. (All writes are available
 to read and are either committed or pending commit.)</p>
-<p>Any timestamp before the oldest open transaction&#8217;s start timestamp may
+<p>Any timestamp before the oldest open transaction’s start timestamp may
 be called the immutable timestamp, but generally it refers to the most
 recent TS for which this is true.</p>
 <p>To implement this we grab a new TS (PRE_START_TS) and lock that before
@@ -251,11 +251,11 @@ we begin our transaction. We have a feature in the lock server to return
 the minLockedInVersion. If PRE_START_TS is the oldest, then lock
 server will return this as the minLockedVersion. The write protocol
 ensures that this lock is still held after writes are done to the
-underlying store. This is the only part of the lock server that doesn&#8217;t
+underlying store. This is the only part of the lock server that doesn’t
 shard well because we have to get the global min. However we can just
 ask each lock server what its min is and take the global min. We can
-also cache this value for a bit and we don&#8217;t have to recompute it each
-time. Normally clients don&#8217;t need the absolute most recent
+also cache this value for a bit and we don’t have to recompute it each
+time. Normally clients don’t need the absolute most recent
 ImmutableTs, but just a relatively modern one.</p>
 <p>Tricky points regarding the immutable timestamp:</p>
 <ul class="simple">
@@ -267,11 +267,11 @@ will either see it as committed or failed, but either way it will be
 complete.</li>
 <li>The immutable timestamp is not guaranteed to be strictly increasing.
 This is because the action of grabbing PRE_START_TS and the action
-of locking it are not performed together atomically. This doesn&#8217;t
+of locking it are not performed together atomically. This doesn’t
 cause correctness issues, though, since we wait until we have locked
 PRE_START_TS before grabbing our start timestamp. For example, if
 the current immutable timestamp is immutableTs1 and transaction T
-locks in a lower value immutableTs0, then T&#8217;s startTs must be
+locks in a lower value immutableTs0, then T’s startTs must be
 greater than immutableTs1, so any readers who grabbed
 immutableTs1 will still grab locks when trying to read rows
 written by T.</li>
@@ -283,11 +283,11 @@ written by T.</li>
 old values. We are still allowing long running read transactions, but we
 should cap them so they can only run for a couple days or weeks. This
 means that we can go through and clean up old values if they have been
-written over for at least x days (let&#8217;s just say 10 days for now).</p>
-<p>One issue is that we don&#8217;t have a mapping from TS to real time. Also we
-don&#8217;t trust real time anywhere else and don&#8217;t plan to start now. We can
+written over for at least x days (let’s just say 10 days for now).</p>
+<p>One issue is that we don’t have a mapping from TS to real time. Also we
+don’t trust real time anywhere else and don’t plan to start now. We can
 take a ts every hour or so and pick one before 10 days ago. This does
-impose a small relationship to &#8220;time&#8221; but we will mitigate it in the
+impose a small relationship to “time” but we will mitigate it in the
 next paragraph.</p>
 <p>What if we have a reader that is still reading but is very old (before
 10 days ago (or so we think))? We solve this case by writing a dummy
@@ -298,10 +298,10 @@ would have read, then you will read a row with a negative TS which will
 get turned into a TooOldReaderException (which is a retriable
 exception). This ensures that we can do cleanup of old values safely
 even in the presence of arbitrarily old readers.</p>
-<p>If we want to support reading of values older than &#8220;10 days&#8221; then these
+<p>If we want to support reading of values older than “10 days” then these
 readers will have to start reserving more time to push out cleanup up
-old values. Basically every so often a long running read should &#8220;check
-in&#8221; which will ensure old values won&#8217;t get cleaned up out from under it
+old values. Basically every so often a long running read should “check
+in” which will ensure old values won’t get cleaned up out from under it
 for another day or so. Note this cleanup has implications with respect
 to hard delete and we may want to force a cleanup sooner and allow these
 long running reads to fail in the name of hard delete.</p>
@@ -340,13 +340,13 @@ our start that wrote a different value to this cell. If we are writing a
 new value (write side) then we should roll back if we see any new
 commited rows regardless of if they are different than what was there
 before.</p>
-<p>This could be used to implement acl changes for objects that don&#8217;t
+<p>This could be used to implement acl changes for objects that don’t
 require locking for the duration of the transaction. We could just have
 a table set up as READ_WRITE_CONFLICTS and in this table we have a row
 for each object with a counter in it. Every time there is a security
 change to an object we increment this counter. Every time we do any
 other write operation to this object we read and touch this counter.</p>
-<p>The main problem with read/write conflicts if that you can&#8217;t control the
+<p>The main problem with read/write conflicts if that you can’t control the
 fairness of these transactions. If read operations keep coming in and
 are fast then a write operation may keep retrying and get starved and
 never complete.</p>
@@ -357,8 +357,8 @@ are basically checking that the last committer put the value that you
 are storing. This will work the same as a compare and swap check. This
 version is more scalable because you only have to check the most recent
 successful commit and not all commits after your start time. The
-downside if you don&#8217;t get true read/write exclusion, you basically just
-get CAS semantics. This isn&#8217;t a big deal because using a counter is the
+downside if you don’t get true read/write exclusion, you basically just
+get CAS semantics. This isn’t a big deal because using a counter is the
 most common way to use this type of exclusion anyway.</p>
 </div>
 <div class="section" id="proof-of-correctness">
@@ -389,12 +389,12 @@ If locks time out while writing to the transaction table we depend on
 the putUnlessExists to arbitrate whether a transaction is committed or
 not. If the transaction hangs while trying to commit then it is possible
 a reader will come roll it back. In this case we will need to retry our
-transaction, but we don&#8217;t expect this to happen in normal cases. If the
+transaction, but we don’t expect this to happen in normal cases. If the
 lock server is restarted and forgets all its locks then this becomes
 more likely. This means that the transaction table must have strong
 consistency guarantees, but the rest of the system only has to have
 durable writes. The standard way of getting this level of consistency is
-to use a write ahead log to know what has/hasn&#8217;t been committed.
+to use a write ahead log to know what has/hasn’t been committed.
 Bookkeeper is an example of a project that implements this kind of log.</p>
 </div>
 <div class="section" id="ignoring-writes-committed-after-transaction-start">
@@ -403,7 +403,7 @@ Bookkeeper is an example of a project that implements this kind of log.</p>
 If we get back a row from the KV store then we know that the txn that
 wrote it has a startTs less than ours, but it may still be in progress
 or committed. We postfilter on the transaction table. If we find that
-the locks for this txn are no longer held, but there still isn&#8217;t a row
+the locks for this txn are no longer held, but there still isn’t a row
 in the transaction table, then we force it to be rolled back. This will
 ensure that when the txn tries to commit then it will fail and have to
 retry. If our rollback fails because txn did actually commit then we
@@ -423,12 +423,12 @@ just delete it and retry the read.</p>
 <div class="section" id="read-rollbacks">
 <h3>Read Rollbacks<a class="headerlink" href="#read-rollbacks" title="Permalink to this headline">¶</a></h3>
 <p>Reads must rollback transactions they find that are uncommitted. If a
-read doesn&#8217;t go out of its way to roll back an uncommitted row and just
+read doesn’t go out of its way to roll back an uncommitted row and just
 skips it and keeps looking in the past for a committed row, then it
-cannot be sure that this row doesn&#8217;t get committed later. The committing
-transaction may be stuck right before the &#8220;putUnlessExists&#8221; part of the
-write protocol. If this is the case, we can&#8217;t be sure that transaction
-isn&#8217;t going to have a commit timestamp before our start timestamp, so we
+cannot be sure that this row doesn’t get committed later. The committing
+transaction may be stuck right before the “putUnlessExists” part of the
+write protocol. If this is the case, we can’t be sure that transaction
+isn’t going to have a commit timestamp before our start timestamp, so we
 have to make sure this transaction will be failed for sure before we can
 skip past it.</p>
 </div>
@@ -441,7 +441,7 @@ commit in between your start and commit timestamps we should look at the
 read set and detect writes the same way. The only tricky bit is handling
 range scans. There are a few proofs that removing this read-write
 conflict is sufficient to achieve serializability. The simplest proof is
-from &#8220;A Critique of Snapshot Isolation&#8221; and basically states that if you
+from “A Critique of Snapshot Isolation” and basically states that if you
 remove all writes that could commit between your start and commitTs,
 then you can make a serial ordering by just compressing down all the
 actions of a transaction to happen right before its commit timestamp.
@@ -460,9 +460,9 @@ at all times.</p>
 after the commit timestamp is allocated and therefore after all the
 writes are done to the underlying store. What this means is that other
 transactions may have to block on these written values while we do reads
-to ensure they haven&#8217;t changed. The good news is that the only times a
+to ensure they haven’t changed. The good news is that the only times a
 transaction would wait is if it could have a read-write conflict. This
-means that the waiting may result in a rollback anyway so waiting isn&#8217;t
+means that the waiting may result in a rollback anyway so waiting isn’t
 a huge hit. To mitigate this issue we should make transactions that
 write hot rows not have a huge read set that needs to be verified.</p>
 </div>

@@ -200,11 +200,11 @@ finds.</p>
 <div class="section" id="sentinel-values">
 <h3>Sentinel Values<a class="headerlink" href="#sentinel-values" title="Permalink to this headline">¶</a></h3>
 <p>The primary objective of AtlasDB is correctness. This manifests by never
-relying on time for correctness. This means that we can&#8217;t just assume
+relying on time for correctness. This means that we can’t just assume
 that a transaction that has been running for a day is aware that is
 supposed to stop reading. It may continue reading and we want it to
 throw rather than returning the wrong data. Returning data that
-represents a state of the world that isn&#8217;t the snapshot it&#8217;s reading
+represents a state of the world that isn’t the snapshot it’s reading
 would totally break the transactional guarantees we want.</p>
 <p>We achieve this by writing an empty byte array at the <code class="docutils literal"><span class="pre">-1</span></code>
 timestamp called the sentinel value. Then we delete any data we think
@@ -264,7 +264,7 @@ This will run all the OnCleanupTasks for the tables affected and block
 again if those cause more rows to be cleaned.</p>
 <p>Another side effect of AGGRESSIVE_HARD_DELETE is that read only
 transactions may be aborted if they would read data that has been
-aggressively scrubbed (even if they haven&#8217;t timed out yet).</p>
+aggressively scrubbed (even if they haven’t timed out yet).</p>
 <p>So basically you want the data deleted NOW maybe due to legal issues and
 you do this at the expense of having some read only transactions fail.</p>
 </div>

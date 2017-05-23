@@ -191,7 +191,7 @@
 <p class="last">Running the Sweep Job while taking a Backup can cause <strong>SEVERE DATA CORRUPTION</strong> to your Backup.</p>
 </div>
 <p>Under normal usage, the data written to the key value service backing AtlasDB is never updated or deleted.
-When a row in AtlasDB is &#8220;updated&#8221;, a new version of the row with a higher timestamp is written.
+When a row in AtlasDB is “updated”, a new version of the row with a higher timestamp is written.
 The old row is left untouched. When that row is later read, only the version with the higher timestamp is returned.
 Deletions in AtlasDB are similar; in practice they are the same as updates with an empty value.</p>
 <p>To prevent an AtlasDB database from growing in size indefinitely, old versions of rows can be deleted through a process called sweeping.
@@ -202,7 +202,7 @@ At a high level, this works by periodically scanning the database for rows with 
 <li><dl class="first docutils">
 <dt>Freeing up Disk Space</dt>
 <dd><ul class="first last">
-<li>Putting large amounts of data into cells that are updated creates tables that hold onto data that isn&#8217;t used. These tables are good candidates to sweep if you want to reclaim disk space.</li>
+<li>Putting large amounts of data into cells that are updated creates tables that hold onto data that isn’t used. These tables are good candidates to sweep if you want to reclaim disk space.</li>
 </ul>
 </dd>
 </dl>
@@ -210,7 +210,7 @@ At a high level, this works by periodically scanning the database for rows with 
 <li><dl class="first docutils">
 <dt>Improving Performance</dt>
 <dd><ul class="first last">
-<li>Making many edits to the same row will leave behind many tombstoned entries, so it&#8217;s advantageous to sweep these tables to increase performance.</li>
+<li>Making many edits to the same row will leave behind many tombstoned entries, so it’s advantageous to sweep these tables to increase performance.</li>
 </ul>
 </dd>
 </dl>

@@ -197,7 +197,7 @@ The lock must be obtained prior to obtaining the backup timestamp, and released 
 </div>
 <div class="section" id="cassandra-and-other-distributed-systems">
 <h2>Cassandra and Other Distributed Systems<a class="headerlink" href="#cassandra-and-other-distributed-systems" title="Permalink to this headline">¶</a></h2>
-<p>A large part of taking a point in time backup of atlas is taking a backup of your underlying storage.  Many distributed systems, like cassandra, do not provide point in time backup utilities across multiple nodes.  Cassandra in particular can have each of its nodes &#8220;snapshot&#8221; at different real and logical points in time in a way that can affect the correctness or completeness of your atlas backup.  The steps in this page will attempt to address when this becomes a concern and how we can address it in our process.</p>
+<p>A large part of taking a point in time backup of atlas is taking a backup of your underlying storage.  Many distributed systems, like cassandra, do not provide point in time backup utilities across multiple nodes.  Cassandra in particular can have each of its nodes “snapshot” at different real and logical points in time in a way that can affect the correctness or completeness of your atlas backup.  The steps in this page will attempt to address when this becomes a concern and how we can address it in our process.</p>
 </div>
 <div class="section" id="taking-a-backup">
 <h2>Taking a Backup<a class="headerlink" href="#taking-a-backup" title="Permalink to this headline">¶</a></h2>
@@ -211,14 +211,14 @@ The lock must be obtained prior to obtaining the backup timestamp, and released 
 </div>
 <div class="section" id="obtain-a-backup-timestamp">
 <h3>2. Obtain a backup timestamp<a class="headerlink" href="#obtain-a-backup-timestamp" title="Permalink to this headline">¶</a></h3>
-<p>We need to define what the logical point in time of our backup is going to be.  We will call this the backup timestamp.  Any transactions that occur after the backup timestamp will not be valid or included in our &#8220;logical&#8221; backup of atlas, even if they complete succesfully before the rest of the backup completes.  To get the backup timestamp simply fetch a fresh timestamp using the CLI:</p>
+<p>We need to define what the logical point in time of our backup is going to be.  We will call this the backup timestamp.  Any transactions that occur after the backup timestamp will not be valid or included in our “logical” backup of atlas, even if they complete succesfully before the rest of the backup completes.  To get the backup timestamp simply fetch a fresh timestamp using the CLI:</p>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/backup.timestamp
 </pre></div>
 </div>
 </div>
 <div class="section" id="back-up-the-underlying-kvs">
 <h3>3. Back up the underlying KVS<a class="headerlink" href="#back-up-the-underlying-kvs" title="Permalink to this headline">¶</a></h3>
-<p>Next, we back-up the underlying key value service we&#8217;re using.  For the purposes of this documention, we will assume you can backup your specific key value service.</p>
+<p>Next, we back-up the underlying key value service we’re using.  For the purposes of this documention, we will assume you can backup your specific key value service.</p>
 <p>Common KVS layers:</p>
 <ul class="simple">
 <li>Cassandra <a class="reference external" href="https://docs.datastax.com/en/cassandra/2.2/cassandra/operations/opsBackupTakesSnapshot.html">backup</a> and <a class="reference external" href="https://docs.datastax.com/en/cassandra/2.2/cassandra/operations/opsBackupSnapshotRestore.html">restore</a>.</li>
@@ -232,7 +232,7 @@ The lock must be obtained prior to obtaining the backup timestamp, and released 
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/fast-forward.timestamp
 </pre></div>
 </div>
-<p>These two timestamp files and the entirety of your underlying storage&#8217;s backup are your entire atlasdb backup.</p>
+<p>These two timestamp files and the entirety of your underlying storage’s backup are your entire atlasdb backup.</p>
 </div>
 <div class="section" id="release-the-backup-lock">
 <h3>5. Release the Backup Lock<a class="headerlink" href="#release-the-backup-lock" title="Permalink to this headline">¶</a></h3>
@@ -245,8 +245,8 @@ For example (replace the serialised <code class="docutils literal"><span class="
 </div>
 <div class="section" id="restoring-from-a-backup">
 <h2>Restoring from a Backup<a class="headerlink" href="#restoring-from-a-backup" title="Permalink to this headline">¶</a></h2>
-<p>The steps of a restore are assumed to be run entirely offline and on a complete empty key value service, i.e. if you&#8217;re running against Cassandra, the keyspace being used should not exist and no other processes should attempt to create or interact with that keyspace during the duration of this process.</p>
-<p>First, restore your underlying key value service.  As mentioned <a class="reference external" href="#cassandra-and-other-distributed-systems">above</a>, there are concerns around your underyling storage not being consistent across its distributed nodes.  In particular, we need to ensure a consistent view of atlas&#8217; _transactions table in order to provide a guarantee that our restore process happens correctly.  The actual steps to ensure this will vary between systems, but for cassandra this simply means running a full repair of that table on every node in your cluster.  An example of this on a single node is:</p>
+<p>The steps of a restore are assumed to be run entirely offline and on a complete empty key value service, i.e. if you’re running against Cassandra, the keyspace being used should not exist and no other processes should attempt to create or interact with that keyspace during the duration of this process.</p>
+<p>First, restore your underlying key value service.  As mentioned <a class="reference external" href="#cassandra-and-other-distributed-systems">above</a>, there are concerns around your underyling storage not being consistent across its distributed nodes.  In particular, we need to ensure a consistent view of atlas’ _transactions table in order to provide a guarantee that our restore process happens correctly.  The actual steps to ensure this will vary between systems, but for cassandra this simply means running a full repair of that table on every node in your cluster.  An example of this on a single node is:</p>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/nodetool repair --partitioner-range --full -- &lt;atlas-keyspace&gt; _transactions
 </pre></div>
 </div>
@@ -254,7 +254,7 @@ For example (replace the serialised <code class="docutils literal"><span class="
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp clean-transactions --file &lt;backup-directory&gt;/backup.timestamp
 </pre></div>
 </div>
-<p>Finally, we fast-forward the timstamp service to the fast-forward timestamp to ensure that any future transactions we perform don&#8217;t use a timestamp that could have potentially been used and written data to during the time after we took the backup timstamp but before our backup of our underlying kvs completed:</p>
+<p>Finally, we fast-forward the timstamp service to the fast-forward timestamp to ensure that any future transactions we perform don’t use a timestamp that could have potentially been used and written data to during the time after we took the backup timstamp but before our backup of our underlying kvs completed:</p>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fast-forward --file &lt;backup-directory&gt;/fast-forward.timestamp
 </pre></div>
 </div>

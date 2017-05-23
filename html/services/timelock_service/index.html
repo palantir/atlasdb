@@ -192,7 +192,7 @@
 <div class="admonition danger">
 <p class="first admonition-title">Danger</p>
 <p class="last">Running external timestamp and lock services is currently an experimental feature.
-Improperly configuring one&#8217;s cluster to use external timestamp and lock services can result in <strong>SEVERE DATA
+Improperly configuring one’s cluster to use external timestamp and lock services can result in <strong>SEVERE DATA
 CORRUPTION</strong>! Please contact the AtlasDB team if you wish to try this feature.</p>
 </div>
 <div class="toctree-wrapper compound">
@@ -207,11 +207,11 @@ CORRUPTION</strong>! Please contact the AtlasDB team if you wish to try this fea
 </div>
 <p>The AtlasDB Timelock Service is an external implementation of the <a class="reference internal" href="../timestamp_service/index.html#timestamp-service"><span class="std std-ref">Timestamp</span></a> and
 <a class="reference internal" href="../lock_service/index.html#lock-service"><span class="std std-ref">Lock</span></a> services. Running an external Timelock Service (as opposed to running timestamp and lock
-services embedded within one&#8217;s clients) provides several benefits:</p>
+services embedded within one’s clients) provides several benefits:</p>
 <ul class="simple">
 <li>Additional reliability; we have subjected our new implementation to Jepsen testing, and do not rely on the
-consistency of the user&#8217;s key-value services.</li>
-<li>The number of AtlasDB clients can scale independently of AtlasDB&#8217;s timestamp and lock services, and an odd number of
+consistency of the user’s key-value services.</li>
+<li>The number of AtlasDB clients can scale independently of AtlasDB’s timestamp and lock services, and an odd number of
 AtlasDB clients is no longer necessarily preferred. An odd number of Timelock servers is still preferred.</li>
 <li>Resource contention between your AtlasDB clients and the timestamp and lock services can be better managed,
 because external timestamp services may be run on separate servers and/or JVMs (while the old embedded services
