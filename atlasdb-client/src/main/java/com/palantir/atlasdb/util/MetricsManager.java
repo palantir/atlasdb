@@ -21,8 +21,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 
 public class MetricsManager {
@@ -37,17 +37,21 @@ public class MetricsManager {
         this.registeredMetrics = new HashSet<>();
     }
 
-    public void registerMetric(Class clazz, String metricPrefix, String metricName, Gauge gauge) {
-        registerMetricWithFqn(MetricRegistry.name(clazz, metricPrefix, metricName), gauge);
+    public MetricRegistry getRegistry() {
+        return metricRegistry;
     }
 
-    public void registerMetric(Class clazz, String metricName, Gauge gauge) {
-        registerMetricWithFqn(MetricRegistry.name(clazz, metricName), gauge);
+    public void registerMetric(Class clazz, String metricPrefix, String metricName, Metric metric) {
+        registerMetricWithFqn(MetricRegistry.name(clazz, metricPrefix, metricName), metric);
     }
 
-    private synchronized void registerMetricWithFqn(String fullyQualifiedMetricName, Gauge gauge) {
+    public void registerMetric(Class clazz, String metricName, Metric metric) {
+        registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
+    }
+
+    private synchronized void registerMetricWithFqn(String fullyQualifiedMetricName, Metric metric) {
         try {
-            metricRegistry.register(fullyQualifiedMetricName, gauge);
+            metricRegistry.register(fullyQualifiedMetricName, metric);
             registeredMetrics.add(fullyQualifiedMetricName);
         } catch (Exception e) {
             // Primarily to handle integration tests that instantiate this class multiple times in a row
