@@ -134,6 +134,16 @@
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-client-protobufs",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:timestamp-api"
+            ]
+        },
         "com.palantir.tritium:tritium-api": {
             "locked": "0.6.0",
             "transitive": [
@@ -367,6 +377,16 @@
             "locked": "0.13.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
+            ]
+        },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-client-protobufs",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "com.palantir.tritium:tritium-api": {

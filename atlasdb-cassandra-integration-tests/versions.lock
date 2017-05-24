@@ -3,6 +3,9 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3"
         },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1"
+        },
         "org.apache.ant:ant": {
             "locked": "1.9.4",
             "requested": "1.9.4"
@@ -17,6 +20,9 @@
     "runtime": {
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3"
+        },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1"
         },
         "org.apache.ant:ant": {
             "locked": "1.9.4",
