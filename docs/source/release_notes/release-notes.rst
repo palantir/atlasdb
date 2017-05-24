@@ -43,6 +43,42 @@ develop
          - Change
 
     *    - |fixed|
+         - ``PaxosTimestampBoundStore`` now throws ``NotCurrentLeaderException``, invalidating the timestamp store, if a bound update fails because another timestamp service on the same node proposed a smaller bound for the same sequence number.
+           This was added to address a very specific race condition leading to an infinite loop that would saturate the TimeLock cluster with spurious Paxos messages; see `issue 1941 <https://github.com/palantir/atlasdb/issues/1941>`__ for more detail.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1942>`__)
+
+======
+0.42.1
+======
+
+24 May 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - ``PaxosTimestampBoundStore`` now throws ``NotCurrentLeaderException``, invalidating the timestamp store, if a bound update fails because another timestamp service on the same node proposed a smaller bound for the same sequence number.
+           This was added to address a very specific race condition leading to an infinite loop that would saturate the TimeLock cluster with spurious Paxos messages; see `issue 1941 <https://github.com/palantir/atlasdb/issues/1941>`__ for more detail.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1942>`__)
+
+======
+0.42.0
+======
+
+23 May 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
          - ``PaxosTimestampBoundStore``, the bound store for Timelock, will now throw ``NotCurrentLeaderException`` instead of ``MultipleRunningTimestampServiceError`` when a bound update fails.
            The cases where this can happen are explained by a race condition that can occur after leadership change, and it is safe to let requests be retried on another server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1934>`__)
