@@ -101,7 +101,14 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
             int numFailovers = failoverCount.get();
             if (numFailovers > 0 && numFailovers % servers.size() == 0) {
-                pauseForBackoff(ex, BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS);
+
+                // We use the Equal Jitter (https://www.awsarchitectureblog.com/2015/03/backoff.html).
+                // We prioritize a low server load over completion time, while having a base.
+                long pauseTimeWithJitter = ThreadLocalRandom.current()
+                        .nextLong(BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2,
+                                (BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2);
+
+                pauseForBackoff(ex, pauseTimeWithJitter);
             } else {
                 pauseForBackoff(ex);
             }
@@ -155,6 +162,9 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
                 GOLDEN_RATIO,
                 numSwitches.get() * failuresBeforeSwitching + failuresSinceLastSwitch.get());
         long cappedPauseTime = Math.min(maxBackoffMillis, Math.round(exponentialPauseTime));
+
+        // We use the Full Jitter (https://www.awsarchitectureblog.com/2015/03/backoff.html).
+        // We prioritize a low server load over completion time.
         long pauseTimeWithJitter = ThreadLocalRandom.current().nextLong(cappedPauseTime);
 
         pauseForBackoff(ex, pauseTimeWithJitter);
