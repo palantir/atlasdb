@@ -102,8 +102,8 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             int numFailovers = failoverCount.get();
             if (numFailovers > 0 && numFailovers % servers.size() == 0) {
 
-                // We use the Equal Jitter (https://www.awsarchitectureblog.com/2015/03/backoff.html).
-                // We prioritize a low server load over completion time, while having a base.
+                // We implement some randomness around the expected value of BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS.
+                // Even though this is not exponential backoff, should be enough to avoid a thundering herd problem.
                 long pauseTimeWithJitter = ThreadLocalRandom.current()
                         .nextLong(BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2,
                                 (BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2);
