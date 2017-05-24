@@ -39,6 +39,9 @@ develop
     :widths: 5 40
     :header-rows: 1
 
+    *    - Type
+         - Change
+
     *    -
          -
 
