@@ -32,6 +32,12 @@ public class OutputPrinter {
         System.out.println(infoMessage);
     }
 
+    public void warn(String message, Object... args) {
+        String warnMessage = MessageFormatter.arrayFormat(message, args).getMessage();
+        logger.warn("{}", warnMessage);
+        System.err.println(warnMessage);
+    }
+
     public void error(final String message, Object... args) {
         String errorMessage = MessageFormatter.arrayFormat(message, args).getMessage();
         logger.error("{}", errorMessage);

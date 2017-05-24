@@ -33,6 +33,13 @@ public class OutputPrinterTest {
     }
 
     @Test
+    public void testWarnPrintingWorksWithSingleReplacement() {
+        String systemOut = StandardStreamUtilities.wrapSystemErr(
+                () -> print.warn("Test this gets {}", "replaced"));
+        assertThat(systemOut).isEqualTo("Test this gets replaced ");
+    }
+
+    @Test
     public void testInfoPrintingWorksWithMultipleReplacement() {
         String systemOut = StandardStreamUtilities.wrapSystemOut(
                 () -> print.info("Replace {} of {} {}.", "all", "these", "fields"));
