@@ -77,6 +77,13 @@ develop
          - Configuration parameters ``sweepBatchSize`` and ``sweepCellBatchSize`` have been deprecated in favour of ``sweepCandidateBatchHint`` and ``sweepReadLimit`` respectively.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
 
+    *    - |improved|
+         - Some of our log parameters are marked as safe for logging, as part of our internal guidelines.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1931>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+
 ======
 0.42.1
 ======
@@ -94,6 +101,9 @@ develop
          - ``PaxosTimestampBoundStore`` now throws ``NotCurrentLeaderException``, invalidating the timestamp store, if a bound update fails because another timestamp service on the same node proposed a smaller bound for the same sequence number.
            This was added to address a very specific race condition leading to an infinite loop that would saturate the TimeLock cluster with spurious Paxos messages; see `issue 1941 <https://github.com/palantir/atlasdb/issues/1941>`__ for more detail.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1942>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
 
 ======
 0.42.0
@@ -135,6 +145,9 @@ develop
     *    - |improved|
          - ``ProfilingKeyValueService`` now has some additional logging mechanisms for logging long-running operations on WARN level, enabled by default.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1801>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
 
 ======
 0.41.0
