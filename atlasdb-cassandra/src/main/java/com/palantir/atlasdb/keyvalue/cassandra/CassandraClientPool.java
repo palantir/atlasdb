@@ -46,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -235,13 +236,13 @@ public class CassandraClientPool {
     private void registerAggregateMetrics() {
         metricsManager.registerMetric(
                 CassandraClientPool.class, "numBlacklistedHosts",
-                () -> blacklistedHosts.size());
+                (Gauge) () -> blacklistedHosts.size());
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestFailureProportion",
-                aggregateMetrics::getExceptionProportion);
+                (Gauge) aggregateMetrics::getExceptionProportion);
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestConnectionExceptionProportion",
-                aggregateMetrics::getConnectionExceptionProportion);
+                (Gauge) aggregateMetrics::getConnectionExceptionProportion);
     }
 
     private synchronized void refreshPool() {
@@ -306,11 +307,11 @@ public class CassandraClientPool {
         metricsManager.registerMetric(
                 CassandraClientPool.class,
                 server.getHostString(), "requestFailureProportion",
-                requestMetrics::getExceptionProportion);
+                (Gauge) requestMetrics::getExceptionProportion);
         metricsManager.registerMetric(
                 CassandraClientPool.class,
                 server.getHostString(), "requestConnectionExceptionProportion",
-                requestMetrics::getConnectionExceptionProportion);
+                (Gauge) requestMetrics::getConnectionExceptionProportion);
         metricsByHost.put(server, requestMetrics);
     }
 

@@ -36,6 +36,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Gauge;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -253,22 +254,23 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         metricsManager.registerMetric(
                 CassandraClientPoolingContainer.class,
                 metricPrefix, "meanActiveTimeMillis",
-                pool::getMeanActiveTimeMillis);
+                (Gauge) pool::getMeanActiveTimeMillis);
         metricsManager.registerMetric(
                 CassandraClientPoolingContainer.class,
                 metricPrefix, "meanIdleTimeMillis",
-                pool::getMeanIdleTimeMillis);
+                (Gauge) pool::getMeanIdleTimeMillis);
         metricsManager.registerMetric(
                 CassandraClientPoolingContainer.class,
                 metricPrefix, "meanBorrowWaitTimeMillis",
-                pool::getMeanBorrowWaitTimeMillis);
+                (Gauge) pool::getMeanBorrowWaitTimeMillis);
         metricsManager.registerMetric(
                 CassandraClientPoolingContainer.class,
                 metricPrefix, "proportionDestroyedByEvictor",
-                () -> ((double) pool.getDestroyedByEvictorCount()) / ((double) pool.getCreatedCount()));
+                (Gauge) () -> ((double) pool.getDestroyedByEvictorCount()) / ((double) pool.getCreatedCount()));
         metricsManager.registerMetric(
                 CassandraClientPoolingContainer.class,
                 metricPrefix, "proportionDestroyedByBorrower",
-                () -> ((double) pool.getDestroyedByBorrowValidationCount()) / ((double) pool.getCreatedCount()));
+                (Gauge) () ->
+                        ((double) pool.getDestroyedByBorrowValidationCount()) / ((double) pool.getCreatedCount()));
     }
 }
