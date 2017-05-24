@@ -201,6 +201,31 @@
 This was added to address a very specific race condition leading to an infinite loop that would saturate the TimeLock cluster with spurious Paxos messages; see <a class="reference external" href="https://github.com/palantir/atlasdb/issues/1941">issue 1941</a> for more detail.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1942">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<td>The FastForwardTimestamp and FetchTimestamp CLIs have been deprecated.
+Please use the <code class="docutils literal"><span class="pre">timestamp-management/fast-forward</span></code> and <code class="docutils literal"><span class="pre">timestamp/fresh-timestamp</span></code> endpoints instead.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1936">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Sweep now batches delete calls before executing them.
+This should improve performance on relatively clean tables by deleting more cells at a time, leading to fewer DB operations and taking out the backup lock less frequently.
+The new configuration parameter <code class="docutils literal"><span class="pre">sweepDeleteBatchHint</span></code> determines the approximate number of (cell, timestamp) pairs deleted in a single batch.
+Please refer to the <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">documentation</span></a> for details of how to configure this.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td><a class="reference internal" href="../miscellaneous/dropwizard-metrics.html#dropwizard-metrics"><span class="std std-ref">Sweep metrics</span></a> now record counts of cell-timestamp pairs examined rather than the count of entire cells examined. This provides more accurate insight on the work done by the sweeper.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>The Sweep CLI configuration parameters <code class="docutils literal"><span class="pre">--batch-size</span></code> and <code class="docutils literal"><span class="pre">--cell-batch-size</span></code> have been removed, as we now batch on cell-timestamp pairs rather than by rows and cells.
+Please use the <code class="docutils literal"><span class="pre">--candidate-batch-hint</span></code> parameter instead of <code class="docutils literal"><span class="pre">--batch-hint</span></code>, and <code class="docutils literal"><span class="pre">--read-limit</span></code> instead of <code class="docutils literal"><span class="pre">--cell-batch-size</span></code> (<a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">docs</span></a>).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<td>Configuration parameters <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> and <code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code> have been deprecated in favour of <code class="docutils literal"><span class="pre">sweepCandidateBatchHint</span></code> and <code class="docutils literal"><span class="pre">sweepReadLimit</span></code> respectively.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -263,26 +288,6 @@ Existing customers can update the <code class="docutils literal"><span class="pr
 There is no issue with having tables with different values for <code class="docutils literal"><span class="pre">gc_grace_seconds</span></code>, and this can be updated at any time.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1726">Pull Request</a>)</p>
 </td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Sweep now batches delete calls before executing them.
-This should improve performance on relatively clean tables by deleting more cells at a time, leading to fewer DB operations and taking out the backup lock less frequently.
-The new configuration parameter <code class="docutils literal"><span class="pre">sweepDeleteBatchHint</span></code> determines the approximate number of (cell, timestamp) pairs deleted in a single batch.
-Please refer to the <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">documentation</span></a> for details of how to configure this.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td><a class="reference internal" href="../miscellaneous/dropwizard-metrics.html#dropwizard-metrics"><span class="std std-ref">Sweep metrics</span></a> now record counts of cell-timestamp pairs examined rather than the count of entire cells examined. This provides more accurate insight on the work done by the sweeper.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
-<td>The Sweep CLI configuration parameters <code class="docutils literal"><span class="pre">--batch-size</span></code> and <code class="docutils literal"><span class="pre">--cell-batch-size</span></code> have been removed, as we now batch on cell-timestamp pairs rather than by rows and cells.
-Please use the <code class="docutils literal"><span class="pre">--candidate-batch-hint</span></code> parameter instead of <code class="docutils literal"><span class="pre">--batch-hint</span></code>, and <code class="docutils literal"><span class="pre">--read-limit</span></code> instead of <code class="docutils literal"><span class="pre">--cell-batch-size</span></code> (<a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">docs</span></a>).
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
-<td>Configuration parameters <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> and <code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code> have been deprecated in favour of <code class="docutils literal"><span class="pre">sweepCandidateBatchHint</span></code> and <code class="docutils literal"><span class="pre">sweepReadLimit</span></code> respectively.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">ProfilingKeyValueService</span></code> now has some additional logging mechanisms for logging long-running operations on WARN level, enabled by default.

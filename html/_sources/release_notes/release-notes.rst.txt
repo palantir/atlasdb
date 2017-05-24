@@ -47,6 +47,31 @@ develop
            This was added to address a very specific race condition leading to an infinite loop that would saturate the TimeLock cluster with spurious Paxos messages; see `issue 1941 <https://github.com/palantir/atlasdb/issues/1941>`__ for more detail.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1942>`__)
 
+    *    - |deprecated|
+         - The FastForwardTimestamp and FetchTimestamp CLIs have been deprecated.
+           Please use the ``timestamp-management/fast-forward`` and ``timestamp/fresh-timestamp`` endpoints instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1936>`__)
+
+    *    - |improved|
+         - Sweep now batches delete calls before executing them.
+           This should improve performance on relatively clean tables by deleting more cells at a time, leading to fewer DB operations and taking out the backup lock less frequently.
+           The new configuration parameter ``sweepDeleteBatchHint`` determines the approximate number of (cell, timestamp) pairs deleted in a single batch.
+           Please refer to the :ref:`documentation <sweep_tunable_parameters>` for details of how to configure this.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
+
+    *    - |changed|
+         - :ref:`Sweep metrics <dropwizard-metrics>` now record counts of cell-timestamp pairs examined rather than the count of entire cells examined. This provides more accurate insight on the work done by the sweeper.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
+
+    *    - |userbreak|
+         - The Sweep CLI configuration parameters ``--batch-size`` and ``--cell-batch-size`` have been removed, as we now batch on cell-timestamp pairs rather than by rows and cells.
+           Please use the ``--candidate-batch-hint`` parameter instead of ``--batch-hint``, and ``--read-limit`` instead of ``--cell-batch-size`` (:ref:`docs <sweep_tunable_parameters>`).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
+
+    *    - |deprecated|
+         - Configuration parameters ``sweepBatchSize`` and ``sweepCellBatchSize`` have been deprecated in favour of ``sweepCandidateBatchHint`` and ``sweepReadLimit`` respectively.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
+
 ======
 0.42.1
 ======
@@ -101,26 +126,6 @@ develop
            Existing customers can update the ``gc_grace_seconds`` of existing tables to be one hour if they would like to receive this benefit now. We will also be adding functionality to auto-update this for existing tables in a future release.
            There is no issue with having tables with different values for ``gc_grace_seconds``, and this can be updated at any time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1726>`__)
-
-    *    - |improved|
-         - Sweep now batches delete calls before executing them.
-           This should improve performance on relatively clean tables by deleting more cells at a time, leading to fewer DB operations and taking out the backup lock less frequently.
-           The new configuration parameter ``sweepDeleteBatchHint`` determines the approximate number of (cell, timestamp) pairs deleted in a single batch.
-           Please refer to the :ref:`documentation <sweep_tunable_parameters>` for details of how to configure this.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
-
-    *    - |changed|
-         - :ref:`Sweep metrics <dropwizard-metrics>` now record counts of cell-timestamp pairs examined rather than the count of entire cells examined. This provides more accurate insight on the work done by the sweeper.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
-
-    *    - |userbreak|
-         - The Sweep CLI configuration parameters ``--batch-size`` and ``--cell-batch-size`` have been removed, as we now batch on cell-timestamp pairs rather than by rows and cells.
-           Please use the ``--candidate-batch-hint`` parameter instead of ``--batch-hint``, and ``--read-limit`` instead of ``--cell-batch-size`` (:ref:`docs <sweep_tunable_parameters>`).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
-
-    *    - |deprecated|
-         - Configuration parameters ``sweepBatchSize`` and ``sweepCellBatchSize`` have been deprecated in favour of ``sweepCandidateBatchHint`` and ``sweepReadLimit`` respectively.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
 
     *    - |improved|
          - ``ProfilingKeyValueService`` now has some additional logging mechanisms for logging long-running operations on WARN level, enabled by default.
