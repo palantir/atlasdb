@@ -166,7 +166,7 @@ public class FailoverFeignTargetTest {
         verify(spiedTarget, times(CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
 
         List<Long> arguments = argument.getAllValues();
-        MatcherAssert.assertThat(arguments, Matchers.contains(1L, 1L, 500L));
+        MatcherAssert.assertThat(arguments, Matchers.contains(0L, 0L, 500L));
     }
 
     @Test
@@ -182,7 +182,7 @@ public class FailoverFeignTargetTest {
         verify(spiedTarget, times(3 * CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
 
         List<Long> arguments = argument.getAllValues();
-        MatcherAssert.assertThat(arguments, Matchers.contains(1L, 1L, 500L, 1L, 1L, 500L, 1L, 1L, 500L));
+        MatcherAssert.assertThat(arguments, Matchers.contains(0L, 0L, 500L, 0L, 0L, 500L, 0L, 0L, 500L));
     }
 
     private void simulateRequest() {
