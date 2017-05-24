@@ -90,6 +90,10 @@ develop
          - ``ProfilingKeyValueService`` now has some additional logging mechanisms for logging long-running operations on WARN level, enabled by default.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1801>`__)
 
+    *    - |devbreak|
+         - New ``KeyValueService`` method ``getCandidateCellsForSweeping()`` that should eventually replace ``getRangeOfTimestamps()``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1943>`__)
+
 ======
 0.41.0
 ======
