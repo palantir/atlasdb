@@ -17,6 +17,7 @@ package com.palantir.atlasdb.http;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -150,10 +151,13 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
 
     private void pauseForBackoff(RetryableException ex) {
-        double pauseTime = Math.pow(
+        double exponentialPauseTime = Math.pow(
                 GOLDEN_RATIO,
                 numSwitches.get() * failuresBeforeSwitching + failuresSinceLastSwitch.get());
-        pauseForBackoff(ex, Math.round(pauseTime));
+        long cappedPauseTime = Math.min(maxBackoffMillis, Math.round(exponentialPauseTime));
+        long pauseTimeWithJitter = ThreadLocalRandom.current().nextLong(cappedPauseTime);
+
+        pauseForBackoff(ex, pauseTimeWithJitter);
     }
 
     @VisibleForTesting
