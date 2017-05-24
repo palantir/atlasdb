@@ -256,22 +256,37 @@ You may set them as part of your <a class="reference internal" href="../configur
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">sweepBatchSize</span></code></td>
-<td><code class="docutils literal"><span class="pre">--batch-size</span></code></td>
+<tr class="row-even"><td>(DEPRECATED) <code class="docutils literal"><span class="pre">sweepBatchSize</span></code></td>
+<td>(REMOVED)</td>
 <td>100</td>
-<td>Maximum number of rows to sweep at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance.</td>
+<td>Maximum number of rows to sweep at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance. This parameter should be replaced by <code class="docutils literal"><span class="pre">--candidate-batch-hint</span></code>.</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code></td>
-<td><code class="docutils literal"><span class="pre">--cell-batch-size</span></code></td>
+<tr class="row-odd"><td>(DEPRECATED) <code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code></td>
+<td>(REMOVED)</td>
 <td>10,000</td>
 <td>Maximum number of cells to sweep at once. Similar to <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> but provides finer control if the row widths vary greatly.</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">sweepPauseMillis</span></code></td>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">sweepReadLimit</span></code></td>
+<td><code class="docutils literal"><span class="pre">--read-limit</span></code></td>
+<td>1,000,000</td>
+<td>Target number of (cell, timestamp) pairs to examine in a single run.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">sweepCandidateBatchHint</span></code></td>
+<td><code class="docutils literal"><span class="pre">--candidate-batch-hint</span></code></td>
+<td>100</td>
+<td>Approximate number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance.</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">sweepDeleteBatchHint</span></code></td>
+<td><code class="docutils literal"><span class="pre">--delete-batch-hint</span></code></td>
+<td>1,000</td>
+<td>Target number of (cell, timestamp) pairs to delete in a single batch.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">sweepPauseMillis</span></code></td>
 <td><code class="docutils literal"><span class="pre">--sleep</span></code></td>
 <td>5000 ms</td>
 <td>Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours.</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> (Cassandra KVS only, see <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-configuration"><span class="std std-ref">Cassandra KVS config</span></a>)</td>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> (Cassandra KVS only, see <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-configuration"><span class="std std-ref">Cassandra KVS config</span></a>)</td>
 <td>Only specified in config</td>
 <td>Fetch all columns</td>
 <td>Specify a limit on the maximum number of columns to fetch in a single database query. Set this to a number fewer than your number of columns if your Cassandra OOMs when attempting to run sweep with even a small row batch size. This parameter should be used when tuning Sweep for cells with many historical versions.</td>
