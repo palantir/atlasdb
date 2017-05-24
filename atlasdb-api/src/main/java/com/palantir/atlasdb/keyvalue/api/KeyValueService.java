@@ -486,6 +486,7 @@ public interface KeyValueService extends AutoCloseable {
     ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef,
             CandidateCellForSweepingRequest request);
+
     /**
      * For each range passed in the result will have the first page of results for that range.
      * <p>
