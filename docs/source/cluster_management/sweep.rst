@@ -51,8 +51,11 @@ You may set them as part of your :ref:`AtlasDB configuration <atlas-config>`, or
    :header: "AtlasDB Config", "CLI Option", "Default", "Description"
    :widths: 20, 20, 40, 200
 
-   ``sweepBatchSize``, ``--batch-size``, "100", "Maximum number of rows to sweep at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
-   ``sweepCellBatchSize``, ``--cell-batch-size``, "10,000", "Maximum number of cells to sweep at once. Similar to ``sweepBatchSize`` but provides finer control if the row widths vary greatly."
+   (DEPRECATED) ``sweepBatchSize``, (REMOVED), "100", "Maximum number of rows to sweep at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance. This parameter should be replaced by ``--candidate-batch-hint``."
+   (DEPRECATED) ``sweepCellBatchSize``, (REMOVED), "10,000", "Maximum number of cells to sweep at once. Similar to ``sweepBatchSize`` but provides finer control if the row widths vary greatly."
+   ``sweepReadLimit``, ``--read-limit``, "1,000,000", "Target number of (cell, timestamp) pairs to examine in a single run."
+   ``sweepCandidateBatchHint``, ``--candidate-batch-hint``, "100", "Approximate number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
+   ``sweepDeleteBatchHint``, ``--delete-batch-hint``, "1,000", "Target number of (cell, timestamp) pairs to delete in a single batch."
    ``sweepPauseMillis``, ``--sleep``, "5000 ms", "Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours."
    "``timestampsGetterBatchSize`` (Cassandra KVS only, see :ref:`Cassandra KVS config <cassandra-configuration>`)", "Only specified in config", "Fetch all columns", "Specify a limit on the maximum number of columns to fetch in a single database query. Set this to a number fewer than your number of columns if your Cassandra OOMs when attempting to run sweep with even a small row batch size. This parameter should be used when tuning Sweep for cells with many historical versions."
 

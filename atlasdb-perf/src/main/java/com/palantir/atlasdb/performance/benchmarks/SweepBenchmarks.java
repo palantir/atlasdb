@@ -24,31 +24,44 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.performance.benchmarks.table.RegeneratingTable;
+import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
+import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 
 @State(Scope.Benchmark)
 public class SweepBenchmarks {
 
     private static final int BATCH_SIZE = 10;
-    private static final long DELETED_COUNT = RegeneratingTable.SWEEP_DUPLICATES - 1L;
+    private static final int DELETED_COUNT = RegeneratingTable.SWEEP_DUPLICATES - 1;
 
-    private Object runSingleSweep(RegeneratingTable table, int batchSize) {
+    private Object runSingleSweep(RegeneratingTable table, int uniqueCellsToSweep) {
         SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
-        SweepResults sweepResults = sweepTaskRunner.run(table.getTableRef(), batchSize, batchSize, null);
-        assertThat(sweepResults.getCellsDeleted(), is(DELETED_COUNT * batchSize));
+        SweepBatchConfig batchConfig = ImmutableSweepBatchConfig.builder()
+                .deleteBatchSize(DELETED_COUNT * uniqueCellsToSweep)
+                .candidateBatchSize(RegeneratingTable.SWEEP_DUPLICATES * uniqueCellsToSweep + 1)
+                .maxCellTsPairsToExamine(RegeneratingTable.SWEEP_DUPLICATES * uniqueCellsToSweep)
+                .build();
+        SweepResults sweepResults = sweepTaskRunner.run(table.getTableRef(), batchConfig, PtBytes.EMPTY_BYTE_ARRAY);
+        assertThat(sweepResults.getStaleValuesDeleted(), is((long) DELETED_COUNT * uniqueCellsToSweep));
         return sweepResults;
     }
 
     private Object runMultiSweep(RegeneratingTable table) {
         SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
         SweepResults sweepResults = null;
-        byte[] nextStartRow = null;
+        byte[] nextStartRow = PtBytes.EMPTY_BYTE_ARRAY;
         for (int i = 0; i < BATCH_SIZE; i++) {
-            sweepResults = sweepTaskRunner.run(table.getTableRef(), 1, 1, nextStartRow);
+            SweepBatchConfig batchConfig = ImmutableSweepBatchConfig.builder()
+                    .deleteBatchSize(DELETED_COUNT)
+                    .candidateBatchSize(1)
+                    .maxCellTsPairsToExamine(RegeneratingTable.SWEEP_DUPLICATES)
+                    .build();
+            sweepResults = sweepTaskRunner.run(table.getTableRef(), batchConfig, nextStartRow);
             nextStartRow = sweepResults.getNextStartRow().get();
-            assertThat(sweepResults.getCellsDeleted(), is(DELETED_COUNT));
+            assertThat(sweepResults.getStaleValuesDeleted(), is((long) DELETED_COUNT));
         }
         return sweepResults;
     }

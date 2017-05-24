@@ -42,6 +42,53 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - ``PaxosTimestampBoundStore`` now throws ``NotCurrentLeaderException``, invalidating the timestamp store, if a bound update fails because another timestamp service on the same node proposed a smaller bound for the same sequence number.
+           This was added to address a very specific race condition leading to an infinite loop that would saturate the TimeLock cluster with spurious Paxos messages; see `issue 1941 <https://github.com/palantir/atlasdb/issues/1941>`__ for more detail.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1942>`__)
+
+======
+0.42.1
+======
+
+24 May 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - ``PaxosTimestampBoundStore`` now throws ``NotCurrentLeaderException``, invalidating the timestamp store, if a bound update fails because another timestamp service on the same node proposed a smaller bound for the same sequence number.
+           This was added to address a very specific race condition leading to an infinite loop that would saturate the TimeLock cluster with spurious Paxos messages; see `issue 1941 <https://github.com/palantir/atlasdb/issues/1941>`__ for more detail.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1942>`__)
+
+======
+0.42.0
+======
+
+23 May 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - ``PaxosTimestampBoundStore``, the bound store for Timelock, will now throw ``NotCurrentLeaderException`` instead of ``MultipleRunningTimestampServiceError`` when a bound update fails.
+           The cases where this can happen are explained by a race condition that can occur after leadership change, and it is safe to let requests be retried on another server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1934>`__)
+
+    *    - |fixed|
+         - A 500 ms backoff has been added to the our retry logic when the client has queried all the servers of a cluster and received a ``NotCurrentLeaderException``.
+           Previously in this case, our retry logic would dictate infinitely many retries with a 1 ms backoff.
+           The new backoff should reduce contention during leadership elections, when all nodes throw ``NotCurrentLeaderException``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1939>`__)
+
     *    - |improved|
          - Timelock server can now start with an empty clients list.
            Note that you currently need to restart timelock when adding clients to the configuration.
@@ -59,6 +106,26 @@ develop
          - The FastForwardTimestamp and FetchTimestamp CLIs have been deprecated.
            Please use the ``timestamp-management/fast-forward`` and ``timestamp/fresh-timestamp`` endpoints instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1936>`__)
+
+    *    - |improved|
+         - Sweep now batches delete calls before executing them.
+           This should improve performance on relatively clean tables by deleting more cells at a time, leading to fewer DB operations and taking out the backup lock less frequently.
+           The new configuration parameter ``sweepDeleteBatchHint`` determines the approximate number of (cell, timestamp) pairs deleted in a single batch.
+           Please refer to the :ref:`documentation <sweep_tunable_parameters>` for details of how to configure this.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
+
+    *    - |changed|
+         - :ref:`Sweep metrics <dropwizard-metrics>` now record counts of cell-timestamp pairs examined rather than the count of entire cells examined. This provides more accurate insight on the work done by the sweeper.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
+
+    *    - |userbreak|
+         - The Sweep CLI configuration parameters ``--batch-size`` and ``--cell-batch-size`` have been removed, as we now batch on cell-timestamp pairs rather than by rows and cells.
+           Please use the ``--candidate-batch-hint`` parameter instead of ``--batch-hint``, and ``--read-limit`` instead of ``--cell-batch-size`` (:ref:`docs <sweep_tunable_parameters>`).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
+
+    *    - |deprecated|
+         - Configuration parameters ``sweepBatchSize`` and ``sweepCellBatchSize`` have been deprecated in favour of ``sweepCandidateBatchHint`` and ``sweepReadLimit`` respectively.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
 
     *    - |improved|
          - ``ProfilingKeyValueService`` now has some additional logging mechanisms for logging long-running operations on WARN level, enabled by default.

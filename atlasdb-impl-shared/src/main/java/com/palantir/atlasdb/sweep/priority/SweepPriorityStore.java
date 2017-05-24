@@ -46,8 +46,8 @@ public class SweepPriorityStore {
     public void update(Transaction tx, TableReference tableRef, UpdateSweepPriority update) {
         SweepPriorityRow row = SweepPriorityRow.of(tableRef.getQualifiedName());
         SweepPriorityTable table = sweepTableFactory.getSweepPriorityTable(tx);
-        update.newCellsDeleted().ifPresent(n -> table.putCellsDeleted(row, n));
-        update.newCellsExamined().ifPresent(n -> table.putCellsExamined(row, n));
+        update.newStaleValuesDeleted().ifPresent(n -> table.putCellsDeleted(row, n));
+        update.newCellTsPairsExamined().ifPresent(n -> table.putCellsExamined(row, n));
         update.newLastSweepTimeMillis().ifPresent(t -> table.putLastSweepTime(row, t));
         update.newMinimumSweptTimestamp().ifPresent(t -> table.putMinimumSweptTimestamp(row, t));
         update.newWriteCount().ifPresent(c -> table.putWriteCount(row, c));
@@ -71,8 +71,8 @@ public class SweepPriorityStore {
                         ? OptionalLong.of(rr.getLastSweepTime())
                         : OptionalLong.empty())
                 .minimumSweptTimestamp(rr.hasMinimumSweptTimestamp() ? rr.getMinimumSweptTimestamp() : Long.MIN_VALUE)
-                .cellsDeleted(rr.hasCellsDeleted() ? rr.getCellsDeleted() : 0L)
-                .cellsExamined(rr.hasCellsExamined() ? rr.getCellsExamined() : 0L)
+                .staleValuesDeleted(rr.hasCellsDeleted() ? rr.getCellsDeleted() : 0L)
+                .cellTsPairsExamined(rr.hasCellsExamined() ? rr.getCellsExamined() : 0L)
                 .build();
     }
 

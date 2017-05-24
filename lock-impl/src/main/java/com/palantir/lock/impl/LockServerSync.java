@@ -46,7 +46,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         return clientIndex < 0;
     }
 
-    private boolean holdsWriteLock(int clientIndex) {
+    private synchronized boolean holdsWriteLock(int clientIndex) {
         Preconditions.checkState(getState() > 0);
         return clientIndex == writeLockHolder && !isAnonymous(clientIndex);
     }
@@ -237,22 +237,22 @@ class LockServerSync extends AbstractQueuedSynchronizer {
                 .toString();
     }
 
-    private boolean isReadLockHeld() {
+    private synchronized boolean isReadLockHeld() {
         return readLockHolders != null && !readLockHolders.isEmpty();
     }
 
-    private boolean holdsReadLock(int clientIndex) {
+    private synchronized boolean holdsReadLock(int clientIndex) {
         return !isAnonymous(clientIndex) && readLockHolders != null && readLockHolders.get(clientIndex) > 0;
     }
 
-    private void incrementReadCount(int clientIndex) {
+    private synchronized void incrementReadCount(int clientIndex) {
         if (readLockHolders == null) {
             readLockHolders = new TIntIntHashMap(1);
         }
         readLockHolders.adjustOrPutValue(clientIndex, 1, 1);
     }
 
-    private void decrementReadCount(int clientIndex) {
+    private synchronized void decrementReadCount(int clientIndex) {
         if (readLockHolders == null) {
             throw LockServerLock.throwIllegalMonitorStateException(
                     clients.fromIndex(clientIndex) +
@@ -268,7 +268,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         }
     }
 
-    private Iterable<Integer> getReadClients() {
+    private synchronized Iterable<Integer> getReadClients() {
         if (readLockHolders == null) {
             return ImmutableList.of();
         }
