@@ -42,6 +42,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed| |changed|
+         - Our dependency on Cassandra thrift has been bumped from 2.2.8 to 3.10; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
+           Note that this does not affect our dependency on Cassandra itself.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1896>`__)
+
     *    - |fixed|
          - ``PaxosTimestampBoundStore``, the bound store for Timelock, will now throw ``NotCurrentLeaderException`` instead of ``MultipleRunningTimestampServiceError`` when a bound update fails.
            The cases where this can happen are explained by a race condition that can occur after leadership change, and it is safe to let requests be retried on another server.
@@ -146,10 +151,6 @@ develop
     *    - |fixed|
          - Import ordering and license generation in generated IntelliJ project files now respect Baseline conventions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1893>`__)
-
-    *    - |fixed| |improved|
-         - Cassandra thrift depedencies have been bumped to newer versions; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1896>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
