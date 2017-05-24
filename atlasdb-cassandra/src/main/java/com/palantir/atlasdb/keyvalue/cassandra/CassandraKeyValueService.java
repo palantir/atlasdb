@@ -2273,7 +2273,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         tables.remove(tableToKeep.get());
         if (tables.size() > 0) {
             dropTablesInternal(tables);
-            log.info("Dropped tables [{}]", UnsafeArg.of("table names", tables.toString()));
+            log.info("Dropped tables [{}]", UnsafeArg.of("table names", tables));
         }
         schemaMutationLock.cleanLockState();
         log.info("Reset the schema mutation lock in table [{}]",
