@@ -47,6 +47,11 @@ dependencies {
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 }
 
+shadowJar {
+  mergeServiceFiles()
+  classifier ''
+}
+
 task otherShadowJar(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
   mergeServiceFiles()
   classifier ''
