@@ -44,11 +44,6 @@ public class AtomicTimestampTests {
         assertThat(range.getUpperBound(), is(INITIAL_TIMESTAMP + 10));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void shouldNotIncreaseTheValueToALowerNumber() {
-        timestamp.incrementBy(-10);
-    }
-
     @Test
     public void handleConcurrentlyIncreasingTheValue() throws InterruptedException {
         for (int i = 0; i < 100; i++) {
