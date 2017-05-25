@@ -121,7 +121,7 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -463,7 +463,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         if (timestampByCell.isEmpty()) {
-            log.info("Attempted get on '{}' table with empty cells", UnsafeArg.of("tableRef", tableRef));
+            log.info("Attempted get on '{}' table with empty cells", SafeArg.of("tableRef", tableRef));
             return ImmutableMap.of();
         }
 
@@ -2273,11 +2273,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         tables.remove(tableToKeep.get());
         if (tables.size() > 0) {
             dropTablesInternal(tables);
-            log.info("Dropped tables [{}]", UnsafeArg.of("table names", tables));
+            log.info("Dropped tables [{}]", SafeArg.of("table names", tables));
         }
         schemaMutationLock.cleanLockState();
         log.info("Reset the schema mutation lock in table [{}]",
-                UnsafeArg.of("table name", tableToKeep.get().toString()));
+                SafeArg.of("table name", tableToKeep.get()));
     }
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
