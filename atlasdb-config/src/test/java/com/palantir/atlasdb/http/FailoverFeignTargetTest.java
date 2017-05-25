@@ -17,6 +17,10 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -28,6 +32,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.apache.http.HttpStatus;
+import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -154,6 +159,7 @@ public class FailoverFeignTargetTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void blockingTimeout() {
         final FailoverFeignTarget spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
                 SERVERS, 1, Object.class));
@@ -166,10 +172,15 @@ public class FailoverFeignTargetTest {
         verify(spiedTarget, times(CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
 
         List<Long> arguments = argument.getAllValues();
-        MatcherAssert.assertThat(arguments, Matchers.contains(1L, 1L, 500L));
+
+        long bottom = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
+        long cap = (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
+        MatcherAssert.assertThat(arguments, Matchers.contains(
+                is(0L), is(0L), is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)))));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void blockingTimeoutManyTimes() {
         final FailoverFeignTarget spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
                 SERVERS, 1, Object.class));
@@ -182,7 +193,14 @@ public class FailoverFeignTargetTest {
         verify(spiedTarget, times(3 * CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
 
         List<Long> arguments = argument.getAllValues();
-        MatcherAssert.assertThat(arguments, Matchers.contains(1L, 1L, 500L, 1L, 1L, 500L, 1L, 1L, 500L));
+
+        long bottom = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
+        long cap = (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
+        Matcher jitteredBackoffMatcher = is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)));
+        MatcherAssert.assertThat(arguments, Matchers.contains(
+                is(0L), is(0L), jitteredBackoffMatcher,
+                is(0L), is(0L), jitteredBackoffMatcher,
+                is(0L), is(0L), jitteredBackoffMatcher));
     }
 
     private void simulateRequest() {
