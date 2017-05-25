@@ -61,6 +61,11 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
         timestamp.increaseTo(newTimestamp);
     }
 
+    @SuppressWarnings("unused") // used by product
+    public long getUpperLimitTimestampToHandOutInclusive() {
+        return timestamp.getUpperLimitTimestampToHandOutInclusive();
+    }
+
     private void checkFastForwardRequest(long newTimestamp) {
         Preconditions.checkArgument(newTimestamp != TimestampManagementService.SENTINEL_TIMESTAMP,
                 "Cannot fast forward to the sentinel timestamp %s. If you accessed this timestamp service remotely"

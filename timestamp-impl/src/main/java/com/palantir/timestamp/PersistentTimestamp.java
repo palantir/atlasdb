@@ -40,4 +40,7 @@ public class PersistentTimestamp {
         upperLimit.increaseToAtLeast(newTimestamp);
     }
 
+    public long getUpperLimitTimestampToHandOutInclusive() {
+        return upperLimit.get();
+    }
 }

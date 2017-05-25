@@ -41,7 +41,9 @@ public final class DebugLogger {
     }
 
     public static void createdPersistentTimestamp() {
-        logger.info("Creating PersistentTimestamp object on thread {}. This should only happen once.",
+        logger.info("Creating PersistentTimestamp object on thread {}."
+                        + " If you are running embedded AtlasDB, this should only happen once."
+                        + " If you are using Timelock, this should happen once per client per leadership election",
                 Thread.currentThread().getName());
     }
 

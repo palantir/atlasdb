@@ -30,8 +30,7 @@ public class PersistentUpperLimit {
         this.currentLimit = boundStore.getUpperLimit();
     }
 
-    @VisibleForTesting
-    long get() {
+    public long get() {
         return currentLimit;
     }
 

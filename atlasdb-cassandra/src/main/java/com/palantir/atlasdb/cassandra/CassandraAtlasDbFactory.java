@@ -54,9 +54,6 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
-        DebugLogger.logger.info("Creating timestamp service on thread {}. This should only happen once.",
-                Thread.currentThread().getName());
-
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
                 "TimestampService must be created from an instance of"
