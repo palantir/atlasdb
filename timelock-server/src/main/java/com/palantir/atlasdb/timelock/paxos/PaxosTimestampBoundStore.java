@@ -34,7 +34,6 @@ import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
@@ -45,6 +44,7 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.remoting1.tracing.Tracers;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
+import com.palantir.timestamp.TerminalTimestampStoreException;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class PaxosTimestampBoundStore implements TimestampBoundStore {
@@ -244,7 +244,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      *
      * @param limit the new upper limit to be stored
      * @throws IllegalArgumentException if trying to persist a limit smaller than the agreed limit
-     * @throws NotCurrentLeaderException if the timestamp limit has changed out from under us
+     * @throws TerminalTimestampStoreException if the timestamp limit has changed out from under us
      */
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
@@ -271,7 +271,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                             + " lost and regained leadership. For safety, we are now stopping this service.",
                             newLimit,
                             limit);
-                    throw new NotCurrentLeaderException(String.format(
+                    throw new TerminalTimestampStoreException(String.format(
                             "We updated the timestamp limit to %s, which was less than our target %s.",
                             newLimit,
                             limit));
@@ -289,10 +289,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * @param limit the limit our node has proposed
      * @param newSeq the sequence number for which our node has proposed the limit
      * @param value PaxosValue agreed upon by a quorum of nodes, for sequence number newSeq
-     * @throws NotCurrentLeaderException if the agreed timestamp bound (PaxosValue) changed under us
+     * @throws TerminalTimestampStoreException if the agreed timestamp bound (PaxosValue) changed under us
      */
-    private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value)
-            throws NotCurrentLeaderException {
+    private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value) {
         if (!value.getLeaderUUID().equals(proposer.getUuid())) {
             String errorMsg = String.format(
                     "Timestamp limit changed from under us for sequence '%s' (proposer with UUID '%s' changed"
@@ -306,7 +305,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                     PtBytes.toLong(value.getData()),
                     limit,
                     value);
-            throw new NotCurrentLeaderException(errorMsg);
+            throw new TerminalTimestampStoreException(errorMsg);
         }
         DebugLogger.logger.info("Trying to store limit '{}' for sequence '{}' yielded consensus on the value '{}'.",
                 limit,

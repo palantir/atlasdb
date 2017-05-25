@@ -41,7 +41,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
@@ -51,6 +50,7 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.timestamp.TerminalTimestampStoreException;
 
 public class PaxosTimestampBoundStoreTest {
     private static final int NUM_NODES = 5;
@@ -158,7 +158,7 @@ public class PaxosTimestampBoundStoreTest {
         PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
         additionalStore.storeUpperLimit(TIMESTAMP_1);
         assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
-                .isInstanceOf(NotCurrentLeaderException.class);
+                .isInstanceOf(TerminalTimestampStoreException.class);
     }
 
     @Test

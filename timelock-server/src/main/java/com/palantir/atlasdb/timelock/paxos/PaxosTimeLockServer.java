@@ -85,13 +85,19 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
         timeLockServerConfiguration = configuration;
-        if (timeLockServerConfiguration.useClientRequestLimit()) {
-            environment.jersey().register(new TooManyRequestsExceptionMapper());
-        }
+        registerExceptionMappers();
 
         registerLeaderElectionService(configuration);
 
         registerHealthCheck(configuration);
+    }
+
+    private void registerExceptionMappers() {
+        if (timeLockServerConfiguration.useClientRequestLimit()) {
+            environment.jersey().register(new TooManyRequestsExceptionMapper());
+        }
+        environment.jersey().register(new BlockingTimeoutExceptionMapper());
+        environment.jersey().register(new TerminalTimestampStoreExceptionMapper());
     }
 
     private void registerPaxosResource() {
@@ -120,7 +126,6 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 localPaxosServices.ourAcceptor(),
                 localPaxosServices.ourLearner()));
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
-        environment.jersey().register(new BlockingTimeoutExceptionMapper());
     }
 
     private void registerHealthCheck(TimeLockServerConfiguration configuration) {
