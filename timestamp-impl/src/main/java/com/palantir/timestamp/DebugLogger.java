@@ -28,7 +28,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @SuppressFBWarnings("SLF4J_LOGGER_SHOULD_BE_PRIVATE")
 public final class DebugLogger {
-    private static final Logger logger = LoggerFactory.getLogger(DebugLogger.class);
+    // TODO(nziebart): move remaining logging calls into this class
+    public static final Logger logger = LoggerFactory.getLogger(DebugLogger.class);
 
     private DebugLogger() {
         // Logging utility class
