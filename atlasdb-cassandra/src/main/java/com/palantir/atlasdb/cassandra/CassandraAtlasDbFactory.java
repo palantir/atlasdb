@@ -26,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidato
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
-import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
