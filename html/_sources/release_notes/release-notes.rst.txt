@@ -81,6 +81,10 @@ develop
          - Some of our log parameters are marked as safe for logging, as part of our internal guidelines.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1931>`__)
 
+    *    - |improved|
+         - Add jitter to backoff on retries to `reduce load <https://www.awsarchitectureblog.com/2015/03/backoff.html>`__ on the server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1945>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
