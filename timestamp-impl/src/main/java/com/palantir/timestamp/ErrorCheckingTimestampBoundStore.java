@@ -44,7 +44,7 @@ public class ErrorCheckingTimestampBoundStore implements TimestampBoundStore {
     }
 
     @Override
-    public void storeUpperLimit(long limit) {
+    public synchronized void storeUpperLimit(long limit) {
         failures.verifyWeShouldIssueMoreTimestamps();
         throwIfInterrupted();
 
