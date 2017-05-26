@@ -905,6 +905,7 @@
         "org.javassist:javassist": {
             "locked": "3.18.2-GA",
             "transitive": [
+                "org.glassfish.hk2:hk2-locator",
                 "org.reflections:reflections"
             ]
         },
@@ -1901,6 +1902,7 @@
         "org.javassist:javassist": {
             "locked": "3.18.2-GA",
             "transitive": [
+                "org.glassfish.hk2:hk2-locator",
                 "org.reflections:reflections"
             ]
         },

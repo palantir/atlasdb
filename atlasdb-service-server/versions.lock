@@ -917,7 +917,7 @@
             ]
         },
         "org.javassist:javassist": {
-            "locked": "3.18.1-GA",
+            "locked": "3.18.2-GA",
             "transitive": [
                 "org.glassfish.hk2:hk2-locator"
             ]
@@ -2047,7 +2047,7 @@
             ]
         },
         "org.javassist:javassist": {
-            "locked": "3.18.1-GA",
+            "locked": "3.18.2-GA",
             "transitive": [
                 "org.glassfish.hk2:hk2-locator"
             ]

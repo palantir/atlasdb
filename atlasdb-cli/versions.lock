@@ -760,6 +760,12 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "org.javassist:javassist": {
+            "locked": "3.18.2-GA",
+            "transitive": [
+                "org.glassfish.hk2:hk2-locator"
+            ]
+        },
         "org.jboss.marshalling:jboss-marshalling": {
             "locked": "1.4.11.Final",
             "transitive": [
@@ -1578,6 +1584,12 @@
             "transitive": [
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+            ]
+        },
+        "org.javassist:javassist": {
+            "locked": "3.18.2-GA",
+            "transitive": [
+                "org.glassfish.hk2:hk2-locator"
             ]
         },
         "org.jboss.marshalling:jboss-marshalling": {

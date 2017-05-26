@@ -471,6 +471,12 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "org.javassist:javassist": {
+            "locked": "3.18.2-GA",
+            "transitive": [
+                "org.glassfish.hk2:hk2-locator"
+            ]
+        },
         "org.mockito:mockito-core": {
             "locked": "1.10.17"
         },
@@ -983,6 +989,12 @@
             "transitive": [
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+            ]
+        },
+        "org.javassist:javassist": {
+            "locked": "3.18.2-GA",
+            "transitive": [
+                "org.glassfish.hk2:hk2-locator"
             ]
         },
         "org.mockito:mockito-core": {
