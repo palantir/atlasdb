@@ -42,7 +42,6 @@ public class KvsBackedPersistentLockServiceClientTest {
     public static final DropwizardClientRule DW = new DropwizardClientRule(
             new KvsBackedPersistentLockService(LOCK_STORE),
             new CheckAndSetExceptionMapper(),
-            new MissingArgumentExceptionMapper(),
             HttpRemotingJerseyFeature.DEFAULT);
 
     private final PersistentLockService lockService = JaxRsClient.builder().build(

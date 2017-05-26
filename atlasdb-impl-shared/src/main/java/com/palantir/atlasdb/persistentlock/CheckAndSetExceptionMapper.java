@@ -55,7 +55,7 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
     // This is needed to allow clients using http-remoting clients to properly receive RemoteExceptions
     private Response createErrorResponse(String errorId, LockEntry lockEntry) {
         String message = String.format("Error %s: Check and set failed. ", errorId)
-                + (lockEntry == null ? "" : "Lock was already open. ");
+                + (lockEntry == null ? "Please contact the AtlasDB team. " : lockEntry);
         return Response
                 .status(Response.Status.CONFLICT)
                 .type(MediaType.APPLICATION_JSON_TYPE)

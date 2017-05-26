@@ -50,7 +50,6 @@ import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueServic
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
-import com.palantir.atlasdb.persistentlock.MissingArgumentExceptionMapper;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
@@ -274,7 +273,6 @@ public final class TransactionManagers {
         PersistentLockService pls = KvsBackedPersistentLockService.create(kvs);
         env.register(pls);
         env.register(new CheckAndSetExceptionMapper());
-        env.register(new MissingArgumentExceptionMapper());
         return pls;
     }
 
