@@ -43,6 +43,9 @@ public class FastForwardTimestamp extends AbstractTimestampCommand {
 
     @Override
     protected int executeTimestampCommand(AtlasDbServices services) {
+        printer.warn(
+                "This CLI has been deprecated. Please use the timestamp-management/fast-forward endpoint instead.");
+
         TimestampService ts = services.getTimestampService();
         if (!(ts instanceof TimestampManagementService)) {
             printer.error("Timestamp service must be of type {}, but yours is {}.  Exiting.",

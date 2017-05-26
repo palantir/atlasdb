@@ -15,27 +15,48 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.CacheLoader;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
-public class StartTsToCommitTsCacheLoader extends CacheLoader<Long, Long> {
-    private static final Logger log = LoggerFactory.getLogger(StartTsToCommitTsCacheLoader.class);
+import gnu.trove.TDecorators;
+import gnu.trove.map.TLongLongMap;
+import gnu.trove.map.hash.TLongLongHashMap;
+import gnu.trove.set.TLongSet;
 
+public final class CommitTsLoader {
+    private static final Logger log = LoggerFactory.getLogger(CommitTsLoader.class);
+
+    private final TLongLongMap commitTsByStartTs;
     private final TransactionService transactionService;
 
-    public StartTsToCommitTsCacheLoader(TransactionService transactionService) {
+    private CommitTsLoader(TLongLongMap commitTsByStartTs, TransactionService transactionService) {
+        this.commitTsByStartTs = commitTsByStartTs;
         this.transactionService = transactionService;
     }
 
-    @Override
-    public Long load(Long startTs) {
+    public static CommitTsLoader create(TransactionService transactionService, TLongSet startTssToWarmingCache) {
+        TLongLongMap cache = new TLongLongHashMap();
+        if (!startTssToWarmingCache.isEmpty()) {
+            // Ideally TransactionService should work with primitive collections to avoid GC overhead..
+            cache.putAll(transactionService.get(TDecorators.wrap(startTssToWarmingCache)));
+        }
+        return new CommitTsLoader(cache, transactionService);
+    }
+
+    public long load(long startTs) {
+        if (!commitTsByStartTs.containsKey(startTs)) {
+            long commitTs = loadCacheMissAndPossiblyRollBack(startTs);
+            commitTsByStartTs.put(startTs, commitTs);
+        }
+        return commitTsByStartTs.get(startTs);
+    }
+
+    public long loadCacheMissAndPossiblyRollBack(long startTs) {
         Long commitTs = transactionService.get(startTs);
 
         if (commitTs != null) {
@@ -55,7 +76,6 @@ public class StartTsToCommitTsCacheLoader extends CacheLoader<Long, Long> {
                     new TransactionFailedRetriableException(msg, e));
         }
 
-        commitTs = transactionService.get(startTs);
-        return Validate.notNull(commitTs, "commitTs should not be null");
+        return transactionService.get(startTs);
     }
 }

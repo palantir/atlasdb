@@ -31,7 +31,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 class SweepMetrics {
     private enum TableAndAggregateMetric {
         STALE_VALUES_DELETED_METRIC(STALE_VALUES_DELETED),
-        CELLS_EXAMINED_METRIC(CELLS_EXAMINED);
+        CELL_TS_PAIRS_EXAMINED_METRIC(CELL_TS_PAIRS_EXAMINED);
 
         private final String name;
 
@@ -72,7 +72,7 @@ class SweepMetrics {
     }
 
     static final String STALE_VALUES_DELETED = "staleValuesDeleted";
-    static final String CELLS_EXAMINED = "cellsExamined";
+    static final String CELL_TS_PAIRS_EXAMINED = "cellTimestampPairsExamined";
 
     private static final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
 
@@ -95,8 +95,8 @@ class SweepMetrics {
     }
 
     void recordMetrics(TableReference tableRef, SweepResults results) {
-        TableAndAggregateMetric.CELLS_EXAMINED_METRIC.recordMetric(tableRef, results.getCellsExamined());
-        TableAndAggregateMetric.STALE_VALUES_DELETED_METRIC.recordMetric(tableRef, results.getCellsDeleted());
+        TableAndAggregateMetric.CELL_TS_PAIRS_EXAMINED_METRIC.recordMetric(tableRef, results.getCellTsPairsExamined());
+        TableAndAggregateMetric.STALE_VALUES_DELETED_METRIC.recordMetric(tableRef, results.getStaleValuesDeleted());
     }
 
     private void forAllMetrics(Consumer<TableAndAggregateMetric> action) {

@@ -32,11 +32,14 @@ import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
+import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
@@ -65,13 +68,20 @@ public class SweepCommand extends SingleBackendCommand {
             description = "Sweep all tables")
     boolean sweepAllTables;
 
-    @Option(name = {"--batch-size"},
-            description = "Sweeper row batch size (default: " + AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE + ")")
-    int batchSize = AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE;
+    @Option(name = {"--delete-batch-hint"},
+            description = "Target number of (cell, timestamp) pairs to delete in a single batch (default: "
+                    + AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT + ")")
+    int deleteBatchHint = AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT;
 
-    @Option(name = {"--cell-batch-size"},
-            description = "Sweeper cell batch size (default: " + AtlasDbConstants.DEFAULT_SWEEP_CELL_BATCH_SIZE + ")")
-    int cellBatchSize = AtlasDbConstants.DEFAULT_SWEEP_CELL_BATCH_SIZE;
+    @Option(name = {"--candidate-batch-hint"},
+            description = "Approximate number of candidate (cell, timestamp) pairs to load at once (default: "
+                    + AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT + ")")
+    int candidateBatchHint = AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT;
+
+    @Option(name = {"--read-limit"},
+            description = "Target number of (cell, timestamp) pairs to examine (default: "
+                    + AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT + ")")
+    int readLimit = AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT;
 
     @Option(name = {"--sleep"},
             description = "Time to wait in milliseconds after each sweep batch"
@@ -109,7 +119,7 @@ public class SweepCommand extends SingleBackendCommand {
                 printer.info("The table {} passed in to sweep does not exist", tableToSweep);
                 return 1;
             }
-            byte[] startRow = new byte[0];
+            byte[] startRow = PtBytes.EMPTY_BYTE_ARRAY;
             if (row != null) {
                 startRow = decodeStartRow(row);
             }
@@ -129,6 +139,11 @@ public class SweepCommand extends SingleBackendCommand {
                     Functions.constant(new byte[0])));
         }
 
+        SweepBatchConfig batchConfig = ImmutableSweepBatchConfig.builder()
+                .deleteBatchSize(deleteBatchHint)
+                .candidateBatchSize(candidateBatchHint)
+                .maxCellTsPairsToExamine(readLimit)
+                .build();
         for (Map.Entry<TableReference, byte[]> entry : tableToStartRow.entrySet()) {
             final TableReference tableToSweep = entry.getKey();
             Optional<byte[]> startRow = Optional.of(entry.getValue());
@@ -140,21 +155,21 @@ public class SweepCommand extends SingleBackendCommand {
                 Stopwatch watch = Stopwatch.createStarted();
 
                 SweepResults results = dryRun
-                        ? sweepRunner.dryRun(tableToSweep, batchSize, cellBatchSize, startRow.get())
-                        : sweepRunner.run(tableToSweep, batchSize, cellBatchSize, startRow.get());
+                        ? sweepRunner.dryRun(tableToSweep, batchConfig, startRow.get())
+                        : sweepRunner.run(tableToSweep, batchConfig, startRow.get());
                 printer.info(
-                        "Swept from {} to {} in table {} in {} ms, examined {} unique cells,"
+                        "Swept from {} to {} in table {} in {} ms, examined {} cell values,"
                                 + " {}deleted {} stale versions of those cells.",
                         encodeStartRow(startRow),
                         encodeEndRow(results.getNextStartRow()),
                         tableToSweep,
                         watch.elapsed(TimeUnit.MILLISECONDS),
-                        results.getCellsExamined(),
+                        results.getCellTsPairsExamined(),
                         dryRun ? "would have " : "",
-                        results.getCellsDeleted());
+                        results.getStaleValuesDeleted());
                 startRow = results.getNextStartRow();
-                cellsDeleted.addAndGet(results.getCellsDeleted());
-                cellsExamined.addAndGet(results.getCellsExamined());
+                cellsDeleted.addAndGet(results.getStaleValuesDeleted());
+                cellsExamined.addAndGet(results.getCellTsPairsExamined());
                 maybeSleep();
             }
 
@@ -172,7 +187,7 @@ public class SweepCommand extends SingleBackendCommand {
             }
 
             printer.info(
-                    "Finished sweeping {}, examined {} unique cells, {}deleted {} stale versions of those cells.",
+                    "Finished sweeping {}, examined {} cell values, {}deleted {} stale versions of those cells.",
                     tableToSweep,
                     cellsExamined.get(),
                     dryRun ? "would have " : "",

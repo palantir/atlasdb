@@ -81,6 +81,14 @@
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3"
         },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:lock-api"
+            ]
+        },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
@@ -196,6 +204,14 @@
         },
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3"
+        },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:lock-api"
+            ]
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
