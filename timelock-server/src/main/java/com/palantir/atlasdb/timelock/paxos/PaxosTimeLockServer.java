@@ -97,7 +97,6 @@ public class PaxosTimeLockServer implements TimeLockServer {
             environment.jersey().register(new TooManyRequestsExceptionMapper());
         }
         environment.jersey().register(new BlockingTimeoutExceptionMapper());
-        environment.jersey().register(new TerminalTimestampStoreExceptionMapper());
     }
 
     private void registerPaxosResource() {

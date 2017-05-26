@@ -249,38 +249,39 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
         long newSeq = PaxosAcceptor.NO_LOG_ENTRY + 1;
-        if (agreedState != null) {
-            Preconditions.checkArgument(limit >= agreedState.getBound(),
-                    "Tried to store an upper limit %s less than the current limit %s", limit, agreedState.getBound());
-            newSeq = agreedState.getSeqId() + 1;
-        }
-        while (true) {
-            try {
-                proposer.propose(newSeq, PtBytes.toBytes(limit));
-                PaxosValue value = knowledge.getLearnedValue(newSeq);
-                checkAgreedBoundIsOurs(limit, newSeq, value);
-                long newLimit = PtBytes.toLong(value.getData());
-                agreedState = ImmutableSequenceAndBound.of(newSeq, newLimit);
-                if (newLimit < limit) {
-                    // The bound is ours, but is not high enough.
-                    // This is dangerous; proposing at the next sequence number is unsafe, as timestamp services
-                    // generally assume they have the ALLOCATION_BUFFER_SIZE timestamps up to this.
-                    // TODO (jkong): Devise a method that better preserves availability of the cluster.
-                    log.warn("It appears we updated the timestamp limit to {}, which was less than our target {}."
-                            + " This suggests we have another timestamp service running; possibly because we"
-                            + " lost and regained leadership. For safety, we are now stopping this service.",
-                            newLimit,
-                            limit);
-                    throw new TerminalTimestampStoreException(String.format(
-                            "We updated the timestamp limit to %s, which was less than our target %s.",
-                            newLimit,
-                            limit));
-                }
-                return;
-            } catch (PaxosRoundFailureException e) {
-                waitForRandomBackoff(e, this::wait);
-            }
-        }
+        throw new TerminalTimestampStoreException("term");
+//        if (agreedState != null) {
+//            Preconditions.checkArgument(limit >= agreedState.getBound(),
+//                    "Tried to store an upper limit %s less than the current limit %s", limit, agreedState.getBound());
+//            newSeq = agreedState.getSeqId() + 1;
+//        }
+//        while (true) {
+//            try {
+//                proposer.propose(newSeq, PtBytes.toBytes(limit));
+//                PaxosValue value = knowledge.getLearnedValue(newSeq);
+//                checkAgreedBoundIsOurs(limit, newSeq, value);
+//                long newLimit = PtBytes.toLong(value.getData());
+//                agreedState = ImmutableSequenceAndBound.of(newSeq, newLimit);
+//                if (newLimit < limit) {
+//                    // The bound is ours, but is not high enough.
+//                    // This is dangerous; proposing at the next sequence number is unsafe, as timestamp services
+//                    // generally assume they have the ALLOCATION_BUFFER_SIZE timestamps up to this.
+//                    // TODO (jkong): Devise a method that better preserves availability of the cluster.
+//                    log.warn("It appears we updated the timestamp limit to {}, which was less than our target {}."
+//                            + " This suggests we have another timestamp service running; possibly because we"
+//                            + " lost and regained leadership. For safety, we are now stopping this service.",
+//                            newLimit,
+//                            limit);
+//                    throw new TerminalTimestampStoreException(String.format(
+//                            "We updated the timestamp limit to %s, which was less than our target %s.",
+//                            newLimit,
+//                            limit));
+//                }
+//                return;
+//            } catch (PaxosRoundFailureException e) {
+//                waitForRandomBackoff(e, this::wait);
+//            }
+//        }
     }
 
     /**

@@ -56,8 +56,8 @@ public class TimestampAllocationFailures {
             return wrapMultipleRunningTimestampServiceError(newFailure);
         }
 
-        if (newFailure instanceof TerminalTimestampStoreException) {
-            return ((TerminalTimestampStoreException) newFailure);
+        if (newFailure instanceof ServiceNotAvailableException) {
+            return ((ServiceNotAvailableException) newFailure);
         }
 
         return new RuntimeException("Could not allocate more timestamps", newFailure);
