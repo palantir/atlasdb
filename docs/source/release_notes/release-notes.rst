@@ -85,6 +85,11 @@ develop
          - Add jitter to backoff on retries to `reduce load <https://www.awsarchitectureblog.com/2015/03/backoff.html>`__ on the server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1945>`__)
 
+    *    - |fixed|
+         - ``PaxosTimestampBoundStore`` now throws ``TerminalTimestampStoreException`` if a bound update fails because another timestamp service on the same node proposed a smaller bound, or if another node proposed a bound update we were not expecting.
+           Previously, a ``NotCurrentLeaderException`` that was thrown from the timestamp store would be wrapped in ``RuntimeException`` before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/TBC>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
@@ -105,6 +110,9 @@ develop
          - ``PaxosTimestampBoundStore`` now throws ``TerminalTimestampStoreException`` if a bound update fails because another timestamp service on the same node proposed a smaller bound, or if another node proposed a bound update we were not expecting.
            Previously, a ``NotCurrentLeaderException`` that was thrown from the timestamp store would be wrapped in ``RuntimeException`` before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/TBC>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
 
 ======
 0.42.1
