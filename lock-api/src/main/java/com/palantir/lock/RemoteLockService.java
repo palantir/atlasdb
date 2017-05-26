@@ -27,6 +27,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
+import com.palantir.logsafe.Safe;
 
 @Path("/lock")
 public interface RemoteLockService {
@@ -39,7 +40,7 @@ public interface RemoteLockService {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Nullable
-    LockRefreshToken lock(@PathParam("client") String client, LockRequest request) throws InterruptedException;
+    LockRefreshToken lock(@Safe @PathParam("client") String client, LockRequest request) throws InterruptedException;
 
     /**
      * This is the same as {@link #lock(String, LockRequest)} but will return as many locks as can be acquired.
@@ -49,7 +50,7 @@ public interface RemoteLockService {
     @Path("try-lock/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    HeldLocksToken lockAndGetHeldLocks(@PathParam("client") String client, LockRequest request)
+    HeldLocksToken lockAndGetHeldLocks(@Safe @PathParam("client") String client, LockRequest request)
             throws InterruptedException;
 
     /**
@@ -90,7 +91,7 @@ public interface RemoteLockService {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    @Nullable Long getMinLockedInVersionId(@PathParam("client") String client);
+    @Nullable Long getMinLockedInVersionId(@Safe @PathParam("client") String client);
 
     /** Returns the current time in milliseconds on the server. */
     @POST

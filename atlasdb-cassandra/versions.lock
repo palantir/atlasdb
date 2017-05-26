@@ -99,6 +99,12 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs"
             ]
         },
+        "com.googlecode.concurrent-trees:concurrent-trees": {
+            "locked": "2.4.0",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "com.googlecode.json-simple:json-simple": {
             "locked": "1.1.1",
             "transitive": [
@@ -190,6 +196,20 @@
             "locked": "0.13.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
+            ]
+        },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-client-protobufs",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-api",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -300,8 +320,8 @@
             ]
         },
         "org.apache.cassandra:cassandra-thrift": {
-            "locked": "2.2.8",
-            "requested": "2.2.8"
+            "locked": "3.10",
+            "requested": "3.10"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.1",
@@ -486,6 +506,12 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs"
             ]
         },
+        "com.googlecode.concurrent-trees:concurrent-trees": {
+            "locked": "2.4.0",
+            "transitive": [
+                "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
         "com.googlecode.json-simple:json-simple": {
             "locked": "1.1.1",
             "transitive": [
@@ -577,6 +603,20 @@
             "locked": "0.13.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
+            ]
+        },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-client-protobufs",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-api",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -687,8 +727,8 @@
             ]
         },
         "org.apache.cassandra:cassandra-thrift": {
-            "locked": "2.2.8",
-            "requested": "2.2.8"
+            "locked": "3.10",
+            "requested": "3.10"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.1",

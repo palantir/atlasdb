@@ -44,6 +44,7 @@ jar {
 libsDirName = file('build/artifacts')
 
 dependencies {
+    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile group: 'com.google.code.findbugs', name: 'annotations'
     checkstyle group: 'com.puppycrawl.tools', name: 'checkstyle', version: libVersions.checkstyle
     testCompile group: 'junit', name: 'junit'
@@ -126,3 +127,5 @@ task verifyDependencyLocksAreCurrent {
 }
 
 check.dependsOn generateLock, verifyDependencyLocksAreCurrent
+
+ext.atlasdb_shaded = 'com.palantir.atlasdb.shaded.'

@@ -96,6 +96,16 @@
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3"
         },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-api",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-proxy"
+            ]
+        },
         "com.zaxxer:HikariCP": {
             "locked": "2.4.7",
             "requested": "2.4.7"
@@ -246,6 +256,16 @@
         },
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3"
+        },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-api",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-proxy"
+            ]
         },
         "com.zaxxer:HikariCP": {
             "locked": "2.4.7",

@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -47,7 +48,7 @@ public class LockServiceStateLogger {
     private static final String LOCKSTATE_FILE_PREFIX = "lockstate-";
     private static final String DESCRIPTORS_FILE_PREFIX = "descriptors-";
     private static final String WARNING_LOCK_DESCRIPTORS = "WARNING: Lock descriptors may contain sensitive information";
-    private static final String FILE_NOT_CREATED_LOG_ERROR = "Destination file [%s] either already exists"
+    private static final String FILE_NOT_CREATED_LOG_ERROR = "Destination file [{}] either already exists"
             + "or can't be created. This is a very unlikely scenario."
             + "Retrigger logging or check if process has permitions on the folder";
 
@@ -159,9 +160,9 @@ public class LockServiceStateLogger {
         File file = new File(outputDir, fileName);
 
         if (!file.createNewFile()) {
-            String fileCreationError = String.format(FILE_NOT_CREATED_LOG_ERROR, file.getAbsolutePath());
-            log.error(fileCreationError);
-            throw new IllegalStateException(fileCreationError);
+            log.error(FILE_NOT_CREATED_LOG_ERROR, file.getAbsolutePath());
+            throw new IllegalStateException(
+                    MessageFormatter.format(FILE_NOT_CREATED_LOG_ERROR, file.getAbsolutePath()).getMessage());
         }
 
         return file;

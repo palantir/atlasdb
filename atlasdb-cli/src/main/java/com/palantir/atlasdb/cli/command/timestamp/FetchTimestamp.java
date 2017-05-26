@@ -58,6 +58,9 @@ public class FetchTimestamp extends AbstractTimestampCommand {
 
     @Override
     protected int executeTimestampCommand(AtlasDbServices services) {
+        printer.warn(
+                "This CLI has been deprecated. Please use the timestamp/fresh-timestamp endpoint instead.");
+
         String name;
         if (immutable) {
             timestamp = services.getTransactionManager().getImmutableTimestamp();

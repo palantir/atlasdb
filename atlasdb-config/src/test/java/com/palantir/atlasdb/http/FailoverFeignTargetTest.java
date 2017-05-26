@@ -17,7 +17,14 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Date;
@@ -25,7 +32,12 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.apache.http.HttpStatus;
+import org.hamcrest.Matcher;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
@@ -144,6 +156,51 @@ public class FailoverFeignTargetTest {
             target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
             assertThat(target.url()).isEqualTo(currentUrl);
         }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void blockingTimeout() {
+        final FailoverFeignTarget spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
+                SERVERS, 1, Object.class));
+        for (int i = 0; i < CLUSTER_SIZE; i++) {
+            spiedTarget.url();
+            spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+        }
+
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+        verify(spiedTarget, times(CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
+
+        List<Long> arguments = argument.getAllValues();
+
+        long bottom = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
+        long cap = (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
+        MatcherAssert.assertThat(arguments, Matchers.contains(
+                is(0L), is(0L), is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)))));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void blockingTimeoutManyTimes() {
+        final FailoverFeignTarget spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
+                SERVERS, 1, Object.class));
+        for (int i = 0; i < 3 * CLUSTER_SIZE; i++) {
+            spiedTarget.url();
+            spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+        }
+
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+        verify(spiedTarget, times(3 * CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
+
+        List<Long> arguments = argument.getAllValues();
+
+        long bottom = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
+        long cap = (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
+        Matcher jitteredBackoffMatcher = is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)));
+        MatcherAssert.assertThat(arguments, Matchers.contains(
+                is(0L), is(0L), jitteredBackoffMatcher,
+                is(0L), is(0L), jitteredBackoffMatcher,
+                is(0L), is(0L), jitteredBackoffMatcher));
     }
 
     private void simulateRequest() {

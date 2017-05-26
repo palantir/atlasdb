@@ -7,9 +7,12 @@
             "locked": "18.0",
             "requested": "18.0"
         },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1"
+        },
         "org.apache.cassandra:cassandra-all": {
-            "locked": "2.2.8",
-            "requested": "2.2.8"
+            "locked": "3.10",
+            "requested": "3.10"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.1",
@@ -24,9 +27,12 @@
             "locked": "18.0",
             "requested": "18.0"
         },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1"
+        },
         "org.apache.cassandra:cassandra-all": {
-            "locked": "2.2.8",
-            "requested": "2.2.8"
+            "locked": "3.10",
+            "requested": "3.10"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.1",
