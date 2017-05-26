@@ -31,7 +31,13 @@ import org.junit.rules.TemporaryFolder;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.leader.PingableLeader;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.PaxosLearner;
+import com.palantir.paxos.PaxosProposalId;
+import com.palantir.paxos.PaxosValue;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -79,6 +85,29 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
                 .satisfies(IsolatedPaxosTimeLockServerIntegrationTest::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
+    @Test
+    public void canPingWithoutQuorum() {
+        PingableLeader leader = AtlasDbHttpClients.createProxy(
+                NO_SSL,
+                "http://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
+                PingableLeader.class);
+        leader.ping(); // should succeed
+    }
+
+    @Test
+    public void canParticipateInPaxosAsAcceptorWithoutQuorum() {
+        PaxosAcceptor acceptor = createProxyForInternalNamespacedTestService(PaxosAcceptor.class);
+        acceptor.getLatestSequencePreparedOrAccepted();
+        acceptor.prepare(1, new PaxosProposalId(1, "abc"));
+    }
+
+    @Test
+    public void canParticipateInPaxosAsLearnerWithoutQuorum() {
+        PaxosLearner learner = createProxyForInternalNamespacedTestService(PaxosLearner.class);
+        learner.getGreatestLearnedValue();
+        learner.learn(1, new PaxosValue("abc", 1, null));
+    }
+
     private static void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
         assertThat(throwable).isInstanceOf(RetryableException.class)
                 .hasMessageContaining("method invoked on a non-leader");
@@ -100,6 +129,17 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
                 NO_SSL,
                 ImmutableList.of(getRootUriForClient(client)),
+                clazz);
+    }
+
+    private static <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
+        return AtlasDbHttpClients.createProxy(
+                NO_SSL,
+                String.format("http://localhost:%d/%s/%s/%s",
+                        TIMELOCK_SERVER_HOLDER.getTimelockPort(),
+                        PaxosTimeLockConstants.INTERNAL_NAMESPACE,
+                        PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
+                        CLIENT),
                 clazz);
     }
 
