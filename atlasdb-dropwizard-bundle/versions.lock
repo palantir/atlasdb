@@ -73,6 +73,7 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
                 "io.dropwizard:dropwizard-jackson"
@@ -90,6 +91,7 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
             ]
@@ -133,6 +135,8 @@
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
             "locked": "2.6.7",
             "transitive": [
+                "com.palantir.remoting1:error-handling",
+                "com.palantir.remoting1:jersey-servers",
                 "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
             ]
@@ -186,6 +190,7 @@
             "locked": "1.3.9",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting1:error-handling",
                 "io.dropwizard:dropwizard-util",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
@@ -199,6 +204,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
                 "com.palantir.tritium:tritium-core",
@@ -435,6 +441,18 @@
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
+        "com.palantir.remoting1:error-handling": {
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.remoting1:jersey-servers"
+            ]
+        },
+        "com.palantir.remoting1:jersey-servers": {
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
+        },
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3",
             "transitive": [
@@ -443,7 +461,8 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-impl",
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.palantir.atlasdb:timestamp-impl",
+                "com.palantir.remoting1:jersey-servers"
             ]
         },
         "com.palantir.remoting:ssl-config": {
@@ -778,6 +797,7 @@
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.remoting1:error-handling",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",
                 "org.glassfish.jersey.core:jersey-client",
@@ -1035,6 +1055,7 @@
         "org.glassfish.jersey.core:jersey-server": {
             "locked": "2.22.1",
             "transitive": [
+                "com.palantir.remoting1:jersey-servers",
                 "io.dropwizard:dropwizard-jersey",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",
@@ -1079,7 +1100,7 @@
             ]
         },
         "org.javassist:javassist": {
-            "locked": "3.18.1-GA",
+            "locked": "3.18.2-GA",
             "transitive": [
                 "org.glassfish.hk2:hk2-locator"
             ]
@@ -1133,6 +1154,7 @@
             "transitive": [
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -1240,6 +1262,7 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
                 "io.dropwizard:dropwizard-jackson"
@@ -1257,6 +1280,7 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
             ]
@@ -1300,6 +1324,8 @@
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
             "locked": "2.6.7",
             "transitive": [
+                "com.palantir.remoting1:error-handling",
+                "com.palantir.remoting1:jersey-servers",
                 "com.palantir.remoting1:tracing",
                 "io.dropwizard:dropwizard-jackson"
             ]
@@ -1353,6 +1379,7 @@
             "locked": "1.3.9",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting1:error-handling",
                 "io.dropwizard:dropwizard-util",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
@@ -1366,6 +1393,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
                 "com.palantir.tritium:tritium-core",
@@ -1602,6 +1630,18 @@
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
+        "com.palantir.remoting1:error-handling": {
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.remoting1:jersey-servers"
+            ]
+        },
+        "com.palantir.remoting1:jersey-servers": {
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
+        },
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3",
             "transitive": [
@@ -1610,7 +1650,8 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-impl",
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.palantir.atlasdb:timestamp-impl",
+                "com.palantir.remoting1:jersey-servers"
             ]
         },
         "com.palantir.remoting:ssl-config": {
@@ -1945,6 +1986,7 @@
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.remoting1:error-handling",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",
                 "org.glassfish.jersey.core:jersey-client",
@@ -2202,6 +2244,7 @@
         "org.glassfish.jersey.core:jersey-server": {
             "locked": "2.22.1",
             "transitive": [
+                "com.palantir.remoting1:jersey-servers",
                 "io.dropwizard:dropwizard-jersey",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",
@@ -2246,7 +2289,7 @@
             ]
         },
         "org.javassist:javassist": {
-            "locked": "3.18.1-GA",
+            "locked": "3.18.2-GA",
             "transitive": [
                 "org.glassfish.hk2:hk2-locator"
             ]
@@ -2300,6 +2343,7 @@
             "transitive": [
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting1:error-handling",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
