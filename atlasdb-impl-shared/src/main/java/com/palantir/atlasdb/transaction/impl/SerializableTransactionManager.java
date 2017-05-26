@@ -25,7 +25,6 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
 public class SerializableTransactionManager extends SnapshotTransactionManager {
@@ -33,33 +32,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public SerializableTransactionManager(KeyValueService keyValueService,
                                           TimestampService timestampService,
                                           LockClient lockClient,
-                                          RemoteLockService lockService,
+                                          AsyncUnlockingRemoteLockService lockService,
                                           TransactionService transactionService,
                                           Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
                                           ConflictDetectionManager conflictDetectionManager,
                                           SweepStrategyManager sweepStrategyManager,
                                           Cleaner cleaner) {
-        this(keyValueService,
-                timestampService,
-                lockClient,
-                AsyncUnlockingRemoteLockService.synchronousWrapper(lockService),
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                false);
-    }
-
-    public SerializableTransactionManager(KeyValueService keyValueService,
-            TimestampService timestampService,
-            LockClient lockClient,
-            AsyncUnlockingRemoteLockService lockService,
-            TransactionService transactionService,
-            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner) {
         this(keyValueService,
                 timestampService,
                 lockClient,

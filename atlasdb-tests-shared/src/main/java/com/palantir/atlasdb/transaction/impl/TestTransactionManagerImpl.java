@@ -23,6 +23,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
+import com.palantir.atlasdb.lock.AsyncUnlockingRemoteLockService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -47,7 +48,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 createAssertKeyValue(keyValueService, lockService),
                 timestampService,
                 lockClient,
-                lockService,
+                AsyncUnlockingRemoteLockService.synchronousWrapper(lockService),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
@@ -65,7 +66,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 createAssertKeyValue(keyValueService, lockService),
                 timestampService,
                 lockClient,
-                lockService,
+                AsyncUnlockingRemoteLockService.synchronousWrapper(lockService),
                 transactionService,
                 Suppliers.ofInstance(constraintCheckingMode),
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),

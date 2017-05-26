@@ -70,7 +70,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 keyValueService,
                 timestampService,
                 lockClient,
-                lockService,
+                AsyncUnlockingRemoteLockService.synchronousWrapper(lockService),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
