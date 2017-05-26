@@ -574,6 +574,10 @@ v0.35.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1647>`__)
 
     *    - |fixed|
+         - CLIs can now work in the offline mode when the client config includes the timelock block.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1657>`__)
+
+    *    - |fixed|
          - The background sweeper now uses deleteRange instead of truncate when clearing the ``sweep.progress`` table.
            This allows users with Postgres to perform backups via the normal pg_dump command while running background sweep.
            Previous it was possible for a backup to fail if sweep were performing a truncate at the same time.
