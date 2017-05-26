@@ -17,6 +17,12 @@
 
 package com.palantir.atlasdb.performance;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -30,21 +36,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
-import java.util.stream.Stream;
-
 import org.immutables.value.Value;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.util.Multiset;
 import org.openjdk.jmh.util.Statistics;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
-import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
+import org.openjdk.jmh.util.TreeMultiset;
 
 public class PerformanceResults {
     @VisibleForTesting
@@ -65,17 +62,20 @@ public class PerformanceResults {
 
     private static List<ImmutablePerformanceResult> getPerformanceResults(Collection<RunResult> results) {
         long date = System.currentTimeMillis();
-        return results.stream().flatMap(rs -> Stream.of(ImmutablePerformanceResult.builder()
+        return results.stream().map(rs ->  {
+            return ImmutablePerformanceResult.builder()
                 .date(date)
                 .benchmark(getBenchmarkName(rs.getParams()))
                 .samples(rs.getPrimaryResult().getStatistics().getN())
                 .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
                 .mean(rs.getPrimaryResult().getStatistics().getMean())
+                .data(getData(rs))
                 .units(rs.getParams().getTimeUnit())
                 .p50(rs.getPrimaryResult().getStatistics().getPercentile(50.0))
                 .p90(rs.getPrimaryResult().getStatistics().getPercentile(90.0))
                 .p99(rs.getPrimaryResult().getStatistics().getPercentile(99.0))
-                .build())).collect(Collectors.toList());
+                .build();
+        }).collect(Collectors.toList());
     }
 
     @VisibleForTesting
@@ -99,21 +99,49 @@ public class PerformanceResults {
     }
 
     private static List<Double> getData(RunResult result) {
-        return result.getBenchmarkResults().stream()
-                .flatMap(b -> getRawResults(b.getPrimaryResult().getStatistics()).stream())
-                .collect(Collectors.toList());
+        return getRawResults(result.getPrimaryResult().getStatistics());
     }
 
     private static List<Double> getRawResults(Statistics statistics) {
+
         try {
             Field field = statistics.getClass().getDeclaredField("values");
             field.setAccessible(true);
             Multiset<Double> rawResults = (Multiset<Double>) field.get(statistics);
-            return rawResults.entrySet().stream()
-                    .flatMap(e -> DoubleStream.iterate(e.getKey(), d -> d).limit(e.getValue()).boxed())
-                    .collect(Collectors.toList());
+            return downSample(rawResults);
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            return Lists.newArrayList();
+            String msg = new StringBuilder().append("Could not get values from statistics !")
+                    .append("\n\t statistics.class = ").append(statistics.getClass().getName())
+                    .append("\n\t statistics.size = ").append(statistics.getN())
+                    .toString();
+            throw new RuntimeException(msg, e);
+        }
+    }
+
+    private static List<Double> downSample(Multiset<Double> multisetParam) {
+
+        final TreeMultiset<Double> values = asTreeMultiset(multisetParam);
+        final long totalCount = values.size();
+        final int maximumFinalSize = 100;
+        final List<Double> list = Lists.newArrayList();
+
+        int current = 0;
+        for (double d : values.keys()) {
+            current += values.count(d);
+            while( 1.0 * maximumFinalSize * current / totalCount >= (list.size() + 1)) {
+                list.add(d);
+            }
+        }
+        return list;
+    }
+
+    private static TreeMultiset<Double> asTreeMultiset(Multiset<Double> multisetParam) {
+        if (multisetParam instanceof TreeMultiset) {
+            return (TreeMultiset<Double>)multisetParam;
+        } else {
+            TreeMultiset<Double> values = new TreeMultiset<>();
+            multisetParam.keys().forEach(key -> values.add(key, multisetParam.count(key)));
+            return values;
         }
     }
 
@@ -126,6 +154,7 @@ public class PerformanceResults {
         public abstract long samples();
         public abstract double std();
         public abstract double mean();
+        public abstract List<Double> data();
         public abstract TimeUnit units();
         public abstract double p50();
         public abstract double p90();
