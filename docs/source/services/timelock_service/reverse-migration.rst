@@ -86,7 +86,17 @@ This will vary depending on your choice of key-value service:
   the timestamp table to remove all entries, and then add a single entry with row and column names ``0x7473``
   (case-sensitive) and a blob value indicating the actual timestamp.
 
+  .. warning::
+
+     CQLSH by default uses a consistency level of ONE, meaning that the shell will return success after a write to
+     the closest replica is successful. This may lead to inconsistency if, for instance, that node crashes shortly
+     after. It is thus important to increase the consistency level (we prefer ALL, though QUORUM should also suffice).
+
   .. code-block:: none
+
+     cqlsh> CONSISTENCY ALL;
+
+     Consistency level set to ALL.
 
      cqlsh> USE client;
      cqlsh:client> SELECT * FROM "_timestamp" ;
