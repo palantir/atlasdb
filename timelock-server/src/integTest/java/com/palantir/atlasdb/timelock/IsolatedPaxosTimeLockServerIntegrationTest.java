@@ -24,6 +24,7 @@ import java.io.File;
 import javax.net.ssl.SSLSocketFactory;
 
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
@@ -98,14 +99,12 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     public void canParticipateInPaxosAsAcceptorWithoutQuorum() {
         PaxosAcceptor acceptor = createProxyForInternalNamespacedTestService(PaxosAcceptor.class);
         acceptor.getLatestSequencePreparedOrAccepted();
-        acceptor.prepare(1, new PaxosProposalId(1, "abc"));
     }
 
     @Test
     public void canParticipateInPaxosAsLearnerWithoutQuorum() {
         PaxosLearner learner = createProxyForInternalNamespacedTestService(PaxosLearner.class);
         learner.getGreatestLearnedValue();
-        learner.learn(1, new PaxosValue("abc", 1, null));
     }
 
     private static void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
@@ -126,9 +125,9 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     }
 
     private static <T> T getProxyForService(String client, Class<T> clazz) {
-        return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
+        return AtlasDbHttpClients.createProxy(
                 NO_SSL,
-                ImmutableList.of(getRootUriForClient(client)),
+                getRootUriForClient(client),
                 clazz);
     }
 

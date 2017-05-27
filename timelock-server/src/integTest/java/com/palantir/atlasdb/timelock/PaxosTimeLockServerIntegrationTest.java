@@ -33,11 +33,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.ssl.SSLSocketFactory;
 
 import org.assertj.core.util.Lists;
 import org.eclipse.jetty.http.HttpStatus;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -47,8 +50,10 @@ import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
+import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
+import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -111,6 +116,18 @@ public class PaxosTimeLockServerIntegrationTest {
     public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
             .around(TEMPORARY_CONFIG_HOLDER)
             .around(TIMELOCK_SERVER_HOLDER);
+
+    @BeforeClass
+    public static void waitForClusterToStabilize() {
+        PingableLeader leader = AtlasDbHttpClients.createProxy(
+                NO_SSL,
+                "http://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
+                PingableLeader.class);
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .pollInterval(1, TimeUnit.SECONDS)
+                .until(leader::ping);
+    }
 
     @Test
     public void singleClientCanUseLocalAndSharedThreads() throws Exception {
