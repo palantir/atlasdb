@@ -158,7 +158,7 @@ public final class AtlasDbHttpClients {
     }
 
     @VisibleForTesting
-    public static <T> T createProxyWithQuickFailoverForTesting(
+    static <T> T createProxyWithQuickFailoverForTesting(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
         Request.Options options = new Request.Options(QUICK_FEIGN_TIMEOUT_MILLIS, QUICK_FEIGN_TIMEOUT_MILLIS);
         return createProxyWithFailover(

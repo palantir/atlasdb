@@ -24,21 +24,17 @@ import java.io.File;
 import javax.net.ssl.SSLSocketFactory;
 
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
-import com.palantir.paxos.PaxosProposalId;
-import com.palantir.paxos.PaxosValue;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -47,7 +43,8 @@ import io.dropwizard.testing.ResourceHelpers;
 
 /**
  * This test creates a single TimeLock server that is configured in a three node configuration.
- * Since it has no quorum, all of its operations should fail.
+ * Since it has no quorum, timestamp and lock requests (and fast-forward) should fail.
+ * However it should still be pingable and should be able to participate in Paxos as well.
  */
 public class IsolatedPaxosTimeLockServerIntegrationTest {
     private static final String CLIENT = "test";
