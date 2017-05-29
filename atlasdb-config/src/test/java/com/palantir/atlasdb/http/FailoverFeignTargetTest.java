@@ -35,6 +35,7 @@ import org.apache.http.HttpStatus;
 import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -61,8 +62,8 @@ public class FailoverFeignTargetTest {
     private static final RetryableException EXCEPTION_WITHOUT_RETRY_AFTER = mock(RetryableException.class);
     private static final RetryableException BLOCKING_TIMEOUT_EXCEPTION = mock(RetryableException.class);
 
-    private final FailoverFeignTarget<Object> target = new FailoverFeignTarget<>(
-            SERVERS, 1, Object.class);
+    private FailoverFeignTarget<Object> target;
+    private FailoverFeignTarget<Object> spiedTarget;
 
     static {
         when(EXCEPTION_WITH_RETRY_AFTER.retryAfter()).thenReturn(Date.valueOf(LocalDate.MAX));
@@ -71,6 +72,14 @@ public class FailoverFeignTargetTest {
                 new AtlasDbRemoteException(new RemoteException(
                         SerializableError.of("foo", BlockingTimeoutException.class),
                         HttpStatus.SC_SERVICE_UNAVAILABLE)));
+    }
+
+    @Before
+    public void setup() {
+        target = new FailoverFeignTarget<>(
+                SERVERS, 1, Object.class);
+        spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
+                SERVERS, 1, Object.class));
     }
 
     @Test
@@ -101,7 +110,7 @@ public class FailoverFeignTargetTest {
     public void rethrowsExceptionWithoutRetryAfterWhenLimitExceeded() {
         assertThatThrownBy(() -> {
             for (int i = 0; i < FAILOVERS; i++) {
-                simulateRequest();
+                simulateRequest(target);
                 target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
             }
         }).isEqualTo(EXCEPTION_WITHOUT_RETRY_AFTER);
@@ -137,7 +146,7 @@ public class FailoverFeignTargetTest {
     @Test
     public void retriesOnSameNodeIfBlockingTimeoutIsLastAllowedFailureBeforeSwitch() {
         for (int i = 1; i < target.failuresBeforeSwitching; i++) {
-            simulateRequest();
+            simulateRequest(target);
             target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
         }
         String currentUrl = target.url();
@@ -150,7 +159,7 @@ public class FailoverFeignTargetTest {
         String currentUrl = target.url();
         for (int i = 0; i < ITERATIONS; i++) {
             for (int j = 1; j < target.failuresBeforeSwitching; j++) {
-                simulateRequest();
+                simulateRequest(target);
                 target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
             }
             target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
@@ -160,50 +169,46 @@ public class FailoverFeignTargetTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void blockingTimeout() {
-        final FailoverFeignTarget spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
-                SERVERS, 1, Object.class));
+    public void notCurrentLeaderExceptionBackoff() {
         for (int i = 0; i < CLUSTER_SIZE; i++) {
-            spiedTarget.url();
+            simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
         }
 
         ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
-        verify(spiedTarget, times(CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
+        verify(spiedTarget, times(1)).pauseForBackoff(any(), argument.capture());
 
         List<Long> arguments = argument.getAllValues();
 
         long bottom = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
         long cap = (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
         MatcherAssert.assertThat(arguments, Matchers.contains(
-                is(0L), is(0L), is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)))));
+                is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)))));
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void blockingTimeoutManyTimes() {
-        final FailoverFeignTarget spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
-                SERVERS, 1, Object.class));
+    public void multipleNotCurrentLeaderExceptionBackoff() {
         for (int i = 0; i < 3 * CLUSTER_SIZE; i++) {
-            spiedTarget.url();
+            simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
         }
 
         ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
-        verify(spiedTarget, times(3 * CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
+        verify(spiedTarget, times(3)).pauseForBackoff(any(), argument.capture());
 
         List<Long> arguments = argument.getAllValues();
 
         long bottom = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
         long cap = (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
-        Matcher jitteredBackoffMatcher = is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)));
+        Matcher<Long> jitteredBackoffMatcher = is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)));
         MatcherAssert.assertThat(arguments, Matchers.contains(
-                is(0L), is(0L), jitteredBackoffMatcher,
-                is(0L), is(0L), jitteredBackoffMatcher,
-                is(0L), is(0L), jitteredBackoffMatcher));
+                jitteredBackoffMatcher,
+                jitteredBackoffMatcher,
+                jitteredBackoffMatcher));
     }
 
-    private void simulateRequest() {
+    private void simulateRequest(FailoverFeignTarget target) {
         // This method is called as a part of a request being invoked.
         // We need to update the mostRecentServerIndex, for the FailoverFeignTarget to track failures properly.
         target.url();
