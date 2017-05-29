@@ -41,6 +41,11 @@ develop
 
     *    - Type
          - Change
+         
+    *    - |improved|
+         - ``TimestampService`` now uses atomic variables rather than locking, and refreshes the bound synchronously rather than asynchronously.
+           This should improve performance somewhat under heavy load, although there will be a short pause in responses when the bound needs to be refreshed (currently, once every 1 million timestamps).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1910>`__)
 
     *    - |fixed| |changed|
          - Our dependency on Cassandra thrift has been bumped from 2.2.8 to 3.10; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
