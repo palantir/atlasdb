@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -53,6 +54,7 @@ public class FailoverFeignTargetTest {
     private static final int FAILOVERS = 1000;
     private static final int ITERATIONS = 100;
     private static final int CLUSTER_SIZE = 3;
+    private static final double GOLDEN_RATIO = (Math.sqrt(5) + 1.0) / 2.0;
 
     private static final String SERVER_1 = "server1";
     private static final String SERVER_2 = "server2";
@@ -77,10 +79,8 @@ public class FailoverFeignTargetTest {
 
     @Before
     public void setup() {
-        target = new FailoverFeignTarget<>(
-                SERVERS, 1, Object.class);
-        spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
-                SERVERS, 1, Object.class));
+        target = new FailoverFeignTarget<>(SERVERS, 1, Object.class);
+        spiedTarget = Mockito.spy(new FailoverFeignTarget<>(SERVERS, 100, Object.class));
     }
 
     @Test
@@ -170,7 +170,7 @@ public class FailoverFeignTargetTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void notCurrentLeaderExceptionBacksOffAfterQueryingAllNodesInTheCluster() {
+    public void exceptionsWithRetryAfterBacksOffAfterQueryingAllNodesInTheCluster() {
         for (int i = 0; i < CLUSTER_SIZE; i++) {
             simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
@@ -189,7 +189,7 @@ public class FailoverFeignTargetTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void multipleNotCurrentLeaderExceptionBackOffAfterQueryingAllNodesInTheCluster() {
+    public void multipleExceptionsWithRetryAfterBackOffAfterQueryingAllNodesInTheCluster() {
         for (int i = 0; i < 3 * CLUSTER_SIZE; i++) {
             simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
@@ -225,6 +225,31 @@ public class FailoverFeignTargetTest {
         Arrays.fill(expectedArguments, is(0L));
 
         MatcherAssert.assertThat(arguments, Matchers.contains(expectedArguments));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void exceptionsWithoutRetryAfterBackoffExponentially() {
+        int numIterations = 10;
+
+        for (int i = 0; i < numIterations; i++) {
+            simulateRequest(spiedTarget);
+            spiedTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+        }
+
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+        verify(spiedTarget, times(numIterations)).pauseForBackoff(any(), argument.capture());
+
+        List<Long> arguments = argument.getAllValues();
+
+        List<Matcher> expectedArguments = new ArrayList<>();
+        for (int i = 1; i <= numIterations; i++) {
+            long cap = Math.round(Math.pow(GOLDEN_RATIO, i));
+            expectedArguments.add(is(both(greaterThanOrEqualTo(0L)).and(lessThan(cap))));
+        }
+        Matcher[] expectedArgumentsArray = expectedArguments.toArray(new Matcher[expectedArguments.size()]);
+
+        MatcherAssert.assertThat(arguments, Matchers.contains(expectedArgumentsArray));
     }
 
     private void simulateRequest(FailoverFeignTarget target) {
