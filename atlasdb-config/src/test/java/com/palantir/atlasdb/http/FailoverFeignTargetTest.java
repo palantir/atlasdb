@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.http.HttpStatus;
@@ -169,7 +170,7 @@ public class FailoverFeignTargetTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void notCurrentLeaderExceptionBackoff() {
+    public void notCurrentLeaderExceptionBacksOffAfterQueryingAllNodesInTheCluster() {
         for (int i = 0; i < CLUSTER_SIZE; i++) {
             simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
@@ -188,7 +189,7 @@ public class FailoverFeignTargetTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void multipleNotCurrentLeaderExceptionBackoff() {
+    public void multipleNotCurrentLeaderExceptionBackOffAfterQueryingAllNodesInTheCluster() {
         for (int i = 0; i < 3 * CLUSTER_SIZE; i++) {
             simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
@@ -206,6 +207,24 @@ public class FailoverFeignTargetTest {
                 jitteredBackoffMatcher,
                 jitteredBackoffMatcher,
                 jitteredBackoffMatcher));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void blockingTimeoutExceptionsDoNotBackoff() {
+        for (int i = 0; i < ITERATIONS; i++) {
+            simulateRequest(spiedTarget);
+            spiedTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+        }
+
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+        verify(spiedTarget, times(ITERATIONS)).pauseForBackoff(any(), argument.capture());
+
+        List<Long> arguments = argument.getAllValues();
+        Matcher[] expectedArguments = new Matcher[ITERATIONS];
+        Arrays.fill(expectedArguments, is(0L));
+
+        MatcherAssert.assertThat(arguments, Matchers.contains(expectedArguments));
     }
 
     private void simulateRequest(FailoverFeignTarget target) {
