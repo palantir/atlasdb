@@ -14,59 +14,63 @@
  * limitations under the License.
  */
 
-package com.palantir.util;
+package com.palantir.paxos;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import com.google.common.base.Throwables;
 
 /**
- * An executor that combines computation requests, such that only one computation is ever running at a time.
- * Computations are guaranteed to execute after being requested; requests will not receive results for computations that started
+ * A supplier that batches computation requests, such that only N computations are ever running at a time. Computations
+ * are guaranteed to execute after being requested; requests will not receive results for computations that started
  * prior to the request.
+ *
+ * N is determined by the number of threads in the provided executor.
  */
-public class CoalescingExecutor<T> {
+class BatchingSupplier<T> implements Supplier<Future<T>> {
 
     private final Supplier<T> delegate;
     private final AtomicReference<CompletableFuture<T>> nextResult = new AtomicReference<>(new CompletableFuture<T>());
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor;
 
-    public CoalescingExecutor(Supplier<T> delegate) {
+    public BatchingSupplier(Supplier<T> delegate, ExecutorService executor) {
         this.delegate = delegate;
+        this.executor = executor;
     }
 
-    public T getNextResult() {
-        CompletableFuture<T> result = nextResult.get();
+    @Override
+    public Future<T> get() {
+        CompletableFuture<T> future = nextResult.get();
 
-        executor.submit(() -> maybeComputeResult(result));
+        executor.submit(() -> maybeStartNextComputationFor(future));
 
-        return getResult(result);
+        return future;
     }
 
-    private void maybeComputeResult(CompletableFuture<T> result) {
-        if (tryStartNextComputation(result)) {
-            computeResult(result);
+    private void maybeStartNextComputationFor(CompletableFuture<T> future) {
+        if (tryTakeForCompleting(future)) {
+            complete(future);
         }
     }
 
-    private boolean tryStartNextComputation(CompletableFuture<T> result) {
-        return nextResult.compareAndSet(result, new CompletableFuture<T>());
+    private boolean tryTakeForCompleting(CompletableFuture<T> future) {
+        return nextResult.compareAndSet(future, new CompletableFuture<>());
     }
 
-    private void computeResult(CompletableFuture<T> result) {
+    private void complete(CompletableFuture<T> future) {
         try {
-            result.complete(delegate.get());
+            future.complete(delegate.get());
         } catch (Throwable t) {
-            result.completeExceptionally(t);
+            future.completeExceptionally(t);
         }
     }
 
-    private T getResult(CompletableFuture<T> result) {
+    private T getUnchecked(CompletableFuture<T> result) {
         try {
             return result.get();
         } catch (InterruptedException e) {

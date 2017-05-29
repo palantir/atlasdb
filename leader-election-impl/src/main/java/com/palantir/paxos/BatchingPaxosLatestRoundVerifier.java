@@ -16,31 +16,61 @@
 
 package com.palantir.paxos;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.function.Function;
+
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.palantir.util.CoalescingExecutor;
 
 public class BatchingPaxosLatestRoundVerifier implements PaxosLatestRoundVerifier {
 
-    private final PaxosLatestRoundVerifier delegate;
-    private final LoadingCache<Long, CoalescingExecutor<PaxosQuorumResult>> verifiersByRound;
+    private final LoadingCache<Long, BatchingSupplier<PaxosQuorumResult>> verificationsByRound;
 
     public BatchingPaxosLatestRoundVerifier(PaxosLatestRoundVerifier delegate) {
-        this.delegate = delegate;
-        this.verifiersByRound = CacheBuilder
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        this.verificationsByRound = buildCache(
+                round -> new BatchingSupplier<>(() -> delegate.isLatestRound(round), executor));
+    }
+
+    @VisibleForTesting
+    BatchingPaxosLatestRoundVerifier(Function<Long, BatchingSupplier<PaxosQuorumResult>> verifierFactory) {
+        this.verificationsByRound = buildCache(verifierFactory);
+    }
+
+    private static LoadingCache<Long, BatchingSupplier<PaxosQuorumResult>> buildCache(
+            Function<Long, BatchingSupplier<PaxosQuorumResult>> verifierFactory) {
+        return CacheBuilder
                 .newBuilder()
                 .maximumSize(2)
-                .build(new CacheLoader<Long, CoalescingExecutor<PaxosQuorumResult>>() {
+                .build(new CacheLoader<Long, BatchingSupplier<PaxosQuorumResult>>() {
                     @Override
-                    public CoalescingExecutor<PaxosQuorumResult> load(Long round) throws Exception {
-                        return new CoalescingExecutor<>(() -> delegate.isLatestRound(round));
+                    public BatchingSupplier<PaxosQuorumResult> load(Long round) throws Exception {
+                        return verifierFactory.apply(round);
                     }
                 });
     }
 
     @Override
     public PaxosQuorumResult isLatestRound(long round) {
-        return verifiersByRound.getUnchecked(round).getNextResult();
+        BatchingSupplier<PaxosQuorumResult> verification = verificationsByRound.getUnchecked(round);
+        return getUnchecked(verification.get());
+    }
+
+    private PaxosQuorumResult getUnchecked(Future<PaxosQuorumResult> future) {
+        try {
+            return future.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw Throwables.propagate(e.getCause());
+        }
     }
 }

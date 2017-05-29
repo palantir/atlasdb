@@ -16,9 +16,6 @@
 
 package com.palantir.paxos;
 
-/**
- * Created by nziebart on 5/29/17.
- */
 public interface PaxosLatestRoundVerifier {
 
     PaxosQuorumResult isLatestRound(long round);
