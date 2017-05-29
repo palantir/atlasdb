@@ -78,25 +78,29 @@ public class BatchingSupplierTest {
 
     @Test
     public void batched_requests_receive_same_result() {
-        String response1 = "foo";
-        String response2 = "bar";
-
-        when(delegate.get()).thenReturn(response1);
-        Collection<Future<String>> batch1 = getBatch(2);
+        Collection<Future<String>> batch = getBatch(2);
         executor.runNextPendingCommand();
 
-        when(delegate.get()).thenReturn(response2);
-        Collection<Future<String>> batch2 = getBatch(2);
-        executor.runUntilIdle();
+        batch.forEach(future -> assertThat(getUnchecked(future)).isEqualTo("foo"));
+    }
 
-        batch1.forEach(future -> assertThat(getUnchecked(future)).isEqualTo(response1));
-        batch2.forEach(future -> assertThat(getUnchecked(future)).isEqualTo(response2));
+    @Test
+    public void requests_do_not_recieve_old_results() {
+        // return an initial result
+        supplier.get();
+        executor.runNextPendingCommand();
+
+        // now return a different result
+        Future<String> newResult = supplier.get();
+        when(delegate.get()).thenReturn("new");
+        executor.runNextPendingCommand();
+
+        assertThat(getUnchecked(newResult)).isEqualTo("new");
     }
 
     @Test
     public void returned_future_can_complete_exceptionally() {
         RuntimeException expected = new RuntimeException("foo");
-
         when(delegate.get()).thenThrow(expected);
 
         Future<String> result = supplier.get();

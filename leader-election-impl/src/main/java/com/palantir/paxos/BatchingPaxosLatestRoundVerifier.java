@@ -46,8 +46,7 @@ public class BatchingPaxosLatestRoundVerifier implements PaxosLatestRoundVerifie
 
     private static LoadingCache<Long, BatchingSupplier<PaxosQuorumStatus>> buildCache(
             Function<Long, BatchingSupplier<PaxosQuorumStatus>> verifierFactory) {
-        return CacheBuilder
-                .newBuilder()
+        return CacheBuilder.newBuilder()
                 .maximumSize(2)
                 .build(new CacheLoader<Long, BatchingSupplier<PaxosQuorumStatus>>() {
                     @Override
