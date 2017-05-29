@@ -18,19 +18,19 @@ package com.palantir.paxos;
 
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 
-public enum PaxosQuorumResult {
+public enum PaxosQuorumStatus {
     QUORUM_AGREED,
     SOME_DISAGREED,
     NO_QUORUM;
 
     public StillLeadingStatus toStillLeadingStatus() {
         switch (this) {
-            case NO_QUORUM:
-                return StillLeadingStatus.NO_QUORUM;
-            case SOME_DISAGREED:
-                return StillLeadingStatus.NOT_LEADING;
             case QUORUM_AGREED:
                 return StillLeadingStatus.LEADING;
+            case SOME_DISAGREED:
+                return StillLeadingStatus.NOT_LEADING;
+            case NO_QUORUM:
+                return StillLeadingStatus.NO_QUORUM;
         }
         throw new IllegalStateException("unknown status: " + this);
     }

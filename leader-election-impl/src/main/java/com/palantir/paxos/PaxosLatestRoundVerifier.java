@@ -18,6 +18,6 @@ package com.palantir.paxos;
 
 public interface PaxosLatestRoundVerifier {
 
-    PaxosQuorumResult isLatestRound(long round);
+    PaxosQuorumStatus isLatestRound(long round);
 
 }

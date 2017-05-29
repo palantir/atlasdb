@@ -230,17 +230,17 @@ public final class PaxosQuorumChecker {
         return Collections2.filter(responses, PaxosResponses.isSuccessfulPredicate()).size() >= quorumSize;
     }
 
-    public static PaxosQuorumResult getQuorumResult(List<PaxosResponse> responses, int quorumSize) {
+    public static PaxosQuorumStatus getQuorumResult(List<PaxosResponse> responses, int quorumSize) {
         if (hasQuorum(responses, quorumSize)) {
-            return PaxosQuorumResult.QUORUM_AGREED;
-        } else if (hasAnyNacks(responses)) {
-            return PaxosQuorumResult.SOME_DISAGREED;
+            return PaxosQuorumStatus.QUORUM_AGREED;
+        } else if (hasAnyDisagreements(responses)) {
+            return PaxosQuorumStatus.SOME_DISAGREED;
         }
 
-        return PaxosQuorumResult.NO_QUORUM;
+        return PaxosQuorumStatus.NO_QUORUM;
     }
 
-    private static boolean hasAnyNacks(List<PaxosResponse> responses) {
+    private static boolean hasAnyDisagreements(List<PaxosResponse> responses) {
         return responses.stream().anyMatch(response -> !response.isSuccessful());
     }
 }

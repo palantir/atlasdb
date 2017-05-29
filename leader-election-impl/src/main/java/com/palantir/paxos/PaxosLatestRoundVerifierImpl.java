@@ -18,7 +18,6 @@ package com.palantir.paxos;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import com.google.common.collect.ImmutableList;
 
@@ -26,33 +25,37 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
 
     private final ImmutableList<PaxosAcceptor> acceptors;
     private final int quorumSize;
+    private final ExecutorService executor;
 
-    private final ExecutorService executor = Executors.newCachedThreadPool();
-
-    public PaxosLatestRoundVerifierImpl(List<PaxosAcceptor> acceptors, int quorumSize) {
+    public PaxosLatestRoundVerifierImpl(List<PaxosAcceptor> acceptors, int quorumSize, ExecutorService executor) {
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.quorumSize = quorumSize;
+        this.executor = executor;
     }
 
     @Override
-    public PaxosQuorumResult isLatestRound(long round) {
+    public PaxosQuorumStatus isLatestRound(long round) {
         List<PaxosResponse> responses = collectResponses(round);
 
-        return getResult(responses);
-    }
-
-    private PaxosQuorumResult getResult(List<PaxosResponse> responses) {
-        return PaxosQuorumChecker.getQuorumResult(responses, quorumSize);
+        return determineQuorumStatus(responses);
     }
 
     private List<PaxosResponse> collectResponses(long round) {
         return PaxosQuorumChecker.collectQuorumResponses(
                 acceptors,
-                acceptor -> new PaxosResponseImpl(round >= acceptor.getLatestSequencePreparedOrAccepted()),
+                acceptor -> new PaxosResponseImpl(acceptorAgreesIsLatestRound(acceptor, round)),
                 quorumSize,
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
                 true);
+    }
+
+    private boolean acceptorAgreesIsLatestRound(PaxosAcceptor acceptor, long round) {
+        return round >= acceptor.getLatestSequencePreparedOrAccepted();
+    }
+
+    private PaxosQuorumStatus determineQuorumStatus(List<PaxosResponse> responses) {
+        return PaxosQuorumChecker.getQuorumResult(responses, quorumSize);
     }
 
 }

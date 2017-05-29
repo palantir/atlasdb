@@ -31,7 +31,7 @@ import com.google.common.cache.LoadingCache;
 
 public class BatchingPaxosLatestRoundVerifier implements PaxosLatestRoundVerifier {
 
-    private final LoadingCache<Long, BatchingSupplier<PaxosQuorumResult>> verificationsByRound;
+    private final LoadingCache<Long, BatchingSupplier<PaxosQuorumStatus>> verificationsByRound;
 
     public BatchingPaxosLatestRoundVerifier(PaxosLatestRoundVerifier delegate) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -40,30 +40,30 @@ public class BatchingPaxosLatestRoundVerifier implements PaxosLatestRoundVerifie
     }
 
     @VisibleForTesting
-    BatchingPaxosLatestRoundVerifier(Function<Long, BatchingSupplier<PaxosQuorumResult>> verifierFactory) {
+    BatchingPaxosLatestRoundVerifier(Function<Long, BatchingSupplier<PaxosQuorumStatus>> verifierFactory) {
         this.verificationsByRound = buildCache(verifierFactory);
     }
 
-    private static LoadingCache<Long, BatchingSupplier<PaxosQuorumResult>> buildCache(
-            Function<Long, BatchingSupplier<PaxosQuorumResult>> verifierFactory) {
+    private static LoadingCache<Long, BatchingSupplier<PaxosQuorumStatus>> buildCache(
+            Function<Long, BatchingSupplier<PaxosQuorumStatus>> verifierFactory) {
         return CacheBuilder
                 .newBuilder()
                 .maximumSize(2)
-                .build(new CacheLoader<Long, BatchingSupplier<PaxosQuorumResult>>() {
+                .build(new CacheLoader<Long, BatchingSupplier<PaxosQuorumStatus>>() {
                     @Override
-                    public BatchingSupplier<PaxosQuorumResult> load(Long round) throws Exception {
+                    public BatchingSupplier<PaxosQuorumStatus> load(Long round) throws Exception {
                         return verifierFactory.apply(round);
                     }
                 });
     }
 
     @Override
-    public PaxosQuorumResult isLatestRound(long round) {
-        BatchingSupplier<PaxosQuorumResult> verification = verificationsByRound.getUnchecked(round);
+    public PaxosQuorumStatus isLatestRound(long round) {
+        BatchingSupplier<PaxosQuorumStatus> verification = verificationsByRound.getUnchecked(round);
         return getUnchecked(verification.get());
     }
 
-    private PaxosQuorumResult getUnchecked(Future<PaxosQuorumResult> future) {
+    private PaxosQuorumStatus getUnchecked(Future<PaxosQuorumStatus> future) {
         try {
             return future.get();
         } catch (InterruptedException e) {

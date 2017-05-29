@@ -26,8 +26,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -42,8 +40,6 @@ public class BatchingSupplierTest {
     private final DeterministicScheduler executor = new DeterministicScheduler();
     private final Supplier<String> delegate = mock(Supplier.class);
     private final BatchingSupplier<String> supplier = new BatchingSupplier<>(delegate, executor);
-
-    private final ExecutorService clientExecutor = Executors.newCachedThreadPool();
 
     @Before
     public void before() {
@@ -86,11 +82,11 @@ public class BatchingSupplierTest {
         String response2 = "bar";
 
         when(delegate.get()).thenReturn(response1);
-        Collection<Future<String>> batch1 = get(2);
+        Collection<Future<String>> batch1 = getBatch(2);
         executor.runNextPendingCommand();
 
         when(delegate.get()).thenReturn(response2);
-        Collection<Future<String>> batch2 = get(2);
+        Collection<Future<String>> batch2 = getBatch(2);
         executor.runUntilIdle();
 
         batch1.forEach(future -> assertThat(getUnchecked(future)).isEqualTo(response1));
@@ -109,8 +105,8 @@ public class BatchingSupplierTest {
         assertThatThrownBy(() -> result.get()).hasCause(expected);
     }
 
-    private List<Future<String>> get(int number) {
-        return IntStream.range(0, number)
+    private List<Future<String>> getBatch(int count) {
+        return IntStream.range(0, count)
                 .mapToObj(i -> supplier.get())
                 .collect(Collectors.toList());
     }

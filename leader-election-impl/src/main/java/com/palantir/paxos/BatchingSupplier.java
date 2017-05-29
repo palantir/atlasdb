@@ -17,20 +17,15 @@
 package com.palantir.paxos;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-import com.google.common.base.Throwables;
-
 /**
- * A supplier that batches computation requests, such that only N computations are ever running at a time. Computations
- * are guaranteed to execute after being requested; requests will not receive results for computations that started
- * prior to the request.
- *
- * N is determined by the number of threads in the provided executor.
+ * A supplier that coalesces computation requests, such that only one computation is ever running at a time, and
+ * concurrent requests will result in a single computation. Computations are guaranteed to execute after being
+ * requested; requests will not receive results for computations that started prior to the request.
  */
 class BatchingSupplier<T> implements Supplier<Future<T>> {
 
@@ -38,21 +33,21 @@ class BatchingSupplier<T> implements Supplier<Future<T>> {
     private final AtomicReference<CompletableFuture<T>> nextResult = new AtomicReference<>(new CompletableFuture<T>());
     private final ExecutorService executor;
 
-    public BatchingSupplier(Supplier<T> delegate, ExecutorService executor) {
+    public BatchingSupplier(Supplier<T> delegate, ExecutorService singleThreadExecutor) {
         this.delegate = delegate;
-        this.executor = executor;
+        this.executor = singleThreadExecutor;
     }
 
     @Override
     public Future<T> get() {
         CompletableFuture<T> future = nextResult.get();
 
-        executor.submit(() -> maybeStartNextComputationFor(future));
+        executor.submit(() -> maybeComplete(future));
 
         return future;
     }
 
-    private void maybeStartNextComputationFor(CompletableFuture<T> future) {
+    private void maybeComplete(CompletableFuture<T> future) {
         if (tryTakeForCompleting(future)) {
             complete(future);
         }
@@ -67,17 +62,6 @@ class BatchingSupplier<T> implements Supplier<Future<T>> {
             future.complete(delegate.get());
         } catch (Throwable t) {
             future.completeExceptionally(t);
-        }
-    }
-
-    private T getUnchecked(CompletableFuture<T> result) {
-        try {
-            return result.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            throw Throwables.propagate(e.getCause());
         }
     }
 

@@ -32,8 +32,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 public class BatchingPaxosLatestRoundVerifierTest {
 
-    private BatchingSupplier<PaxosQuorumResult> delegate = mock(BatchingSupplier.class);
-    private Function<Long, BatchingSupplier<PaxosQuorumResult>> delegateFactory = mock(Function.class);
+    private BatchingSupplier<PaxosQuorumStatus> delegate = mock(BatchingSupplier.class);
+    private Function<Long, BatchingSupplier<PaxosQuorumStatus>> delegateFactory = mock(Function.class);
     private BatchingPaxosLatestRoundVerifier verifier = new BatchingPaxosLatestRoundVerifier(delegateFactory);
 
     @Before
@@ -43,7 +43,7 @@ public class BatchingPaxosLatestRoundVerifierTest {
 
     @Test
     public void returns_supplied_value() {
-        PaxosQuorumResult expected = PaxosQuorumResult.SOME_DISAGREED;
+        PaxosQuorumStatus expected = PaxosQuorumStatus.SOME_DISAGREED;
 
         when(delegate.get()).thenReturn(Futures.immediateFuture(expected));
 
@@ -52,8 +52,8 @@ public class BatchingPaxosLatestRoundVerifierTest {
 
     @Test
     public void uses_correct_supplier_for_different_rounds() {
-        PaxosQuorumResult round1 = PaxosQuorumResult.SOME_DISAGREED;
-        PaxosQuorumResult round2 = PaxosQuorumResult.NO_QUORUM;
+        PaxosQuorumStatus round1 = PaxosQuorumStatus.SOME_DISAGREED;
+        PaxosQuorumStatus round2 = PaxosQuorumStatus.NO_QUORUM;
 
         when(delegateFactory.apply(1L)).thenReturn(supplierOf(round1));
         when(delegateFactory.apply(2L)).thenReturn(supplierOf(round2));
@@ -71,7 +71,7 @@ public class BatchingPaxosLatestRoundVerifierTest {
         assertThatThrownBy(() -> verifier.isLatestRound(1L)).isEqualTo(expected);
     }
 
-    private BatchingSupplier<PaxosQuorumResult> supplierOf(PaxosQuorumResult result) {
+    private BatchingSupplier<PaxosQuorumStatus> supplierOf(PaxosQuorumStatus result) {
         return new BatchingSupplier<>(() -> result, MoreExecutors.newDirectExecutorService());
     }
 
