@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2015 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,22 +17,25 @@ package com.palantir.leader;
 
 import static com.google.common.collect.ImmutableList.copyOf;
 
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
@@ -43,21 +46,24 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Defaults;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.base.Throwables;
+import com.palantir.paxos.BatchingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.PaxosLatestRoundVerifier;
+import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosQuorumChecker;
-import com.palantir.paxos.PaxosResponse;
-import com.palantir.paxos.PaxosResponseImpl;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.util.Pair;
 
 /**
  * Implementation of a paxos member than can be a designated proposer (leader) and designated
@@ -69,6 +75,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
 
     private final ReentrantLock lock;
+    private final PaxosLatestRoundVerifier latestRoundVerifier;
 
     final PaxosProposer proposer;
     final PaxosLearner knowledge;
@@ -124,18 +131,20 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
         lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
+        this.latestRoundVerifier = new BatchingPaxosLatestRoundVerifier(
+                new PaxosLatestRoundVerifierImpl(acceptors, proposer.getQuorumSize()));
     }
 
     @Override
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
-        for (;;) {
+        while (true) {
             PaxosValue greatestLearned = knowledge.getGreatestLearnedValue();
-            LeadershipToken token = genTokenFromValue(greatestLearned);
 
-            if (isLastConfirmedLeader(greatestLearned)) {
-                StillLeadingStatus leadingStatus = isStillLeading(token);
+            if (isThisNodeTheLeaderFor(greatestLearned)) {
+                StillLeadingStatus leadingStatus = isStillLeading(greatestLearned);
+
                 if (leadingStatus == StillLeadingStatus.LEADING) {
-                    return token;
+                    return new PaxosLeadershipToken(greatestLearned);
                 } else if (leadingStatus == StillLeadingStatus.NO_QUORUM) {
                     // If we don't have quorum we should just retry our calls.
                     continue;
@@ -156,12 +165,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             long backoffTime = (long) (randomWaitBeforeProposingLeadership * Math.random());
             Thread.sleep(backoffTime);
 
-            proposeLeadership(token);
+            proposeLeadershipAfter(greatestLearned);
         }
-    }
-
-    private LeadershipToken genTokenFromValue(PaxosValue value) {
-        return new PaxosLeadershipToken(value);
     }
 
     private boolean pingLeader() {
@@ -342,16 +347,15 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public boolean ping() {
-        return isLastConfirmedLeader(knowledge.getGreatestLearnedValue());
+        return isThisNodeTheLeaderFor(knowledge.getGreatestLearnedValue());
     }
 
-    private void proposeLeadership(LeadershipToken token) {
+    private void proposeLeadershipAfter(PaxosValue value) {
         lock.lock();
         try {
-            PaxosValue value = knowledge.getGreatestLearnedValue();
+            PaxosValue latestValue = knowledge.getGreatestLearnedValue();
 
-            LeadershipToken expectedToken = genTokenFromValue(value);
-            if (!expectedToken.sameAs(token)) {
+            if (!Objects.equals(value, latestValue)) {
                 // This means that new data has come in so we shouldn't propose leadership.
                 // We do this check in a lock to ensure concurrent callers to blockOnBecomingLeader behaves correctly.
                 return;
@@ -375,246 +379,55 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
     }
 
-    static class StillLeadingCall {
-        private final AtomicInteger requestCount;
-        private final CountDownLatch populationLatch;
-        private volatile boolean failed;
-        /* The status must only be written by the thread that owns and created this call. They must only be read by
-         * other threads after awaiting the populationLatch.
-         */
-        private volatile StillLeadingStatus status;
-
-        public StillLeadingCall() {
-            this.requestCount = new AtomicInteger(1); // 1 because the current thread wants to make a request.
-            // Counted down once by the thread that owns and created this call, after population or failure.
-            this.populationLatch = new CountDownLatch(1);
-            this.failed = false;
-        }
-
-        public void populate(StillLeadingStatus status) {
-            this.status = status;
-        }
-
-        public int getRequestCountAndSetInvalid() {
-            return requestCount.getAndSet(Integer.MIN_VALUE);
-        }
-
-        public void fail() {
-            failed = true;
-        }
-        public void becomeReadable() {
-            populationLatch.countDown();
-        }
-        // End creator-only threads.
-
-        // This must only be called after awaitPopulation().
-        public boolean isFailed() {
-            return failed;
-        }
-
-        /**
-         * @return true if we are included in the batch and false otherwise
-         */
-        public boolean joinBatch() {
-            if (requestCount.get() < 0) {
-                return false;
-            }
-            int val = requestCount.incrementAndGet();
-            return isRequestCountValid(val);
-        }
-
-        public void awaitPopulation() {
-            try {
-                populationLatch.await();
-            } catch (InterruptedException e) {
-                log.error("Interrupted while waiting for a batch!", e);
-                throw Throwables.throwUncheckedException(e);
-            }
-        }
-
-        // This must only be called after awaitPopulation().
-        public StillLeadingStatus getStatus() {
-            return status;
-        }
-
-        public static boolean isRequestCountValid(int requestCount) {
-            return requestCount > 0;
-        }
-
-    }
-
-    /* The currently outstanding leadership check for a given token, if any. If it exists, it should be used, thus
-     * batching remote calls. If there is none, one should be created and installed. The creator of a call must
-     * populate it.
-     */
-    private final ConcurrentMap<LeadershipToken, StillLeadingCall> currentIsStillLeadingCall = Maps.newConcurrentMap();
-
     @Override
     public StillLeadingStatus isStillLeading(LeadershipToken token) {
         if (!(token instanceof PaxosLeadershipToken)) {
-            return StillLeadingStatus.NOT_LEADING;
+                    return StillLeadingStatus.NOT_LEADING;
+  
         }
 
-        return isStillLeading((PaxosLeadershipToken) token);
+        StillLeadingStatus status = isStillLeading(((PaxosLeadershipToken) token).value);
+        recordStillLeadingStatus(status);
+        return status;
     }
-
-    private StillLeadingStatus isStillLeading(PaxosLeadershipToken token) {
-        while (true) {
-            StillLeadingCallBatch callBatch = getStillLeadingCallBatch(token);
-
-            StillLeadingCall batch = callBatch.batch;
-            if (callBatch.thisThreadOwnsBatch) {
-                populateStillLeadingCall(batch, token);
-            }
-
-            batch.awaitPopulation();
-
-            // Now the batch is ready to be read.
-            if (!batch.isFailed()) {
-                recordStillLeadingStatus(token, batch.getStatus());
-                return batch.getStatus();
-            }
-        }
-    }
-
-    private void recordStillLeadingStatus(
-            PaxosLeadershipToken token,
-            StillLeadingStatus status) {
-        if (status == StillLeadingStatus.NO_QUORUM) {
-            eventRecorder.recordNoQuorum(token.value);
-        } else if (status == StillLeadingStatus.NOT_LEADING) {
-            eventRecorder.recordNotLeading(token.value);
-        }
-    }
-
-    private static class StillLeadingCallBatch {
-        public final boolean thisThreadOwnsBatch;
-        public final StillLeadingCall batch;
-        public StillLeadingCallBatch(boolean thisThreadOwnsBatch,
-                                     StillLeadingCall batch) {
-            this.thisThreadOwnsBatch = thisThreadOwnsBatch;
-            this.batch = batch;
-        }
-    }
-    private final static int MAX_INSTALL_BATCH_ATTEMPTS = 5;
-    private StillLeadingCallBatch getStillLeadingCallBatch(LeadershipToken token) {
-        boolean installedNewBatch = false;
-        boolean joinedBatch = false;
-        @Nullable StillLeadingCall batch = null;
-        for (int installBatchAttempts = 0; !(installedNewBatch || joinedBatch); installBatchAttempts++) {
-            batch = currentIsStillLeadingCall.get(token);
-            if (batch != null) {
-                joinedBatch = batch.joinBatch();
-            }
-            if (!joinedBatch) {
-                StillLeadingCall newBatch = new StillLeadingCall();
-                if (installBatchAttempts <= MAX_INSTALL_BATCH_ATTEMPTS) {
-                    if (batch == null) {
-                        installedNewBatch = currentIsStillLeadingCall.putIfAbsent(token, newBatch) == null;
-                    } else {
-                        installedNewBatch = currentIsStillLeadingCall.replace(token, batch, newBatch);
-                    }
-                } else {
-                    // Barge ahead in this case to prevent very unfortunate scheduling from preventing progress.
-                    log.warn("Failed to install a leadership check batch {} times; blindly installing a batch. " +
-                            "This should be rare!", MAX_INSTALL_BATCH_ATTEMPTS);
-                    currentIsStillLeadingCall.put(token, newBatch);
-                    installedNewBatch = true;
-                }
-                if (installedNewBatch) {
-                    // wait for in-flight batch to finish before continuing (simple batching)
-                    if (batch != null) {
-                        batch.awaitPopulation();
-                    }
-                    batch = newBatch;
+            
+            private void recordStillLeadingStatus(
+                                                  PaxosLeadershipToken token,
+                                                  StillLeadingStatus status) {
+                if (status == StillLeadingStatus.NO_QUORUM) {
+                    eventRecorder.recordNoQuorum(token.value);
+                } else if (status == StillLeadingStatus.NOT_LEADING) {
+                    eventRecorder.recordNotLeading(token.value);
                 }
             }
-        }
-        Preconditions.checkState(batch != null);
-        return new StillLeadingCallBatch(installedNewBatch, batch);
-    }
 
-    private void populateStillLeadingCall(StillLeadingCall batch, LeadershipToken token) {
-        try {
-            batch.getRequestCountAndSetInvalid();
-            StillLeadingStatus status = isStillLeadingInternal(token);
-            batch.populate(status);
-        } catch (Throwable t) {
-            log.error("Something went wrong while checking leadership", t);
-            batch.fail();
-        } finally {
-            batch.becomeReadable();
-            /* Close only the current batch. If someone else has replaced this batch
-             * already, don't close them prematurely; let them close themselves.
-             */
-            currentIsStillLeadingCall.remove(token, batch);
-        }
-    }
-
-
-    private StillLeadingStatus isStillLeadingInternal(LeadershipToken token) {
-        Preconditions.checkNotNull(token);
-
-        final PaxosValue mostRecentValue = knowledge.getGreatestLearnedValue();
-        final long seq = mostRecentValue.getRound();
-        final LeadershipToken mostRecentToken = genTokenFromValue(mostRecentValue);
-
-        // check if node thinks it is leader
-        if (!isLastConfirmedLeader(mostRecentValue)) {
+    private StillLeadingStatus isStillLeading(PaxosValue value) {
+        if (!isThisNodeTheLeaderFor(value)) {
             return StillLeadingStatus.NOT_LEADING;
         }
 
-        // check if token is invalidated
-        if (!token.sameAs(mostRecentToken)) {
+        if (value.getRound() != latestRoundLearnedLocally()) {
             return StillLeadingStatus.NOT_LEADING;
         }
 
-        // check if node still has quorum
-        List<PaxosResponse> responses = PaxosQuorumChecker.collectQuorumResponses(
-                acceptors,
-                new Function<PaxosAcceptor, PaxosResponse>() {
-                    @Override
-                    @Nullable
-                    public PaxosResponse apply(@Nullable PaxosAcceptor acceptor) {
-                        return confirmLeader(acceptor, seq);
-                    }
-                },
-                proposer.getQuorumSize(),
-                executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
-                true);
-        if (PaxosQuorumChecker.hasQuorum(responses, proposer.getQuorumSize())) {
-            // If we have a quorum we are good to go
-            return StillLeadingStatus.LEADING;
+        return latestRoundVerifier.isLatestRound(value.getRound())
+                .toStillLeadingStatus();
+    }
+
+    private long latestRoundLearnedLocally() {
+        return knowledge.getGreatestLearnedValue().getRound();
+    }
+
+    private boolean isThisNodeTheLastKnownLeader() {
+        PaxosValue lastKnownValue = knowledge.getGreatestLearnedValue();
+        return isThisNodeTheLeaderFor(lastKnownValue);
+    }
+
+    private boolean isThisNodeTheLeaderFor(PaxosValue value) {
+        if (value == null) {
+            return false;
         }
-
-        for (PaxosResponse paxosResponse : responses) {
-            if (paxosResponse != null && !paxosResponse.isSuccessful()) {
-                // If we have a nack then someone has prepared or accepted a new seq.
-                // In this case we are most likely not the leader
-                return StillLeadingStatus.NOT_LEADING;
-            }
-        }
-        return StillLeadingStatus.NO_QUORUM;
-    }
-
-    /**
-     * Confirms if a given sequence is still the newest according to a given acceptor
-     *
-     * @param acceptor the acceptor to check against
-     * @param seq the instance of paxos in question
-     * @return a paxos response that either confirms the leader or nacks
-     */
-    private PaxosResponse confirmLeader(PaxosAcceptor acceptor, long seq) {
-        return new PaxosResponseImpl(seq >= acceptor.getLatestSequencePreparedOrAccepted());
-    }
-
-    public ImmutableList<PaxosAcceptor> getAcceptors() {
-        return acceptors;
-    }
-
-    private boolean isLastConfirmedLeader(PaxosValue value) {
-        return value != null ? value.getLeaderUUID().equals(proposer.getUuid()) : false;
+        return value.getLeaderUUID().equals(proposer.getUuid());
     }
 
     /**
@@ -624,7 +437,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
      * @returns true if new state was learned, otherwise false
      */
     public boolean updateLearnedStateFromPeers(PaxosValue greatestLearned) {
-        final long nextToLearnSeq = greatestLearned != null ? greatestLearned.getRound() + 1 : Defaults.defaultValue(long.class);
+        final long nextToLearnSeq = getNextSequence(greatestLearned);
         List<PaxosUpdate> updates = PaxosQuorumChecker.<PaxosLearner, PaxosUpdate> collectQuorumResponses(
                 learners,
                 new Function<PaxosLearner, PaxosUpdate>() {
@@ -653,5 +466,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
 
         return learned;
+    }
+
+    private long getNextSequence(PaxosValue value) {
+        return value == null ? 0L : value.getRound() + 1L;
     }
 }
