@@ -65,7 +65,7 @@ public class FailoverFeignTargetTest {
     private static final RetryableException EXCEPTION_WITHOUT_RETRY_AFTER = mock(RetryableException.class);
     private static final RetryableException BLOCKING_TIMEOUT_EXCEPTION = mock(RetryableException.class);
 
-    private FailoverFeignTarget<Object> target;
+    private FailoverFeignTarget<Object> normalTarget;
     private FailoverFeignTarget<Object> spiedTarget;
 
     static {
@@ -79,92 +79,92 @@ public class FailoverFeignTargetTest {
 
     @Before
     public void setup() {
-        target = new FailoverFeignTarget<>(SERVERS, 1, Object.class);
+        normalTarget = new FailoverFeignTarget<>(SERVERS, 1, Object.class);
         spiedTarget = Mockito.spy(new FailoverFeignTarget<>(SERVERS, 100, Object.class));
     }
 
     @Test
     public void failsOverOnExceptionWithRetryAfter() {
-        String initialUrl = target.url();
-        target.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
-        assertThat(target.url()).isNotEqualTo(initialUrl);
+        String initialUrl = normalTarget.url();
+        normalTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+        assertThat(normalTarget.url()).isNotEqualTo(initialUrl);
     }
 
     @Test
     public void failsOverMultipleTimesOnNonBlockingExceptionsWithRetryAfter() {
         String previousUrl;
         for (int i = 0; i < FAILOVERS; i++) {
-            previousUrl = target.url();
-            target.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
-            assertThat(target.url()).isNotEqualTo(previousUrl);
+            previousUrl = normalTarget.url();
+            normalTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+            assertThat(normalTarget.url()).isNotEqualTo(previousUrl);
         }
     }
 
     @Test
     public void doesNotImmediatelyFailOverOnExceptionWithoutRetryAfter() {
-        String initialUrl = target.url();
-        target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
-        assertThat(target.url()).isEqualTo(initialUrl);
+        String initialUrl = normalTarget.url();
+        normalTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+        assertThat(normalTarget.url()).isEqualTo(initialUrl);
     }
 
     @Test
     public void rethrowsExceptionWithoutRetryAfterWhenLimitExceeded() {
         assertThatThrownBy(() -> {
             for (int i = 0; i < FAILOVERS; i++) {
-                simulateRequest(target);
-                target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+                simulateRequest(normalTarget);
+                normalTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
             }
         }).isEqualTo(EXCEPTION_WITHOUT_RETRY_AFTER);
     }
 
     @Test
     public void doesNotFailOverOnBlockingTimeoutException() {
-        String initialUrl = target.url();
-        target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
-        assertThat(target.url()).isEqualTo(initialUrl);
+        String initialUrl = normalTarget.url();
+        normalTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+        assertThat(normalTarget.url()).isEqualTo(initialUrl);
     }
 
     @Test
     public void doesNotFailOverOnMultipleBlockingTimeoutExceptions() {
-        String initialUrl = target.url();
+        String initialUrl = normalTarget.url();
         for (int i = 0; i < FAILOVERS; i++) {
-            target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
-            assertThat(target.url()).isEqualTo(initialUrl);
+            normalTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+            assertThat(normalTarget.url()).isEqualTo(initialUrl);
         }
     }
 
     @Test
     public void failsOverMultipleTimesWithFailingLeader() {
-        String initialUrl = target.url();
+        String initialUrl = normalTarget.url();
         for (int i = 0; i < FAILOVERS; i++) {
             // The 'leader' is the initial node, and fails with non fast-failover exceptions (so without retry after).
             // The other nodes fail with retry afters.
-            target.continueOrPropagate(
-                    target.url().equals(initialUrl) ? EXCEPTION_WITHOUT_RETRY_AFTER : EXCEPTION_WITH_RETRY_AFTER);
+            normalTarget.continueOrPropagate(
+                    normalTarget.url().equals(initialUrl) ? EXCEPTION_WITHOUT_RETRY_AFTER : EXCEPTION_WITH_RETRY_AFTER);
         }
     }
 
     @Test
     public void retriesOnSameNodeIfBlockingTimeoutIsLastAllowedFailureBeforeSwitch() {
-        for (int i = 1; i < target.failuresBeforeSwitching; i++) {
-            simulateRequest(target);
-            target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+        for (int i = 1; i < normalTarget.failuresBeforeSwitching; i++) {
+            simulateRequest(normalTarget);
+            normalTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
         }
-        String currentUrl = target.url();
-        target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
-        assertThat(target.url()).isEqualTo(currentUrl);
+        String currentUrl = normalTarget.url();
+        normalTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+        assertThat(normalTarget.url()).isEqualTo(currentUrl);
     }
 
     @Test
     public void blockingTimeoutExceptionResetsFailureCount() {
-        String currentUrl = target.url();
+        String currentUrl = normalTarget.url();
         for (int i = 0; i < ITERATIONS; i++) {
-            for (int j = 1; j < target.failuresBeforeSwitching; j++) {
-                simulateRequest(target);
-                target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+            for (int j = 1; j < normalTarget.failuresBeforeSwitching; j++) {
+                simulateRequest(normalTarget);
+                normalTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
             }
-            target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
-            assertThat(target.url()).isEqualTo(currentUrl);
+            normalTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+            assertThat(normalTarget.url()).isEqualTo(currentUrl);
         }
     }
 
