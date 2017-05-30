@@ -1049,7 +1049,6 @@
         "org.glassfish.jersey.core:jersey-server": {
             "locked": "2.22.1",
             "transitive": [
-                "com.palantir.remoting1:jersey-servers",
                 "io.dropwizard:dropwizard-jersey",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",
@@ -2232,7 +2231,6 @@
         "org.glassfish.jersey.core:jersey-server": {
             "locked": "2.22.1",
             "transitive": [
-                "com.palantir.remoting1:jersey-servers",
                 "io.dropwizard:dropwizard-jersey",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",
