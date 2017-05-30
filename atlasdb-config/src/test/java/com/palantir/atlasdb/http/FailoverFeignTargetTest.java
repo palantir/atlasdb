@@ -29,12 +29,15 @@ import static org.mockito.Mockito.when;
 
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.http.HttpStatus;
 import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -51,6 +54,7 @@ public class FailoverFeignTargetTest {
     private static final int FAILOVERS = 1000;
     private static final int ITERATIONS = 100;
     private static final int CLUSTER_SIZE = 3;
+    private static final double GOLDEN_RATIO = (Math.sqrt(5) + 1.0) / 2.0;
 
     private static final String SERVER_1 = "server1";
     private static final String SERVER_2 = "server2";
@@ -61,8 +65,8 @@ public class FailoverFeignTargetTest {
     private static final RetryableException EXCEPTION_WITHOUT_RETRY_AFTER = mock(RetryableException.class);
     private static final RetryableException BLOCKING_TIMEOUT_EXCEPTION = mock(RetryableException.class);
 
-    private final FailoverFeignTarget<Object> target = new FailoverFeignTarget<>(
-            SERVERS, 1, Object.class);
+    private FailoverFeignTarget<Object> normalTarget;
+    private FailoverFeignTarget<Object> spiedTarget;
 
     static {
         when(EXCEPTION_WITH_RETRY_AFTER.retryAfter()).thenReturn(Date.valueOf(LocalDate.MAX));
@@ -73,137 +77,182 @@ public class FailoverFeignTargetTest {
                         HttpStatus.SC_SERVICE_UNAVAILABLE)));
     }
 
+    @Before
+    public void setup() {
+        normalTarget = new FailoverFeignTarget<>(SERVERS, 1, Object.class);
+        spiedTarget = Mockito.spy(new FailoverFeignTarget<>(SERVERS, 100, Object.class));
+    }
+
     @Test
     public void failsOverOnExceptionWithRetryAfter() {
-        String initialUrl = target.url();
-        target.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
-        assertThat(target.url()).isNotEqualTo(initialUrl);
+        String initialUrl = normalTarget.url();
+        normalTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+        assertThat(normalTarget.url()).isNotEqualTo(initialUrl);
     }
 
     @Test
     public void failsOverMultipleTimesOnNonBlockingExceptionsWithRetryAfter() {
         String previousUrl;
         for (int i = 0; i < FAILOVERS; i++) {
-            previousUrl = target.url();
-            target.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
-            assertThat(target.url()).isNotEqualTo(previousUrl);
+            previousUrl = normalTarget.url();
+            normalTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+            assertThat(normalTarget.url()).isNotEqualTo(previousUrl);
         }
     }
 
     @Test
     public void doesNotImmediatelyFailOverOnExceptionWithoutRetryAfter() {
-        String initialUrl = target.url();
-        target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
-        assertThat(target.url()).isEqualTo(initialUrl);
+        String initialUrl = normalTarget.url();
+        normalTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+        assertThat(normalTarget.url()).isEqualTo(initialUrl);
     }
 
     @Test
     public void rethrowsExceptionWithoutRetryAfterWhenLimitExceeded() {
         assertThatThrownBy(() -> {
             for (int i = 0; i < FAILOVERS; i++) {
-                simulateRequest();
-                target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+                simulateRequest(normalTarget);
+                normalTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
             }
         }).isEqualTo(EXCEPTION_WITHOUT_RETRY_AFTER);
     }
 
     @Test
     public void doesNotFailOverOnBlockingTimeoutException() {
-        String initialUrl = target.url();
-        target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
-        assertThat(target.url()).isEqualTo(initialUrl);
+        String initialUrl = normalTarget.url();
+        normalTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+        assertThat(normalTarget.url()).isEqualTo(initialUrl);
     }
 
     @Test
     public void doesNotFailOverOnMultipleBlockingTimeoutExceptions() {
-        String initialUrl = target.url();
+        String initialUrl = normalTarget.url();
         for (int i = 0; i < FAILOVERS; i++) {
-            target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
-            assertThat(target.url()).isEqualTo(initialUrl);
+            normalTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+            assertThat(normalTarget.url()).isEqualTo(initialUrl);
         }
     }
 
     @Test
     public void failsOverMultipleTimesWithFailingLeader() {
-        String initialUrl = target.url();
+        String initialUrl = normalTarget.url();
         for (int i = 0; i < FAILOVERS; i++) {
             // The 'leader' is the initial node, and fails with non fast-failover exceptions (so without retry after).
             // The other nodes fail with retry afters.
-            target.continueOrPropagate(
-                    target.url().equals(initialUrl) ? EXCEPTION_WITHOUT_RETRY_AFTER : EXCEPTION_WITH_RETRY_AFTER);
+            normalTarget.continueOrPropagate(
+                    normalTarget.url().equals(initialUrl) ? EXCEPTION_WITHOUT_RETRY_AFTER : EXCEPTION_WITH_RETRY_AFTER);
         }
     }
 
     @Test
     public void retriesOnSameNodeIfBlockingTimeoutIsLastAllowedFailureBeforeSwitch() {
-        for (int i = 1; i < target.failuresBeforeSwitching; i++) {
-            simulateRequest();
-            target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+        for (int i = 1; i < normalTarget.failuresBeforeSwitching; i++) {
+            simulateRequest(normalTarget);
+            normalTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
         }
-        String currentUrl = target.url();
-        target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
-        assertThat(target.url()).isEqualTo(currentUrl);
+        String currentUrl = normalTarget.url();
+        normalTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+        assertThat(normalTarget.url()).isEqualTo(currentUrl);
     }
 
     @Test
     public void blockingTimeoutExceptionResetsFailureCount() {
-        String currentUrl = target.url();
+        String currentUrl = normalTarget.url();
         for (int i = 0; i < ITERATIONS; i++) {
-            for (int j = 1; j < target.failuresBeforeSwitching; j++) {
-                simulateRequest();
-                target.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+            for (int j = 1; j < normalTarget.failuresBeforeSwitching; j++) {
+                simulateRequest(normalTarget);
+                normalTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
             }
-            target.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
-            assertThat(target.url()).isEqualTo(currentUrl);
+            normalTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+            assertThat(normalTarget.url()).isEqualTo(currentUrl);
         }
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void blockingTimeout() {
-        final FailoverFeignTarget spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
-                SERVERS, 1, Object.class));
+    public void exceptionsWithRetryAfterBacksOffAfterQueryingAllNodesInTheCluster() {
         for (int i = 0; i < CLUSTER_SIZE; i++) {
-            spiedTarget.url();
+            simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
         }
 
         ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
-        verify(spiedTarget, times(CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
+        verify(spiedTarget, times(1)).pauseForBackoff(any(), argument.capture());
 
         List<Long> arguments = argument.getAllValues();
 
         long bottom = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
         long cap = (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
         MatcherAssert.assertThat(arguments, Matchers.contains(
-                is(0L), is(0L), is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)))));
+                is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)))));
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void blockingTimeoutManyTimes() {
-        final FailoverFeignTarget spiedTarget = Mockito.spy(new FailoverFeignTarget<>(
-                SERVERS, 1, Object.class));
+    public void multipleExceptionsWithRetryAfterBackOffAfterQueryingAllNodesInTheCluster() {
         for (int i = 0; i < 3 * CLUSTER_SIZE; i++) {
-            spiedTarget.url();
+            simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
         }
 
         ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
-        verify(spiedTarget, times(3 * CLUSTER_SIZE)).pauseForBackoff(any(), argument.capture());
+        verify(spiedTarget, times(3)).pauseForBackoff(any(), argument.capture());
 
         List<Long> arguments = argument.getAllValues();
 
         long bottom = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
         long cap = (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
-        Matcher jitteredBackoffMatcher = is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)));
+        Matcher<Long> jitteredBackoffMatcher = is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)));
         MatcherAssert.assertThat(arguments, Matchers.contains(
-                is(0L), is(0L), jitteredBackoffMatcher,
-                is(0L), is(0L), jitteredBackoffMatcher,
-                is(0L), is(0L), jitteredBackoffMatcher));
+                jitteredBackoffMatcher,
+                jitteredBackoffMatcher,
+                jitteredBackoffMatcher));
     }
 
-    private void simulateRequest() {
+    @Test
+    @SuppressWarnings("unchecked")
+    public void blockingTimeoutExceptionsDoNotBackoff() {
+        for (int i = 0; i < ITERATIONS; i++) {
+            simulateRequest(spiedTarget);
+            spiedTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+        }
+
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+        verify(spiedTarget, times(ITERATIONS)).pauseForBackoff(any(), argument.capture());
+
+        List<Long> arguments = argument.getAllValues();
+        Matcher[] expectedArguments = new Matcher[ITERATIONS];
+        Arrays.fill(expectedArguments, is(0L));
+
+        MatcherAssert.assertThat(arguments, Matchers.contains(expectedArguments));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void exceptionsWithoutRetryAfterBackoffExponentially() {
+        int numIterations = 10;
+
+        for (int i = 0; i < numIterations; i++) {
+            simulateRequest(spiedTarget);
+            spiedTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+        }
+
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+        verify(spiedTarget, times(numIterations)).pauseForBackoff(any(), argument.capture());
+
+        List<Long> arguments = argument.getAllValues();
+
+        List<Matcher> expectedArguments = new ArrayList<>();
+        for (int i = 1; i <= numIterations; i++) {
+            long cap = Math.round(Math.pow(GOLDEN_RATIO, i));
+            expectedArguments.add(is(both(greaterThanOrEqualTo(0L)).and(lessThan(cap))));
+        }
+        Matcher[] expectedArgumentsArray = expectedArguments.toArray(new Matcher[expectedArguments.size()]);
+
+        MatcherAssert.assertThat(arguments, Matchers.contains(expectedArgumentsArray));
+    }
+
+    private void simulateRequest(FailoverFeignTarget target) {
         // This method is called as a part of a request being invoked.
         // We need to update the mostRecentServerIndex, for the FailoverFeignTarget to track failures properly.
         target.url();
