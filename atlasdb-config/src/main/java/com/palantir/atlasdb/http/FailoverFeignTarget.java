@@ -17,6 +17,7 @@ package com.palantir.atlasdb.http;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -100,7 +101,14 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
             int numFailovers = failoverCount.get();
             if (numFailovers > 0 && numFailovers % servers.size() == 0) {
-                pauseForBackoff(ex, BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS);
+
+                // We implement some randomness around the expected value of BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS.
+                // Even though this is not exponential backoff, should be enough to avoid a thundering herd problem.
+                long pauseTimeWithJitter = ThreadLocalRandom.current()
+                        .nextLong(BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2,
+                                (BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2);
+
+                pauseForBackoff(ex, pauseTimeWithJitter);
             } else {
                 pauseForBackoff(ex);
             }
@@ -150,10 +158,16 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
 
     private void pauseForBackoff(RetryableException ex) {
-        double pauseTime = Math.pow(
+        double exponentialPauseTime = Math.pow(
                 GOLDEN_RATIO,
                 numSwitches.get() * failuresBeforeSwitching + failuresSinceLastSwitch.get());
-        pauseForBackoff(ex, Math.round(pauseTime));
+        long cappedPauseTime = Math.min(maxBackoffMillis, Math.round(exponentialPauseTime));
+
+        // We use the Full Jitter (https://www.awsarchitectureblog.com/2015/03/backoff.html).
+        // We prioritize a low server load over completion time.
+        long pauseTimeWithJitter = ThreadLocalRandom.current().nextLong(cappedPauseTime);
+
+        pauseForBackoff(ex, pauseTimeWithJitter);
     }
 
     @VisibleForTesting
