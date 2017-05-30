@@ -225,10 +225,10 @@ Please refer to the <a class="reference internal" href="../cluster_management/sw
 <td><a class="reference internal" href="../miscellaneous/dropwizard-metrics.html#dropwizard-metrics"><span class="std std-ref">Sweep metrics</span></a> now record counts of cell-timestamp pairs examined rather than the count of entire cells examined. This provides more accurate insight on the work done by the sweeper.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
-<td>The Sweep CLI configuration parameters <code class="docutils literal"><span class="pre">--batch-size</span></code> and <code class="docutils literal"><span class="pre">--cell-batch-size</span></code> have been removed, as we now batch on cell-timestamp pairs rather than by rows and cells.
+<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<td>The Sweep CLI configuration parameters <code class="docutils literal"><span class="pre">--batch-size</span></code> and <code class="docutils literal"><span class="pre">--cell-batch-size</span></code> have been deprecated, as we now batch on cell-timestamp pairs rather than by rows and cells.
 Please use the <code class="docutils literal"><span class="pre">--candidate-batch-hint</span></code> parameter instead of <code class="docutils literal"><span class="pre">--batch-hint</span></code>, and <code class="docutils literal"><span class="pre">--read-limit</span></code> instead of <code class="docutils literal"><span class="pre">--cell-batch-size</span></code> (<a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">docs</span></a>).
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1962">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
 <td>Configuration parameters <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> and <code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code> have been deprecated in favour of <code class="docutils literal"><span class="pre">sweepCandidateBatchHint</span></code> and <code class="docutils literal"><span class="pre">sweepReadLimit</span></code> respectively.
