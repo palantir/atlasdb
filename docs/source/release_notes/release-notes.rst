@@ -92,19 +92,12 @@ develop
 
     *    - |deprecated|
          - The Sweep CLI configuration parameters ``--batch-size`` and ``--cell-batch-size`` have been deprecated, as we now batch on cell-timestamp pairs rather than by rows and cells.
-           Please use the ``--candidate-batch-hint`` parameter instead of ``--batch-hint``, and ``--read-limit`` instead of ``--cell-batch-size`` (:ref:`docs <sweep_tunable_parameters>`).
+           Please use the ``--candidate-batch-hint``(batching on cells) instead of ``--batch-hint``(batching on rows), and ``--read-limit`` instead of ``--cell-batch-size`` (:ref:`docs <sweep_tunable_parameters>`).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1962>`__)
 
     *    - |deprecated|
-         - Configuration parameters ``sweepBatchSize`` and ``sweepCellBatchSize`` have been deprecated in favour of ``sweepCandidateBatchHint`` and ``sweepReadLimit`` respectively.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
-
-    *    - |improved|
-         - Some of our log parameters are marked as safe for logging, as part of our internal guidelines.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1931>`__)
-
-    *    - |improved|
-         - Add jitter to backoff on retries to `reduce load <https://www.awsarchitectureblog.com/2015/03/backoff.html>`__ on the server.
+         - The background sweep configuration parameters ``sweepBatchSize``(which used to batch on rows) and ``sweepCellBatchSize`` have been deprecated in favour of ``sweepCandidateBatchHint``(which now batches on cells) and ``sweepReadLimit`` respectively.
+           If your application configures either of these values, please look at more details in the :ref:`docs <sweep_tunable_parameters>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1945>`__)
 
     *    - |fixed|
