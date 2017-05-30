@@ -68,19 +68,19 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     @Test
     public void cannotIssueTimestampsWithoutQuorum() {
         assertThatThrownBy(() -> getTimestampService(CLIENT).getFreshTimestamp())
-                .satisfies(IsolatedPaxosTimeLockServerIntegrationTest::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(this::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void cannotIssueLocksWithoutQuorum() {
         assertThatThrownBy(() -> getLockService(CLIENT).currentTimeMillis())
-                .satisfies(IsolatedPaxosTimeLockServerIntegrationTest::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(this::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void cannotPerformTimestampManagementWithoutQuorum() {
         assertThatThrownBy(() -> getTimestampManagementService(CLIENT).fastForwardTimestamp(1000L))
-                .satisfies(IsolatedPaxosTimeLockServerIntegrationTest::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(this::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
@@ -104,7 +104,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
         learner.getGreatestLearnedValue();
     }
 
-    private static void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
+    private void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
         assertThat(throwable).isInstanceOf(RetryableException.class)
                 .hasMessageContaining("method invoked on a non-leader");
     }
