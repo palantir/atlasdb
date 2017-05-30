@@ -96,7 +96,7 @@ public class SweepCommand extends SingleBackendCommand {
     @Option(name = {"--candidate-batch-hint"},
             description = "Approximate number of candidate (cell, timestamp) pairs to load at once (default: "
                     + AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT + ")")
-    Integer candidateBatchHint = AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT;
+    Integer candidateBatchHint;
 
     @Option(name = {"--read-limit"},
             description = "Target number of (cell, timestamp) pairs to examine (default: "
