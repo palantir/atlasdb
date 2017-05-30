@@ -204,59 +204,54 @@
 <td>The <code class="docutils literal"><span class="pre">acquire-backup-lock</span></code> endpoint of <code class="docutils literal"><span class="pre">PersistentLockService</span></code> now returns a 400 response instead of a 500 response when no reason for acquiring the lock is provided.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1909">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-changed">CHANGED</span></td>
-<td>Our dependency on Cassandra thrift has been bumped from 2.2.8 to 3.10; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
-Note that this does not affect our dependency on Cassandra itself.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1896">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">PaxosTimestampBoundStore</span></code> now throws <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code>, invalidating the timestamp store, if a bound update fails because another timestamp service on the same node proposed a smaller bound for the same sequence number.
 This was added to address a very specific race condition leading to an infinite loop that would saturate the TimeLock cluster with spurious Paxos messages; see <a class="reference external" href="https://github.com/palantir/atlasdb/issues/1941">issue 1941</a> for more detail.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1942">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
 <td>The FastForwardTimestamp and FetchTimestamp CLIs have been deprecated.
 Please use the <code class="docutils literal"><span class="pre">timestamp-management/fast-forward</span></code> and <code class="docutils literal"><span class="pre">timestamp/fresh-timestamp</span></code> endpoints instead.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1936">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Sweep now batches delete calls before executing them.
 This should improve performance on relatively clean tables by deleting more cells at a time, leading to fewer DB operations and taking out the backup lock less frequently.
 The new configuration parameter <code class="docutils literal"><span class="pre">sweepDeleteBatchHint</span></code> determines the approximate number of (cell, timestamp) pairs deleted in a single batch.
 Please refer to the <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">documentation</span></a> for details of how to configure this.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td><a class="reference internal" href="../miscellaneous/dropwizard-metrics.html#dropwizard-metrics"><span class="std std-ref">Sweep metrics</span></a> now record counts of cell-timestamp pairs examined rather than the count of entire cells examined. This provides more accurate insight on the work done by the sweeper.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>The Sweep CLI configuration parameters <code class="docutils literal"><span class="pre">--batch-size</span></code> and <code class="docutils literal"><span class="pre">--cell-batch-size</span></code> have been removed, as we now batch on cell-timestamp pairs rather than by rows and cells.
 Please use the <code class="docutils literal"><span class="pre">--candidate-batch-hint</span></code> parameter instead of <code class="docutils literal"><span class="pre">--batch-hint</span></code>, and <code class="docutils literal"><span class="pre">--read-limit</span></code> instead of <code class="docutils literal"><span class="pre">--cell-batch-size</span></code> (<a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">docs</span></a>).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
 <td>Configuration parameters <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> and <code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code> have been deprecated in favour of <code class="docutils literal"><span class="pre">sweepCandidateBatchHint</span></code> and <code class="docutils literal"><span class="pre">sweepReadLimit</span></code> respectively.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Some of our log parameters are marked as safe for logging, as part of our internal guidelines.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1931">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Add jitter to backoff on retries to <a class="reference external" href="https://www.awsarchitectureblog.com/2015/03/backoff.html">reduce load</a> on the server.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1945">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>After <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1808">Pull Request</a> the TimeLock Server previously did not gate the lock service behind the <code class="docutils literal"><span class="pre">AwaitingLeadershipProxy</span></code> - it now does again.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1955">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">TimestampAllocationFailures</span></code> now correctly propagates <code class="docutils literal"><span class="pre">ServiceNotAvailableException</span></code> if thrown from the timestamp bound store.
 Previously, a <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code> that was thrown from the timestamp store would be wrapped in <code class="docutils literal"><span class="pre">RuntimeException</span></code> before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/TBC">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>New <code class="docutils literal"><span class="pre">KeyValueService</span></code> method <code class="docutils literal"><span class="pre">getCandidateCellsForSweeping()</span></code> that should eventually replace <code class="docutils literal"><span class="pre">getRangeOfTimestamps()</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1943">Pull Request</a>)</td>
 </tr>
