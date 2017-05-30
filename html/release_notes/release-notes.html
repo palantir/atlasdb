@@ -243,11 +243,46 @@ Please use the <code class="docutils literal"><span class="pre">--candidate-batc
 <td>Add jitter to backoff on retries to <a class="reference external" href="https://www.awsarchitectureblog.com/2015/03/backoff.html">reduce load</a> on the server.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1945">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>After <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1808">Pull Request</a> the TimeLock Server previously did not gate the lock service behind the <code class="docutils literal"><span class="pre">AwaitingLeadershipProxy</span></code> - it now does again.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1955">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">TimestampAllocationFailures</span></code> now correctly propagates <code class="docutils literal"><span class="pre">ServiceNotAvailableException</span></code> if thrown from the timestamp bound store.
+Previously, a <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code> that was thrown from the timestamp store would be wrapped in <code class="docutils literal"><span class="pre">RuntimeException</span></code> before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/TBC">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>New <code class="docutils literal"><span class="pre">KeyValueService</span></code> method <code class="docutils literal"><span class="pre">getCandidateCellsForSweeping()</span></code> that should eventually replace <code class="docutils literal"><span class="pre">getRangeOfTimestamps()</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1943">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
 <div class="section" id="id1">
-<h2>0.42.1<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<h2>0.42.2<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>25 May 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">PaxosTimestampBoundStore</span></code> now throws <code class="docutils literal"><span class="pre">TerminalTimestampStoreException</span></code> if a bound update fails because another timestamp service on the same node proposed a smaller bound, or if another node proposed a bound update we were not expecting.
+Previously, a <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code> that was thrown from the timestamp store would be wrapped in <code class="docutils literal"><span class="pre">RuntimeException</span></code> before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/TBC">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id2">
+<h2>0.42.1<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
 <p>24 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -268,8 +303,8 @@ This was added to address a very specific race condition leading to an infinite 
 </tbody>
 </table>
 </div>
-<div class="section" id="id2">
-<h2>0.42.0<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id3">
+<h2>0.42.0<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
 <p>23 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -313,8 +348,8 @@ There is no issue with having tables with different values for <code class="docu
 </tbody>
 </table>
 </div>
-<div class="section" id="id3">
-<h2>0.41.0<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id4">
+<h2>0.41.0<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
 <p>17 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -374,8 +409,8 @@ This will be useful for debugging <a class="reference external" href="https://gi
 </tbody>
 </table>
 </div>
-<div class="section" id="id4">
-<h2>0.40.1<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id5">
+<h2>0.40.1<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
 <p>4 May 2017</p>
 <p>This release contains (almost) exclusively baseline-related changes.</p>
 <table border="1" class="colwidths-given docutils">
@@ -424,8 +459,8 @@ If this is a concern, please contact the AtlasDB team.
 </tbody>
 </table>
 </div>
-<div class="section" id="id5">
-<h2>0.40.0<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id6">
+<h2>0.40.0<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
 <p>28 Apr 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
