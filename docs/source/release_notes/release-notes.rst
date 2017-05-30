@@ -42,8 +42,27 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+
+======
+0.43.0
+======
+
+25 May 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
-         - For requests that fail due to to networking or other IOException, `FailOverFeignTarget.continueOrPropagate` now backs off before retrying.
+         - For requests that fail due to to networking or other IOException, the AtlasDB client now backs off before retrying.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1958>`__)
 
     *    - |userbreak| |improved|
@@ -95,7 +114,7 @@ develop
     *    - |fixed|
          - ``TimestampAllocationFailures`` now correctly propagates ``ServiceNotAvailableException`` if thrown from the timestamp bound store.
            Previously, a ``NotCurrentLeaderException`` that was thrown from the timestamp store would be wrapped in ``RuntimeException`` before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/TBC>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1954>`__)
 
     *    - |devbreak|
          - New ``KeyValueService`` method ``getCandidateCellsForSweeping()`` that should eventually replace ``getRangeOfTimestamps()``.
