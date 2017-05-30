@@ -93,6 +93,10 @@ develop
          - After `Pull Request <https://github.com/palantir/atlasdb/pull/1808>`__ the TimeLock Server previously did not gate the lock service behind the ``AwaitingLeadershipProxy`` - it now does again.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1955>`__)
 
+    *    - |devbreak|
+         - New ``KeyValueService`` method ``getCandidateCellsForSweeping()`` that should eventually replace ``getRangeOfTimestamps()``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1943>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
@@ -159,7 +163,6 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1801>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
-
 
 ======
 0.41.0
