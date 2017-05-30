@@ -101,12 +101,12 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1945>`__)
 
     *    - |fixed|
-         - After `Pull Request <https://github.com/palantir/atlasdb/pull/1808>`__ the TimeLock Server previously did not gate the lock service behind the ``AwaitingLeadershipProxy`` - it now does again.
+         - After the Pull Request `#1808 <https://github.com/palantir/atlasdb/pull/1808>`__ the TimeLock Server did not gate the lock service behind the ``AwaitingLeadershipProxy``. This could lead to data corruption in very rare scenarios. The affected TimeLock server versions are not distributed anymore internally.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1955>`__)
 
     *    - |fixed|
          - ``TimestampAllocationFailures`` now correctly propagates ``ServiceNotAvailableException`` if thrown from the timestamp bound store.
-           Previously, a ``NotCurrentLeaderException`` that was thrown from the timestamp store would be wrapped in ``RuntimeException`` before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s.
+           Previously, a ``NotCurrentLeaderException`` that was thrown from the timestamp store would be wrapped in ``RuntimeException`` before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s. This could lead to inneficient retry logic.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1954>`__)
 
     *    - |devbreak|
