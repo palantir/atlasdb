@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Functions;
@@ -68,6 +70,24 @@ public class SweepCommand extends SingleBackendCommand {
             description = "Sweep all tables")
     boolean sweepAllTables;
 
+    /**
+     * @deprecated Use --candidate-batch-hint instead.
+     */
+    @Deprecated
+    @Option(name = {"--batch-size"},
+            description = "Sweeper row batch size. This option has been deprecated "
+                    + "in favor of --candidate-batch-hint")
+    Integer batchSize;
+
+    /**
+     * @deprecated Use --read-limit instead.
+     */
+    @Deprecated
+    @Option(name = {"--cell-batch-size"},
+            description = "Sweeper cell batch size. This option has been deprecated "
+                    + "in favor of --read-limit")
+    Integer cellBatchSize;
+
     @Option(name = {"--delete-batch-hint"},
             description = "Target number of (cell, timestamp) pairs to delete in a single batch (default: "
                     + AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT + ")")
@@ -76,12 +96,12 @@ public class SweepCommand extends SingleBackendCommand {
     @Option(name = {"--candidate-batch-hint"},
             description = "Approximate number of candidate (cell, timestamp) pairs to load at once (default: "
                     + AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT + ")")
-    int candidateBatchHint = AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT;
+    Integer candidateBatchHint;
 
     @Option(name = {"--read-limit"},
             description = "Target number of (cell, timestamp) pairs to examine (default: "
                     + AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT + ")")
-    int readLimit = AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT;
+    Integer readLimit;
 
     @Option(name = {"--sleep"},
             description = "Time to wait in milliseconds after each sweep batch"
@@ -139,11 +159,8 @@ public class SweepCommand extends SingleBackendCommand {
                     Functions.constant(new byte[0])));
         }
 
-        SweepBatchConfig batchConfig = ImmutableSweepBatchConfig.builder()
-                .deleteBatchSize(deleteBatchHint)
-                .candidateBatchSize(candidateBatchHint)
-                .maxCellTsPairsToExamine(readLimit)
-                .build();
+        SweepBatchConfig batchConfig = getSweepBatchConfig();
+
         for (Map.Entry<TableReference, byte[]> entry : tableToStartRow.entrySet()) {
             final TableReference tableToSweep = entry.getKey();
             Optional<byte[]> startRow = Optional.of(entry.getValue());
@@ -201,6 +218,34 @@ public class SweepCommand extends SingleBackendCommand {
             }
         }
         return 0;
+    }
+
+    private SweepBatchConfig getSweepBatchConfig() {
+        if (batchSize != null || cellBatchSize != null) {
+            printer.warn("Options 'batchSize' and 'cellBatchSize' have been deprecated in favor of 'deleteBatchHint', "
+                    + "'candidateBatchHint' and 'readLimit'. Please use the new options in the future.");
+        }
+        return ImmutableSweepBatchConfig.builder()
+                .maxCellTsPairsToExamine(chooseBestValue(
+                        readLimit,
+                        cellBatchSize,
+                        AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT))
+                .candidateBatchSize(chooseBestValue(
+                        candidateBatchHint,
+                        batchSize,
+                        AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
+                .deleteBatchSize(deleteBatchHint)
+                .build();
+    }
+
+    private static int chooseBestValue(@Nullable Integer newOption, @Nullable Integer oldOption, int defaultValue) {
+        if (newOption != null) {
+            return newOption;
+        } else if (oldOption != null) {
+            return oldOption;
+        } else {
+            return defaultValue;
+        }
     }
 
     private void maybeSleep() {
