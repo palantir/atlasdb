@@ -186,36 +186,42 @@
 <p>This matrix details the current state of available Key Value Services supported by the AtlasDB development staff.</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
-<col width="25%" />
-<col width="25%" />
-<col width="25%" />
-<col width="25%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="80%" />
 </colgroup>
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">Key Value Service</th>
 <th class="head">State</th>
 <th class="head">KVS Versions Supported</th>
 <th class="head">Recommended Versions</th>
+<th class="head">Errata</th>
 </tr>
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><a class="reference internal" href="../../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-configuration"><span class="std std-ref">Cassandra KVS</span></a></td>
 <td>Supported</td>
-<td>Cassandra 2.0+</td>
-<td>Cassandra 2.2.8</td>
+<td>2.0+</td>
+<td>2.2.8</td>
+<td>&#160;</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="../../configuration/key_value_service_configs/postgres_key_value_service_config.html#postgres-configuration"><span class="std std-ref">DB KVS (Postgres)</span></a></td>
 <td>Supported</td>
-<td>Postgres 8+</td>
+<td>9.2+</td>
 <td>9.3.4</td>
+<td>Amazon RDS explicitly supported, other HA postgres variants not currently supported</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="../../configuration/key_value_service_configs/oracle_key_value_service_config.html#oracle-configuration"><span class="std std-ref">DB KVS (Oracle)</span></a></td>
 <td>Beta Support</td>
-<td>?</td>
-<td>?</td>
+<td>11g+</td>
+<td>12c</td>
+<td>Amazon RDS explicitly supported, RAC not currently supported</td>
 </tr>
 <tr class="row-odd"><td>CQL KVS</td>
 <td>Unsupported</td>
+<td>&#160;</td>
 <td>&#160;</td>
 <td>&#160;</td>
 </tr>
@@ -223,9 +229,11 @@
 <td>Unsupported</td>
 <td>&#160;</td>
 <td>&#160;</td>
+<td>&#160;</td>
 </tr>
 <tr class="row-odd"><td>RocksDB KVS</td>
 <td>Unsupported</td>
+<td>&#160;</td>
 <td>&#160;</td>
 <td>&#160;</td>
 </tr>
