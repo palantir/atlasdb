@@ -98,6 +98,10 @@ develop
            Previously, a ``NotCurrentLeaderException`` that was thrown from the timestamp store would be wrapped in ``RuntimeException`` before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/TBC>`__)
 
+    *    - |devbreak|
+         - New ``KeyValueService`` method ``getCandidateCellsForSweeping()`` that should eventually replace ``getRangeOfTimestamps()``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1943>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
@@ -185,7 +189,6 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1801>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
-
 
 ======
 0.41.0
