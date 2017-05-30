@@ -182,7 +182,7 @@
             ]
         },
         "com.palantir.tritium:tritium-api": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -191,7 +191,7 @@
             ]
         },
         "com.palantir.tritium:tritium-core": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -199,19 +199,19 @@
             ]
         },
         "com.palantir.tritium:tritium-lib": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
@@ -475,7 +475,7 @@
             ]
         },
         "com.palantir.tritium:tritium-api": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -484,7 +484,7 @@
             ]
         },
         "com.palantir.tritium:tritium-core": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -492,19 +492,19 @@
             ]
         },
         "com.palantir.tritium:tritium-lib": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.6.0-beta",
+            "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
