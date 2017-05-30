@@ -177,6 +177,13 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private LockService createLockService(long slowLogTriggerMillis) {
+        return AwaitingLeadershipProxy.newProxyInstance(
+                LockService.class,
+                () -> createThreadPoolingLockService(slowLogTriggerMillis),
+                leaderElectionService);
+    }
+
+    private LockService createThreadPoolingLockService(long slowLogTriggerMillis) {
         LockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(slowLogTriggerMillis);
 
         if (!timeLockServerConfiguration.useClientRequestLimit()) {

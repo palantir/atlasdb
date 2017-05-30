@@ -1,0 +1,13 @@
+algorithm:
+  type: paxos
+  paxosDataDir: <TEMP_DATA_DIR>
+
+cluster:
+  localServer: localhost:8080
+  servers:
+    - localhost:8080
+    - localhost:8082
+    - localhost:8084
+
+clients:
+  - isolated

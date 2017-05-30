@@ -389,7 +389,10 @@
             ]
         },
         "com.palantir.remoting1:jersey-servers": {
-            "locked": "1.0.3"
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
         },
         "com.palantir.remoting1:ssl-config": {
             "locked": "1.0.3"
@@ -1608,7 +1611,10 @@
             ]
         },
         "com.palantir.remoting1:jersey-servers": {
-            "locked": "1.0.3"
+            "locked": "1.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
         },
         "com.palantir.remoting1:ssl-config": {
             "locked": "1.0.3"

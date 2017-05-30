@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak| |improved|
+         - The ``acquire-backup-lock`` endpoint of ``PersistentLockService`` now returns a 400 response instead of a 500 response when no reason for acquiring the lock is provided.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1909>`__)
+
     *    - |fixed| |changed|
          - Our dependency on Cassandra thrift has been bumped from 2.2.8 to 3.10; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
            Note that this does not affect our dependency on Cassandra itself.
@@ -84,6 +88,10 @@ develop
     *    - |improved|
          - Add jitter to backoff on retries to `reduce load <https://www.awsarchitectureblog.com/2015/03/backoff.html>`__ on the server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1945>`__)
+
+    *    - |fixed|
+         - After `Pull Request <https://github.com/palantir/atlasdb/pull/1808>`__ the TimeLock Server previously did not gate the lock service behind the ``AwaitingLeadershipProxy`` - it now does again.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1955>`__)
 
     *    - |fixed|
          - ``TimestampAllocationFailures`` now correctly propagates ``ServiceNotAvailableException`` if thrown from the timestamp bound store.

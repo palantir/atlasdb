@@ -109,4 +109,12 @@ public class PersistentLockServiceClientTest {
         PersistentLockId newLockId = lockService.acquireBackupLock(REASON);
         assertThat(newLockId).isNotNull();
     }
+
+    @Test
+    public void acquireWithoutReasonReturnsBadRequest() {
+        assertThatExceptionOfType(RemoteException.class)
+                .isThrownBy(() -> lockService.acquireBackupLock(null))
+                .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
+
+    }
 }
