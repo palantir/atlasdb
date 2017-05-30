@@ -20,7 +20,8 @@ import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
 
-final class SweepMetrics {
+@SuppressWarnings("checkstyle:FinalClass")
+class SweepMetrics {
     private final MetricsManager metricsManager = new MetricsManager();
 
     private final TableSpecificHistogramMetric cellsSweptHistogram =
