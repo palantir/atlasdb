@@ -89,6 +89,10 @@ develop
          - Add jitter to backoff on retries to `reduce load <https://www.awsarchitectureblog.com/2015/03/backoff.html>`__ on the server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1945>`__)
 
+    *    - |fixed|
+         - After `Pull Request <https://github.com/palantir/atlasdb/pull/1808>`__ the TimeLock Server previously did not gate the lock service behind the ``AwaitingLeadershipProxy`` - it now does again.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1955>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
