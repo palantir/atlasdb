@@ -31,7 +31,6 @@ final class SweepMetrics {
     private final MeterMetric cellsSweptMeter = new MeterMetric("cellsSwept");
     private final MeterMetric cellsDeletedMeter = new MeterMetric("cellsDeleted");
     private final MeterMetric sweepErrorMeter = new MeterMetric("sweepError");
-    private final MeterMetric unableToAcquirePersistedLockMeter = new MeterMetric("unableToAcquirePersistedLock");
 
     private class TableSpecificHistogramMetric {
         private final String name;
@@ -79,9 +78,5 @@ final class SweepMetrics {
 
     void sweepError() {
         sweepErrorMeter.update(1);
-    }
-
-    void unableToAcquirePersistedLock() {
-        unableToAcquirePersistedLockMeter.update(1);
     }
 }
