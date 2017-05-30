@@ -75,7 +75,7 @@ public class SweepCommand extends SingleBackendCommand {
      */
     @Deprecated
     @Option(name = {"--batch-size"},
-            description = "Sweeper row batch size. This option has been deprecated deprecated "
+            description = "Sweeper row batch size. This option has been deprecated "
                     + "in favor of --candidate-batch-hint")
     Integer batchSize;
 
@@ -84,7 +84,7 @@ public class SweepCommand extends SingleBackendCommand {
      */
     @Deprecated
     @Option(name = {"--cell-batch-size"},
-            description = "Sweeper cell batch size. This option has been deprecated deprecated "
+            description = "Sweeper cell batch size. This option has been deprecated "
                     + "in favor of --read-limit")
     Integer cellBatchSize;
 
