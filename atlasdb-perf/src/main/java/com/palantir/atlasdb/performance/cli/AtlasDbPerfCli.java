@@ -80,6 +80,9 @@ public class AtlasDbPerfCli {
                     + "Leave blank to only write results to the console.")
     private String outputFile;
 
+    @Option(name = {"--test-run"}, description = "Run a single iteration of the benchmarks for testing purposes.")
+    private boolean testRun;
+
     public static void main(String[] args) throws Exception {
         AtlasDbPerfCli cli = SingleCommand.singleCommand(AtlasDbPerfCli.class).parse(args);
 
@@ -119,9 +122,7 @@ public class AtlasDbPerfCli {
     private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
-                .warmupIterations(1)
                 .measurementIterations(1)
-                .mode(Mode.SampleTime)
                 .timeUnit(TimeUnit.MICROSECONDS)
                 .shouldFailOnError(true)
                 .param(BenchmarkParam.URI.getKey(),
@@ -129,6 +130,16 @@ public class AtlasDbPerfCli {
                                 .map(DockerizedDatabaseUri::toString)
                                 .collect(Collectors.toList())
                                 .toArray(new String[uris.size()]));
+
+        if (!cli.testRun) {
+            optBuilder.warmupIterations(1)
+                    .mode(Mode.SampleTime);
+        }
+        else {
+            optBuilder.warmupIterations(0)
+                    .mode(Mode.SingleShotTime);
+        }
+
         if (cli.tests == null) {
             getAllBenchmarks().forEach(b -> optBuilder.include(".*" + b));
         } else {
