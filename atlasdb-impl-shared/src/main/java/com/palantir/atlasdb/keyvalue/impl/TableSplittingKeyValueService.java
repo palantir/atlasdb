@@ -32,6 +32,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -245,6 +247,12 @@ public final class TableSplittingKeyValueService implements KeyValueService {
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
         return getDelegate(tableRef).getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+    }
+
+    @Override
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
+            CandidateCellForSweepingRequest request) {
+        return getDelegate(tableRef).getCandidateCellsForSweeping(tableRef, request);
     }
 
     @Override

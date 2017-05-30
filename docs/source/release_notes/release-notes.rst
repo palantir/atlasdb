@@ -89,6 +89,40 @@ develop
          - Add jitter to backoff on retries to `reduce load <https://www.awsarchitectureblog.com/2015/03/backoff.html>`__ on the server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1945>`__)
 
+    *    - |fixed|
+         - After `Pull Request <https://github.com/palantir/atlasdb/pull/1808>`__ the TimeLock Server previously did not gate the lock service behind the ``AwaitingLeadershipProxy`` - it now does again.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1955>`__)
+
+    *    - |fixed|
+         - ``TimestampAllocationFailures`` now correctly propagates ``ServiceNotAvailableException`` if thrown from the timestamp bound store.
+           Previously, a ``NotCurrentLeaderException`` that was thrown from the timestamp store would be wrapped in ``RuntimeException`` before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/TBC>`__)
+
+    *    - |devbreak|
+         - New ``KeyValueService`` method ``getCandidateCellsForSweeping()`` that should eventually replace ``getRangeOfTimestamps()``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1943>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+
+======
+0.42.2
+======
+
+25 May 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - ``PaxosTimestampBoundStore`` now throws ``TerminalTimestampStoreException`` if a bound update fails because another timestamp service on the same node proposed a smaller bound, or if another node proposed a bound update we were not expecting.
+           Previously, a ``NotCurrentLeaderException`` that was thrown from the timestamp store would be wrapped in ``RuntimeException`` before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/TBC>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
@@ -155,7 +189,6 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1801>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
-
 
 ======
 0.41.0
