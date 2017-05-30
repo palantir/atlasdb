@@ -27,7 +27,6 @@ import javax.annotation.Nullable;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Functions;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
@@ -35,7 +34,6 @@ import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
-import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -72,12 +70,18 @@ public class SweepCommand extends SingleBackendCommand {
             description = "Sweep all tables")
     boolean sweepAllTables;
 
+    /**
+     * @deprecated Use --candidate-batch-hint instead.
+     */
     @Deprecated
     @Option(name = {"--batch-size"},
             description = "Sweeper row batch size. This option has been deprecated deprecated "
                     + "in favor of --candidate-batch-hint")
     Integer batchSize;
 
+    /**
+     * @deprecated Use --read-limit instead.
+     */
     @Deprecated
     @Option(name = {"--cell-batch-size"},
             description = "Sweeper cell batch size. This option has been deprecated deprecated "
