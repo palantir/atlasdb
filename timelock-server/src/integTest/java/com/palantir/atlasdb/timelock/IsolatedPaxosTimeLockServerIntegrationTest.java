@@ -47,7 +47,7 @@ import io.dropwizard.testing.ResourceHelpers;
  * However it should still be pingable and should be able to participate in Paxos as well.
  */
 public class IsolatedPaxosTimeLockServerIntegrationTest {
-    private static final String CLIENT = "test";
+    private static final String CLIENT = "isolated";
 
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
 
