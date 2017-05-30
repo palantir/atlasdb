@@ -1,31 +1,17 @@
 apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
-apply plugin: 'com.github.johnrengelman.shadow'
 
 apply from: "../gradle/shared.gradle"
 
-configurations {
-  explicitShade
-}
-
 dependencies {
-
-  explicitShade group: 'de.jflex', name: 'jflex', version: '1.6.0'
-  explicitShade group: 'com.github.rholder', name: 'snowball-stemmer', version: '1.3.0.581.1'
-  explicitShade group: 'com.carrotsearch', name: 'hppc', version: '0.5.4'
-
   compile project(":atlasdb-client")
   compile project(":atlasdb-api")
   compile project(":commons-api")
   compile project(':timestamp-impl')
 
   compile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
-    exclude(group: 'de.jflex', module: 'jflex')
-    exclude(group: 'org.apache.ant', module: 'ant')
-    exclude(group: 'com.github.rholder', module: 'snowball-stemmer')
-    exclude(group: 'com.carrotsearch', module: 'hppc')
+    exclude module: 'junit'
   }
-
   compile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
   compile group: 'com.google.guava', name: 'guava'
 
@@ -46,19 +32,3 @@ dependencies {
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 }
-
-task otherShadowJar(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
-  mergeServiceFiles()
-  classifier ''
-
-  from sourceSets.main. output
-  configurations = [project.configurations.explicitShade]
-
-  relocate('jflex', atlasdb_shaded + 'jflex')
-  relocate('org.apache.tools.ant', atlasdb_shaded + 'ant')
-  relocate('org.tarturus.snowball', atlasdb_shaded + 'snowball')
-  relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
-}
-
-jar.dependsOn(otherShadowJar)
-jar.onlyIf { false }

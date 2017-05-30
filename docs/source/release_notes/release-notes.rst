@@ -50,11 +50,6 @@ develop
          - The ``acquire-backup-lock`` endpoint of ``PersistentLockService`` now returns a 400 response instead of a 500 response when no reason for acquiring the lock is provided.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1909>`__)
 
-    *    - |fixed| |changed|
-         - Our dependency on Cassandra thrift has been bumped from 2.2.8 to 3.10; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
-           Note that this does not affect our dependency on Cassandra itself.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1896>`__)
-
     *    - |fixed|
          - ``PaxosTimestampBoundStore`` now throws ``NotCurrentLeaderException``, invalidating the timestamp store, if a bound update fails because another timestamp service on the same node proposed a smaller bound for the same sequence number.
            This was added to address a very specific race condition leading to an infinite loop that would saturate the TimeLock cluster with spurious Paxos messages; see `issue 1941 <https://github.com/palantir/atlasdb/issues/1941>`__ for more detail.
