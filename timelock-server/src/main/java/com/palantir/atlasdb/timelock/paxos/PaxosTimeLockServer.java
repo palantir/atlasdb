@@ -47,6 +47,8 @@ import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
+import com.palantir.atlasdb.timelock.paxos.servlets.ServletFactory;
+import com.palantir.atlasdb.timelock.paxos.servlets.ServletRegistration;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -121,6 +123,16 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 localPaxosServices.ourLearner()));
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
         environment.jersey().register(new BlockingTimeoutExceptionMapper());
+
+        ServletRegistration.registerServlet(
+                environment,
+                ServletFactory.leaderPingServlet(localPaxosServices.pingableLeader()),
+                "/leader/ping");
+        ServletRegistration.registerServlet(
+                environment,
+                ServletFactory.getLatestSequencePreparedOrAcceptedServlet(
+                        environment.getObjectMapper(), localPaxosServices.ourAcceptor()),
+                "/.internal/leaderPaxos/acceptor/latest-sequence-prepared-or-accepted");
     }
 
     private void registerHealthCheck(TimeLockServerConfiguration configuration) {
@@ -168,6 +180,10 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 LockService.class,
                 createLockService(slowLogTriggerMillis),
                 client);
+        ServletRegistration.registerServlet(
+                environment,
+                ServletFactory.freshTimestampServlet(environment.getObjectMapper(), timestampService),
+                "/" + client + "/timestamp/fresh-timestamp");
 
         return TimeLockServices.create(timestampService, lockService, timestampService);
     }
@@ -225,6 +241,11 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     private ManagedTimestampService createPaxosBackedTimestampService(String client) {
         paxosResource.addClient(client);
+        ServletRegistration.registerServlet(
+                environment,
+                ServletFactory.getLatestSequencePreparedOrAcceptedServlet(
+                        environment.getObjectMapper(), paxosResource.getPaxosAcceptor(client)),
+                "/" + client + "/acceptor/latest-sequence-prepared-or-accepted");
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-" + client + "-%d")
