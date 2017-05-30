@@ -183,7 +183,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 if (locks.haveLocks()) {
                     sweptSuccessfully = runOnce();
                 } else {
-                    sweepMetrics.unableToAcquirePersistedLock();
                     log.debug("Skipping sweep because sweep is running elsewhere.");
                 }
             } else {
