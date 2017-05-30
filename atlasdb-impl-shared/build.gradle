@@ -22,7 +22,9 @@ dependencies {
 
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
   compile group: 'com.palantir.remoting1', name: 'tracing'
-  compile group: 'com.palantir.remoting1', name: 'jersey-servers'
+  compile (group: 'com.palantir.remoting1', name: 'jersey-servers') {
+    exclude module: 'jersey-server'
+  }
 
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'
