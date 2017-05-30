@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - For requests that fail due to to networking or other IOException, `FailOverFeignTarget.continueOrPropagate` now backs off before retrying.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1958>`__)
+
     *    - |userbreak| |improved|
          - The ``acquire-backup-lock`` endpoint of ``PersistentLockService`` now returns a 400 response instead of a 500 response when no reason for acquiring the lock is provided.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1909>`__)
