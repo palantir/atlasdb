@@ -16,18 +16,59 @@
 
 package com.palantir.atlasdb.performance.cli;
 
-import org.junit.Test;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import com.palantir.atlasdb.performance.backend.DatabasesContainer;
+import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
+import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
+import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
+
+@RunWith(Parameterized.class)
 public class AtlasDbPerfCliTest {
+    @Parameterized.Parameter
+    public String benchmark;
+
+    @Parameterized.Parameters
+    public static Collection<String> benchmarks() {
+        return AtlasDbPerfCli.getAllBenchmarks();
+    }
+
+    private static Map<KeyValueServiceInstrumentation, String> dockerMap;
+    private static DatabasesContainer docker;
+
+    @BeforeClass
+    public static void setup() {
+        Set<String> backends = KeyValueServiceInstrumentation.getBackends();
+        docker = AtlasDbPerfCli.startupDatabase(backends);
+        dockerMap = docker.getDockerizedDatabases().stream().map(
+                DockerizedDatabase::getUri).collect(
+                Collectors.toMap(DockerizedDatabaseUri::getKeyValueServiceInstrumentation,
+                        DockerizedDatabaseUri::toString));
+    }
+
     @Test
     public void postgresSingleIteration() throws Exception {
-        String[] args = {"-b", "POSTGRES", "--test-run"};
+        String[] args = {"--db-uri", dockerMap.get(KeyValueServiceInstrumentation.forDatabase("POSTGRES")), "--test-run", "--benchmark", benchmark};
         AtlasDbPerfCli.main(args);
     }
 
     @Test
     public void cassandraSingleIteration() throws Exception {
-        String[] args = {"-b", "CASSANDRA", "--test-run"};
+        String[] args = {"--db-uri", dockerMap.get(KeyValueServiceInstrumentation.forDatabase("CASSANDRA")), "--test-run", "--benchmark", benchmark};
         AtlasDbPerfCli.main(args);
+    }
+
+    @AfterClass
+    public static void close() throws Exception {
+        docker.close();
     }
 }
