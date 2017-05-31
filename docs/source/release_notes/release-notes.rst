@@ -42,8 +42,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Added new meter metrics for cells swept/deleted and failures to acquire persistent lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1946>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -112,10 +113,6 @@ develop
     *    - |devbreak|
          - New ``KeyValueService`` method ``getCandidateCellsForSweeping()`` that should eventually replace ``getRangeOfTimestamps()``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1943>`__)
-
-    *    - |improved|
-         - Added new meter metrics for cells swept/deleted and failures to acquire persistent lock.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1946>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
