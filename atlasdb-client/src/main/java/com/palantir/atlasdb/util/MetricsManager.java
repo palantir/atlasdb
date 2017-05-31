@@ -21,6 +21,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
@@ -41,8 +42,16 @@ public class MetricsManager {
         return metricRegistry;
     }
 
+    public void registerMetric(Class clazz, String metricPrefix, String metricName, Gauge gauge) {
+        registerMetric(clazz, metricPrefix, metricName, (Metric) gauge);
+    }
+
     public void registerMetric(Class clazz, String metricPrefix, String metricName, Metric metric) {
         registerMetricWithFqn(MetricRegistry.name(clazz, metricPrefix, metricName), metric);
+    }
+
+    public void registerMetric(Class clazz, String metricName, Gauge gauge) {
+        registerMetric(clazz, metricName, (Metric) gauge);
     }
 
     public void registerMetric(Class clazz, String metricName, Metric metric) {

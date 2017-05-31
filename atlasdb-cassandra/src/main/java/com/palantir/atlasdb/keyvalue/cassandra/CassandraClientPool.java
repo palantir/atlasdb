@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TimedOutException;
@@ -46,7 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
-import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -236,13 +236,13 @@ public class CassandraClientPool {
     private void registerAggregateMetrics() {
         metricsManager.registerMetric(
                 CassandraClientPool.class, "numBlacklistedHosts",
-                (Gauge) () -> blacklistedHosts.size());
+                () -> blacklistedHosts.size());
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestFailureProportion",
-                (Gauge) aggregateMetrics::getExceptionProportion);
+                aggregateMetrics::getExceptionProportion);
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestConnectionExceptionProportion",
-                (Gauge) aggregateMetrics::getConnectionExceptionProportion);
+                aggregateMetrics::getConnectionExceptionProportion);
     }
 
     private synchronized void refreshPool() {
@@ -307,11 +307,11 @@ public class CassandraClientPool {
         metricsManager.registerMetric(
                 CassandraClientPool.class,
                 server.getHostString(), "requestFailureProportion",
-                (Gauge) requestMetrics::getExceptionProportion);
+                requestMetrics::getExceptionProportion);
         metricsManager.registerMetric(
                 CassandraClientPool.class,
                 server.getHostString(), "requestConnectionExceptionProportion",
-                (Gauge) requestMetrics::getConnectionExceptionProportion);
+                requestMetrics::getConnectionExceptionProportion);
         metricsByHost.put(server, requestMetrics);
     }
 
