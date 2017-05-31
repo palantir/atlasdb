@@ -95,5 +95,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 timestampValidationReadCache);
     }
 
+    @Override
+    protected PollingSnapshotTransaction createPollingTransaction(long immutableLockTs,
+            Supplier<Long> startTimestampSupplier,
+            ImmutableList<LockRefreshToken> allTokens) {
+        return new PollingSnapshotTransaction(createTransaction(immutableLockTs, startTimestampSupplier, allTokens), true);
+    }
+
+
 }
 

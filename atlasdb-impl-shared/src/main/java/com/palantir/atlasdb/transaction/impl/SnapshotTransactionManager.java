@@ -35,6 +35,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTasks;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -126,8 +127,11 @@ import com.palantir.timestamp.TimestampService;
         RawTransaction tx = setupRunTaskWithLocksThrowOnConflict(lockRefreshTokens);
         return finishRunTaskWithLockThrowOnConflict(tx, LockAwareTransactionTasks.asLockUnaware(task, lockTokens));
     }
-
     public RawTransaction setupRunTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens) {
+        return setupRunTaskWithLocksThrowOnConflict(lockTokens, false);
+    }
+
+        public RawTransaction setupRunTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens, boolean pollForKvs) {
         long immutableLockTs = timestampService.getFreshTimestamp();
         Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
         LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
@@ -144,7 +148,8 @@ import com.palantir.timestamp.TimestampService;
                     .add(lock)
                     .addAll(lockTokens)
                     .build();
-            SnapshotTransaction transaction = createTransaction(immutableLockTs, startTimestampSupplier, allTokens);
+            Transaction transaction;
+            transaction = createTransaction(pollForKvs, immutableLockTs, startTimestampSupplier, allTokens);
             return new RawTransaction(transaction, lock);
         } catch (Throwable e) {
             if (lock != null) {
@@ -152,6 +157,14 @@ import com.palantir.timestamp.TimestampService;
             }
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
+    }
+
+    private Transaction createTransaction(boolean pollForKvs, long immutableLockTs,
+            Supplier<Long> startTimestampSupplier, ImmutableList<LockRefreshToken> allTokens) {
+        if (pollForKvs) {
+            return createPollingTransaction(immutableLockTs, startTimestampSupplier, allTokens);
+        }
+        return createTransaction(immutableLockTs, startTimestampSupplier, allTokens);
     }
 
     public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
@@ -193,6 +206,11 @@ import com.palantir.timestamp.TimestampService;
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
                 timestampValidationReadCache);
+    }
+
+    private Transaction createPollingTransaction(long immutableLockTs, Supplier<Long> startTimestampSupplier,
+            ImmutableList<LockRefreshToken> allTokens) {
+        return new PollingSnapshotTransaction(createTransaction(immutableLockTs, startTimestampSupplier, allTokens), true);
     }
 
     @Override

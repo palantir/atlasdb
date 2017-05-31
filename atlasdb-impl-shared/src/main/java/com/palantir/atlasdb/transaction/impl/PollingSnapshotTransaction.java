@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,24 +15,16 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.lock.LockRefreshToken;
+public class PollingSnapshotTransaction extends ForwardingTransaction {
 
-public class RawTransaction extends ForwardingTransaction {
-    private final Transaction delegate;
-    private final LockRefreshToken lock;
+    private SnapshotTransaction delegate;
 
-    public RawTransaction(Transaction delegate, LockRefreshToken lock) {
+    public PollingSnapshotTransaction(SnapshotTransaction delegate, boolean pollForKvs) {
         this.delegate = delegate;
-        this.lock = lock;
     }
 
     @Override
-    public Transaction delegate() {
+    public SnapshotTransaction delegate() {
         return delegate;
-    }
-
-    LockRefreshToken getImmutableTsLock() {
-        return lock;
     }
 }
