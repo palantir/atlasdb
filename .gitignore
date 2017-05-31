@@ -38,9 +38,6 @@ atlasdb-cli/var/data/
 # opendiff et al
 *.orig
 
-# Rocksdb data
-var/data/rocksdb
-
 # Memory tracker nohup
 nohup.out
 nohup.err
