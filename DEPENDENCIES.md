@@ -20,7 +20,6 @@
 | [Palantir Cinch](https://github.com/palantir/Cinch) | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) |
 | [protobuf, v. 2.6.0](https://github.com/google/protobuf) | [New BSD License](http://opensource.org/licenses/BSD-3-Clause) |
 | [protobuf-java-format, v. 1.2](https://code.google.com/p/protobuf-java-format/) | [New BSD License](http://opensource.org/licenses/BSD-3-Clause) |
-| [rocksdb, v. 3.10.1](http://rocksdb.org/) | [BSD License](https://github.com/facebook/rocksdb/blob/master/LICENSE) |
 | [slf4j, v. 1.7.5](http://www.slf4j.org/) | [MIT License](http://opensource.org/licenses/mit-license.html) |
 | [slf4j-simple, v. 1.7.5](http://www.slf4j.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) |
 | [snakeyaml, v. 1.13](https://bitbucket.org/asomov/snakeyaml) | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) |

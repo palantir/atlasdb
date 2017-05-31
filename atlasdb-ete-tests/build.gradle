@@ -13,8 +13,6 @@ dependencies {
     compile project(':leader-election-impl')
     compile project(path: ':atlasdb-config', configuration: 'shadow')
     compile project(':atlasdb-dropwizard-bundle')
-    compile project(':atlasdb-hikari')
-    compile project(':atlasdb-rocksdb')
 
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
     compile group: 'io.dropwizard', name: 'dropwizard-core'

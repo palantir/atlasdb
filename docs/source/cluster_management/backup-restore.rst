@@ -57,7 +57,6 @@ Common KVS layers:
 
 -  Cassandra `backup <https://docs.datastax.com/en/cassandra/2.2/cassandra/operations/opsBackupTakesSnapshot.html>`__ and `restore <https://docs.datastax.com/en/cassandra/2.2/cassandra/operations/opsBackupSnapshotRestore.html>`__.
 -  Postgres `backup and restore <https://www.postgresql.org/docs/9.1/static/backup-dump.html>`__.
--  If you are using RocksDB, you can simply compress the database files on disk with ``tar -czf backup.tgz path/to/data``.
 
 4. Obtain the fast-forward timestamp
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

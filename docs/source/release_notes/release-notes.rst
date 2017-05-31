@@ -42,8 +42,13 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |userbreak|
+         - The previously deprecated RocksDBKVS has been removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1966>`__)
+
+    *    - |userbreak|
+         - The previously deprecated JDBCKVS has been removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1967>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

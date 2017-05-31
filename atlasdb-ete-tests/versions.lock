@@ -165,12 +165,9 @@
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-console",
                 "com.palantir.atlasdb:atlasdb-dropwizard-bundle",
-                "com.palantir.atlasdb:atlasdb-hikari",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-jdbc",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
-                "com.palantir.atlasdb:atlasdb-rocksdb",
                 "com.palantir.atlasdb:atlasdb-service",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
@@ -275,9 +272,7 @@
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-jdbc",
-                "com.palantir.atlasdb:atlasdb-lock-api",
-                "com.palantir.atlasdb:atlasdb-rocksdb"
+                "com.palantir.atlasdb:atlasdb-lock-api"
             ]
         },
         "com.palantir.atlasdb:atlasdb-cassandra": {
@@ -296,9 +291,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
-                "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-jdbc",
-                "com.palantir.atlasdb:atlasdb-rocksdb"
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client-protobufs": {
@@ -343,19 +336,10 @@
         "com.palantir.atlasdb:atlasdb-dropwizard-bundle": {
             "project": true
         },
-        "com.palantir.atlasdb:atlasdb-hikari": {
-            "project": true
-        },
         "com.palantir.atlasdb:atlasdb-impl-shared": {
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "com.palantir.atlasdb:atlasdb-jdbc": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-hikari"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {
@@ -369,9 +353,6 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
-        },
-        "com.palantir.atlasdb:atlasdb-rocksdb": {
-            "project": true
         },
         "com.palantir.atlasdb:atlasdb-service": {
             "project": true,
@@ -443,9 +424,7 @@
         "com.palantir.atlasdb:timestamp-impl": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-cassandra",
-                "com.palantir.atlasdb:atlasdb-jdbc",
-                "com.palantir.atlasdb:atlasdb-rocksdb"
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -509,12 +488,9 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-console",
                 "com.palantir.atlasdb:atlasdb-dropwizard-bundle",
-                "com.palantir.atlasdb:atlasdb-hikari",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-jdbc",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
-                "com.palantir.atlasdb:atlasdb-rocksdb",
                 "com.palantir.atlasdb:atlasdb-service",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
@@ -574,12 +550,6 @@
             "locked": "1.6.0",
             "transitive": [
                 "com.squareup.okhttp:okhttp"
-            ]
-        },
-        "com.zaxxer:HikariCP": {
-            "locked": "2.4.7",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-hikari"
             ]
         },
         "commons-cli:commons-cli": {
@@ -1161,12 +1131,6 @@
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
-        "org.jooq:jooq": {
-            "locked": "3.6.4",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-jdbc"
-            ]
-        },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
             "locked": "2.0.6",
             "transitive": [
@@ -1177,12 +1141,6 @@
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
-            ]
-        },
-        "org.rocksdb:rocksdbjni": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-rocksdb"
             ]
         },
         "org.slf4j:jcl-over-slf4j": {
@@ -1216,7 +1174,6 @@
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
                 "com.palantir.tritium:tritium-slf4j",
-                "com.zaxxer:HikariCP",
                 "io.dropwizard.metrics:metrics-annotation",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
@@ -1415,12 +1372,9 @@
                 "com.palantir.atlasdb:atlasdb-dbkvs",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.atlasdb:atlasdb-dropwizard-bundle",
-                "com.palantir.atlasdb:atlasdb-hikari",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-jdbc",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
-                "com.palantir.atlasdb:atlasdb-rocksdb",
                 "com.palantir.atlasdb:atlasdb-service",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
@@ -1540,9 +1494,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-dbkvs",
-                "com.palantir.atlasdb:atlasdb-jdbc",
-                "com.palantir.atlasdb:atlasdb-lock-api",
-                "com.palantir.atlasdb:atlasdb-rocksdb"
+                "com.palantir.atlasdb:atlasdb-lock-api"
             ]
         },
         "com.palantir.atlasdb:atlasdb-cassandra": {
@@ -1562,9 +1514,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-dbkvs",
-                "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-jdbc",
-                "com.palantir.atlasdb:atlasdb-rocksdb"
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client-protobufs": {
@@ -1618,20 +1568,11 @@
         "com.palantir.atlasdb:atlasdb-dropwizard-bundle": {
             "project": true
         },
-        "com.palantir.atlasdb:atlasdb-hikari": {
-            "project": true
-        },
         "com.palantir.atlasdb:atlasdb-impl-shared": {
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-dbkvs"
-            ]
-        },
-        "com.palantir.atlasdb:atlasdb-jdbc": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-hikari"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {
@@ -1645,9 +1586,6 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
-        },
-        "com.palantir.atlasdb:atlasdb-rocksdb": {
-            "project": true
         },
         "com.palantir.atlasdb:atlasdb-service": {
             "project": true,
@@ -1735,9 +1673,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
-                "com.palantir.atlasdb:atlasdb-dbkvs",
-                "com.palantir.atlasdb:atlasdb-jdbc",
-                "com.palantir.atlasdb:atlasdb-rocksdb"
+                "com.palantir.atlasdb:atlasdb-dbkvs"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -1804,12 +1740,9 @@
                 "com.palantir.atlasdb:atlasdb-dbkvs",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.atlasdb:atlasdb-dropwizard-bundle",
-                "com.palantir.atlasdb:atlasdb-hikari",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-jdbc",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
-                "com.palantir.atlasdb:atlasdb-rocksdb",
                 "com.palantir.atlasdb:atlasdb-service",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
@@ -1876,7 +1809,6 @@
         "com.zaxxer:HikariCP": {
             "locked": "2.4.7",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-hikari",
                 "com.palantir.atlasdb:commons-db"
             ]
         },
@@ -2474,12 +2406,6 @@
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
-        "org.jooq:jooq": {
-            "locked": "3.6.4",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-jdbc"
-            ]
-        },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
             "locked": "2.0.6",
             "transitive": [
@@ -2496,12 +2422,6 @@
             "locked": "9.4.1209",
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
-            ]
-        },
-        "org.rocksdb:rocksdbjni": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-rocksdb"
             ]
         },
         "org.slf4j:jcl-over-slf4j": {
