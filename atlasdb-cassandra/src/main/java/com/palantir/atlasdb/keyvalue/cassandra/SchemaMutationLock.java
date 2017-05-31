@@ -63,18 +63,15 @@ final class SchemaMutationLock {
     private static final int TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS_CAP = 5000;
     private static final int MAX_UNLOCK_RETRY_COUNT = 5;
 
-    private final boolean supportsCas;
     private final CassandraKeyValueServiceConfigManager configManager;
     private final CassandraClientPool clientPool;
     private final TracingQueryRunner queryRunner;
     private final ConsistencyLevel writeConsistency;
     private final UniqueSchemaMutationLockTable lockTable;
-    private final ReentrantLock schemaMutationLockForEarlierVersionsOfCassandra = new ReentrantLock(true);
     private final HeartbeatService heartbeatService;
     private final int deadHeartbeatTimeoutThreshold;
 
     SchemaMutationLock(
-            boolean supportsCas,
             CassandraKeyValueServiceConfigManager configManager,
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
@@ -82,7 +79,6 @@ final class SchemaMutationLock {
             UniqueSchemaMutationLockTable lockTable,
             HeartbeatService heartbeatService,
             int deadHeartbeatTimeoutThreshold) {
-        this.supportsCas = supportsCas;
         this.configManager = configManager;
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
@@ -104,11 +100,6 @@ final class SchemaMutationLock {
     }
 
     void runWithLock(Action action) {
-        if (!supportsCas) {
-            runWithLockWithoutCas(action);
-            return;
-        }
-
         long lockId = waitForSchemaMutationLock();
         try {
             runActionWithHeartbeat(action, lockId);
@@ -126,29 +117,6 @@ final class SchemaMutationLock {
         } finally {
             heartbeatService.stopBeating();
         }
-    }
-
-    private void runWithLockWithoutCas(Action action) {
-        log.info("Because your version of Cassandra does not support check and set,"
-                + " we will use a java level lock to synchronise schema mutations."
-                + " If this is a clustered service, this could lead to corruption.");
-        try {
-            waitForSchemaMutationLockWithoutCas();
-        } catch (TimeoutException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-
-        try {
-            action.execute();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw Throwables.throwUncheckedException(e);
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        } finally {
-            schemaMutationUnlockWithoutCas();
-        }
-
     }
 
     /**
@@ -271,22 +239,6 @@ final class SchemaMutationLock {
                         configManager.getConfig().keyspace()));
     }
 
-    private void waitForSchemaMutationLockWithoutCas() throws TimeoutException {
-        String message = "AtlasDB was unable to get a lock on Cassandra system schema mutations"
-                + " for your cluster. Likely cause: Service(s) performing heavy schema mutations"
-                + " in parallel, or extremely heavy Cassandra cluster load.";
-        try {
-            if (!schemaMutationLockForEarlierVersionsOfCassandra.tryLock(
-                    configManager.getConfig().schemaMutationTimeoutMillis(),
-                    TimeUnit.MILLISECONDS)) {
-                throw new TimeoutException(message);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new TimeoutException(message);
-        }
-    }
-
     private void schemaMutationUnlock(long perOperationNodeId) {
         boolean unlockDone = false;
         boolean isInterrupted = false;
@@ -349,10 +301,6 @@ final class SchemaMutationLock {
             log.debug("No existing schema lock found in table [{}]", lockTableRef);
         }
         return Optional.ofNullable(existingColumn);
-    }
-
-    private void schemaMutationUnlockWithoutCas() {
-        schemaMutationLockForEarlierVersionsOfCassandra.unlock();
     }
 
     private CASResult writeDdlLockWithCas(

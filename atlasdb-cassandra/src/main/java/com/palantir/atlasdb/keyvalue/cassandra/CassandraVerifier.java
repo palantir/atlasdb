@@ -318,16 +318,4 @@ public final class CassandraVerifier {
                     + " take to correctly repair or cleanup existing data in your cluster.");
         }
     }
-
-    static final FunctionCheckedException<Cassandra.Client, Boolean, UnsupportedOperationException>
-            underlyingCassandraClusterSupportsCASOperations = client -> {
-                try {
-                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
-                    log.debug("Connected cassandra thrift version is: {}", serverVersion);
-                    return serverVersion.supportsCheckAndSet();
-                } catch (TException ex) {
-                    throw new UnsupportedOperationException("Couldn't determine underlying cassandra version;"
-                            + " received an exception while checking the thrift version.", ex);
-                }
-            };
 }

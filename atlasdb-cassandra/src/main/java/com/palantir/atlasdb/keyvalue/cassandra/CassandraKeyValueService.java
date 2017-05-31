@@ -216,16 +216,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected void init() {
         if (configManager.getConfig().scyllaDb() && !configManager.getConfig().safetyDisabled()) {
+            // I anticipate with this, scylla's current state of lightweight transaction support over thrift,
+            // and C* 4.0 thrift deprecation, we will probably only ever want to use it with our CQL driver instead
             throw new IllegalArgumentException("Not currently allowing Thrift-based access to ScyllaDB clusters;"
                     + " there appears to be from our tests"
-                    + " an existing correctness bug with semi-complex column selections");
+                    + " an existing correctness bug with semi-complex column selections.");
         }
 
-        boolean supportsCas = !configManager.getConfig().scyllaDb()
-                && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
-
         schemaMutationLock = new SchemaMutationLock(
-                supportsCas,
                 configManager,
                 clientPool,
                 queryRunner,

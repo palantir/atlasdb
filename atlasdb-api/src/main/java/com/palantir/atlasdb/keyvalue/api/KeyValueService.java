@@ -290,8 +290,9 @@ public interface KeyValueService extends AutoCloseable {
     void putUnlessExists(@QueryParam("tableRef") TableReference tableRef,
                          Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
+    // TODO delete me after removing Rocks & JDBC KVSs
     /**
-     * Check whether CAS is supported. This check can go away when Rocks and JDBC KVS's are deleted.
+     * Check whether CAS is supported in the underlying KVS.
      *
      * @return true iff checkAndSet is supported (for all delegates/tables, if applicable)
      */
