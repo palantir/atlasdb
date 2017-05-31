@@ -41,12 +41,6 @@ This matrix details the current state of available Key Value Services supported 
          -
          -
 
-    *    - JDBC KVS
-         - Unsupported
-         -
-         -
-         -
-
 Details
 =======
 
@@ -75,16 +69,10 @@ CQL KVS
 
 CQL KVS is not currently supported, but we plan on supporting this KVS eventually.
 
-.. _jdbc-kvs:
-
-JDBC KVS
---------
-
-JDBC KVS existed prior to DB KVS and was the primary means for deploying applications on Postgres.
-JDBC KVS has been deprecated in favor of DB KVS.
 
 Deleted
 =======
 
-ClusterKeyValueService.java - Intended to be run on top of a MySQL/Cluster
+ClusterKeyValueService - Intended to be run on top of a MySQL/Cluster
 RocksDbKVS - Removed in 0.44
+JDBCKVS - Removed in 0.44
