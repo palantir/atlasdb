@@ -48,21 +48,7 @@ public final class DockerizedDatabase implements Closeable {
     }
 
     private static String getDockerComposeFileAbsolutePath(String dockerComposeResourceFileName) {
-        try {
-            return writeResourceToTempFile(DockerizedDatabase.class, dockerComposeResourceFileName).getAbsolutePath();
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to write docker compose file to a temporary file.", e);
-        }
-    }
-
-    private static File writeResourceToTempFile(Class clazz, String resourcePath) throws IOException {
-        URL resource = clazz.getResource("/" + resourcePath);
-        File file = File.createTempFile(
-                FilenameUtils.getBaseName(resource.getFile()),
-                FilenameUtils.getExtension(resource.getFile()));
-        IOUtils.copy(resource.openStream(), FileUtils.openOutputStream(file));
-        file.deleteOnExit();
-        return file;
+            return DockerizedDatabase.class.getResource("/" + dockerComposeResourceFileName).getFile();
     }
 
     private static HealthCheck<DockerPort> toBeOpen() {
