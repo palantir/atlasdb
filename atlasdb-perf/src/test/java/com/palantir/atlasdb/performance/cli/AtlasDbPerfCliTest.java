@@ -57,13 +57,17 @@ public class AtlasDbPerfCliTest {
 
     @Test
     public void postgresSingleIteration() throws Exception {
-        String[] args = {"--db-uri", dockerMap.get(KeyValueServiceInstrumentation.forDatabase("POSTGRES")), "--test-run", "--benchmark", benchmark};
+        String[] args = {"--db-uri", dockerMap.get(KeyValueServiceInstrumentation.forDatabase("POSTGRES")),
+                         "--test-run",
+                         "--benchmark", benchmark};
         AtlasDbPerfCli.main(args);
     }
 
     @Test
     public void cassandraSingleIteration() throws Exception {
-        String[] args = {"--db-uri", dockerMap.get(KeyValueServiceInstrumentation.forDatabase("CASSANDRA")), "--test-run", "--benchmark", benchmark};
+        String[] args = {"--db-uri", dockerMap.get(KeyValueServiceInstrumentation.forDatabase("CASSANDRA")),
+                         "--test-run",
+                         "--benchmark", benchmark};
         AtlasDbPerfCli.main(args);
     }
 
