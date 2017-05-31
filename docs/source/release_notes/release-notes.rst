@@ -42,8 +42,27 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+
+======
+0.43.0
+======
+
+25 May 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
-         - For requests that fail due to to networking or other IOException, `FailOverFeignTarget.continueOrPropagate` now backs off before retrying.
+         - For requests that fail due to to networking or other IOException, the AtlasDB client now backs off before retrying.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1958>`__)
 
     *    - |userbreak| |improved|
@@ -73,29 +92,22 @@ develop
 
     *    - |deprecated|
          - The Sweep CLI configuration parameters ``--batch-size`` and ``--cell-batch-size`` have been deprecated, as we now batch on cell-timestamp pairs rather than by rows and cells.
-           Please use the ``--candidate-batch-hint`` parameter instead of ``--batch-hint``, and ``--read-limit`` instead of ``--cell-batch-size`` (:ref:`docs <sweep_tunable_parameters>`).
+           Please use the ``--candidate-batch-hint``(batching on cells) instead of ``--batch-hint``(batching on rows), and ``--read-limit`` instead of ``--cell-batch-size`` (:ref:`docs <sweep_tunable_parameters>`).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1962>`__)
 
     *    - |deprecated|
-         - Configuration parameters ``sweepBatchSize`` and ``sweepCellBatchSize`` have been deprecated in favour of ``sweepCandidateBatchHint`` and ``sweepReadLimit`` respectively.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1911>`__)
-
-    *    - |improved|
-         - Some of our log parameters are marked as safe for logging, as part of our internal guidelines.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1931>`__)
-
-    *    - |improved|
-         - Add jitter to backoff on retries to `reduce load <https://www.awsarchitectureblog.com/2015/03/backoff.html>`__ on the server.
+         - The background sweep configuration parameters ``sweepBatchSize``(which used to batch on rows) and ``sweepCellBatchSize`` have been deprecated in favour of ``sweepCandidateBatchHint``(which now batches on cells) and ``sweepReadLimit`` respectively.
+           If your application configures either of these values, please look at more details in the :ref:`docs <sweep_tunable_parameters>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1945>`__)
 
     *    - |fixed|
-         - After `Pull Request <https://github.com/palantir/atlasdb/pull/1808>`__ the TimeLock Server previously did not gate the lock service behind the ``AwaitingLeadershipProxy`` - it now does again.
+         - After the Pull Request `#1808 <https://github.com/palantir/atlasdb/pull/1808>`__ the TimeLock Server did not gate the lock service behind the ``AwaitingLeadershipProxy``. This could lead to data corruption in very rare scenarios. The affected TimeLock server versions are not distributed anymore internally.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1955>`__)
 
     *    - |fixed|
          - ``TimestampAllocationFailures`` now correctly propagates ``ServiceNotAvailableException`` if thrown from the timestamp bound store.
-           Previously, a ``NotCurrentLeaderException`` that was thrown from the timestamp store would be wrapped in ``RuntimeException`` before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/TBC>`__)
+           Previously, a ``NotCurrentLeaderException`` that was thrown from the timestamp store would be wrapped in ``RuntimeException`` before being thrown out, meaning that TimeLock clients saw 500s instead of the intended 503s. This could lead to inneficient retry logic.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1954>`__)
 
     *    - |devbreak|
          - New ``KeyValueService`` method ``getCandidateCellsForSweeping()`` that should eventually replace ``getRangeOfTimestamps()``.
