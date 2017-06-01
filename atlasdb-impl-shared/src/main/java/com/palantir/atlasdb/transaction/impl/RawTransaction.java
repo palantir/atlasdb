@@ -19,16 +19,21 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.lock.LockRefreshToken;
 
 public class RawTransaction extends ForwardingTransaction {
-    private final Transaction delegate;
+    private final PollingSnapshotTransaction delegate;
     private final LockRefreshToken lock;
 
-    public RawTransaction(Transaction delegate, LockRefreshToken lock) {
+    public RawTransaction(PollingSnapshotTransaction delegate, LockRefreshToken lock) {
         this.delegate = delegate;
         this.lock = lock;
     }
 
+    public RawTransaction(SnapshotTransaction snapshotTransaction, LockRefreshToken lock) {
+        this.delegate = new PollingSnapshotTransaction(snapshotTransaction, false);
+        this.lock = lock;
+    }
+
     @Override
-    public Transaction delegate() {
+    public PollingSnapshotTransaction delegate() {
         return delegate;
     }
 

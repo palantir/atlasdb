@@ -131,7 +131,8 @@ import com.palantir.timestamp.TimestampService;
         return setupRunTaskWithLocksThrowOnConflict(lockTokens, false);
     }
 
-        public RawTransaction setupRunTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens, boolean pollForKvs) {
+    public RawTransaction setupRunTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
+            boolean pollForKvs) {
         long immutableLockTs = timestampService.getFreshTimestamp();
         Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
         LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
@@ -148,8 +149,9 @@ import com.palantir.timestamp.TimestampService;
                     .add(lock)
                     .addAll(lockTokens)
                     .build();
-            Transaction transaction;
-            transaction = createTransaction(pollForKvs, immutableLockTs, startTimestampSupplier, allTokens);
+            PollingSnapshotTransaction transaction = createPollingTransaction(immutableLockTs, startTimestampSupplier, allTokens, pollForKvs);
+//            Transaction transaction;
+//            transaction = createTransaction(pollForKvs, immutableLockTs, startTimestampSupplier, allTokens);
             return new RawTransaction(transaction, lock);
         } catch (Throwable e) {
             if (lock != null) {
@@ -159,13 +161,13 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    private Transaction createTransaction(boolean pollForKvs, long immutableLockTs,
-            Supplier<Long> startTimestampSupplier, ImmutableList<LockRefreshToken> allTokens) {
-        if (pollForKvs) {
-            return createPollingTransaction(immutableLockTs, startTimestampSupplier, allTokens);
-        }
-        return createTransaction(immutableLockTs, startTimestampSupplier, allTokens);
-    }
+//    private PollingSnapshotTransaction createTransaction(boolean pollForKvs, long immutableLockTs,
+//            Supplier<Long> startTimestampSupplier, ImmutableList<LockRefreshToken> allTokens) {
+//        if (pollForKvs) {
+//            return createPollingTransaction(immutableLockTs, startTimestampSupplier, allTokens, pollForKvs);
+//        }
+//        return PollingSnapshotTransaction(immutableLockTs, startTimestampSupplier, allTokens);
+//    }
 
     public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
                                                                            TransactionTask<T, E> task)
@@ -208,9 +210,9 @@ import com.palantir.timestamp.TimestampService;
                 timestampValidationReadCache);
     }
 
-    private Transaction createPollingTransaction(long immutableLockTs, Supplier<Long> startTimestampSupplier,
-            ImmutableList<LockRefreshToken> allTokens) {
-        return new PollingSnapshotTransaction(createTransaction(immutableLockTs, startTimestampSupplier, allTokens), true);
+    private PollingSnapshotTransaction createPollingTransaction(long immutableLockTs, Supplier<Long> startTimestampSupplier,
+            ImmutableList<LockRefreshToken> allTokens, boolean pollKvs) {
+        return new PollingSnapshotTransaction(createTransaction(immutableLockTs, startTimestampSupplier, allTokens), pollKvs);
     }
 
     @Override

@@ -828,7 +828,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
      */
     private static SnapshotTransaction unwrapSnapshotTransaction(Transaction cachingTransaction) {
         Transaction unwrapped = ((CachingTransaction) cachingTransaction).delegate();
-        return ((RawTransaction) unwrapped).delegate();
+        return ((RawTransaction) unwrapped).delegate().delegate();
     }
 
 }

@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+
 public class PollingSnapshotTransaction extends ForwardingTransaction {
 
     private SnapshotTransaction delegate;
@@ -26,5 +30,13 @@ public class PollingSnapshotTransaction extends ForwardingTransaction {
     @Override
     public SnapshotTransaction delegate() {
         return delegate;
+    }
+
+    Multimap<TableReference, Cell> getCellsToScrubImmediately() {
+        return delegate().getCellsToScrubImmediately();
+    }
+
+    long getCommitTimestamp() {
+        return delegate().getCommitTimestamp();
     }
 }
