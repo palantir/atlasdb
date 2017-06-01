@@ -122,7 +122,7 @@ public class PerformanceResults {
 
         final TreeMultiset<Double> values = asTreeMultiset(multisetParam);
         final long totalCount = values.size();
-        final int maximumFinalSize = 100;
+        final int maximumFinalSize = 500;
         final List<Double> list = Lists.newArrayList();
 
         int current = 0;
