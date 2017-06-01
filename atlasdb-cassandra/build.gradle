@@ -14,6 +14,7 @@ dependencies {
   explicitShade group: 'de.jflex', name: 'jflex', version: '1.6.0'
   explicitShade group: 'com.github.rholder', name: 'snowball-stemmer', version: '1.3.0.581.1'
   explicitShade group: 'com.carrotsearch', name: 'hppc', version: '0.5.4'
+  explicitShade group: 'org.apache.ant', name: 'ant', version: '1.7.0'
 
   compile project(":atlasdb-client")
   compile project(":atlasdb-api")
