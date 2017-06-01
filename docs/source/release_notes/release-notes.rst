@@ -45,6 +45,8 @@ develop
     *    - |improved|
          - Added new meter metrics for cells swept/deleted and failures to acquire persistent lock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1946>`__)
+         - KVS migration CLI will now clear the checkpoint tables that are required while the migration is in progress but not after the migration is complete.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1927>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -258,6 +260,10 @@ develop
     *    - |fixed|
          - Import ordering and license generation in generated IntelliJ project files now respect Baseline conventions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1893>`__)
+
+    *    - |fixed| |improved|
+         - Cassandra thrift depedencies have been bumped to newer versions; should fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1896>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
