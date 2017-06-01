@@ -35,6 +35,7 @@ public class PaxosLeaderElectionServiceBuilder {
     private long pingRateMs;
     private long randomWaitBeforeProposingLeadershipMs;
     private long leaderPingResponseWaitMs;
+    private PaxosLeaderElectionEventRecorder eventRecorder = PaxosLeaderElectionEventRecorder.NO_OP;
 
     public PaxosLeaderElectionServiceBuilder proposer(PaxosProposer proposer) {
         this.proposer = proposer;
@@ -83,6 +84,11 @@ public class PaxosLeaderElectionServiceBuilder {
         return this;
     }
 
+    public PaxosLeaderElectionServiceBuilder eventRecorder(PaxosLeaderElectionEventRecorder eventRecorder) {
+        this.eventRecorder = eventRecorder;
+        return this;
+    }
+
     public PaxosLeaderElectionService build() {
         return new PaxosLeaderElectionService(
                 proposer,
@@ -93,6 +99,9 @@ public class PaxosLeaderElectionServiceBuilder {
                 executor,
                 pingRateMs,
                 randomWaitBeforeProposingLeadershipMs,
-                leaderPingResponseWaitMs);
+                leaderPingResponseWaitMs,
+                eventRecorder);
     }
+
+
 }

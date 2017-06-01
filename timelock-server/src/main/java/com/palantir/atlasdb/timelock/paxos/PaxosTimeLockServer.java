@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -58,6 +59,7 @@ import com.palantir.lock.impl.ThreadPooledLockService;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
+import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -254,12 +256,15 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 PaxosLearner.class,
                 "timestamp-bound-store." + client);
 
-        PaxosProposer proposer = instrument(PaxosProposer.class, Leaders.createPaxosProposer(
-                ourLearner,
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners),
-                getQuorumSize(acceptors),
-                executor), client);
+        PaxosProposer proposer = instrument(PaxosProposer.class,
+                PaxosProposerImpl.newProposer(
+                        ourLearner,
+                        ImmutableList.copyOf(acceptors),
+                        ImmutableList.copyOf(learners),
+                        getQuorumSize(acceptors),
+                        UUID.randomUUID(),
+                        executor),
+                client);
 
         PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
 
