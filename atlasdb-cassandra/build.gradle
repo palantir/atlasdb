@@ -1,28 +1,45 @@
 apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 apply from: "../gradle/shared.gradle"
 
+configurations {
+  explicitShadow
+  shadow.extendsFrom(explicitShadow)
+  compile.extendsFrom(explicitShadow)
+}
+
 dependencies {
-  compile project(":atlasdb-client")
-  compile project(":atlasdb-api")
-  compile project(":commons-api")
-  compile project(':timestamp-impl')
-
-  compile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
-    exclude module: 'junit'
+  explicitShadow (group: 'de.jflex', name: 'jflex', version: '1.6.0') {
+    exclude(group: 'org.apache.ant', module: 'ant')
   }
-  compile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
-  compile group: 'com.google.guava', name: 'guava'
+  explicitShadow group: 'com.github.rholder', name: 'snowball-stemmer', version: '1.3.0.581.1'
+  explicitShadow group: 'com.carrotsearch', name: 'hppc', version: '0.5.4'
 
-  compile 'org.apache.commons:commons-pool2:2.4.2'
+  explicitShadow project(":atlasdb-client")
+  explicitShadow project(":atlasdb-api")
+  explicitShadow project(":commons-api")
+  explicitShadow project(':timestamp-impl')
+
+  explicitShadow ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
+    exclude(group: 'de.jflex', module: 'jflex')
+    exclude(group: 'org.apache.ant', module: 'ant')
+    exclude(group: 'com.github.rholder', module: 'snowball-stemmer')
+    exclude(group: 'com.carrotsearch', module: 'hppc')
+  }
+
+  explicitShadow 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
+  explicitShadow group: 'com.google.guava', name: 'guava'
+
+  explicitShadow 'org.apache.commons:commons-pool2:2.4.2'
 
   compile group: 'com.palantir.remoting', name: 'ssl-config'
   compile group: 'com.palantir.remoting1', name: 'tracing'
 
-  compile group: 'com.google.code.findbugs', name: 'annotations'
+  explicitShadow group: 'com.google.code.findbugs', name: 'annotations'
 
-  compile group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
+  explicitShadow group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
 
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
   testCompile group: 'org.mockito', name: 'mockito-core'
@@ -32,3 +49,21 @@ dependencies {
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 }
+
+shadowJar {
+  mergeServiceFiles()
+  classifier ''
+
+  relocate('jflex', atlasdb_shaded + 'jflex')
+  relocate('org.apache.tools.ant', atlasdb_shaded + 'ant')
+  relocate('org.tarturus.snowball', atlasdb_shaded + 'snowball')
+  relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
+
+  dependencies {
+    include(dependency(group: 'com.palantir.remoting', name: 'ssl-config'))
+    include(dependency(group: 'com.palantir.remoting1', name: 'tracing'))
+  }
+}
+
+jar.dependsOn shadowJar
+jar.onlyIf { false }
