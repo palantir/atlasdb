@@ -46,7 +46,6 @@ import com.palantir.remoting1.tracing.Tracers;
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
-    private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
 
     public static <U> U newProxyInstance(Class<U> interfaceClass,
                                          Supplier<U> delegateSupplier,
@@ -122,7 +121,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 clearDelegate();
             } else {
                 leadershipTokenRef.set(leadershipToken);
-                leaderLog.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
+                log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
             }
         } catch (InterruptedException e) {
             log.warn("attempt to gain leadership interrupted", e);
@@ -194,7 +193,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
-        leaderLog.warn("Lost leadership", cause);
+        log.warn("Lost leadership", cause);
         if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
             try {
                 clearDelegate();

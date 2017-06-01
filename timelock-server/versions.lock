@@ -271,7 +271,8 @@
         "com.palantir.atlasdb:atlasdb-client": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:leader-election-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client-protobufs": {
@@ -1493,7 +1494,8 @@
         "com.palantir.atlasdb:atlasdb-client": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:leader-election-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client-protobufs": {

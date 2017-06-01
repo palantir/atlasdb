@@ -67,7 +67,6 @@ import com.palantir.paxos.PaxosValue;
  */
 public class PaxosLeaderElectionService implements PingableLeader, LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
-    private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
 
     private final ReentrantLock lock;
 
@@ -85,6 +84,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     final ExecutorService executor;
 
     final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
+
+    private final LeadershipEventRecorder eventRecorder;
 
     @Deprecated // Use PaxosLeaderElectionServiceBuilder instead.
     public PaxosLeaderElectionService(PaxosProposer proposer,
@@ -107,20 +108,23 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
         lock = new ReentrantLock();
+
+        eventRecorder = new LeadershipEventRecorder(proposer.getUuid());
     }
 
     @Override
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
         for (;;) {
-            PaxosValue greatestLearned = knowledge.getGreatestLearnedValue();
+            PaxosValue greatestLearned = getGreatestLearnedValue();
+
             LeadershipToken token = genTokenFromValue(greatestLearned);
 
             if (isLastConfirmedLeader(greatestLearned)) {
                 StillLeadingStatus leadingStatus = isStillLeading(token);
+
                 if (leadingStatus == StillLeadingStatus.LEADING) {
                     return token;
                 } else if (leadingStatus == StillLeadingStatus.NO_QUORUM) {
-                    leaderLog.warn("The most recent known information says this server is the leader, but there is no quorum right now");
                     // If we don't have quorum we should just retry our calls.
                     continue;
                 }
@@ -189,7 +193,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private Optional<PingableLeader> getSuspectedLeader(boolean useNetwork) {
-        PaxosValue value = knowledge.getGreatestLearnedValue();
+        PaxosValue value = getGreatestLearnedValue();
         if (value == null) {
             return Optional.absent();
         }
@@ -320,13 +324,13 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public boolean ping() {
-        return isLastConfirmedLeader(knowledge.getGreatestLearnedValue());
+        return isLastConfirmedLeader(getGreatestLearnedValue());
     }
 
     private void proposeLeadership(LeadershipToken token) {
         lock.lock();
         try {
-            PaxosValue value = knowledge.getGreatestLearnedValue();
+            PaxosValue value = getGreatestLearnedValue();
 
             LeadershipToken expectedToken = genTokenFromValue(value);
             if (!expectedToken.sameAs(token)) {
@@ -342,16 +346,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 seq = Defaults.defaultValue(long.class);
             }
 
-            leaderLog.info("Proposing leadership with sequence number {}", seq);
+            eventRecorder.recordProposalAttempt(seq);
             proposer.propose(seq, null);
         } catch (PaxosRoundFailureException e) {
             // We have failed trying to become the leader.
-            leaderLog.warn("Leadership was not gained.\n"
-                    + "We should recover automatically. If this recurs often, try to \n"
-                    + "  (1) ensure that most other nodes are reachable over the network, and \n"
-                    + "  (2) increase the randomWaitBeforeProposingLeadershipMs timeout in your configuration.\n"
-                    + "See the debug-level log for more details.");
-            leaderLog.debug("Specifically, leadership was not gained because of the following exception", e);
+            eventRecorder.recordProposalFailure(e);
             return;
         } finally {
             lock.unlock();
@@ -434,6 +433,14 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public StillLeadingStatus isStillLeading(LeadershipToken token) {
+        if (!(token instanceof PaxosLeadershipToken)) {
+            return StillLeadingStatus.NOT_LEADING;
+        }
+
+        return isStillLeading((PaxosLeadershipToken) token);
+    }
+
+    private StillLeadingStatus isStillLeading(PaxosLeadershipToken token) {
         while (true) {
             StillLeadingCallBatch callBatch = getStillLeadingCallBatch(token);
 
@@ -446,8 +453,18 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
             // Now the batch is ready to be read.
             if (!batch.isFailed()) {
+                recordStillLeadingStatus(token, batch.getStatus());
                 return batch.getStatus();
             }
+        }
+    }
+
+    private void recordStillLeadingStatus(PaxosLeadershipToken token,
+            StillLeadingStatus status) {
+        if (status == StillLeadingStatus.NO_QUORUM) {
+            eventRecorder.recordNoQuorum(token.value);
+        } else if (status == StillLeadingStatus.NOT_LEADING) {
+            eventRecorder.recordNotLeading(token.value);
         }
     }
 
@@ -519,7 +536,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     private StillLeadingStatus isStillLeadingInternal(LeadershipToken token) {
         Preconditions.checkNotNull(token);
 
-        final PaxosValue mostRecentValue = knowledge.getGreatestLearnedValue();
+        final PaxosValue mostRecentValue = getGreatestLearnedValue();
         final long seq = mostRecentValue.getRound();
         final LeadershipToken mostRecentToken = genTokenFromValue(mostRecentValue);
 
@@ -560,6 +577,13 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             }
         }
         return StillLeadingStatus.NO_QUORUM;
+    }
+
+    // TODO(nziebart): can we move recordRound() into the learner?
+    private PaxosValue getGreatestLearnedValue() {
+        PaxosValue value = knowledge.getGreatestLearnedValue();
+        eventRecorder.recordRound(value);
+        return value;
     }
 
     /**
