@@ -126,6 +126,8 @@ public class KvsMigrationCommand implements Callable<Integer> {
         }
         if (migrate) {
             migrator.migrate();
+
+            migrator.cleanup();
         }
         if (validate) {
             KeyValueServiceValidator validator = new KeyValueServiceValidator(fromServices.getTransactionManager(),

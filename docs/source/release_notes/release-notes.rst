@@ -42,8 +42,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - KVS migration CLI will now clear the checkpoint tables that are required while the migration is in progress but not after the migration is complete.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1927>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
