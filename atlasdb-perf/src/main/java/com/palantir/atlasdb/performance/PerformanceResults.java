@@ -17,12 +17,6 @@
 
 package com.palantir.atlasdb.performance;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
-import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -42,6 +36,12 @@ import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.util.Multiset;
 import org.openjdk.jmh.util.Statistics;
 import org.openjdk.jmh.util.TreeMultiset;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 
 public class PerformanceResults {
     @VisibleForTesting
@@ -62,19 +62,19 @@ public class PerformanceResults {
 
     private static List<ImmutablePerformanceResult> getPerformanceResults(Collection<RunResult> results) {
         long date = System.currentTimeMillis();
-        return results.stream().map(rs ->  {
+        return results.stream().map(rs -> {
             return ImmutablePerformanceResult.builder()
-                .date(date)
-                .benchmark(getBenchmarkName(rs.getParams()))
-                .samples(rs.getPrimaryResult().getStatistics().getN())
-                .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
-                .mean(rs.getPrimaryResult().getStatistics().getMean())
-                .data(getData(rs))
-                .units(rs.getParams().getTimeUnit())
-                .p50(rs.getPrimaryResult().getStatistics().getPercentile(50.0))
-                .p90(rs.getPrimaryResult().getStatistics().getPercentile(90.0))
-                .p99(rs.getPrimaryResult().getStatistics().getPercentile(99.0))
-                .build();
+                    .date(date)
+                    .benchmark(getBenchmarkName(rs.getParams()))
+                    .samples(rs.getPrimaryResult().getStatistics().getN())
+                    .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
+                    .mean(rs.getPrimaryResult().getStatistics().getMean())
+                    .data(getData(rs))
+                    .units(rs.getParams().getTimeUnit())
+                    .p50(rs.getPrimaryResult().getStatistics().getPercentile(50.0))
+                    .p90(rs.getPrimaryResult().getStatistics().getPercentile(90.0))
+                    .p99(rs.getPrimaryResult().getStatistics().getPercentile(99.0))
+                    .build();
         }).collect(Collectors.toList());
     }
 
@@ -128,7 +128,7 @@ public class PerformanceResults {
         int current = 0;
         for (double d : values.keys()) {
             current += values.count(d);
-            while( 1.0 * maximumFinalSize * current / totalCount >= (list.size() + 1)) {
+            while (1.0 * maximumFinalSize * current / totalCount >= (list.size() + 1)) {
                 list.add(d);
             }
         }
@@ -137,7 +137,7 @@ public class PerformanceResults {
 
     private static TreeMultiset<Double> asTreeMultiset(Multiset<Double> multisetParam) {
         if (multisetParam instanceof TreeMultiset) {
-            return (TreeMultiset<Double>)multisetParam;
+            return (TreeMultiset<Double>) multisetParam;
         } else {
             TreeMultiset<Double> values = new TreeMultiset<>();
             multisetParam.keys().forEach(key -> values.add(key, multisetParam.count(key)));
