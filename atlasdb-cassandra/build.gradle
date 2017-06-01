@@ -6,6 +6,7 @@ apply from: "../gradle/shared.gradle"
 
 configurations {
   explicitShade
+  shadow.extendsFrom(explicitShade)
 }
 
 dependencies {
@@ -47,11 +48,11 @@ dependencies {
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 }
 
-task otherShadowJar(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+shadowJar {
   mergeServiceFiles()
   classifier ''
 
-  from sourceSets.main. output
+  from sourceSets.main.output
   configurations = [project.configurations.explicitShade]
 
   relocate('jflex', atlasdb_shaded + 'jflex')
@@ -60,5 +61,5 @@ task otherShadowJar(type: com.github.jengelman.gradle.plugins.shadow.tasks.Shado
   relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
 }
 
-jar.dependsOn(otherShadowJar)
+jar.dependsOn shadowJar
 jar.onlyIf { false }
