@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.server;
 
+import java.util.Optional;
+
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
@@ -46,6 +48,7 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
 
         SerializableTransactionManager tm = TransactionManagers.create(
                 config.getConfig(),
+                Optional::empty,
                 ImmutableSet.of(),
                 environment.jersey()::register,
                 false);

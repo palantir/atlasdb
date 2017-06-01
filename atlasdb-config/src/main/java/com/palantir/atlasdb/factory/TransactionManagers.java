@@ -20,7 +20,6 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nullable;
 import javax.net.ssl.SSLSocketFactory;
 
 import org.immutables.value.Value;
@@ -29,19 +28,19 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.http.UserAgents;
@@ -91,6 +90,7 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -113,68 +113,77 @@ public final class TransactionManagers {
 
     /**
      * Create a {@link SerializableTransactionManager} backed by an
-     * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}.  This should be used for testing
+     * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}. This should be used for testing
      * purposes only.
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
-        return create(ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build(),
+        AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
+        return create(config,
+                java.util.Optional::empty,
                 schemas,
                 x -> { },
                 false);
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, {@link Schema},
+     * Create a {@link SerializableTransactionManager} with provided configurations, {@link Schema},
      * and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Schema schema,
             Environment env,
             boolean allowHiddenTableAccess) {
-        return create(config, ImmutableSet.of(schema), env, allowHiddenTableAccess);
+        return create(config, runtimeConfig, ImmutableSet.of(schema), env, allowHiddenTableAccess);
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
+     * Create a {@link SerializableTransactionManager} with provided configurations, a set of
      * {@link Schema}s, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
-        log.info("Called TransactionManagers.create on thread {}. This should only happen once.",
-                Thread.currentThread().getName());
-        return create(config, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
+        log.info("Called TransactionManagers.create with live reloading config on thread {}."
+                        + " This should only happen once.",
+                UnsafeArg.of("thread name", Thread.currentThread().getName()));
+        return create(config, runtimeConfig, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
+     * Create a {@link SerializableTransactionManager} with provided configurations, a set of
      * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess) {
-        return create(config, schemas, env, lockServerOptions, allowHiddenTableAccess, UserAgents.DEFAULT_USER_AGENT);
+        return create(config, runtimeConfig, schemas, env, lockServerOptions, allowHiddenTableAccess,
+                UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             Class<?> callingClass) {
-        return create(config, schemas, env, lockServerOptions, allowHiddenTableAccess,
+        return create(config, runtimeConfig, schemas, env, lockServerOptions, allowHiddenTableAccess,
                 UserAgents.fromClass(callingClass));
     }
 
     private static SerializableTransactionManager create(
             AtlasDbConfig config,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
@@ -250,7 +259,7 @@ public final class TransactionManagers {
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
                 config.getSweepPersistentLockWaitMillis());
-        initializeSweepEndpointAndBackgroundProcess(config,
+        initializeSweepEndpointAndBackgroundProcess(runtimeConfig,
                 env,
                 kvs,
                 transactionService,
@@ -263,7 +272,7 @@ public final class TransactionManagers {
     }
 
     private static void initializeSweepEndpointAndBackgroundProcess(
-            AtlasDbConfig config,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Environment env,
             KeyValueService kvs,
             TransactionService transactionService,
@@ -284,7 +293,8 @@ public final class TransactionManagers {
                 sweepStrategyManager,
                 cellsSweeper);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
-        Supplier<SweepBatchConfig> sweepBatchConfig = Suppliers.ofInstance(getSweepBatchConfig(config));
+        Supplier<SweepBatchConfig> sweepBatchConfig =
+                Suppliers.ofInstance(getSweepBatchConfig(getAtlasDbRuntimeConfig(runtimeConfig).sweep()));
         SweepMetrics sweepMetrics = new SweepMetrics();
 
         SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
@@ -297,8 +307,8 @@ public final class TransactionManagers {
                 sweepMetrics);
 
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
-                Suppliers.ofInstance(config.enableSweep()),
-                Suppliers.ofInstance(config.getSweepPauseMillis()),
+                () -> getAtlasDbRuntimeConfig(runtimeConfig).sweep().enabled(),
+                () -> getAtlasDbRuntimeConfig(runtimeConfig).sweep().pauseMillis(),
                 persistentLockManager,
                 specificTableSweeper);
 
@@ -325,35 +335,17 @@ public final class TransactionManagers {
         return specificTableSweeper;
     }
 
-    private static SweepBatchConfig getSweepBatchConfig(AtlasDbConfig config) {
-        if (config.getSweepBatchSize() != null || config.getSweepCellBatchSize() != null) {
-            log.warn("Configuration parameters 'sweepBatchSize' and 'sweepCellBatchSize' have been deprecated"
-                    + " in favor of 'sweepMaxCellTsPairsToExamine', 'sweepCandidateBatchSize'"
-                    + " and 'sweepDeleteBatchSize'. Please update your configuration files.");
-        }
-        return ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(chooseBestValue(
-                        config.getSweepReadLimit(),
-                        config.getSweepCellBatchSize(),
-                        AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT))
-                .candidateBatchSize(chooseBestValue(
-                        config.getSweepCandidateBatchHint(),
-                        config.getSweepBatchSize(),
-                        AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
-                .deleteBatchSize(MoreObjects.firstNonNull(
-                        config.getSweepDeleteBatchHint(),
-                        AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT))
-                .build();
+    private static AtlasDbRuntimeConfig getAtlasDbRuntimeConfig(
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig) {
+        return runtimeConfig.get().orElse(AtlasDbRuntimeConfig.defaultRuntimeConfig());
     }
 
-    private static int chooseBestValue(@Nullable Integer newOption, @Nullable Integer oldOption, int defaultValue) {
-        if (newOption != null) {
-            return newOption;
-        } else if (oldOption != null) {
-            return oldOption;
-        } else {
-            return defaultValue;
-        }
+    private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig) {
+        return ImmutableSweepBatchConfig.builder()
+                .maxCellTsPairsToExamine(sweepConfig.readLimit())
+                .candidateBatchSize(sweepConfig.candidateBatchHint())
+                .deleteBatchSize(sweepConfig.deleteBatchHint())
+                .build();
     }
 
     private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {

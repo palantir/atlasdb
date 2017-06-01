@@ -132,7 +132,10 @@ public abstract class AtlasDbConfig {
      * have been overwritten or deleted. This differs from scrubbing
      * because it is an untargeted cleaning process that scans all data
      * looking for cells to delete.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweepConfig#enableSweep} to make this value
+     * live-reloadable.
      */
+    @Deprecated
     @Value.Default
     public boolean enableSweep() {
         return AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
@@ -141,7 +144,10 @@ public abstract class AtlasDbConfig {
     /**
      * The number of milliseconds to wait between each batch of cells
      * processed by the background sweeper.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweepConfig#getSweepPauseMillis} to make this value
+     * live-reloadable.
      */
+    @Deprecated
     @Value.Default
     public long getSweepPauseMillis() {
         return AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS;
@@ -158,39 +164,44 @@ public abstract class AtlasDbConfig {
 
     /**
      * The target number of (cell, timestamp) pairs to examine in a single run of the background sweeper.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweepConfig#getSweepReadLimit} to make this value
+     * live-reloadable.
      */
-    // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
-    // whether the field is present in the configuration file.
+    @Deprecated
     @Nullable
     public abstract Integer getSweepReadLimit();
 
     /**
      * The target number of candidate (cell, timestamp) pairs to load per batch while sweeping.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweepConfig#getSweepCandidateBatchHint} to make this value
+     * live-reloadable.
      */
-    // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
-    // whether the field is present in the configuration file.
+    @Deprecated
     @Nullable
     public abstract Integer getSweepCandidateBatchHint();
 
     /**
      * The target number of (cell, timestamp) pairs to delete at once while sweeping.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweepConfig#getSweepDeleteBatchHint} to make this value
+     * live-reloadable.
      */
-    // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
-    // whether the field is present in the configuration file.
+    @Deprecated
     @Nullable
     public abstract Integer getSweepDeleteBatchHint();
 
     /**
-     * @deprecated Use {@link #getSweepReadLimit()}, {@link #getSweepCandidateBatchHint()}
-     * and {@link #getSweepDeleteBatchHint()} instead.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweepConfig#getSweepReadLimit()},
+     * {@link AtlasDbRuntimeConfig#sweepConfig#getSweepCandidateBatchHint()} and
+     * {@link AtlasDbRuntimeConfig#sweepConfig#getSweepDeleteBatchHint()}.
      */
     @Deprecated
     @Nullable
     public abstract Integer getSweepBatchSize();
 
     /**
-     * @deprecated Use {@link #getSweepReadLimit()}, {@link #getSweepCandidateBatchHint()}
-     * and {@link #getSweepDeleteBatchHint()} instead.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweepConfig#getSweepReadLimit()},
+     * {@link AtlasDbRuntimeConfig#sweepConfig#getSweepCandidateBatchHint()} and
+     * {@link AtlasDbRuntimeConfig#sweepConfig#getSweepDeleteBatchHint()}.
      */
     @Deprecated
     @Nullable
@@ -228,16 +239,14 @@ public abstract class AtlasDbConfig {
 
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
                 "Lock and timestamp server blocks must either both be present or both be absent.");
-        if (getSweepBatchSize() != null || getSweepCellBatchSize() != null) {
-            Preconditions.checkState(
-                    getSweepReadLimit() == null
-                            && getSweepCandidateBatchHint() == null
-                            && getSweepDeleteBatchHint() == null,
-                    "Your configuration mixes both the old and the new parameters"
-                            + " for setting sweep batch sizes. Please use 'sweepMaxCellTsPairsToExamine',"
-                            + " 'sweepCandidateBatchSize' and 'sweepDeleteBatchSize' instead of the deprecated"
-                            + " 'sweepBatchSize' and 'sweepCellBatchSize'.");
-        }
+
+        Preconditions.checkState(getSweepBatchSize() == null
+                        && getSweepCellBatchSize() == null
+                        && getSweepReadLimit() == null
+                        && getSweepCandidateBatchHint() == null
+                        && getSweepDeleteBatchHint() == null,
+                "Your configuration specifies sweep parameters on the install config."
+                        + " Please use the runtime config to specify them.");
     }
 
     private boolean areTimeAndLockConfigsAbsent() {

@@ -65,6 +65,40 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
 
+         - Added support for live-reloading sweep configs.
+
+           There's a new set of `TransactionManagers.create()` methods, which accept a Supplier of the AtlasDbRuntimeConfig. The parameters of the new config are Sweep related:
+
+             - `enableSweep`
+             - `getSweepPauseMillis`
+             - `getSweepReadLimit`
+             - `getSweepCandidateBatchHint`
+             - `getSweepDeleteBatchHint`
+
+           The parameters are loaded and used at every sweep run. Please check :ref:`Sweep <sweep>` for information on how to use them.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+
+    *    - |userbreak|
+         - As part of the live-reloading work, were deprecated the sweep options of the AtlasDB config, namely:
+
+           - `enableSweep`
+           - `getSweepPauseMillis`
+           - `getSweepReadLimit`
+           - `getSweepCandidateBatchHint`
+           - `getSweepDeleteBatchHint`
+
+           If any of these options are specified in the install config, **AtlasDB will fail to start**. Please specify them on the runtime config.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+
+    *    - |devbreak|
+         - As part of the live-reloading work, were removed the methods `TransactionManagers.create()` without the AtlasDB runtime config.
+           If needed, the helper method `AtlasDbRuntimeConfig.defaultRuntimeConfig()` can be used to create a runtime config with the default values.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
