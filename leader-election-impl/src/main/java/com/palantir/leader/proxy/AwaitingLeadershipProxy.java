@@ -40,6 +40,7 @@ import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting1.tracing.Tracers;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
@@ -121,7 +122,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 clearDelegate();
             } else {
                 leadershipTokenRef.set(leadershipToken);
-                leaderLog.info("Gained leadership for {}", leadershipToken);
+                leaderLog.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
             }
         } catch (InterruptedException e) {
             log.warn("attempt to gain leadership interrupted", e);

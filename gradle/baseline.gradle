@@ -17,12 +17,18 @@ List<String> blacklistedBaselineProjects = [
         'profile-client-protobufs',
         'timestamp-impl']
 
-
 if (!blacklistedBaselineProjects.contains(project.name)) {
     apply plugin: 'com.palantir.baseline-checkstyle'
+}
+// ./gradlew compileJava compileTestJava -PenableErrorProne=true
+if (enableErrorProne.toBoolean()) {
+    apply plugin: 'org.inferred.processors'
+    // installs the "processor" configuration needed for baseline-error-prone
+    apply plugin: 'com.palantir.baseline-error-prone'
 
-    // We are not presently using errorprone because that swaps out the compiler to one based on the beta compiler
-    // for JDK 9, which has a known issue with varargs.
+    configurations.errorprone {
+        resolutionStrategy { force('com.google.guava:guava:21.0') }
+    }
 }
 
 apply plugin: 'com.palantir.baseline-eclipse'

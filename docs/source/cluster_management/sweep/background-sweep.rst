@@ -70,7 +70,7 @@ You can also query ``sweep.priority`` to get a breakdown per table of:
 
 - ``last_sweep_time`` - Wall clock time the last time this table was swept.
 
-- ``cells_deleted`` - The numbers of cells deleted last time this table was swept.
+- ``cells_deleted`` - The numbers of stale values deleted last time this table was swept.
 
-- ``cells_examined`` - The number of cells in the table total the last time this table was swept.
+- ``cells_examined`` - The number of cell-timestamp pairs in the table total the last time this table was swept.
 

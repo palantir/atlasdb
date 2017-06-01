@@ -71,6 +71,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
     private static final Logger log = LoggerFactory.getLogger(KeyValueService.class);
+    private static final String ENTRY_TOO_BIG_MESSAGE = "Encountered an entry of approximate size {} bytes,"
+            + " larger than maximum size of {} defined per entire batch,"
+            + " while doing a write to {}. Attempting to batch anyways.";
 
     protected ExecutorService executor;
 
@@ -247,14 +250,14 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                         runningSize += sizingFunction.apply(firstEntry);
                         entries.add(firstEntry);
                         if (runningSize > maximumBytesPerPartition && log.isWarnEnabled()) {
-                            String message = "Encountered an entry of approximate size {} bytes, "
-                                    + "larger than maximum size of {} defined per entire batch, "
-                                    + "while doing a write to {}. Attempting to batch anyways.";
+
                             if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(
                                     TableReference.createWithEmptyNamespace(tableName))) {
-                                log.warn(message, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
+                                log.warn(ENTRY_TOO_BIG_MESSAGE, sizingFunction.apply(firstEntry),
+                                        maximumBytesPerPartition, tableName);
                             } else {
-                                String longerMessage = message + " This can potentially cause out-of-memory errors.";
+                                final String longerMessage = ENTRY_TOO_BIG_MESSAGE
+                                        + " This can potentially cause out-of-memory errors.";
                                 log.warn(longerMessage, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
                             }
                         }

@@ -26,9 +26,17 @@ public abstract class SweepResults {
 
     public abstract Optional<byte[]> getNextStartRow();
 
-    public abstract long getCellsExamined();
+    /**
+     * The approximate number of (cell, timestamp) pairs examined.
+     * TODO: we should rename this method to something like getCellTsPairsExamined()
+     */
+    public abstract long getCellTsPairsExamined();
 
-    public abstract long getCellsDeleted();
+    /**
+     * The number of (cell, timestamp) pairs deleted.
+     * TODO: we should rename this method to something like getCellTsPairsDeleted() or staleValuesDeleted()
+     */
+    public abstract long getStaleValuesDeleted();
 
     public abstract long getSweptTimestamp();
 
@@ -36,11 +44,11 @@ public abstract class SweepResults {
         return ImmutableSweepResults.builder();
     }
 
-    public static SweepResults createEmptySweepResult(long sweptTimestamp) {
+    public static SweepResults createEmptySweepResult() {
         return builder()
-                .cellsExamined(0)
-                .cellsDeleted(0)
-                .sweptTimestamp(sweptTimestamp)
+                .cellTsPairsExamined(0)
+                .staleValuesDeleted(0)
+                .sweptTimestamp(0)
                 .build();
     }
 

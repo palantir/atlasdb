@@ -85,6 +85,8 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -111,6 +113,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.util.AnnotatedCallable;
@@ -121,6 +124,7 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -462,7 +466,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         if (timestampByCell.isEmpty()) {
-            log.info("Attempted get on '{}' table with empty cells", tableRef);
+            log.info("Attempted get on '{}' table with empty cells", UnsafeArg.of("tableRef", tableRef));
             return ImmutableMap.of();
         }
 
@@ -1395,6 +1399,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
+    @Override
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
+            CandidateCellForSweepingRequest request) {
+        return new GetCandidateCellsForSweepingShim(this).getCandidateCellsForSweeping(tableRef, request);
+    }
+
     private ClosableIterator<RowResult<Set<Long>>> getTimestampsInBatchesWithPageCreator(
             TableReference tableRef,
             RangeRequest rangeRequest,
@@ -2272,10 +2282,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         tables.remove(tableToKeep.get());
         if (tables.size() > 0) {
             dropTablesInternal(tables);
-            log.info("Dropped tables [{}]", tables.toString());
+            log.info("Dropped tables [{}]", UnsafeArg.of("table names", tables));
         }
         schemaMutationLock.cleanLockState();
-        log.info("Reset the schema mutation lock in table [{}]", tableToKeep.get().toString());
+        log.info("Reset the schema mutation lock in table [{}]",
+                UnsafeArg.of("table name", tableToKeep.get().toString()));
     }
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {

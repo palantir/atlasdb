@@ -40,15 +40,15 @@ public class SweepProgressStoreTest {
     private static final SweepProgress PROGRESS = ImmutableSweepProgress.builder()
             .startRow(new byte[] {1, 2, 3})
             .minimumSweptTimestamp(12345L)
-            .cellsDeleted(10L)
-            .cellsExamined(200L)
+            .staleValuesDeleted(10L)
+            .cellTsPairsExamined(200L)
             .tableRef(TableReference.createFromFullyQualifiedName("foo.bar"))
             .build();
     private static final SweepProgress OTHER_PROGRESS = ImmutableSweepProgress.builder()
             .startRow(new byte[] {4, 5, 6})
             .minimumSweptTimestamp(67890L)
-            .cellsDeleted(11L)
-            .cellsExamined(202L)
+            .staleValuesDeleted(11L)
+            .cellTsPairsExamined(202L)
             .tableRef(TableReference.createFromFullyQualifiedName("qwe.rty"))
             .build();
 

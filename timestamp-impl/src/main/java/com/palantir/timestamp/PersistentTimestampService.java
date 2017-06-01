@@ -33,7 +33,9 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
 
     public PersistentTimestampService(AvailableTimestamps availableTimestamps, ExecutorService executor) {
         DebugLogger.logger.info(
-                "Creating PersistentTimestampService object on thread {}. This should only happen once.",
+                "Creating PersistentTimestampService object on thread {}."
+                        + " If you are running embedded AtlasDB, this should only happen once."
+                        + " If you are using Timelock, this should happen once per client per leadership election",
                 Thread.currentThread().getName());
 
         this.availableTimestamps = availableTimestamps;

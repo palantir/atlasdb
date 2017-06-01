@@ -19,14 +19,10 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 
-import java.util.concurrent.TimeUnit;
-
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.primitives.Longs;
@@ -41,16 +37,16 @@ public class SweepMetricsTest {
     private static final long DELETED = 10L;
     private static final long EXAMINED = 15L;
     private static final SweepResults SWEEP_RESULTS_FOR_TABLE = SweepResults.builder()
-            .cellsDeleted(DELETED)
-            .cellsExamined(EXAMINED)
+            .staleValuesDeleted(DELETED)
+            .cellTsPairsExamined(EXAMINED)
             .sweptTimestamp(1337L)
             .build();
 
     private static final long OTHER_DELETED = 12L;
     private static final long OTHER_EXAMINED = 4L;
     private static final SweepResults SWEEP_RESULTS_FOR_OTHER_TABLE = SweepResults.builder()
-            .cellsDeleted(OTHER_DELETED)
-            .cellsExamined(OTHER_EXAMINED)
+            .staleValuesDeleted(OTHER_DELETED)
+            .cellTsPairsExamined(OTHER_EXAMINED)
             .sweptTimestamp(1338L)
             .build();
 
@@ -100,20 +96,7 @@ public class SweepMetricsTest {
 
         assertCellsExamined(TABLE, EXAMINED);
         assertCellsExamined(OTHER_TABLE, OTHER_EXAMINED);
-        assertValuesRecorded(SweepMetrics.CELLS_EXAMINED, EXAMINED, OTHER_EXAMINED);
-    }
-
-    @Ignore // This is just for me to run locally and check out what the metrics reports look like
-    @Test
-    public void testReporting() throws InterruptedException {
-        sweepMetrics.recordMetrics(TABLE, SWEEP_RESULTS_FOR_TABLE);
-        sweepMetrics.recordMetrics(OTHER_TABLE, SWEEP_RESULTS_FOR_OTHER_TABLE);
-
-        ConsoleReporter reporter = ConsoleReporter.forRegistry(METRIC_REGISTRY)
-                .build();
-        reporter.start(1, TimeUnit.SECONDS);
-
-        Thread.sleep(4000);
+        assertValuesRecorded(SweepMetrics.CELL_TS_PAIRS_EXAMINED, EXAMINED, OTHER_EXAMINED);
     }
 
     private void assertValuesRecorded(String aggregateMetric, Long... values) {
@@ -122,14 +105,14 @@ public class SweepMetricsTest {
     }
 
     private void assertCellsDeleted(TableReference table, long deleted) {
-        Histogram deleteMetric = METRIC_REGISTRY.histogram(MetricRegistry.name(SweepMetrics.class, "staleValuesDeleted",
-                table.getQualifiedName()));
+        Histogram deleteMetric = METRIC_REGISTRY.histogram(MetricRegistry.name(
+                SweepMetrics.class, SweepMetrics.STALE_VALUES_DELETED, table.getQualifiedName()));
         assertArrayEquals(new long[] { deleted }, deleteMetric.getSnapshot().getValues());
     }
 
     private void assertCellsExamined(TableReference table, long examined) {
-        Histogram examinedMetric = METRIC_REGISTRY.histogram(MetricRegistry.name(SweepMetrics.class, "cellsExamined",
-                table.getQualifiedName()));
+        Histogram examinedMetric = METRIC_REGISTRY.histogram(MetricRegistry.name(
+                SweepMetrics.class, SweepMetrics.CELL_TS_PAIRS_EXAMINED, table.getQualifiedName()));
         assertArrayEquals(new long[] { examined }, examinedMetric.getSnapshot().getValues());
     }
 }

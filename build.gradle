@@ -95,7 +95,7 @@ subprojects {
     task allDeps(type: DependencyReportTask) {}
 }
 
-apply from: 'idea.gradle'
+apply from: 'gradle/idea.gradle'
 
 // Setup copyright notice as a block comment, and no newline after it
 project.afterEvaluate {

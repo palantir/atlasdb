@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-
 import java.util.Arrays;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -75,9 +73,8 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         insertMultipleValues(numInsertions);
 
         long sweepTimestamp = numInsertions + 1;
-        SweepResults sweepResults = completeSweep(sweepTimestamp);
-
-        assertThat(sweepResults.getCellsDeleted(), equalTo(numInsertions - 1));
+        SweepResults results = completeSweep(sweepTimestamp);
+        Assert.assertEquals(numInsertions - 1, results.getStaleValuesDeleted());
     }
 
     @Test
@@ -89,9 +86,8 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
             put("row", "col2", "value", ts + 5);
         }
 
-        SweepResults sweepResults = completeSweep(350);
-
-        assertThat(sweepResults.getCellsDeleted(), equalTo(28L));
+        SweepResults results = completeSweep(350);
+        Assert.assertEquals(28, results.getStaleValuesDeleted());
     }
 
     private void insertMultipleValues(long numInsertions) {
