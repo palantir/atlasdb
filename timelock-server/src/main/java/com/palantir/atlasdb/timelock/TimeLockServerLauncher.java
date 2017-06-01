@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.leader.LeaderLog;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
 import io.dropwizard.Application;
@@ -41,6 +42,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
     public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
         MetricRegistry metricRegistry = MetricRegistries.createWithHdrHistogramReservoirs();
         AtlasDbMetrics.setMetricRegistry(metricRegistry);
+        LeaderLog.setMetricRegistry(metricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);
         super.initialize(bootstrap);
     }
