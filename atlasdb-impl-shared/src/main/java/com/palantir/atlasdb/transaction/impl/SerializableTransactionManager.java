@@ -30,14 +30,14 @@ import com.palantir.timestamp.TimestampService;
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public SerializableTransactionManager(KeyValueService keyValueService,
-                                          TimestampService timestampService,
-                                          LockClient lockClient,
-                                          RemoteLockService lockService,
-                                          TransactionService transactionService,
-                                          Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-                                          ConflictDetectionManager conflictDetectionManager,
-                                          SweepStrategyManager sweepStrategyManager,
-                                          Cleaner cleaner) {
+            TimestampService timestampService,
+            LockClient lockClient,
+            RemoteLockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner) {
         this(keyValueService,
                 timestampService,
                 lockClient,
@@ -51,17 +51,16 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
-                                          TimestampService timestampService,
-                                          LockClient lockClient,
-                                          RemoteLockService lockService,
-                                          TransactionService transactionService,
-                                          Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-                                          ConflictDetectionManager conflictDetectionManager,
-                                          SweepStrategyManager sweepStrategyManager,
-                                          Cleaner cleaner,
-                                          boolean allowHiddenTableAccess) {
-        super(
-                keyValueService,
+            TimestampService timestampService,
+            LockClient lockClient,
+            RemoteLockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            boolean allowHiddenTableAccess) {
+        super(keyValueService,
                 timestampService,
                 lockClient,
                 lockService,
@@ -75,8 +74,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     @Override
     protected SnapshotTransaction createTransaction(long immutableLockTs,
-                                                  Supplier<Long> startTimestampSupplier,
-                                                  ImmutableList<LockRefreshToken> allTokens) {
+            Supplier<Long> startTimestampSupplier,
+            ImmutableList<LockRefreshToken> allTokens) {
         return new SerializableTransaction(
                 keyValueService,
                 lockService,
@@ -95,13 +94,27 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 timestampValidationReadCache);
     }
 
-//    @Override
-//    protected PollingSnapshotTransaction createPollingTransaction(long immutableLockTs,
-//            Supplier<Long> startTimestampSupplier,
-//            ImmutableList<LockRefreshToken> allTokens) {
-//        return new PollingSnapshotTransaction(createTransaction(immutableLockTs, startTimestampSupplier, allTokens), true);
-//    }
-
+    @Override
+    protected SnapshotTransaction createPollingTransaction(long immutableLockTs,
+            Supplier<Long> startTimestampSupplier,
+            ImmutableList<LockRefreshToken> allTokens) {
+        return new PollingSerializableTransaction(
+                keyValueService,
+                lockService,
+                timestampService,
+                transactionService,
+                cleaner,
+                startTimestampSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                getImmutableTimestampInternal(immutableLockTs),
+                allTokens,
+                constraintModeSupplier.get(),
+                cleaner.getTransactionReadTimeoutMillis(),
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                allowHiddenTableAccess,
+                timestampValidationReadCache);
+    }
 
 }
 

@@ -190,19 +190,16 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
         t1.commit();
         for (int i = 0 ; i < 1000 ; i++) {
-            executor.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    txManager.runTaskWithRetry(new TxTask() {
-                        @Override
-                        public Void execute(Transaction t) throws RuntimeException {
-                            long prev = EncodingUtils.decodeVarLong(t.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
-                            t.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(prev+1)));
-                            return null;
-                        }
-                    });
-                    return null;
-                }
+            executor.submit(() -> {
+                txManager.runTaskWithRetry(new TxTask() {
+                    @Override
+                    public Void execute(Transaction t) throws RuntimeException {
+                        long prev = EncodingUtils.decodeVarLong(t.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
+                        t.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(prev+1)));
+                        return null;
+                    }
+                });
+                return null;
             });
         }
         for (int i = 0; i < 1000 ; i++) {
@@ -828,7 +825,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
      */
     private static SnapshotTransaction unwrapSnapshotTransaction(Transaction cachingTransaction) {
         Transaction unwrapped = ((CachingTransaction) cachingTransaction).delegate();
-        return ((RawTransaction) unwrapped).delegate().delegate();
+        return ((RawTransaction) unwrapped).delegate();
     }
 
 }

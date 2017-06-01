@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.base.Supplier;
@@ -26,9 +27,8 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
-public class PollingSnapshotTransaction extends SnapshotTransaction {
-
-    PollingSnapshotTransaction(KeyValueService keyValueService,
+public class PollingSerializableTransaction extends SerializableTransaction {
+    public PollingSerializableTransaction(KeyValueService keyValueService,
             RemoteLockService lockService, TimestampService timestampService,
             TransactionService transactionService,
             Cleaner cleaner, Supplier<Long> startTimeStamp,
@@ -38,10 +38,10 @@ public class PollingSnapshotTransaction extends SnapshotTransaction {
             AtlasDbConstraintCheckingMode constraintCheckingMode,
             Long transactionTimeoutMillis,
             TransactionReadSentinelBehavior readSentinelBehavior,
-            boolean allowHiddenTableAccess, TimestampCache timestampValidationReadCache) {
+            boolean allowHiddenTableAccess, TimestampCache timestampCache) {
         super(keyValueService, lockService, timestampService, transactionService, cleaner, startTimeStamp,
                 conflictDetectionManager, sweepStrategyManager, immutableTimestamp, tokensValidForCommit,
                 constraintCheckingMode, transactionTimeoutMillis, readSentinelBehavior, allowHiddenTableAccess,
-                timestampValidationReadCache);
+                timestampCache);
     }
 }
