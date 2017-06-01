@@ -59,7 +59,7 @@ public class PaxosResourceTest {
 
     @Test
     public void canAddClients() {
-        paxosResource.addClient(CLIENT_1);
+        paxosResource.addInstrumentedClient(CLIENT_1);
         PaxosLearner learner = paxosResource.getPaxosLearner(CLIENT_1);
         learner.learn(PAXOS_ROUND_ONE, PAXOS_VALUE);
         assertThat(learner.getGreatestLearnedValue()).isNotNull();
@@ -73,7 +73,7 @@ public class PaxosResourceTest {
 
     @Test
     public void addsClientsInSubdirectory() {
-        paxosResource.addClient(CLIENT_1);
+        paxosResource.addInstrumentedClient(CLIENT_1);
         File expectedAcceptorLogDir =
                 Paths.get(logDirectory.getPath(), CLIENT_1, PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toFile();
         assertThat(expectedAcceptorLogDir.exists()).isTrue();
@@ -84,13 +84,13 @@ public class PaxosResourceTest {
 
     @Test
     public void throwsIfTryingToAddClientTwice() {
-        paxosResource.addClient(CLIENT_1);
-        assertThatThrownBy(() -> paxosResource.addClient(CLIENT_1)).isInstanceOf(IllegalStateException.class);
+        paxosResource.addInstrumentedClient(CLIENT_1);
+        assertThatThrownBy(() -> paxosResource.addInstrumentedClient(CLIENT_1)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void returnsNullIfClientNotAdded() {
-        paxosResource.addClient(CLIENT_1);
+        paxosResource.addInstrumentedClient(CLIENT_1);
         assertThat(paxosResource.getPaxosLearner(CLIENT_2)).isNull();
         assertThat(paxosResource.getPaxosAcceptor(CLIENT_2)).isNull();
     }

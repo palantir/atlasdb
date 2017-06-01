@@ -112,16 +112,17 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         Set<String> paxosSubresourceUris = PaxosTimeLockUriUtils.getLeaderPaxosUris(remoteServers);
 
-        Leaders.LocalPaxosServices localPaxosServices = Leaders.createLocalServices(
+        Leaders.LocalPaxosServices localPaxosServices = Leaders.createInstrumentedLocalServices(
                 leaderConfig,
                 ImmutableRemotePaxosServerSpec.builder()
                         .remoteLeaderUris(remoteServers)
                         .remoteAcceptorUris(paxosSubresourceUris)
                         .remoteLearnerUris(paxosSubresourceUris)
-                        .build());
+                        .build(),
+                "paxos-leader-election-service");
         leaderElectionService = localPaxosServices.leaderElectionService();
 
-        environment.jersey().register(leaderElectionService);
+        environment.jersey().register(localPaxosServices.pingableLeader());
         environment.jersey().register(new LeadershipResource(
                 localPaxosServices.ourAcceptor(),
                 localPaxosServices.ourLearner()));
@@ -130,7 +131,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private void registerHealthCheck(TimeLockServerConfiguration configuration) {
         Set<PingableLeader> pingableLeaders = Leaders.generatePingables(
                 getAllServerPaths(configuration),
-                ServiceCreator.createSslSocketFactory(paxosConfiguration.sslConfiguration())).keySet();
+                ServiceCreator.createSslSocketFactory(paxosConfiguration.sslConfiguration()),
+                "leader-ping-healthcheck").keySet();
         environment.healthChecks().register("leader-ping", new LeaderPingHealthCheck(pingableLeaders));
     }
 
@@ -228,7 +230,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private ManagedTimestampService createPaxosBackedTimestampService(String client) {
-        paxosResource.addClient(client);
+        paxosResource.addInstrumentedClient(client);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-" + client + "-%d")
@@ -240,21 +242,23 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 paxosResource.getPaxosAcceptor(client),
                 namespacedUris,
                 optionalSecurity,
-                PaxosAcceptor.class);
+                PaxosAcceptor.class,
+                "timestamp-bound-store[" + client + "]");
 
         PaxosLearner ourLearner = paxosResource.getPaxosLearner(client);
         List<PaxosLearner> learners = Leaders.createProxyAndLocalList(
                 ourLearner,
                 namespacedUris,
                 optionalSecurity,
-                PaxosLearner.class);
+                PaxosLearner.class,
+                "timestamp-bound-store[" + client + "]");
 
-        PaxosProposer proposer = Leaders.createPaxosProposer(
+        PaxosProposer proposer = instrument(PaxosProposer.class, Leaders.createPaxosProposer(
                 ourLearner,
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
                 getQuorumSize(acceptors),
-                executor);
+                executor), client);
 
         PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
 

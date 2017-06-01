@@ -21,8 +21,10 @@ import java.util.Map;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
@@ -52,13 +54,21 @@ public final class PaxosResource {
         return new PaxosResource(logDirectory, Maps.newHashMap(), Maps.newHashMap());
     }
 
-    public void addClient(String client) {
+    public void addInstrumentedClient(String client) {
         Preconditions.checkState(!paxosLearners.containsKey(client),
                 "Paxos resource already has client '%s' registered", client);
-        paxosLearners.put(client, PaxosLearnerImpl.newLearner(
-                Paths.get(logDirectory, client, PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toString()));
-        paxosAcceptors.put(client, PaxosAcceptorImpl.newAcceptor(
-                Paths.get(logDirectory, client, PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toString()));
+
+        String learnerLogDir = Paths.get(logDirectory, client, PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toString();
+        PaxosLearner learner = instrument(PaxosLearner.class, PaxosLearnerImpl.newLearner(learnerLogDir), client);
+        paxosLearners.put(client, learner);
+
+        String acceptorLogDir = Paths.get(logDirectory, client, PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toString();
+        PaxosAcceptor acceptor = instrument(PaxosAcceptor.class, PaxosAcceptorImpl.newAcceptor(acceptorLogDir), client);
+        paxosAcceptors.put(client, acceptor);
+    }
+
+    private static <T> T instrument(Class<T> serviceClass, T service, String client) {
+        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass, client));
     }
 
     @Path("/learner")
