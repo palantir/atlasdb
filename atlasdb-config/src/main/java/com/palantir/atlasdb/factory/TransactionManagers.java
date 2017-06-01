@@ -38,7 +38,9 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
@@ -145,6 +147,21 @@ public final class TransactionManagers {
 
     /**
      * Create a {@link SerializableTransactionManager} with provided configuration, a set of
+     * {@link Schema}s, and an environment in which to register HTTP server endpoints.
+     */
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            Set<Schema> schemas,
+            Environment env,
+            boolean allowHiddenTableAccess) {
+        log.info("Called TransactionManagers.create on thread {}. This should only happen once.",
+                Thread.currentThread().getName());
+        return create(config, runtimeConfig, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
+    }
+
+    /**
+     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
      * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
@@ -154,6 +171,21 @@ public final class TransactionManagers {
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess) {
         return create(config, schemas, env, lockServerOptions, allowHiddenTableAccess, UserAgents.DEFAULT_USER_AGENT);
+    }
+
+    /**
+     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
+     * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
+     */
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            Set<Schema> schemas,
+            Environment env,
+            LockServerOptions lockServerOptions,
+            boolean allowHiddenTableAccess) {
+        return create(config, runtimeConfig, schemas, env, lockServerOptions, allowHiddenTableAccess,
+                UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static SerializableTransactionManager create(
@@ -169,6 +201,23 @@ public final class TransactionManagers {
 
     private static SerializableTransactionManager create(
             AtlasDbConfig config,
+            Set<Schema> schemas,
+            Environment env,
+            LockServerOptions lockServerOptions,
+            boolean allowHiddenTableAccess,
+            String userAgent) {
+        return create(config,
+                () -> ImmutableAtlasDbRuntimeConfig.builder().enableSweep(config.enableSweep()).build(),
+                schemas,
+                env,
+                lockServerOptions,
+                allowHiddenTableAccess,
+                userAgent);
+    }
+
+    private static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
@@ -258,7 +307,7 @@ public final class TransactionManagers {
                 transactionManager,
                 kvs,
                 sweepRunner,
-                Suppliers.ofInstance(config.enableSweep()),
+                () -> runtimeConfig.get().enableSweep(),
                 Suppliers.ofInstance(config.getSweepPauseMillis()),
                 Suppliers.ofInstance(getSweepBatchConfig(config)),
                 SweepTableFactory.of(),
