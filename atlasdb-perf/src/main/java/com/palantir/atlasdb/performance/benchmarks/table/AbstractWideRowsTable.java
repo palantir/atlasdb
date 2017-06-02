@@ -85,7 +85,7 @@ public abstract class AbstractWideRowsTable {
             }
             txn.put(getTableRef(), values);
             return null;
-        });
+        }, false);
     }
 
     protected static Cell cell(int rowIndex, int colIndex) {

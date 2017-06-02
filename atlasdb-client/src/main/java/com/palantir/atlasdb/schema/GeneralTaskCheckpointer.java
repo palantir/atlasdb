@@ -102,7 +102,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
                 }
                 return null;
             }
-        });
+        }, false);
     }
 
     @Override

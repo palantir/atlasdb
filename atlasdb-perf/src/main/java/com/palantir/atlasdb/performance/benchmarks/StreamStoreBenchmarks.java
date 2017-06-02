@@ -51,7 +51,8 @@ public class StreamStoreBenchmarks {
         TransactionManager transactionManager = table.getTransactionManager();
         StreamTestTableFactory tables = StreamTestTableFactory.of();
         ValueStreamStore store = ValueStreamStore.of(transactionManager, tables);
-        try (InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, id));
+        try (InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, id),
+                false);
                 InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
                 BufferedReader bufferedReader = new BufferedReader(reader)) {
             String line = bufferedReader.readLine();
@@ -69,7 +70,8 @@ public class StreamStoreBenchmarks {
         TransactionManager transactionManager = table.getTransactionManager();
         StreamTestTableFactory tables = StreamTestTableFactory.of();
         ValueStreamStore store = ValueStreamStore.of(transactionManager, tables);
-        try (InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, id))) {
+        try (InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, id),
+                false)) {
             byte[] firstBytes = new byte[16];
             int read = inputStream.read(firstBytes);
             assertThat(read, is(16));
@@ -86,7 +88,8 @@ public class StreamStoreBenchmarks {
         TransactionManager transactionManager = table.getTransactionManager();
         StreamTestTableFactory tables = StreamTestTableFactory.of();
         ValueStreamStore store = ValueStreamStore.of(transactionManager, tables);
-        try (InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, id))) {
+        try (InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, id),
+                false)) {
             byte[] firstBytes = new byte[16];
             int read = inputStream.read(firstBytes);
             assertThat(read, is(16));

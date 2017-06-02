@@ -22,8 +22,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.sql.Time;
-
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,11 +37,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
-import com.palantir.atlasdb.transaction.impl.SerializableTransaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.transaction.impl.SnapshotTransaction;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.HeldLocksToken;
@@ -113,7 +108,7 @@ public class AtlasDbServiceImplTest {
 
         txManager.runTaskWithLocksWithRetry(ImmutableList.of(expiredLockToken), () -> null, (tx, locks) -> {tx.put(TableReference.createFromFullyQualifiedName("Test.Test"), ImmutableMap.of(cell, PtBytes.toBytes("value")));
             return null;
-        });
+        }, false);
 
 //        Transaction transaction = new SnapshotTransaction()
 //        txManager.finishRunTaskWithLockThrowOnConflict()

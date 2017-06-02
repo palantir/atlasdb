@@ -48,7 +48,7 @@ public class TransactionPutBenchmarks {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
             txn.put(tables.getFirstTableRef(), batch);
             return batch;
-        });
+        }, false);
     }
 
     @Benchmark
@@ -60,7 +60,7 @@ public class TransactionPutBenchmarks {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
             txn.put(tables.getFirstTableRef(), batch);
             return batch;
-        });
+        }, false);
     }
 
 }

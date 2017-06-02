@@ -252,8 +252,8 @@ public class BackgroundSweeperFastTest {
             TransactionTask<?, ?> task = (TransactionTask<?, ?>) args[0];
             return task.execute(Mockito.mock(Transaction.class));
         };
-        Mockito.doAnswer(runTaskAnswer).when(txManager).runTaskReadOnly(Mockito.any());
-        Mockito.doAnswer(runTaskAnswer).when(txManager).runTaskWithRetry(Mockito.any());
+        Mockito.doAnswer(runTaskAnswer).when(txManager).runTaskReadOnly(Mockito.any(), false);
+        Mockito.doAnswer(runTaskAnswer).when(txManager).runTaskWithRetry(Mockito.any(), false);
         return txManager;
     }
 

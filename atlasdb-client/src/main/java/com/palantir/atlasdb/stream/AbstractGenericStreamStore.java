@@ -128,7 +128,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
                     txnMgr.runTaskReadOnly(txn -> {
                         loadNBlocksToOutputStream(txn, id, firstBlock, numBlocks, destination);
                         return null;
-                    });
+                    }, false);
                 }
             }
 

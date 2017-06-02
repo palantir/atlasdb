@@ -36,7 +36,7 @@ public class TransactionDeleteBenchmarks {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             txn.delete(table.getTableRef(), table.getTableCells());
             return table.getTableCells();
-        });
+        }, false);
     }
 
     @Benchmark

@@ -57,7 +57,7 @@ public class TransactionGetDynamicBenchmarks {
             Preconditions.checkState(result.values().size() == table.getNumCols(),
                     "Should be %s columns, but were: %s", table.getNumCols(), result.values().size());
             return result;
-        });
+        }, false);
     }
 
     @Benchmark
@@ -73,7 +73,7 @@ public class TransactionGetDynamicBenchmarks {
             Preconditions.checkState(count == table.getNumCols(),
                     "Should be %s columns, but were: %s", table.getNumCols(), count);
             return result;
-        });
+        }, false);
     }
 
     @Benchmark
@@ -88,7 +88,7 @@ public class TransactionGetDynamicBenchmarks {
             int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()));
             Preconditions.checkState(value == 0, "Value should be %s but is %s", 0,  value);
             return result;
-        });
+        }, false);
     }
 
     @Benchmark
@@ -110,7 +110,7 @@ public class TransactionGetDynamicBenchmarks {
                     ).getValue());
             Preconditions.checkState(value == 0, "Value should be %s but is %s", 0,  value);
             return result;
-        });
+        }, false);
     }
 
 }

@@ -36,13 +36,13 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     private volatile boolean closed = false;
 
     @Override
-    public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
+    public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task, boolean shouldPollForKvs) throws E {
         int failureCount = 0;
         UUID runId = UUID.randomUUID();
         while (true) {
             checkOpen();
             try {
-                T result = runTaskThrowOnConflict(task);
+                T result = runTaskThrowOnConflict(task, shouldPollForKvs);
                 if (failureCount > 0) {
                     log.info("[{}] Successfully completed transaction after {} retries.",
                             SafeArg.of("runId", runId),

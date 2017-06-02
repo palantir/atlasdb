@@ -200,7 +200,7 @@ public class SweepCommand extends SingleBackendCommand {
                     priorityTable.putCellsExamined(row1, cellsExamined.get());
                     priorityTable.putLastSweepTime(row1, System.currentTimeMillis());
                     return null;
-                });
+                }, false);
             }
 
             printer.info(

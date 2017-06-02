@@ -22,7 +22,7 @@ import com.palantir.lock.RemoteLockService;
 
 public interface LockAwareTransactionManager extends TransactionManager {
     /**
-     * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)} but it will
+     * This method is basically the same as {@link TransactionManager#runTaskWithRetry(TransactionTask, boolean)} but it will
      * acquire locks right before the transaction is created and release them after the task is complete.
      * <p>
      * The created transaction will not commit successfully if these locks are invalid by the time commit is run.
@@ -30,6 +30,7 @@ public interface LockAwareTransactionManager extends TransactionManager {
      * @param lockSupplier supplier for the lock request
      * @param task task to run
      *
+     * @param shouldPollForKvs
      * @return value returned by task
      *
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
@@ -37,15 +38,17 @@ public interface LockAwareTransactionManager extends TransactionManager {
      */
     <T, E extends Exception> T runTaskWithLocksWithRetry(
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+            LockAwareTransactionTask<T, E> task,
+            boolean shouldPollForKvs) throws E, InterruptedException, LockAcquisitionException;
 
     /**
-     * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}
+     * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask, boolean)}
      * but it will also ensure that the existing lock tokens passed are still valid before committing.
      *
      * @param lockTokens lock tokens to acquire while transaction executes
      * @param task task to run
      *
+     * @param shouldPollForKvs
      * @return value returned by task
      *
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
@@ -54,22 +57,25 @@ public interface LockAwareTransactionManager extends TransactionManager {
     <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+            LockAwareTransactionTask<T, E> task,
+            boolean shouldPollForKvs) throws E, InterruptedException, LockAcquisitionException;
 
     /**
-     * This method is the same as {@link #runTaskThrowOnConflict(TransactionTask)} except the created transaction
+     * This method is the same as {@link TransactionManager#runTaskThrowOnConflict(TransactionTask, boolean)} except the created transaction
      * will not commit successfully if these locks are invalid by the time commit is run.
      *
      * @param lockTokens lock tokens to acquire while transaction executes
      * @param task task to run
      *
+     * @param shouldPollForKvs
      * @return value returned by task
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
             Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
+            LockAwareTransactionTask<T, E> task,
+            boolean shouldPollForKvs) throws E, TransactionFailedRetriableException;
 
     /**
      * Returns the lock service used by this transaction manager.

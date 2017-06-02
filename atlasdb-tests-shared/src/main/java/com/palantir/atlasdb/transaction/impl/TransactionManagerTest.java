@@ -59,7 +59,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 put(txn, "row1", "col1", "v1");
                 return null;
             }
-        });
+        }, false);
     }
 
     @Test
@@ -74,7 +74,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 put(txn, "row1", "col1", "v1");
                 return null;
             }
-        });
+        }, false);
     }
 
     @Test
@@ -89,7 +89,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 put(txn, "row1", "col1", "v1");
                 return null;
             }
-        });
+        }, false);
     }
 
     @Override

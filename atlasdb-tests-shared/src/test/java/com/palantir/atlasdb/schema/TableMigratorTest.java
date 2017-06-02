@@ -97,7 +97,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 txn.put(namespacedTableRef, values);
                 return null;
             }
-        });
+        }, false);
 
         // migration doesn't use namespace mapping
         final InMemoryKeyValueService kvs2 = new InMemoryKeyValueService(false);
@@ -167,7 +167,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                             }));
                     return null;
                 }
-            });
+            }, false);
         }
         Assert.assertEquals(2L, count.longValue());
     }

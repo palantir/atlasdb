@@ -167,7 +167,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     private <T> T runReadOnly(TransactionToken token, RuntimeTransactionTask<T> task) {
         if (token.shouldAutoCommit()) {
-            return txManager.runTaskWithRetry(task);
+            return txManager.runTaskWithRetry(task, false);
         } else {
             RawTransaction tx = transactions.getIfPresent(token);
             Preconditions.checkNotNull(tx, "The given transaction does not exist.");
@@ -177,7 +177,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     private <T> T runWithRetry(TransactionToken token, RuntimeTransactionTask<T> task) {
         if (token.shouldAutoCommit()) {
-            return txManager.runTaskWithRetry(task);
+            return txManager.runTaskWithRetry(task, false);
         } else {
             RawTransaction tx = transactions.getIfPresent(token);
             Preconditions.checkNotNull(tx, "The given transaction does not exist.");

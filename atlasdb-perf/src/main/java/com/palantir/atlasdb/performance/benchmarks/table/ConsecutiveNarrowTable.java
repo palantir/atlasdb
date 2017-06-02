@@ -213,7 +213,7 @@ public abstract class ConsecutiveNarrowTable {
                 Map<Cell, byte[]> values = Tables.generateContinuousBatch(table.getRandom(), 0, table.getNumRows());
                 txn.put(table.getTableRef(), values);
                 return null;
-            });
+            }, false);
         });
     }
 }

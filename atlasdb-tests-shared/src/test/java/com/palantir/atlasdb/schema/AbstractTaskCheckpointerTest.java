@@ -56,7 +56,7 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
                 verifyCheckpoints(t2, startById2, txn);
                 return null;
             }
-        });
+        }, false);
     }
 
     @Test
@@ -82,7 +82,7 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
                 }
                 return null;
             }
-        });
+        }, false);
 
         txManager.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
@@ -91,7 +91,7 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
                 verifyCheckpoints(t2, next2, txn);
                 return null;
             }
-        });
+        }, false);
     }
 
     @Test
@@ -110,7 +110,7 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
                 }
                 return null;
             }
-        });
+        }, false);
 
         txManager.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
@@ -121,7 +121,7 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
                 }
                 return null;
             }
-        });
+        }, false);
     }
 
     private Map<Long, byte[]> createRandomCheckpoints() {

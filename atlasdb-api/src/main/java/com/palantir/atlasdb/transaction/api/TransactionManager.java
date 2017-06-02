@@ -40,16 +40,17 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @param task task to run
      *
+     * @param shouldPollForKvs
      * @return value returned by task
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
-    <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E;
+    <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task, boolean shouldPollForKvs) throws E;
 
     /**
-     * {@link #runTaskWithRetry(TransactionTask)} should be preferred over
-     * {@link #runTaskThrowOnConflict(TransactionTask)}.
-     * This method should be used unless {@link #runTaskWithRetry(TransactionTask)} cannot be used becuase the arguments
+     * {@link #runTaskWithRetry(TransactionTask, boolean)} should be preferred over
+     * {@link #runTaskThrowOnConflict(TransactionTask, boolean)}.
+     * This method should be used unless {@link #runTaskWithRetry(TransactionTask, boolean)} cannot be used becuase the arguments
      * passed are not immutable and will be modified by the transaction so doing automatic retry is unsafe.
      *
      * Runs the given {@link TransactionTask}. If the task completes successfully
@@ -67,12 +68,13 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @param task task to run
      *
+     * @param shouldPollForKvs
      * @return value returned by task
      *
      * @throws TransactionConflictException if a write-write conflict occurs
      * @throws IllegalStateException if the transaction manager has been closed.
      */
-    <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task)
+    <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, TransactionFailedRetriableException;
 
     /**
@@ -81,11 +83,12 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @param task task to run
      *
+     * @param shouldPollForKvs
      * @return value returned by task
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
-    <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E;
+    <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task, boolean shouldPollForKvs) throws E;
 
     /**
      * Most AtlasDB TransactionManagers will provide {@link Transaction} objects that have less than full

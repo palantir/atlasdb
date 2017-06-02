@@ -129,7 +129,7 @@ public class KeyValueServiceValidator {
                         validateTable(table, limit, t1);
                         return null;
                     }
-                });
+                }, false);
         KeyValueServiceMigrators.processMessage(messageProcessor, "Validated " + table, KvsMigrationMessageLevel.INFO);
     }
 
@@ -142,7 +142,7 @@ public class KeyValueServiceValidator {
                         validateTable(table, limit, t1, t2);
                         return null;
                     }
-                });
+                }, false);
     }
 
     private void validateTable(TableReference table, int limit, Transaction t1, Transaction t2) {

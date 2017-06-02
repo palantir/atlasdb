@@ -89,7 +89,7 @@ public class TestKvsMigrationCommand {
                 }
                 t.put(table, toWrite.build());
                 return null;
-            });
+            }, false);
         }
     }
 
@@ -112,7 +112,7 @@ public class TestKvsMigrationCommand {
                     Assert.assertArrayEquals(expected.get(e.getKey()), e.getValue());
                 }
                 return null;
-            });
+            }, false);
         }
     }
 }

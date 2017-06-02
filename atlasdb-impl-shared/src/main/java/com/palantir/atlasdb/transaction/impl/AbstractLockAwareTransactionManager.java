@@ -45,7 +45,7 @@ public abstract class AbstractLockAwareTransactionManager
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
+            LockAwareTransactionTask<T, E> task, boolean shouldPollForKvs) throws E, InterruptedException {
         int failureCount = 0;
         UUID runId = UUID.randomUUID();
         while (true) {
@@ -73,11 +73,11 @@ public abstract class AbstractLockAwareTransactionManager
 
             try {
                 if (lockToken == null) {
-                    T result = runTaskWithLocksThrowOnConflict(lockTokens, task);
+                    T result = runTaskWithLocksThrowOnConflict(lockTokens, task, false);
                     logSuccess(runId, failureCount);
                     return result;
                 } else {
-                    T result = runTaskWithLocksThrowOnConflict(IterableUtils.append(lockTokens, lockToken), task);
+                    T result = runTaskWithLocksThrowOnConflict(IterableUtils.append(lockTokens, lockToken), task, false);
                     logSuccess(runId, failureCount);
                     return result;
                 }
@@ -111,16 +111,16 @@ public abstract class AbstractLockAwareTransactionManager
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
+            LockAwareTransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, InterruptedException {
         checkOpen();
-        return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task);
+        return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task, false);
     }
 
     @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task, boolean shouldPollForKvs) throws E {
         checkOpen();
-        return runTaskWithLocksThrowOnConflict(ImmutableList.of(), LockAwareTransactionTasks.asLockAware(task));
+        return runTaskWithLocksThrowOnConflict(ImmutableList.of(), LockAwareTransactionTasks.asLockAware(task), false);
     }
 
     private void logSuccess(UUID runId, int failureCount) {

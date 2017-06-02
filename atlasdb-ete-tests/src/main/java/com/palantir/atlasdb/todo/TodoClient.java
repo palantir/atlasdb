@@ -45,7 +45,7 @@ public class TodoClient {
 
             transaction.put(TodoSchema.todoTable(), write);
             return null;
-        });
+        }, false);
     }
 
     public List<Todo> getTodoList() {
@@ -60,7 +60,7 @@ public class TodoClient {
             });
 
             return rowResults.build();
-        });
+        }, false);
 
         return results.stream()
                 .map(RowResult::getOnlyColumnValue)

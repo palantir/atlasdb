@@ -142,7 +142,7 @@ public class ProfileStoreTest {
                 Assert.assertTrue(streams.getAllRowsUnordered().isEmpty());
                 return null;
             }
-        });
+        }, false);
     }
 
     @Test
@@ -189,7 +189,7 @@ public class ProfileStoreTest {
             txn.setTransactionType(type);
             ProfileStore store = new ProfileStore(txnMgr, txn);
             return task.apply(store);
-        });
+        }, false);
 
     }
 

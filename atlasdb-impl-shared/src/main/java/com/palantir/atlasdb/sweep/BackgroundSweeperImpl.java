@@ -329,7 +329,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                     }
                 }
             }
-        });
+        }, false);
     }
 
     private void saveSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
@@ -393,7 +393,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                     .build();
             sweepProgressStore.saveProgress(tx, newProgress);
             return null;
-        });
+        }, false);
     }
 
     private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults sweepResults) {
@@ -409,7 +409,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             }
             sweepPriorityStore.update(tx, tableToSweep.getTableRef(), update.build());
             return null;
-        });
+        }, false);
 
         sweepMetrics.recordMetrics(tableToSweep.getTableRef(), sweepResults);
     }
@@ -421,7 +421,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private boolean checkAndRepairTableDrop() {
         try {
             Set<TableReference> tables = kvs.getAllTableNames();
-            Optional<SweepProgress> progress = txManager.runTaskReadOnly(sweepProgressStore::loadProgress);
+            Optional<SweepProgress> progress = txManager.runTaskReadOnly(sweepProgressStore::loadProgress, false);
             if (!progress.isPresent() || tables.contains(progress.get().tableRef())) {
                 return false;
             } else {

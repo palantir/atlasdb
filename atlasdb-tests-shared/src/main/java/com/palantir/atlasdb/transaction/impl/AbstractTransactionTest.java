@@ -974,7 +974,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 assertEquals("v3", get(t, "row2", "col1"));
                 return null;
             }
-        });
+        }, false);
 
         getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
@@ -984,7 +984,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 assertEquals("v3", get(t, "row2", "col1"));
                 return null;
             }
-        });
+        }, false);
     }
 
     @Test
@@ -996,7 +996,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                     put(t, "row1", "col1", "v1");
                     return null;
                 }
-            });
+            }, false);
             fail();
         } catch (RuntimeException e) {
             // we want this to throw
@@ -1014,7 +1014,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 assertEquals(null, get(t, "row1", "col1"));
                 return null;
             }
-        });
+        }, false);
 
         getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
@@ -1022,7 +1022,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 put(t, "row1", "col1", "v1");
                 return null;
             }
-        });
+        }, false);
 
         getManager().runTaskWithRetry(new TxTask() {
             @Override
@@ -1030,7 +1030,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 delete(t, "row1", "col1");
                 return null;
             }
-        });
+        }, false);
 
         getManager().runTaskWithRetry(new TxTask() {
             @Override
@@ -1038,7 +1038,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 assertEquals(null, get(t, "row1", "col1"));
                 return null;
             }
-        });
+        }, false);
 
         getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
@@ -1046,7 +1046,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 put(t, "row1", "col1", "v1");
                 return null;
             }
-        });
+        }, false);
 
         getManager().runTaskWithRetry(new TxTask() {
             @Override
@@ -1054,7 +1054,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 delete(t, "row1", "col1");
                 return null;
             }
-        });
+        }, false);
 
         getManager().runTaskWithRetry(new TxTask() {
             @Override
@@ -1062,7 +1062,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 assertEquals(null, get(t, "row1", "col1"));
                 return null;
             }
-        });
+        }, false);
     }
 
     @Test

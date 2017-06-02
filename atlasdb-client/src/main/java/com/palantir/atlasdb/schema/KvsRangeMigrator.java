@@ -97,7 +97,7 @@ public class KvsRangeMigrator implements RangeMigrator {
             public byte[] execute(final Transaction writeT) {
                 return copyOneTransactionFromReadTxManager(range, rangeId, writeT);
             }
-        });
+        }, false);
     }
 
     private byte[] copyOneTransactionFromReadTxManager(final RangeRequest range,
@@ -113,7 +113,7 @@ public class KvsRangeMigrator implements RangeMigrator {
                 public byte[] execute(Transaction readT) {
                     return copyOneTransactionInternal(range, rangeId, readT, writeT);
                 }
-            });
+            }, false);
         }
     }
 

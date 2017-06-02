@@ -57,7 +57,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                 putMetadataAndHashIndexTask(t, streamId, metadata);
                 return null;
             }
-        });
+        }, false);
     }
 
     private Long lookupStreamIdByHash(Transaction t, Sha256Hash hash) {
@@ -105,7 +105,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                 putMetadataAndHashIndexTask(t, t.getTimestamp(), getEmptyMetadata());
                 return t.getTimestamp();
             }
-        });
+        }, false);
     }
 
     @Override
@@ -217,7 +217,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                             storeBlock(t, id, blockNumber, bytesToStore);
                             return null;
                         }
-                    });
+                    }, false);
         }
     }
 

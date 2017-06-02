@@ -67,7 +67,7 @@ public final class TableTasks {
             int threadCount,
             @Output CopyStats stats) throws InterruptedException {
         copyExternal(exec, srcTable, dstTable, batchSize, threadCount, stats, (request, range) ->
-                txManager.runTaskWithRetry(tx -> copyInternal(tx, srcTable, dstTable, request, range)));
+                txManager.runTaskWithRetry(tx -> copyInternal(tx, srcTable, dstTable, request, range), false));
     }
 
     public static void copy(
@@ -80,7 +80,7 @@ public final class TableTasks {
             int threadCount,
             @Output CopyStats stats) throws InterruptedException {
         copyExternal(exec, srcTable, dstTable, batchSize, threadCount, stats, (request, range) ->
-                txManager.runTaskWithRetry(tx -> copyInternal(tx, srcTable, dstTable, request, range)));
+                txManager.runTaskWithRetry(tx -> copyInternal(tx, srcTable, dstTable, request, range), false));
     }
 
     public static void copyExternal(ExecutorService exec,
@@ -179,7 +179,7 @@ public final class TableTasks {
                             final DiffVisitor visitor) throws InterruptedException {
         diffExternal(txManager, exec, plusTable, minusTable, batchSize, threadCount, stats,
                 (request, range, strategy) -> txManager.runTaskWithRetry(t ->
-                                diffInternal(t, plusTable, minusTable, request, range, strategy, visitor)));
+                                diffInternal(t, plusTable, minusTable, request, range, strategy, visitor), false));
     }
 
     /**
@@ -262,7 +262,7 @@ public final class TableTasks {
             long minusSize = estimateSize(tx, minusTable, batchSize, Functions.identity());
             long plusSize = estimateSize(tx, plusTable, batchSize, Functions.identity());
             return minusSize > 4 * plusSize ? DiffStrategy.ROWS : DiffStrategy.RANGE;
-        });
+        }, false);
         return strategy;
     }
 

@@ -198,7 +198,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         t.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(prev+1)));
                         return null;
                     }
-                });
+                }, false);
                 return null;
             });
         }
@@ -230,7 +230,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                             t.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(prev+1)));
                             return null;
                         }
-                    });
+                    }, false);
                     return null;
                 }
             });
@@ -255,7 +255,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 Assert.assertTrue(t.getTimestamp() < timestampService.getFreshTimestamp());
                 return t.getTimestamp();
             }
-        });
+        }, false);
         Assert.assertTrue(firstTs < txManager.getImmutableTimestamp());
         Assert.assertTrue(startTs < txManager.getImmutableTimestamp());
     }
@@ -580,7 +580,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
      */
     private Optional<String> runTaskWithInvalidLocks(Pair<String, LockAwareTransactionTask<Void, Exception>> task) {
         try {
-            txManager.runTaskWithLocksThrowOnConflict(ImmutableList.of(getExpiredHeldLocksToken()), task.getRight());
+            txManager.runTaskWithLocksThrowOnConflict(ImmutableList.of(getExpiredHeldLocksToken()), task.getRight(),
+                    false);
             return Optional.of(task.getLeft());
         } catch (TransactionFailedRetriableException expected) {
             return Optional.empty();
@@ -761,7 +762,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             txManager.runTaskWithLocksWithRetry(ImmutableList.of(expiredLockToken), () -> null, (tx, locks) -> {
                 tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
                 return null;
-            });
+            }, false);
         } catch (TransactionLockTimeoutException e) {
             Set<LockRefreshToken> expectedTokens = ImmutableSet.of(expiredLockToken.getLockRefreshToken());
             assertThat(e.getMessage(), containsString(expectedTokens.toString()));

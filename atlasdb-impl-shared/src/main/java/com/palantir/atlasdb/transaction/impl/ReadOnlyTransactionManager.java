@@ -81,7 +81,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     }
 
     @Override
-    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
+    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task, boolean shouldPollForKvs) throws E {
         checkOpen();
         SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(
                 keyValueService,
@@ -101,7 +101,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     }
 
     @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task, boolean shouldPollForKvs) throws E,
             TransactionFailedRetriableException {
         throw new UnsupportedOperationException("this manager is read only");
     }
@@ -109,7 +109,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
+            LockAwareTransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, InterruptedException {
         throw new UnsupportedOperationException("this manager is read only");
     }
@@ -118,7 +118,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
+            LockAwareTransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, InterruptedException {
         throw new UnsupportedOperationException("this manager is read only");
     }
@@ -126,7 +126,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     @Override
     public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
             Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task)
+            LockAwareTransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, TransactionFailedRetriableException {
         throw new UnsupportedOperationException("this manager is read only");
     }

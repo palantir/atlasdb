@@ -69,7 +69,7 @@ public final class CleanupFollower implements Follower {
                     }
                 }
                 return toRetry;
-            });
+            }, false);
         }
     }
 }

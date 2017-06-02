@@ -107,7 +107,7 @@ public abstract class WideRowTable {
             }
             txn.put(this.tableRef, values);
             return null;
-        });
+        }, false);
     }
 
     private Cell cell(int index) {

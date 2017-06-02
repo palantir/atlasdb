@@ -30,27 +30,27 @@ public abstract class ForwardingLockAwareTransactionManager extends
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,
-                                                                LockAwareTransactionTask<T, E> task)
+            LockAwareTransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, InterruptedException {
-        return delegate().runTaskWithLocksWithRetry(lockSupplier, task);
+        return delegate().runTaskWithLocksWithRetry(lockSupplier, task, false);
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<HeldLocksToken> lockTokens,
-                                                                Supplier<LockRequest> lockSupplier,
-                                                                LockAwareTransactionTask<T, E> task)
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, InterruptedException {
         return delegate().runTaskWithLocksWithRetry(
                 lockTokens,
                 lockSupplier,
-                task);
+                task, false);
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
-                                                                      LockAwareTransactionTask<T, E> task)
+            LockAwareTransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, TransactionFailedRetriableException {
-        return delegate().runTaskWithLocksThrowOnConflict(lockTokens, task);
+        return delegate().runTaskWithLocksThrowOnConflict(lockTokens, task, false);
     }
 
     @Override

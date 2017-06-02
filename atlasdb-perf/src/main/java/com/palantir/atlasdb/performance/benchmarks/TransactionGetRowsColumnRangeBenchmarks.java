@@ -56,7 +56,7 @@ public class TransactionGetRowsColumnRangeBenchmarks {
             Preconditions.checkState(count == table.getNumCols(),
                     "Should be %s columns, but were: %s", table.getNumCols(), count);
             return count;
-        });
+        }, false);
     }
 
 }

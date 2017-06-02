@@ -142,7 +142,7 @@ public abstract class RegeneratingTable<T> {
             getTransactionManager().runTaskThrowOnConflict(txn -> {
                 txn.put(getTableRef(), batch);
                 return null;
-            });
+            }, false);
             cells = batch.keySet();
         }
 
@@ -163,7 +163,7 @@ public abstract class RegeneratingTable<T> {
             getTransactionManager().runTaskThrowOnConflict(txn -> {
                 txn.put(getTableRef(), batch);
                 return null;
-            });
+            }, false);
             cells = batch.keySet();
         }
 
@@ -189,7 +189,7 @@ public abstract class RegeneratingTable<T> {
                     getTransactionManager().runTaskThrowOnConflict(txn -> {
                         txn.put(getTableRef(), batch);
                         return null;
-                    });
+                    }, false);
                 }
             }
         }

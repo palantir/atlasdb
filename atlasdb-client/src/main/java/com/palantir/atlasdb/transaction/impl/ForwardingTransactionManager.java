@@ -25,15 +25,15 @@ public abstract class ForwardingTransactionManager extends ForwardingObject impl
     protected abstract TransactionManager delegate();
 
     @Override
-    public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task)
+    public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E {
-        return delegate().runTaskWithRetry(task);
+        return delegate().runTaskWithRetry(task, shouldPollForKvs);
     }
 
     @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task)
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, TransactionFailedRetriableException {
-        return delegate().runTaskThrowOnConflict(task);
+        return delegate().runTaskThrowOnConflict(task, shouldPollForKvs);
     }
 
     @Override
@@ -47,9 +47,9 @@ public abstract class ForwardingTransactionManager extends ForwardingObject impl
     }
 
     @Override
-    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task)
+    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E {
-        return delegate().runTaskReadOnly(task);
+        return delegate().runTaskReadOnly(task, shouldPollForKvs);
     }
 
     @Override

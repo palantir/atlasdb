@@ -53,7 +53,7 @@ public class TransactionGetBenchmarks {
             Preconditions.checkState(rowNumber == expectRowNumber,
                     "Start Row %s, row number %s", expectRowNumber, rowNumber);
             return result;
-        });
+        }, false);
     }
 
     private Map<Cell, byte[]> getCellsInner(ConsecutiveNarrowTable table) {
@@ -64,7 +64,7 @@ public class TransactionGetBenchmarks {
             Preconditions.checkState(result.size() == getCellsSize,
                     "expected %s cells, found %s cells", getCellsSize, result.size());
             return result;
-        });
+        }, false);
     }
 
     private List<RowResult<byte[]>> getSingleRowWithRangeQueryInner(final ConsecutiveNarrowTable table) {
@@ -78,7 +78,7 @@ public class TransactionGetBenchmarks {
             Preconditions.checkState(rowNumber == expectedRowNumber,
                     "Start Row %s, row number %s", expectedRowNumber, rowNumber);
             return result;
-        });
+        }, false);
     }
 
     private List<RowResult<byte[]>> getRangeInner(ConsecutiveNarrowTable table) {
@@ -90,7 +90,7 @@ public class TransactionGetBenchmarks {
             Preconditions.checkState(results.size() == rangeRequestSize,
                     "Expected %s rows, found %s rows", rangeRequestSize, results.size());
             return results;
-        });
+        }, false);
     }
 
     private Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInner(ConsecutiveNarrowTable table) {
@@ -105,7 +105,7 @@ public class TransactionGetBenchmarks {
                         "Expected %s rows, found %s rows", RANGES_SINGLE_REQUEST_SIZE, result.size());
             });
             return results;
-        });
+        }, false);
     }
 
     @Benchmark

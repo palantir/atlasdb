@@ -112,7 +112,7 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
             Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task)
+            LockAwareTransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, TransactionFailedRetriableException {
         checkOpen();
         Iterable<LockRefreshToken> lockRefreshTokens = Iterables.transform(lockTokens,
@@ -224,7 +224,7 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
+    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task, boolean shouldPollForKvs) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
         SnapshotTransaction transaction = new SnapshotTransaction(

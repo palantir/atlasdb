@@ -113,7 +113,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         verifyTableSwept(TABLE_1, 75, true);
         verifyTableSwept(TABLE_2, 58, false);
         List<SweepPriority> priorities = txManager.runTaskReadOnly(
-                tx -> new SweepPriorityStore(SweepTableFactory.of()).loadNewPriorities(tx));
+                tx -> new SweepPriorityStore(SweepTableFactory.of()).loadNewPriorities(tx), false);
         Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_1)));
         Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_2)));
     }

@@ -67,7 +67,7 @@ public class SweepProgressStoreTest {
 
     @Test
     public void testLoadEmpty() {
-        Assert.assertFalse(txManager.runTaskReadOnly(progressStore::loadProgress).isPresent());
+        Assert.assertFalse(txManager.runTaskReadOnly(progressStore::loadProgress, false).isPresent());
     }
 
     @Test
@@ -75,8 +75,8 @@ public class SweepProgressStoreTest {
         txManager.runTaskWithRetry(tx -> {
             progressStore.saveProgress(tx, PROGRESS);
             return null;
-        });
-        Assert.assertEquals(Optional.of(PROGRESS), txManager.runTaskReadOnly(progressStore::loadProgress));
+        }, false);
+        Assert.assertEquals(Optional.of(PROGRESS), txManager.runTaskReadOnly(progressStore::loadProgress, false));
     }
 
     @Test
@@ -84,12 +84,12 @@ public class SweepProgressStoreTest {
         txManager.runTaskWithRetry(tx -> {
             progressStore.saveProgress(tx, PROGRESS);
             return null;
-        });
+        }, false);
         txManager.runTaskWithRetry(tx -> {
             progressStore.saveProgress(tx, OTHER_PROGRESS);
             return null;
-        });
-        Assert.assertEquals(Optional.of(OTHER_PROGRESS), txManager.runTaskReadOnly(progressStore::loadProgress));
+        }, false);
+        Assert.assertEquals(Optional.of(OTHER_PROGRESS), txManager.runTaskReadOnly(progressStore::loadProgress, false));
     }
 
     @Test
@@ -97,10 +97,10 @@ public class SweepProgressStoreTest {
         txManager.runTaskWithRetry(tx -> {
             progressStore.saveProgress(tx, PROGRESS);
             return null;
-        });
-        Assert.assertTrue(txManager.runTaskReadOnly(progressStore::loadProgress).isPresent());
+        }, false);
+        Assert.assertTrue(txManager.runTaskReadOnly(progressStore::loadProgress, false).isPresent());
         progressStore.clearProgress();
-        Assert.assertFalse(txManager.runTaskReadOnly(progressStore::loadProgress).isPresent());
+        Assert.assertFalse(txManager.runTaskReadOnly(progressStore::loadProgress, false).isPresent());
     }
 
 }

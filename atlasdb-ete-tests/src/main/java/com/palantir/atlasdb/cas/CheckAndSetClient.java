@@ -26,18 +26,19 @@ public class CheckAndSetClient {
     }
 
     public Optional<Long> get() {
-        return transactionManager.runTaskReadOnly((transaction) -> new CheckAndSetPersistentValue(transaction).get());
+        return transactionManager.runTaskReadOnly((transaction) -> new CheckAndSetPersistentValue(transaction).get(),
+                false);
     }
 
     public void set(Optional<Long> value) {
         transactionManager.runTaskWithRetry((transaction) -> {
             new CheckAndSetPersistentValue(transaction).set(value);
             return null;
-        });
+        }, false);
     }
 
     public boolean checkAndSet(Optional<Long> oldValue, Optional<Long> newValue) {
         return transactionManager.runTaskWithRetry(
-                (transaction) -> new CheckAndSetPersistentValue(transaction).checkAndSet(oldValue, newValue));
+                (transaction) -> new CheckAndSetPersistentValue(transaction).checkAndSet(oldValue, newValue), false);
     }
 }

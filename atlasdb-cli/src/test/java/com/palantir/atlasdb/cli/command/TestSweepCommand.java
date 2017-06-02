@@ -282,7 +282,7 @@ public class TestSweepCommand {
         return txm.runTaskWithRetry(t -> {
             t.put(table, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8)));
             return t.getTimestamp();
-        });
+        }, false);
     }
 
     @SuppressWarnings("checkstyle:RightCurly") // TableDefinition syntax

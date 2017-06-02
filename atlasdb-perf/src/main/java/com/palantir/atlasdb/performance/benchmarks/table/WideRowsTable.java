@@ -86,7 +86,7 @@ public class WideRowsTable {
             }
             txn.put(this.tableRef, values);
             return null;
-        });
+        }, false);
     }
 
     private static Cell cell(int rowIndex, int colIndex) {

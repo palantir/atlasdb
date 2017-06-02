@@ -41,14 +41,14 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     protected abstract Transaction wrap(Transaction transaction);
 
     @Override
-    public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
-        return delegate().runTaskWithRetry(wrapTask(task));
+    public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task, boolean shouldPollForKvs) throws E {
+        return delegate().runTaskWithRetry(wrapTask(task), shouldPollForKvs);
     }
 
     @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task, boolean shouldPollForKvs) throws E,
             TransactionConflictException {
-        return delegate().runTaskThrowOnConflict(wrapTask(task));
+        return delegate().runTaskThrowOnConflict(wrapTask(task), shouldPollForKvs);
     }
 
     @Override
@@ -82,31 +82,31 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     @Override
     public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
             Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task)
+            LockAwareTransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, TransactionConflictException {
-        return delegate().runTaskWithLocksThrowOnConflict(lockTokens, wrapTask(task));
+        return delegate().runTaskWithLocksThrowOnConflict(lockTokens, wrapTask(task), shouldPollForKvs);
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
+            LockAwareTransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, InterruptedException {
-        return delegate().runTaskWithLocksWithRetry(lockSupplier, wrapTask(task));
+        return delegate().runTaskWithLocksWithRetry(lockSupplier, wrapTask(task), shouldPollForKvs);
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
+            LockAwareTransactionTask<T, E> task, boolean shouldPollForKvs)
             throws E, InterruptedException {
-        return delegate().runTaskWithLocksWithRetry(lockTokens, lockSupplier, wrapTask(task));
+        return delegate().runTaskWithLocksWithRetry(lockTokens, lockSupplier, wrapTask(task), shouldPollForKvs);
     }
 
     @Override
-    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return delegate().runTaskReadOnly(wrapTask(task));
+    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task, boolean shouldPollForKvs) throws E {
+        return delegate().runTaskReadOnly(wrapTask(task), shouldPollForKvs);
     }
 
     @Override

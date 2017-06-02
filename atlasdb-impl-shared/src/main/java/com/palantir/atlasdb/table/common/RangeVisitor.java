@@ -126,7 +126,7 @@ public class RangeVisitor {
                             public String toString() {
                                 return "visitRange(" + request + ")";
                             }
-                        });
+                        }, false);
                 counter.addAndGet(numVisited);
                 log.info("Visited {} rows from {} in {} ms.",
                         numVisited,

@@ -64,7 +64,7 @@ public class IndexTest extends AtlasDbTestCase {
                 table.putValue(DataTable.DataRow.of(3L), 2L);
                 return null;
             }
-        });
+        }, false);
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction txn) {
@@ -76,7 +76,7 @@ public class IndexTest extends AtlasDbTestCase {
                 assert index3.getRange(RangeRequest.builder().build()).count() == 1;
                 return null;
             }
-        });
+        }, false);
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction txn) {
@@ -84,7 +84,7 @@ public class IndexTest extends AtlasDbTestCase {
                 table.delete(DataTable.DataRow.of(1L));
                 return null;
             }
-        });
+        }, false);
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction txn) {
@@ -96,7 +96,7 @@ public class IndexTest extends AtlasDbTestCase {
                 assert index3.getRange(RangeRequest.builder().build()).count() == 1;
                 return null;
             }
-        });
+        }, false);
     }
 
     @Test
@@ -108,7 +108,7 @@ public class IndexTest extends AtlasDbTestCase {
                 table.putValue(DataTable.DataRow.of(1L), 2L);
                 return null;
             }
-        });
+        }, false);
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction txn) {
@@ -117,7 +117,7 @@ public class IndexTest extends AtlasDbTestCase {
                         Iterables.getOnlyElement(index1.getRowColumns(Index1IdxRow.of(2L))).getColumnName().getId());
                 return null;
             }
-        });
+        }, false);
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction txn) {
@@ -125,7 +125,7 @@ public class IndexTest extends AtlasDbTestCase {
                 table.putValue(DataTable.DataRow.of(1L), 3L);
                 return null;
             }
-        });
+        }, false);
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction txn) {
@@ -133,7 +133,7 @@ public class IndexTest extends AtlasDbTestCase {
                 assert index1.getRowColumns(Index1IdxRow.of(2L)).isEmpty();
                 return null;
             }
-        });
+        }, false);
     }
 
     @Test
@@ -149,7 +149,7 @@ public class IndexTest extends AtlasDbTestCase {
                 table.put(rows);
                 return null;
             }
-        });
+        }, false);
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction txn) {
@@ -157,7 +157,7 @@ public class IndexTest extends AtlasDbTestCase {
                 table.putBar(TwoColumnsRow.of(1L), 6L);
                 return null;
             }
-        });
+        }, false);
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction txn) {
@@ -166,7 +166,7 @@ public class IndexTest extends AtlasDbTestCase {
                 assertEquals(2L, Iterables.getOnlyElement(result).getRowName().getFoo());
                 return null;
             }
-        });
+        }, false);
     }
 
     @Test

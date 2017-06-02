@@ -139,7 +139,7 @@ public class StreamingTable {
 
             txn.put(table.getTableRef(), ColumnValues.toCellValues(rows));
             return null;
-        });
+        }, false);
         return streamId;
     }
 }
