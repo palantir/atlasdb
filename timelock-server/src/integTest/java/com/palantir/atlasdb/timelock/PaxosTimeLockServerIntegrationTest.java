@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,8 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -361,6 +364,46 @@ public class PaxosTimeLockServerIntegrationTest {
         String uriWithParam = getFastForwardUriForClientOne() + "?newMinimum=1200";
         Response response = makeEmptyPostToUri(uriWithParam);
         assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
+    }
+
+    @Test
+    public void instrumentationSmokeTest() throws IOException {
+        getTimestampService(CLIENT_1).getFreshTimestamp();
+        getLockService(CLIENT_1).currentTimeMillis();
+
+        JsonNode metrics = getMetricsOutput();
+
+        // time / lock services
+        // TODO(nziebart): why do we have both ManagedTimestampService
+        // and Timestamp Service / RemoteLockService and LockService
+        assertContainsTimer(metrics, "com.palantir.timestamp.TimestampService.test.getFreshTimestamp");
+        assertContainsTimer(metrics, "com.palantir.lock.LockService.test.currentTimeMillis");
+
+        // local leader election classes
+        assertContainsTimer(metrics, "com.palantir.paxos.PaxosLearner.learn");
+        assertContainsTimer(metrics, "com.palantir.paxos.PaxosAcceptor.accept");
+        assertContainsTimer(metrics, "com.palantir.paxos.PaxosProposer.propose");
+        assertContainsTimer(metrics, "com.palantir.leader.PingableLeader.ping");
+        assertContainsTimer(metrics, "com.palantir.leader.LeaderElectionService.blockOnBecomingLeader");
+
+        // remote leader election proxies
+        // TODO(nziebart): need a multi-node server config for this
+
+        // local timestamp bound classes
+        assertContainsTimer(metrics, "com.palantir.timestamp.TimestampBoundStore.test.getUpperLimit");
+        assertContainsTimer(metrics, "com.palantir.paxos.PaxosLearner.test.getGreatestLearnedValue");
+        assertContainsTimer(metrics, "com.palantir.paxos.PaxosAcceptor.test.accept");
+        assertContainsTimer(metrics, "com.palantir.paxos.PaxosProposer.test.propose");
+    }
+
+    private static void assertContainsTimer(JsonNode metrics, String name) {
+        JsonNode timers = metrics.get("timers");
+        assertThat(timers.get(name)).isNotNull();
+    }
+
+    private static JsonNode getMetricsOutput() throws IOException {
+        return new ObjectMapper().readTree(
+                new URL("http", "localhost", TIMELOCK_SERVER_HOLDER.getAdminPort(), "/metrics"));
     }
 
     private static String getFastForwardUriForClientOne() {
