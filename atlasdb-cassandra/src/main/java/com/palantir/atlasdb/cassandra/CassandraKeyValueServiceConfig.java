@@ -194,6 +194,11 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return TYPE;
     }
 
+    @Override
+    public final boolean pollForDataBaseOnStartup() {
+        return true;
+    }
+
     @JsonIgnore
     @Value.Derived
     public boolean usingSsl() {

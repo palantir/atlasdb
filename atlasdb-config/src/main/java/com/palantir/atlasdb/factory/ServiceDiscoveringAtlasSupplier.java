@@ -45,6 +45,9 @@ public class ServiceDiscoveringAtlasSupplier {
     private static final Logger log = LoggerFactory.getLogger(ServiceDiscoveringAtlasSupplier.class);
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
 
+    private static final double GOLDEN_RATIO = (Math.sqrt(5) + 1.0) / 2.0;
+    private static final int QUICK_MAX_BACKOFF_SECONDS = 1000;
+
     private static String timestampServiceCreationInfo = null;
 
     private final KeyValueServiceConfig config;
@@ -64,13 +67,42 @@ public class ServiceDiscoveringAtlasSupplier {
                         "No atlas provider for KeyValueService type " + config.type() + " could be found."
                         + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
-        keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
+        keyValueService = Suppliers.memoize(() -> pollOrCreateRawKeyValueService(atlasFactory));
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 
     public KeyValueService getKeyValueService() {
         return keyValueService.get();
+    }
+
+    private KeyValueService pollOrCreateRawKeyValueService(AtlasDbFactory atlasFactory) {
+        return config.pollForDataBaseOnStartup() ? pollForKeyValueService(atlasFactory)
+                : atlasFactory.createRawKeyValueService(config, leaderConfig);
+    }
+
+    private KeyValueService pollForKeyValueService(AtlasDbFactory atlasFactory) {
+        int failureCount = 0;
+        while (true) {
+            try {
+                return atlasFactory.createRawKeyValueService(config, leaderConfig);
+            } catch (Exception ex) {
+                failureCount++;
+                log.warn("The KVS could not be instantiated, retrying with backoff");
+                pauseForBackOff(failureCount);
+            }
+        }
+    }
+
+    private void pauseForBackOff(int failureCount) {
+        long timeoutInSeconds = Math.min(QUICK_MAX_BACKOFF_SECONDS, Math.round(Math.pow(GOLDEN_RATIO, failureCount)));
+        try {
+            log.trace("Pausing {}s before retrying", timeoutInSeconds);
+            Thread.sleep(timeoutInSeconds * 1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("The thread was interrupted during backoff when creating the KVS.");
+        }
     }
 
     public synchronized TimestampService getTimestampService() {
