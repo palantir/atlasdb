@@ -48,6 +48,7 @@ public class PerformanceResults {
     static final String KVS_AGNOSTIC_SUFFIX = "N/A";
 
     private final Collection<RunResult> results;
+    public static final int DOWNSAMPLE_MAXIMUM_SIZE = 500;
 
     public PerformanceResults(Collection<RunResult> results) {
         this.results = results;
@@ -98,7 +99,8 @@ public class PerformanceResults {
         return new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
     }
 
-    private static List<Double> getData(RunResult result) {
+    @VisibleForTesting
+    static List<Double> getData(RunResult result) {
         return getRawResults(result.getPrimaryResult().getStatistics());
     }
 
@@ -122,13 +124,27 @@ public class PerformanceResults {
 
         final TreeMultiset<Double> values = asTreeMultiset(multisetParam);
         final long totalCount = values.size();
-        final int maximumFinalSize = 500;
-        final List<Double> list = Lists.newArrayList();
 
+        if (totalCount <= DOWNSAMPLE_MAXIMUM_SIZE) {
+            return convertToList(values);
+        }
+
+        final List<Double> list = Lists.newArrayList();
         int current = 0;
+
         for (double d : values.keys()) {
             current += values.count(d);
-            while (1.0 * maximumFinalSize * current / totalCount >= (list.size() + 1)) {
+            while (1.0 * DOWNSAMPLE_MAXIMUM_SIZE * current / totalCount >= (list.size() + 1)) {
+                list.add(d);
+            }
+        }
+        return list;
+    }
+
+    private static List<Double> convertToList(TreeMultiset<Double> values) {
+        final List<Double> list = Lists.newArrayList();
+        for (double d : values.keys()) {
+            for (int i = 0; i < values.count(d); ++i) {
                 list.add(d);
             }
         }
