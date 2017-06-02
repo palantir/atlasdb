@@ -45,7 +45,7 @@ class LeadershipEvents {
     }
 
     public void proposedLeadershipFor(long round) {
-        leaderLog.info("Proposing leadership with sequence number {}", round);
+        leaderLog.info("Proposing leadership", SafeArg.of("round", round));
         proposedLeadership.mark();
     }
 
@@ -60,7 +60,8 @@ class LeadershipEvents {
     }
 
     public void noQuorum(PaxosValue value) {
-        leaderLog.warn("The most recent known information says this server is the leader, but there is no quorum right now");
+        leaderLog.warn("The most recent known information says this server is the leader, but there is no quorum right now",
+                SafeArg.of("value", value));
         noQuorum.mark();
     }
 
