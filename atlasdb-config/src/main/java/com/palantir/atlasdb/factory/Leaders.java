@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -43,7 +42,7 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.LeadershipEventRecorder;
+import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PingableLeader;
@@ -96,7 +95,7 @@ public final class Leaders {
             String userAgent) {
         UUID leaderUUID = UUID.randomUUID();
 
-        LeadershipEventRecorder leadershipEventRecorder = LeadershipEventRecorder.create(
+        PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
                 AtlasDbMetrics.getMetricRegistry(), leaderUUID.toString());
 
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(
