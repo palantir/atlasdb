@@ -28,8 +28,8 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     private final String leaderId;
     private final LeadershipEvents events;
 
-    @GuardedBy("this") private State state = new NotLeading();
-    @GuardedBy("this") private PaxosValue currentRound;
+    @GuardedBy("this") private PaxosValue currentRound = null;
+    @GuardedBy("this") private boolean isLeading = false;
 
     public static PaxosLeadershipEventRecorder create(MetricRegistry metrics, String leaderUuid) {
         return new PaxosLeadershipEventRecorder(new LeadershipEvents(metrics), leaderUuid);
@@ -54,15 +54,26 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     @Override
     public synchronized void recordRound(PaxosValue round) {
         if (isNewRound(round)) {
-            state = state.newRound(round);
+            if (isLeading) {
+                events.lostLeadershipFor(currentRound);
+            }
+
+            if (isLeaderFor(round)) {
+                events.gainedLeadershipFor(round);
+            }
+
             currentRound = round;
+            isLeading = isLeaderFor(round);
         }
     }
 
     @Override
     public synchronized void recordNotLeading(PaxosValue value) {
         if (isSameRound(value)) {
-            state = state.lostLeadership();
+            if (isLeading) {
+                events.lostLeadershipFor(value);
+                isLeading = false;
+            }
         }
     }
 
@@ -83,50 +94,6 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
 
     private boolean isSameRound(PaxosValue value) {
         return currentRound != null && value != null && currentRound.getRound() == value.getRound();
-    }
-
-    private abstract class State {
-
-        State newRound(PaxosValue value) {
-            newRound();
-
-            if (isLeaderFor(value)) {
-                events.gainedLeadershipFor(value);
-                return new Leading();
-            }
-
-            return new NotLeading();
-        }
-
-        abstract void newRound();
-        abstract State lostLeadership();
-    }
-
-    private class Leading extends State {
-
-        @Override
-        void newRound() {
-            events.lostLeadershipFor(currentRound);
-        }
-
-        @Override
-        public State lostLeadership() {
-            events.lostLeadershipFor(currentRound);
-            return new NotLeading();
-        }
-    }
-
-    private class NotLeading extends State {
-
-        @Override
-        void newRound() {
-            // no event
-        }
-
-        @Override
-        public State lostLeadership() {
-            return this;
-        }
     }
 
 }
