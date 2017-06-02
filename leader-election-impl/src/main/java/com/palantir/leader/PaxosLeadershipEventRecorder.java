@@ -23,7 +23,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
 
-public class LeadershipEventRecorder implements PaxosKnowledgeEventRecorder, PaxosLeaderElectionEventRecorder {
+public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder, PaxosLeaderElectionEventRecorder {
 
     private final String leaderId;
     private final LeadershipEvents events;
@@ -31,12 +31,12 @@ public class LeadershipEventRecorder implements PaxosKnowledgeEventRecorder, Pax
     @GuardedBy("this") private State state = new NotLeading();
     @GuardedBy("this") private PaxosValue currentRound;
 
-    public static LeadershipEventRecorder create(MetricRegistry metrics, String leaderUuid) {
-        return new LeadershipEventRecorder(new LeadershipEvents(metrics), leaderUuid);
+    public static PaxosLeadershipEventRecorder create(MetricRegistry metrics, String leaderUuid) {
+        return new PaxosLeadershipEventRecorder(new LeadershipEvents(metrics), leaderUuid);
     }
 
     @VisibleForTesting
-    LeadershipEventRecorder(LeadershipEvents events, String leaderUuid) {
+    PaxosLeadershipEventRecorder(LeadershipEvents events, String leaderUuid) {
         this.events = events;
         this.leaderId = leaderUuid;
     }

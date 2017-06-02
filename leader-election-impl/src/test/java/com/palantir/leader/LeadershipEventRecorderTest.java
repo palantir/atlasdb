@@ -32,7 +32,7 @@ public class LeadershipEventRecorderTest {
     private static final String LEADER_ID = "foo";
 
     private final LeadershipEvents events = mock(LeadershipEvents.class);
-    private final LeadershipEventRecorder recorder = new LeadershipEventRecorder(events, LEADER_ID);
+    private final PaxosLeadershipEventRecorder recorder = new PaxosLeadershipEventRecorder(events, LEADER_ID);
 
     private static final PaxosValue ROUND_1_LEADING = round(1, true);
     private static final PaxosValue ROUND_2_LEADING = round(2, true);
