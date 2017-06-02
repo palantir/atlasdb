@@ -206,8 +206,18 @@ public final class TransactionManagers {
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             String userAgent) {
+        AtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig.builder()
+                .enableSweep(config.enableSweep())
+                .sweepPauseMillis(config.getSweepPauseMillis())
+                .sweepCandidateBatchHint(config.getSweepCandidateBatchHint())
+                .sweepReadLimit(config.getSweepReadLimit())
+                .sweepDeleteBatchHint(config.getSweepDeleteBatchHint())
+                .sweepBatchSize(config.getSweepBatchSize())
+                .sweepCellBatchSize(config.getSweepBatchSize())
+                .build();
+
         return create(config,
-                () -> ImmutableAtlasDbRuntimeConfig.builder().enableSweep(config.enableSweep()).build(),
+                () -> runtimeConfig,
                 schemas,
                 env,
                 lockServerOptions,
@@ -308,8 +318,8 @@ public final class TransactionManagers {
                 kvs,
                 sweepRunner,
                 () -> runtimeConfig.get().enableSweep(),
-                Suppliers.ofInstance(config.getSweepPauseMillis()),
-                Suppliers.ofInstance(getSweepBatchConfig(config)),
+                () -> runtimeConfig.get().getSweepPauseMillis(),
+                () -> getSweepBatchConfig(runtimeConfig.get()),
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 persistentLockManager);
@@ -318,7 +328,7 @@ public final class TransactionManagers {
         return transactionManager;
     }
 
-    private static SweepBatchConfig getSweepBatchConfig(AtlasDbConfig config) {
+    private static SweepBatchConfig getSweepBatchConfig(AtlasDbRuntimeConfig config) {
         if (config.getSweepBatchSize() != null || config.getSweepCellBatchSize() != null) {
             log.warn("Configuration parameters 'sweepBatchSize' and 'sweepCellBatchSize' have been deprecated"
                     + " in favor of 'sweepMaxCellTsPairsToExamine', 'sweepCandidateBatchSize'"
