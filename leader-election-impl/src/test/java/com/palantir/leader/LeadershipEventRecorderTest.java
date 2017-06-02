@@ -74,11 +74,12 @@ public class LeadershipEventRecorderTest {
     }
 
     @Test
-    public void records_sequential_leadership_gained_events() {
+    public void records_leadership_lost_between_sequential_leadership_gains() {
         recorder.recordRound(ROUND_1_LEADING);
         recorder.recordRound(ROUND_2_LEADING);
 
         verify(events).gainedLeadershipFor(ROUND_1_LEADING);
+        verify(events).lostLeadershipFor(ROUND_1_LEADING);
         verify(events).gainedLeadershipFor(ROUND_2_LEADING);
     }
 

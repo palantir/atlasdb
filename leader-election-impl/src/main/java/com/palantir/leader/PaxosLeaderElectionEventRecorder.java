@@ -21,12 +21,16 @@ import com.palantir.paxos.PaxosValue;
 
 public interface PaxosLeaderElectionEventRecorder {
 
+    /** Called when a quorum no longer agrees that {@code value} is the latest round, although we are the leader for {@code value}. */
     void recordNotLeading(PaxosValue value);
 
+    /** Called when we cannot contact a quorum to determine whether {@code value} is the latest round. */
     void recordNoQuorum(PaxosValue value);
 
+    /** Called when we fail to propose a new value. */
     void recordProposalFailure(PaxosRoundFailureException e);
 
+    /** Called when we attempt to propose a new value. */
     void recordProposalAttempt(long round);
 
     PaxosLeaderElectionEventRecorder NO_OP = new PaxosLeaderElectionEventRecorder() {

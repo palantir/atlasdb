@@ -59,10 +59,12 @@ public class LeadershipEventRecorder implements PaxosKnowledgeEventRecorder, Pax
             return;
         }
 
+        if (isLeaderFor(currentRound) && !hasLostLeadershipForCurrentRound) {
+            events.lostLeadershipFor(currentRound);
+        }
+
         if (isLeaderFor(round)) {
             events.gainedLeadershipFor(round);
-        } else if (isLeaderFor(currentRound) && !hasLostLeadershipForCurrentRound) {
-            events.lostLeadershipFor(currentRound);
         }
 
         hasLostLeadershipForCurrentRound = false;
