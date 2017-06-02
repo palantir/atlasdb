@@ -212,44 +212,33 @@ public class FailoverFeignTargetTest {
     @Test
     @SuppressWarnings("unchecked")
     public void blockingTimeoutExceptionsDoNotBackoff() {
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+
         for (int i = 0; i < ITERATIONS; i++) {
             simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+
+            int expectedNumOfCalls = i + 1;
+            verify(spiedTarget, times(expectedNumOfCalls)).pauseForBackoff(any(), argument.capture());
+            assertThat(argument.getValue()).isEqualTo(0L);
         }
-
-        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
-        verify(spiedTarget, times(ITERATIONS)).pauseForBackoff(any(), argument.capture());
-
-        List<Long> arguments = argument.getAllValues();
-        Matcher[] expectedArguments = new Matcher[ITERATIONS];
-        Arrays.fill(expectedArguments, is(0L));
-
-        MatcherAssert.assertThat(arguments, Matchers.contains(expectedArguments));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void exceptionsWithoutRetryAfterBackoffExponentially() {
         int numIterations = 10;
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
 
         for (int i = 0; i < numIterations; i++) {
             simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+
+            int expectedNumOfCalls = i + 1;
+            verify(spiedTarget, times(expectedNumOfCalls)).pauseForBackoff(any(), argument.capture());
+
+            long cap = Math.round(Math.pow(GOLDEN_RATIO, expectedNumOfCalls));
+            MatcherAssert.assertThat(argument.getValue(), is(both(greaterThanOrEqualTo(0L)).and(lessThan(cap))));
         }
-
-        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
-        verify(spiedTarget, times(numIterations)).pauseForBackoff(any(), argument.capture());
-
-        List<Long> arguments = argument.getAllValues();
-
-        List<Matcher> expectedArguments = new ArrayList<>();
-        for (int i = 1; i <= numIterations; i++) {
-            long cap = Math.round(Math.pow(GOLDEN_RATIO, i));
-            expectedArguments.add(is(both(greaterThanOrEqualTo(0L)).and(lessThan(cap))));
-        }
-        Matcher[] expectedArgumentsArray = expectedArguments.toArray(new Matcher[expectedArguments.size()]);
-
-        MatcherAssert.assertThat(arguments, Matchers.contains(expectedArgumentsArray));
     }
 
     private void simulateRequest(FailoverFeignTarget target) {
