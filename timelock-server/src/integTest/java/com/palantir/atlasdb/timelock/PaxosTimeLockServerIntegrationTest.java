@@ -48,6 +48,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -367,16 +368,17 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    // TODO(nziebart): test remote service instrumentation - we need a multi-node server config for this
     public void instrumentationSmokeTest() throws IOException {
         getTimestampService(CLIENT_1).getFreshTimestamp();
         getLockService(CLIENT_1).currentTimeMillis();
 
         JsonNode metrics = getMetricsOutput();
+        System.out.println(new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(metrics));
 
         // time / lock services
-        // TODO(nziebart): why do we have both ManagedTimestampService
-        // and Timestamp Service / RemoteLockService and LockService
-        assertContainsTimer(metrics, "com.palantir.timestamp.TimestampService.test.getFreshTimestamp");
+        assertContainsTimer(metrics,
+                "com.palantir.atlasdb.timelock.paxos.ManagedTimestampService.test.getFreshTimestamp");
         assertContainsTimer(metrics, "com.palantir.lock.LockService.test.currentTimeMillis");
 
         // local leader election classes
@@ -385,9 +387,6 @@ public class PaxosTimeLockServerIntegrationTest {
         assertContainsTimer(metrics, "com.palantir.paxos.PaxosProposer.propose");
         assertContainsTimer(metrics, "com.palantir.leader.PingableLeader.ping");
         assertContainsTimer(metrics, "com.palantir.leader.LeaderElectionService.blockOnBecomingLeader");
-
-        // remote leader election proxies
-        // TODO(nziebart): need a multi-node server config for this
 
         // local timestamp bound classes
         assertContainsTimer(metrics, "com.palantir.timestamp.TimestampBoundStore.test.getUpperLimit");
