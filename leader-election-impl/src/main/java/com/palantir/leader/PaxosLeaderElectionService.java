@@ -130,12 +130,10 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
         for (;;) {
             PaxosValue greatestLearned = knowledge.getGreatestLearnedValue();
-
             LeadershipToken token = genTokenFromValue(greatestLearned);
 
             if (isLastConfirmedLeader(greatestLearned)) {
                 StillLeadingStatus leadingStatus = isStillLeading(token);
-
                 if (leadingStatus == StillLeadingStatus.LEADING) {
                     return token;
                 } else if (leadingStatus == StillLeadingStatus.NO_QUORUM) {

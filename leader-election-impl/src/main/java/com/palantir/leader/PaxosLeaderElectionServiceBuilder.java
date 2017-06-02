@@ -102,6 +102,4 @@ public class PaxosLeaderElectionServiceBuilder {
                 leaderPingResponseWaitMs,
                 eventRecorder);
     }
-
-
 }

@@ -45,8 +45,8 @@ class LeadershipEvents {
     }
 
     public void proposedLeadershipFor(long round) {
-        proposedLeadership.mark();
         leaderLog.info("Proposing leadership with sequence number {}", round);
+        proposedLeadership.mark();
     }
 
     public void gainedLeadershipFor(PaxosValue value) {
