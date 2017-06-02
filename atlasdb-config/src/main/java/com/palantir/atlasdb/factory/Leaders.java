@@ -92,8 +92,12 @@ public final class Leaders {
             LeaderConfig config,
             RemotePaxosServerSpec remotePaxosServerSpec,
             String userAgent) {
-        PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(PaxosAcceptor.class, PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath()));
-        PaxosLearner ourLearner = AtlasDbMetrics.instrument(PaxosLearner.class, PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath()));
+        PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(
+                PaxosAcceptor.class,
+                PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath()));
+        PaxosLearner ourLearner = AtlasDbMetrics.instrument(
+                PaxosLearner.class,
+                PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath()));
 
         Optional<SSLSocketFactory> sslSocketFactory =
                 ServiceCreator.createSslSocketFactory(config.sslConfiguration());
@@ -140,8 +144,12 @@ public final class Leaders {
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
                 .build();
 
-        LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(LeaderElectionService.class, paxosLeaderElectionService);
-        PingableLeader pingableLeader = AtlasDbMetrics.instrument(PingableLeader.class, paxosLeaderElectionService);
+        LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(
+                LeaderElectionService.class,
+                paxosLeaderElectionService);
+        PingableLeader pingableLeader = AtlasDbMetrics.instrument(
+                PingableLeader.class,
+                paxosLeaderElectionService);
 
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)

@@ -51,19 +51,27 @@ public final class PaxosResource {
     }
 
     public static PaxosResource create(String logDirectory) {
-        return new PaxosResource(logDirectory, Maps.newHashMap(), Maps.newHashMap());
+        return new PaxosResource(logDirectory, Maps.newConcurrentMap(), Maps.newConcurrentMap());
     }
 
     public void addInstrumentedClient(String client) {
         Preconditions.checkState(!paxosLearners.containsKey(client),
                 "Paxos resource already has client '%s' registered", client);
 
-        String learnerLogDir = Paths.get(logDirectory, client, PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toString();
-        PaxosLearner learner = instrument(PaxosLearner.class, PaxosLearnerImpl.newLearner(learnerLogDir), client);
+        String learnerLogDir = Paths.get(logDirectory, client, PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH)
+                .toString();
+        PaxosLearner learner = instrument(
+                PaxosLearner.class,
+                PaxosLearnerImpl.newLearner(learnerLogDir),
+                client);
         paxosLearners.put(client, learner);
 
-        String acceptorLogDir = Paths.get(logDirectory, client, PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toString();
-        PaxosAcceptor acceptor = instrument(PaxosAcceptor.class, PaxosAcceptorImpl.newAcceptor(acceptorLogDir), client);
+        String acceptorLogDir = Paths.get(logDirectory, client, PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH)
+                .toString();
+        PaxosAcceptor acceptor = instrument(
+                PaxosAcceptor.class,
+                PaxosAcceptorImpl.newAcceptor(acceptorLogDir),
+                client);
         paxosAcceptors.put(client, acceptor);
     }
 

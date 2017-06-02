@@ -85,7 +85,8 @@ public class PaxosResourceTest {
     @Test
     public void throwsIfTryingToAddClientTwice() {
         paxosResource.addInstrumentedClient(CLIENT_1);
-        assertThatThrownBy(() -> paxosResource.addInstrumentedClient(CLIENT_1)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> paxosResource.addInstrumentedClient(CLIENT_1))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
