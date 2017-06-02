@@ -41,9 +41,11 @@ import org.jmock.lib.concurrent.Synchroniser;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.exceptions.verification.TooLittleActualInvocations;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
+import com.jayway.awaitility.Awaitility;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.time.Clock;
@@ -89,10 +91,17 @@ public class PersistentTimestampServiceTest {
         PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore, clock);
 
         persistentTimestampService.getFreshTimestamp();
-        Thread.sleep(10);
         persistentTimestampService.getFreshTimestamp();
-        Thread.sleep(10);
-        verify(timestampBoundStore, atLeast(2)).storeUpperLimit(anyLong());
+        Awaitility
+                .await()
+                .ignoreExceptionsMatching(e -> e.getCause() instanceof TooLittleActualInvocations)
+                .until(() -> {
+                    try {
+                        verify(timestampBoundStore, atLeast(2)).storeUpperLimit(anyLong());
+                    } catch (TooLittleActualInvocations e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 
     @Test

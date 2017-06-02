@@ -10,6 +10,7 @@ dependencies {
   testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
     exclude group: 'org.hamcrest'
   }
+  testCompile 'com.jayway.awaitility:awaitility:1.6.5'
   testCompile 'org.mockito:mockito-core:' + libVersions.mockito
   compile 'org.hamcrest:hamcrest-core:' + libVersions.hamcrest
   compile 'org.hamcrest:hamcrest-library:' + libVersions.hamcrest
