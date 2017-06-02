@@ -95,7 +95,9 @@ public final class Leaders {
             RemotePaxosServerSpec remotePaxosServerSpec,
             String userAgent) {
         UUID leaderUUID = UUID.randomUUID();
-        LeadershipEventRecorder leadershipEventRecorder = new LeadershipEventRecorder(leaderUUID.toString());
+
+        LeadershipEventRecorder leadershipEventRecorder = LeadershipEventRecorder.create(
+                AtlasDbMetrics.getMetricRegistry(), leaderUUID.toString());
 
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(
                 PaxosAcceptor.class,

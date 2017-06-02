@@ -16,6 +16,9 @@
 
 package com.palantir.leader;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.logsafe.SafeArg;
@@ -24,17 +27,16 @@ import com.palantir.paxos.PaxosValue;
 
 class LeadershipEvents {
 
+    private static final String LEADER_LOG_NAME = "leadership";
+    private static final Logger leaderLog = LoggerFactory.getLogger(LEADER_LOG_NAME);
+
     private final Meter gainedLeadership;
     private final Meter lostLeadership;
     private final Meter noQuorum;
     private final Meter proposedLeadership;
     private final Meter proposalFailure;
 
-    public LeadershipEvents() {
-        this(LeaderLog.metrics());
-    }
-
-    private LeadershipEvents(MetricRegistry metrics) {
+    public LeadershipEvents(MetricRegistry metrics) {
         gainedLeadership = metrics.meter("leadership.gained");
         lostLeadership = metrics.meter("leadership.lost");
         noQuorum = metrics.meter("leadership.no-quorum");
@@ -44,31 +46,31 @@ class LeadershipEvents {
 
     public void proposedLeadershipFor(long round) {
         proposedLeadership.mark();
-        LeaderLog.logger.info("Proposing leadership with sequence number {}", round);
+        leaderLog.info("Proposing leadership with sequence number {}", round);
     }
 
     public void gainedLeadershipFor(PaxosValue value) {
-        LeaderLog.logger.info("Gained leadership", SafeArg.of("value", value));
+        leaderLog.info("Gained leadership", SafeArg.of("value", value));
         gainedLeadership.mark();
     }
 
     public void lostLeadershipFor(PaxosValue value) {
-        LeaderLog.logger.info("Lost leadership", SafeArg.of("value", value));
+        leaderLog.info("Lost leadership", SafeArg.of("value", value));
         lostLeadership.mark();
     }
 
     public void noQuorum(PaxosValue value) {
-        LeaderLog.logger.warn("The most recent known information says this server is the leader, but there is no quorum right now");
+        leaderLog.warn("The most recent known information says this server is the leader, but there is no quorum right now");
         noQuorum.mark();
     }
 
     public void proposalFailure(PaxosRoundFailureException e) {
-        LeaderLog.logger.warn("Leadership was not gained.\n"
+        leaderLog.warn("Leadership was not gained.\n"
                 + "We should recover automatically. If this recurs often, try to \n"
                 + "  (1) ensure that most other nodes are reachable over the network, and \n"
                 + "  (2) increase the randomWaitBeforeProposingLeadershipMs timeout in your configuration.\n"
-                + "See the debug-level log for more details.");
-        LeaderLog.logger.debug("Specifically, leadership was not gained because of the following exception", e);
+                + "See the debug-level leaderLog for more details.");
+        leaderLog.debug("Specifically, leadership was not gained because of the following exception", e);
         proposalFailure.mark();
     }
 }

@@ -39,12 +39,12 @@ public class AtlasDbMetricsTest {
 
     @Before
     public void before() throws Exception {
-        AtlasDbMetrics.metrics = null;
+        AtlasDbMetrics.metrics.set(null);
     }
 
     @Test
     public void metricsIsDefaultWhenNotSet() {
-        AtlasDbMetrics.metrics = null;
+        AtlasDbMetrics.metrics.set(null);
         assertThat(AtlasDbMetrics.getMetricRegistry(),
                 is(equalTo(SharedMetricRegistries.getOrCreate(AtlasDbMetrics.DEFAULT_REGISTRY_NAME))));
     }

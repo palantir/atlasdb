@@ -368,7 +368,6 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    // TODO(nziebart): test remote service instrumentation - we need a multi-node server config for this
     public void leadershipEventsSmokeTest() throws IOException {
         JsonNode metrics = getMetricsOutput();
 
@@ -384,6 +383,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    // TODO(nziebart): test remote service instrumentation - we need a multi-node server config for this
     public void instrumentationSmokeTest() throws IOException {
         getTimestampService(CLIENT_1).getFreshTimestamp();
         getLockService(CLIENT_1).currentTimeMillis();
