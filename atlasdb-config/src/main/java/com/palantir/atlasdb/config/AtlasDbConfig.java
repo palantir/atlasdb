@@ -131,7 +131,10 @@ public abstract class AtlasDbConfig {
      * have been overwritten or deleted. This differs from scrubbing
      * because it is an untargeted cleaning process that scans all data
      * looking for cells to delete.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#enableSweep} to make this value
+     * live-reloadable.
      */
+    @Deprecated
     @Value.Default
     public boolean enableSweep() {
         return AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
@@ -140,7 +143,10 @@ public abstract class AtlasDbConfig {
     /**
      * The number of milliseconds to wait between each batch of cells
      * processed by the background sweeper.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#getSweepPauseMillis} to make this value
+     * live-reloadable.
      */
+    @Deprecated
     @Value.Default
     public long getSweepPauseMillis() {
         return AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS;
@@ -157,39 +163,50 @@ public abstract class AtlasDbConfig {
 
     /**
      * The target number of (cell, timestamp) pairs to examine in a single run of the background sweeper.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#getSweepReadLimit} to make this value
+     * live-reloadable.
      */
     // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
     // whether the field is present in the configuration file.
+    @Deprecated
     @Nullable
     public abstract Integer getSweepReadLimit();
 
     /**
      * The target number of candidate (cell, timestamp) pairs to load per batch while sweeping.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#getSweepCandidateBatchHint} to make this value
+     * live-reloadable.
      */
     // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
     // whether the field is present in the configuration file.
+    @Deprecated
     @Nullable
     public abstract Integer getSweepCandidateBatchHint();
 
     /**
      * The target number of (cell, timestamp) pairs to delete at once while sweeping.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#getSweepDeleteBatchHint} to make this value
+     * live-reloadable.
      */
     // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
     // whether the field is present in the configuration file.
+    @Deprecated
     @Nullable
     public abstract Integer getSweepDeleteBatchHint();
 
     /**
-     * @deprecated Use {@link #getSweepReadLimit()}, {@link #getSweepCandidateBatchHint()}
-     * and {@link #getSweepDeleteBatchHint()} instead.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#getSweepReadLimit()},
+     * {@link AtlasDbRuntimeConfig#getSweepCandidateBatchHint()} and
+     * {@link AtlasDbRuntimeConfig#getSweepDeleteBatchHint()}.
      */
     @Deprecated
     @Nullable
     public abstract Integer getSweepBatchSize();
 
     /**
-     * @deprecated Use {@link #getSweepReadLimit()}, {@link #getSweepCandidateBatchHint()}
-     * and {@link #getSweepDeleteBatchHint()} instead.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#getSweepReadLimit()},
+     * {@link AtlasDbRuntimeConfig#getSweepCandidateBatchHint()} and
+     * {@link AtlasDbRuntimeConfig#getSweepDeleteBatchHint()}.
      */
     @Deprecated
     @Nullable
