@@ -89,14 +89,12 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             createTable(element.getKey(), element.getValue());
             return;
         }
-        for (TableReference tableRef : tableRefToTableMetadata.keySet()) {
-            sanityCheckTableName(tableRef);
-        }
+        tableRefToTableMetadata.keySet().forEach(ValidatingQueryRewritingKeyValueService::sanityCheckTableName);
         tableRefToTableMetadata.entrySet().forEach(entry -> sanityCheckTableMetadata(entry.getKey(), entry.getValue()));
         delegate.createTables(tableRefToTableMetadata);
     }
 
-    protected void sanityCheckTableName(TableReference tableRef) {
+    protected static void sanityCheckTableName(TableReference tableRef) {
         String tableName = tableRef.getQualifiedName();
         Validate.isTrue(
                 (!tableName.startsWith("_") && tableName.contains("."))
@@ -105,11 +103,13 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
                 "invalid tableName: " + tableName);
     }
 
-    protected void sanityCheckTableMetadata(TableReference tableRef, byte[] tableMetadata) {
+    protected static void sanityCheckTableMetadata(TableReference tableRef, byte[] tableMetadata) {
         if (tableMetadata == null || Arrays.equals(tableMetadata, AtlasDbConstants.EMPTY_TABLE_METADATA)) {
             throw new IllegalArgumentException(
                     String.format(
-                            "Passing in empty table metadata for table '%s' does not make sense, and is disallowed.",
+                            "Passing in empty table metadata for table '%s' is disallowed,"
+                                    + " as reasoning about such tables is hard. Consider using"
+                                    + " AtlasDbConstants.GENERIC_TABLE_METADATA instead.",
                             tableRef));
         }
     }
