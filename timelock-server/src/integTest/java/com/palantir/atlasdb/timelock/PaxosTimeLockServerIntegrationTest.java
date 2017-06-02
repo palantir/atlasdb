@@ -371,19 +371,18 @@ public class PaxosTimeLockServerIntegrationTest {
     // TODO(nziebart): test remote service instrumentation - we need a multi-node server config for this
     public void leadershipEventsSmokeTest() throws IOException {
         JsonNode metrics = getMetricsOutput();
-        JsonNode meters = metrics.get("meters");
-        
+
         assertContainsMeter(metrics, "leadership.gained");
         assertContainsMeter(metrics, "leadership.lost");
         assertContainsMeter(metrics, "leadership.proposed");
         assertContainsMeter(metrics, "leadership.no-quorum");
         assertContainsMeter(metrics, "leadership.proposed.failure");
-        
+
         JsonNode meters = metrics.get("meters");
         assertThat(meters.get("leadership.gained").get("count").intValue()).isEqualTo(1);
         assertThat(meters.get("leadership.proposed").get("count").intValue()).isEqualTo(1);
     }
-    
+
     @Test
     public void instrumentationSmokeTest() throws IOException {
         getTimestampService(CLIENT_1).getFreshTimestamp();
@@ -414,15 +413,10 @@ public class PaxosTimeLockServerIntegrationTest {
         JsonNode timers = metrics.get("timers");
         assertThat(timers.get(name)).isNotNull();
     }
-    
-    private static void asssertContainsMeter(JsonNode metrics, String name) {
+
+    private static void assertContainsMeter(JsonNode metrics, String name) {
         JsonNode meters = metrics.get("meters");
         assertThat(meters.get(name)).isNotNull();
-    }
-
-    private static JsonNode getMetricsOutput() throws IOException {
-        return new ObjectMapper().readTree(
-                new URL("http", "localhost", TIMELOCK_SERVER_HOLDER.getAdminPort(), "/metrics"));
     }
 
     private static String getFastForwardUriForClientOne() {
