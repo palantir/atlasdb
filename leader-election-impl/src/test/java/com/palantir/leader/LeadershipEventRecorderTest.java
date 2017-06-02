@@ -114,27 +114,12 @@ public class LeadershipEventRecorderTest {
 
     @Test
     public void records_duplicate_no_quorum() {
+        recorder.recordRound(ROUND_1_LEADING);
         recorder.recordNoQuorum(ROUND_1_LEADING);
         recorder.recordNoQuorum(ROUND_1_LEADING);
 
         verify(events).gainedLeadershipFor(ROUND_1_LEADING);
         verify(events, times(2)).noQuorum(ROUND_1_LEADING);
-    }
-
-    @Test
-    public void records_leadership_if_first_event_is_no_quorum() {
-        recorder.recordNoQuorum(ROUND_1_LEADING);
-
-        verify(events).gainedLeadershipFor(ROUND_1_LEADING);
-        verify(events).noQuorum(ROUND_1_LEADING);
-    }
-
-    @Test
-    public void records_leadership_if_first_event_is_not_leading() {
-        recorder.recordNotLeading(ROUND_1_LEADING);
-
-        verify(events).gainedLeadershipFor(ROUND_1_LEADING);
-        verify(events).lostLeadershipFor(ROUND_1_LEADING);
     }
 
     @Test

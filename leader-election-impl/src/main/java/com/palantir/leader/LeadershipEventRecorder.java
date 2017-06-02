@@ -16,17 +16,19 @@
 
 package com.palantir.leader;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
 
 public class LeadershipEventRecorder implements PaxosKnowledgeEventRecorder, PaxosLeaderElectionEventRecorder {
 
-    private PaxosValue currentRound = null;
-    private boolean hasLostLeadershipForCurrentRound = false;
-    private String leaderId;
-
+    private final String leaderId;
     private final LeadershipEvents events;
+
+    @GuardedBy("this") private State state = new NotLeading();
+    @GuardedBy("this") private PaxosValue currentRound;
 
     public LeadershipEventRecorder(String leaderId) {
         this(new LeadershipEvents(), leaderId);
@@ -50,56 +52,80 @@ public class LeadershipEventRecorder implements PaxosKnowledgeEventRecorder, Pax
 
     @Override
     public synchronized void recordRound(PaxosValue round) {
-        if (round == null) {
-            return;
-        }
-
-        // ignore old rounds and duplicates, since threads may be trying to verify leadership for various rounds concurrently
-        if (!isNewRound(round)) {
-            return;
-        }
-
-        if (isLeaderFor(currentRound) && !hasLostLeadershipForCurrentRound) {
-            events.lostLeadershipFor(currentRound);
-        }
-
-        if (isLeaderFor(round)) {
-            events.gainedLeadershipFor(round);
-        }
-
-        hasLostLeadershipForCurrentRound = false;
-        currentRound = round;
-    }
-
-    @Override
-    public synchronized void recordNoQuorum(PaxosValue value) {
-        recordRound(value);
-
-        if (isLeaderFor(value)) {
-            events.noQuorum(value);
+        if (isNewRound(round)) {
+            state = state.newRound(round);
+            currentRound = round;
         }
     }
 
     @Override
     public synchronized void recordNotLeading(PaxosValue value) {
-        recordRound(value);
-
-        if (isSameRound(value) && isLeaderFor(value) && !hasLostLeadershipForCurrentRound) {
-            hasLostLeadershipForCurrentRound = true;
-            events.lostLeadershipFor(value);
+        if (isSameRound(value)) {
+            state = state.lostLeadership();
         }
+    }
+
+    @Override
+    public synchronized void recordNoQuorum(PaxosValue value) {
+        if (isSameRound(value)) {
+            events.noQuorum(value);
+        }
+    }
+
+    private boolean isNewRound(PaxosValue value) {
+        return value != null && (currentRound == null || value.getRound() > currentRound.getRound());
     }
 
     private boolean isLeaderFor(PaxosValue round) {
         return round != null && leaderId.equals(round.getLeaderUUID());
     }
 
-    private boolean isNewRound(PaxosValue value) {
-        return currentRound == null || value.getRound() > currentRound.getRound();
-    }
-
     private boolean isSameRound(PaxosValue value) {
         return currentRound != null && value != null && currentRound.getRound() == value.getRound();
+    }
+
+    private abstract class State {
+
+        State newRound(PaxosValue value) {
+            newRound();
+
+            if (isLeaderFor(value)) {
+                events.gainedLeadershipFor(value);
+                return new Leading();
+            }
+
+            return new NotLeading();
+        }
+
+        abstract void newRound();
+        abstract State lostLeadership();
+    }
+
+    private class Leading extends State {
+
+        @Override
+        void newRound() {
+            events.lostLeadershipFor(currentRound);
+        }
+
+        @Override
+        public State lostLeadership() {
+            events.lostLeadershipFor(currentRound);
+            return new NotLeading();
+        }
+    }
+
+    private class NotLeading extends State {
+
+        @Override
+        void newRound() {
+            // no event
+        }
+
+        @Override
+        public State lostLeadership() {
+            return this;
+        }
     }
 
 }
