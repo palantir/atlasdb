@@ -18,6 +18,7 @@ package com.palantir.leader;
 
 import javax.annotation.concurrent.GuardedBy;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
@@ -30,8 +31,8 @@ public class LeadershipEventRecorder implements PaxosKnowledgeEventRecorder, Pax
     @GuardedBy("this") private State state = new NotLeading();
     @GuardedBy("this") private PaxosValue currentRound;
 
-    public LeadershipEventRecorder(String leaderId) {
-        this(new LeadershipEvents(), leaderId);
+    public static LeadershipEventRecorder create(MetricRegistry metrics, String leaderUuid) {
+        return new LeadershipEventRecorder(new LeadershipEvents(metrics), leaderUuid);
     }
 
     @VisibleForTesting
