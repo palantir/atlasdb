@@ -15,10 +15,14 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.function.Supplier;
 
 import org.junit.rules.ExternalResource;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 
 import io.dropwizard.testing.DropwizardTestSupport;
@@ -26,6 +30,8 @@ import io.dropwizard.testing.DropwizardTestSupport;
 public class TimeLockServerHolder extends ExternalResource {
     private Supplier<String> configFilePathSupplier;
     private DropwizardTestSupport<TimeLockServerConfiguration> timelockServer;
+    private boolean isRunning = false;
+    private int timelockPort;
 
     TimeLockServerHolder(Supplier<String> configFilePathSupplier) {
         this.configFilePathSupplier = configFilePathSupplier;
@@ -33,16 +39,48 @@ public class TimeLockServerHolder extends ExternalResource {
 
     @Override
     protected void before() throws Exception {
+        if (isRunning) {
+            return;
+        }
+
+        timelockPort = readTimelockPort();
+
         timelockServer = new DropwizardTestSupport<>(TimeLockServerLauncher.class, configFilePathSupplier.get());
         timelockServer.before();
+        isRunning = true;
     }
 
     @Override
     protected void after() {
-        timelockServer.after();
+        if (isRunning) {
+            timelockServer.after();
+            isRunning = false;
+        }
     }
 
     public int getTimelockPort() {
-        return timelockServer.getLocalPort();
+        return timelockPort;
+    }
+
+    public synchronized void kill() {
+        after();
+    }
+
+    public synchronized void start() {
+        try {
+            before();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private int readTimelockPort() throws IOException {
+        return new ObjectMapper(new YAMLFactory())
+                .readTree(new File(configFilePathSupplier.get()))
+                .get("server")
+                .get("applicationConnectors")
+                .get(0)
+                .get("port")
+                .intValue();
     }
 }
