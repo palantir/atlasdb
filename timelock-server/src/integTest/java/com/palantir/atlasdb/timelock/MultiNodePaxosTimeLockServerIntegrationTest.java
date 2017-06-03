@@ -25,13 +25,12 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
-
-import feign.RetryableException;
 
 public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
@@ -68,9 +67,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     public void non_leaders_return_503() {
         CLUSTER.nonLeaders().forEach(server -> {
             assertThatThrownBy(() -> server.getFreshTimestamp())
-                    .isInstanceOf(RetryableException.class);
+                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
             assertThatThrownBy(() -> server.lock(LOCK_CLIENT, LOCK_REQUEST))
-                    .isInstanceOf(RetryableException.class);
+                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         });
     }
 
@@ -95,7 +94,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
 
         assertThatThrownBy(() -> leader.getFreshTimestamp())
-                .isInstanceOf(RetryableException.class);
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
@@ -139,5 +138,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             token = CLUSTER.lock(LOCK_CLIENT, LOCK_REQUEST);
         }
     }
+
+
 
 }

@@ -17,9 +17,9 @@
 package com.palantir.atlasdb.timelock.util;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TestableTimelockServer;
@@ -46,7 +46,7 @@ public class TestProxies {
     }
 
     public <T> T singleNode(Class<T> serviceInterface, String uri) {
-        return AtlasDbHttpClients.createProxy(Optional.absent(), uri, serviceInterface,
+        return AtlasDbHttpClients.createProxy(Optional.empty(), uri, serviceInterface,
                 MultiNodePaxosTimeLockServerIntegrationTest.class.toString());
     }
 
@@ -56,7 +56,7 @@ public class TestProxies {
 
     public <T> T failover(Class<T> serviceInterface, List<String> uris) {
         return AtlasDbHttpClients.createProxyWithFailover(
-                com.google.common.base.Optional.absent(),
+                Optional.empty(),
                 uris,
                 serviceInterface,
                 getClass().toString());

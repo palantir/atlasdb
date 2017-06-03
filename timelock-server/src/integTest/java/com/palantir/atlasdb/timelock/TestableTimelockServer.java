@@ -22,6 +22,7 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class TestableTimelockServer {
@@ -68,6 +69,10 @@ public class TestableTimelockServer {
 
     public TimestampService timestampService() {
         return proxies.singleNodeForClient(defaultClient, serverHolder, TimestampService.class);
+    }
+
+    public TimestampManagementService timestampManagementService() {
+        return proxies.singleNodeForClient(defaultClient, serverHolder, TimestampManagementService.class);
     }
 
     public RemoteLockService lockService() {
