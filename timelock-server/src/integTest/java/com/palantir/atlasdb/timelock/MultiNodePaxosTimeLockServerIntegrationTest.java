@@ -84,12 +84,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void new_leader_takes_over_if_current_leader_dies() {
-        TestableTimelockServer oldLeader = CLUSTER.currentLeader();
+        CLUSTER.currentLeader().kill();
 
-        oldLeader.kill();
-        CLUSTER.waitUntilLeaderIsElected();
-
-        CLUSTER.currentLeader().getFreshTimestamp();
+        CLUSTER.getFreshTimestamp();
     }
 
     @Test
