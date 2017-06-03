@@ -47,6 +47,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
 
+    private static final long MAX_NO_QUORUM_RETRIES = 10;
+
     public static <U> U newProxyInstance(Class<U> interfaceClass,
                                          Supplier<U> delegateSupplier,
                                          LeaderElectionService leaderElectionService) {
@@ -153,12 +155,18 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
 
         Object delegate = delegateRef.get();
-        StillLeadingStatus leading;
-        do {
+        StillLeadingStatus leading = null;
+        for (int i = 0; i < MAX_NO_QUORUM_RETRIES; i++) {
+            // TODO(nziebart): check if leadershipTokenRef has been nulled out between iterations?
             leading = leaderElectionService.isStillLeading(leadershipToken);
-        } while (leading == StillLeadingStatus.NO_QUORUM);
+            if (leading != StillLeadingStatus.NO_QUORUM) {
+                break;
+            }
+        }
 
-        if (leading == StillLeadingStatus.NOT_LEADING) {
+        // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
+        // and should assume we're not the leader
+        if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
             markAsNotLeading(leadershipToken, null /* cause */);
         }
 
