@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
+import org.apache.commons.math3.stat.inference.TestUtils;
 import org.assertj.core.util.Lists;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -28,6 +29,7 @@ import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.WorkloadParams;
 import org.openjdk.jmh.util.MultisetStatistics;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.performance.backend.CassandraKeyValueServiceInstrumentation;
 
 public class PerformanceResultsTest {
@@ -80,6 +82,15 @@ public class PerformanceResultsTest {
     @Test
     public void doesNotDownsampleSmallSample() {
         MultisetStatistics stats = new MultisetStatistics();
+        stats.addValue(3.14, 1);
+        Mockito.when(mockResult.getStatistics()).thenReturn(stats);
+        assertThat(PerformanceResults.getData(mockRunResult)).containsExactlyElementsOf(ImmutableList.of(3.14));
+    }
+
+
+    @Test
+    public void doesNotDownsampleSampleMaxsizeSample() {
+        MultisetStatistics stats = new MultisetStatistics();
         for (double number : SMALL_SAMPLE) {
             stats.addValue(number, 1);
         }
@@ -115,7 +126,10 @@ public class PerformanceResultsTest {
             downSampledStats.addValue(number, 1);
         }
 
-        assertThat(stats.compareTo(downSampledStats)).isEqualTo(0);
+        // Hypothesis that means are the same cannot be rejected with confidence more than 0.5
+        assertThat(TestUtils.tTest(stats, downSampledStats, 1 - 0.5)).isEqualTo(false);
+        // The typical p value is 0.05, but I went with 0.5 because I can
+        assertThat(TestUtils.homoscedasticTTest(stats, downSampledStats)).isGreaterThan(0.5d);
     }
 
     private static BenchmarkParams createBenchmarkParams(String benchmarkName, String paramKey, String paramValue) {
