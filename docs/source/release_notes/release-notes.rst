@@ -56,6 +56,10 @@ develop
            If this breaks your tests, you can fix it with making real schema for tests or by switching to AtlasDbConstants.GENERIC_TABLE_METADATA
            (`Pull Request <https://github.com/palantir/1925>`__)
 
+    *    - |fixed|
+         - Fixed a severe performance regression in getRange() on Oracle caused by an inadequate query plan being chosen sometimes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1989>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
