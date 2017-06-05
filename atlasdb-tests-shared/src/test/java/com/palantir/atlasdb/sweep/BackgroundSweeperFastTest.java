@@ -175,7 +175,7 @@ public class BackgroundSweeperFastTest {
                 .nextStartRow(new byte[] {1, 2, 3})
                 .build());
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetrics, Mockito.never()).recordMetrics(Mockito.any(), Mockito.any());
+        Mockito.verifyZeroInteractions(sweepMetrics);
     }
 
     @Test
@@ -193,13 +193,8 @@ public class BackgroundSweeperFastTest {
                 .sweptTimestamp(12345L)
                 .build());
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetrics).recordMetrics(
-                TABLE_REF,
-                ImmutableSweepResults.builder()
-                        .staleValuesDeleted(5)
-                        .cellTsPairsExamined(21)
-                        .sweptTimestamp(4567L)
-                        .build());
+        Mockito.verify(sweepMetrics).examinedCells(TABLE_REF, 21);
+        Mockito.verify(sweepMetrics).deletedCells(TABLE_REF, 5);
     }
 
     @Test
