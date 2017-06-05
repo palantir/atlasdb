@@ -72,22 +72,6 @@ public abstract class AtlasDbRuntimeConfig {
     @Nullable
     public abstract Integer getSweepDeleteBatchHint();
 
-    /**
-     * @deprecated Use {@link #getSweepReadLimit()}, {@link #getSweepCandidateBatchHint()}
-     * and {@link #getSweepDeleteBatchHint()} instead.
-     */
-    @Deprecated
-    @Nullable
-    public abstract Integer getSweepBatchSize();
-
-    /**
-     * @deprecated Use {@link #getSweepReadLimit()}, {@link #getSweepCandidateBatchHint()}
-     * and {@link #getSweepDeleteBatchHint()} instead.
-     */
-    @Deprecated
-    @Nullable
-    public abstract Integer getSweepCellBatchSize();
-
     public static ImmutableAtlasDbRuntimeConfig create(AtlasDbConfig config) {
         return ImmutableAtlasDbRuntimeConfig.builder()
                 .enableSweep(config.enableSweep())
