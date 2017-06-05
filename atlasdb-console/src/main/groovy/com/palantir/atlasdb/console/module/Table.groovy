@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.console.module
 
+import com.google.common.collect.Iterables
 import com.palantir.atlasdb.api.TransactionToken
 import com.palantir.atlasdb.console.AtlasConsoleJoins
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
@@ -87,18 +88,13 @@ class Table {
     Map getRow(row, cols=null, TransactionToken token = service.getTransactionToken()) {
         def query = baseQuery()
         row = listify(row)
-        def rows = []
-        rows.add(row)
-        query['rows'] = rows
+        query['rows'] = [row]
         if (cols != null) {
             cols = listify(cols).collect { listify(it) }
             query['cols'] = cols
         }
         def result = service.getRows(query, token)['data'] as List
-        if (result.size() > 1) {
-            throw new RuntimeException("More than one row returned, try using getRows() instead")
-        }
-        return result.first() as Map
+        return Iterables.getOnlyElement(result) as Map
     }
 
     /**
