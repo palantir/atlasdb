@@ -63,6 +63,32 @@ develop
          - Switched from feign to openfeign and bumped version.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2005>`__)
 
+    *    - |new|
+         - Added support for live-reloading sweep configs.
+
+           There's a new config block, the `atlas-runtime`, which is live-reloaded. Currently, it accepts the config options:
+
+             - `enableSweep`
+             - `getSweepPauseMillis`
+             - `getSweepReadLimit`
+             - `getSweepCandidateBatchHint`
+             - `getSweepDeleteBatchHint`
+
+           And the deprecated config options:
+
+             - `getSweepBatchSize`
+             - `getSweepCellBatchSize`
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+
+    *    - |devbreak|
+         - As part of the live-reloading work, were deprecated:
+
+           - the methods `TransactionManagers.create()` without the AtlasDB runtime config.
+           - the `enableSweep`, `getSweepPauseMillis`, `getSweepReadLimit`, `getSweepCandidateBatchHint` and `getSweepDeleteBatchHint` options of the AtlasDB config.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
