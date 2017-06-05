@@ -15,8 +15,17 @@ schemas = [
 
 libsDirName = file('build/artifacts')
 
+task myTestJar(type: Jar) {
+    from sourceSets.test.output
+    classifier = 'tests'
+}
+
 configurations {
-    testArtifacts.extendsFrom testRuntime
+    testArtifacts
+}
+
+artifacts {
+    testArtifacts myTestJar
 }
 
 dependencies {
@@ -46,6 +55,4 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'ch.qos.logback', name: 'logback-classic'
-
-  testArtifacts sourceSets.test.output
 }
