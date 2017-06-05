@@ -103,6 +103,19 @@ Add client(s) to Timelock
       - tom
       - jerry
 
-11. Restart your Timelock cluster. Once again, a healthcheck (see step 7) may be run to confirm that Timelock restarted correctly.
+10. As a verification step, request a fresh timestamp from each client. We will use these values later to check that the migration is complete.
 
-12. Restart each client.
+11. Shut down each client that has been newly added.
+
+12. Restart your Timelock cluster.
+
+13. Migrate each client to the timelock server - see the :ref:`separate migration docs <timelock-migration>`. For Cassandra KVS, this is automatic.
+
+.. warning::
+
+    Do not skip this step if your client uses DbKvs! Failure to migrate your client will cause **severe data corruption**, as Timelock will serve timestamps starting from 1.
+
+14. Restart each client.
+
+15. To verify that the migration worked correctly, get a fresh timestamp for each client from the Timelock server.
+   For each client, the timestamp returned should be strictly greater than the timestamps obtained in step 10.
