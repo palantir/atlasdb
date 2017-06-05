@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.util;
 
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -39,30 +40,30 @@ public final class AtlasDbMetrics {
     static final String DEFAULT_REGISTRY_NAME = "AtlasDb";
 
     @VisibleForTesting
-    static volatile MetricRegistry metrics;
+    static final AtomicReference<MetricRegistry> metrics = new AtomicReference<>(null);
+
 
     private AtlasDbMetrics() {}
 
     public static synchronized void setMetricRegistry(MetricRegistry metricRegistry) {
-        AtlasDbMetrics.metrics = Preconditions.checkNotNull(metricRegistry, "Metric registry cannot be null");
+        metrics.set(Preconditions.checkNotNull(metricRegistry, "Metric registry cannot be null"));
     }
 
     // Using this means that all atlasdb clients will report to the same registry, which may give confusing stats
     public static MetricRegistry getMetricRegistry() {
-        MetricRegistry currentMetricRegistry = AtlasDbMetrics.metrics;
-        if (currentMetricRegistry == null) {
-            synchronized (AtlasDbMetrics.class) {
-                currentMetricRegistry = AtlasDbMetrics.metrics;
-                if (currentMetricRegistry == null) {
-                    currentMetricRegistry = SharedMetricRegistries.getOrCreate(DEFAULT_REGISTRY_NAME);
-                    log.warn("Metric Registry was not set, setting to shared default registry name of "
-                            + DEFAULT_REGISTRY_NAME);
-                    AtlasDbMetrics.metrics = currentMetricRegistry;
-                }
+        return metrics.updateAndGet(registry -> {
+            if (registry == null) {
+                return createDefaultMetrics();
             }
-        }
+            return registry;
+        });
+    }
 
-        return currentMetricRegistry;
+    private static MetricRegistry createDefaultMetrics() {
+        MetricRegistry registry = SharedMetricRegistries.getOrCreate(DEFAULT_REGISTRY_NAME);
+        log.warn("Metric Registry was not set, setting to shared default registry name of "
+                + DEFAULT_REGISTRY_NAME);
+        return registry;
     }
 
     public static <T, U extends T> T instrument(Class<T> serviceInterface, U service) {
