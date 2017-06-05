@@ -39,7 +39,10 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     private static final String CLIENT = "isolated";
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
-            "http://localhost", "test","paxosThreeServers.yml");
+            "http://localhost",
+            CLIENT,
+            "paxosThreeServers.yml");
+
     private static final TestableTimelockServer SERVER = CLUSTER.servers().get(0);
 
     @ClassRule
@@ -62,7 +65,6 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
         assertThatThrownBy(() -> SERVER.timestampManagementService().fastForwardTimestamp(1000L))
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
-
 
     @Test
     public void canPingWithoutQuorum() {

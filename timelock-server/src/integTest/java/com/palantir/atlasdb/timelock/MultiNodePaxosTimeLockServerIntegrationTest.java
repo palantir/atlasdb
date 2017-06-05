@@ -64,7 +64,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void non_leaders_return_503() {
+    public void nonLeadersReturn503() {
         CLUSTER.nonLeaders().forEach(server -> {
             assertThatThrownBy(() -> server.getFreshTimestamp())
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
@@ -74,7 +74,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void leader_responds_to_requests() throws InterruptedException {
+    public void leaderRespondsToRequests() throws InterruptedException {
         CLUSTER.currentLeader().getFreshTimestamp();
 
         LockRefreshToken token = CLUSTER.currentLeader().lock(LOCK_CLIENT, LOCK_REQUEST);
@@ -82,14 +82,14 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void new_leader_takes_over_if_current_leader_dies() {
+    public void newLeaderTakesOverIfCurrentLeaderDies() {
         CLUSTER.currentLeader().kill();
 
         CLUSTER.getFreshTimestamp();
     }
 
     @Test
-    public void leader_loses_leadership_if_a_quorum_is_not_alive() {
+    public void leaderLosesLeadersipIfQuorumIsNotAlive() {
         TestableTimelockServer leader = CLUSTER.currentLeader();
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
 
@@ -98,7 +98,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void someone_becomes_leader_again_after_quorum_is_restored() {
+    public void someoneBecomesLeaderAgainAfterQuorumIsRestored() {
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::start);
 
@@ -106,16 +106,19 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void can_perform_rolling_restart() {
-        for (TestableTimelockServer server : CLUSTER.servers()) {
-            server.kill();
-            CLUSTER.getFreshTimestamp();
-            server.start();
+    public void canPerformRollingRestart() {
+        for (int i = 0; i < 20; i++) {
+            bringAllNodesOnline();
+            for (TestableTimelockServer server : CLUSTER.servers()) {
+                server.kill();
+                CLUSTER.getFreshTimestamp();
+                server.start();
+            }
         }
     }
 
     @Test
-    public void timestamps_are_increasing_across_failovers() {
+    public void timestampsAreIncreasingAcrossFailovers() {
         long lastTimestamp = CLUSTER.getFreshTimestamp();
 
         for (int i = 0; i < 3; i++) {
@@ -128,7 +131,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void locks_are_invalidated_across_failovers() throws InterruptedException {
+    public void locksAreInvalidatedAcrossFailures() throws InterruptedException {
         LockRefreshToken token = CLUSTER.lock(LOCK_CLIENT, LOCK_REQUEST);
 
         for (int i = 0; i < 3; i++) {
