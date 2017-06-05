@@ -33,6 +33,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -50,21 +51,23 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private static String timestampServiceCreationInfo = null;
 
-    private final KeyValueServiceConfig config;
+    private final AtlasDbConfig atlasDbConfig;
+    private final KeyValueServiceConfig keyValueServiceConfig;
     private final Optional<LeaderConfig> leaderConfig;
+
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
-    public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
-        this.config = config;
-        this.leaderConfig = leaderConfig;
-
+    public ServiceDiscoveringAtlasSupplier(AtlasDbConfig config) {
+        atlasDbConfig = config;
+        keyValueServiceConfig = config.keyValueService();
+        leaderConfig = config.leader();
         AtlasDbFactory atlasFactory = StreamSupport.stream(loader.spliterator(), false)
                 .filter(producesCorrectType())
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
-                        "No atlas provider for KeyValueService type " + config.type() + " could be found."
+                        "No atlas provider for KeyValueService type " + keyValueServiceConfig.type() + " could be found."
                         + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
         keyValueService = Suppliers.memoize(() -> pollOrCreateRawKeyValueService(atlasFactory));
@@ -77,15 +80,15 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     private KeyValueService pollOrCreateRawKeyValueService(AtlasDbFactory atlasFactory) {
-        return config.pollForDataBaseOnStartup() ? pollForKeyValueService(atlasFactory)
-                : atlasFactory.createRawKeyValueService(config, leaderConfig);
+        return atlasDbConfig.pollForDataBaseOnStartup() ? pollForKeyValueService(atlasFactory)
+                : atlasFactory.createRawKeyValueService(keyValueServiceConfig, leaderConfig);
     }
 
     private KeyValueService pollForKeyValueService(AtlasDbFactory atlasFactory) {
         int failureCount = 0;
         while (true) {
             try {
-                return atlasFactory.createRawKeyValueService(config, leaderConfig);
+                return atlasFactory.createRawKeyValueService(keyValueServiceConfig, leaderConfig);
             } catch (Exception ex) {
                 failureCount++;
                 log.warn("The KVS could not be instantiated, retrying with backoff");
@@ -181,6 +184,6 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     private Predicate<AtlasDbFactory> producesCorrectType() {
-        return factory -> config.type().equalsIgnoreCase(factory.getType());
+        return factory -> keyValueServiceConfig.type().equalsIgnoreCase(factory.getType());
     }
 }

@@ -40,6 +40,11 @@ public abstract class AtlasDbConfig {
 
     public abstract Optional<ServerListConfig> timestamp();
 
+    @Value.Default
+    public boolean pollForDataBaseOnStartup() {
+        return true;
+    }
+
     /**
      * The transaction read timeout is the maximum amount of
      * time a read only transaction can safely run. Read only

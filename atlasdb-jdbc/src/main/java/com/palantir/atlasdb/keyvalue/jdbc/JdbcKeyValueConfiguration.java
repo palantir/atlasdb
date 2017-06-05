@@ -38,11 +38,6 @@ public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig
         return TYPE;
     }
 
-    @Override
-    public final boolean pollForDataBaseOnStartup() {
-        return false;
-    }
-
     @Value.Default
     public String getTablePrefix() {
         return "at_";

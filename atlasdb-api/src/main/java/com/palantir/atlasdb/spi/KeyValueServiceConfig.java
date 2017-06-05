@@ -27,5 +27,4 @@ public interface KeyValueServiceConfig {
 
     String type();
 
-    boolean pollForDataBaseOnStartup();
 }

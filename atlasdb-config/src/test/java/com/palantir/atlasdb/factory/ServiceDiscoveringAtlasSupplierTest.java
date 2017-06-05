@@ -31,6 +31,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.google.common.base.Optional;
+import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -41,13 +43,17 @@ public class ServiceDiscoveringAtlasSupplierTest {
     private final KeyValueServiceConfig invalidKvsConfig = () -> "should not be found kvs";
     private final AtlasDbFactory delegate = new AutoServiceAnnotatedAtlasDbFactory();
     private final Optional<LeaderConfig> leaderConfig = Optional.of(mock(LeaderConfig.class));
+    private final AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+            .leader(leaderConfig)
+            .keyValueService(kvsConfig)
+            .build();
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
 
     @Test
     public void delegateToFactoriesAnnotatedWithAutoServiceForCreatingKeyValueServices() {
-        ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(kvsConfig, leaderConfig);
+        ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(atlasDbConfig);
 
         assertThat(
                 atlasSupplier.getKeyValueService(),
@@ -56,7 +62,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
 
     @Test
     public void delegateToFactoriesAnnotatedWithAutoServiceForCreatingTimestampServices() {
-        ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(kvsConfig, leaderConfig);
+        ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(atlasDbConfig);
         TimestampService timestampService = mock(TimestampService.class);
         AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(timestampService);
 
@@ -72,13 +78,16 @@ public class ServiceDiscoveringAtlasSupplierTest {
         exception.expectMessage(invalidKvsConfig.type());
         exception.expectMessage("Have you annotated it with @AutoService(AtlasDbFactory.class)?");
 
-        new ServiceDiscoveringAtlasSupplier(invalidKvsConfig, leaderConfig);
+        new ServiceDiscoveringAtlasSupplier(ImmutableAtlasDbConfig.builder()
+                .from(atlasDbConfig)
+                .keyValueService(invalidKvsConfig)
+                .build());
     }
 
     @Test
     public void returnDifferentTimestampServicesOnSubsequentCalls() {
         // Need to get a newly-initialized timestamp service in case leadership changed between calls.
-        ServiceDiscoveringAtlasSupplier supplier = new ServiceDiscoveringAtlasSupplier(kvsConfig, leaderConfig);
+        ServiceDiscoveringAtlasSupplier supplier = new ServiceDiscoveringAtlasSupplier(atlasDbConfig);
         AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(
                 mock(TimestampService.class),
                 mock(TimestampService.class));
@@ -88,7 +97,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
 
     @Test
     public void alwaysSaveThreadDumpsToTheSameFile() throws IOException {
-        ServiceDiscoveringAtlasSupplier supplier = new ServiceDiscoveringAtlasSupplier(kvsConfig, leaderConfig);
+        ServiceDiscoveringAtlasSupplier supplier = new ServiceDiscoveringAtlasSupplier(atlasDbConfig);
 
         String firstPath = supplier.saveThreadDumps();
         String secondPath = supplier.saveThreadDumps();

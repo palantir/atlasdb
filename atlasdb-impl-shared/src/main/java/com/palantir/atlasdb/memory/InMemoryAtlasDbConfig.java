@@ -30,11 +30,6 @@ public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
     }
 
     @Override
-    public boolean pollForDataBaseOnStartup() {
-        return false;
-    }
-
-    @Override
     public boolean equals(Object other) {
         return this == other || (other != null && this.getClass() == other.getClass());
     }
