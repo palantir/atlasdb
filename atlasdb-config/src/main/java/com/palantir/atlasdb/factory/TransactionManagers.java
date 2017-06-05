@@ -40,7 +40,6 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
@@ -109,7 +108,7 @@ public final class TransactionManagers {
 
     /**
      * Create a {@link SerializableTransactionManager} backed by an
-     * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}.  This should be used for testing
+     * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}. This should be used for testing
      * purposes only.
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
@@ -120,9 +119,12 @@ public final class TransactionManagers {
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, {@link Schema},
+     * Create a {@link SerializableTransactionManager} with provided install configuration, {@link Schema},
      * and an environment in which to register HTTP server endpoints.
+     *
+     * @deprecated Use mirror method with runtime configuration parameter.
      */
+    @Deprecated
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
             Schema schema,
@@ -132,9 +134,25 @@ public final class TransactionManagers {
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
-     * {@link Schema}s, and an environment in which to register HTTP server endpoints.
+     * Create a {@link SerializableTransactionManager} with provided configurations, {@link Schema},
+     * and an environment in which to register HTTP server endpoints.
      */
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            Schema schema,
+            Environment env,
+            boolean allowHiddenTableAccess) {
+        return create(config, runtimeConfig, ImmutableSet.of(schema), env, allowHiddenTableAccess);
+    }
+
+    /**
+     * Create a {@link SerializableTransactionManager} with provided install configuration, a set of
+     * {@link Schema}s, and an environment in which to register HTTP server endpoints.
+     *
+     * @deprecated Use mirror method with runtime configuration parameter.
+     */
+    @Deprecated
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
             Set<Schema> schemas,
@@ -146,7 +164,7 @@ public final class TransactionManagers {
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
+     * Create a {@link SerializableTransactionManager} with provided configurations, a set of
      * {@link Schema}s, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
@@ -155,26 +173,31 @@ public final class TransactionManagers {
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
-        log.info("Called TransactionManagers.create on thread {}. This should only happen once.",
+        log.info("Called TransactionManagers.create with live reloading config on thread {}."
+                        + " This should only happen once.",
                 Thread.currentThread().getName());
         return create(config, runtimeConfig, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
+     * Create a {@link SerializableTransactionManager} with provided install configuration, a set of
      * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
+     *
+     * @deprecated Use mirror method with runtime configuration parameter.
      */
+    @Deprecated
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess) {
-        return create(config, schemas, env, lockServerOptions, allowHiddenTableAccess, UserAgents.DEFAULT_USER_AGENT);
+        return create(config, () -> AtlasDbRuntimeConfig.create(config),
+                schemas, env, lockServerOptions, allowHiddenTableAccess, UserAgents.DEFAULT_USER_AGENT);
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
+     * Create a {@link SerializableTransactionManager} with provided configurations, a set of
      * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
@@ -188,6 +211,10 @@ public final class TransactionManagers {
                 UserAgents.DEFAULT_USER_AGENT);
     }
 
+    /**
+     * @deprecated Use mirror method with runtime configuration parameter.
+     */
+    @Deprecated
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
             Set<Schema> schemas,
@@ -195,34 +222,21 @@ public final class TransactionManagers {
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             Class<?> callingClass) {
-        return create(config, schemas, env, lockServerOptions, allowHiddenTableAccess,
+        return create(config, () -> AtlasDbRuntimeConfig.create(config),
+                schemas, env, lockServerOptions, allowHiddenTableAccess,
                 UserAgents.fromClass(callingClass));
     }
 
-    private static SerializableTransactionManager create(
+    public static SerializableTransactionManager create(
             AtlasDbConfig config,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
-            String userAgent) {
-        AtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig.builder()
-                .enableSweep(config.enableSweep())
-                .sweepPauseMillis(config.getSweepPauseMillis())
-                .sweepCandidateBatchHint(config.getSweepCandidateBatchHint())
-                .sweepReadLimit(config.getSweepReadLimit())
-                .sweepDeleteBatchHint(config.getSweepDeleteBatchHint())
-                .sweepBatchSize(config.getSweepBatchSize())
-                .sweepCellBatchSize(config.getSweepBatchSize())
-                .build();
-
-        return create(config,
-                () -> runtimeConfig,
-                schemas,
-                env,
-                lockServerOptions,
-                allowHiddenTableAccess,
-                userAgent);
+            Class<?> callingClass) {
+        return create(config, runtimeConfig, schemas, env, lockServerOptions, allowHiddenTableAccess,
+                UserAgents.fromClass(callingClass));
     }
 
     private static SerializableTransactionManager create(
