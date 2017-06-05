@@ -1,3 +1,5 @@
+import org.gradle.plugins.ide.eclipse.model.AccessRule
+
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
@@ -12,4 +14,15 @@ dependencies {
   testCompile group: 'org.jmock', name: 'jmock', version: libVersions.jmock
   testCompile group: 'com.jayway.awaitility', name: 'awaitility'
   testCompile group: 'org.mockito', name: 'mockito-core'
+}
+
+eclipse {
+    classpath {
+        file {
+            whenMerged {
+                def jre = entries.find { it.path.contains 'org.eclipse.jdt.launching.JRE_CONTAINER' }
+                jre.accessRules.add(new AccessRule('accessible', 'sun/misc/**'))
+            }
+        }
+    }
 }
