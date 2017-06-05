@@ -45,6 +45,10 @@ develop
     *    - |improved|
          - KVS migration CLI will now clear the checkpoint tables that are required while the migration is in progress but not after the migration is complete.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1927>`__)
+           
+    *    - |improved|
+         - Timelock service now includes user agents for all inter-node requests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1971>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

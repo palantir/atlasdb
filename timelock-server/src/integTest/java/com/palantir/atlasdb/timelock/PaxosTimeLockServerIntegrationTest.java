@@ -374,7 +374,6 @@ public class PaxosTimeLockServerIntegrationTest {
         getLockService(CLIENT_1).currentTimeMillis();
 
         JsonNode metrics = getMetricsOutput();
-        System.out.println(new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(metrics));
 
         // time / lock services
         assertContainsTimer(metrics,
