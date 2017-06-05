@@ -46,6 +46,32 @@ develop
          - KVS migration CLI will now clear the checkpoint tables that are required while the migration is in progress but not after the migration is complete.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1927>`__)
 
+    *    - |new|
+         - Added support for live-reloading sweep configs.
+
+           There's a new config block, the `atlas-runtime`, which is live-reloaded. Currently, it accepts the config options:
+
+             - `enableSweep`
+             - `getSweepPauseMillis`
+             - `getSweepReadLimit`
+             - `getSweepCandidateBatchHint`
+             - `getSweepDeleteBatchHint`
+
+           And the deprecated config options:
+
+             - `getSweepBatchSize`
+             - `getSweepCellBatchSize`
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+
+    *    - |devbreak|
+         - As part of the live-reloading work, were deprecated:
+
+           - the methods `TransactionManagers.create()` without the AtlasDB runtime config.
+           - the `enableSweep`, `getSweepPauseMillis`, `getSweepReadLimit`, `getSweepCandidateBatchHint` and `getSweepDeleteBatchHint` options of the AtlasDB config.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
