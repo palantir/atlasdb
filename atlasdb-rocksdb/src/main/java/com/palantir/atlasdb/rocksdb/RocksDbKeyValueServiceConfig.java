@@ -74,4 +74,9 @@ public abstract class RocksDbKeyValueServiceConfig implements KeyValueServiceCon
     public final String type() {
         return TYPE;
     }
+
+    @Override
+    public final boolean pollForDataBaseOnStartup() {
+        return false;
+    }
 }
