@@ -40,21 +40,9 @@ public class NameComponentDescriptionTest {
                     null);
 
     private static final NameComponentDescription NAME_LOGGABLE_DESCRIPTION =
-            new NameComponentDescription(
-                    COMPONENT_NAME,
-                    VALUE_TYPE,
-                    VALUE_BYTE_ORDER,
-                    UNIFORM_ROW_NAME_PARTITIONER,
-                    null,
-                    true);
+            createWithSpecifiedLoggability(true);
     private static final NameComponentDescription NAME_NOT_LOGGABLE_DESCRIPTION =
-            new NameComponentDescription(
-                    COMPONENT_NAME,
-                    VALUE_TYPE,
-                    VALUE_BYTE_ORDER,
-                    UNIFORM_ROW_NAME_PARTITIONER,
-                    null,
-                    false);
+            createWithSpecifiedLoggability(false);
 
     @Test
     public void nameIsNotLoggableInDefaultDescription() {
@@ -101,5 +89,15 @@ public class NameComponentDescriptionTest {
     @Test
     public void withPartitionersPreservesNonLoggabilityOfName() {
         assertThat(LOGGABILITY_UNSPECIFIED_DESCRIPTION.withPartitioners().isNameLoggable()).isFalse();
+    }
+
+    private static NameComponentDescription createWithSpecifiedLoggability(boolean loggable) {
+        return new NameComponentDescription(
+                COMPONENT_NAME,
+                VALUE_TYPE,
+                VALUE_BYTE_ORDER,
+                UNIFORM_ROW_NAME_PARTITIONER,
+                null,
+                loggable);
     }
 }
