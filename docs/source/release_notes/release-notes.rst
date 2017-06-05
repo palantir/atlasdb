@@ -46,6 +46,12 @@ develop
          - KVS migration CLI will now clear the checkpoint tables that are required while the migration is in progress but not after the migration is complete.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1927>`__)
 
+    *    - |devbreak|
+         - Some downstream projects were using empty table metadata for dev-laziness reasons in their tests.
+           This is no longer permitted, as it leads to many (unsolved) questions about how to deal with such a table.
+           If this breaks your tests, you can fix it with making real schema for tests or by switching to AtlasDbConstants.GENERIC_TABLE_METADATA
+           (`Pull Request <https://github.com/palantir/1925>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
