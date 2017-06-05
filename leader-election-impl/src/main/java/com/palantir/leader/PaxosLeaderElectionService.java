@@ -67,7 +67,6 @@ import com.palantir.paxos.PaxosValue;
  */
 public class PaxosLeaderElectionService implements PingableLeader, LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
-    private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
 
     private final ReentrantLock lock;
 
@@ -86,6 +85,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
 
+    private final PaxosLeaderElectionEventRecorder eventRecorder;
+
     @Deprecated // Use PaxosLeaderElectionServiceBuilder instead.
     public PaxosLeaderElectionService(PaxosProposer proposer,
                                       PaxosLearner knowledge,
@@ -96,6 +97,21 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                                       long updatePollingWaitInMs,
                                       long randomWaitBeforeProposingLeadership,
                                       long leaderPingResponseWaitMs) {
+        this(proposer, knowledge, potentialLeadersToHosts, acceptors, learners, executor,
+                updatePollingWaitInMs, randomWaitBeforeProposingLeadership, leaderPingResponseWaitMs,
+                PaxosLeaderElectionEventRecorder.NO_OP);
+    }
+
+    PaxosLeaderElectionService(PaxosProposer proposer,
+            PaxosLearner knowledge,
+            Map<PingableLeader, HostAndPort> potentialLeadersToHosts,
+            List<PaxosAcceptor> acceptors,
+            List<PaxosLearner> learners,
+            ExecutorService executor,
+            long updatePollingWaitInMs,
+            long randomWaitBeforeProposingLeadership,
+            long leaderPingResponseWaitMs,
+            PaxosLeaderElectionEventRecorder eventRecorder) {
         this.proposer = proposer;
         this.knowledge = knowledge;
         // XXX This map uses something that may be proxied as a key! Be very careful if making a new map from this.
@@ -107,6 +123,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
         lock = new ReentrantLock();
+        this.eventRecorder = eventRecorder;
     }
 
     @Override
@@ -120,7 +137,6 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 if (leadingStatus == StillLeadingStatus.LEADING) {
                     return token;
                 } else if (leadingStatus == StillLeadingStatus.NO_QUORUM) {
-                    leaderLog.warn("The most recent known information says this server is the leader, but there is no quorum right now");
                     // If we don't have quorum we should just retry our calls.
                     continue;
                 }
@@ -342,16 +358,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 seq = Defaults.defaultValue(long.class);
             }
 
-            leaderLog.info("Proposing leadership with sequence number {}", seq);
+            eventRecorder.recordProposalAttempt(seq);
             proposer.propose(seq, null);
         } catch (PaxosRoundFailureException e) {
             // We have failed trying to become the leader.
-            leaderLog.warn("Leadership was not gained.\n"
-                    + "We should recover automatically. If this recurs often, try to \n"
-                    + "  (1) ensure that most other nodes are reachable over the network, and \n"
-                    + "  (2) increase the randomWaitBeforeProposingLeadershipMs timeout in your configuration.\n"
-                    + "See the debug-level log for more details.");
-            leaderLog.debug("Specifically, leadership was not gained because of the following exception", e);
+            eventRecorder.recordProposalFailure(e);
             return;
         } finally {
             lock.unlock();
@@ -434,6 +445,14 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public StillLeadingStatus isStillLeading(LeadershipToken token) {
+        if (!(token instanceof PaxosLeadershipToken)) {
+            return StillLeadingStatus.NOT_LEADING;
+        }
+
+        return isStillLeading((PaxosLeadershipToken) token);
+    }
+
+    private StillLeadingStatus isStillLeading(PaxosLeadershipToken token) {
         while (true) {
             StillLeadingCallBatch callBatch = getStillLeadingCallBatch(token);
 
@@ -446,8 +465,19 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
             // Now the batch is ready to be read.
             if (!batch.isFailed()) {
+                recordStillLeadingStatus(token, batch.getStatus());
                 return batch.getStatus();
             }
+        }
+    }
+
+    private void recordStillLeadingStatus(
+            PaxosLeadershipToken token,
+            StillLeadingStatus status) {
+        if (status == StillLeadingStatus.NO_QUORUM) {
+            eventRecorder.recordNoQuorum(token.value);
+        } else if (status == StillLeadingStatus.NOT_LEADING) {
+            eventRecorder.recordNotLeading(token.value);
         }
     }
 

@@ -48,7 +48,6 @@ import org.junit.rules.TemporaryFolder;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -368,6 +367,21 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void leadershipEventsSmokeTest() throws IOException {
+        JsonNode metrics = getMetricsOutput();
+
+        assertContainsMeter(metrics, "leadership.gained");
+        assertContainsMeter(metrics, "leadership.lost");
+        assertContainsMeter(metrics, "leadership.proposed");
+        assertContainsMeter(metrics, "leadership.no-quorum");
+        assertContainsMeter(metrics, "leadership.proposed.failure");
+
+        JsonNode meters = metrics.get("meters");
+        assertThat(meters.get("leadership.gained").get("count").intValue()).isEqualTo(1);
+        assertThat(meters.get("leadership.proposed").get("count").intValue()).isEqualTo(1);
+    }
+
+    @Test
     // TODO(nziebart): test remote service instrumentation - we need a multi-node server config for this
     public void instrumentationSmokeTest() throws IOException {
         getTimestampService(CLIENT_1).getFreshTimestamp();
@@ -399,9 +413,9 @@ public class PaxosTimeLockServerIntegrationTest {
         assertThat(timers.get(name)).isNotNull();
     }
 
-    private static JsonNode getMetricsOutput() throws IOException {
-        return new ObjectMapper().readTree(
-                new URL("http", "localhost", TIMELOCK_SERVER_HOLDER.getAdminPort(), "/metrics"));
+    private static void assertContainsMeter(JsonNode metrics, String name) {
+        JsonNode meters = metrics.get("meters");
+        assertThat(meters.get(name)).isNotNull();
     }
 
     private static String getFastForwardUriForClientOne() {
@@ -414,6 +428,11 @@ public class PaxosTimeLockServerIntegrationTest {
                 .url(uri)
                 .post(RequestBody.create(MediaType.parse("application/json"), ""))
                 .build()).execute();
+    }
+
+    private static JsonNode getMetricsOutput() throws IOException {
+        return new ObjectMapper().readTree(
+                new URL("http", "localhost", TIMELOCK_SERVER_HOLDER.getAdminPort(), "/metrics"));
     }
 
     private static RemoteLockService getLockService(String client) {

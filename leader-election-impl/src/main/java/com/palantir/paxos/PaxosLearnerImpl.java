@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.leader.PaxosKnowledgeEventRecorder;
+
 public class PaxosLearnerImpl implements PaxosLearner {
 
     private static final Logger logger = LoggerFactory.getLogger(PaxosLearnerImpl.class);
@@ -34,6 +36,10 @@ public class PaxosLearnerImpl implements PaxosLearner {
      * @return a new learner
      */
     public static PaxosLearner newLearner(String logDir) {
+        return newLearner(logDir, PaxosKnowledgeEventRecorder.NO_OP);
+    }
+
+    public static PaxosLearner newLearner(String logDir, PaxosKnowledgeEventRecorder eventRecorder) {
         PaxosStateLogImpl<PaxosValue> log = new PaxosStateLogImpl<PaxosValue>(logDir);
         ConcurrentSkipListMap<Long, PaxosValue> state = new ConcurrentSkipListMap<Long, PaxosValue>();
 
@@ -43,22 +49,26 @@ public class PaxosLearnerImpl implements PaxosLearner {
             state.put(value.getRound(), value);
         }
 
-        return new PaxosLearnerImpl(state, log);
+        return new PaxosLearnerImpl(state, log, eventRecorder);
     }
 
     final SortedMap<Long, PaxosValue> state;
     final PaxosStateLog<PaxosValue> log;
+    final PaxosKnowledgeEventRecorder eventRecorder;
 
     private PaxosLearnerImpl(SortedMap<Long, PaxosValue> stateWithGreatestValueFromLog,
-                             PaxosStateLog<PaxosValue> log) {
+                             PaxosStateLog<PaxosValue> log,
+                            PaxosKnowledgeEventRecorder eventRecorder) {
         this.state = stateWithGreatestValueFromLog;
         this.log = log;
+        this.eventRecorder = eventRecorder;
     }
 
     @Override
     public void learn(long seq, PaxosValue val) {
         state.put(seq, val);
         log.writeRound(seq, val);
+        eventRecorder.recordRound(val);
     }
 
     @Override
