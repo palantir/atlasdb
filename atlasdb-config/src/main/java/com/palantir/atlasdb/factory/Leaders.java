@@ -42,9 +42,9 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
+import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
@@ -93,10 +93,10 @@ public final class Leaders {
             LeaderConfig config,
             RemotePaxosServerSpec remotePaxosServerSpec,
             String userAgent) {
-        UUID leaderUUID = UUID.randomUUID();
+        UUID leaderUuid = UUID.randomUUID();
 
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
-                AtlasDbMetrics.getMetricRegistry(), leaderUUID.toString());
+                AtlasDbMetrics.getMetricRegistry(), leaderUuid.toString());
 
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(
                 PaxosAcceptor.class,
@@ -129,7 +129,7 @@ public final class Leaders {
                 MetricRegistry.name(PaxosProposer.class, "executor"));
         PaxosProposer proposer = AtlasDbMetrics.instrument(PaxosProposer.class,
                 PaxosProposerImpl.newProposer(ourLearner, acceptors, learners, config.quorumSize(),
-                leaderUUID, proposerExecutorService));
+                leaderUuid, proposerExecutorService));
 
         InstrumentedExecutorService leaderElectionExecutor = new InstrumentedExecutorService(
                 Executors.newCachedThreadPool(new ThreadFactoryBuilder()

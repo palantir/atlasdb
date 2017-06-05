@@ -73,11 +73,9 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
 
     @Override
     public synchronized void recordNotLeading(PaxosValue value) {
-        if (isSameRound(value)) {
-            if (isLeading) {
-                events.lostLeadershipFor(value);
-                isLeading = false;
-            }
+        if (isSameRound(value) && isLeading) {
+            events.lostLeadershipFor(value);
+            isLeading = false;
         }
     }
 

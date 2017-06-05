@@ -47,14 +47,14 @@ public class LeadershipEventRecorderTest {
     }
 
     @Test
-    public void records_leadership_gained() {
+    public void recordsLeadershipGained() {
         recorder.recordRound(ROUND_1_LEADING);
 
         verify(events).gainedLeadershipFor(ROUND_1_LEADING);
     }
 
     @Test
-    public void records_leadership_lost() {
+    public void recordsLeadershipLost() {
         recorder.recordRound(ROUND_1_LEADING);
         recorder.recordRound(ROUND_2_NOT_LEADING);
 
@@ -63,7 +63,7 @@ public class LeadershipEventRecorderTest {
     }
 
     @Test
-    public void records_leadership_gained_after_lost() {
+    public void reacordsLeadershipGainedAfterLost() {
         recorder.recordRound(ROUND_1_LEADING);
         recorder.recordRound(ROUND_2_NOT_LEADING);
         recorder.recordRound(ROUND_3_LEADING);
@@ -74,7 +74,7 @@ public class LeadershipEventRecorderTest {
     }
 
     @Test
-    public void records_leadership_lost_between_sequential_leadership_gains() {
+    public void recordsLeadershipLostBetweenSequentialLeadershipGained() {
         recorder.recordRound(ROUND_1_LEADING);
         recorder.recordRound(ROUND_2_LEADING);
 
@@ -84,7 +84,7 @@ public class LeadershipEventRecorderTest {
     }
 
     @Test
-    public void does_not_record_duplicate_leadership_gained() {
+    public void doesNotRecordDuplicateLeadershipGained() {
         recorder.recordRound(ROUND_1_LEADING);
         recorder.recordRound(ROUND_1_LEADING);
 
@@ -92,7 +92,7 @@ public class LeadershipEventRecorderTest {
     }
 
     @Test
-    public void does_not_record_duplicate_leadership_lost() {
+    public void doesNotRecordDuplicateLeadershipLost() {
         recorder.recordRound(ROUND_1_LEADING);
         recorder.recordRound(ROUND_2_NOT_LEADING);
         recorder.recordRound(ROUND_2_NOT_LEADING);
@@ -103,7 +103,7 @@ public class LeadershipEventRecorderTest {
     }
 
     @Test
-    public void cannot_gain_leadership_after_losing() {
+    public void cannotGainLeadershipAfterLosing() {
         recorder.recordRound(ROUND_1_LEADING);
         recorder.recordNotLeading(ROUND_1_LEADING);
         recorder.recordRound(ROUND_1_LEADING);
@@ -113,7 +113,17 @@ public class LeadershipEventRecorderTest {
     }
 
     @Test
-    public void records_duplicate_no_quorum() {
+    public void cannotGainLeadershipAfterLosingWithOutOfOrderRounds() {
+        recorder.recordRound(ROUND_1_LEADING);
+        recorder.recordRound(ROUND_3_NOT_LEADING);
+        recorder.recordRound(ROUND_2_LEADING);
+
+        verify(events).gainedLeadershipFor(ROUND_1_LEADING);
+        verify(events).lostLeadershipFor(ROUND_1_LEADING);
+    }
+
+    @Test
+    public void recordsDuplicateNoQuorum() {
         recorder.recordRound(ROUND_1_LEADING);
         recorder.recordNoQuorum(ROUND_1_LEADING);
         recorder.recordNoQuorum(ROUND_1_LEADING);
@@ -123,24 +133,24 @@ public class LeadershipEventRecorderTest {
     }
 
     @Test
-    public void ignores_other_leader_ids_for_no_quorum() {
+    public void ignoresOtherLeaderIdsForNoQuorum() {
         recorder.recordNoQuorum(ROUND_1_NOT_LEADING);
     }
 
     @Test
-    public void ignores_other_leader_ids_for_not_leading() {
+    public void ignoresOtherLeaderIdsForNotLeading() {
         recorder.recordNotLeading(ROUND_1_NOT_LEADING);
     }
 
     @Test
-    public void records_proposal_attempt() {
+    public void recordsProposalAttempt() {
         recorder.recordProposalAttempt(5L);
 
         verify(events).proposedLeadershipFor(5L);
     }
 
     @Test
-    public void records_proposal_failure() {
+    public void recordsProposalFailure() {
         PaxosRoundFailureException ex = new PaxosRoundFailureException("foo");
         recorder.recordProposalFailure(ex);
 
@@ -148,7 +158,7 @@ public class LeadershipEventRecorderTest {
     }
 
     @Test
-    public void ignores_null_rounds() {
+    public void ignoresNullRounds() {
         recorder.recordRound(null);
         recorder.recordNotLeading(null);
         recorder.recordNoQuorum(null);
