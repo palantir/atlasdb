@@ -33,6 +33,8 @@ public class NamedColumnDescriptionTest {
 
     private static final NamedColumnDescription NAME_LOGGABLE_DESCRIPTION =
             new NamedColumnDescription(SHORT_NAME, LONG_NAME, COLUMN_VALUE_DESCRIPTION, true);
+    private static final NamedColumnDescription NAME_NOT_LOGGABLE_DESCRIPTION =
+            new NamedColumnDescription(SHORT_NAME, LONG_NAME, COLUMN_VALUE_DESCRIPTION, false);
 
     @Test
     public void nameIsNotLoggableByDefault() {
@@ -45,10 +47,24 @@ public class NamedColumnDescriptionTest {
     }
 
     @Test
+    public void nameCanBeSpecifiedToBeNotLoggable() {
+        assertThat(NAME_NOT_LOGGABLE_DESCRIPTION.isNameLoggable()).isFalse();
+    }
+
+    @Test
     public void canSerializeAndDeserializeKeepingLoggability() {
         TableMetadataPersistence.NamedColumnDescription.Builder builder = NAME_LOGGABLE_DESCRIPTION.persistToProto();
         assertThat(NamedColumnDescription.hydrateFromProto(builder.build()))
                 .isEqualTo(NAME_LOGGABLE_DESCRIPTION)
                 .matches(NamedColumnDescription::isNameLoggable);
+    }
+
+    @Test
+    public void canSerializeAndDeserializeKeepingNonLoggability() {
+        TableMetadataPersistence.NamedColumnDescription.Builder builder =
+                NAME_NOT_LOGGABLE_DESCRIPTION.persistToProto();
+        assertThat(NamedColumnDescription.hydrateFromProto(builder.build()))
+                .isEqualTo(NAME_NOT_LOGGABLE_DESCRIPTION)
+                .matches(description -> !description.isNameLoggable());
     }
 }
