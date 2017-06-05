@@ -50,6 +50,10 @@ develop
          - Timelock service now includes user agents for all inter-node requests.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1971>`__)
 
+    *    - |new|
+         - Timelock now tracks metrics for leadership elections, including leadership gains, losses, and proposals.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1927>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
