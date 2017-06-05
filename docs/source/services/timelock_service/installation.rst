@@ -119,4 +119,4 @@ Add client(s) to Timelock
 14. Restart each client.
 
 15. To verify that the migration worked correctly, get a fresh timestamp for each client from the Timelock server.
-   For each client, the timestamp returned should be strictly greater than the timestamps obtained in step 10.
+    For each client, the timestamp returned should be strictly greater than the timestamps obtained in step 10.
