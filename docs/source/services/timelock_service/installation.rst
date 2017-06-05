@@ -32,6 +32,7 @@ Install Timelock (without clients)
 ----------------------------------
 
 We recommend deploying either a 3-node or a 5-node Timelock cluster.
+A 3-node cluster will provide better performance, whereas a 5-node cluster has greater fault tolerance.
 
 .. tip::
 
