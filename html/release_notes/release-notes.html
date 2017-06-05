@@ -204,6 +204,14 @@
 <td>KVS migration CLI will now clear the checkpoint tables that are required while the migration is in progress but not after the migration is complete.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1927">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Timelock service now includes user agents for all inter-node requests.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1971">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Timelock now tracks metrics for leadership elections, including leadership gains, losses, and proposals.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1927">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Some downstream projects were using empty table metadata for dev-laziness reasons in their tests.
 This is no longer permitted, as it leads to many (unsolved) questions about how to deal with such a table.
