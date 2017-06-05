@@ -46,6 +46,7 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'ch.qos.logback', name: 'logback-classic'
+  testCompile group: 'org.assertj', name: 'assertj-core'
 
   testArtifacts sourceSets.test.output
 }
