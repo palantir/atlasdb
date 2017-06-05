@@ -86,15 +86,15 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
         }
     }
 
-    private boolean isNewRound(PaxosValue value) {
+    private synchronized boolean isNewRound(PaxosValue value) {
         return value != null && (currentRound == null || value.getRound() > currentRound.getRound());
     }
 
-    private boolean isLeaderFor(PaxosValue round) {
+    private synchronized boolean isLeaderFor(PaxosValue round) {
         return round != null && leaderId.equals(round.getLeaderUUID());
     }
 
-    private boolean isSameRound(PaxosValue value) {
+    private synchronized boolean isSameRound(PaxosValue value) {
         return currentRound != null && value != null && currentRound.getRound() == value.getRound();
     }
 
