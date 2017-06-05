@@ -34,41 +34,38 @@ public abstract class AtlasDbRuntimeConfig {
      * because it is an untargeted cleaning process that scans all data
      * looking for cells to delete.
      */
-    @Value.Default
-    public boolean enableSweep() {
-        return AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
-    }
+    // TODO(ssouza): make this Default after removing support for mirror method on the AtlasDbConfig.
+    public abstract Boolean enableSweep();
 
     /**
      * The number of milliseconds to wait between each batch of cells
      * processed by the background sweeper.
      */
-    @Value.Default
-    public long getSweepPauseMillis() {
-        return AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS;
-    }
+    // TODO(ssouza): make this Default after removing support for mirror method on the AtlasDbConfig. We need to detect
+    // the absence of this value for now.
+    public abstract Long getSweepPauseMillis();
 
     /**
      * The target number of (cell, timestamp) pairs to examine in a single run of the background sweeper.
      */
-    // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
-    // whether the field is present in the configuration file.
+    // TODO(ssouza): make this Default after removing support for mirror method on the AtlasDbConfig. We need to detect
+    // the absence of this value for now.
     @Nullable
     public abstract Integer getSweepReadLimit();
 
     /**
      * The target number of candidate (cell, timestamp) pairs to load per batch while sweeping.
      */
-    // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
-    // whether the field is present in the configuration file.
+    // TODO(ssouza): make this Default after removing support for mirror method on the AtlasDbConfig. We need to detect
+    // the absence of this value for now.
     @Nullable
     public abstract Integer getSweepCandidateBatchHint();
 
     /**
      * The target number of (cell, timestamp) pairs to delete at once while sweeping.
      */
-    // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
-    // whether the field is present in the configuration file.
+    // TODO(ssouza): make this Default after removing support for mirror method on the AtlasDbConfig. We need to detect
+    // the absence of this value for now.
     @Nullable
     public abstract Integer getSweepDeleteBatchHint();
 

@@ -207,6 +207,7 @@ public final class TransactionManagers {
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess) {
+        validateRuntimeConfig(runtimeConfig.get());
         return create(config, runtimeConfig, schemas, env, lockServerOptions, allowHiddenTableAccess,
                 UserAgents.DEFAULT_USER_AGENT);
     }
@@ -235,6 +236,7 @@ public final class TransactionManagers {
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             Class<?> callingClass) {
+        validateRuntimeConfig(runtimeConfig.get());
         return create(config, runtimeConfig, schemas, env, lockServerOptions, allowHiddenTableAccess,
                 UserAgents.fromClass(callingClass));
     }
@@ -331,9 +333,9 @@ public final class TransactionManagers {
                 transactionManager,
                 kvs,
                 sweepRunner,
-                () -> runtimeConfig.get().enableSweep(),
-                () -> runtimeConfig.get().getSweepPauseMillis(),
-                () -> getSweepBatchConfig(runtimeConfig.get()),
+                () -> MoreObjects.firstNonNull(runtimeConfig.get().enableSweep(), config.enableSweep()),
+                () -> MoreObjects.firstNonNull(runtimeConfig.get().getSweepPauseMillis(), config.getSweepPauseMillis()),
+                () -> getSweepBatchConfig(runtimeConfig.get(), config),
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 persistentLockManager);
@@ -342,7 +344,31 @@ public final class TransactionManagers {
         return transactionManager;
     }
 
-    private static SweepBatchConfig getSweepBatchConfig(AtlasDbRuntimeConfig config) {
+    private static void validateRuntimeConfig(@Nullable AtlasDbRuntimeConfig runtimeConfig) {
+        if (runtimeConfig == null) {
+            log.warn("This service uses live reload configs. Please use the 'atlas-runtime' block for specifying"
+                    + " live-reloadable atlas configs. Default to using configs specified on the 'atlas' block");
+            return;
+        }
+
+        if (runtimeConfig.enableSweep() == null) {
+            log.warn("Use the 'enableSweep' config on the atlas-runtime block to make it live-reloadable");
+        }
+        if (runtimeConfig.getSweepPauseMillis() == null) {
+            log.warn("Use the 'getSweepPauseMillis' config on the atlas-runtime block to make it live-reloadable");
+        }
+        if (runtimeConfig.getSweepReadLimit() == null) {
+            log.warn("Use the 'getSweepReadLimit' config on the atlas-runtime block to make it live-reloadable");
+        }
+        if (runtimeConfig.getSweepPauseMillis() == null) {
+            log.warn("Use the 'getSweepPauseMillis' config on the atlas-runtime block to make it live-reloadable");
+        }
+        if (runtimeConfig.getSweepDeleteBatchHint() == null) {
+            log.warn("Use the 'getSweepDeleteBatchHint' config on the atlas-runtime block to make it live-reloadable");
+        }
+    }
+
+    private static SweepBatchConfig getSweepBatchConfig(AtlasDbRuntimeConfig runtimeConfig, AtlasDbConfig config) {
         if (config.getSweepBatchSize() != null || config.getSweepCellBatchSize() != null) {
             log.warn("Configuration parameters 'sweepBatchSize' and 'sweepCellBatchSize' have been deprecated"
                     + " in favor of 'sweepMaxCellTsPairsToExamine', 'sweepCandidateBatchSize'"
@@ -350,17 +376,28 @@ public final class TransactionManagers {
         }
         return ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(chooseBestValue(
+                        runtimeConfig.getSweepReadLimit(),
                         config.getSweepReadLimit(),
                         config.getSweepCellBatchSize(),
                         AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT))
                 .candidateBatchSize(chooseBestValue(
+                        runtimeConfig.getSweepCandidateBatchHint(),
                         config.getSweepCandidateBatchHint(),
                         config.getSweepBatchSize(),
                         AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
-                .deleteBatchSize(MoreObjects.firstNonNull(
+                .deleteBatchSize(chooseBestValue(
+                        runtimeConfig.getSweepDeleteBatchHint(),
                         config.getSweepDeleteBatchHint(),
                         AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT))
                 .build();
+    }
+
+    private static int chooseBestValue(@Nullable Integer runtimeOption,
+            @Nullable Integer newOption, @Nullable Integer oldOption, int defaultValue) {
+        if (runtimeOption != null) {
+            return runtimeOption;
+        }
+        return chooseBestValue(newOption, oldOption, defaultValue);
     }
 
     private static int chooseBestValue(@Nullable Integer newOption, @Nullable Integer oldOption, int defaultValue) {
