@@ -57,6 +57,49 @@ class Table {
         getDescription()['columns'].collect {it['long_name']}
     }
 
+    /**
+     * Get data from atlas by specifying the row of data to return
+     * @param row  A single row to get, where the row is a List of components
+     * @param cols Optional List of columns to get, where each column is a
+     *             String representing the column name. Defaults to all columns if unspecified.
+     * @param token Optional TransactionToken representing current transaction.
+     *              Defaults to TransactionToken.autoCommit() if unspecified.
+     * @return Returns a Map object.
+     *         For named columns:
+     *         [
+     *             "row": [{component1}, {component2}, ...],
+     *             {column1Name}: {value},
+     *             {column2Name}: {value},
+     *             ...
+     *         ]
+     *
+     *         For dynamic columns:
+     *         [
+     *             "row": [{component1}, {component2}, ...],
+     *             "cols": [
+     *             [
+     *                 "col": [{component1}, ...],
+     *                 "val": {value},
+     *             ],
+     *             ...
+     *         ]
+     */
+    Map getRow(row, cols=null, TransactionToken token = service.getTransactionToken()) {
+        def query = baseQuery()
+        row = listify(row)
+        def rows = []
+        rows.add(row)
+        query['rows'] = rows
+        if (cols != null) {
+            cols = listify(cols).collect { listify(it) }
+            query['cols'] = cols
+        }
+        def result = service.getRows(query, token)['data'] as List
+        if (result.size() > 1) {
+            throw new RuntimeException("More than one row returned, try using getRows() instead")
+        }
+        return result.first() as Map
+    }
 
     /**
      * Get data from atlas by specifying the rows of data to return
