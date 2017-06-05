@@ -58,7 +58,7 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
         }
     }
 
-    private void recordNewRound(PaxosValue round) {
+    private synchronized void recordNewRound(PaxosValue round) {
         if (isLeading) {
             events.lostLeadershipFor(currentRound);
         }
