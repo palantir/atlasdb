@@ -3,6 +3,7 @@ apply from: "../gradle/shared.gradle"
 
 apply plugin: 'java'
 apply plugin: 'eclipse'
+apply plugin: 'org.inferred.processors'
 
 repositories {
     mavenCentral()
@@ -39,6 +40,8 @@ dependencies {
   compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
   compile group: 'com.palantir.remoting1', name: 'tracing'
   compile group: 'com.palantir.tritium', name: 'tritium-lib'
+
+  processor group: 'org.immutables', name: 'value'
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
