@@ -20,7 +20,8 @@ class TableTest {
     Table table
 
     final String NAME = 't'
-    final RESULT = [data: ['a', 'b']]
+    final RESULT1 = [data: ['a', 'b']]
+    final RESULT2 = [data: [['a': 'foo']]]
 
     final tableQuery1 = 'a'
     final tableQuery2=['a', 'b']
@@ -69,17 +70,35 @@ class TableTest {
             query.cols = colExpect
         }
         def token = mock(TransactionToken)
-        service.getRows(query, token).returns(RESULT).once()
+        service.getRows(query, token).returns(RESULT2).once()
         play {
-            assertEquals table.getRows(row, col, token), RESULT.data
+            assertEquals RESULT2.data[0], table.getRow(row, col, token)
+        }
+    }
+
+    @Test
+    void testGetRow() {
+        rowQueryRunner(['a'], [['a']])
+    }
+
+    private void rowsQueryRunner(row, rowExpect, col=null, colExpect=null) {
+        setup()
+        def query = [table: NAME, rows: rowExpect]
+        if(colExpect != null) {
+            query.cols = colExpect
+        }
+        def token = mock(TransactionToken)
+        service.getRows(query, token).returns(RESULT1).once()
+        play {
+            assertEquals RESULT1.data, table.getRows(row, col, token)
         }
     }
 
     @Test
     void testGetRows() {
         tableQueryToServiceQuery.each {
-            rowQueryRunner(it.key, it.value)
-            rowQueryRunner(it.key, it.value, it.key, it.value)
+            rowsQueryRunner(it.key, it.value)
+            rowsQueryRunner(it.key, it.value, it.key, it.value)
         }
     }
 
@@ -87,9 +106,9 @@ class TableTest {
     void testGetPartialRows() {
         def query = [table: NAME, rows: serviceQuery1, cols: serviceQuery1]
         def token = mock(TransactionToken)
-        service.getRows(query, token).returns(RESULT).once()
+        service.getRows(query, token).returns(RESULT1).once()
         play {
-            assertEquals table.getPartialRows(tableQuery1, tableQuery1, token), RESULT.data
+            assertEquals table.getPartialRows(tableQuery1, tableQuery1, token), RESULT1.data
             shouldFail(MissingMethodException) {
                 table.getPartialRows(tableQuery1)
             }
@@ -100,9 +119,9 @@ class TableTest {
         setup()
         def query = [table: NAME, data: cellsExpect]
         def token = mock(TransactionToken)
-        service.getCells(query, token).returns(RESULT).once()
+        service.getCells(query, token).returns(RESULT1).once()
         play {
-            assertEquals table.getCells(cells, token), RESULT.data
+            assertEquals table.getCells(cells, token), RESULT1.data
         }
 
     }

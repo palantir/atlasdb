@@ -87,7 +87,6 @@ class Table {
      */
     Map getRow(row, cols=null, TransactionToken token = service.getTransactionToken()) {
         def query = baseQuery()
-        row = listify(row)
         query['rows'] = [row]
         if (cols != null) {
             cols = listify(cols).collect { listify(it) }

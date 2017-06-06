@@ -64,6 +64,10 @@ develop
            If this breaks your tests, you can fix it with making real schema for tests or by switching to AtlasDbConstants.GENERIC_TABLE_METADATA
            (`Pull Request <https://github.com/palantir/1925>`__)
 
+    *    - |improved|
+         - Added a getRow() command to AtlasConsole for retrieving a single row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1992>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
