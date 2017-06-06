@@ -1190,10 +1190,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             checkConstraints();
             commitWrites(transactionService);
-            long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
-            perfLogger.debug("Committed transaction {} in {}ms",
-                    getStartTimestamp(),
-                    transactionMillis);
+            if (perfLogger.isDebugEnabled()) {
+                long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
+                perfLogger.debug("Committed transaction {} in {}ms",
+                        getStartTimestamp(),
+                        transactionMillis);
+            }
             success = true;
         } finally {
             // Once we are in state committing, we need to try/finally to set the state to a terminal state.
