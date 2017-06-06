@@ -144,15 +144,15 @@ public class SweepPriorityStoreTest {
                     tx,
                     TableReference.createFromFullyQualifiedName("foo.bar"),
                     ImmutableUpdateSweepPriority.builder()
-                        .newCellsDeleted(555)
+                        .newStaleValuesDeleted(555)
                         .build());
             return null;
         });
         Assert.assertEquals(
                 ImmutableList.of(ImmutableSweepPriority.builder()
                     .tableRef(TableReference.createFromFullyQualifiedName("foo.bar"))
-                    .cellsDeleted(555)
-                    .cellsExamined(10)
+                    .staleValuesDeleted(555)
+                    .cellTsPairsExamined(10)
                     .lastSweepTimeMillis(123)
                     .minimumSweptTimestamp(456)
                     .writeCount(5)
@@ -167,15 +167,15 @@ public class SweepPriorityStoreTest {
                     tx,
                     TableReference.createFromFullyQualifiedName("foo.bar"),
                     ImmutableUpdateSweepPriority.builder()
-                            .newCellsDeleted(1)
+                            .newStaleValuesDeleted(1)
                             .build());
             return null;
         });
         Assert.assertEquals(
                 ImmutableList.of(ImmutableSweepPriority.builder()
                         .tableRef(TableReference.createFromFullyQualifiedName("foo.bar"))
-                        .cellsDeleted(1)
-                        .cellsExamined(0)
+                        .staleValuesDeleted(1)
+                        .cellTsPairsExamined(0)
                         .lastSweepTimeMillis(OptionalLong.empty())
                         .minimumSweptTimestamp(Long.MIN_VALUE)
                         .writeCount(0)
@@ -185,8 +185,8 @@ public class SweepPriorityStoreTest {
 
     private static UpdateSweepPriority fullUpdate(int increment) {
         return ImmutableUpdateSweepPriority.builder()
-                .newCellsDeleted(3 + increment)
-                .newCellsExamined(10 + increment)
+                .newStaleValuesDeleted(3 + increment)
+                .newCellTsPairsExamined(10 + increment)
                 .newLastSweepTimeMillis(123 + increment)
                 .newMinimumSweptTimestamp(456 + increment)
                 .newWriteCount(5 + increment)
@@ -196,8 +196,8 @@ public class SweepPriorityStoreTest {
     private static SweepPriority priority(String tableName, int number)  {
         return ImmutableSweepPriority.builder()
                 .tableRef(TableReference.createFromFullyQualifiedName(tableName))
-                .cellsDeleted(3 + number)
-                .cellsExamined(10 + number)
+                .staleValuesDeleted(3 + number)
+                .cellTsPairsExamined(10 + number)
                 .lastSweepTimeMillis(123 + number)
                 .minimumSweptTimestamp(456 + number)
                 .writeCount(5 + number)

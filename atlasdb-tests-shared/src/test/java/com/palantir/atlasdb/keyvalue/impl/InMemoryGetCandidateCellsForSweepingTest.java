@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweep;
 
-import java.util.Set;
+package com.palantir.atlasdb.keyvalue.impl;
 
-import org.immutables.value.Value;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
-
-@Value.Immutable
-public abstract class CellAndTimestamps {
-    public abstract Cell cell();
-    public abstract Set<Long> timestamps();
-
-    public static CellAndTimestamps of(Cell cell, Set<Long> timestamps) {
-        return ImmutableCellAndTimestamps.builder().cell(cell).timestamps(timestamps).build();
+public class InMemoryGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
+    @Override
+    protected KeyValueService createKeyValueService() {
+        return new InMemoryKeyValueService(false, MoreExecutors.newDirectExecutorService());
     }
 }

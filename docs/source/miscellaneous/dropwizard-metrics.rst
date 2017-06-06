@@ -43,9 +43,9 @@ The full list of metrics exposed by AtlasDB can be found below.
 **Histograms**
 
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.byteSizeTx``
-- ``com.palantir.atlasdb.sweep.SweepMetrics.cellsExamined``
+- ``com.palantir.atlasdb.sweep.SweepMetrics.cellTimestampPairsExamined``
 - ``com.palantir.atlasdb.sweep.SweepMetrics.staleValuesDeleted``
-- ``com.palantir.atlasdb.sweep.SweepMetrics.cellsExamined.<table>``
+- ``com.palantir.atlasdb.sweep.SweepMetrics.cellTimestampPairsExamined.<table>``
 - ``com.palantir.atlasdb.sweep.SweepMetrics.staleValuesDeleted.<table>``
 
 **Meters**

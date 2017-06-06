@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Collection;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +74,7 @@ public class CellsSweeper {
     public void sweepCells(
             TableReference tableRef,
             Multimap<Cell, Long> cellTsPairsToSweep,
-            Set<Cell> sentinelsToAdd) {
+            Collection<Cell> sentinelsToAdd) {
         if (cellTsPairsToSweep.isEmpty()) {
             return;
         }

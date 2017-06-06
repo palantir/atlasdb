@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -50,9 +51,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  *   - How we apply tricks to avoid work when people make fairly stupid queries
  *     (i.e. call out to the database to read in nothing, etc)
  *   - How we validate query inputs for sanity / correctness
- *   - Not having a ton of boilerplate
- *
- * @author clockfort
+ *   - Not having a ton of boilerplate in each KVS
  */
 public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueService implements KeyValueService {
     private static final Logger log = LoggerFactory.getLogger(ValidatingQueryRewritingKeyValueService.class);
@@ -76,6 +75,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     @Override
     public void createTable(TableReference tableRef, byte[] tableMetadata) {
         sanityCheckTableName(tableRef);
+        sanityCheckTableMetadata(tableRef, tableMetadata);
         delegate.createTable(tableRef, tableMetadata);
     }
 
@@ -89,19 +89,29 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             createTable(element.getKey(), element.getValue());
             return;
         }
-        for (TableReference tableRef : tableRefToTableMetadata.keySet()) {
-            sanityCheckTableName(tableRef);
-        }
+        tableRefToTableMetadata.keySet().forEach(ValidatingQueryRewritingKeyValueService::sanityCheckTableName);
+        tableRefToTableMetadata.entrySet().forEach(entry -> sanityCheckTableMetadata(entry.getKey(), entry.getValue()));
         delegate.createTables(tableRefToTableMetadata);
     }
 
-    protected void sanityCheckTableName(TableReference tableRef) {
+    protected static void sanityCheckTableName(TableReference tableRef) {
         String tableName = tableRef.getQualifiedName();
         Validate.isTrue(
                 (!tableName.startsWith("_") && tableName.contains("."))
                         || AtlasDbConstants.hiddenTables.contains(tableRef)
                         || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
                 "invalid tableName: " + tableName);
+    }
+
+    protected static void sanityCheckTableMetadata(TableReference tableRef, byte[] tableMetadata) {
+        if (tableMetadata == null || Arrays.equals(tableMetadata, AtlasDbConstants.EMPTY_TABLE_METADATA)) {
+            throw new IllegalArgumentException(
+                    String.format(
+                            "Passing in empty table metadata for table '%s' is disallowed,"
+                                    + " as reasoning about such tables is hard. Consider using"
+                                    + " AtlasDbConstants.GENERIC_TABLE_METADATA instead.",
+                            tableRef));
+        }
     }
 
     @Override
@@ -197,6 +207,12 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
+    public void putMetadataForTable(TableReference tableRef, byte[] tableMetadata) {
+        sanityCheckTableMetadata(tableRef, tableMetadata);
+        delegate.putMetadataForTable(tableRef, tableMetadata);
+    }
+
+    @Override
     public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
         if (tableRefToMetadata.isEmpty()) {
             return;
@@ -206,6 +222,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             putMetadataForTable(entry.getKey(), entry.getValue());
             return;
         }
+        tableRefToMetadata.entrySet().forEach(entry -> sanityCheckTableMetadata(entry.getKey(), entry.getValue()));
         delegate.putMetadataForTables(tableRefToMetadata);
     }
 

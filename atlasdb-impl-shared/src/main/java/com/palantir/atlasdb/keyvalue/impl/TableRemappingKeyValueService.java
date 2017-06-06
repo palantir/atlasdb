@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -29,6 +30,8 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.NamespacedKeyValueService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -249,6 +252,16 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                     tableMapper.getMappedTableName(tableRef),
                     rangeRequest,
                     timestamp);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
+            CandidateCellForSweepingRequest request) {
+        try {
+            return delegate().getCandidateCellsForSweeping(tableMapper.getMappedTableName(tableRef), request);
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }

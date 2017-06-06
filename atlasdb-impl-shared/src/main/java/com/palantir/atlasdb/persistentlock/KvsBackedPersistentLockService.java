@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.remoting1.servers.jersey.WebPreconditions;
 
 public class KvsBackedPersistentLockService implements PersistentLockService {
     private static final Logger log = LoggerFactory.getLogger(KvsBackedPersistentLockService.class);
@@ -40,7 +41,7 @@ public class KvsBackedPersistentLockService implements PersistentLockService {
 
     @Override
     public PersistentLockId acquireBackupLock(String reason) {
-        Preconditions.checkNotNull(reason, "Please provide a reason for acquiring the lock.");
+        WebPreconditions.checkNotNull(reason, "Please provide a reason for acquiring the lock.");
         return PersistentLockId.of(lockStore.acquireBackupLock(reason).instanceId());
     }
 

@@ -33,6 +33,8 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 
 public class TimestampAllocationFailuresTest {
     private static final RuntimeException FAILURE = new IllegalStateException();
+    private static final ServiceNotAvailableException SERVICE_NOT_AVAILABLE_EXCEPTION =
+            new ServiceNotAvailableException("exception");
     private static final MultipleRunningTimestampServiceError MULTIPLE_RUNNING_SERVICES_FAILURE =
             new MultipleRunningTimestampServiceError("error");
 
@@ -49,7 +51,6 @@ public class TimestampAllocationFailuresTest {
         assertThat(response.getCause(), is(FAILURE));
         assertThat(response, isA(RuntimeException.class));
         assertThat(response.getMessage(), containsString("Could not allocate more timestamps"));
-
     }
 
     @Test public void
@@ -61,8 +62,21 @@ public class TimestampAllocationFailuresTest {
     }
 
     @Test public void
+    shouldRethrowServiceNotAvailableExceptionsWithoutWrapping() {
+        RuntimeException response = allocationFailures.responseTo(SERVICE_NOT_AVAILABLE_EXCEPTION);
+        assertThat(response instanceof ServiceNotAvailableException, is(true));
+        assertThat(response, is(SERVICE_NOT_AVAILABLE_EXCEPTION));
+    }
+
+    @Test public void
     shouldAllowTryingToIssueMoreTimestampsAfterANormalRuntimeException() {
         ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
+        allocationFailures.verifyWeShouldIssueMoreTimestamps();
+    }
+
+    @Test public void
+    shouldAllowTryingToIssueMoreTimestampsAfterAServiceNotAvailableException() {
+        ignoringExceptions(() -> allocationFailures.responseTo(SERVICE_NOT_AVAILABLE_EXCEPTION));
         allocationFailures.verifyWeShouldIssueMoreTimestamps();
     }
 

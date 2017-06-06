@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,6 +42,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
@@ -50,7 +52,6 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.remoting1.tracing.Tracers;
-import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 
 public class PaxosTimestampBoundStoreTest {
     private static final int NUM_NODES = 5;
@@ -158,7 +159,7 @@ public class PaxosTimestampBoundStoreTest {
         PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
         additionalStore.storeUpperLimit(TIMESTAMP_1);
         assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
-                .isInstanceOf(MultipleRunningTimestampServiceError.class);
+                .isInstanceOf(NotCurrentLeaderException.class);
     }
 
     @Test
@@ -291,6 +292,7 @@ public class PaxosTimestampBoundStoreTest {
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
                 NUM_NODES / 2 + 1,
+                UUID.randomUUID(),
                 executor);
     }
 

@@ -21,9 +21,9 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface UpdateSweepPriority {
 
-    OptionalLong newCellsDeleted();
+    OptionalLong newStaleValuesDeleted();
 
-    OptionalLong newCellsExamined();
+    OptionalLong newCellTsPairsExamined();
 
     OptionalLong newLastSweepTimeMillis();
 

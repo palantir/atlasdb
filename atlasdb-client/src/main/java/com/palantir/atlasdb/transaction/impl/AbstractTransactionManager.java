@@ -28,6 +28,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
     public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
@@ -43,22 +44,30 @@ public abstract class AbstractTransactionManager implements TransactionManager {
             try {
                 T result = runTaskThrowOnConflict(task);
                 if (failureCount > 0) {
-                    log.info("[{}] Successfully completed transaction after {} retries.", runId, failureCount);
+                    log.info("[{}] Successfully completed transaction after {} retries.",
+                            SafeArg.of("runId", runId),
+                            SafeArg.of("failureCount", failureCount));
                 }
                 return result;
             } catch (TransactionFailedException e) {
                 if (!e.canTransactionBeRetried()) {
-                    log.warn("[{}] Non-retriable exception while processing transaction.", runId, e);
+                    log.warn("[{}] Non-retriable exception while processing transaction.",
+                            SafeArg.of("runId", runId),
+                            SafeArg.of("failureCount", failureCount));
                     throw e;
                 }
                 failureCount++;
                 if (shouldStopRetrying(failureCount)) {
-                    log.warn("[{}] Failing after {} tries.", runId, failureCount, e);
+                    log.warn("[{}] Failing after {} tries.",
+                            SafeArg.of("runId", runId),
+                            SafeArg.of("failureCount", failureCount), e);
                     throw Throwables.rewrap(String.format("Failing after %d tries.", failureCount), e);
                 }
-                log.info("[{}] Retrying transaction after {} failure(s).", runId, failureCount, e);
+                log.info("[{}] Retrying transaction after {} failure(s).",
+                        SafeArg.of("runId", runId),
+                        SafeArg.of("failureCount", failureCount), e);
             } catch (RuntimeException e) {
-                log.warn("[{}] RuntimeException while processing transaction.", runId, e);
+                log.warn("[{}] RuntimeException while processing transaction.", SafeArg.of("runId", runId), e);
                 throw e;
             }
             sleepForBackoff(failureCount);

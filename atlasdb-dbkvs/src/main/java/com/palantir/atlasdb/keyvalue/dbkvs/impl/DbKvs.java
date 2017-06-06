@@ -69,6 +69,8 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Atomics;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -104,6 +106,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
@@ -631,6 +634,12 @@ public final class DbKvs extends AbstractKeyValueService {
             }
         };
         return ClosableIterators.wrap(rows.iterator());
+    }
+
+    @Override
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
+            CandidateCellForSweepingRequest request) {
+        return new GetCandidateCellsForSweepingShim(this).getCandidateCellsForSweeping(tableRef, request);
     }
 
     private TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> getTimestampsPage(

@@ -20,7 +20,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -44,6 +44,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
+import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
@@ -66,7 +67,7 @@ public final class Leaders {
     }
 
     public static LeaderElectionService create(Environment env, LeaderConfig config, String userAgent) {
-        LocalPaxosServices localPaxosServices = createLocalServices(config, userAgent);
+        LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(config, userAgent);
 
         env.register(localPaxosServices.ourAcceptor());
         env.register(localPaxosServices.ourLearner());
@@ -76,7 +77,7 @@ public final class Leaders {
         return localPaxosServices.leaderElectionService();
     }
 
-    public static LocalPaxosServices createLocalServices(LeaderConfig config, String userAgent) {
+    public static LocalPaxosServices createInstrumentedLocalServices(LeaderConfig config, String userAgent) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
 
@@ -85,19 +86,24 @@ public final class Leaders {
                 .remoteAcceptorUris(remoteLeaderUris)
                 .remoteLearnerUris(remoteLeaderUris)
                 .build();
-        return createLocalServices(config, remotePaxosServerSpec, userAgent);
+        return createInstrumentedLocalServices(config, remotePaxosServerSpec, userAgent);
     }
 
-    public static LocalPaxosServices createLocalServices(LeaderConfig config, RemotePaxosServerSpec spec) {
-        return createLocalServices(config, spec, UserAgents.DEFAULT_USER_AGENT);
-    }
-
-    public static LocalPaxosServices createLocalServices(
+    public static LocalPaxosServices createInstrumentedLocalServices(
             LeaderConfig config,
             RemotePaxosServerSpec remotePaxosServerSpec,
             String userAgent) {
-        PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath());
-        PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath());
+        UUID leaderUuid = UUID.randomUUID();
+
+        PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
+                AtlasDbMetrics.getMetricRegistry(), leaderUuid.toString());
+
+        PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(
+                PaxosAcceptor.class,
+                PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath()));
+        PaxosLearner ourLearner = AtlasDbMetrics.instrument(
+                PaxosLearner.class,
+                PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath(), leadershipEventRecorder));
 
         Optional<SSLSocketFactory> sslSocketFactory =
                 ServiceCreator.createSslSocketFactory(config.sslConfiguration());
@@ -114,14 +120,16 @@ public final class Leaders {
         Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(
                 remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory, userAgent);
 
-        PaxosProposer proposer = createPaxosProposer(ourLearner, acceptors, learners, config.quorumSize(),
-                new InstrumentedExecutorService(
-                        Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-                                .setNameFormat("atlas-proposer-%d")
-                                .setDaemon(true)
-                                .build()),
-                        AtlasDbMetrics.getMetricRegistry(),
-                        MetricRegistry.name(PaxosProposer.class, "executor")));
+        InstrumentedExecutorService proposerExecutorService = new InstrumentedExecutorService(
+                Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                        .setNameFormat("atlas-proposer-%d")
+                        .setDaemon(true)
+                        .build()),
+                AtlasDbMetrics.getMetricRegistry(),
+                MetricRegistry.name(PaxosProposer.class, "executor"));
+        PaxosProposer proposer = AtlasDbMetrics.instrument(PaxosProposer.class,
+                PaxosProposerImpl.newProposer(ourLearner, acceptors, learners, config.quorumSize(),
+                leaderUuid, proposerExecutorService));
 
         InstrumentedExecutorService leaderElectionExecutor = new InstrumentedExecutorService(
                 Executors.newCachedThreadPool(new ThreadFactoryBuilder()
@@ -130,7 +138,8 @@ public final class Leaders {
                         .build()),
                 AtlasDbMetrics.getMetricRegistry(),
                 MetricRegistry.name(PaxosLeaderElectionService.class, "executor"));
-        PaxosLeaderElectionService leader = new PaxosLeaderElectionServiceBuilder()
+
+        PaxosLeaderElectionService paxosLeaderElectionService = new PaxosLeaderElectionServiceBuilder()
                 .proposer(proposer)
                 .knowledge(ourLearner)
                 .potentialLeadersToHosts(otherLeaders)
@@ -140,28 +149,22 @@ public final class Leaders {
                 .pingRateMs(config.pingRateMs())
                 .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
+                .eventRecorder(leadershipEventRecorder)
                 .build();
+
+        LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(
+                LeaderElectionService.class,
+                paxosLeaderElectionService);
+        PingableLeader pingableLeader = AtlasDbMetrics.instrument(
+                PingableLeader.class,
+                paxosLeaderElectionService);
 
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
                 .ourLearner(ourLearner)
-                .leaderElectionService(leader)
-                .pingableLeader(leader)
+                .leaderElectionService(leaderElectionService)
+                .pingableLeader(pingableLeader)
                 .build();
-    }
-
-    public static PaxosProposer createPaxosProposer(
-            PaxosLearner ourLearner,
-            List<PaxosAcceptor> acceptors,
-            List<PaxosLearner> learners,
-            int quorumSize,
-            ExecutorService executor) {
-        return PaxosProposerImpl.newProposer(
-                ourLearner,
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners),
-                quorumSize,
-                executor);
     }
 
     public static <T> List<T> createProxyAndLocalList(
@@ -181,12 +184,6 @@ public final class Leaders {
         return ImmutableList.copyOf(Iterables.concat(
                 AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz, userAgent),
                 ImmutableList.of(localObject)));
-    }
-
-    public static Map<PingableLeader, HostAndPort> generatePingables(
-            Collection<String> remoteEndpoints,
-            Optional<SSLSocketFactory> sslSocketFactory) {
-        return generatePingables(remoteEndpoints, sslSocketFactory, UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static Map<PingableLeader, HostAndPort> generatePingables(
