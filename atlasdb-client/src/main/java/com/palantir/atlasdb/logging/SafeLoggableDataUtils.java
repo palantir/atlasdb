@@ -56,11 +56,13 @@ public final class SafeLoggableDataUtils {
                 .collect(Collectors.toSet());
         builder.putPermittedRowComponents(ref, loggableRowParts);
 
-        Set<NamedColumnDescription> loggableColumnDescriptions = tableMetadata.getColumns()
-                .getNamedColumns()
-                .stream()
-                .filter(NamedColumnDescription::isNameLoggable)
-                .collect(Collectors.toSet());
-        builder.putPermittedColumnNames(ref, loggableColumnDescriptions);
+        Set<NamedColumnDescription> namedColumns = tableMetadata.getColumns().getNamedColumns();
+        if (namedColumns != null) {
+            Set<NamedColumnDescription> loggableColumnDescriptions = namedColumns
+                    .stream()
+                    .filter(NamedColumnDescription::isNameLoggable)
+                    .collect(Collectors.toSet());
+            builder.putPermittedColumnNames(ref, loggableColumnDescriptions);
+        }
     }
 }
