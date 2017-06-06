@@ -6,13 +6,13 @@ package com.palantir.atlasdb.protos.generated;
 public final class TableMetadataPersistence {
   private TableMetadataPersistence() {}
   public static void registerAllExtensions(
-          com.google.protobuf.ExtensionRegistry registry) {
+      com.google.protobuf.ExtensionRegistry registry) {
   }
   /**
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.ValueType}
    */
   public enum ValueType
-          implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum {
     /**
      * <code>VAR_LONG = 1;</code>
      */
@@ -125,37 +125,37 @@ public final class TableMetadataPersistence {
     }
 
     public static com.google.protobuf.Internal.EnumLiteMap<ValueType>
-    internalGetValueMap() {
+        internalGetValueMap() {
       return internalValueMap;
     }
     private static com.google.protobuf.Internal.EnumLiteMap<ValueType>
-            internalValueMap =
-            new com.google.protobuf.Internal.EnumLiteMap<ValueType>() {
-              public ValueType findValueByNumber(int number) {
-                return ValueType.valueOf(number);
-              }
-            };
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<ValueType>() {
+            public ValueType findValueByNumber(int number) {
+              return ValueType.valueOf(number);
+            }
+          };
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
-    getValueDescriptor() {
+        getValueDescriptor() {
       return getDescriptor().getValues().get(index);
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptorForType() {
+        getDescriptorForType() {
       return getDescriptor();
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(0);
     }
 
     private static final ValueType[] VALUES = values();
 
     public static ValueType valueOf(
-            com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
       if (desc.getType() != getDescriptor()) {
         throw new java.lang.IllegalArgumentException(
-                "EnumValueDescriptor is not for this type.");
+          "EnumValueDescriptor is not for this type.");
       }
       return VALUES[desc.getIndex()];
     }
@@ -175,7 +175,7 @@ public final class TableMetadataPersistence {
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.Compression}
    */
   public enum Compression
-          implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum {
     /**
      * <code>NONE = 1;</code>
      */
@@ -207,37 +207,37 @@ public final class TableMetadataPersistence {
     }
 
     public static com.google.protobuf.Internal.EnumLiteMap<Compression>
-    internalGetValueMap() {
+        internalGetValueMap() {
       return internalValueMap;
     }
     private static com.google.protobuf.Internal.EnumLiteMap<Compression>
-            internalValueMap =
-            new com.google.protobuf.Internal.EnumLiteMap<Compression>() {
-              public Compression findValueByNumber(int number) {
-                return Compression.valueOf(number);
-              }
-            };
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<Compression>() {
+            public Compression findValueByNumber(int number) {
+              return Compression.valueOf(number);
+            }
+          };
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
-    getValueDescriptor() {
+        getValueDescriptor() {
       return getDescriptor().getValues().get(index);
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptorForType() {
+        getDescriptorForType() {
       return getDescriptor();
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(1);
     }
 
     private static final Compression[] VALUES = values();
 
     public static Compression valueOf(
-            com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
       if (desc.getType() != getDescriptor()) {
         throw new java.lang.IllegalArgumentException(
-                "EnumValueDescriptor is not for this type.");
+          "EnumValueDescriptor is not for this type.");
       }
       return VALUES[desc.getIndex()];
     }
@@ -257,7 +257,7 @@ public final class TableMetadataPersistence {
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.ColumnValueFormat}
    */
   public enum ColumnValueFormat
-          implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum {
     /**
      * <code>PROTO = 1;</code>
      */
@@ -307,37 +307,37 @@ public final class TableMetadataPersistence {
     }
 
     public static com.google.protobuf.Internal.EnumLiteMap<ColumnValueFormat>
-    internalGetValueMap() {
+        internalGetValueMap() {
       return internalValueMap;
     }
     private static com.google.protobuf.Internal.EnumLiteMap<ColumnValueFormat>
-            internalValueMap =
-            new com.google.protobuf.Internal.EnumLiteMap<ColumnValueFormat>() {
-              public ColumnValueFormat findValueByNumber(int number) {
-                return ColumnValueFormat.valueOf(number);
-              }
-            };
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<ColumnValueFormat>() {
+            public ColumnValueFormat findValueByNumber(int number) {
+              return ColumnValueFormat.valueOf(number);
+            }
+          };
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
-    getValueDescriptor() {
+        getValueDescriptor() {
       return getDescriptor().getValues().get(index);
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptorForType() {
+        getDescriptorForType() {
       return getDescriptor();
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(2);
     }
 
     private static final ColumnValueFormat[] VALUES = values();
 
     public static ColumnValueFormat valueOf(
-            com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
       if (desc.getType() != getDescriptor()) {
         throw new java.lang.IllegalArgumentException(
-                "EnumValueDescriptor is not for this type.");
+          "EnumValueDescriptor is not for this type.");
       }
       return VALUES[desc.getIndex()];
     }
@@ -357,7 +357,7 @@ public final class TableMetadataPersistence {
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.ValueByteOrder}
    */
   public enum ValueByteOrder
-          implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum {
     /**
      * <code>ASCENDING = 1;</code>
      */
@@ -389,37 +389,37 @@ public final class TableMetadataPersistence {
     }
 
     public static com.google.protobuf.Internal.EnumLiteMap<ValueByteOrder>
-    internalGetValueMap() {
+        internalGetValueMap() {
       return internalValueMap;
     }
     private static com.google.protobuf.Internal.EnumLiteMap<ValueByteOrder>
-            internalValueMap =
-            new com.google.protobuf.Internal.EnumLiteMap<ValueByteOrder>() {
-              public ValueByteOrder findValueByNumber(int number) {
-                return ValueByteOrder.valueOf(number);
-              }
-            };
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<ValueByteOrder>() {
+            public ValueByteOrder findValueByNumber(int number) {
+              return ValueByteOrder.valueOf(number);
+            }
+          };
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
-    getValueDescriptor() {
+        getValueDescriptor() {
       return getDescriptor().getValues().get(index);
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptorForType() {
+        getDescriptorForType() {
       return getDescriptor();
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(3);
     }
 
     private static final ValueByteOrder[] VALUES = values();
 
     public static ValueByteOrder valueOf(
-            com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
       if (desc.getType() != getDescriptor()) {
         throw new java.lang.IllegalArgumentException(
-                "EnumValueDescriptor is not for this type.");
+          "EnumValueDescriptor is not for this type.");
       }
       return VALUES[desc.getIndex()];
     }
@@ -439,7 +439,7 @@ public final class TableMetadataPersistence {
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.TableConflictHandler}
    */
   public enum TableConflictHandler
-          implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum {
     /**
      * <code>IGNORE_ALL = 1;</code>
      */
@@ -498,37 +498,37 @@ public final class TableMetadataPersistence {
     }
 
     public static com.google.protobuf.Internal.EnumLiteMap<TableConflictHandler>
-    internalGetValueMap() {
+        internalGetValueMap() {
       return internalValueMap;
     }
     private static com.google.protobuf.Internal.EnumLiteMap<TableConflictHandler>
-            internalValueMap =
-            new com.google.protobuf.Internal.EnumLiteMap<TableConflictHandler>() {
-              public TableConflictHandler findValueByNumber(int number) {
-                return TableConflictHandler.valueOf(number);
-              }
-            };
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<TableConflictHandler>() {
+            public TableConflictHandler findValueByNumber(int number) {
+              return TableConflictHandler.valueOf(number);
+            }
+          };
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
-    getValueDescriptor() {
+        getValueDescriptor() {
       return getDescriptor().getValues().get(index);
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptorForType() {
+        getDescriptorForType() {
       return getDescriptor();
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(4);
     }
 
     private static final TableConflictHandler[] VALUES = values();
 
     public static TableConflictHandler valueOf(
-            com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
       if (desc.getType() != getDescriptor()) {
         throw new java.lang.IllegalArgumentException(
-                "EnumValueDescriptor is not for this type.");
+          "EnumValueDescriptor is not for this type.");
       }
       return VALUES[desc.getIndex()];
     }
@@ -548,7 +548,7 @@ public final class TableMetadataPersistence {
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.CachePriority}
    */
   public enum CachePriority
-          implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum {
     /**
      * <code>COLDEST = 0;</code>
      */
@@ -607,37 +607,37 @@ public final class TableMetadataPersistence {
     }
 
     public static com.google.protobuf.Internal.EnumLiteMap<CachePriority>
-    internalGetValueMap() {
+        internalGetValueMap() {
       return internalValueMap;
     }
     private static com.google.protobuf.Internal.EnumLiteMap<CachePriority>
-            internalValueMap =
-            new com.google.protobuf.Internal.EnumLiteMap<CachePriority>() {
-              public CachePriority findValueByNumber(int number) {
-                return CachePriority.valueOf(number);
-              }
-            };
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<CachePriority>() {
+            public CachePriority findValueByNumber(int number) {
+              return CachePriority.valueOf(number);
+            }
+          };
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
-    getValueDescriptor() {
+        getValueDescriptor() {
       return getDescriptor().getValues().get(index);
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptorForType() {
+        getDescriptorForType() {
       return getDescriptor();
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(5);
     }
 
     private static final CachePriority[] VALUES = values();
 
     public static CachePriority valueOf(
-            com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
       if (desc.getType() != getDescriptor()) {
         throw new java.lang.IllegalArgumentException(
-                "EnumValueDescriptor is not for this type.");
+          "EnumValueDescriptor is not for this type.");
       }
       return VALUES[desc.getIndex()];
     }
@@ -657,7 +657,7 @@ public final class TableMetadataPersistence {
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.PartitionStrategy}
    */
   public enum PartitionStrategy
-          implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum {
     /**
      * <code>ORDERED = 0;</code>
      */
@@ -689,37 +689,37 @@ public final class TableMetadataPersistence {
     }
 
     public static com.google.protobuf.Internal.EnumLiteMap<PartitionStrategy>
-    internalGetValueMap() {
+        internalGetValueMap() {
       return internalValueMap;
     }
     private static com.google.protobuf.Internal.EnumLiteMap<PartitionStrategy>
-            internalValueMap =
-            new com.google.protobuf.Internal.EnumLiteMap<PartitionStrategy>() {
-              public PartitionStrategy findValueByNumber(int number) {
-                return PartitionStrategy.valueOf(number);
-              }
-            };
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<PartitionStrategy>() {
+            public PartitionStrategy findValueByNumber(int number) {
+              return PartitionStrategy.valueOf(number);
+            }
+          };
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
-    getValueDescriptor() {
+        getValueDescriptor() {
       return getDescriptor().getValues().get(index);
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptorForType() {
+        getDescriptorForType() {
       return getDescriptor();
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(6);
     }
 
     private static final PartitionStrategy[] VALUES = values();
 
     public static PartitionStrategy valueOf(
-            com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
       if (desc.getType() != getDescriptor()) {
         throw new java.lang.IllegalArgumentException(
-                "EnumValueDescriptor is not for this type.");
+          "EnumValueDescriptor is not for this type.");
       }
       return VALUES[desc.getIndex()];
     }
@@ -739,7 +739,7 @@ public final class TableMetadataPersistence {
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.SweepStrategy}
    */
   public enum SweepStrategy
-          implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum {
     /**
      * <code>NOTHING = 0;</code>
      */
@@ -780,37 +780,37 @@ public final class TableMetadataPersistence {
     }
 
     public static com.google.protobuf.Internal.EnumLiteMap<SweepStrategy>
-    internalGetValueMap() {
+        internalGetValueMap() {
       return internalValueMap;
     }
     private static com.google.protobuf.Internal.EnumLiteMap<SweepStrategy>
-            internalValueMap =
-            new com.google.protobuf.Internal.EnumLiteMap<SweepStrategy>() {
-              public SweepStrategy findValueByNumber(int number) {
-                return SweepStrategy.valueOf(number);
-              }
-            };
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<SweepStrategy>() {
+            public SweepStrategy findValueByNumber(int number) {
+              return SweepStrategy.valueOf(number);
+            }
+          };
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
-    getValueDescriptor() {
+        getValueDescriptor() {
       return getDescriptor().getValues().get(index);
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptorForType() {
+        getDescriptorForType() {
       return getDescriptor();
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(7);
     }
 
     private static final SweepStrategy[] VALUES = values();
 
     public static SweepStrategy valueOf(
-            com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
       if (desc.getType() != getDescriptor()) {
         throw new java.lang.IllegalArgumentException(
-                "EnumValueDescriptor is not for this type.");
+          "EnumValueDescriptor is not for this type.");
       }
       return VALUES[desc.getIndex()];
     }
@@ -830,7 +830,7 @@ public final class TableMetadataPersistence {
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.ExpirationStrategy}
    */
   public enum ExpirationStrategy
-          implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum {
     /**
      * <code>NEVER = 0;</code>
      */
@@ -862,37 +862,37 @@ public final class TableMetadataPersistence {
     }
 
     public static com.google.protobuf.Internal.EnumLiteMap<ExpirationStrategy>
-    internalGetValueMap() {
+        internalGetValueMap() {
       return internalValueMap;
     }
     private static com.google.protobuf.Internal.EnumLiteMap<ExpirationStrategy>
-            internalValueMap =
-            new com.google.protobuf.Internal.EnumLiteMap<ExpirationStrategy>() {
-              public ExpirationStrategy findValueByNumber(int number) {
-                return ExpirationStrategy.valueOf(number);
-              }
-            };
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<ExpirationStrategy>() {
+            public ExpirationStrategy findValueByNumber(int number) {
+              return ExpirationStrategy.valueOf(number);
+            }
+          };
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
-    getValueDescriptor() {
+        getValueDescriptor() {
       return getDescriptor().getValues().get(index);
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptorForType() {
+        getDescriptorForType() {
       return getDescriptor();
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(8);
     }
 
     private static final ExpirationStrategy[] VALUES = values();
 
     public static ExpirationStrategy valueOf(
-            com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
       if (desc.getType() != getDescriptor()) {
         throw new java.lang.IllegalArgumentException(
-                "EnumValueDescriptor is not for this type.");
+          "EnumValueDescriptor is not for this type.");
       }
       return VALUES[desc.getIndex()];
     }
@@ -909,8 +909,8 @@ public final class TableMetadataPersistence {
   }
 
   public interface TableMetadataOrBuilder extends
-          // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.TableMetadata)
-          com.google.protobuf.MessageOrBuilder {
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.TableMetadata)
+      com.google.protobuf.MessageOrBuilder {
 
     /**
      * <code>required .com.palantir.atlasdb.protos.generated.NameMetadataDescription rowName = 1;</code>
@@ -1032,9 +1032,9 @@ public final class TableMetadataPersistence {
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.TableMetadata}
    */
   public static final class TableMetadata extends
-          com.google.protobuf.GeneratedMessage implements
-          // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.TableMetadata)
-          TableMetadataOrBuilder {
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.TableMetadata)
+      TableMetadataOrBuilder {
     // Use TableMetadata.newBuilder() to construct.
     private TableMetadata(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
@@ -1054,17 +1054,17 @@ public final class TableMetadataPersistence {
     private final com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
+        getUnknownFields() {
       return this.unknownFields;
     }
     private TableMetadata(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-              com.google.protobuf.UnknownFieldSet.newBuilder();
+          com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
         boolean done = false;
         while (!done) {
@@ -1075,7 +1075,7 @@ public final class TableMetadataPersistence {
               break;
             default: {
               if (!parseUnknownField(input, unknownFields,
-                      extensionRegistry, tag)) {
+                                     extensionRegistry, tag)) {
                 done = true;
               }
               break;
@@ -1186,33 +1186,33 @@ public final class TableMetadataPersistence {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this);
+            e.getMessage()).setUnfinishedMessage(this);
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
       }
     }
     public static final com.google.protobuf.Descriptors.Descriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-    internalGetFieldAccessorTable() {
+        internalGetFieldAccessorTable() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_fieldAccessorTable
-              .ensureFieldAccessorsInitialized(
-                      com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata.Builder.class);
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata.Builder.class);
     }
 
     public static com.google.protobuf.Parser<TableMetadata> PARSER =
-            new com.google.protobuf.AbstractParser<TableMetadata>() {
-              public TableMetadata parsePartialFrom(
-                      com.google.protobuf.CodedInputStream input,
-                      com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                      throws com.google.protobuf.InvalidProtocolBufferException {
-                return new TableMetadata(input, extensionRegistry);
-              }
-            };
+        new com.google.protobuf.AbstractParser<TableMetadata>() {
+      public TableMetadata parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new TableMetadata(input, extensionRegistry);
+      }
+    };
 
     @java.lang.Override
     public com.google.protobuf.Parser<TableMetadata> getParserForType() {
@@ -1457,7 +1457,7 @@ public final class TableMetadataPersistence {
     }
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
-            throws java.io.IOException {
+                        throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeMessage(1, rowName_);
@@ -1506,51 +1506,51 @@ public final class TableMetadataPersistence {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeMessageSize(1, rowName_);
+          .computeMessageSize(1, rowName_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeMessageSize(2, columns_);
+          .computeMessageSize(2, columns_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeEnumSize(3, conflictHandler_.getNumber());
+          .computeEnumSize(3, conflictHandler_.getNumber());
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeEnumSize(4, cachePriority_.getNumber());
+          .computeEnumSize(4, cachePriority_.getNumber());
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeEnumSize(5, partitionStrategy_.getNumber());
+          .computeEnumSize(5, partitionStrategy_.getNumber());
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBoolSize(6, rangeScanAllowed_);
+          .computeBoolSize(6, rangeScanAllowed_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBoolSize(7, explicitCompression_);
+          .computeBoolSize(7, explicitCompression_);
       }
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBoolSize(8, negativeLookups_);
+          .computeBoolSize(8, negativeLookups_);
       }
       if (((bitField0_ & 0x00000100) == 0x00000100)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeEnumSize(9, sweepStrategy_.getNumber());
+          .computeEnumSize(9, sweepStrategy_.getNumber());
       }
       if (((bitField0_ & 0x00000200) == 0x00000200)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeInt32Size(10, explicitCompressionBlockSizeKiloBytes_);
+          .computeInt32Size(10, explicitCompressionBlockSizeKiloBytes_);
       }
       if (((bitField0_ & 0x00000400) == 0x00000400)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBoolSize(11, appendHeavyAndReadLight_);
+          .computeBoolSize(11, appendHeavyAndReadLight_);
       }
       if (((bitField0_ & 0x00000800) == 0x00000800)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBoolSize(12, nameLoggable_);
+          .computeBoolSize(12, nameLoggable_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -1560,60 +1560,60 @@ public final class TableMetadataPersistence {
     private static final long serialVersionUID = 0L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
-            throws java.io.ObjectStreamException {
+        throws java.io.ObjectStreamException {
       return super.writeReplace();
     }
 
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata parseFrom(
-            com.google.protobuf.ByteString data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata parseFrom(
-            com.google.protobuf.ByteString data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata parseFrom(byte[] data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata parseFrom(
-            byte[] data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata parseFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata parseFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata parseDelimitedFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata parseDelimitedFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata parseFrom(
-            com.google.protobuf.CodedInputStream input)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata parseFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
@@ -1626,7 +1626,7 @@ public final class TableMetadataPersistence {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -1634,19 +1634,19 @@ public final class TableMetadataPersistence {
      * Protobuf type {@code com.palantir.atlasdb.protos.generated.TableMetadata}
      */
     public static final class Builder extends
-            com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-            // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.TableMetadata)
-            com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadataOrBuilder {
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.TableMetadata)
+        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadataOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
-      getDescriptor() {
+          getDescriptor() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internalGetFieldAccessorTable() {
+          internalGetFieldAccessorTable() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata.Builder.class);
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata.Builder.class);
       }
 
       // Construct using com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata.newBuilder()
@@ -1655,7 +1655,7 @@ public final class TableMetadataPersistence {
       }
 
       private Builder(
-              com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
@@ -1711,7 +1711,7 @@ public final class TableMetadataPersistence {
       }
 
       public com.google.protobuf.Descriptors.Descriptor
-      getDescriptorForType() {
+          getDescriptorForType() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_descriptor;
       }
 
@@ -1845,32 +1845,32 @@ public final class TableMetadataPersistence {
 
       public final boolean isInitialized() {
         if (!hasRowName()) {
-
+          
           return false;
         }
         if (!hasColumns()) {
-
+          
           return false;
         }
         if (!hasConflictHandler()) {
-
+          
           return false;
         }
         if (!getRowName().isInitialized()) {
-
+          
           return false;
         }
         if (!getColumns().isInitialized()) {
-
+          
           return false;
         }
         return true;
       }
 
       public Builder mergeFrom(
-              com.google.protobuf.CodedInputStream input,
-              com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-              throws java.io.IOException {
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
         com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
@@ -1888,7 +1888,7 @@ public final class TableMetadataPersistence {
 
       private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription rowName_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder> rowNameBuilder_;
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder> rowNameBuilder_;
       /**
        * <code>required .com.palantir.atlasdb.protos.generated.NameMetadataDescription rowName = 1;</code>
        */
@@ -1925,7 +1925,7 @@ public final class TableMetadataPersistence {
        * <code>required .com.palantir.atlasdb.protos.generated.NameMetadataDescription rowName = 1;</code>
        */
       public Builder setRowName(
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder builderForValue) {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder builderForValue) {
         if (rowNameBuilder_ == null) {
           rowName_ = builderForValue.build();
           onChanged();
@@ -1941,9 +1941,9 @@ public final class TableMetadataPersistence {
       public Builder mergeRowName(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription value) {
         if (rowNameBuilder_ == null) {
           if (((bitField0_ & 0x00000001) == 0x00000001) &&
-                  rowName_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.getDefaultInstance()) {
+              rowName_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.getDefaultInstance()) {
             rowName_ =
-                    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.newBuilder(rowName_).mergeFrom(value).buildPartial();
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.newBuilder(rowName_).mergeFrom(value).buildPartial();
           } else {
             rowName_ = value;
           }
@@ -1989,11 +1989,11 @@ public final class TableMetadataPersistence {
        * <code>required .com.palantir.atlasdb.protos.generated.NameMetadataDescription rowName = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder>
-      getRowNameFieldBuilder() {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder> 
+          getRowNameFieldBuilder() {
         if (rowNameBuilder_ == null) {
           rowNameBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-                  com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder>(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder>(
                   getRowName(),
                   getParentForChildren(),
                   isClean());
@@ -2004,7 +2004,7 @@ public final class TableMetadataPersistence {
 
       private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription columns_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescriptionOrBuilder> columnsBuilder_;
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescriptionOrBuilder> columnsBuilder_;
       /**
        * <code>required .com.palantir.atlasdb.protos.generated.ColumnMetadataDescription columns = 2;</code>
        */
@@ -2041,7 +2041,7 @@ public final class TableMetadataPersistence {
        * <code>required .com.palantir.atlasdb.protos.generated.ColumnMetadataDescription columns = 2;</code>
        */
       public Builder setColumns(
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder builderForValue) {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder builderForValue) {
         if (columnsBuilder_ == null) {
           columns_ = builderForValue.build();
           onChanged();
@@ -2057,9 +2057,9 @@ public final class TableMetadataPersistence {
       public Builder mergeColumns(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription value) {
         if (columnsBuilder_ == null) {
           if (((bitField0_ & 0x00000002) == 0x00000002) &&
-                  columns_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.getDefaultInstance()) {
+              columns_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.getDefaultInstance()) {
             columns_ =
-                    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.newBuilder(columns_).mergeFrom(value).buildPartial();
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.newBuilder(columns_).mergeFrom(value).buildPartial();
           } else {
             columns_ = value;
           }
@@ -2105,11 +2105,11 @@ public final class TableMetadataPersistence {
        * <code>required .com.palantir.atlasdb.protos.generated.ColumnMetadataDescription columns = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescriptionOrBuilder>
-      getColumnsFieldBuilder() {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescriptionOrBuilder> 
+          getColumnsFieldBuilder() {
         if (columnsBuilder_ == null) {
           columnsBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-                  com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescriptionOrBuilder>(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescriptionOrBuilder>(
                   getColumns(),
                   getParentForChildren(),
                   isClean());
@@ -2462,14 +2462,14 @@ public final class TableMetadataPersistence {
   }
 
   public interface NameMetadataDescriptionOrBuilder extends
-          // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.NameMetadataDescription)
-          com.google.protobuf.MessageOrBuilder {
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.NameMetadataDescription)
+      com.google.protobuf.MessageOrBuilder {
 
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
      */
-    java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription>
-    getNamePartsList();
+    java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription> 
+        getNamePartsList();
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
      */
@@ -2481,13 +2481,13 @@ public final class TableMetadataPersistence {
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
      */
-    java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder>
-    getNamePartsOrBuilderList();
+    java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder> 
+        getNamePartsOrBuilderList();
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
      */
     com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder getNamePartsOrBuilder(
-            int index);
+        int index);
 
     /**
      * <code>optional bool hasFirstComponentHash = 2;</code>
@@ -2502,9 +2502,9 @@ public final class TableMetadataPersistence {
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.NameMetadataDescription}
    */
   public static final class NameMetadataDescription extends
-          com.google.protobuf.GeneratedMessage implements
-          // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.NameMetadataDescription)
-          NameMetadataDescriptionOrBuilder {
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.NameMetadataDescription)
+      NameMetadataDescriptionOrBuilder {
     // Use NameMetadataDescription.newBuilder() to construct.
     private NameMetadataDescription(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
@@ -2524,17 +2524,17 @@ public final class TableMetadataPersistence {
     private final com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
+        getUnknownFields() {
       return this.unknownFields;
     }
     private NameMetadataDescription(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-              com.google.protobuf.UnknownFieldSet.newBuilder();
+          com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
         boolean done = false;
         while (!done) {
@@ -2545,7 +2545,7 @@ public final class TableMetadataPersistence {
               break;
             default: {
               if (!parseUnknownField(input, unknownFields,
-                      extensionRegistry, tag)) {
+                                     extensionRegistry, tag)) {
                 done = true;
               }
               break;
@@ -2569,7 +2569,7 @@ public final class TableMetadataPersistence {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this);
+            e.getMessage()).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
           nameParts_ = java.util.Collections.unmodifiableList(nameParts_);
@@ -2579,26 +2579,26 @@ public final class TableMetadataPersistence {
       }
     }
     public static final com.google.protobuf.Descriptors.Descriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-    internalGetFieldAccessorTable() {
+        internalGetFieldAccessorTable() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_fieldAccessorTable
-              .ensureFieldAccessorsInitialized(
-                      com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder.class);
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder.class);
     }
 
     public static com.google.protobuf.Parser<NameMetadataDescription> PARSER =
-            new com.google.protobuf.AbstractParser<NameMetadataDescription>() {
-              public NameMetadataDescription parsePartialFrom(
-                      com.google.protobuf.CodedInputStream input,
-                      com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                      throws com.google.protobuf.InvalidProtocolBufferException {
-                return new NameMetadataDescription(input, extensionRegistry);
-              }
-            };
+        new com.google.protobuf.AbstractParser<NameMetadataDescription>() {
+      public NameMetadataDescription parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new NameMetadataDescription(input, extensionRegistry);
+      }
+    };
 
     @java.lang.Override
     public com.google.protobuf.Parser<NameMetadataDescription> getParserForType() {
@@ -2617,8 +2617,8 @@ public final class TableMetadataPersistence {
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
      */
-    public java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder>
-    getNamePartsOrBuilderList() {
+    public java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder> 
+        getNamePartsOrBuilderList() {
       return nameParts_;
     }
     /**
@@ -2637,7 +2637,7 @@ public final class TableMetadataPersistence {
      * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
      */
     public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder getNamePartsOrBuilder(
-            int index) {
+        int index) {
       return nameParts_.get(index);
     }
 
@@ -2677,7 +2677,7 @@ public final class TableMetadataPersistence {
     }
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
-            throws java.io.IOException {
+                        throws java.io.IOException {
       getSerializedSize();
       for (int i = 0; i < nameParts_.size(); i++) {
         output.writeMessage(1, nameParts_.get(i));
@@ -2696,11 +2696,11 @@ public final class TableMetadataPersistence {
       size = 0;
       for (int i = 0; i < nameParts_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
-                .computeMessageSize(1, nameParts_.get(i));
+          .computeMessageSize(1, nameParts_.get(i));
       }
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBoolSize(2, hasFirstComponentHash_);
+          .computeBoolSize(2, hasFirstComponentHash_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -2710,60 +2710,60 @@ public final class TableMetadataPersistence {
     private static final long serialVersionUID = 0L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
-            throws java.io.ObjectStreamException {
+        throws java.io.ObjectStreamException {
       return super.writeReplace();
     }
 
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription parseFrom(
-            com.google.protobuf.ByteString data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription parseFrom(
-            com.google.protobuf.ByteString data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription parseFrom(byte[] data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription parseFrom(
-            byte[] data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription parseFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription parseFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription parseDelimitedFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription parseDelimitedFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription parseFrom(
-            com.google.protobuf.CodedInputStream input)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription parseFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
@@ -2776,7 +2776,7 @@ public final class TableMetadataPersistence {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -2784,19 +2784,19 @@ public final class TableMetadataPersistence {
      * Protobuf type {@code com.palantir.atlasdb.protos.generated.NameMetadataDescription}
      */
     public static final class Builder extends
-            com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-            // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.NameMetadataDescription)
-            com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder {
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.NameMetadataDescription)
+        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
-      getDescriptor() {
+          getDescriptor() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internalGetFieldAccessorTable() {
+          internalGetFieldAccessorTable() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder.class);
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder.class);
       }
 
       // Construct using com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.newBuilder()
@@ -2805,7 +2805,7 @@ public final class TableMetadataPersistence {
       }
 
       private Builder(
-              com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
@@ -2836,7 +2836,7 @@ public final class TableMetadataPersistence {
       }
 
       public com.google.protobuf.Descriptors.Descriptor
-      getDescriptorForType() {
+          getDescriptorForType() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_descriptor;
       }
 
@@ -2903,9 +2903,9 @@ public final class TableMetadataPersistence {
               namePartsBuilder_ = null;
               nameParts_ = other.nameParts_;
               bitField0_ = (bitField0_ & ~0x00000001);
-              namePartsBuilder_ =
-                      com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                              getNamePartsFieldBuilder() : null;
+              namePartsBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getNamePartsFieldBuilder() : null;
             } else {
               namePartsBuilder_.addAllMessages(other.nameParts_);
             }
@@ -2921,7 +2921,7 @@ public final class TableMetadataPersistence {
       public final boolean isInitialized() {
         for (int i = 0; i < getNamePartsCount(); i++) {
           if (!getNameParts(i).isInitialized()) {
-
+            
             return false;
           }
         }
@@ -2929,9 +2929,9 @@ public final class TableMetadataPersistence {
       }
 
       public Builder mergeFrom(
-              com.google.protobuf.CodedInputStream input,
-              com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-              throws java.io.IOException {
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
         com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
@@ -2948,16 +2948,16 @@ public final class TableMetadataPersistence {
       private int bitField0_;
 
       private java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription> nameParts_ =
-              java.util.Collections.emptyList();
+        java.util.Collections.emptyList();
       private void ensureNamePartsIsMutable() {
         if (!((bitField0_ & 0x00000001) == 0x00000001)) {
           nameParts_ = new java.util.ArrayList<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription>(nameParts_);
           bitField0_ |= 0x00000001;
-        }
+         }
       }
 
       private com.google.protobuf.RepeatedFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder> namePartsBuilder_;
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder> namePartsBuilder_;
 
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
@@ -2993,7 +2993,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
        */
       public Builder setNameParts(
-              int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription value) {
+          int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription value) {
         if (namePartsBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -3010,7 +3010,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
        */
       public Builder setNameParts(
-              int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder builderForValue) {
+          int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder builderForValue) {
         if (namePartsBuilder_ == null) {
           ensureNamePartsIsMutable();
           nameParts_.set(index, builderForValue.build());
@@ -3040,7 +3040,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
        */
       public Builder addNameParts(
-              int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription value) {
+          int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription value) {
         if (namePartsBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -3057,7 +3057,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
        */
       public Builder addNameParts(
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder builderForValue) {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder builderForValue) {
         if (namePartsBuilder_ == null) {
           ensureNamePartsIsMutable();
           nameParts_.add(builderForValue.build());
@@ -3071,7 +3071,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
        */
       public Builder addNameParts(
-              int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder builderForValue) {
+          int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder builderForValue) {
         if (namePartsBuilder_ == null) {
           ensureNamePartsIsMutable();
           nameParts_.add(index, builderForValue.build());
@@ -3085,11 +3085,11 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
        */
       public Builder addAllNameParts(
-              java.lang.Iterable<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription> values) {
+          java.lang.Iterable<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription> values) {
         if (namePartsBuilder_ == null) {
           ensureNamePartsIsMutable();
           com.google.protobuf.AbstractMessageLite.Builder.addAll(
-                  values, nameParts_);
+              values, nameParts_);
           onChanged();
         } else {
           namePartsBuilder_.addAllMessages(values);
@@ -3126,14 +3126,14 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
        */
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder getNamePartsBuilder(
-              int index) {
+          int index) {
         return getNamePartsFieldBuilder().getBuilder(index);
       }
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
        */
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder getNamePartsOrBuilder(
-              int index) {
+          int index) {
         if (namePartsBuilder_ == null) {
           return nameParts_.get(index);  } else {
           return namePartsBuilder_.getMessageOrBuilder(index);
@@ -3142,8 +3142,8 @@ public final class TableMetadataPersistence {
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
        */
-      public java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder>
-      getNamePartsOrBuilderList() {
+      public java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder> 
+           getNamePartsOrBuilderList() {
         if (namePartsBuilder_ != null) {
           return namePartsBuilder_.getMessageOrBuilderList();
         } else {
@@ -3155,29 +3155,29 @@ public final class TableMetadataPersistence {
        */
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder addNamePartsBuilder() {
         return getNamePartsFieldBuilder().addBuilder(
-                com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.getDefaultInstance());
+            com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.getDefaultInstance());
       }
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
        */
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder addNamePartsBuilder(
-              int index) {
+          int index) {
         return getNamePartsFieldBuilder().addBuilder(
-                index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.getDefaultInstance());
+            index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.getDefaultInstance());
       }
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.NameComponentDescription nameParts = 1;</code>
        */
-      public java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder>
-      getNamePartsBuilderList() {
+      public java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder> 
+           getNamePartsBuilderList() {
         return getNamePartsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder>
-      getNamePartsFieldBuilder() {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder> 
+          getNamePartsFieldBuilder() {
         if (namePartsBuilder_ == null) {
           namePartsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-                  com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder>(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder>(
                   nameParts_,
                   ((bitField0_ & 0x00000001) == 0x00000001),
                   getParentForChildren(),
@@ -3231,8 +3231,8 @@ public final class TableMetadataPersistence {
   }
 
   public interface NameComponentDescriptionOrBuilder extends
-          // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.NameComponentDescription)
-          com.google.protobuf.MessageOrBuilder {
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.NameComponentDescription)
+      com.google.protobuf.MessageOrBuilder {
 
     /**
      * <code>required string componentName = 1;</code>
@@ -3246,7 +3246,7 @@ public final class TableMetadataPersistence {
      * <code>required string componentName = 1;</code>
      */
     com.google.protobuf.ByteString
-    getComponentNameBytes();
+        getComponentNameBytes();
 
     /**
      * <code>required .com.palantir.atlasdb.protos.generated.ValueType type = 2;</code>
@@ -3279,7 +3279,7 @@ public final class TableMetadataPersistence {
      * <code>repeated string explicitPartitions = 5;</code>
      */
     com.google.protobuf.ProtocolStringList
-    getExplicitPartitionsList();
+        getExplicitPartitionsList();
     /**
      * <code>repeated string explicitPartitions = 5;</code>
      */
@@ -3292,7 +3292,7 @@ public final class TableMetadataPersistence {
      * <code>repeated string explicitPartitions = 5;</code>
      */
     com.google.protobuf.ByteString
-    getExplicitPartitionsBytes(int index);
+        getExplicitPartitionsBytes(int index);
 
     /**
      * <code>optional bool nameLoggable = 6 [default = false];</code>
@@ -3307,9 +3307,9 @@ public final class TableMetadataPersistence {
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.NameComponentDescription}
    */
   public static final class NameComponentDescription extends
-          com.google.protobuf.GeneratedMessage implements
-          // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.NameComponentDescription)
-          NameComponentDescriptionOrBuilder {
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.NameComponentDescription)
+      NameComponentDescriptionOrBuilder {
     // Use NameComponentDescription.newBuilder() to construct.
     private NameComponentDescription(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
@@ -3329,17 +3329,17 @@ public final class TableMetadataPersistence {
     private final com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
+        getUnknownFields() {
       return this.unknownFields;
     }
     private NameComponentDescription(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-              com.google.protobuf.UnknownFieldSet.newBuilder();
+          com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
         boolean done = false;
         while (!done) {
@@ -3350,7 +3350,7 @@ public final class TableMetadataPersistence {
               break;
             default: {
               if (!parseUnknownField(input, unknownFields,
-                      extensionRegistry, tag)) {
+                                     extensionRegistry, tag)) {
                 done = true;
               }
               break;
@@ -3408,7 +3408,7 @@ public final class TableMetadataPersistence {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this);
+            e.getMessage()).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
           explicitPartitions_ = explicitPartitions_.getUnmodifiableView();
@@ -3418,26 +3418,26 @@ public final class TableMetadataPersistence {
       }
     }
     public static final com.google.protobuf.Descriptors.Descriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-    internalGetFieldAccessorTable() {
+        internalGetFieldAccessorTable() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_fieldAccessorTable
-              .ensureFieldAccessorsInitialized(
-                      com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder.class);
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder.class);
     }
 
     public static com.google.protobuf.Parser<NameComponentDescription> PARSER =
-            new com.google.protobuf.AbstractParser<NameComponentDescription>() {
-              public NameComponentDescription parsePartialFrom(
-                      com.google.protobuf.CodedInputStream input,
-                      com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                      throws com.google.protobuf.InvalidProtocolBufferException {
-                return new NameComponentDescription(input, extensionRegistry);
-              }
-            };
+        new com.google.protobuf.AbstractParser<NameComponentDescription>() {
+      public NameComponentDescription parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new NameComponentDescription(input, extensionRegistry);
+      }
+    };
 
     @java.lang.Override
     public com.google.protobuf.Parser<NameComponentDescription> getParserForType() {
@@ -3461,8 +3461,8 @@ public final class TableMetadataPersistence {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs =
-                (com.google.protobuf.ByteString) ref;
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           componentName_ = s;
@@ -3474,12 +3474,12 @@ public final class TableMetadataPersistence {
      * <code>required string componentName = 1;</code>
      */
     public com.google.protobuf.ByteString
-    getComponentNameBytes() {
+        getComponentNameBytes() {
       java.lang.Object ref = componentName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b =
-                com.google.protobuf.ByteString.copyFromUtf8(
-                        (java.lang.String) ref);
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
         componentName_ = b;
         return b;
       } else {
@@ -3538,7 +3538,7 @@ public final class TableMetadataPersistence {
      * <code>repeated string explicitPartitions = 5;</code>
      */
     public com.google.protobuf.ProtocolStringList
-    getExplicitPartitionsList() {
+        getExplicitPartitionsList() {
       return explicitPartitions_;
     }
     /**
@@ -3557,7 +3557,7 @@ public final class TableMetadataPersistence {
      * <code>repeated string explicitPartitions = 5;</code>
      */
     public com.google.protobuf.ByteString
-    getExplicitPartitionsBytes(int index) {
+        getExplicitPartitionsBytes(int index) {
       return explicitPartitions_.getByteString(index);
     }
 
@@ -3607,7 +3607,7 @@ public final class TableMetadataPersistence {
     }
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
-            throws java.io.IOException {
+                        throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeBytes(1, getComponentNameBytes());
@@ -3638,32 +3638,32 @@ public final class TableMetadataPersistence {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBytesSize(1, getComponentNameBytes());
+          .computeBytesSize(1, getComponentNameBytes());
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeEnumSize(2, type_.getNumber());
+          .computeEnumSize(2, type_.getNumber());
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeEnumSize(3, order_.getNumber());
+          .computeEnumSize(3, order_.getNumber());
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBoolSize(4, hasUniformPartitioner_);
+          .computeBoolSize(4, hasUniformPartitioner_);
       }
       {
         int dataSize = 0;
         for (int i = 0; i < explicitPartitions_.size(); i++) {
           dataSize += com.google.protobuf.CodedOutputStream
-                  .computeBytesSizeNoTag(explicitPartitions_.getByteString(i));
+            .computeBytesSizeNoTag(explicitPartitions_.getByteString(i));
         }
         size += dataSize;
         size += 1 * getExplicitPartitionsList().size();
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBoolSize(6, nameLoggable_);
+          .computeBoolSize(6, nameLoggable_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -3673,60 +3673,60 @@ public final class TableMetadataPersistence {
     private static final long serialVersionUID = 0L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
-            throws java.io.ObjectStreamException {
+        throws java.io.ObjectStreamException {
       return super.writeReplace();
     }
 
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription parseFrom(
-            com.google.protobuf.ByteString data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription parseFrom(
-            com.google.protobuf.ByteString data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription parseFrom(byte[] data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription parseFrom(
-            byte[] data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription parseFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription parseFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription parseDelimitedFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription parseDelimitedFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription parseFrom(
-            com.google.protobuf.CodedInputStream input)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription parseFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
@@ -3739,7 +3739,7 @@ public final class TableMetadataPersistence {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -3747,19 +3747,19 @@ public final class TableMetadataPersistence {
      * Protobuf type {@code com.palantir.atlasdb.protos.generated.NameComponentDescription}
      */
     public static final class Builder extends
-            com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-            // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.NameComponentDescription)
-            com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder {
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.NameComponentDescription)
+        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
-      getDescriptor() {
+          getDescriptor() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internalGetFieldAccessorTable() {
+          internalGetFieldAccessorTable() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder.class);
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder.class);
       }
 
       // Construct using com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.newBuilder()
@@ -3768,7 +3768,7 @@ public final class TableMetadataPersistence {
       }
 
       private Builder(
-              com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
@@ -3802,7 +3802,7 @@ public final class TableMetadataPersistence {
       }
 
       public com.google.protobuf.Descriptors.Descriptor
-      getDescriptorForType() {
+          getDescriptorForType() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_descriptor;
       }
 
@@ -3896,24 +3896,24 @@ public final class TableMetadataPersistence {
 
       public final boolean isInitialized() {
         if (!hasComponentName()) {
-
+          
           return false;
         }
         if (!hasType()) {
-
+          
           return false;
         }
         if (!hasOrder()) {
-
+          
           return false;
         }
         return true;
       }
 
       public Builder mergeFrom(
-              com.google.protobuf.CodedInputStream input,
-              com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-              throws java.io.IOException {
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
         com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
@@ -3943,7 +3943,7 @@ public final class TableMetadataPersistence {
         java.lang.Object ref = componentName_;
         if (!(ref instanceof java.lang.String)) {
           com.google.protobuf.ByteString bs =
-                  (com.google.protobuf.ByteString) ref;
+              (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
             componentName_ = s;
@@ -3957,12 +3957,12 @@ public final class TableMetadataPersistence {
        * <code>required string componentName = 1;</code>
        */
       public com.google.protobuf.ByteString
-      getComponentNameBytes() {
+          getComponentNameBytes() {
         java.lang.Object ref = componentName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b =
-                  com.google.protobuf.ByteString.copyFromUtf8(
-                          (java.lang.String) ref);
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
           componentName_ = b;
           return b;
         } else {
@@ -3973,11 +3973,11 @@ public final class TableMetadataPersistence {
        * <code>required string componentName = 1;</code>
        */
       public Builder setComponentName(
-              java.lang.String value) {
+          java.lang.String value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000001;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
         componentName_ = value;
         onChanged();
         return this;
@@ -3995,11 +3995,11 @@ public final class TableMetadataPersistence {
        * <code>required string componentName = 1;</code>
        */
       public Builder setComponentNameBytes(
-              com.google.protobuf.ByteString value) {
+          com.google.protobuf.ByteString value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000001;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
         componentName_ = value;
         onChanged();
         return this;
@@ -4112,13 +4112,13 @@ public final class TableMetadataPersistence {
         if (!((bitField0_ & 0x00000010) == 0x00000010)) {
           explicitPartitions_ = new com.google.protobuf.LazyStringArrayList(explicitPartitions_);
           bitField0_ |= 0x00000010;
-        }
+         }
       }
       /**
        * <code>repeated string explicitPartitions = 5;</code>
        */
       public com.google.protobuf.ProtocolStringList
-      getExplicitPartitionsList() {
+          getExplicitPartitionsList() {
         return explicitPartitions_.getUnmodifiableView();
       }
       /**
@@ -4137,18 +4137,18 @@ public final class TableMetadataPersistence {
        * <code>repeated string explicitPartitions = 5;</code>
        */
       public com.google.protobuf.ByteString
-      getExplicitPartitionsBytes(int index) {
+          getExplicitPartitionsBytes(int index) {
         return explicitPartitions_.getByteString(index);
       }
       /**
        * <code>repeated string explicitPartitions = 5;</code>
        */
       public Builder setExplicitPartitions(
-              int index, java.lang.String value) {
+          int index, java.lang.String value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureExplicitPartitionsIsMutable();
+    throw new NullPointerException();
+  }
+  ensureExplicitPartitionsIsMutable();
         explicitPartitions_.set(index, value);
         onChanged();
         return this;
@@ -4157,11 +4157,11 @@ public final class TableMetadataPersistence {
        * <code>repeated string explicitPartitions = 5;</code>
        */
       public Builder addExplicitPartitions(
-              java.lang.String value) {
+          java.lang.String value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureExplicitPartitionsIsMutable();
+    throw new NullPointerException();
+  }
+  ensureExplicitPartitionsIsMutable();
         explicitPartitions_.add(value);
         onChanged();
         return this;
@@ -4170,10 +4170,10 @@ public final class TableMetadataPersistence {
        * <code>repeated string explicitPartitions = 5;</code>
        */
       public Builder addAllExplicitPartitions(
-              java.lang.Iterable<java.lang.String> values) {
+          java.lang.Iterable<java.lang.String> values) {
         ensureExplicitPartitionsIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-                values, explicitPartitions_);
+            values, explicitPartitions_);
         onChanged();
         return this;
       }
@@ -4190,11 +4190,11 @@ public final class TableMetadataPersistence {
        * <code>repeated string explicitPartitions = 5;</code>
        */
       public Builder addExplicitPartitionsBytes(
-              com.google.protobuf.ByteString value) {
+          com.google.protobuf.ByteString value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureExplicitPartitionsIsMutable();
+    throw new NullPointerException();
+  }
+  ensureExplicitPartitionsIsMutable();
         explicitPartitions_.add(value);
         onChanged();
         return this;
@@ -4244,14 +4244,14 @@ public final class TableMetadataPersistence {
   }
 
   public interface ColumnMetadataDescriptionOrBuilder extends
-          // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.ColumnMetadataDescription)
-          com.google.protobuf.MessageOrBuilder {
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.ColumnMetadataDescription)
+      com.google.protobuf.MessageOrBuilder {
 
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
      */
-    java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription>
-    getNamedColumnsList();
+    java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription> 
+        getNamedColumnsList();
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
      */
@@ -4263,13 +4263,13 @@ public final class TableMetadataPersistence {
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
      */
-    java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder>
-    getNamedColumnsOrBuilderList();
+    java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder> 
+        getNamedColumnsOrBuilderList();
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
      */
     com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder getNamedColumnsOrBuilder(
-            int index);
+        int index);
 
     /**
      * <code>optional .com.palantir.atlasdb.protos.generated.DynamicColumnDescription dynamicColumn = 2;</code>
@@ -4288,9 +4288,9 @@ public final class TableMetadataPersistence {
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.ColumnMetadataDescription}
    */
   public static final class ColumnMetadataDescription extends
-          com.google.protobuf.GeneratedMessage implements
-          // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.ColumnMetadataDescription)
-          ColumnMetadataDescriptionOrBuilder {
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.ColumnMetadataDescription)
+      ColumnMetadataDescriptionOrBuilder {
     // Use ColumnMetadataDescription.newBuilder() to construct.
     private ColumnMetadataDescription(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
@@ -4310,17 +4310,17 @@ public final class TableMetadataPersistence {
     private final com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
+        getUnknownFields() {
       return this.unknownFields;
     }
     private ColumnMetadataDescription(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-              com.google.protobuf.UnknownFieldSet.newBuilder();
+          com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
         boolean done = false;
         while (!done) {
@@ -4331,7 +4331,7 @@ public final class TableMetadataPersistence {
               break;
             default: {
               if (!parseUnknownField(input, unknownFields,
-                      extensionRegistry, tag)) {
+                                     extensionRegistry, tag)) {
                 done = true;
               }
               break;
@@ -4363,7 +4363,7 @@ public final class TableMetadataPersistence {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this);
+            e.getMessage()).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
           namedColumns_ = java.util.Collections.unmodifiableList(namedColumns_);
@@ -4373,26 +4373,26 @@ public final class TableMetadataPersistence {
       }
     }
     public static final com.google.protobuf.Descriptors.Descriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-    internalGetFieldAccessorTable() {
+        internalGetFieldAccessorTable() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_fieldAccessorTable
-              .ensureFieldAccessorsInitialized(
-                      com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder.class);
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder.class);
     }
 
     public static com.google.protobuf.Parser<ColumnMetadataDescription> PARSER =
-            new com.google.protobuf.AbstractParser<ColumnMetadataDescription>() {
-              public ColumnMetadataDescription parsePartialFrom(
-                      com.google.protobuf.CodedInputStream input,
-                      com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                      throws com.google.protobuf.InvalidProtocolBufferException {
-                return new ColumnMetadataDescription(input, extensionRegistry);
-              }
-            };
+        new com.google.protobuf.AbstractParser<ColumnMetadataDescription>() {
+      public ColumnMetadataDescription parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new ColumnMetadataDescription(input, extensionRegistry);
+      }
+    };
 
     @java.lang.Override
     public com.google.protobuf.Parser<ColumnMetadataDescription> getParserForType() {
@@ -4411,8 +4411,8 @@ public final class TableMetadataPersistence {
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
      */
-    public java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder>
-    getNamedColumnsOrBuilderList() {
+    public java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder> 
+        getNamedColumnsOrBuilderList() {
       return namedColumns_;
     }
     /**
@@ -4431,7 +4431,7 @@ public final class TableMetadataPersistence {
      * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
      */
     public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder getNamedColumnsOrBuilder(
-            int index) {
+        int index) {
       return namedColumns_.get(index);
     }
 
@@ -4483,7 +4483,7 @@ public final class TableMetadataPersistence {
     }
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
-            throws java.io.IOException {
+                        throws java.io.IOException {
       getSerializedSize();
       for (int i = 0; i < namedColumns_.size(); i++) {
         output.writeMessage(1, namedColumns_.get(i));
@@ -4502,11 +4502,11 @@ public final class TableMetadataPersistence {
       size = 0;
       for (int i = 0; i < namedColumns_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
-                .computeMessageSize(1, namedColumns_.get(i));
+          .computeMessageSize(1, namedColumns_.get(i));
       }
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeMessageSize(2, dynamicColumn_);
+          .computeMessageSize(2, dynamicColumn_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -4516,60 +4516,60 @@ public final class TableMetadataPersistence {
     private static final long serialVersionUID = 0L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
-            throws java.io.ObjectStreamException {
+        throws java.io.ObjectStreamException {
       return super.writeReplace();
     }
 
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription parseFrom(
-            com.google.protobuf.ByteString data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription parseFrom(
-            com.google.protobuf.ByteString data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription parseFrom(byte[] data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription parseFrom(
-            byte[] data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription parseFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription parseFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription parseDelimitedFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription parseDelimitedFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription parseFrom(
-            com.google.protobuf.CodedInputStream input)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription parseFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
@@ -4582,7 +4582,7 @@ public final class TableMetadataPersistence {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -4590,19 +4590,19 @@ public final class TableMetadataPersistence {
      * Protobuf type {@code com.palantir.atlasdb.protos.generated.ColumnMetadataDescription}
      */
     public static final class Builder extends
-            com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-            // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.ColumnMetadataDescription)
-            com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescriptionOrBuilder {
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.ColumnMetadataDescription)
+        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescriptionOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
-      getDescriptor() {
+          getDescriptor() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internalGetFieldAccessorTable() {
+          internalGetFieldAccessorTable() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder.class);
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder.class);
       }
 
       // Construct using com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.newBuilder()
@@ -4611,7 +4611,7 @@ public final class TableMetadataPersistence {
       }
 
       private Builder(
-              com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
@@ -4647,7 +4647,7 @@ public final class TableMetadataPersistence {
       }
 
       public com.google.protobuf.Descriptors.Descriptor
-      getDescriptorForType() {
+          getDescriptorForType() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_descriptor;
       }
 
@@ -4718,9 +4718,9 @@ public final class TableMetadataPersistence {
               namedColumnsBuilder_ = null;
               namedColumns_ = other.namedColumns_;
               bitField0_ = (bitField0_ & ~0x00000001);
-              namedColumnsBuilder_ =
-                      com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                              getNamedColumnsFieldBuilder() : null;
+              namedColumnsBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getNamedColumnsFieldBuilder() : null;
             } else {
               namedColumnsBuilder_.addAllMessages(other.namedColumns_);
             }
@@ -4736,13 +4736,13 @@ public final class TableMetadataPersistence {
       public final boolean isInitialized() {
         for (int i = 0; i < getNamedColumnsCount(); i++) {
           if (!getNamedColumns(i).isInitialized()) {
-
+            
             return false;
           }
         }
         if (hasDynamicColumn()) {
           if (!getDynamicColumn().isInitialized()) {
-
+            
             return false;
           }
         }
@@ -4750,9 +4750,9 @@ public final class TableMetadataPersistence {
       }
 
       public Builder mergeFrom(
-              com.google.protobuf.CodedInputStream input,
-              com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-              throws java.io.IOException {
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
         com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
@@ -4769,16 +4769,16 @@ public final class TableMetadataPersistence {
       private int bitField0_;
 
       private java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription> namedColumns_ =
-              java.util.Collections.emptyList();
+        java.util.Collections.emptyList();
       private void ensureNamedColumnsIsMutable() {
         if (!((bitField0_ & 0x00000001) == 0x00000001)) {
           namedColumns_ = new java.util.ArrayList<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription>(namedColumns_);
           bitField0_ |= 0x00000001;
-        }
+         }
       }
 
       private com.google.protobuf.RepeatedFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder> namedColumnsBuilder_;
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder> namedColumnsBuilder_;
 
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
@@ -4814,7 +4814,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
        */
       public Builder setNamedColumns(
-              int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription value) {
+          int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription value) {
         if (namedColumnsBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -4831,7 +4831,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
        */
       public Builder setNamedColumns(
-              int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder builderForValue) {
+          int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder builderForValue) {
         if (namedColumnsBuilder_ == null) {
           ensureNamedColumnsIsMutable();
           namedColumns_.set(index, builderForValue.build());
@@ -4861,7 +4861,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
        */
       public Builder addNamedColumns(
-              int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription value) {
+          int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription value) {
         if (namedColumnsBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -4878,7 +4878,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
        */
       public Builder addNamedColumns(
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder builderForValue) {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder builderForValue) {
         if (namedColumnsBuilder_ == null) {
           ensureNamedColumnsIsMutable();
           namedColumns_.add(builderForValue.build());
@@ -4892,7 +4892,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
        */
       public Builder addNamedColumns(
-              int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder builderForValue) {
+          int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder builderForValue) {
         if (namedColumnsBuilder_ == null) {
           ensureNamedColumnsIsMutable();
           namedColumns_.add(index, builderForValue.build());
@@ -4906,11 +4906,11 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
        */
       public Builder addAllNamedColumns(
-              java.lang.Iterable<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription> values) {
+          java.lang.Iterable<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription> values) {
         if (namedColumnsBuilder_ == null) {
           ensureNamedColumnsIsMutable();
           com.google.protobuf.AbstractMessageLite.Builder.addAll(
-                  values, namedColumns_);
+              values, namedColumns_);
           onChanged();
         } else {
           namedColumnsBuilder_.addAllMessages(values);
@@ -4947,14 +4947,14 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
        */
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder getNamedColumnsBuilder(
-              int index) {
+          int index) {
         return getNamedColumnsFieldBuilder().getBuilder(index);
       }
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
        */
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder getNamedColumnsOrBuilder(
-              int index) {
+          int index) {
         if (namedColumnsBuilder_ == null) {
           return namedColumns_.get(index);  } else {
           return namedColumnsBuilder_.getMessageOrBuilder(index);
@@ -4963,8 +4963,8 @@ public final class TableMetadataPersistence {
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
        */
-      public java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder>
-      getNamedColumnsOrBuilderList() {
+      public java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder> 
+           getNamedColumnsOrBuilderList() {
         if (namedColumnsBuilder_ != null) {
           return namedColumnsBuilder_.getMessageOrBuilderList();
         } else {
@@ -4976,29 +4976,29 @@ public final class TableMetadataPersistence {
        */
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder addNamedColumnsBuilder() {
         return getNamedColumnsFieldBuilder().addBuilder(
-                com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.getDefaultInstance());
+            com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.getDefaultInstance());
       }
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
        */
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder addNamedColumnsBuilder(
-              int index) {
+          int index) {
         return getNamedColumnsFieldBuilder().addBuilder(
-                index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.getDefaultInstance());
+            index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.getDefaultInstance());
       }
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.NamedColumnDescription namedColumns = 1;</code>
        */
-      public java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder>
-      getNamedColumnsBuilderList() {
+      public java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder> 
+           getNamedColumnsBuilderList() {
         return getNamedColumnsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder>
-      getNamedColumnsFieldBuilder() {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder> 
+          getNamedColumnsFieldBuilder() {
         if (namedColumnsBuilder_ == null) {
           namedColumnsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-                  com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder>(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder>(
                   namedColumns_,
                   ((bitField0_ & 0x00000001) == 0x00000001),
                   getParentForChildren(),
@@ -5010,7 +5010,7 @@ public final class TableMetadataPersistence {
 
       private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription dynamicColumn_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescriptionOrBuilder> dynamicColumnBuilder_;
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescriptionOrBuilder> dynamicColumnBuilder_;
       /**
        * <code>optional .com.palantir.atlasdb.protos.generated.DynamicColumnDescription dynamicColumn = 2;</code>
        */
@@ -5047,7 +5047,7 @@ public final class TableMetadataPersistence {
        * <code>optional .com.palantir.atlasdb.protos.generated.DynamicColumnDescription dynamicColumn = 2;</code>
        */
       public Builder setDynamicColumn(
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder builderForValue) {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder builderForValue) {
         if (dynamicColumnBuilder_ == null) {
           dynamicColumn_ = builderForValue.build();
           onChanged();
@@ -5063,9 +5063,9 @@ public final class TableMetadataPersistence {
       public Builder mergeDynamicColumn(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription value) {
         if (dynamicColumnBuilder_ == null) {
           if (((bitField0_ & 0x00000002) == 0x00000002) &&
-                  dynamicColumn_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.getDefaultInstance()) {
+              dynamicColumn_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.getDefaultInstance()) {
             dynamicColumn_ =
-                    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.newBuilder(dynamicColumn_).mergeFrom(value).buildPartial();
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.newBuilder(dynamicColumn_).mergeFrom(value).buildPartial();
           } else {
             dynamicColumn_ = value;
           }
@@ -5111,11 +5111,11 @@ public final class TableMetadataPersistence {
        * <code>optional .com.palantir.atlasdb.protos.generated.DynamicColumnDescription dynamicColumn = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescriptionOrBuilder>
-      getDynamicColumnFieldBuilder() {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescriptionOrBuilder> 
+          getDynamicColumnFieldBuilder() {
         if (dynamicColumnBuilder_ == null) {
           dynamicColumnBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-                  com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescriptionOrBuilder>(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescriptionOrBuilder>(
                   getDynamicColumn(),
                   getParentForChildren(),
                   isClean());
@@ -5136,8 +5136,8 @@ public final class TableMetadataPersistence {
   }
 
   public interface DynamicColumnDescriptionOrBuilder extends
-          // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.DynamicColumnDescription)
-          com.google.protobuf.MessageOrBuilder {
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.DynamicColumnDescription)
+      com.google.protobuf.MessageOrBuilder {
 
     /**
      * <code>required .com.palantir.atlasdb.protos.generated.NameMetadataDescription columnNameDesc = 1;</code>
@@ -5169,9 +5169,9 @@ public final class TableMetadataPersistence {
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.DynamicColumnDescription}
    */
   public static final class DynamicColumnDescription extends
-          com.google.protobuf.GeneratedMessage implements
-          // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.DynamicColumnDescription)
-          DynamicColumnDescriptionOrBuilder {
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.DynamicColumnDescription)
+      DynamicColumnDescriptionOrBuilder {
     // Use DynamicColumnDescription.newBuilder() to construct.
     private DynamicColumnDescription(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
@@ -5191,17 +5191,17 @@ public final class TableMetadataPersistence {
     private final com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
+        getUnknownFields() {
       return this.unknownFields;
     }
     private DynamicColumnDescription(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-              com.google.protobuf.UnknownFieldSet.newBuilder();
+          com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
         boolean done = false;
         while (!done) {
@@ -5212,7 +5212,7 @@ public final class TableMetadataPersistence {
               break;
             default: {
               if (!parseUnknownField(input, unknownFields,
-                      extensionRegistry, tag)) {
+                                     extensionRegistry, tag)) {
                 done = true;
               }
               break;
@@ -5249,33 +5249,33 @@ public final class TableMetadataPersistence {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this);
+            e.getMessage()).setUnfinishedMessage(this);
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
       }
     }
     public static final com.google.protobuf.Descriptors.Descriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-    internalGetFieldAccessorTable() {
+        internalGetFieldAccessorTable() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_fieldAccessorTable
-              .ensureFieldAccessorsInitialized(
-                      com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder.class);
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder.class);
     }
 
     public static com.google.protobuf.Parser<DynamicColumnDescription> PARSER =
-            new com.google.protobuf.AbstractParser<DynamicColumnDescription>() {
-              public DynamicColumnDescription parsePartialFrom(
-                      com.google.protobuf.CodedInputStream input,
-                      com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                      throws com.google.protobuf.InvalidProtocolBufferException {
-                return new DynamicColumnDescription(input, extensionRegistry);
-              }
-            };
+        new com.google.protobuf.AbstractParser<DynamicColumnDescription>() {
+      public DynamicColumnDescription parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new DynamicColumnDescription(input, extensionRegistry);
+      }
+    };
 
     @java.lang.Override
     public com.google.protobuf.Parser<DynamicColumnDescription> getParserForType() {
@@ -5356,7 +5356,7 @@ public final class TableMetadataPersistence {
     }
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
-            throws java.io.IOException {
+                        throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeMessage(1, columnNameDesc_);
@@ -5375,11 +5375,11 @@ public final class TableMetadataPersistence {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeMessageSize(1, columnNameDesc_);
+          .computeMessageSize(1, columnNameDesc_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeMessageSize(2, value_);
+          .computeMessageSize(2, value_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -5389,60 +5389,60 @@ public final class TableMetadataPersistence {
     private static final long serialVersionUID = 0L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
-            throws java.io.ObjectStreamException {
+        throws java.io.ObjectStreamException {
       return super.writeReplace();
     }
 
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription parseFrom(
-            com.google.protobuf.ByteString data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription parseFrom(
-            com.google.protobuf.ByteString data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription parseFrom(byte[] data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription parseFrom(
-            byte[] data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription parseFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription parseFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription parseDelimitedFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription parseDelimitedFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription parseFrom(
-            com.google.protobuf.CodedInputStream input)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription parseFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
@@ -5455,7 +5455,7 @@ public final class TableMetadataPersistence {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -5463,19 +5463,19 @@ public final class TableMetadataPersistence {
      * Protobuf type {@code com.palantir.atlasdb.protos.generated.DynamicColumnDescription}
      */
     public static final class Builder extends
-            com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-            // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.DynamicColumnDescription)
-            com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescriptionOrBuilder {
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.DynamicColumnDescription)
+        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescriptionOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
-      getDescriptor() {
+          getDescriptor() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internalGetFieldAccessorTable() {
+          internalGetFieldAccessorTable() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder.class);
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder.class);
       }
 
       // Construct using com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.newBuilder()
@@ -5484,7 +5484,7 @@ public final class TableMetadataPersistence {
       }
 
       private Builder(
-              com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
@@ -5520,7 +5520,7 @@ public final class TableMetadataPersistence {
       }
 
       public com.google.protobuf.Descriptors.Descriptor
-      getDescriptorForType() {
+          getDescriptorForType() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_descriptor;
       }
 
@@ -5584,28 +5584,28 @@ public final class TableMetadataPersistence {
 
       public final boolean isInitialized() {
         if (!hasColumnNameDesc()) {
-
+          
           return false;
         }
         if (!hasValue()) {
-
+          
           return false;
         }
         if (!getColumnNameDesc().isInitialized()) {
-
+          
           return false;
         }
         if (!getValue().isInitialized()) {
-
+          
           return false;
         }
         return true;
       }
 
       public Builder mergeFrom(
-              com.google.protobuf.CodedInputStream input,
-              com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-              throws java.io.IOException {
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
         com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
@@ -5623,7 +5623,7 @@ public final class TableMetadataPersistence {
 
       private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription columnNameDesc_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder> columnNameDescBuilder_;
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder> columnNameDescBuilder_;
       /**
        * <code>required .com.palantir.atlasdb.protos.generated.NameMetadataDescription columnNameDesc = 1;</code>
        */
@@ -5660,7 +5660,7 @@ public final class TableMetadataPersistence {
        * <code>required .com.palantir.atlasdb.protos.generated.NameMetadataDescription columnNameDesc = 1;</code>
        */
       public Builder setColumnNameDesc(
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder builderForValue) {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder builderForValue) {
         if (columnNameDescBuilder_ == null) {
           columnNameDesc_ = builderForValue.build();
           onChanged();
@@ -5676,9 +5676,9 @@ public final class TableMetadataPersistence {
       public Builder mergeColumnNameDesc(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription value) {
         if (columnNameDescBuilder_ == null) {
           if (((bitField0_ & 0x00000001) == 0x00000001) &&
-                  columnNameDesc_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.getDefaultInstance()) {
+              columnNameDesc_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.getDefaultInstance()) {
             columnNameDesc_ =
-                    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.newBuilder(columnNameDesc_).mergeFrom(value).buildPartial();
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.newBuilder(columnNameDesc_).mergeFrom(value).buildPartial();
           } else {
             columnNameDesc_ = value;
           }
@@ -5724,11 +5724,11 @@ public final class TableMetadataPersistence {
        * <code>required .com.palantir.atlasdb.protos.generated.NameMetadataDescription columnNameDesc = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder>
-      getColumnNameDescFieldBuilder() {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder> 
+          getColumnNameDescFieldBuilder() {
         if (columnNameDescBuilder_ == null) {
           columnNameDescBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-                  com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder>(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescriptionOrBuilder>(
                   getColumnNameDesc(),
                   getParentForChildren(),
                   isClean());
@@ -5739,7 +5739,7 @@ public final class TableMetadataPersistence {
 
       private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription value_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder> valueBuilder_;
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder> valueBuilder_;
       /**
        * <code>required .com.palantir.atlasdb.protos.generated.ColumnValueDescription value = 2;</code>
        */
@@ -5776,7 +5776,7 @@ public final class TableMetadataPersistence {
        * <code>required .com.palantir.atlasdb.protos.generated.ColumnValueDescription value = 2;</code>
        */
       public Builder setValue(
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder builderForValue) {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder builderForValue) {
         if (valueBuilder_ == null) {
           value_ = builderForValue.build();
           onChanged();
@@ -5792,9 +5792,9 @@ public final class TableMetadataPersistence {
       public Builder mergeValue(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription value) {
         if (valueBuilder_ == null) {
           if (((bitField0_ & 0x00000002) == 0x00000002) &&
-                  value_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.getDefaultInstance()) {
+              value_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.getDefaultInstance()) {
             value_ =
-                    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.newBuilder(value_).mergeFrom(value).buildPartial();
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.newBuilder(value_).mergeFrom(value).buildPartial();
           } else {
             value_ = value;
           }
@@ -5840,11 +5840,11 @@ public final class TableMetadataPersistence {
        * <code>required .com.palantir.atlasdb.protos.generated.ColumnValueDescription value = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder>
-      getValueFieldBuilder() {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder> 
+          getValueFieldBuilder() {
         if (valueBuilder_ == null) {
           valueBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-                  com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder>(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder>(
                   getValue(),
                   getParentForChildren(),
                   isClean());
@@ -5865,8 +5865,8 @@ public final class TableMetadataPersistence {
   }
 
   public interface NamedColumnDescriptionOrBuilder extends
-          // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.NamedColumnDescription)
-          com.google.protobuf.MessageOrBuilder {
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.NamedColumnDescription)
+      com.google.protobuf.MessageOrBuilder {
 
     /**
      * <code>required string shortName = 1;</code>
@@ -5880,7 +5880,7 @@ public final class TableMetadataPersistence {
      * <code>required string shortName = 1;</code>
      */
     com.google.protobuf.ByteString
-    getShortNameBytes();
+        getShortNameBytes();
 
     /**
      * <code>required string longName = 2;</code>
@@ -5894,7 +5894,7 @@ public final class TableMetadataPersistence {
      * <code>required string longName = 2;</code>
      */
     com.google.protobuf.ByteString
-    getLongNameBytes();
+        getLongNameBytes();
 
     /**
      * <code>required .com.palantir.atlasdb.protos.generated.ColumnValueDescription value = 3;</code>
@@ -5922,9 +5922,9 @@ public final class TableMetadataPersistence {
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.NamedColumnDescription}
    */
   public static final class NamedColumnDescription extends
-          com.google.protobuf.GeneratedMessage implements
-          // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.NamedColumnDescription)
-          NamedColumnDescriptionOrBuilder {
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.NamedColumnDescription)
+      NamedColumnDescriptionOrBuilder {
     // Use NamedColumnDescription.newBuilder() to construct.
     private NamedColumnDescription(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
@@ -5944,17 +5944,17 @@ public final class TableMetadataPersistence {
     private final com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
+        getUnknownFields() {
       return this.unknownFields;
     }
     private NamedColumnDescription(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-              com.google.protobuf.UnknownFieldSet.newBuilder();
+          com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
         boolean done = false;
         while (!done) {
@@ -5965,7 +5965,7 @@ public final class TableMetadataPersistence {
               break;
             default: {
               if (!parseUnknownField(input, unknownFields,
-                      extensionRegistry, tag)) {
+                                     extensionRegistry, tag)) {
                 done = true;
               }
               break;
@@ -6006,33 +6006,33 @@ public final class TableMetadataPersistence {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this);
+            e.getMessage()).setUnfinishedMessage(this);
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
       }
     }
     public static final com.google.protobuf.Descriptors.Descriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-    internalGetFieldAccessorTable() {
+        internalGetFieldAccessorTable() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_fieldAccessorTable
-              .ensureFieldAccessorsInitialized(
-                      com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder.class);
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder.class);
     }
 
     public static com.google.protobuf.Parser<NamedColumnDescription> PARSER =
-            new com.google.protobuf.AbstractParser<NamedColumnDescription>() {
-              public NamedColumnDescription parsePartialFrom(
-                      com.google.protobuf.CodedInputStream input,
-                      com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                      throws com.google.protobuf.InvalidProtocolBufferException {
-                return new NamedColumnDescription(input, extensionRegistry);
-              }
-            };
+        new com.google.protobuf.AbstractParser<NamedColumnDescription>() {
+      public NamedColumnDescription parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new NamedColumnDescription(input, extensionRegistry);
+      }
+    };
 
     @java.lang.Override
     public com.google.protobuf.Parser<NamedColumnDescription> getParserForType() {
@@ -6056,8 +6056,8 @@ public final class TableMetadataPersistence {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs =
-                (com.google.protobuf.ByteString) ref;
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           shortName_ = s;
@@ -6069,12 +6069,12 @@ public final class TableMetadataPersistence {
      * <code>required string shortName = 1;</code>
      */
     public com.google.protobuf.ByteString
-    getShortNameBytes() {
+        getShortNameBytes() {
       java.lang.Object ref = shortName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b =
-                com.google.protobuf.ByteString.copyFromUtf8(
-                        (java.lang.String) ref);
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
         shortName_ = b;
         return b;
       } else {
@@ -6098,8 +6098,8 @@ public final class TableMetadataPersistence {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs =
-                (com.google.protobuf.ByteString) ref;
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           longName_ = s;
@@ -6111,12 +6111,12 @@ public final class TableMetadataPersistence {
      * <code>required string longName = 2;</code>
      */
     public com.google.protobuf.ByteString
-    getLongNameBytes() {
+        getLongNameBytes() {
       java.lang.Object ref = longName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b =
-                com.google.protobuf.ByteString.copyFromUtf8(
-                        (java.lang.String) ref);
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
         longName_ = b;
         return b;
       } else {
@@ -6193,7 +6193,7 @@ public final class TableMetadataPersistence {
     }
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
-            throws java.io.IOException {
+                        throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeBytes(1, getShortNameBytes());
@@ -6218,19 +6218,19 @@ public final class TableMetadataPersistence {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBytesSize(1, getShortNameBytes());
+          .computeBytesSize(1, getShortNameBytes());
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBytesSize(2, getLongNameBytes());
+          .computeBytesSize(2, getLongNameBytes());
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeMessageSize(3, value_);
+          .computeMessageSize(3, value_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBoolSize(4, nameLoggable_);
+          .computeBoolSize(4, nameLoggable_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -6240,60 +6240,60 @@ public final class TableMetadataPersistence {
     private static final long serialVersionUID = 0L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
-            throws java.io.ObjectStreamException {
+        throws java.io.ObjectStreamException {
       return super.writeReplace();
     }
 
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription parseFrom(
-            com.google.protobuf.ByteString data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription parseFrom(
-            com.google.protobuf.ByteString data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription parseFrom(byte[] data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription parseFrom(
-            byte[] data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription parseFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription parseFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription parseDelimitedFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription parseDelimitedFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription parseFrom(
-            com.google.protobuf.CodedInputStream input)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription parseFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
@@ -6306,7 +6306,7 @@ public final class TableMetadataPersistence {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -6314,19 +6314,19 @@ public final class TableMetadataPersistence {
      * Protobuf type {@code com.palantir.atlasdb.protos.generated.NamedColumnDescription}
      */
     public static final class Builder extends
-            com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-            // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.NamedColumnDescription)
-            com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder {
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.NamedColumnDescription)
+        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescriptionOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
-      getDescriptor() {
+          getDescriptor() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internalGetFieldAccessorTable() {
+          internalGetFieldAccessorTable() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder.class);
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder.class);
       }
 
       // Construct using com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.newBuilder()
@@ -6335,7 +6335,7 @@ public final class TableMetadataPersistence {
       }
 
       private Builder(
-              com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
@@ -6370,7 +6370,7 @@ public final class TableMetadataPersistence {
       }
 
       public com.google.protobuf.Descriptors.Descriptor
-      getDescriptorForType() {
+          getDescriptorForType() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_descriptor;
       }
 
@@ -6448,28 +6448,28 @@ public final class TableMetadataPersistence {
 
       public final boolean isInitialized() {
         if (!hasShortName()) {
-
+          
           return false;
         }
         if (!hasLongName()) {
-
+          
           return false;
         }
         if (!hasValue()) {
-
+          
           return false;
         }
         if (!getValue().isInitialized()) {
-
+          
           return false;
         }
         return true;
       }
 
       public Builder mergeFrom(
-              com.google.protobuf.CodedInputStream input,
-              com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-              throws java.io.IOException {
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
         com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
@@ -6499,7 +6499,7 @@ public final class TableMetadataPersistence {
         java.lang.Object ref = shortName_;
         if (!(ref instanceof java.lang.String)) {
           com.google.protobuf.ByteString bs =
-                  (com.google.protobuf.ByteString) ref;
+              (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
             shortName_ = s;
@@ -6513,12 +6513,12 @@ public final class TableMetadataPersistence {
        * <code>required string shortName = 1;</code>
        */
       public com.google.protobuf.ByteString
-      getShortNameBytes() {
+          getShortNameBytes() {
         java.lang.Object ref = shortName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b =
-                  com.google.protobuf.ByteString.copyFromUtf8(
-                          (java.lang.String) ref);
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
           shortName_ = b;
           return b;
         } else {
@@ -6529,11 +6529,11 @@ public final class TableMetadataPersistence {
        * <code>required string shortName = 1;</code>
        */
       public Builder setShortName(
-              java.lang.String value) {
+          java.lang.String value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000001;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
         shortName_ = value;
         onChanged();
         return this;
@@ -6551,11 +6551,11 @@ public final class TableMetadataPersistence {
        * <code>required string shortName = 1;</code>
        */
       public Builder setShortNameBytes(
-              com.google.protobuf.ByteString value) {
+          com.google.protobuf.ByteString value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000001;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
         shortName_ = value;
         onChanged();
         return this;
@@ -6575,7 +6575,7 @@ public final class TableMetadataPersistence {
         java.lang.Object ref = longName_;
         if (!(ref instanceof java.lang.String)) {
           com.google.protobuf.ByteString bs =
-                  (com.google.protobuf.ByteString) ref;
+              (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
             longName_ = s;
@@ -6589,12 +6589,12 @@ public final class TableMetadataPersistence {
        * <code>required string longName = 2;</code>
        */
       public com.google.protobuf.ByteString
-      getLongNameBytes() {
+          getLongNameBytes() {
         java.lang.Object ref = longName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b =
-                  com.google.protobuf.ByteString.copyFromUtf8(
-                          (java.lang.String) ref);
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
           longName_ = b;
           return b;
         } else {
@@ -6605,11 +6605,11 @@ public final class TableMetadataPersistence {
        * <code>required string longName = 2;</code>
        */
       public Builder setLongName(
-              java.lang.String value) {
+          java.lang.String value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000002;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
         longName_ = value;
         onChanged();
         return this;
@@ -6627,11 +6627,11 @@ public final class TableMetadataPersistence {
        * <code>required string longName = 2;</code>
        */
       public Builder setLongNameBytes(
-              com.google.protobuf.ByteString value) {
+          com.google.protobuf.ByteString value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000002;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
         longName_ = value;
         onChanged();
         return this;
@@ -6639,7 +6639,7 @@ public final class TableMetadataPersistence {
 
       private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription value_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder> valueBuilder_;
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder> valueBuilder_;
       /**
        * <code>required .com.palantir.atlasdb.protos.generated.ColumnValueDescription value = 3;</code>
        */
@@ -6676,7 +6676,7 @@ public final class TableMetadataPersistence {
        * <code>required .com.palantir.atlasdb.protos.generated.ColumnValueDescription value = 3;</code>
        */
       public Builder setValue(
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder builderForValue) {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder builderForValue) {
         if (valueBuilder_ == null) {
           value_ = builderForValue.build();
           onChanged();
@@ -6692,9 +6692,9 @@ public final class TableMetadataPersistence {
       public Builder mergeValue(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription value) {
         if (valueBuilder_ == null) {
           if (((bitField0_ & 0x00000004) == 0x00000004) &&
-                  value_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.getDefaultInstance()) {
+              value_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.getDefaultInstance()) {
             value_ =
-                    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.newBuilder(value_).mergeFrom(value).buildPartial();
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.newBuilder(value_).mergeFrom(value).buildPartial();
           } else {
             value_ = value;
           }
@@ -6740,11 +6740,11 @@ public final class TableMetadataPersistence {
        * <code>required .com.palantir.atlasdb.protos.generated.ColumnValueDescription value = 3;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder>
-      getValueFieldBuilder() {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder> 
+          getValueFieldBuilder() {
         if (valueBuilder_ == null) {
           valueBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-                  com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder>(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder>(
                   getValue(),
                   getParentForChildren(),
                   isClean());
@@ -6797,8 +6797,8 @@ public final class TableMetadataPersistence {
   }
 
   public interface ColumnValueDescriptionOrBuilder extends
-          // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.ColumnValueDescription)
-          com.google.protobuf.MessageOrBuilder {
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.ColumnValueDescription)
+      com.google.protobuf.MessageOrBuilder {
 
     /**
      * <code>required .com.palantir.atlasdb.protos.generated.ValueType type = 1;</code>
@@ -6821,7 +6821,7 @@ public final class TableMetadataPersistence {
      * <code>optional string className = 2;</code>
      */
     com.google.protobuf.ByteString
-    getClassNameBytes();
+        getClassNameBytes();
 
     /**
      * <code>optional .com.palantir.atlasdb.protos.generated.Compression compression = 3 [default = NONE];</code>
@@ -6853,7 +6853,7 @@ public final class TableMetadataPersistence {
      * <code>optional string canonicalClassName = 5;</code>
      */
     com.google.protobuf.ByteString
-    getCanonicalClassNameBytes();
+        getCanonicalClassNameBytes();
 
     /**
      * <code>optional bytes protoFileDescriptor = 6 [deprecated = true];</code>
@@ -6896,7 +6896,7 @@ public final class TableMetadataPersistence {
      * </pre>
      */
     com.google.protobuf.ByteString
-    getProtoMessageNameBytes();
+        getProtoMessageNameBytes();
 
     /**
      * <code>optional .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto protoFileDescriptorTree = 8;</code>
@@ -6915,9 +6915,9 @@ public final class TableMetadataPersistence {
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.ColumnValueDescription}
    */
   public static final class ColumnValueDescription extends
-          com.google.protobuf.GeneratedMessage implements
-          // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.ColumnValueDescription)
-          ColumnValueDescriptionOrBuilder {
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.ColumnValueDescription)
+      ColumnValueDescriptionOrBuilder {
     // Use ColumnValueDescription.newBuilder() to construct.
     private ColumnValueDescription(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
@@ -6937,17 +6937,17 @@ public final class TableMetadataPersistence {
     private final com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
+        getUnknownFields() {
       return this.unknownFields;
     }
     private ColumnValueDescription(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-              com.google.protobuf.UnknownFieldSet.newBuilder();
+          com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
         boolean done = false;
         while (!done) {
@@ -6958,7 +6958,7 @@ public final class TableMetadataPersistence {
               break;
             default: {
               if (!parseUnknownField(input, unknownFields,
-                      extensionRegistry, tag)) {
+                                     extensionRegistry, tag)) {
                 done = true;
               }
               break;
@@ -7038,33 +7038,33 @@ public final class TableMetadataPersistence {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this);
+            e.getMessage()).setUnfinishedMessage(this);
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
       }
     }
     public static final com.google.protobuf.Descriptors.Descriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-    internalGetFieldAccessorTable() {
+        internalGetFieldAccessorTable() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_fieldAccessorTable
-              .ensureFieldAccessorsInitialized(
-                      com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder.class);
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder.class);
     }
 
     public static com.google.protobuf.Parser<ColumnValueDescription> PARSER =
-            new com.google.protobuf.AbstractParser<ColumnValueDescription>() {
-              public ColumnValueDescription parsePartialFrom(
-                      com.google.protobuf.CodedInputStream input,
-                      com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                      throws com.google.protobuf.InvalidProtocolBufferException {
-                return new ColumnValueDescription(input, extensionRegistry);
-              }
-            };
+        new com.google.protobuf.AbstractParser<ColumnValueDescription>() {
+      public ColumnValueDescription parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new ColumnValueDescription(input, extensionRegistry);
+      }
+    };
 
     @java.lang.Override
     public com.google.protobuf.Parser<ColumnValueDescription> getParserForType() {
@@ -7103,8 +7103,8 @@ public final class TableMetadataPersistence {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs =
-                (com.google.protobuf.ByteString) ref;
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           className_ = s;
@@ -7116,12 +7116,12 @@ public final class TableMetadataPersistence {
      * <code>optional string className = 2;</code>
      */
     public com.google.protobuf.ByteString
-    getClassNameBytes() {
+        getClassNameBytes() {
       java.lang.Object ref = className_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b =
-                com.google.protobuf.ByteString.copyFromUtf8(
-                        (java.lang.String) ref);
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
         className_ = b;
         return b;
       } else {
@@ -7175,8 +7175,8 @@ public final class TableMetadataPersistence {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs =
-                (com.google.protobuf.ByteString) ref;
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           canonicalClassName_ = s;
@@ -7188,12 +7188,12 @@ public final class TableMetadataPersistence {
      * <code>optional string canonicalClassName = 5;</code>
      */
     public com.google.protobuf.ByteString
-    getCanonicalClassNameBytes() {
+        getCanonicalClassNameBytes() {
       java.lang.Object ref = canonicalClassName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b =
-                com.google.protobuf.ByteString.copyFromUtf8(
-                        (java.lang.String) ref);
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
         canonicalClassName_ = b;
         return b;
       } else {
@@ -7248,8 +7248,8 @@ public final class TableMetadataPersistence {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs =
-                (com.google.protobuf.ByteString) ref;
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           protoMessageName_ = s;
@@ -7265,12 +7265,12 @@ public final class TableMetadataPersistence {
      * </pre>
      */
     public com.google.protobuf.ByteString
-    getProtoMessageNameBytes() {
+        getProtoMessageNameBytes() {
       java.lang.Object ref = protoMessageName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b =
-                com.google.protobuf.ByteString.copyFromUtf8(
-                        (java.lang.String) ref);
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
         protoMessageName_ = b;
         return b;
       } else {
@@ -7330,7 +7330,7 @@ public final class TableMetadataPersistence {
     }
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
-            throws java.io.IOException {
+                        throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeEnum(1, type_.getNumber());
@@ -7367,35 +7367,35 @@ public final class TableMetadataPersistence {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeEnumSize(1, type_.getNumber());
+          .computeEnumSize(1, type_.getNumber());
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBytesSize(2, getClassNameBytes());
+          .computeBytesSize(2, getClassNameBytes());
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeEnumSize(3, compression_.getNumber());
+          .computeEnumSize(3, compression_.getNumber());
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeEnumSize(4, format_.getNumber());
+          .computeEnumSize(4, format_.getNumber());
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBytesSize(5, getCanonicalClassNameBytes());
+          .computeBytesSize(5, getCanonicalClassNameBytes());
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBytesSize(6, protoFileDescriptor_);
+          .computeBytesSize(6, protoFileDescriptor_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBytesSize(7, getProtoMessageNameBytes());
+          .computeBytesSize(7, getProtoMessageNameBytes());
       }
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeMessageSize(8, protoFileDescriptorTree_);
+          .computeMessageSize(8, protoFileDescriptorTree_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -7405,60 +7405,60 @@ public final class TableMetadataPersistence {
     private static final long serialVersionUID = 0L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
-            throws java.io.ObjectStreamException {
+        throws java.io.ObjectStreamException {
       return super.writeReplace();
     }
 
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription parseFrom(
-            com.google.protobuf.ByteString data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription parseFrom(
-            com.google.protobuf.ByteString data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription parseFrom(byte[] data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription parseFrom(
-            byte[] data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription parseFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription parseFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription parseDelimitedFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription parseDelimitedFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription parseFrom(
-            com.google.protobuf.CodedInputStream input)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription parseFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
@@ -7471,7 +7471,7 @@ public final class TableMetadataPersistence {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -7479,19 +7479,19 @@ public final class TableMetadataPersistence {
      * Protobuf type {@code com.palantir.atlasdb.protos.generated.ColumnValueDescription}
      */
     public static final class Builder extends
-            com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-            // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.ColumnValueDescription)
-            com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder {
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.ColumnValueDescription)
+        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
-      getDescriptor() {
+          getDescriptor() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internalGetFieldAccessorTable() {
+          internalGetFieldAccessorTable() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder.class);
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder.class);
       }
 
       // Construct using com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.newBuilder()
@@ -7500,7 +7500,7 @@ public final class TableMetadataPersistence {
       }
 
       private Builder(
-              com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
@@ -7543,7 +7543,7 @@ public final class TableMetadataPersistence {
       }
 
       public com.google.protobuf.Descriptors.Descriptor
-      getDescriptorForType() {
+          getDescriptorForType() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_descriptor;
       }
 
@@ -7651,12 +7651,12 @@ public final class TableMetadataPersistence {
 
       public final boolean isInitialized() {
         if (!hasType()) {
-
+          
           return false;
         }
         if (hasProtoFileDescriptorTree()) {
           if (!getProtoFileDescriptorTree().isInitialized()) {
-
+            
             return false;
           }
         }
@@ -7664,9 +7664,9 @@ public final class TableMetadataPersistence {
       }
 
       public Builder mergeFrom(
-              com.google.protobuf.CodedInputStream input,
-              com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-              throws java.io.IOException {
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
         com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
@@ -7731,7 +7731,7 @@ public final class TableMetadataPersistence {
         java.lang.Object ref = className_;
         if (!(ref instanceof java.lang.String)) {
           com.google.protobuf.ByteString bs =
-                  (com.google.protobuf.ByteString) ref;
+              (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
             className_ = s;
@@ -7745,12 +7745,12 @@ public final class TableMetadataPersistence {
        * <code>optional string className = 2;</code>
        */
       public com.google.protobuf.ByteString
-      getClassNameBytes() {
+          getClassNameBytes() {
         java.lang.Object ref = className_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b =
-                  com.google.protobuf.ByteString.copyFromUtf8(
-                          (java.lang.String) ref);
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
           className_ = b;
           return b;
         } else {
@@ -7761,11 +7761,11 @@ public final class TableMetadataPersistence {
        * <code>optional string className = 2;</code>
        */
       public Builder setClassName(
-              java.lang.String value) {
+          java.lang.String value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000002;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
         className_ = value;
         onChanged();
         return this;
@@ -7783,11 +7783,11 @@ public final class TableMetadataPersistence {
        * <code>optional string className = 2;</code>
        */
       public Builder setClassNameBytes(
-              com.google.protobuf.ByteString value) {
+          com.google.protobuf.ByteString value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000002;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
         className_ = value;
         onChanged();
         return this;
@@ -7877,7 +7877,7 @@ public final class TableMetadataPersistence {
         java.lang.Object ref = canonicalClassName_;
         if (!(ref instanceof java.lang.String)) {
           com.google.protobuf.ByteString bs =
-                  (com.google.protobuf.ByteString) ref;
+              (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
             canonicalClassName_ = s;
@@ -7891,12 +7891,12 @@ public final class TableMetadataPersistence {
        * <code>optional string canonicalClassName = 5;</code>
        */
       public com.google.protobuf.ByteString
-      getCanonicalClassNameBytes() {
+          getCanonicalClassNameBytes() {
         java.lang.Object ref = canonicalClassName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b =
-                  com.google.protobuf.ByteString.copyFromUtf8(
-                          (java.lang.String) ref);
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
           canonicalClassName_ = b;
           return b;
         } else {
@@ -7907,11 +7907,11 @@ public final class TableMetadataPersistence {
        * <code>optional string canonicalClassName = 5;</code>
        */
       public Builder setCanonicalClassName(
-              java.lang.String value) {
+          java.lang.String value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000010;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000010;
         canonicalClassName_ = value;
         onChanged();
         return this;
@@ -7929,11 +7929,11 @@ public final class TableMetadataPersistence {
        * <code>optional string canonicalClassName = 5;</code>
        */
       public Builder setCanonicalClassNameBytes(
-              com.google.protobuf.ByteString value) {
+          com.google.protobuf.ByteString value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000010;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000010;
         canonicalClassName_ = value;
         onChanged();
         return this;
@@ -7969,9 +7969,9 @@ public final class TableMetadataPersistence {
        */
       @java.lang.Deprecated public Builder setProtoFileDescriptor(com.google.protobuf.ByteString value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000020;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000020;
         protoFileDescriptor_ = value;
         onChanged();
         return this;
@@ -8012,7 +8012,7 @@ public final class TableMetadataPersistence {
         java.lang.Object ref = protoMessageName_;
         if (!(ref instanceof java.lang.String)) {
           com.google.protobuf.ByteString bs =
-                  (com.google.protobuf.ByteString) ref;
+              (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
             protoMessageName_ = s;
@@ -8030,12 +8030,12 @@ public final class TableMetadataPersistence {
        * </pre>
        */
       public com.google.protobuf.ByteString
-      getProtoMessageNameBytes() {
+          getProtoMessageNameBytes() {
         java.lang.Object ref = protoMessageName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b =
-                  com.google.protobuf.ByteString.copyFromUtf8(
-                          (java.lang.String) ref);
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
           protoMessageName_ = b;
           return b;
         } else {
@@ -8050,11 +8050,11 @@ public final class TableMetadataPersistence {
        * </pre>
        */
       public Builder setProtoMessageName(
-              java.lang.String value) {
+          java.lang.String value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000040;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000040;
         protoMessageName_ = value;
         onChanged();
         return this;
@@ -8080,11 +8080,11 @@ public final class TableMetadataPersistence {
        * </pre>
        */
       public Builder setProtoMessageNameBytes(
-              com.google.protobuf.ByteString value) {
+          com.google.protobuf.ByteString value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000040;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000040;
         protoMessageName_ = value;
         onChanged();
         return this;
@@ -8092,7 +8092,7 @@ public final class TableMetadataPersistence {
 
       private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto protoFileDescriptorTree_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder> protoFileDescriptorTreeBuilder_;
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder> protoFileDescriptorTreeBuilder_;
       /**
        * <code>optional .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto protoFileDescriptorTree = 8;</code>
        */
@@ -8129,7 +8129,7 @@ public final class TableMetadataPersistence {
        * <code>optional .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto protoFileDescriptorTree = 8;</code>
        */
       public Builder setProtoFileDescriptorTree(
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder builderForValue) {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder builderForValue) {
         if (protoFileDescriptorTreeBuilder_ == null) {
           protoFileDescriptorTree_ = builderForValue.build();
           onChanged();
@@ -8145,9 +8145,9 @@ public final class TableMetadataPersistence {
       public Builder mergeProtoFileDescriptorTree(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto value) {
         if (protoFileDescriptorTreeBuilder_ == null) {
           if (((bitField0_ & 0x00000080) == 0x00000080) &&
-                  protoFileDescriptorTree_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.getDefaultInstance()) {
+              protoFileDescriptorTree_ != com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.getDefaultInstance()) {
             protoFileDescriptorTree_ =
-                    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.newBuilder(protoFileDescriptorTree_).mergeFrom(value).buildPartial();
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.newBuilder(protoFileDescriptorTree_).mergeFrom(value).buildPartial();
           } else {
             protoFileDescriptorTree_ = value;
           }
@@ -8193,11 +8193,11 @@ public final class TableMetadataPersistence {
        * <code>optional .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto protoFileDescriptorTree = 8;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder>
-      getProtoFileDescriptorTreeFieldBuilder() {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder> 
+          getProtoFileDescriptorTreeFieldBuilder() {
         if (protoFileDescriptorTreeBuilder_ == null) {
           protoFileDescriptorTreeBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-                  com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder>(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder>(
                   getProtoFileDescriptorTree(),
                   getParentForChildren(),
                   isClean());
@@ -8218,8 +8218,8 @@ public final class TableMetadataPersistence {
   }
 
   public interface FileDescriptorTreeProtoOrBuilder extends
-          // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto)
-          com.google.protobuf.MessageOrBuilder {
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto)
+      com.google.protobuf.MessageOrBuilder {
 
     /**
      * <code>required bytes protoFileDescriptor = 1;</code>
@@ -8233,8 +8233,8 @@ public final class TableMetadataPersistence {
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
      */
-    java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto>
-    getDependenciesList();
+    java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto> 
+        getDependenciesList();
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
      */
@@ -8246,21 +8246,21 @@ public final class TableMetadataPersistence {
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
      */
-    java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder>
-    getDependenciesOrBuilderList();
+    java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder> 
+        getDependenciesOrBuilderList();
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
      */
     com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder getDependenciesOrBuilder(
-            int index);
+        int index);
   }
   /**
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto}
    */
   public static final class FileDescriptorTreeProto extends
-          com.google.protobuf.GeneratedMessage implements
-          // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto)
-          FileDescriptorTreeProtoOrBuilder {
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto)
+      FileDescriptorTreeProtoOrBuilder {
     // Use FileDescriptorTreeProto.newBuilder() to construct.
     private FileDescriptorTreeProto(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
@@ -8280,17 +8280,17 @@ public final class TableMetadataPersistence {
     private final com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
+        getUnknownFields() {
       return this.unknownFields;
     }
     private FileDescriptorTreeProto(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-              com.google.protobuf.UnknownFieldSet.newBuilder();
+          com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
         boolean done = false;
         while (!done) {
@@ -8301,7 +8301,7 @@ public final class TableMetadataPersistence {
               break;
             default: {
               if (!parseUnknownField(input, unknownFields,
-                      extensionRegistry, tag)) {
+                                     extensionRegistry, tag)) {
                 done = true;
               }
               break;
@@ -8325,7 +8325,7 @@ public final class TableMetadataPersistence {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this);
+            e.getMessage()).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
           dependencies_ = java.util.Collections.unmodifiableList(dependencies_);
@@ -8335,26 +8335,26 @@ public final class TableMetadataPersistence {
       }
     }
     public static final com.google.protobuf.Descriptors.Descriptor
-    getDescriptor() {
+        getDescriptor() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-    internalGetFieldAccessorTable() {
+        internalGetFieldAccessorTable() {
       return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_fieldAccessorTable
-              .ensureFieldAccessorsInitialized(
-                      com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder.class);
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder.class);
     }
 
     public static com.google.protobuf.Parser<FileDescriptorTreeProto> PARSER =
-            new com.google.protobuf.AbstractParser<FileDescriptorTreeProto>() {
-              public FileDescriptorTreeProto parsePartialFrom(
-                      com.google.protobuf.CodedInputStream input,
-                      com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                      throws com.google.protobuf.InvalidProtocolBufferException {
-                return new FileDescriptorTreeProto(input, extensionRegistry);
-              }
-            };
+        new com.google.protobuf.AbstractParser<FileDescriptorTreeProto>() {
+      public FileDescriptorTreeProto parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new FileDescriptorTreeProto(input, extensionRegistry);
+      }
+    };
 
     @java.lang.Override
     public com.google.protobuf.Parser<FileDescriptorTreeProto> getParserForType() {
@@ -8388,8 +8388,8 @@ public final class TableMetadataPersistence {
     /**
      * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
      */
-    public java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder>
-    getDependenciesOrBuilderList() {
+    public java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder> 
+        getDependenciesOrBuilderList() {
       return dependencies_;
     }
     /**
@@ -8408,7 +8408,7 @@ public final class TableMetadataPersistence {
      * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
      */
     public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder getDependenciesOrBuilder(
-            int index) {
+        int index) {
       return dependencies_.get(index);
     }
 
@@ -8437,7 +8437,7 @@ public final class TableMetadataPersistence {
     }
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
-            throws java.io.IOException {
+                        throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeBytes(1, protoFileDescriptor_);
@@ -8456,11 +8456,11 @@ public final class TableMetadataPersistence {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-                .computeBytesSize(1, protoFileDescriptor_);
+          .computeBytesSize(1, protoFileDescriptor_);
       }
       for (int i = 0; i < dependencies_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
-                .computeMessageSize(2, dependencies_.get(i));
+          .computeMessageSize(2, dependencies_.get(i));
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -8470,60 +8470,60 @@ public final class TableMetadataPersistence {
     private static final long serialVersionUID = 0L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
-            throws java.io.ObjectStreamException {
+        throws java.io.ObjectStreamException {
       return super.writeReplace();
     }
 
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto parseFrom(
-            com.google.protobuf.ByteString data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto parseFrom(
-            com.google.protobuf.ByteString data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto parseFrom(byte[] data)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto parseFrom(
-            byte[] data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto parseFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto parseFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto parseDelimitedFrom(java.io.InputStream input)
-            throws java.io.IOException {
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto parseDelimitedFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto parseFrom(
-            com.google.protobuf.CodedInputStream input)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto parseFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
@@ -8536,7 +8536,7 @@ public final class TableMetadataPersistence {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -8544,19 +8544,19 @@ public final class TableMetadataPersistence {
      * Protobuf type {@code com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto}
      */
     public static final class Builder extends
-            com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-            // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto)
-            com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder {
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto)
+        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
-      getDescriptor() {
+          getDescriptor() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internalGetFieldAccessorTable() {
+          internalGetFieldAccessorTable() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                        com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder.class);
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.class, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder.class);
       }
 
       // Construct using com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.newBuilder()
@@ -8565,7 +8565,7 @@ public final class TableMetadataPersistence {
       }
 
       private Builder(
-              com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
@@ -8596,7 +8596,7 @@ public final class TableMetadataPersistence {
       }
 
       public com.google.protobuf.Descriptors.Descriptor
-      getDescriptorForType() {
+          getDescriptorForType() {
         return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_descriptor;
       }
 
@@ -8666,9 +8666,9 @@ public final class TableMetadataPersistence {
               dependenciesBuilder_ = null;
               dependencies_ = other.dependencies_;
               bitField0_ = (bitField0_ & ~0x00000002);
-              dependenciesBuilder_ =
-                      com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                              getDependenciesFieldBuilder() : null;
+              dependenciesBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getDependenciesFieldBuilder() : null;
             } else {
               dependenciesBuilder_.addAllMessages(other.dependencies_);
             }
@@ -8680,12 +8680,12 @@ public final class TableMetadataPersistence {
 
       public final boolean isInitialized() {
         if (!hasProtoFileDescriptor()) {
-
+          
           return false;
         }
         for (int i = 0; i < getDependenciesCount(); i++) {
           if (!getDependencies(i).isInitialized()) {
-
+            
             return false;
           }
         }
@@ -8693,9 +8693,9 @@ public final class TableMetadataPersistence {
       }
 
       public Builder mergeFrom(
-              com.google.protobuf.CodedInputStream input,
-              com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-              throws java.io.IOException {
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
         com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
@@ -8729,9 +8729,9 @@ public final class TableMetadataPersistence {
        */
       public Builder setProtoFileDescriptor(com.google.protobuf.ByteString value) {
         if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000001;
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
         protoFileDescriptor_ = value;
         onChanged();
         return this;
@@ -8747,16 +8747,16 @@ public final class TableMetadataPersistence {
       }
 
       private java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto> dependencies_ =
-              java.util.Collections.emptyList();
+        java.util.Collections.emptyList();
       private void ensureDependenciesIsMutable() {
         if (!((bitField0_ & 0x00000002) == 0x00000002)) {
           dependencies_ = new java.util.ArrayList<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto>(dependencies_);
           bitField0_ |= 0x00000002;
-        }
+         }
       }
 
       private com.google.protobuf.RepeatedFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder> dependenciesBuilder_;
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder> dependenciesBuilder_;
 
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
@@ -8792,7 +8792,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
        */
       public Builder setDependencies(
-              int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto value) {
+          int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto value) {
         if (dependenciesBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -8809,7 +8809,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
        */
       public Builder setDependencies(
-              int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder builderForValue) {
+          int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder builderForValue) {
         if (dependenciesBuilder_ == null) {
           ensureDependenciesIsMutable();
           dependencies_.set(index, builderForValue.build());
@@ -8839,7 +8839,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
        */
       public Builder addDependencies(
-              int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto value) {
+          int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto value) {
         if (dependenciesBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -8856,7 +8856,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
        */
       public Builder addDependencies(
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder builderForValue) {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder builderForValue) {
         if (dependenciesBuilder_ == null) {
           ensureDependenciesIsMutable();
           dependencies_.add(builderForValue.build());
@@ -8870,7 +8870,7 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
        */
       public Builder addDependencies(
-              int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder builderForValue) {
+          int index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder builderForValue) {
         if (dependenciesBuilder_ == null) {
           ensureDependenciesIsMutable();
           dependencies_.add(index, builderForValue.build());
@@ -8884,11 +8884,11 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
        */
       public Builder addAllDependencies(
-              java.lang.Iterable<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto> values) {
+          java.lang.Iterable<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto> values) {
         if (dependenciesBuilder_ == null) {
           ensureDependenciesIsMutable();
           com.google.protobuf.AbstractMessageLite.Builder.addAll(
-                  values, dependencies_);
+              values, dependencies_);
           onChanged();
         } else {
           dependenciesBuilder_.addAllMessages(values);
@@ -8925,14 +8925,14 @@ public final class TableMetadataPersistence {
        * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
        */
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder getDependenciesBuilder(
-              int index) {
+          int index) {
         return getDependenciesFieldBuilder().getBuilder(index);
       }
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
        */
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder getDependenciesOrBuilder(
-              int index) {
+          int index) {
         if (dependenciesBuilder_ == null) {
           return dependencies_.get(index);  } else {
           return dependenciesBuilder_.getMessageOrBuilder(index);
@@ -8941,8 +8941,8 @@ public final class TableMetadataPersistence {
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
        */
-      public java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder>
-      getDependenciesOrBuilderList() {
+      public java.util.List<? extends com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder> 
+           getDependenciesOrBuilderList() {
         if (dependenciesBuilder_ != null) {
           return dependenciesBuilder_.getMessageOrBuilderList();
         } else {
@@ -8954,29 +8954,29 @@ public final class TableMetadataPersistence {
        */
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder addDependenciesBuilder() {
         return getDependenciesFieldBuilder().addBuilder(
-                com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.getDefaultInstance());
+            com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.getDefaultInstance());
       }
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
        */
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder addDependenciesBuilder(
-              int index) {
+          int index) {
         return getDependenciesFieldBuilder().addBuilder(
-                index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.getDefaultInstance());
+            index, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.getDefaultInstance());
       }
       /**
        * <code>repeated .com.palantir.atlasdb.protos.generated.FileDescriptorTreeProto dependencies = 2;</code>
        */
-      public java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder>
-      getDependenciesBuilderList() {
+      public java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder> 
+           getDependenciesBuilderList() {
         return getDependenciesFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder>
-      getDependenciesFieldBuilder() {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder> 
+          getDependenciesFieldBuilder() {
         if (dependenciesBuilder_ == null) {
           dependenciesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-                  com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder>(
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto.Builder, com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProtoOrBuilder>(
                   dependencies_,
                   ((bitField0_ & 0x00000002) == 0x00000002),
                   getParentForChildren(),
@@ -8998,194 +8998,194 @@ public final class TableMetadataPersistence {
   }
 
   private static final com.google.protobuf.Descriptors.Descriptor
-          internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_descriptor;
+    internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_descriptor;
   private static
-  com.google.protobuf.GeneratedMessage.FieldAccessorTable
-          internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_fieldAccessorTable;
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-          internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_descriptor;
+    internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_descriptor;
   private static
-  com.google.protobuf.GeneratedMessage.FieldAccessorTable
-          internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_fieldAccessorTable;
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-          internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_descriptor;
+    internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_descriptor;
   private static
-  com.google.protobuf.GeneratedMessage.FieldAccessorTable
-          internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_fieldAccessorTable;
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-          internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_descriptor;
+    internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_descriptor;
   private static
-  com.google.protobuf.GeneratedMessage.FieldAccessorTable
-          internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_fieldAccessorTable;
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-          internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_descriptor;
+    internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_descriptor;
   private static
-  com.google.protobuf.GeneratedMessage.FieldAccessorTable
-          internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_fieldAccessorTable;
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-          internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_descriptor;
+    internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_descriptor;
   private static
-  com.google.protobuf.GeneratedMessage.FieldAccessorTable
-          internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_fieldAccessorTable;
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-          internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_descriptor;
+    internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_descriptor;
   private static
-  com.google.protobuf.GeneratedMessage.FieldAccessorTable
-          internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_fieldAccessorTable;
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-          internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_descriptor;
+    internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_descriptor;
   private static
-  com.google.protobuf.GeneratedMessage.FieldAccessorTable
-          internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_fieldAccessorTable;
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
-  getDescriptor() {
+      getDescriptor() {
     return descriptor;
   }
   private static com.google.protobuf.Descriptors.FileDescriptor
-          descriptor;
+      descriptor;
   static {
     java.lang.String[] descriptorData = {
-            "\nEmain/proto/com/palantir/atlasdb/protos" +
-                    "/TableMetadataPersistence.proto\022%com.pal" +
-                    "antir.atlasdb.protos.generated\"\271\005\n\rTable" +
-                    "Metadata\022O\n\007rowName\030\001 \002(\0132>.com.palantir" +
-                    ".atlasdb.protos.generated.NameMetadataDe" +
-                    "scription\022Q\n\007columns\030\002 \002(\0132@.com.palanti" +
-                    "r.atlasdb.protos.generated.ColumnMetadat" +
-                    "aDescription\022T\n\017conflictHandler\030\003 \002(\0162;." +
-                    "com.palantir.atlasdb.protos.generated.Ta" +
-                    "bleConflictHandler\022K\n\rcachePriority\030\004 \001(",
-            "\01624.com.palantir.atlasdb.protos.generate" +
-                    "d.CachePriority\022S\n\021partitionStrategy\030\005 \001" +
-                    "(\01628.com.palantir.atlasdb.protos.generat" +
-                    "ed.PartitionStrategy\022\030\n\020rangeScanAllowed" +
-                    "\030\006 \001(\010\022\037\n\023explicitCompression\030\007 \001(\010B\002\030\001\022" +
-                    "\027\n\017negativeLookups\030\010 \001(\010\022K\n\rsweepStrateg" +
-                    "y\030\t \001(\01624.com.palantir.atlasdb.protos.ge" +
-                    "nerated.SweepStrategy\022-\n%explicitCompres" +
-                    "sionBlockSizeKiloBytes\030\n \001(\005\022\037\n\027appendHe" +
-                    "avyAndReadLight\030\013 \001(\010\022\033\n\014nameLoggable\030\014 ",
-            "\001(\010:\005false\"\214\001\n\027NameMetadataDescription\022R" +
-                    "\n\tnameParts\030\001 \003(\0132?.com.palantir.atlasdb" +
-                    ".protos.generated.NameComponentDescripti" +
-                    "on\022\035\n\025hasFirstComponentHash\030\002 \001(\010\"\217\002\n\030Na" +
-                    "meComponentDescription\022\025\n\rcomponentName\030" +
-                    "\001 \002(\t\022>\n\004type\030\002 \002(\01620.com.palantir.atlas" +
-                    "db.protos.generated.ValueType\022D\n\005order\030\003" +
-                    " \002(\01625.com.palantir.atlasdb.protos.gener" +
-                    "ated.ValueByteOrder\022\035\n\025hasUniformPartiti" +
-                    "oner\030\004 \001(\010\022\032\n\022explicitPartitions\030\005 \003(\t\022\033",
-            "\n\014nameLoggable\030\006 \001(\010:\005false\"\310\001\n\031ColumnMe" +
-                    "tadataDescription\022S\n\014namedColumns\030\001 \003(\0132" +
-                    "=.com.palantir.atlasdb.protos.generated." +
-                    "NamedColumnDescription\022V\n\rdynamicColumn\030" +
-                    "\002 \001(\0132?.com.palantir.atlasdb.protos.gene" +
-                    "rated.DynamicColumnDescription\"\300\001\n\030Dynam" +
-                    "icColumnDescription\022V\n\016columnNameDesc\030\001 " +
-                    "\002(\0132>.com.palantir.atlasdb.protos.genera" +
-                    "ted.NameMetadataDescription\022L\n\005value\030\002 \002" +
-                    "(\0132=.com.palantir.atlasdb.protos.generat",
-            "ed.ColumnValueDescription\"\250\001\n\026NamedColum" +
-                    "nDescription\022\021\n\tshortName\030\001 \002(\t\022\020\n\010longN" +
-                    "ame\030\002 \002(\t\022L\n\005value\030\003 \002(\0132=.com.palantir." +
-                    "atlasdb.protos.generated.ColumnValueDesc" +
-                    "ription\022\033\n\014nameLoggable\030\004 \001(\010:\005false\"\274\003\n" +
-                    "\026ColumnValueDescription\022>\n\004type\030\001 \002(\01620." +
-                    "com.palantir.atlasdb.protos.generated.Va" +
-                    "lueType\022\021\n\tclassName\030\002 \001(\t\022M\n\013compressio" +
-                    "n\030\003 \001(\01622.com.palantir.atlasdb.protos.ge" +
-                    "nerated.Compression:\004NONE\022H\n\006format\030\004 \001(",
-            "\01628.com.palantir.atlasdb.protos.generate" +
-                    "d.ColumnValueFormat\022\032\n\022canonicalClassNam" +
-                    "e\030\005 \001(\t\022\037\n\023protoFileDescriptor\030\006 \001(\014B\002\030\001" +
-                    "\022\030\n\020protoMessageName\030\007 \001(\t\022_\n\027protoFileD" +
-                    "escriptorTree\030\010 \001(\0132>.com.palantir.atlas" +
-                    "db.protos.generated.FileDescriptorTreePr" +
-                    "oto\"\214\001\n\027FileDescriptorTreeProto\022\033\n\023proto" +
-                    "FileDescriptor\030\001 \002(\014\022T\n\014dependencies\030\002 \003" +
-                    "(\0132>.com.palantir.atlasdb.protos.generat" +
-                    "ed.FileDescriptorTreeProto*\305\001\n\tValueType",
-            "\022\014\n\010VAR_LONG\020\001\022\016\n\nFIXED_LONG\020\002\022\n\n\006STRING" +
-                    "\020\003\022\010\n\004BLOB\020\004\022\023\n\017VAR_SIGNED_LONG\020\005\022\034\n\030FIX" +
-                    "ED_LONG_LITTLE_ENDIAN\020\006\022\016\n\nSHA256HASH\020\007\022" +
-                    "\016\n\nVAR_STRING\020\010\022\027\n\023NULLABLE_FIXED_LONG\020\t" +
-                    "\022\016\n\nSIZED_BLOB\020\n\022\010\n\004UUID\020\013*#\n\013Compressio" +
-                    "n\022\010\n\004NONE\020\001\022\n\n\006SNAPPY\020\002*N\n\021ColumnValueFo" +
-                    "rmat\022\t\n\005PROTO\020\001\022\017\n\013PERSISTABLE\020\002\022\016\n\nVALU" +
-                    "E_TYPE\020\003\022\r\n\tPERSISTER\020\004*/\n\016ValueByteOrde" +
-                    "r\022\r\n\tASCENDING\020\001\022\016\n\nDESCENDING\020\002*\215\001\n\024Tab" +
-                    "leConflictHandler\022\016\n\nIGNORE_ALL\020\001\022\030\n\024RET",
-            "RY_ON_WRITE_WRITE\020\002\022\032\n\026RETRY_ON_VALUE_CH" +
-                    "ANGED\020\003\022\020\n\014SERIALIZABLE\020\004\022\035\n\031RETRY_ON_WR" +
-                    "ITE_WRITE_CELL\020\005*F\n\rCachePriority\022\013\n\007COL" +
-                    "DEST\020\000\022\010\n\004COLD\020 \022\010\n\004WARM\020@\022\007\n\003HOT\020`\022\013\n\007H" +
-                    "OTTEST\020\177**\n\021PartitionStrategy\022\013\n\007ORDERED" +
-                    "\020\000\022\010\n\004HASH\020\001*<\n\rSweepStrategy\022\013\n\007NOTHING" +
-                    "\020\000\022\020\n\014CONSERVATIVE\020\001\022\014\n\010THOROUGH\020\002*;\n\022Ex" +
-                    "pirationStrategy\022\t\n\005NEVER\020\000\022\032\n\026INDIVIDUA" +
-                    "LLY_SPECIFIED\020\001"
+      "\nEmain/proto/com/palantir/atlasdb/protos" +
+      "/TableMetadataPersistence.proto\022%com.pal" +
+      "antir.atlasdb.protos.generated\"\271\005\n\rTable" +
+      "Metadata\022O\n\007rowName\030\001 \002(\0132>.com.palantir" +
+      ".atlasdb.protos.generated.NameMetadataDe" +
+      "scription\022Q\n\007columns\030\002 \002(\0132@.com.palanti" +
+      "r.atlasdb.protos.generated.ColumnMetadat" +
+      "aDescription\022T\n\017conflictHandler\030\003 \002(\0162;." +
+      "com.palantir.atlasdb.protos.generated.Ta" +
+      "bleConflictHandler\022K\n\rcachePriority\030\004 \001(",
+      "\01624.com.palantir.atlasdb.protos.generate" +
+      "d.CachePriority\022S\n\021partitionStrategy\030\005 \001" +
+      "(\01628.com.palantir.atlasdb.protos.generat" +
+      "ed.PartitionStrategy\022\030\n\020rangeScanAllowed" +
+      "\030\006 \001(\010\022\037\n\023explicitCompression\030\007 \001(\010B\002\030\001\022" +
+      "\027\n\017negativeLookups\030\010 \001(\010\022K\n\rsweepStrateg" +
+      "y\030\t \001(\01624.com.palantir.atlasdb.protos.ge" +
+      "nerated.SweepStrategy\022-\n%explicitCompres" +
+      "sionBlockSizeKiloBytes\030\n \001(\005\022\037\n\027appendHe" +
+      "avyAndReadLight\030\013 \001(\010\022\033\n\014nameLoggable\030\014 ",
+      "\001(\010:\005false\"\214\001\n\027NameMetadataDescription\022R" +
+      "\n\tnameParts\030\001 \003(\0132?.com.palantir.atlasdb" +
+      ".protos.generated.NameComponentDescripti" +
+      "on\022\035\n\025hasFirstComponentHash\030\002 \001(\010\"\217\002\n\030Na" +
+      "meComponentDescription\022\025\n\rcomponentName\030" +
+      "\001 \002(\t\022>\n\004type\030\002 \002(\01620.com.palantir.atlas" +
+      "db.protos.generated.ValueType\022D\n\005order\030\003" +
+      " \002(\01625.com.palantir.atlasdb.protos.gener" +
+      "ated.ValueByteOrder\022\035\n\025hasUniformPartiti" +
+      "oner\030\004 \001(\010\022\032\n\022explicitPartitions\030\005 \003(\t\022\033",
+      "\n\014nameLoggable\030\006 \001(\010:\005false\"\310\001\n\031ColumnMe" +
+      "tadataDescription\022S\n\014namedColumns\030\001 \003(\0132" +
+      "=.com.palantir.atlasdb.protos.generated." +
+      "NamedColumnDescription\022V\n\rdynamicColumn\030" +
+      "\002 \001(\0132?.com.palantir.atlasdb.protos.gene" +
+      "rated.DynamicColumnDescription\"\300\001\n\030Dynam" +
+      "icColumnDescription\022V\n\016columnNameDesc\030\001 " +
+      "\002(\0132>.com.palantir.atlasdb.protos.genera" +
+      "ted.NameMetadataDescription\022L\n\005value\030\002 \002" +
+      "(\0132=.com.palantir.atlasdb.protos.generat",
+      "ed.ColumnValueDescription\"\250\001\n\026NamedColum" +
+      "nDescription\022\021\n\tshortName\030\001 \002(\t\022\020\n\010longN" +
+      "ame\030\002 \002(\t\022L\n\005value\030\003 \002(\0132=.com.palantir." +
+      "atlasdb.protos.generated.ColumnValueDesc" +
+      "ription\022\033\n\014nameLoggable\030\004 \001(\010:\005false\"\274\003\n" +
+      "\026ColumnValueDescription\022>\n\004type\030\001 \002(\01620." +
+      "com.palantir.atlasdb.protos.generated.Va" +
+      "lueType\022\021\n\tclassName\030\002 \001(\t\022M\n\013compressio" +
+      "n\030\003 \001(\01622.com.palantir.atlasdb.protos.ge" +
+      "nerated.Compression:\004NONE\022H\n\006format\030\004 \001(",
+      "\01628.com.palantir.atlasdb.protos.generate" +
+      "d.ColumnValueFormat\022\032\n\022canonicalClassNam" +
+      "e\030\005 \001(\t\022\037\n\023protoFileDescriptor\030\006 \001(\014B\002\030\001" +
+      "\022\030\n\020protoMessageName\030\007 \001(\t\022_\n\027protoFileD" +
+      "escriptorTree\030\010 \001(\0132>.com.palantir.atlas" +
+      "db.protos.generated.FileDescriptorTreePr" +
+      "oto\"\214\001\n\027FileDescriptorTreeProto\022\033\n\023proto" +
+      "FileDescriptor\030\001 \002(\014\022T\n\014dependencies\030\002 \003" +
+      "(\0132>.com.palantir.atlasdb.protos.generat" +
+      "ed.FileDescriptorTreeProto*\305\001\n\tValueType",
+      "\022\014\n\010VAR_LONG\020\001\022\016\n\nFIXED_LONG\020\002\022\n\n\006STRING" +
+      "\020\003\022\010\n\004BLOB\020\004\022\023\n\017VAR_SIGNED_LONG\020\005\022\034\n\030FIX" +
+      "ED_LONG_LITTLE_ENDIAN\020\006\022\016\n\nSHA256HASH\020\007\022" +
+      "\016\n\nVAR_STRING\020\010\022\027\n\023NULLABLE_FIXED_LONG\020\t" +
+      "\022\016\n\nSIZED_BLOB\020\n\022\010\n\004UUID\020\013*#\n\013Compressio" +
+      "n\022\010\n\004NONE\020\001\022\n\n\006SNAPPY\020\002*N\n\021ColumnValueFo" +
+      "rmat\022\t\n\005PROTO\020\001\022\017\n\013PERSISTABLE\020\002\022\016\n\nVALU" +
+      "E_TYPE\020\003\022\r\n\tPERSISTER\020\004*/\n\016ValueByteOrde" +
+      "r\022\r\n\tASCENDING\020\001\022\016\n\nDESCENDING\020\002*\215\001\n\024Tab" +
+      "leConflictHandler\022\016\n\nIGNORE_ALL\020\001\022\030\n\024RET",
+      "RY_ON_WRITE_WRITE\020\002\022\032\n\026RETRY_ON_VALUE_CH" +
+      "ANGED\020\003\022\020\n\014SERIALIZABLE\020\004\022\035\n\031RETRY_ON_WR" +
+      "ITE_WRITE_CELL\020\005*F\n\rCachePriority\022\013\n\007COL" +
+      "DEST\020\000\022\010\n\004COLD\020 \022\010\n\004WARM\020@\022\007\n\003HOT\020`\022\013\n\007H" +
+      "OTTEST\020\177**\n\021PartitionStrategy\022\013\n\007ORDERED" +
+      "\020\000\022\010\n\004HASH\020\001*<\n\rSweepStrategy\022\013\n\007NOTHING" +
+      "\020\000\022\020\n\014CONSERVATIVE\020\001\022\014\n\010THOROUGH\020\002*;\n\022Ex" +
+      "pirationStrategy\022\t\n\005NEVER\020\000\022\032\n\026INDIVIDUA" +
+      "LLY_SPECIFIED\020\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
-            new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
-              public com.google.protobuf.ExtensionRegistry assignDescriptors(
-                      com.google.protobuf.Descriptors.FileDescriptor root) {
-                descriptor = root;
-                return null;
-              }
-            };
+        new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
+          public com.google.protobuf.ExtensionRegistry assignDescriptors(
+              com.google.protobuf.Descriptors.FileDescriptor root) {
+            descriptor = root;
+            return null;
+          }
+        };
     com.google.protobuf.Descriptors.FileDescriptor
-            .internalBuildGeneratedFileFrom(descriptorData,
-                    new com.google.protobuf.Descriptors.FileDescriptor[] {
-                    }, assigner);
+      .internalBuildGeneratedFileFrom(descriptorData,
+        new com.google.protobuf.Descriptors.FileDescriptor[] {
+        }, assigner);
     internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_descriptor =
-            getDescriptor().getMessageTypes().get(0);
+      getDescriptor().getMessageTypes().get(0);
     internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-            internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_descriptor,
-            new java.lang.String[] { "RowName", "Columns", "ConflictHandler", "CachePriority", "PartitionStrategy", "RangeScanAllowed", "ExplicitCompression", "NegativeLookups", "SweepStrategy", "ExplicitCompressionBlockSizeKiloBytes", "AppendHeavyAndReadLight", "NameLoggable", });
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_descriptor,
+        new java.lang.String[] { "RowName", "Columns", "ConflictHandler", "CachePriority", "PartitionStrategy", "RangeScanAllowed", "ExplicitCompression", "NegativeLookups", "SweepStrategy", "ExplicitCompressionBlockSizeKiloBytes", "AppendHeavyAndReadLight", "NameLoggable", });
     internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_descriptor =
-            getDescriptor().getMessageTypes().get(1);
+      getDescriptor().getMessageTypes().get(1);
     internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-            internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_descriptor,
-            new java.lang.String[] { "NameParts", "HasFirstComponentHash", });
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_descriptor,
+        new java.lang.String[] { "NameParts", "HasFirstComponentHash", });
     internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_descriptor =
-            getDescriptor().getMessageTypes().get(2);
+      getDescriptor().getMessageTypes().get(2);
     internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-            internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_descriptor,
-            new java.lang.String[] { "ComponentName", "Type", "Order", "HasUniformPartitioner", "ExplicitPartitions", "NameLoggable", });
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_descriptor,
+        new java.lang.String[] { "ComponentName", "Type", "Order", "HasUniformPartitioner", "ExplicitPartitions", "NameLoggable", });
     internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_descriptor =
-            getDescriptor().getMessageTypes().get(3);
+      getDescriptor().getMessageTypes().get(3);
     internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-            internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_descriptor,
-            new java.lang.String[] { "NamedColumns", "DynamicColumn", });
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_descriptor,
+        new java.lang.String[] { "NamedColumns", "DynamicColumn", });
     internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_descriptor =
-            getDescriptor().getMessageTypes().get(4);
+      getDescriptor().getMessageTypes().get(4);
     internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-            internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_descriptor,
-            new java.lang.String[] { "ColumnNameDesc", "Value", });
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_DynamicColumnDescription_descriptor,
+        new java.lang.String[] { "ColumnNameDesc", "Value", });
     internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_descriptor =
-            getDescriptor().getMessageTypes().get(5);
+      getDescriptor().getMessageTypes().get(5);
     internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-            internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_descriptor,
-            new java.lang.String[] { "ShortName", "LongName", "Value", "NameLoggable", });
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_descriptor,
+        new java.lang.String[] { "ShortName", "LongName", "Value", "NameLoggable", });
     internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_descriptor =
-            getDescriptor().getMessageTypes().get(6);
+      getDescriptor().getMessageTypes().get(6);
     internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-            internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_descriptor,
-            new java.lang.String[] { "Type", "ClassName", "Compression", "Format", "CanonicalClassName", "ProtoFileDescriptor", "ProtoMessageName", "ProtoFileDescriptorTree", });
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_descriptor,
+        new java.lang.String[] { "Type", "ClassName", "Compression", "Format", "CanonicalClassName", "ProtoFileDescriptor", "ProtoMessageName", "ProtoFileDescriptorTree", });
     internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_descriptor =
-            getDescriptor().getMessageTypes().get(7);
+      getDescriptor().getMessageTypes().get(7);
     internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-            internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_descriptor,
-            new java.lang.String[] { "ProtoFileDescriptor", "Dependencies", });
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_FileDescriptorTreeProto_descriptor,
+        new java.lang.String[] { "ProtoFileDescriptor", "Dependencies", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)
