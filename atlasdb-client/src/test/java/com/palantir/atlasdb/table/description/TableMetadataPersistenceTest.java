@@ -30,7 +30,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 @RunWith(Parameterized.class)
 public class TableMetadataPersistenceTest {
 
-    private static final int CUSTOM_COMPRESSION_BLOCK_SIZE = 42;
+    private static final int CUSTOM_COMPRESSION_BLOCK_SIZE = 32;
 
     private final TableDefinition tableDefinition;
     private final int compressionBlockSizeKB;
