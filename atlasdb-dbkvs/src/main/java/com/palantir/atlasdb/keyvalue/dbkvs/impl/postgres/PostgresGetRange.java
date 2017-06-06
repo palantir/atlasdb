@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
+import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -138,7 +139,8 @@ public class PostgresGetRange implements DbKvsGetRange {
                                                long timestamp) {
         int maxRowsPerPage = RangeHelpers.getMaxRowsPerPage(rangeRequest);
         int cellsPerRowEstimate = getCellsPerRowEstimate(tableRef, rangeRequest);
-        int maxCellsPerPage = maxRowsPerPage * cellsPerRowEstimate + 1;
+        int maxCellsPerPage = Math.min(
+                AtlasDbPerformanceConstants.MAX_BATCH_SIZE, maxRowsPerPage * cellsPerRowEstimate) + 1;
         String tableName = DbKvs.internalTableName(tableRef);
         Iterator<Iterator<RowResult<Value>>> pageIterator = new PageIterator(
                 rangeRequest.getStartInclusive(),
