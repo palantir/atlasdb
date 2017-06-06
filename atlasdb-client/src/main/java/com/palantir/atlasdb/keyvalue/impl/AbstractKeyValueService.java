@@ -59,6 +59,9 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
+import com.palantir.atlasdb.logging.SafeLoggableDataUtils;
+import com.palantir.atlasdb.logging.SimpleKeyValueServiceArgSupplier;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
@@ -76,6 +79,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             + " while doing a write to {}. Attempting to batch anyways.";
 
     protected ExecutorService executor;
+    protected KeyValueServiceArgSupplier argSupplier = KeyValueServiceArgSupplier.NO_OP;
 
     protected final TracingPrefsConfig tracingPrefs;
     private final ScheduledExecutorService scheduledExecutor;
@@ -114,6 +118,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         for (Entry<TableReference, byte[]> entry : tableRefToTableMetadata.entrySet()) {
             createTable(entry.getKey(), entry.getValue());
         }
+        rehydrateArgSupplier();
     }
 
     @Override
@@ -282,6 +287,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         for (Map.Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
             putMetadataForTable(entry.getKey(), entry.getValue());
         }
+        rehydrateArgSupplier();
     }
 
     @Override
@@ -360,5 +366,10 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                                                                           columnRangeSelection,
                                                                           cellBatchHint,
                                                                           timestamp);
+    }
+
+    private void rehydrateArgSupplier() {
+        this.argSupplier = new SimpleKeyValueServiceArgSupplier(
+                SafeLoggableDataUtils.fromTableMetadata(getMetadataForTables()));
     }
 }
