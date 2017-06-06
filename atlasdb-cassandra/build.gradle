@@ -34,8 +34,8 @@ dependencies {
 
   explicitShadow 'org.apache.commons:commons-pool2:2.4.2'
 
-  compile group: 'com.palantir.remoting', name: 'ssl-config'
-  compile group: 'com.palantir.remoting1', name: 'tracing'
+  compile group: 'com.palantir.remoting2', name: 'ssl-config'
+  compile group: 'com.palantir.remoting2', name: 'tracing'
 
   explicitShadow group: 'com.google.code.findbugs', name: 'annotations'
 
@@ -60,8 +60,8 @@ shadowJar {
   relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
 
   dependencies {
-    include(dependency(group: 'com.palantir.remoting', name: 'ssl-config'))
-    include(dependency(group: 'com.palantir.remoting1', name: 'tracing'))
+    include(dependency(group: 'com.palantir.remoting2', name: 'ssl-config'))
+    include(dependency(group: 'com.palantir.remoting2', name: 'tracing'))
   }
 }
 

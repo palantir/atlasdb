@@ -46,7 +46,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
- * Wraps a {@link KeyValueService}'s methods with {@link com.palantir.remoting1.tracing.Tracer}
+ * Wraps a {@link KeyValueService}'s methods with {@link com.palantir.remoting2.tracing.Tracer}
  * instrumentation.
  */
 public final class TracingKeyValueService extends ForwardingObject implements KeyValueService {

@@ -22,7 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.remoting1.servers.jersey.WebPreconditions;
+import com.palantir.remoting2.servers.jersey.WebPreconditions;
 
 public class KvsBackedPersistentLockService implements PersistentLockService {
     private static final Logger log = LoggerFactory.getLogger(KvsBackedPersistentLockService.class);
