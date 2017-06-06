@@ -20,8 +20,6 @@ class TableTest {
     Table table
 
     final String TABLE_NAME = 't'
-    final LIST_RESULT = [data: ['a', 'b']]
-    final LIST_OF_MAPS_RESULT = [data: [['a': 'foo']]]
 
     final tableQuery1 = 'a'
     final tableQuery2=['a', 'b']
@@ -57,9 +55,9 @@ class TableTest {
         ]
         service.getMetadata(TABLE_NAME).returns(DESC).once()
         play {
-            assertEquals table.describe(), DESC
+            assertEquals(DESC, table.describe())
             assert !table.isDynamic()
-            assertEquals table.columnNames(), ['alice', 'bob']
+            assertEquals(['alice', 'bob'], table.columnNames())
         }
     }
 
@@ -70,9 +68,9 @@ class TableTest {
             query.cols = colExpect
         }
         def token = mock(TransactionToken)
-        service.getRows(query, token).returns(LIST_OF_MAPS_RESULT).once()
+        service.getRows(query, token).returns([data: [['a': 'foo']]]).once()
         play {
-            assertEquals LIST_OF_MAPS_RESULT.data[0], table.getRow(row, col, token)
+            assertEquals('a': 'foo', table.getRow(row, col, token))
         }
     }
 
@@ -88,9 +86,9 @@ class TableTest {
             query.cols = colExpect
         }
         def token = mock(TransactionToken)
-        service.getRows(query, token).returns(LIST_RESULT).once()
+        service.getRows(query, token).returns([data: [['a': 'foo'], ['b': 'bar']]]).once()
         play {
-            assertEquals LIST_RESULT.data, table.getRows(row, col, token)
+            assertEquals([['a': 'foo'], ['b': 'bar']], table.getRows(row, col, token))
         }
     }
 
@@ -106,9 +104,9 @@ class TableTest {
     void testGetPartialRows() {
         def query = [table: TABLE_NAME, rows: serviceQuery1, cols: serviceQuery1]
         def token = mock(TransactionToken)
-        service.getRows(query, token).returns(LIST_RESULT).once()
+        service.getRows(query, token).returns([data: [['a': 'foo'], ['b': 'bar']]]).once()
         play {
-            assertEquals table.getPartialRows(tableQuery1, tableQuery1, token), LIST_RESULT.data
+            assertEquals([['a': 'foo'], ['b': 'bar']], table.getPartialRows(tableQuery1, tableQuery1, token))
             shouldFail(MissingMethodException) {
                 table.getPartialRows(tableQuery1)
             }
@@ -119,9 +117,9 @@ class TableTest {
         setup()
         def query = [table: TABLE_NAME, data: cellsExpect]
         def token = mock(TransactionToken)
-        service.getCells(query, token).returns(LIST_RESULT).once()
+        service.getCells(query, token).returns([data: [['a': 'foo'], ['b': 'bar']]]).once()
         play {
-            assertEquals table.getCells(cells, token), LIST_RESULT.data
+            assertEquals([['a': 'foo'], ['b': 'bar']], table.getCells(cells, token))
         }
 
     }
@@ -146,7 +144,7 @@ class TableTest {
         def result = [data: expected, next: null]
         service.getRange(expected, token).returns(result).once()
         play {
-            assertEquals table.getRange(query, token), new Range(service, result, token)
+            assertEquals(new Range(service, result, token), table.getRange(query, token))
         }
     }
 
@@ -170,7 +168,7 @@ class TableTest {
         //have to reimplement part of table.getRows since partial mocks don't work :(
         service.delete(queryize(output), token).once()
         play {
-            Assert.assertEquals table.delete(input, token), null
+            assertEquals(null, table.delete(input, token))
         }
     }
 
@@ -239,11 +237,11 @@ class TableTest {
             def message = shouldFail(IllegalArgumentException) {
                 table.put([firstInput, secondInput, thirdInput], token)
             }
-            assertEquals message.message, "Column c does not exist"
+            assertEquals("Column c does not exist", message.message)
             message = shouldFail(IllegalArgumentException) {
                 table.put(fourthInput, token)
             }
-            assertEquals message.message, "The following fields do not exist: [fake_field]"
+            assertEquals("The following fields do not exist: [fake_field]", message.message)
         }
     }
 
@@ -260,9 +258,9 @@ class TableTest {
         service.put(queryize([secondOutput]), token).once()
         service.put(queryize([firstOutput, secondOutput]), token).once()
         play {
-            Assert.assertEquals table.put(firstInput, token), null
-            Assert.assertEquals table.put([secondInput], token), null
-            Assert.assertEquals table.put([firstInput, secondInput], token), null
+            assertEquals(null, table.put(firstInput, token))
+            assertEquals(null, table.put([secondInput], token))
+            assertEquals(null, table.put([firstInput, secondInput], token))
         }
     }
 }
