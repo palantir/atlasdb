@@ -25,8 +25,8 @@ import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.remoting.ssl.SslConfiguration;
-import com.palantir.remoting.ssl.SslSocketFactories;
+import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.remoting2.config.ssl.SslSocketFactories;
 
 public class ServiceCreator<T> implements Function<ServerListConfig, T> {
     private final Class<T> serviceClass;

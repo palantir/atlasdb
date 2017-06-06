@@ -12,7 +12,7 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'javax.validation', name: 'validation-api'
 
-  compile group: 'com.palantir.remoting', name: 'ssl-config'
+  compile group: 'com.palantir.remoting2', name: 'ssl-config'
 
   processor group: 'org.immutables', name: 'value'
 

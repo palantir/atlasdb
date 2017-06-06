@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.palantir.remoting.ssl.SslConfiguration;
+import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 public class TimeLockClientConfigTest {
     private static final String CLIENT = "testClient";

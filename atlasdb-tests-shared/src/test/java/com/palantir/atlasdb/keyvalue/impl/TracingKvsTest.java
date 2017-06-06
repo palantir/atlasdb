@@ -21,17 +21,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.remoting1.tracing.Span;
-import com.palantir.remoting1.tracing.SpanObserver;
-import com.palantir.remoting1.tracing.SpanType;
-import com.palantir.remoting1.tracing.Tracer;
+import com.palantir.remoting2.tracing.Span;
+import com.palantir.remoting2.tracing.SpanObserver;
+import com.palantir.remoting2.tracing.SpanType;
+import com.palantir.remoting2.tracing.Tracer;
 
 public class TracingKvsTest extends AbstractKeyValueServiceTest {
     private static final Logger log = LoggerFactory.getLogger(TracingKvsTest.class);
