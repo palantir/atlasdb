@@ -64,6 +64,10 @@ develop
            If this breaks your tests, you can fix it with making real schema for tests or by switching to AtlasDbConstants.GENERIC_TABLE_METADATA
            (`Pull Request <https://github.com/palantir/1925>`__)
 
+    *    - |fixed|
+         - Fixed a potentital out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2003>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
