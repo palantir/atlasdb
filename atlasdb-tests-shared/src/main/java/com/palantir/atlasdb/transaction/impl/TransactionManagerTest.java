@@ -16,17 +16,31 @@
 package com.palantir.atlasdb.transaction.impl;
 
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
+
+import java.sql.Timestamp;
+
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.lock.LockClient;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.timestamp.TimestampService;
 
 public class TransactionManagerTest extends TransactionTestSetup {
     @Rule
@@ -90,6 +104,28 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 return null;
             }
         });
+    }
+
+    @Test
+    public void shouldNotMakeRemoteCallsInAReadonlyTransactionIfNoWorkIsDone() {
+        TimestampService mockTimestampService = mock(TimestampService.class);
+        RemoteLockService mockLockService = mock(RemoteLockService.class);
+        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(getKeyValueService(), mockTimestampService,
+                LockClient.of("foo"), mockLockService, transactionService,
+                () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
+                conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE);
+
+        // fetch an immutable timestamp once so it's cached
+        when(mockTimestampService.getFreshTimestamp()).thenReturn(1L);
+        when(mockLockService.getMinLockedInVersionId("foo")).thenReturn(1L);
+        txnManagerWithMocks.getImmutableTimestamp();
+        verify(mockTimestampService).getFreshTimestamp();
+        verify(mockLockService).getMinLockedInVersionId("foo");
+
+        // now execute a read transaction
+        txnManagerWithMocks.runTaskReadOnly(txn -> null);
+        verifyNoMoreInteractions(mockLockService);
+        verifyNoMoreInteractions(mockTimestampService);
     }
 
     @Override
