@@ -67,8 +67,8 @@ public class ServiceDiscoveringAtlasSupplier {
                 .filter(producesCorrectType())
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
-                        "No atlas provider for KeyValueService type " + keyValueServiceConfig.type() + " could be found."
-                        + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
+                        "No atlas provider for KeyValueService type " + keyValueServiceConfig.type()
+                                + " could be found. Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
         keyValueService = Suppliers.memoize(() -> pollOrCreateRawKeyValueService(atlasFactory));
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());

@@ -18,43 +18,66 @@ package com.palantir.atlasdb.ete;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 
+@RunWith(Parameterized.class)
 public class MultiCassandraStartupOrderingEteTest {
-    private static final List<String> CASSANDRA_NODES = ImmutableList.of("cassandra1", "cassandra2", "cassandra3");
+    private final List<String> cassandraNodesToStartOrStop;
+
+    public MultiCassandraStartupOrderingEteTest(List<String> cassandraNodesToStartorStop) {
+        this.cassandraNodesToStartOrStop = cassandraNodesToStartorStop;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> testCases() {
+        Collection<Object[]> params = Lists.newArrayList();
+
+        params.add(new Object[] {ImmutableList.of("cassandra1")});
+        params.add(new Object[] {ImmutableList.of("cassandra1", "cassandra2")});
+        params.add(new Object[] {ImmutableList.of("cassandra1", "cassandra2", "cassandra3")});
+        return params;
+    }
 
     @Test
-    public void shouldBeAbleToStartUpIfCassandraIsDownAndRunTransactionsWhenCassandraIsUp() throws IOException, InterruptedException {
+    public void shouldBeAbleToStartUpIfCassandraIsDownAndRunTransactionsWhenCassandraIsUp()
+            throws IOException, InterruptedException {
         EteSetup.runCliCommand("service/bin/init.sh stop");
-        runOnAllCassandraNodes(MultiCassandraTestSuite::killCassandraContainer);
+        runOnCassandraNodes(MultiCassandraTestSuite::killCassandraContainer);
         EteSetup.runCliCommand("service/bin/init.sh start");
 
-        IntStream.range(0, 5).forEach(dummy -> assertThatThrownBy(this::addATodo)
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageStartingWith("Error 500. Reason: Internal Server Error.")
-                .hasNoCause());
+        if (cassandraNodesToStartOrStop.size() > 1) {
+            assertThatThrownBy(this::addATodo)
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageStartingWith("Error 500. Reason: Internal Server Error.")
+                    .hasNoCause();
+        } else {
+            addATodo();
+        }
 
-        runOnAllCassandraNodes(MultiCassandraTestSuite::startCassandraContainer);
+        runOnCassandraNodes(MultiCassandraTestSuite::startCassandraContainer);
         addATodo();
     }
 
-    private void runOnAllCassandraNodes(CassandraContainerOperator operator) throws InterruptedException {
-        ExecutorService executorService = Executors.newFixedThreadPool(CASSANDRA_NODES.size());
+    private void runOnCassandraNodes(CassandraContainerOperator operator)
+            throws InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(cassandraNodesToStartOrStop.size());
 
-        executorService.invokeAll(CASSANDRA_NODES.stream()
+        executorService.invokeAll(cassandraNodesToStartOrStop.stream()
                 .map(cassandraContainer -> Executors.callable(() -> operator.nodeOperation(cassandraContainer)))
                 .collect(Collectors.toList()));
     }
