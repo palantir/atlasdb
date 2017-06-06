@@ -52,19 +52,27 @@ public class NamedColumnDescriptionTest {
     }
 
     @Test
+    public void canSerializeAndDeserializeLoggabilityUnspecifiedDescription() {
+        assertCanSerializeAndDeserializeWithLoggability(LOGGABILITY_UNSPECIFIED_DESCRIPTION, false);
+    }
+
+    @Test
     public void canSerializeAndDeserializeKeepingLoggability() {
-        TableMetadataPersistence.NamedColumnDescription.Builder builder = NAME_LOGGABLE_DESCRIPTION.persistToProto();
-        assertThat(NamedColumnDescription.hydrateFromProto(builder.build()))
-                .isEqualTo(NAME_LOGGABLE_DESCRIPTION)
-                .matches(NamedColumnDescription::isNameLoggable);
+        assertCanSerializeAndDeserializeWithLoggability(NAME_LOGGABLE_DESCRIPTION, true);
     }
 
     @Test
     public void canSerializeAndDeserializeKeepingNonLoggability() {
+        assertCanSerializeAndDeserializeWithLoggability(NAME_NOT_LOGGABLE_DESCRIPTION, false);
+    }
+
+    private static void assertCanSerializeAndDeserializeWithLoggability(
+            NamedColumnDescription componentDescription,
+            boolean loggable) {
         TableMetadataPersistence.NamedColumnDescription.Builder builder =
-                NAME_NOT_LOGGABLE_DESCRIPTION.persistToProto();
+                componentDescription.persistToProto();
         assertThat(NamedColumnDescription.hydrateFromProto(builder.build()))
-                .isEqualTo(NAME_NOT_LOGGABLE_DESCRIPTION)
-                .matches(description -> !description.isNameLoggable());
+                .isEqualTo(componentDescription)
+                .matches(description -> description.isNameLoggable() == loggable);
     }
 }

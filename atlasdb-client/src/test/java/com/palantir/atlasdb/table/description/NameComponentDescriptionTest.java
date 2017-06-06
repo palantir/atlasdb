@@ -65,20 +65,23 @@ public class NameComponentDescriptionTest {
     }
 
     @Test
+    public void canSerializeAndDeserializeDefaultDescription() {
+        assertCanSerializeAndDeserializeWithLoggability(DEFAULT_UNNAMED_DESCRIPTION, false);
+    }
+
+    @Test
+    public void canSerializeAndDeserializeLoggabilityUnspecifiedDescription() {
+        assertCanSerializeAndDeserializeWithLoggability(LOGGABILITY_UNSPECIFIED_DESCRIPTION, false);
+    }
+
+    @Test
     public void canSerializeAndDeserializeKeepingLoggability() {
-        TableMetadataPersistence.NameComponentDescription.Builder builder = NAME_LOGGABLE_DESCRIPTION.persistToProto();
-        assertThat(NameComponentDescription.hydrateFromProto(builder.build()))
-                .isEqualTo(NAME_LOGGABLE_DESCRIPTION)
-                .matches(NameComponentDescription::isNameLoggable);
+        assertCanSerializeAndDeserializeWithLoggability(NAME_LOGGABLE_DESCRIPTION, true);
     }
 
     @Test
     public void canSerializeAndDeserializeKeepingNonLoggability() {
-        TableMetadataPersistence.NameComponentDescription.Builder builder =
-                NAME_NOT_LOGGABLE_DESCRIPTION.persistToProto();
-        assertThat(NameComponentDescription.hydrateFromProto(builder.build()))
-                .isEqualTo(NAME_NOT_LOGGABLE_DESCRIPTION)
-                .matches(description -> !description.isNameLoggable());
+        assertCanSerializeAndDeserializeWithLoggability(NAME_NOT_LOGGABLE_DESCRIPTION, false);
     }
 
     @Test
@@ -89,6 +92,16 @@ public class NameComponentDescriptionTest {
     @Test
     public void withPartitionersPreservesNonLoggabilityOfName() {
         assertThat(LOGGABILITY_UNSPECIFIED_DESCRIPTION.withPartitioners().isNameLoggable()).isFalse();
+    }
+
+    private static void assertCanSerializeAndDeserializeWithLoggability(
+            NameComponentDescription componentDescription,
+            boolean loggable) {
+        TableMetadataPersistence.NameComponentDescription.Builder builder =
+                componentDescription.persistToProto();
+        assertThat(NameComponentDescription.hydrateFromProto(builder.build()))
+                .isEqualTo(componentDescription)
+                .matches(description -> description.isNameLoggable() == loggable);
     }
 
     private static NameComponentDescription createWithSpecifiedLoggability(boolean loggable) {

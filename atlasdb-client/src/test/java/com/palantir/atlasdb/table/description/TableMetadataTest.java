@@ -75,20 +75,32 @@ public class TableMetadataTest {
     }
 
     @Test
+    public void canSerializeAndDeserializeDefaultMetadata() {
+        assertCanSerializeAndDeserializeWithLoggability(DEFAULT_TABLE_METADATA, false);
+    }
+
+    @Test
+    public void canSerializeAndDeserializeIfLoggabilityNotSpecified() {
+        assertCanSerializeAndDeserializeWithLoggability(LOGGABILITY_NOT_SPECIFIED_TABLE_METADATA, false);
+    }
+
+    @Test
     public void canSerializeAndDeserializeKeepingLoggability() {
-        TableMetadataPersistence.TableMetadata.Builder builder = NAME_LOGGABLE_TABLE_METADATA.persistToProto();
-        assertThat(TableMetadata.hydrateFromProto(builder.build()))
-                .isEqualTo(NAME_LOGGABLE_TABLE_METADATA)
-                .matches(TableMetadata::isNameLoggable);
+        assertCanSerializeAndDeserializeWithLoggability(NAME_LOGGABLE_TABLE_METADATA, true);
     }
 
     @Test
     public void canSerializeAndDeserializeKeepingNonLoggability() {
-        TableMetadataPersistence.TableMetadata.Builder builder =
-                NAME_NOT_LOGGABLE_TABLE_METADATA.persistToProto();
+        assertCanSerializeAndDeserializeWithLoggability(NAME_NOT_LOGGABLE_TABLE_METADATA, false);
+    }
+
+    private static void assertCanSerializeAndDeserializeWithLoggability(
+            TableMetadata tableMetadata,
+            boolean loggable) {
+        TableMetadataPersistence.TableMetadata.Builder builder = tableMetadata.persistToProto();
         assertThat(TableMetadata.hydrateFromProto(builder.build()))
-                .isEqualTo(NAME_NOT_LOGGABLE_TABLE_METADATA)
-                .matches(tableMetadata -> !tableMetadata.isNameLoggable());
+                .isEqualTo(tableMetadata)
+                .matches(description -> description.isNameLoggable() == loggable);
     }
 
     private static TableMetadata createWithSpecifiedLoggability(boolean loggable) {
