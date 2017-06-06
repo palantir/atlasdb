@@ -64,6 +64,10 @@ develop
            If this breaks your tests, you can fix it with making real schema for tests or by switching to AtlasDbConstants.GENERIC_TABLE_METADATA
            (`Pull Request <https://github.com/palantir/1925>`__)
 
+    *    - |userbreak| |fixed|
+         - Fixed a bug that caused Cassandra to always use the minimum compression block size of 4KB instead of the requested compression block size. Users must explicitly rewrite table metadata for any tables that requested explicit compression, as any tables that were created previously will not respect the compression block size in the schema. This can have a very large performance impact (both positive and negative in different cases), so users may need to remove the explicit compression request from their schema if this causes a performance regression.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1995>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
