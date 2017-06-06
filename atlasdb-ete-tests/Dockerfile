@@ -1,6 +1,6 @@
 FROM centos:centos7
 
-MAINTAINER hsaraogi@palantir.com <Himangi Saraogi>
+MAINTAINER pd-atlasdb-team@palantir.com <AtlasDB Team>
 
 # Default to UTF-8 file.encoding
 ENV LC_ALL en_US.UTF-8
