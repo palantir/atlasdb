@@ -169,6 +169,9 @@ public class TableMetadata implements Persistable {
         builder.setCachePriority(cachePriority);
         builder.setPartitionStrategy(partitionStrategy);
         builder.setRangeScanAllowed(rangeScanAllowed);
+        if (explicitCompressionBlockSizeKB != 0) {
+            builder.setExplicitCompressionBlockSizeKiloBytes(explicitCompressionBlockSizeKB);
+        }
         builder.setNegativeLookups(negativeLookups);
         builder.setSweepStrategy(sweepStrategy);
         // expiration strategy doesn't need to be persisted.
