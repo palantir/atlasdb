@@ -13,6 +13,8 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner"
             ]
         },
@@ -20,20 +22,38 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.palantir.remoting1:tracing"
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.remoting1:tracing"
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.remoting1:tracing"
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.google.code.findbugs:annotations": {
@@ -56,7 +76,7 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting1:tracing"
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -87,8 +107,14 @@
                 "com.palantir.atlasdb:leader-election-api"
             ]
         },
-        "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3"
+        "com.palantir.remoting2:jackson-support": {
+            "locked": "2.3.0",
+            "transitive": [
+                "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.palantir.remoting2:tracing": {
+            "locked": "2.3.0"
         },
         "com.palantir.safe-logging:safe-logging": {
             "locked": "0.1.1",
@@ -135,7 +161,7 @@
             "locked": "1.7.5",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting1:tracing",
+                "com.palantir.remoting2:tracing",
                 "io.dropwizard.metrics:metrics-core"
             ]
         }
@@ -154,6 +180,8 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner"
             ]
         },
@@ -161,20 +189,38 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.palantir.remoting1:tracing"
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.remoting1:tracing"
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.remoting1:tracing"
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.google.code.findbugs:annotations": {
@@ -197,7 +243,7 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting1:tracing"
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -228,8 +274,14 @@
                 "com.palantir.atlasdb:leader-election-api"
             ]
         },
-        "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3"
+        "com.palantir.remoting2:jackson-support": {
+            "locked": "2.3.0",
+            "transitive": [
+                "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.palantir.remoting2:tracing": {
+            "locked": "2.3.0"
         },
         "com.palantir.safe-logging:safe-logging": {
             "locked": "0.1.1",
@@ -276,7 +328,7 @@
             "locked": "1.7.5",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting1:tracing",
+                "com.palantir.remoting2:tracing",
                 "io.dropwizard.metrics:metrics-core"
             ]
         }
