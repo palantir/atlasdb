@@ -87,6 +87,10 @@ develop
          - Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2003>`__)
 
+    *    - |improved|
+         - Upgraded all usages of http-remoting to remoting2
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
