@@ -19,10 +19,7 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-
-import java.sql.Timestamp;
 
 import org.junit.After;
 import org.junit.Rule;
@@ -110,8 +107,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public void shouldNotMakeRemoteCallsInAReadonlyTransactionIfNoWorkIsDone() {
         TimestampService mockTimestampService = mock(TimestampService.class);
         RemoteLockService mockLockService = mock(RemoteLockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(getKeyValueService(), mockTimestampService,
-                LockClient.of("foo"), mockLockService, transactionService,
+        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(getKeyValueService(),
+                mockTimestampService, LockClient.of("foo"), mockLockService, transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                 conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE);
 

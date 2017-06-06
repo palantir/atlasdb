@@ -55,6 +55,11 @@ develop
            This is no longer permitted, as it leads to many (unsolved) questions about how to deal with such a table.
            If this breaks your tests, you can fix it with making real schema for tests or by switching to AtlasDbConstants.GENERIC_TABLE_METADATA
            (`Pull Request <https://github.com/palantir/1925>`__)
+           
+    *    - |improved|
+         - Read-only transactions will no longer make a remote call to fetch a timestamp, if no work is done on the transaction. 
+           This will benefit services that execute read-only transactions around in-memory cache operations, and frequently never fall through to perform a read.
+           (`Pull Request <https://github.com/palantir/1996>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
