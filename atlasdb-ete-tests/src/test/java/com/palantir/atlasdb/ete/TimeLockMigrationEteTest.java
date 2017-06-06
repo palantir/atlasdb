@@ -40,6 +40,9 @@ import com.palantir.timestamp.TimestampService;
 // We don't use EteSetup because we need much finer-grained control of the orchestration here, compared to the other
 // ETE tests where the general idea is "set up all the containers, and fire".
 public class TimeLockMigrationEteTest {
+    private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
+    private static final Gradle DOCKER_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
+
     // Docker Engine daemon only has limited access to the filesystem, if the user is using Docker-Machine
     // Thus ensure the temporary folder is a subdirectory of the user's home directory
     private static final TemporaryFolder TEMPORARY_FOLDER
@@ -58,7 +61,9 @@ public class TimeLockMigrationEteTest {
     private static final String TEST_CLIENT = "test";
 
     @ClassRule
-    public static final RuleChain RULE_CHAIN = RuleChain.outerRule(TEMPORARY_FOLDER)
+    public static final RuleChain RULE_CHAIN = RuleChain.outerRule(GRADLE_PREPARE_TASK)
+            .around(DOCKER_TASK)
+            .around(TEMPORARY_FOLDER)
             .around(CLIENT_ORCHESTRATION_RULE);
 
     @Rule
