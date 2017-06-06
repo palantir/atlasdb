@@ -128,9 +128,10 @@ public class TimeLockMigrationEteTest {
 
         // as() is not compatible with assertThatThrownBy - see
         // http://joel-costigliola.github.io/assertj/core/api/org/assertj/core/api/Assertions.html
-        Throwable actual = catchThrowable(timestampClient::getFreshTimestamp);
-        softAssertions.assertThat(actual).as("no longer exposes an embedded timestamp service");
-        softAssertions.assertThat(((AtlasDbRemoteException) actual).getStatus()).isEqualTo(404);
+        softAssertions.assertThat(
+                ((AtlasDbRemoteException) catchThrowable(timestampClient::getFreshTimestamp)).getStatus())
+                .isEqualTo(404)
+                .as("no longer exposes an embedded timestamp service");
     }
 
     private void assertCanNeitherReadNorWrite() {
