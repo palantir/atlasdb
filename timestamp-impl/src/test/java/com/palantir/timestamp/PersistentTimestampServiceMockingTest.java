@@ -39,33 +39,24 @@ public class PersistentTimestampServiceMockingTest {
 
     private static final TimestampRange RANGE = TimestampRange.createInclusiveRange(100, 200);
 
-    private AvailableTimestamps availableTimestamps = mock(AvailableTimestamps.class);
+    private PersistentTimestamp timestamp = mock(PersistentTimestamp.class);
     private ExecutorService executor = Executors.newSingleThreadExecutor();
-    private PersistentTimestampService timestampService = new PersistentTimestampService(availableTimestamps, executor);
+    private PersistentTimestampService timestampService = new PersistentTimestampService(timestamp);
 
     @Test
     public void
     shouldDelegateFastForwardingToAvailableTimestamps() {
         timestampService.fastForwardTimestamp(INITIAL_TIMESTAMP + 1000);
-        verify(availableTimestamps).fastForwardTo(INITIAL_TIMESTAMP + 1000);
-    }
-
-    @Test
-    public void shouldRequestABufferRefreshAfterEveryTimestampRequest() throws InterruptedException {
-        when(availableTimestamps.handOut(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
-
-        timestampService.getFreshTimestamp();
-        waitForExecutorToFinish();
-        verify(availableTimestamps).refreshBuffer();
+        verify(timestamp).increaseTo(INITIAL_TIMESTAMP + 1000);
     }
 
     @Test
     public void shouldLimitRequestsTo10000Timestamps() throws InterruptedException {
-        when(availableTimestamps.handOut(anyLong())).thenReturn(RANGE);
+        when(timestamp.incrementBy(anyLong())).thenReturn(RANGE);
 
         timestampService.getFreshTimestamps(20000);
 
-        verify(availableTimestamps).handOut(10000);
+        verify(timestamp).incrementBy(10000);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -75,14 +66,14 @@ public class PersistentTimestampServiceMockingTest {
 
     @Test
     public void shouldRequestTheRightTimestampFromTheAvailableTimestamps() {
-        when(availableTimestamps.handOut(10)).thenReturn(RANGE);
+        when(timestamp.incrementBy(10)).thenReturn(RANGE);
 
         assertThat(timestampService.getFreshTimestamps(10), is(RANGE));
     }
 
     @Test
     public void shouldRequestOnlyRequestASingleTimestampIfOnGetFreshTimestamp() {
-        when(availableTimestamps.handOut(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
+        when(timestamp.incrementBy(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
 
         assertThat(timestampService.getFreshTimestamp(), is(TIMESTAMP));
     }
