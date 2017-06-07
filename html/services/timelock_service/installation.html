@@ -191,6 +191,14 @@
             
   <div class="section" id="timelock-server-installation">
 <span id="timelock-installation"></span><h1>Timelock Server Installation<a class="headerlink" href="#timelock-server-installation" title="Permalink to this headline">¶</a></h1>
+<p>This guide explains how to install the Timelock server, and to configure existing services to use Timelock Server rather than embedded AtlasDB time and lock services.
+The basic method is to first install Timelock without any clients, and then for each existing service, prepare the service and Timelock to talk to each other.</p>
+<div class="section" id="obtain-the-timelock-binaries">
+<h2>Obtain the Timelock binaries<a class="headerlink" href="#obtain-the-timelock-binaries" title="Permalink to this headline">¶</a></h2>
+<div class="admonition tip">
+<p class="first admonition-title">Tip</p>
+<p class="last">Internal consumers can skip these steps.</p>
+</div>
 <ol class="arabic">
 <li><p class="first">Clone the git repository.</p>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">palantir</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">.</span><span class="n">git</span><span class="p">;</span> <span class="n">cd</span> <span class="n">atlasdb</span>
@@ -206,11 +214,20 @@
 <blockquote>
 <div>This will place a tar file in the <code class="docutils literal"><span class="pre">build/distributions</span></code> directory of the <code class="docutils literal"><span class="pre">timelock-server</span></code> project. The
 tar file follows semantic versioning.</div></blockquote>
+</div>
+<div class="section" id="install-timelock-without-clients">
+<h2>Install Timelock (without clients)<a class="headerlink" href="#install-timelock-without-clients" title="Permalink to this headline">¶</a></h2>
+<p>We recommend deploying either a 3-node or a 5-node Timelock cluster.
+A 3-node cluster will provide better performance, whereas a 5-node cluster has greater fault tolerance.</p>
+<div class="admonition tip">
+<p class="first admonition-title">Tip</p>
+<p class="last">Internal consumers can deploy the binaries by the usual method.</p>
+</div>
+<p>For real-world installations, we recommend provisioning a dedicated host machine for each Timelock server.</p>
 <ol class="arabic" start="3">
-<li><p class="first">Copy this tar file to the server on which you want to deploy Timelock Server.
-(If you wish to run Timelock Server locally, this step may be omitted.)</p>
+<li><p class="first">Copy this tar file to each machine on which you want to deploy Timelock Server.</p>
 </li>
-<li><p class="first">On the server which you intend to deploy Timelock Server, untar the archive.</p>
+<li><p class="first">On each machine which you intend to deploy Timelock Server, untar the archive.</p>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">tar</span> <span class="o">-</span><span class="n">zxvf</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mf">0.</span><span class="n">sls</span><span class="o">.</span><span class="n">tgz</span><span class="p">;</span> <span class="n">cd</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mi">0</span>
 </pre></div>
 </div>
@@ -237,6 +254,52 @@ the server’s <code class="docutils literal"><span class="pre">healthcheck</spa
 </div>
 </li>
 </ol>
+</div>
+<div class="section" id="add-client-s-to-timelock">
+<h2>Add client(s) to Timelock<a class="headerlink" href="#add-client-s-to-timelock" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple" start="8">
+<li>Back up each client, following the steps declared in <a class="reference internal" href="../../cluster_management/backup-restore.html#backup-restore"><span class="std std-ref">Backup and Restore</span></a>.</li>
+<li>Configure each client to use Timelock.
+Detailed documentation is <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">here</span></a>.
+You must remove any <code class="docutils literal"><span class="pre">leader</span></code>, <code class="docutils literal"><span class="pre">timestamp</span></code>, or <code class="docutils literal"><span class="pre">lock</span></code> blocks; the <code class="docutils literal"><span class="pre">timelock</span></code> block to add looks like this:</li>
+</ol>
+<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+   <span class="l l-Scalar l-Scalar-Plain">timelock</span><span class="p p-Indicator">:</span>
+     <span class="l l-Scalar l-Scalar-Plain">client</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">tom</span>
+     <span class="l l-Scalar l-Scalar-Plain">serversList</span><span class="p p-Indicator">:</span>
+       <span class="l l-Scalar l-Scalar-Plain">servers</span><span class="p p-Indicator">:</span>
+         <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span>
+         <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">palantir-2.com:8080</span>
+         <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">palantir-3.com:8080</span>
+       <span class="l l-Scalar l-Scalar-Plain">sslConfiguration</span><span class="p p-Indicator">:</span>
+         <span class="l l-Scalar l-Scalar-Plain">trustStorePath</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="10">
+<li>Configure Timelock to respond to your clients.
+Add each client as a named entry in the <code class="docutils literal"><span class="pre">clients</span></code> block of your <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_server_config.html#timelock-server-configuration"><span class="std std-ref">Timelock Server Configuration</span></a>.</li>
+</ol>
+<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">clients</span><span class="p p-Indicator">:</span>
+   <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">tom</span>
+   <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">jerry</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="10">
+<li>As a verification step, request a fresh timestamp from each client. We will use these values later to check that the migration is complete.</li>
+<li>Shut down each client that has been newly added.</li>
+<li>Restart your Timelock cluster.</li>
+<li>Migrate each client to the timelock server - see the <a class="reference internal" href="migration.html#timelock-migration"><span class="std std-ref">separate migration docs</span></a>. For Cassandra KVS, this is automatic.</li>
+</ol>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Do not skip this step if your client uses DbKvs! Failure to migrate your client will cause <strong>severe data corruption</strong>, as Timelock will serve timestamps starting from 1.</p>
+</div>
+<ol class="arabic simple" start="14">
+<li>Restart each client.</li>
+<li>To verify that the migration worked correctly, get a fresh timestamp for each client from the Timelock server.
+For each client, the timestamp returned should be strictly greater than the corresponding timestamp obtained in step 10.</li>
+</ol>
+</div>
 </div>
 
 
