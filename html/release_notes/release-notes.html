@@ -197,33 +197,38 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">TimestampService</span></code> now uses atomic variables rather than locking, and refreshes the bound synchronously rather than asynchronously.
+This should improve performance somewhat under heavy load, although there will be a short pause in responses when the bound needs to be refreshed (currently, once every 1 million timestamps).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1910">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Added new meter metrics for cells swept/deleted and failures to acquire persistent lock.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1946">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>KVS migration CLI will now clear the checkpoint tables that are required while the migration is in progress but not after the migration is complete.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1927">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Timelock service now includes user agents for all inter-node requests.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1971">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Timelock now tracks metrics for leadership elections, including leadership gains, losses, and proposals.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1927">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Some downstream projects were using empty table metadata for dev-laziness reasons in their tests.
 This is no longer permitted, as it leads to many (unsolved) questions about how to deal with such a table.
 If this breaks your tests, you can fix it with making real schema for tests or by switching to AtlasDbConstants.GENERIC_TABLE_METADATA
 (<a class="reference external" href="https://github.com/palantir/1925">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Read-only transactions will no longer make a remote call to fetch a timestamp, if no work is done on the transaction.
 This will benefit services that execute read-only transactions around in-memory cache operations, and frequently never fall through to perform a read.
 (<a class="reference external" href="https://github.com/palantir/1996">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a severe performance regression in getRange() on Oracle caused by an inadequate query plan being chosen sometimes.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1989">Pull Request</a>)</td>
 </tr>
