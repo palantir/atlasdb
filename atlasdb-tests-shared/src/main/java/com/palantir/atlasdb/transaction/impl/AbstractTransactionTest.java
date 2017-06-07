@@ -1189,7 +1189,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             rangeScanAllowed();
             sweepStrategy(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
             explicitCompressionRequested();
-            explicitCompressionBlockSizeKB(100);
+            explicitCompressionBlockSizeKB(128);
         }}.toTableMetadata().persistToBytes();
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
