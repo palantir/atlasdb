@@ -53,7 +53,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 if (!e.canTransactionBeRetried()) {
                     log.warn("[{}] Non-retriable exception while processing transaction.",
                             SafeArg.of("runId", runId),
-                            SafeArg.of("failureCount", failureCount));
+                            e);
                     throw e;
                 }
                 failureCount++;
