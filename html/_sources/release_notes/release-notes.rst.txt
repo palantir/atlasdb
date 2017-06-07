@@ -78,6 +78,11 @@ develop
          - Fixed a severe performance regression in getRange() on Oracle caused by an inadequate query plan being chosen sometimes.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1989>`__)
 
+    *    - |userbreak| |fixed|
+         - Fixed a bug that caused Cassandra to always use the minimum compression block size of 4KB instead of the requested compression block size. Users must explicitly rewrite table metadata for any tables that requested explicit compression, as any tables that were created previously will not respect the compression block size in the schema. This can have a very large performance impact (both positive and negative in different cases), so users may need to remove the explicit compression request from their schema if this causes a performance regression.
+           Users that previously attempted to set a compression block size that was not a power of 2 will also need to update their schema because Cassandra only allows this value to be a power of 2.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1995>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
