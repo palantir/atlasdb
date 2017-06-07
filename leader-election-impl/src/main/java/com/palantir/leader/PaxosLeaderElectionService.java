@@ -50,7 +50,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.base.Throwables;
-import com.palantir.paxos.BatchingPaxosLatestRoundVerifier;
+import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearner;
@@ -70,7 +70,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
 
     private final ReentrantLock lock;
-    private final BatchingPaxosLatestRoundVerifier latestRoundVerifier;
+    private final CoalescingPaxosLatestRoundVerifier latestRoundVerifier;
 
     final PaxosProposer proposer;
     final PaxosLearner knowledge;
@@ -126,7 +126,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
         lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
-        this.latestRoundVerifier = new BatchingPaxosLatestRoundVerifier(
+        this.latestRoundVerifier = new CoalescingPaxosLatestRoundVerifier(
                 new PaxosLatestRoundVerifierImpl(acceptors, proposer.getQuorumSize(), executor));
     }
 

@@ -39,7 +39,7 @@ public class BatchingSupplierTest {
 
     private final DeterministicScheduler executor = new DeterministicScheduler();
     private final Supplier<String> delegate = mock(Supplier.class);
-    private final BatchingSupplier<String> supplier = new BatchingSupplier<>(delegate, executor);
+    private final CoalescingSupplier<String> supplier = new CoalescingSupplier<>(delegate, executor);
 
     @Before
     public void before() {

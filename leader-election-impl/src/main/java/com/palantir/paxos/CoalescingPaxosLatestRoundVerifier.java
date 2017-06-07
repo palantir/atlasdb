@@ -29,28 +29,28 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
-public class BatchingPaxosLatestRoundVerifier implements PaxosLatestRoundVerifier {
+public class CoalescingPaxosLatestRoundVerifier implements PaxosLatestRoundVerifier {
 
-    private final LoadingCache<Long, BatchingSupplier<PaxosQuorumStatus>> verificationsByRound;
+    private final LoadingCache<Long, CoalescingSupplier<PaxosQuorumStatus>> verifiersByRound;
 
-    public BatchingPaxosLatestRoundVerifier(PaxosLatestRoundVerifier delegate) {
+    public CoalescingPaxosLatestRoundVerifier(PaxosLatestRoundVerifier delegate) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        this.verificationsByRound = buildCache(
-                round -> new BatchingSupplier<>(() -> delegate.isLatestRound(round), executor));
+        this.verifiersByRound = buildCache(
+                round -> new CoalescingSupplier<>(() -> delegate.isLatestRound(round), executor));
     }
 
     @VisibleForTesting
-    BatchingPaxosLatestRoundVerifier(Function<Long, BatchingSupplier<PaxosQuorumStatus>> verifierFactory) {
-        this.verificationsByRound = buildCache(verifierFactory);
+    CoalescingPaxosLatestRoundVerifier(Function<Long, CoalescingSupplier<PaxosQuorumStatus>> verifierFactory) {
+        this.verifiersByRound = buildCache(verifierFactory);
     }
 
-    private static LoadingCache<Long, BatchingSupplier<PaxosQuorumStatus>> buildCache(
-            Function<Long, BatchingSupplier<PaxosQuorumStatus>> verifierFactory) {
+    private static LoadingCache<Long, CoalescingSupplier<PaxosQuorumStatus>> buildCache(
+            Function<Long, CoalescingSupplier<PaxosQuorumStatus>> verifierFactory) {
         return CacheBuilder.newBuilder()
                 .maximumSize(2)
-                .build(new CacheLoader<Long, BatchingSupplier<PaxosQuorumStatus>>() {
+                .build(new CacheLoader<Long, CoalescingSupplier<PaxosQuorumStatus>>() {
                     @Override
-                    public BatchingSupplier<PaxosQuorumStatus> load(Long round) throws Exception {
+                    public CoalescingSupplier<PaxosQuorumStatus> load(Long round) throws Exception {
                         return verifierFactory.apply(round);
                     }
                 });
@@ -58,8 +58,8 @@ public class BatchingPaxosLatestRoundVerifier implements PaxosLatestRoundVerifie
 
     @Override
     public PaxosQuorumStatus isLatestRound(long round) {
-        BatchingSupplier<PaxosQuorumStatus> verification = verificationsByRound.getUnchecked(round);
-        return getUnchecked(verification.get());
+        CoalescingSupplier<PaxosQuorumStatus> verifier = verifiersByRound.getUnchecked(round);
+        return getUnchecked(verifier.get());
     }
 
     private PaxosQuorumStatus getUnchecked(Future<PaxosQuorumStatus> future) {

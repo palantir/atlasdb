@@ -27,13 +27,13 @@ import java.util.function.Supplier;
  * concurrent requests will result in a single computation. Computations are guaranteed to execute after being
  * requested; requests will not receive results for computations that started prior to the request.
  */
-class BatchingSupplier<T> implements Supplier<Future<T>> {
+class CoalescingSupplier<T> implements Supplier<Future<T>> {
 
     private final Supplier<T> delegate;
     private final AtomicReference<CompletableFuture<T>> nextResult = new AtomicReference<>(new CompletableFuture<T>());
     private final ExecutorService executor;
 
-    public BatchingSupplier(Supplier<T> delegate, ExecutorService singleThreadExecutor) {
+    public CoalescingSupplier(Supplier<T> delegate, ExecutorService singleThreadExecutor) {
         this.delegate = delegate;
         this.executor = singleThreadExecutor;
     }

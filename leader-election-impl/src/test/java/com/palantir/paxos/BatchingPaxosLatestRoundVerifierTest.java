@@ -32,9 +32,9 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 public class BatchingPaxosLatestRoundVerifierTest {
 
-    private BatchingSupplier<PaxosQuorumStatus> delegate = mock(BatchingSupplier.class);
-    private Function<Long, BatchingSupplier<PaxosQuorumStatus>> delegateFactory = mock(Function.class);
-    private BatchingPaxosLatestRoundVerifier verifier = new BatchingPaxosLatestRoundVerifier(delegateFactory);
+    private CoalescingSupplier<PaxosQuorumStatus> delegate = mock(CoalescingSupplier.class);
+    private Function<Long, CoalescingSupplier<PaxosQuorumStatus>> delegateFactory = mock(Function.class);
+    private CoalescingPaxosLatestRoundVerifier verifier = new CoalescingPaxosLatestRoundVerifier(delegateFactory);
 
     @Before
     public void before() {
@@ -71,8 +71,8 @@ public class BatchingPaxosLatestRoundVerifierTest {
         assertThatThrownBy(() -> verifier.isLatestRound(1L)).isEqualTo(expected);
     }
 
-    private BatchingSupplier<PaxosQuorumStatus> supplierOf(PaxosQuorumStatus result) {
-        return new BatchingSupplier<>(() -> result, MoreExecutors.newDirectExecutorService());
+    private CoalescingSupplier<PaxosQuorumStatus> supplierOf(PaxosQuorumStatus result) {
+        return new CoalescingSupplier<>(() -> result, MoreExecutors.newDirectExecutorService());
     }
 
 }
