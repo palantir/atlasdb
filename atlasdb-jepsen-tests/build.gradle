@@ -1,5 +1,15 @@
+apply plugin: 'org.inferred.processors'
+apply plugin: 'org.unbroken-dome.test-sets'
+apply plugin: 'com.github.johnrengelman.shadow'
+
 apply from: "../gradle/publish-jars.gradle"
-apply from: "${rootProject.projectDir}/gradle/shared.gradle"
+apply from: "../gradle/shared.gradle"
+
+configurations {
+    explicitShadow
+    compile.extendsFrom(explicitShadow)
+    shadow.extendsFrom(explicitShadow)
+}
 
 buildscript {
     repositories {
@@ -10,17 +20,14 @@ buildscript {
     }
 }
 
-apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'docker-compose'
-apply plugin: 'org.inferred.processors'
-apply plugin: 'org.unbroken-dome.test-sets'
 
 task runUnitTestsForPrintLogsInChronologicalOrderScript(type: Exec) {
    commandLine 'python', 'scripts/print_logs_in_chronological_order.py', '--tests-only'
 }
 
 testSets {
-    integTest
+  integTest
 }
 
 jacocoTestReport {
@@ -31,27 +38,27 @@ check.dependsOn integTest
 check.dependsOn runUnitTestsForPrintLogsInChronologicalOrderScript
 
 dependencies {
-    compile project(path: ':atlasdb-config', configuration: 'shadow')
+    explicitShadow project(':atlasdb-config')
 
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
-    compile group: 'com.google.guava', name: 'guava'
-    compile group: 'one.util', name: 'streamex'
-    compile group: 'org.clojure', name: 'clojure'
-    compile group: 'org.slf4j', name: 'slf4j-api'
+    explicitShadow group: 'com.fasterxml.jackson.core', name: 'jackson-core'
+    explicitShadow group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+    explicitShadow group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
+    explicitShadow group: 'com.google.guava', name: 'guava'
+    explicitShadow group: 'one.util', name: 'streamex'
+    explicitShadow group: 'org.clojure', name: 'clojure'
+    explicitShadow group: 'org.slf4j', name: 'slf4j-api'
 
     processor group: 'org.immutables', name: 'value'
 
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.hamcrest', name: 'hamcrest-library'
-    testCompile group: 'org.mockito', name: 'mockito-core'
+    integTestCompile group: 'org.assertj', name: 'assertj-core'
+    integTestCompile group: 'org.hamcrest', name: 'hamcrest-library'
+    integTestCompile group: 'org.mockito', name: 'mockito-core'
 }
 
 shadowJar {
-    dependencies {
-        exclude(dependency(group: 'org.clojure', name: 'clojure'))
-    }
+    println "Creating shadowJar............."
+    mergeServiceFiles()
+    classifier ''
 }
 
 task copyShadowJar(type: Copy, dependsOn: 'shadowJar') {
@@ -72,3 +79,13 @@ task jepsenTest(type: Exec, dependsOn: ['copyShadowJar', 'copyTimelockServer']) 
 }
 
 check.dependsOn jepsenTest
+
+task hello << {
+//  println groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(AbstractCompile))
+//  println rootProject.AbstractCompile.classpath
+
+  project.tasks.withType(AbstractCompile) {
+   	it.classpath += project.configurations.shadow
+        println it.classpath + "xyz"
+  }
+}
