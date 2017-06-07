@@ -26,6 +26,8 @@ import org.junit.runners.Parameterized.Parameters;
 
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 @RunWith(Parameterized.class)
 public class TableMetadataPersistenceTest {
@@ -43,6 +45,7 @@ public class TableMetadataPersistenceTest {
         params.add(new Object[] {getDefaultExplicit(), AtlasDbConstants.DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB});
         params.add(new Object[] {getDefaultRangeScanExplicit(), AtlasDbConstants.DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB});
         params.add(new Object[] {getCustomExplicitCompression(), CUSTOM_COMPRESSION_BLOCK_SIZE});
+        params.add(new Object[] {getCustomTable(), CUSTOM_COMPRESSION_BLOCK_SIZE});
 
         return params;
     }
@@ -120,6 +123,29 @@ public class TableMetadataPersistenceTest {
             column("column1", "c", ValueType.VAR_LONG);
 
             explicitCompressionBlockSizeKB(CUSTOM_COMPRESSION_BLOCK_SIZE);
+        }};
+    }
+
+    private static TableDefinition getCustomTable() {
+        return new TableDefinition() {{
+            javaTableName("CustomTable");
+
+            rowName();
+            rowComponent("component1", ValueType.VAR_LONG, TableMetadataPersistence.ValueByteOrder.DESCENDING);
+            rowComponent("component2", ValueType.FIXED_LONG_LITTLE_ENDIAN);
+
+            columns();
+            column("column1", "c", ValueType.UUID);
+            column("column2", "d", ValueType.BLOB);
+
+            // setting everything explicitly to test serialization
+            conflictHandler(ConflictHandler.SERIALIZABLE);
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH);
+            partitionStrategy(TableMetadataPersistence.PartitionStrategy.HASH);
+            cachePriority(TableMetadataPersistence.CachePriority.COLD);
+            explicitCompressionBlockSizeKB(CUSTOM_COMPRESSION_BLOCK_SIZE);
+            negativeLookups();
+            appendHeavyAndReadLight();
         }};
     }
 
