@@ -69,6 +69,10 @@ develop
            This will benefit services that execute read-only transactions around in-memory cache operations, and frequently never fall through to perform a read.
            (`Pull Request <https://github.com/palantir/1996>`__)
 
+    *    - |fixed|
+         - Fixed a severe performance regression in getRange() on Oracle caused by an inadequate query plan being chosen sometimes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1989>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
