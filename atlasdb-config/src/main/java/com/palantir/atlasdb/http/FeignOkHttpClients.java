@@ -16,13 +16,13 @@
 package com.palantir.atlasdb.http;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -109,7 +109,7 @@ public final class FeignOkHttpClients {
 
         client.setConnectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES);
         client.setConnectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS));
-        client.setSslSocketFactory(sslSocketFactory.orNull());
+        client.setSslSocketFactory(sslSocketFactory.orElse(null));
         client.setRetryOnConnectionFailure(retryOnConnectionFailure);
         client.interceptors().add(new UserAgentAddingInterceptor(userAgent));
         return new OkHttpClient(client);

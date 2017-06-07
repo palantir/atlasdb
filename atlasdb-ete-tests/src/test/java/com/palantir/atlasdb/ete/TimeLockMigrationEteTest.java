@@ -18,6 +18,7 @@ package com.palantir.atlasdb.ete;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.io.File;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -28,7 +29,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.base.Optional;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -179,11 +179,11 @@ public class TimeLockMigrationEteTest {
 
     private static <T> T createEteClientFor(Class<T> clazz) {
         String uri = String.format("http://%s:%s", ETE_CONTAINER, ETE_PORT);
-        return AtlasDbHttpClients.createProxy(Optional.absent(), uri, clazz);
+        return AtlasDbHttpClients.createProxy(Optional.empty(), uri, clazz);
     }
 
     private static TimestampService createTimeLockTimestampClient() {
         String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
-        return AtlasDbHttpClients.createProxy(Optional.absent(), uri, TimestampService.class);
+        return AtlasDbHttpClients.createProxy(Optional.empty(), uri, TimestampService.class);
     }
 }

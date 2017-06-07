@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
@@ -25,7 +26,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;

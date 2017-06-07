@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import org.immutables.value.Value;
+import java.util.Optional;
 
-import com.google.common.base.Optional;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class SweepResults {

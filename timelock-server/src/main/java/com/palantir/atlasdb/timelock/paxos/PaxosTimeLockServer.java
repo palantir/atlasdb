@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -29,7 +30,6 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -71,7 +71,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private final Environment environment;
 
     private Set<String> remoteServers;
-    private Optional<SSLSocketFactory> optionalSecurity = Optional.absent();
+    private Optional<SSLSocketFactory> optionalSecurity = Optional.empty();
     private LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
     private Semaphore sharedThreadPool = new Semaphore(-1);
@@ -164,7 +164,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     private static Optional<SSLSocketFactory> constructOptionalSslSocketFactory(
             PaxosConfiguration configuration) {
-        return configuration.sslConfiguration().transform(SslSocketFactories::createSslSocketFactory);
+        return configuration.sslConfiguration().map(SslSocketFactories::createSslSocketFactory);
     }
 
     @Override
