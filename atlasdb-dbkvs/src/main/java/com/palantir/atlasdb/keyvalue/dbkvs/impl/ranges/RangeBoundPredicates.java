@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -64,6 +66,25 @@ public final class RangeBoundPredicates {
                 args.add(startColumnInclusive);
             } else {
                 startRowInclusive(startRowInclusive);
+            }
+            return this;
+        }
+
+        public Builder startCellTsInclusive(byte[] startRowInclusive,
+                                            byte[] startColumnInclusive,
+                                            @Nullable Long startTsInclusive) {
+            if (startTsInclusive != null) {
+                Preconditions.checkArgument(startRowInclusive.length > 0);
+                Preconditions.checkArgument(startColumnInclusive.length > 0);
+                // Warning: this syntax is not supported by Oracle
+                predicates.append(reverse
+                        ? " AND (row_name, col_name, ts) <= (?, ?, ?) "
+                        : " AND (row_name, col_name, ts) >= (?, ?, ?) ");
+                args.add(startRowInclusive);
+                args.add(startColumnInclusive);
+                args.add(startTsInclusive);
+            } else {
+                startCellInclusive(startRowInclusive, startColumnInclusive);
             }
             return this;
         }
