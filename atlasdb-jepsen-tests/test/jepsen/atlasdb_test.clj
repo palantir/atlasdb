@@ -13,10 +13,10 @@
   (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test timelock/crash-nemesis))))))
 
 (deftest timestamp-test-partition
-  (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test nemesis/partition-random-halves))))))
+  (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test (nemesis/partition-random-halves)))))))
 
 (deftest lock-test-crash
   (is (:valid? (:results (jepsen/run! (lock/lock-test timelock/crash-nemesis))))))
 
 (deftest lock-test-partition
-  (is (:valid? (:results (jepsen/run! (lock/lock-test nemesis/partition-random-halves))))))
+  (is (:valid? (:results (jepsen/run! (lock/lock-test (nemesis/partition-random-halves)))))))
