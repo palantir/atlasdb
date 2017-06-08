@@ -103,7 +103,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
                 "invalid tableName: " + tableName);
     }
 
-    protected void sanityCheckTableMetadata(TableReference tableRef, byte[] tableMetadata) {
+    protected static void sanityCheckTableMetadata(TableReference tableRef, byte[] tableMetadata) {
         if (tableMetadata == null || Arrays.equals(tableMetadata, AtlasDbConstants.EMPTY_TABLE_METADATA)) {
             throw new IllegalArgumentException(
                     String.format(
