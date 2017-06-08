@@ -10,8 +10,8 @@ dependencies {
   compile project(":atlasdb-impl-shared")
   testCompile project(":atlasdb-config")
 
-  compile group: 'com.netflix.feign', name: 'feign-jackson'
-  compile (group: 'com.netflix.feign', name: 'feign-jaxrs') {
+  compile group: 'io.github.openfeign', name: 'feign-jackson'
+  compile (group: 'io.github.openfeign', name: 'feign-jaxrs') {
     exclude module: 'jsr311-api'
   }
   compile group: 'com.palantir.remoting1', name: 'tracing'
