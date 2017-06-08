@@ -2,13 +2,14 @@
   (:require [jepsen.atlasdb.timelock :as timelock]
             [jepsen.checker :as checker]
             [jepsen.client :as client]
+            [jepsen.control :as c]
             [jepsen.generator :as gen]
+            [jepsen.nemesis :as nemesis]
             [jepsen.tests :as tests]
             [jepsen.os.debian :as debian]
             [jepsen.util :refer [timeout]]
-            [knossos.history :as history]
-            [clojure.java.io :refer [writer]])
-  (:import com.palantir.atlasdb.jepsen.JepsenHistoryChecker)
+            [knossos.history :as history])
+  (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
   (:import com.palantir.atlasdb.http.LockClient))
 
 (def lock-names ["bob" "sarah" "alfred" "shelly"])
@@ -24,8 +25,8 @@
    Also capture the server response and the query parameters we used."
   [op response query-params]
   (assoc op :type :ok
-            :value (nullable-to-string response)
-            :query-params (nullable-to-string query-params)))
+    :value (nullable-to-string response)
+    :query-params (nullable-to-string query-params)))
 
 (defn create-client
   "Creates an object that implements the client/Client protocol.
@@ -52,31 +53,31 @@
                 token-store-key (str client-name lock-name)]
             (case (:f op)
               :lock
-                (let [response (LockClient/lock lock-service client-name lock-name)]
-                  (do (replace-token token-store token-store-key response)
-                      (assoc-ok-value op response [client-name lock-name])))
+              (let [response (LockClient/lock lock-service client-name lock-name)]
+                (do (replace-token token-store token-store-key response)
+                  (assoc-ok-value op response [client-name lock-name])))
               :unlock
-                (let [token (@token-store token-store-key)
-                      response (LockClient/unlock lock-service token)]
-                  (do (replace-token token-store token-store-key nil)
-                      (assoc-ok-value op response token)))
+              (let [token (@token-store token-store-key)
+                    response (LockClient/unlock lock-service token)]
+                (do (replace-token token-store token-store-key nil)
+                  (assoc-ok-value op response token)))
               :refresh
-                (let [token (@token-store token-store-key)
-                      response (LockClient/refresh lock-service token)]
-                  (do (replace-token token-store token-store-key token)
-                      (assoc-ok-value op response token)))))
-        (catch Exception e
-          (assoc op :type :fail :error (.toString e))))))
+              (let [token (@token-store token-store-key)
+                    response (LockClient/refresh lock-service token)]
+                (do (replace-token token-store token-store-key token)
+                  (assoc-ok-value op response token)))))
+          (catch Exception e
+            (assoc op :type :fail :error (.toString e))))))
 
     (teardown! [_ test])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; How to check the validity of a run of the Jepsen test. Hard-coded to succeed for now.
+;; How to check the validity of a run of the Jepsen test.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def checker
   (reify checker/Checker
     (check [this test model history opts]
-      {:valid? true})))
+      (.checkClojureHistory (JepsenHistoryCheckers/createWithLockCheckers) history))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; How to generate test events. We randomly mix refreshes, locks, and unlocks.
@@ -91,18 +92,23 @@
           ;; 15% chance of a lock
           0.85 {:type :invoke   :f :lock      :value random-lock-name}
           ;; 15% chance of an unlock
-               {:type :invoke   :f :unlock    :value random-lock-name})))))
+          {:type :invoke   :f :unlock    :value random-lock-name})))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Defining the Jepsen test
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn lock-test
-  []
+  [nem]
   (assoc tests/noop-test
     :client (create-client nil nil nil)
+    :nemesis nem
     :generator (->> generator
-                    (gen/stagger 0.1)
-                    (gen/clients)
-                    (gen/time-limit 30))
+                 (gen/stagger 0.05)
+                 (gen/nemesis
+                   (gen/seq (cycle [(gen/sleep 5)
+                                    {:type :info, :f :start}
+                                    (gen/sleep 15)
+                                    {:type :info, :f :stop}])))
+                 (gen/time-limit 180))
     :db (timelock/create-db)
     :checker checker))

@@ -8,9 +8,9 @@
             [jepsen.tests :as tests]
             [jepsen.util :refer [timeout]]
             [knossos.history :as history])
-    ;; We can import any Java objects, since Clojure runs on the JVM
-    (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
-    (:import com.palantir.atlasdb.http.TimestampClient))
+  ;; We can import any Java objects, since Clojure runs on the JVM
+  (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
+  (:import com.palantir.atlasdb.http.TimestampClient))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Defining the set of of operations that you can do with a client
@@ -30,19 +30,19 @@
     (setup!
       [this test node]
       "Factory that returns an object implementing client/Client"
-        (create-client (TimestampClient/create '("n1" "n2" "n3" "n4" "n5"))))
+      (create-client (TimestampClient/create '("n1" "n2" "n3" "n4" "n5"))))
 
     (invoke!
       [this test op]
       "Run an operation on our client"
       (case (:f op)
         :read-operation
-          (timeout (* 30 1000)
-            (assoc op :type :fail :error :timeout)
-            (try
-              (assoc op :type :ok :value (.getFreshTimestamp timestamp-client))
-              (catch Exception e
-                (assoc op :type :fail :error (.toString e)))))))
+        (timeout (* 30 1000)
+          (assoc op :type :fail :error :timeout)
+          (try
+            (assoc op :type :ok :value (.getFreshTimestamp timestamp-client))
+            (catch Exception e
+              (assoc op :type :fail :error (.toString e)))))))
 
     (teardown! [_ test])))
 
@@ -58,18 +58,18 @@
 ;; Defining the Jepsen test
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn timestamp-test
-  []
+  [nem]
   (assoc tests/noop-test
     :os debian/os
     :client (create-client nil)
-    :nemesis (nemesis/partition-random-halves)
+    :nemesis nem
     :generator (->> read-operation
-                    (gen/stagger 0.05)
-                    (gen/nemesis
-                    (gen/seq (cycle [(gen/sleep 5)
-                                     {:type :info, :f :start}
-                                     (gen/sleep 85)
-                                     {:type :info, :f :stop}])))
-                    (gen/time-limit 360))
+                 (gen/stagger 0.05)
+                 (gen/nemesis
+                   (gen/seq (cycle [(gen/sleep 5)
+                                    {:type :info, :f :start}
+                                    (gen/sleep 15)
+                                    {:type :info, :f :stop}])))
+                 (gen/time-limit 180))
     :db (timelock/create-db)
     :checker checker))
