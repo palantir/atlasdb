@@ -4,12 +4,6 @@
             "locked": "0.5.4",
             "requested": "0.5.4"
         },
-        "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2",
-            "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core"
-            ]
-        },
         "com.datastax.cassandra:cassandra-driver-core": {
             "locked": "2.2.0-rc3",
             "requested": "2.2.0-rc3"
@@ -272,7 +266,7 @@
             "requested": "1.6.0"
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.tritium:tritium-metrics",
@@ -397,7 +391,6 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.tritium:tritium-core",
@@ -423,12 +416,6 @@
             "locked": "0.5.4",
             "requested": "0.5.4"
         },
-        "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2",
-            "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core"
-            ]
-        },
         "com.datastax.cassandra:cassandra-driver-core": {
             "locked": "2.2.0-rc3",
             "requested": "2.2.0-rc3"
@@ -691,7 +678,7 @@
             "requested": "1.6.0"
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.tritium:tritium-metrics",
@@ -816,7 +803,6 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.tritium:tritium-core",
