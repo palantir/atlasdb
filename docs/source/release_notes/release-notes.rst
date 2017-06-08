@@ -41,7 +41,26 @@ develop
 
     *    - Type
          - Change
-         
+
+    *    -
+         -
+
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.44.0
+======
+
+8 June 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - ``TimestampService`` now uses atomic variables rather than locking, and refreshes the bound synchronously rather than asynchronously.
            This should improve performance somewhat under heavy load, although there will be a short pause in responses when the bound needs to be refreshed (currently, once every 1 million timestamps).
@@ -54,41 +73,47 @@ develop
     *    - |improved|
          - KVS migration CLI will now clear the checkpoint tables that are required while the migration is in progress but not after the migration is complete.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1927>`__)
-           
+
+    *    - |improved|
+         - Cassandra thrift driver has been bumped to version 3.10; this will fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and
+           working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1970>`__)
+
+    *    - |improved|
+         - Read-only transactions will no longer make a remote call to fetch a timestamp, if no work is done on the transaction. 
+           This will benefit services that execute read-only transactions around in-memory cache operations, and frequently never fall through to perform a read.
+           (`Pull Request <https://github.com/palantir/1996>`__)
+
     *    - |improved|
          - Timelock service now includes user agents for all inter-node requests.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1971>`__)
 
     *    - |new|
          - Timelock now tracks metrics for leadership elections, including leadership gains, losses, and proposals.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1927>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1971>`__)
+
+    *    - |fixed|
+         - Fixed a severe performance regression in getRange() on Oracle caused by an inadequate query plan being chosen sometimes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1989>`__)
+
+    *    - |fixed|
+         - Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2003>`__)
 
     *    - |devbreak|
          - Some downstream projects were using empty table metadata for dev-laziness reasons in their tests.
            This is no longer permitted, as it leads to many (unsolved) questions about how to deal with such a table.
            If this breaks your tests, you can fix it with making real schema for tests or by switching to AtlasDbConstants.GENERIC_TABLE_METADATA
            (`Pull Request <https://github.com/palantir/1925>`__)
-           
-    *    - |improved|
-         - Read-only transactions will no longer make a remote call to fetch a timestamp, if no work is done on the transaction. 
-           This will benefit services that execute read-only transactions around in-memory cache operations, and frequently never fall through to perform a read.
-           (`Pull Request <https://github.com/palantir/1996>`__)
-
-    *    - |fixed|
-         - Fixed a severe performance regression in getRange() on Oracle caused by an inadequate query plan being chosen sometimes.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1989>`__)
 
     *    - |userbreak| |fixed|
-         - Fixed a bug that caused Cassandra to always use the minimum compression block size of 4KB instead of the requested compression block size. Users must explicitly rewrite table metadata for any tables that requested explicit compression, as any tables that were created previously will not respect the compression block size in the schema. This can have a very large performance impact (both positive and negative in different cases), so users may need to remove the explicit compression request from their schema if this causes a performance regression.
+         - Fixed a bug that caused Cassandra to always use the minimum compression block size of 4KB instead of the requested compression block size.
+           Users must explicitly rewrite table metadata for any tables that requested explicit compression, as any tables that were created previously will not respect the compression block size in the schema.
+           This can have a very large performance impact (both positive and negative in different cases), so users may need to remove the explicit compression request from their schema if this causes a performance regression.
            Users that previously attempted to set a compression block size that was not a power of 2 will also need to update their schema because Cassandra only allows this value to be a power of 2.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1995>`__)
 
-    *    - |fixed|
-         - Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2003>`__)
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
-
 
 ======
 0.43.0
@@ -576,12 +601,6 @@ Released 29 Mar 2017
            Previously, because of Jetty's idle timeout and OkHttp's silent connection retrying, we would generate an endless stream of lock requests if using HTTP/2 and blocking for more than the Jetty idle timeout for a single lock.
            This would lead to starvation of other requests on the TimeLock server, since a lock request blocked on acquiring a lock consumes a server thread.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1727>`__)
-
-    *    - |improved|
-         - Cassandra dependencies have been bumped to newer versions.
-           This should fix a bug (`#1654 <https://github.com/palantir/atlasdb/issues/1654>`__) that caused
-           AtlasDB probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
-           building up leaked connections, due to a bug in the underlying driver.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
