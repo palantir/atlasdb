@@ -237,6 +237,10 @@ This will benefit services that execute read-only transactions around in-memory 
 Users that previously attempted to set a compression block size that was not a power of 2 will also need to update their schema because Cassandra only allows this value to be a power of 2.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1995">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2003">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
