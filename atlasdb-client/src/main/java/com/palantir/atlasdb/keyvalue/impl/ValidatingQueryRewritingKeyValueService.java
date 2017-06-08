@@ -55,7 +55,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  */
 public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueService implements KeyValueService {
     private static final Logger log = LoggerFactory.getLogger(ValidatingQueryRewritingKeyValueService.class);
-    private static String TRANSACTION_ERROR = "shouldn't be putting into the transaction table at this level of KVS abstraction";
+    private static final String TRANSACTION_ERROR = "shouldn't be putting into the transaction table at this level of KVS abstraction";
 
     public static ValidatingQueryRewritingKeyValueService create(KeyValueService delegate) {
         return new ValidatingQueryRewritingKeyValueService(delegate);
@@ -89,12 +89,12 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             createTable(element.getKey(), element.getValue());
             return;
         }
-        tableRefToTableMetadata.keySet().forEach(ValidatingQueryRewritingKeyValueService::sanityCheckTableName);
+        tableRefToTableMetadata.keySet().forEach(this::sanityCheckTableName);
         tableRefToTableMetadata.entrySet().forEach(entry -> sanityCheckTableMetadata(entry.getKey(), entry.getValue()));
         delegate.createTables(tableRefToTableMetadata);
     }
 
-    protected static void sanityCheckTableName(TableReference tableRef) {
+    protected void sanityCheckTableName(TableReference tableRef) {
         String tableName = tableRef.getQualifiedName();
         Validate.isTrue(
                 (!tableName.startsWith("_") && tableName.contains("."))
@@ -103,7 +103,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
                 "invalid tableName: " + tableName);
     }
 
-    protected static void sanityCheckTableMetadata(TableReference tableRef, byte[] tableMetadata) {
+    protected void sanityCheckTableMetadata(TableReference tableRef, byte[] tableMetadata) {
         if (tableMetadata == null || Arrays.equals(tableMetadata, AtlasDbConstants.EMPTY_TABLE_METADATA)) {
             throw new IllegalArgumentException(
                     String.format(
