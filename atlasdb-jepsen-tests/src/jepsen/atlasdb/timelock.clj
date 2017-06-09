@@ -3,18 +3,14 @@
             [jepsen.control :as c]
             [jepsen.db :as db]
             [jepsen.nemesis :as nemesis]
-            [jepsen.os.debian :as debian])
-  (:import com.palantir.atlasdb.http.TimelockUtils))
+            [jepsen.os.debian :as debian]))
 
 (defn start!
   "Starts timelock"
   [node]
   (c/su
     (info node "Starting timelock server")
-    (c/exec :env "JAVA_HOME=/usr/lib/jvm/java-8-oracle" "/timelock-server/service/bin/init.sh" "start")
-    (info node "Waiting until timelock node is ready")
-    (TimelockUtils/waitUntilHostReady (name node))
-    (info node "timelock server ready")))
+    (c/exec :env "JAVA_HOME=/usr/lib/jvm/java-8-oracle" "/timelock-server/service/bin/init.sh" "start")))
 
 (defn create-db
   "Creates an object that implements the db/DB protocol.
@@ -73,6 +69,8 @@
     mostly-small-nonempty-subset-at-most-two
     (fn start [test node] (c/su
                             (c/exec :killall :-9 :java))
+      ; the following line would also wipe the paxos directory, but we wanted a less aggressive nemesis
+      ; which only crashes the node instead. Leaving it commented out in case we decode to reintroduce it
       ;                            (c/exec :rm :-r "/atlasdb-timelock-server/var/data/paxos"))
       [:killed node])
     (fn stop  [test node] (start! node) [:restarted node])))
