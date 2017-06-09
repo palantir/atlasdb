@@ -344,7 +344,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void throwsOnQueryingTimestampWithWithInvalidClientName() {
         TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
         assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
-                .hasMessageContaining("Unexpected char 0x08 at 5 in header value: test");
+                .hasMessageContaining("Unexpected char 0x08");
     }
 
     @Test
