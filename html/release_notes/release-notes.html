@@ -196,6 +196,26 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1">
+<h2>0.44.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>8 June 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">TimestampService</span></code> now uses atomic variables rather than locking, and refreshes the bound synchronously rather than asynchronously.
 This should improve performance somewhat under heavy load, although there will be a short pause in responses when the bound needs to be refreshed (currently, once every 1 million timestamps).
@@ -206,15 +226,34 @@ This should improve performance somewhat under heavy load, although there will b
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1946">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>KVS migration CLI will now clear the checkpoint tables that are required while the migration is in progress but not after the migration is complete.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1927">Pull Request</a>)</td>
+<td>Cassandra thrift driver has been bumped to version 3.10.
+This will fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1970">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Read-only transactions will no longer make a remote call to fetch a timestamp, if no work is done on the transaction.
+This will benefit services that execute read-only transactions around in-memory cache operations, and frequently never fall through to perform a read.
+(<a class="reference external" href="https://github.com/palantir/1996">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Timelock service now includes user agents for all inter-node requests.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1971">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Timelock now tracks metrics for leadership elections, including leadership gains, losses, and proposals.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1971">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a severe performance regression in getRange() on Oracle caused by an inadequate query plan being chosen sometimes.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1989">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2003">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>KVS migration CLI will now clear the checkpoint tables that are required while the migration is in progress but not after the migration is complete.
+The tables were previously left hanging and the user had to delete/truncate them.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1927">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
@@ -223,29 +262,18 @@ This is no longer permitted, as it leads to many (unsolved) questions about how 
 If this breaks your tests, you can fix it with making real schema for tests or by switching to AtlasDbConstants.GENERIC_TABLE_METADATA
 (<a class="reference external" href="https://github.com/palantir/1925">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Read-only transactions will no longer make a remote call to fetch a timestamp, if no work is done on the transaction.
-This will benefit services that execute read-only transactions around in-memory cache operations, and frequently never fall through to perform a read.
-(<a class="reference external" href="https://github.com/palantir/1996">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed a severe performance regression in getRange() on Oracle caused by an inadequate query plan being chosen sometimes.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1989">Pull Request</a>)</td>
-</tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed a bug that caused Cassandra to always use the minimum compression block size of 4KB instead of the requested compression block size. Users must explicitly rewrite table metadata for any tables that requested explicit compression, as any tables that were created previously will not respect the compression block size in the schema. This can have a very large performance impact (both positive and negative in different cases), so users may need to remove the explicit compression request from their schema if this causes a performance regression.
+<td>Fixed a bug that caused Cassandra to always use the minimum compression block size of 4KB instead of the requested compression block size.
+Users must explicitly rewrite table metadata for any tables that requested explicit compression, as any tables that were created previously will not respect the compression block size in the schema.
+This can have a very large performance impact (both positive and negative in different cases), so users may need to remove the explicit compression request from their schema if this causes a performance regression.
 Users that previously attempted to set a compression block size that was not a power of 2 will also need to update their schema because Cassandra only allows this value to be a power of 2.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1995">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2003">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="id1">
-<h2>0.43.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id2">
+<h2>0.43.0<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
 <p>25 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -289,11 +317,11 @@ Please refer to the <a class="reference internal" href="../cluster_management/sw
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
 <td>The Sweep CLI configuration parameters <code class="docutils literal"><span class="pre">--batch-size</span></code> and <code class="docutils literal"><span class="pre">--cell-batch-size</span></code> have been deprecated, as we now batch on cell-timestamp pairs rather than by rows and cells.
-Please use the <code class="docutils literal"><span class="pre">--candidate-batch-hint``(batching</span> <span class="pre">on</span> <span class="pre">cells)</span> <span class="pre">instead</span> <span class="pre">of</span> <span class="pre">``--batch-hint``(batching</span> <span class="pre">on</span> <span class="pre">rows),</span> <span class="pre">and</span> <span class="pre">``--read-limit</span></code> instead of <code class="docutils literal"><span class="pre">--cell-batch-size</span></code> (<a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">docs</span></a>).
+Please use the <code class="docutils literal"><span class="pre">--candidate-batch-hint</span></code> (batching on cells) instead of <code class="docutils literal"><span class="pre">--batch-hint</span></code> (batching on rows), and <code class="docutils literal"><span class="pre">--read-limit</span></code> instead of <code class="docutils literal"><span class="pre">--cell-batch-size</span></code> (<a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">docs</span></a>).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1962">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
-<td>The background sweep configuration parameters <code class="docutils literal"><span class="pre">sweepBatchSize``(which</span> <span class="pre">used</span> <span class="pre">to</span> <span class="pre">batch</span> <span class="pre">on</span> <span class="pre">rows)</span> <span class="pre">and</span> <span class="pre">``sweepCellBatchSize</span></code> have been deprecated in favour of <code class="docutils literal"><span class="pre">sweepCandidateBatchHint``(which</span> <span class="pre">now</span> <span class="pre">batches</span> <span class="pre">on</span> <span class="pre">cells)</span> <span class="pre">and</span> <span class="pre">``sweepReadLimit</span></code> respectively.
+<td>The background sweep configuration parameters <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> (which used to batch on rows) and <code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code> have been deprecated in favour of <code class="docutils literal"><span class="pre">sweepCandidateBatchHint</span></code> (which now batches on cells) and <code class="docutils literal"><span class="pre">sweepReadLimit</span></code> respectively.
 If your application configures either of these values, please look at more details in the <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">docs</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1945">Pull Request</a>)</td>
 </tr>
@@ -313,8 +341,8 @@ Previously, a <code class="docutils literal"><span class="pre">NotCurrentLeaderE
 </tbody>
 </table>
 </div>
-<div class="section" id="id2">
-<h2>0.42.2<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id3">
+<h2>0.42.2<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
 <p>25 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -335,8 +363,8 @@ Previously, a <code class="docutils literal"><span class="pre">NotCurrentLeaderE
 </tbody>
 </table>
 </div>
-<div class="section" id="id3">
-<h2>0.42.1<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id4">
+<h2>0.42.1<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
 <p>24 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -357,8 +385,8 @@ This was added to address a very specific race condition leading to an infinite 
 </tbody>
 </table>
 </div>
-<div class="section" id="id4">
-<h2>0.42.0<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id5">
+<h2>0.42.0<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
 <p>23 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -402,8 +430,8 @@ There is no issue with having tables with different values for <code class="docu
 </tbody>
 </table>
 </div>
-<div class="section" id="id5">
-<h2>0.41.0<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id6">
+<h2>0.41.0<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
 <p>17 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -467,8 +495,8 @@ This will be useful for debugging <a class="reference external" href="https://gi
 </tbody>
 </table>
 </div>
-<div class="section" id="id6">
-<h2>0.40.1<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id7">
+<h2>0.40.1<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
 <p>4 May 2017</p>
 <p>This release contains (almost) exclusively baseline-related changes.</p>
 <table border="1" class="colwidths-given docutils">
@@ -517,8 +545,8 @@ If this is a concern, please contact the AtlasDB team.
 </tbody>
 </table>
 </div>
-<div class="section" id="id7">
-<h2>0.40.0<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id8">
+<h2>0.40.0<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h2>
 <p>28 Apr 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -744,12 +772,6 @@ This is used to mitigate issues with frequent leadership changes owing to <a cla
 Previously, because of Jetty’s idle timeout and OkHttp’s silent connection retrying, we would generate an endless stream of lock requests if using HTTP/2 and blocking for more than the Jetty idle timeout for a single lock.
 This would lead to starvation of other requests on the TimeLock server, since a lock request blocked on acquiring a lock consumes a server thread.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1727">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Cassandra dependencies have been bumped to newer versions.
-This should fix a bug (<a class="reference external" href="https://github.com/palantir/atlasdb/issues/1654">#1654</a>) that caused
-AtlasDB probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily
-building up leaked connections, due to a bug in the underlying driver.</td>
 </tr>
 </tbody>
 </table>
