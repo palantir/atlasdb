@@ -219,7 +219,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
                 Long streamId = v.getColumnName().getStreamId();
                 Sha256Hash hash = r.getHash();
                 if (hashForStreams.containsKey(streamId)) {
-                    AssertUtils.assertAndLog(hashForStreams.get(streamId).equals(hash), "(BUG) Stream ID has 2 different hashes: " + streamId);
+                    AssertUtils.assertAndLog(log, hashForStreams.get(streamId).equals(hash), "(BUG) Stream ID has 2 different hashes: " + streamId);
                 }
                 hashForStreams.put(streamId, hash);
             }

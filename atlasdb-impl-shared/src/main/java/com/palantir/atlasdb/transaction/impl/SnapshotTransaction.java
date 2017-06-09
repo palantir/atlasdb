@@ -1479,7 +1479,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         for (Map.Entry<Cell, Long> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             long theirStartTimestamp = e.getValue();
-            AssertUtils.assertAndLog(theirStartTimestamp != getStartTimestamp(),
+            AssertUtils.assertAndLog(log, theirStartTimestamp != getStartTimestamp(),
                     "Timestamp reuse is bad:%d", getStartTimestamp());
 
             Long theirCommitTimestamp = commitTimestamps.get(theirStartTimestamp);
@@ -1491,7 +1491,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 continue;
             }
 
-            AssertUtils.assertAndLog(theirCommitTimestamp != getStartTimestamp(),
+            AssertUtils.assertAndLog(log, theirCommitTimestamp != getStartTimestamp(),
                     "Timestamp reuse is bad:%d", getStartTimestamp());
             if (theirStartTimestamp > getStartTimestamp()) {
                 dominatingWrites.add(Cells.createConflictWithMetadata(
@@ -1770,7 +1770,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
             } else {
-                AssertUtils.assertAndLog(false, "BUG: Someone tried to roll back our transaction but"
+                AssertUtils.assertAndLog(log, false, "BUG: Someone tried to roll back our transaction but"
                         + " our locks were still valid; this is not allowed."
                         + " Held external locks: " + externalLocksTokens
                         + "; held commit locks: " + commitLocksToken);
@@ -1829,7 +1829,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 }
             }
         } else {
-            AssertUtils.assertAndLog(false, "Expected state: " + expectedState + "; actual state: " + actualState);
+            AssertUtils.assertAndLog(log, false, "Expected state: " + expectedState + "; actual state: " + actualState);
         }
         return cellToTableName;
     }
@@ -1845,7 +1845,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 tableRefToCells.putAll(table, cells);
             }
         } else {
-            AssertUtils.assertAndLog(false, "Expected state: " + expectedState + "; actual state: " + actualState);
+            AssertUtils.assertAndLog(log, false, "Expected state: " + expectedState + "; actual state: " + actualState);
         }
         return tableRefToCells;
     }
