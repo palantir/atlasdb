@@ -71,12 +71,8 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1946>`__)
 
     *    - |improved|
-         - KVS migration CLI will now clear the checkpoint tables that are required while the migration is in progress but not after the migration is complete.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1927>`__)
-
-    *    - |improved|
-         - Cassandra thrift driver has been bumped to version 3.10; this will fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and
-           working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
+         - Cassandra thrift driver has been bumped to version 3.10.
+           This will fix a bug (#1654) that caused Atlas probing downed Cassandra nodes every few minutes to see if they were up and working yet to eventually take out the entire cluster by steadily building up leaked connections, due to a bug in the underlying driver.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1970>`__)
 
     *    - |improved|
@@ -99,6 +95,11 @@ develop
     *    - |fixed|
          - Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2003>`__)
+
+    *    - |fixed|
+         - KVS migration CLI will now clear the checkpoint tables that are required while the migration is in progress but not after the migration is complete.
+           The tables were previously left hanging and the user had to delete/truncate them.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1927>`__)
 
     *    - |devbreak|
          - Some downstream projects were using empty table metadata for dev-laziness reasons in their tests.
