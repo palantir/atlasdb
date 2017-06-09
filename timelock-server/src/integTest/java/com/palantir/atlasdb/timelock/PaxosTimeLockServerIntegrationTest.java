@@ -392,7 +392,7 @@ public class PaxosTimeLockServerIntegrationTest {
         // time / lock services
         assertContainsTimer(metrics,
                 "com.palantir.atlasdb.timelock.paxos.ManagedTimestampService.test.getFreshTimestamp");
-        assertContainsTimer(metrics, "com.palantir.lock.LockService.test.currentTimeMillis");
+        assertContainsTimer(metrics, "com.palantir.lock.RemoteLockService.test.currentTimeMillis");
 
         // local leader election classes
         assertContainsTimer(metrics, "com.palantir.paxos.PaxosLearner.learn");
