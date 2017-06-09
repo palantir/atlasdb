@@ -42,8 +42,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved| |deprecated|
+         - `AssertUtils` logging methods will now ask for a sfl4j logger to log to, instead of using a default logger.
+           This should make log events from AssertUtils easier to filter.
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

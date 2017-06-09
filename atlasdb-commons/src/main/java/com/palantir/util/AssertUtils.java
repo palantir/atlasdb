@@ -33,7 +33,7 @@ public class AssertUtils {
      * (Should it go into the server error log, or maybe the upgrade log, or the import log file?
      * Can't tell, cause it's all AssertUtils!)
      *
-     * Until we get all upstream projects off of using defaultLog however,
+     * Until we get all downstream projects off of using defaultLog however,
      * this will stay, just deprecated.
      */
     @Deprecated
