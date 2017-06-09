@@ -51,6 +51,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TransactionManagersTest {
@@ -148,7 +149,7 @@ public class TransactionManagersTest {
     private void verifyUserAgentOnTimelockTimestampAndLockRequests() {
         availableServer.stubFor(TIMELOCK_PING_MAPPING.willReturn(aResponse()
                 .withStatus(200)
-                .withBody("pong")
+                .withBody(TimestampManagementService.PING_RESPONSE)
                 .withHeader("Content-Type", "text/plain")));
         availableServer.stubFor(TIMELOCK_FF_MAPPING.willReturn(aResponse()
                 .withStatus(204)));
