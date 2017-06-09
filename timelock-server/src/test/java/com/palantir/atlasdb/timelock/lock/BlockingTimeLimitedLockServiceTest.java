@@ -22,6 +22,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -94,6 +95,17 @@ public class BlockingTimeLimitedLockServiceTest {
     public void rethrowsExceptionOccurringFromInterruptibleOperation() {
         assertThatThrownBy(() -> throwingService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_REQUEST))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void closesDelegate() throws IOException {
+        CloseableLockService closeableDelegate = mock(CloseableLockService.class);
+        BlockingTimeLimitedLockService blockingService = new BlockingTimeLimitedLockService(closeableDelegate,
+                acceptingLimiter, BLOCKING_TIME_LIMIT_MILLIS);
+
+        blockingService.close();
+
+        verify(closeableDelegate).close();
     }
 
     private void verifyCurrentTimeMillisDelegates(LockService service) {

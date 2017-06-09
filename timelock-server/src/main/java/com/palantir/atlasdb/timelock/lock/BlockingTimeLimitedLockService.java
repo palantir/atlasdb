@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -43,7 +45,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 
-public class BlockingTimeLimitedLockService implements LockService {
+public class BlockingTimeLimitedLockService implements LockService, Closeable {
     private static final Logger log = LoggerFactory.getLogger(BlockingTimeLimitedLockService.class);
 
     private final LockService delegate;
@@ -207,6 +209,13 @@ public class BlockingTimeLimitedLockService implements LockService {
         } catch (Exception e) {
             // We don't know, and would prefer not to throw checked exceptions apart from InterruptedException.
             throw Throwables.propagate(e);
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (delegate instanceof Closeable) {
+            ((Closeable) delegate).close();
         }
     }
 

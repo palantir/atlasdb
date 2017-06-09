@@ -15,6 +15,8 @@
  */
 package com.palantir.lock;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +28,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.common.annotation.Idempotent;
 
-public abstract class ForwardingLockService extends ForwardingObject implements LockService {
+public abstract class ForwardingLockService extends ForwardingObject implements LockService, Closeable {
 
     @Override
     protected abstract LockService delegate();
@@ -150,5 +152,12 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
     @Override
     public void logCurrentState() {
         delegate().logCurrentState();
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (delegate() instanceof Closeable) {
+            ((Closeable) delegate()).close();
+        }
     }
 }
