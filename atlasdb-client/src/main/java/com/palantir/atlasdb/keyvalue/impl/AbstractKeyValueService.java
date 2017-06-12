@@ -61,7 +61,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
 import com.palantir.atlasdb.logging.SafeLoggableDataUtils;
-import com.palantir.atlasdb.logging.SimpleKeyValueServiceArgSupplier;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
@@ -369,7 +368,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     private void rehydrateArgSupplier() {
-        this.argSupplier = new SimpleKeyValueServiceArgSupplier(
+        this.argSupplier = new KeyValueServiceArgSupplier(
                 SafeLoggableDataUtils.fromTableMetadata(getMetadataForTables()));
     }
 }
