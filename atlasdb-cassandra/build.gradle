@@ -29,13 +29,15 @@ dependencies {
     exclude(group: 'com.carrotsearch', module: 'hppc')
   }
 
-  explicitShadow 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
+  explicitShadow ('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
+    exclude(group: 'com.codahale.metrics', module: 'metrics-core')
+  }
   explicitShadow group: 'com.google.guava', name: 'guava'
 
   explicitShadow 'org.apache.commons:commons-pool2:2.4.2'
 
-  compile group: 'com.palantir.remoting', name: 'ssl-config'
-  compile group: 'com.palantir.remoting1', name: 'tracing'
+  explicitShadow group: 'com.palantir.remoting', name: 'ssl-config'
+  explicitShadow group: 'com.palantir.remoting1', name: 'tracing'
 
   explicitShadow group: 'com.google.code.findbugs', name: 'annotations'
 
@@ -60,8 +62,7 @@ shadowJar {
   relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
 
   dependencies {
-    include(dependency(group: 'com.palantir.remoting', name: 'ssl-config'))
-    include(dependency(group: 'com.palantir.remoting1', name: 'tracing'))
+      include(dependency { false })
   }
 }
 
