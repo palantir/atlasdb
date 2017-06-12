@@ -61,6 +61,10 @@ public class FailoverFeignTargetTest {
     private static final RetryableException EXCEPTION_WITHOUT_RETRY_AFTER = mock(RetryableException.class);
     private static final RetryableException BLOCKING_TIMEOUT_EXCEPTION = mock(RetryableException.class);
 
+    private static final long LOWER_BACKOFF_BOUND = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
+    private static final long UPPER_BACKOFF_BOUND =
+            (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
+
     private FailoverFeignTarget<Object> normalTarget;
     private FailoverFeignTarget<Object> spiedTarget;
 
@@ -172,10 +176,8 @@ public class FailoverFeignTargetTest {
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
         }
 
-        long bottom = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
-        long cap = (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
         verify(spiedTarget, times(1)).pauseForBackoff(any(),
-                longThat(is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)))));
+                longThat(is(both(greaterThanOrEqualTo(LOWER_BACKOFF_BOUND)).and(lessThan(UPPER_BACKOFF_BOUND)))));
     }
 
     @Test
@@ -186,10 +188,8 @@ public class FailoverFeignTargetTest {
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
         }
 
-        long bottom = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
-        long cap = (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
         verify(spiedTarget, times(3)).pauseForBackoff(any(),
-                longThat(is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)))));
+                longThat(is(both(greaterThanOrEqualTo(LOWER_BACKOFF_BOUND)).and(lessThan(UPPER_BACKOFF_BOUND)))));
     }
 
     @Test
