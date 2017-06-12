@@ -17,14 +17,8 @@
 package com.palantir.atlasdb.performance.backend;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.URL;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
 
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
@@ -48,7 +42,8 @@ public final class DockerizedDatabase implements Closeable {
     }
 
     private static String getDockerComposeFileAbsolutePath(String dockerComposeResourceFileName) {
-            return DockerizedDatabase.class.getResource("/" + dockerComposeResourceFileName).getFile();
+        String name = DockerizedDatabase.class.getResource("/" + dockerComposeResourceFileName).getFile();
+        return name;
     }
 
     private static HealthCheck<DockerPort> toBeOpen() {

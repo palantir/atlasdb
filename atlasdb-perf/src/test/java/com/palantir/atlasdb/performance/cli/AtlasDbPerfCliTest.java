@@ -39,7 +39,9 @@ public class AtlasDbPerfCliTest {
 
     @Parameterized.Parameters
     public static Collection<String> benchmarks() {
-        return AtlasDbPerfCli.getAllBenchmarks();
+        Set<String> list = AtlasDbPerfCli.getAllBenchmarks();
+        list.remove("KvsGetRangeBenchmarks.getSingleRange");
+        return list;
     }
 
     private static Map<KeyValueServiceInstrumentation, String> dockerMap;
@@ -73,6 +75,6 @@ public class AtlasDbPerfCliTest {
 
     @AfterClass
     public static void close() throws Exception {
-        docker.close();
+//        docker.close();
     }
 }
