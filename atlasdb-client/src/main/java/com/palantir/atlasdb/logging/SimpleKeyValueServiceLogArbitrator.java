@@ -28,18 +28,18 @@ public class SimpleKeyValueServiceLogArbitrator implements KeyValueServiceLogArb
     }
 
     @Override
-    public boolean isTableReferenceLoggable(TableReference tableReference) {
+    public boolean isTableReferenceSafe(TableReference tableReference) {
         return safeLoggableData.permittedTableReferences().contains(tableReference);
     }
 
     @Override
-    public boolean isRowComponentNameLoggable(TableReference tableReference,
+    public boolean isRowComponentNameSafe(TableReference tableReference,
             NameComponentDescription nameComponentDescription) {
         return safeLoggableData.permittedRowComponents().get(tableReference).contains(nameComponentDescription);
     }
 
     @Override
-    public boolean isColumnNameLoggable(TableReference tableReference, NamedColumnDescription namedColumnDescription) {
+    public boolean isColumnNameSafe(TableReference tableReference, NamedColumnDescription namedColumnDescription) {
         return safeLoggableData.permittedColumnNames().get(tableReference).contains(namedColumnDescription);
     }
 }

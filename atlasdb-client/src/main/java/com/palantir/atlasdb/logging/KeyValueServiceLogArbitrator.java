@@ -21,13 +21,13 @@ import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 
 public interface KeyValueServiceLogArbitrator {
-    boolean isTableReferenceLoggable(TableReference tableReference);
+    boolean isTableReferenceSafe(TableReference tableReference);
 
-    boolean isRowComponentNameLoggable(
+    boolean isRowComponentNameSafe(
             TableReference tableReference,
             NameComponentDescription nameComponentDescription);
 
-    boolean isColumnNameLoggable(
+    boolean isColumnNameSafe(
             TableReference tableReference,
             NamedColumnDescription namedColumnDescription);
 }
