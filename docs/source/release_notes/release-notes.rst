@@ -123,6 +123,12 @@ develop
          - Upgraded all usages of http-remoting to remoting2
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
 
+    *    - |devbreak| |improved|
+         - Converted all compile time uses of Guava's ``com.google.common.base.Optional`` class to the Java8 equivalent ``java.util.Optional``.
+           Should not affect deployments as there is no change to `json` or `yml` representations of AtlasDB configurations.
+           This is a relatively straightforward compile time break for products consuming AtlasDB libraries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2016>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
