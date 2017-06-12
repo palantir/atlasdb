@@ -177,7 +177,7 @@ public class SweepTaskRunner {
                 lastRow = batch.lastCellExamined().getRowName();
             }
             return SweepResults.builder()
-                    .previousStartRow(startRow)
+                    .previousStartRow(Optional.of(startRow))
                     .nextStartRow(Arrays.equals(startRow, lastRow) ? Optional.empty() : Optional.of(lastRow))
                     .cellTsPairsExamined(totalCellTsPairsExamined)
                     .staleValuesDeleted(totalCellTsPairsDeleted)

@@ -22,9 +22,15 @@ import org.immutables.value.Value;
 @Value.Immutable
 public abstract class SweepResults {
 
-    public abstract Optional<byte[]> getPreviousStartRow();
+    @Value.Default
+    public Optional<byte[]> getPreviousStartRow() {
+        return Optional.empty();
+    }
 
-    public abstract Optional<byte[]> getNextStartRow();
+    @Value.Default
+    public Optional<byte[]> getNextStartRow() {
+        return Optional.empty();
+    }
 
     /**
      * The approximate number of (cell, timestamp) pairs examined.
