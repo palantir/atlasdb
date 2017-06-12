@@ -169,7 +169,6 @@ public class FailoverFeignTargetTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void exceptionsWithRetryAfterBacksOffAfterQueryingAllNodesInTheCluster() {
         for (int i = 0; i < CLUSTER_SIZE; i++) {
             simulateRequest(spiedTarget);
@@ -181,7 +180,6 @@ public class FailoverFeignTargetTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void multipleExceptionsWithRetryAfterBackOffAfterQueryingAllNodesInTheCluster() {
         for (int i = 0; i < 3 * CLUSTER_SIZE; i++) {
             simulateRequest(spiedTarget);
@@ -193,7 +191,6 @@ public class FailoverFeignTargetTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void blockingTimeoutExceptionsDoNotBackoff() {
         for (int i = 0; i < ITERATIONS; i++) {
             simulateRequest(spiedTarget);
