@@ -66,6 +66,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting1.tracing.Tracers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -262,7 +263,11 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                             } else {
                                 final String longerMessage = ENTRY_TOO_BIG_MESSAGE
                                         + " This can potentially cause out-of-memory errors.";
-                                log.warn(longerMessage, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
+                                log.warn(longerMessage,
+                                        SafeArg.of("approximatePutSize", sizingFunction.apply(firstEntry)),
+                                        SafeArg.of("maximumPutSize", maximumBytesPerPartition),
+                                        argSupplier.getArgDependingOnTableReference("table",
+                                                TableReference.createFromFullyQualifiedName(tableName), tableName));
                             }
                         }
 
