@@ -6,12 +6,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.6.7",
             "transitive": [
@@ -444,9 +438,10 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
@@ -558,7 +553,6 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.remoting2:error-handling",
@@ -591,12 +585,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.6.7",
             "transitive": [
@@ -1029,9 +1017,10 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
@@ -1143,7 +1132,6 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.remoting2:error-handling",

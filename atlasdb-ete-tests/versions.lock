@@ -21,12 +21,6 @@
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
-        "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2",
-            "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core"
-            ]
-        },
         "com.datastax.cassandra:cassandra-driver-core": {
             "locked": "2.2.0-rc3",
             "transitive": [
@@ -658,14 +652,14 @@
             ]
         },
         "io.dropwizard.metrics:metrics-annotation": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard:dropwizard-servlets"
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.tritium:tritium-metrics",
@@ -682,45 +676,45 @@
             ]
         },
         "io.dropwizard.metrics:metrics-healthchecks": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard.metrics:metrics-jersey2": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
         "io.dropwizard.metrics:metrics-jetty9": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty"
             ]
         },
         "io.dropwizard.metrics:metrics-json": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard.metrics:metrics-servlets"
             ]
         },
         "io.dropwizard.metrics:metrics-jvm": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard.metrics:metrics-logback": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard:dropwizard-logging"
             ]
         },
         "io.dropwizard.metrics:metrics-servlets": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
@@ -1246,7 +1240,6 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:tracing",
@@ -1303,13 +1296,6 @@
             "locked": "0.5.4",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
-            ]
-        },
-        "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2",
-            "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core",
-                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
@@ -2001,16 +1987,17 @@
             ]
         },
         "io.dropwizard.metrics:metrics-annotation": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard:dropwizard-servlets"
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.tritium:tritium-metrics",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
@@ -2025,45 +2012,45 @@
             ]
         },
         "io.dropwizard.metrics:metrics-healthchecks": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard.metrics:metrics-jersey2": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
         "io.dropwizard.metrics:metrics-jetty9": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty"
             ]
         },
         "io.dropwizard.metrics:metrics-json": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard.metrics:metrics-servlets"
             ]
         },
         "io.dropwizard.metrics:metrics-jvm": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard.metrics:metrics-logback": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard:dropwizard-logging"
             ]
         },
         "io.dropwizard.metrics:metrics-servlets": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
@@ -2603,7 +2590,6 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.remoting2:error-handling",

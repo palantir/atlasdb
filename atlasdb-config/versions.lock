@@ -428,7 +428,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.tritium:tritium-metrics",
@@ -953,7 +953,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.tritium:tritium-metrics",

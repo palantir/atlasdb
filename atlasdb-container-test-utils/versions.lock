@@ -12,12 +12,6 @@
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
-        "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2",
-            "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core"
-            ]
-        },
         "com.datastax.cassandra:cassandra-driver-core": {
             "locked": "2.2.0-rc3",
             "transitive": [
@@ -370,7 +364,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.tritium:tritium-metrics",
@@ -549,7 +543,6 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting2:tracing",
@@ -584,12 +577,6 @@
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
-        "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2",
-            "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core"
-            ]
-        },
         "com.datastax.cassandra:cassandra-driver-core": {
             "locked": "2.2.0-rc3",
             "transitive": [
@@ -942,7 +929,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.tritium:tritium-metrics",
@@ -1121,7 +1108,6 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting2:tracing",
