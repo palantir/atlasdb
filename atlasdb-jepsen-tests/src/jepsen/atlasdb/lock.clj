@@ -2,7 +2,6 @@
   (:require [jepsen.atlasdb.timelock :as timelock]
             [jepsen.checker :as checker]
             [jepsen.client :as client]
-            [jepsen.control :as c]
             [jepsen.generator :as gen]
             [jepsen.nemesis :as nemesis]
             [jepsen.tests :as tests]

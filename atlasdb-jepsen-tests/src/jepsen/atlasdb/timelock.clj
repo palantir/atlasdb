@@ -60,7 +60,6 @@
     rand
     Math/exp
     long
-    (min 2)
     (take (shuffle xs))))
 
 (def crash-nemesis
