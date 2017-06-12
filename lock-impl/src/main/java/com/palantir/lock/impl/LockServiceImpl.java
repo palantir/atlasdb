@@ -106,7 +106,7 @@ import com.palantir.util.JMXUtils;
  *
  * @author jtamer
  */
-@ThreadSafe public final class LockServiceImpl implements LockService, CloseableRemoteLockService, LockServiceImplMBean {
+@ThreadSafe public final class LockServiceImpl implements LockService, RemoteLockService, LockServiceImplMBean, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
