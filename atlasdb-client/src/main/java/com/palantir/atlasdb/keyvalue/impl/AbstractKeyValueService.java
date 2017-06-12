@@ -15,58 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Function;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.UnmodifiableIterator;
-import com.google.common.util.concurrent.Futures;
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.AtlasDbPerformanceConstants;
-import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
-import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
-import com.palantir.atlasdb.logging.SafeLoggableDataUtils;
-import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.base.Throwables;
-import com.palantir.common.collect.Maps2;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.remoting1.tracing.Tracers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -262,7 +213,11 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                             } else {
                                 final String longerMessage = ENTRY_TOO_BIG_MESSAGE
                                         + " This can potentially cause out-of-memory errors.";
-                                log.warn(longerMessage, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
+                                log.warn(longerMessage,
+                                        SafeArg.of("approximatePutSize", sizingFunction.apply(firstEntry)),
+                                        SafeArg.of("maximumPutSize", maximumBytesPerPartition),
+                                        argSupplier.getArgDependingOnTableReference("table",
+                                                TableReference.createFromFullyQualifiedName(tableName), tableName));
                             }
                         }
 
