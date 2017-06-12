@@ -15,14 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.junit.Test;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class ColumnFamilyDefinitionsTest {
+    private static final int ONE_DAY = 4 * 24 * 60 * 60;
+
     @Test
     public void compactionStrategiesShouldMatchWithOrWithoutPackageName() {
         CfDef standard = ColumnFamilyDefinitions.getCfDef(
@@ -38,5 +42,21 @@ public class ColumnFamilyDefinitionsTest {
                         fullyQualified.compaction_strategy,
                         onlyClassName.compaction_strategy),
                 ColumnFamilyDefinitions.isMatchingCf(fullyQualified, onlyClassName));
+    }
+
+
+    @Test
+    public void ifCfDefsHaveDifferentGcGraceSecondsIsMatchingCfReturnsFalse() {
+        CfDef clientSideTable = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("test_table"),
+                AtlasDbConstants.GENERIC_TABLE_METADATA);
+        CfDef clusterSideTable = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("test_table"),
+                AtlasDbConstants.GENERIC_TABLE_METADATA).setGc_grace_seconds(ONE_DAY);
+
+        assertFalse("ColumnDefinitions with different gc_grace_seconds should not match",
+                ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
     }
 }
