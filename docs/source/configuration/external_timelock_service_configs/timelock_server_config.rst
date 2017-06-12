@@ -116,7 +116,7 @@ default values.
 
    * - sslConfiguration
      - Security settings for communication between Timelock Servers, following the
-       `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__
+       `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting2/config/ssl/SslConfiguration.java>`__
        library (default: no SSL).
 
    * - pingRateMs

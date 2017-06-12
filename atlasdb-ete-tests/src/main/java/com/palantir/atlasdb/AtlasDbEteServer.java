@@ -33,7 +33,7 @@ import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;

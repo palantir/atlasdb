@@ -97,7 +97,7 @@ import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.JMXUtils;
 
 /**

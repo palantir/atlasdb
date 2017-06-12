@@ -41,7 +41,7 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.remoting2.tracing.Tracers;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
 

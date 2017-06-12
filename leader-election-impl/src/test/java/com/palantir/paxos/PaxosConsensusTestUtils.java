@@ -35,7 +35,7 @@ import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.remoting2.tracing.Tracers;
 
 public final class PaxosConsensusTestUtils {
 

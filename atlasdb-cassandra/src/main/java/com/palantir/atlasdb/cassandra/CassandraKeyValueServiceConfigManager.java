@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.remoting2.tracing.Tracers;
 
 public final class CassandraKeyValueServiceConfigManager {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueServiceConfigManager.class);

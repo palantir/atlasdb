@@ -114,6 +114,14 @@ develop
            Users that previously attempted to set a compression block size that was not a power of 2 will also need to update their schema because Cassandra only allows this value to be a power of 2.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1995>`__)
 
+    *    - |fixed|
+         - Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2003>`__)
+
+    *    - |improved|
+         - Upgraded all usages of http-remoting to remoting2
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
