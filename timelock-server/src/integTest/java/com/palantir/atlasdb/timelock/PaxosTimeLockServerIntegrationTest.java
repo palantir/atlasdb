@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,8 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -363,6 +366,58 @@ public class PaxosTimeLockServerIntegrationTest {
         assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
     }
 
+    @Test
+    public void leadershipEventsSmokeTest() throws IOException {
+        JsonNode metrics = getMetricsOutput();
+
+        assertContainsMeter(metrics, "leadership.gained");
+        assertContainsMeter(metrics, "leadership.lost");
+        assertContainsMeter(metrics, "leadership.proposed");
+        assertContainsMeter(metrics, "leadership.no-quorum");
+        assertContainsMeter(metrics, "leadership.proposed.failure");
+
+        JsonNode meters = metrics.get("meters");
+        assertThat(meters.get("leadership.gained").get("count").intValue()).isEqualTo(1);
+        assertThat(meters.get("leadership.proposed").get("count").intValue()).isEqualTo(1);
+    }
+
+    @Test
+    // TODO(nziebart): test remote service instrumentation - we need a multi-node server config for this
+    public void instrumentationSmokeTest() throws IOException {
+        getTimestampService(CLIENT_1).getFreshTimestamp();
+        getLockService(CLIENT_1).currentTimeMillis();
+
+        JsonNode metrics = getMetricsOutput();
+
+        // time / lock services
+        assertContainsTimer(metrics,
+                "com.palantir.atlasdb.timelock.paxos.ManagedTimestampService.test.getFreshTimestamp");
+        assertContainsTimer(metrics, "com.palantir.lock.LockService.test.currentTimeMillis");
+
+        // local leader election classes
+        assertContainsTimer(metrics, "com.palantir.paxos.PaxosLearner.learn");
+        assertContainsTimer(metrics, "com.palantir.paxos.PaxosAcceptor.accept");
+        assertContainsTimer(metrics, "com.palantir.paxos.PaxosProposer.propose");
+        assertContainsTimer(metrics, "com.palantir.leader.PingableLeader.ping");
+        assertContainsTimer(metrics, "com.palantir.leader.LeaderElectionService.blockOnBecomingLeader");
+
+        // local timestamp bound classes
+        assertContainsTimer(metrics, "com.palantir.timestamp.TimestampBoundStore.test.getUpperLimit");
+        assertContainsTimer(metrics, "com.palantir.paxos.PaxosLearner.test.getGreatestLearnedValue");
+        assertContainsTimer(metrics, "com.palantir.paxos.PaxosAcceptor.test.accept");
+        assertContainsTimer(metrics, "com.palantir.paxos.PaxosProposer.test.propose");
+    }
+
+    private static void assertContainsTimer(JsonNode metrics, String name) {
+        JsonNode timers = metrics.get("timers");
+        assertThat(timers.get(name)).isNotNull();
+    }
+
+    private static void assertContainsMeter(JsonNode metrics, String name) {
+        JsonNode meters = metrics.get("meters");
+        assertThat(meters.get(name)).isNotNull();
+    }
+
     private static String getFastForwardUriForClientOne() {
         return getRootUriForClient(CLIENT_1) + "/timestamp-management/fast-forward";
     }
@@ -373,6 +428,11 @@ public class PaxosTimeLockServerIntegrationTest {
                 .url(uri)
                 .post(RequestBody.create(MediaType.parse("application/json"), ""))
                 .build()).execute();
+    }
+
+    private static JsonNode getMetricsOutput() throws IOException {
+        return new ObjectMapper().readTree(
+                new URL("http", "localhost", TIMELOCK_SERVER_HOLDER.getAdminPort(), "/metrics"));
     }
 
     private static RemoteLockService getLockService(String client) {

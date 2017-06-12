@@ -154,7 +154,7 @@ public class StreamTableDefinitionBuilder {
                     appendHeavyAndReadLight();
                 }
                 if (dbSideCompressionForBlocks) {
-                    explicitCompressionBlockSizeKB(GenericStreamStore.BLOCK_SIZE_IN_BYTES / 2);
+                    explicitCompressionBlockSizeKB(Integer.highestOneBit(GenericStreamStore.BLOCK_SIZE_IN_BYTES / 2));
                 }
                 ignoreHotspottingChecks();
             }};

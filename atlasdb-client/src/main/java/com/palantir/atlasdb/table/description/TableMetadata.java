@@ -42,6 +42,7 @@ public class TableMetadata implements Persistable {
     final SweepStrategy sweepStrategy;
     final ExpirationStrategy expirationStrategy;
     final boolean appendHeavyAndReadLight;
+    final boolean nameLoggable;
 
     public TableMetadata() {
         this(
@@ -78,6 +79,33 @@ public class TableMetadata implements Persistable {
                          SweepStrategy sweepStrategy,
                          ExpirationStrategy expirationStrategy,
                          boolean appendHeavyAndReadLight) {
+        this(
+                rowMetadata,
+                columns,
+                conflictHandler,
+                cachePriority,
+                partitionStrategy,
+                rangeScanAllowed,
+                explicitCompressionBlockSizeKB,
+                negativeLookups,
+                sweepStrategy,
+                expirationStrategy,
+                appendHeavyAndReadLight,
+                false);
+    }
+
+    public TableMetadata(NameMetadataDescription rowMetadata,
+                         ColumnMetadataDescription columns,
+                         ConflictHandler conflictHandler,
+                         CachePriority cachePriority,
+                         PartitionStrategy partitionStrategy,
+                         boolean rangeScanAllowed,
+                         int explicitCompressionBlockSizeKB,
+                         boolean negativeLookups,
+                         SweepStrategy sweepStrategy,
+                         ExpirationStrategy expirationStrategy,
+                         boolean appendHeavyAndReadLight,
+                         boolean nameLoggable) {
         if (rangeScanAllowed) {
             Preconditions.checkArgument(
                     partitionStrategy == PartitionStrategy.ORDERED,
@@ -94,6 +122,7 @@ public class TableMetadata implements Persistable {
         this.sweepStrategy = sweepStrategy;
         this.expirationStrategy = expirationStrategy;
         this.appendHeavyAndReadLight = appendHeavyAndReadLight;
+        this.nameLoggable = nameLoggable;
     }
 
     public NameMetadataDescription getRowMetadata() {
@@ -144,6 +173,10 @@ public class TableMetadata implements Persistable {
         return appendHeavyAndReadLight;
     }
 
+    public boolean isNameLoggable() {
+        return nameLoggable;
+    }
+
     @Override
     public byte[] persistToBytes() {
         return persistToProto().build().toByteArray();
@@ -169,10 +202,14 @@ public class TableMetadata implements Persistable {
         builder.setCachePriority(cachePriority);
         builder.setPartitionStrategy(partitionStrategy);
         builder.setRangeScanAllowed(rangeScanAllowed);
+        if (explicitCompressionBlockSizeKB != 0) {
+            builder.setExplicitCompressionBlockSizeKiloBytes(explicitCompressionBlockSizeKB);
+        }
         builder.setNegativeLookups(negativeLookups);
         builder.setSweepStrategy(sweepStrategy);
         // expiration strategy doesn't need to be persisted.
         builder.setAppendHeavyAndReadLight(appendHeavyAndReadLight);
+        builder.setNameLoggable(nameLoggable);
         return builder;
     }
 
@@ -205,6 +242,10 @@ public class TableMetadata implements Persistable {
         if (message.hasAppendHeavyAndReadLight()) {
             appendHeavyAndReadLight = message.getAppendHeavyAndReadLight();
         }
+        boolean nameLoggable = false;
+        if (message.hasNameLoggable()) {
+            nameLoggable = message.getNameLoggable();
+        }
 
         return new TableMetadata(
                 NameMetadataDescription.hydrateFromProto(message.getRowName()),
@@ -217,7 +258,8 @@ public class TableMetadata implements Persistable {
                 negativeLookups,
                 sweepStrategy,
                 ExpirationStrategy.NEVER,
-                appendHeavyAndReadLight);
+                appendHeavyAndReadLight,
+                nameLoggable);
     }
 
     @Override
@@ -233,6 +275,7 @@ public class TableMetadata implements Persistable {
                 + ", negativeLookups = " + negativeLookups
                 + ", sweepStrategy = " + sweepStrategy
                 + ", appendHeavyAndReadLight = " + appendHeavyAndReadLight
+                + ", nameLoggable = " + nameLoggable
                 + "]";
     }
 
@@ -251,6 +294,7 @@ public class TableMetadata implements Persistable {
         result = prime * result + (negativeLookups? 0 : 1);
         result = prime * result + (sweepStrategy.hashCode());
         result = prime * result + (appendHeavyAndReadLight? 0 : 1);
+        result = prime * result + (nameLoggable? 0 : 1);
         return result;
     }
 
@@ -307,7 +351,9 @@ public class TableMetadata implements Persistable {
         if (appendHeavyAndReadLight != other.appendHeavyAndReadLight) {
             return false;
         }
-
+        if (nameLoggable != other.nameLoggable) {
+            return false;
+        }
         return true;
     }
 

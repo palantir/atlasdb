@@ -25,6 +25,7 @@ docs/build/
 bin/
 userdict.txt
 .apt_generated/
+generated/
 generated_src/
 generated_testSrc/
 .factorypath

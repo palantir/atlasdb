@@ -15,92 +15,69 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Arrays;
-import java.util.function.Consumer;
-
-import org.mpierce.metrics.reservoir.hdrhistogram.HdrHistogramReservoir;
-
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Metric;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 
 @SuppressWarnings("checkstyle:FinalClass")
 class SweepMetrics {
-    private enum TableAndAggregateMetric {
-        STALE_VALUES_DELETED_METRIC(STALE_VALUES_DELETED),
-        CELL_TS_PAIRS_EXAMINED_METRIC(CELL_TS_PAIRS_EXAMINED);
+    private final MetricsManager metricsManager = new MetricsManager();
 
+    private final TableSpecificHistogramMetric cellsSweptHistogram =
+            new TableSpecificHistogramMetric("cellTimestampPairsExamined");
+    private final TableSpecificHistogramMetric cellsDeletedHistogram =
+            new TableSpecificHistogramMetric("staleValuesDeleted");
+
+    private final MeterMetric cellsSweptMeter = new MeterMetric("cellsSwept");
+    private final MeterMetric cellsDeletedMeter = new MeterMetric("cellsDeleted");
+    private final MeterMetric sweepErrorMeter = new MeterMetric("sweepError");
+
+    private class TableSpecificHistogramMetric {
         private final String name;
 
-        TableAndAggregateMetric(String name) {
+        TableSpecificHistogramMetric(String name) {
             this.name = name;
         }
 
-        void registerAggregateMetric() {
-            registerMetricWithHdrHistogram(aggregateMetric());
-        }
-
-        void registerForTable(TableReference tableRef) {
-            registerMetricWithHdrHistogram(getTableSpecificName(name, tableRef));
-        }
-
-        void recordMetric(TableReference tableRef, long value) {
-            metricRegistry.histogram(getTableSpecificName(name, tableRef)).update(value);
-            metricRegistry.histogram(aggregateMetric()).update(value);
+        void update(TableReference tableRef, long value) {
+            /* Lazily generate histogram since we need table-specific metrics */
+            metricsManager.getRegistry().histogram(getTableSpecificName(tableRef)).update(value);
+            metricsManager.getRegistry().histogram(aggregateMetric()).update(value);
         }
 
         private String aggregateMetric() {
             return MetricRegistry.name(SweepMetrics.class, name);
         }
 
-        private String getTableSpecificName(String root, TableReference tableRef) {
-            return MetricRegistry.name(SweepMetrics.class, root, tableRef.getQualifiedName());
-        }
-
-        private void registerMetricWithHdrHistogram(String metric) {
-            registerMetricIfNotExists(metric, new Histogram(new HdrHistogramReservoir()));
-        }
-
-        private void registerMetricIfNotExists(String metricName, Metric metric) {
-            if (!metricRegistry.getMetrics().containsKey(metricName)) {
-                metricRegistry.register(metricName, metric);
-            }
+        private String getTableSpecificName(TableReference tableRef) {
+            return MetricRegistry.name(SweepMetrics.class, name, tableRef.getQualifiedName());
         }
     }
 
-    static final String STALE_VALUES_DELETED = "staleValuesDeleted";
-    static final String CELL_TS_PAIRS_EXAMINED = "cellTimestampPairsExamined";
+    private class MeterMetric {
+        private final Meter meter;
 
-    private static final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
+        MeterMetric(String name) {
+            this.meter = metricsManager.registerMeter(SweepMetrics.class, null, name);
+        }
 
-    public static SweepMetrics create() {
-        SweepMetrics sweepMetrics = new SweepMetrics();
-        sweepMetrics.registerAggregateMetrics();
-        return sweepMetrics;
+        void update(long value) {
+            this.meter.mark(value);
+        }
     }
 
-    private SweepMetrics() {
-        // To prevent instantiation
+    void examinedCells(TableReference tableRef, long numExamined) {
+        cellsSweptHistogram.update(tableRef, numExamined);
+        cellsSweptMeter.update(numExamined);
     }
 
-    private void registerAggregateMetrics() {
-        forAllMetrics(TableAndAggregateMetric::registerAggregateMetric);
+    void deletedCells(TableReference tableRef, long numDeleted) {
+        cellsDeletedHistogram.update(tableRef, numDeleted);
+        cellsDeletedMeter.update(numDeleted);
     }
 
-    void registerMetricsIfNecessary(TableReference tableRef) {
-        forAllMetrics(metric -> metric.registerForTable(tableRef));
-    }
-
-    void recordMetrics(TableReference tableRef, SweepResults results) {
-        TableAndAggregateMetric.CELL_TS_PAIRS_EXAMINED_METRIC.recordMetric(tableRef, results.getCellTsPairsExamined());
-        TableAndAggregateMetric.STALE_VALUES_DELETED_METRIC.recordMetric(tableRef, results.getStaleValuesDeleted());
-    }
-
-    private void forAllMetrics(Consumer<TableAndAggregateMetric> action) {
-        Arrays.asList(TableAndAggregateMetric.values()).stream().forEach(
-                action);
+    void sweepError() {
+        sweepErrorMeter.update(1);
     }
 }
