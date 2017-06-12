@@ -44,7 +44,8 @@ develop
 
     *    - |new| |improved|
          - Enabled Jepsen tests for locks and introduced an additional nemesis that simulates service failures.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2011>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2011>`__)
+
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
