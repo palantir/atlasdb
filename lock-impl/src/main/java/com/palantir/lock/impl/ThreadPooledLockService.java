@@ -54,7 +54,7 @@ public class ThreadPooledLockService implements CloseableRemoteLockService {
 
     @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
-        return wrapper.applyWithPermit(lockService -> lockService.refreshLockRefreshTokens(tokens));
+        return delegate.refreshLockRefreshTokens(tokens);
     }
 
     @Nullable
