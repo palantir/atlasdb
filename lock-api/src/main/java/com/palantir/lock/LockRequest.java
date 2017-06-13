@@ -50,9 +50,8 @@ import com.google.common.collect.Iterables;
 @Immutable public final class LockRequest implements Serializable {
     private static final long serialVersionUID = 0xf6c12b970b44af68L;
 
-    private static final TimeDuration DEFAULT_LOCK_TIMEOUT = SimpleTimeDuration.of(120, TimeUnit.SECONDS);
-
-    private static final AtomicReference<TimeDuration> defaultLockTimeout = new AtomicReference<>(DEFAULT_LOCK_TIMEOUT);
+    private static final AtomicReference<TimeDuration> defaultLockTimeout = new AtomicReference<>(
+            SimpleTimeDuration.of(120, TimeUnit.SECONDS));
 
     /** The default amount of time that it takes a lock (lease) to expire. */
     public static TimeDuration getDefaultLockTimeout() {
@@ -377,7 +376,7 @@ import com.google.common.collect.Iterables;
                 serverName = " (on server " + localServerName + ")";
             }
             LockRequest request = new LockRequest(lockMap,
-                    MoreObjects.firstNonNull(lockTimeout, DEFAULT_LOCK_TIMEOUT),
+                    MoreObjects.firstNonNull(lockTimeout, getDefaultLockTimeout()),
                     MoreObjects.firstNonNull(lockGroupBehavior, LockGroupBehavior.LOCK_ALL_OR_NONE),
                     MoreObjects.firstNonNull(blockingMode, BlockingMode.BLOCK_INDEFINITELY),
                     blockingDuration, versionId,
