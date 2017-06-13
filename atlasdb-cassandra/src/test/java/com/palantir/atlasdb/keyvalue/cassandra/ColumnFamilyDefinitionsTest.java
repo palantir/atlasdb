@@ -46,7 +46,7 @@ public class ColumnFamilyDefinitionsTest {
 
 
     @Test
-    public void ifCfDefsHaveDifferentGcGraceSecondsIsMatchingCfReturnsFalse() {
+    public void cfDefWithOldAndNewDefaultValuesShouldNotMatch() {
         CfDef clientSideTable = ColumnFamilyDefinitions.getCfDef(
                 "test_keyspace",
                 TableReference.fromString("test_table"),
