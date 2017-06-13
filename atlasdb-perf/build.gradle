@@ -31,19 +31,27 @@ dependencies {
   }
 }
 
-task postgresBenchmarkTest(type:Exec) {
+task postgresBenchmarkExec(type:Exec) {
     dependsOn(installDist)
     commandLine "./build/install/atlasdb-perf/bin/atlasdb-perf", "--test-run", "--backend", "POSTGRES"
 }
 
-task cassandraBenchmarkTest(type:Exec) {
+task postgresBenchmarkTest(type:Test) {
+    dependsOn postgresBenchmarkExec
+}
+
+task cassandraBenchmarkExec(type:Exec) {
     dependsOn(installDist)
     commandLine "./build/install/atlasdb-perf/bin/atlasdb-perf", "--test-run", "--backend", "CASSANDRA"
 }
 
+task cassandraBenchmarkTest(type:Test) {
+    dependsOn cassandraBenchmarkExec
+}
+
 test {
     dependsOn postgresBenchmarkTest
-    dependsOn cassandraBenchmarkTest
+//    dependsOn cassandraBenchmarkTest
 }
 
 distZip {

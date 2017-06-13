@@ -137,7 +137,7 @@ public class AtlasDbPerfCli {
                     .mode(Mode.SampleTime);
         } else {
             optBuilder.warmupIterations(0)
-                    .forks(0)
+                    .forks(1)
                     .mode(Mode.SingleShotTime);
         }
 
