@@ -25,7 +25,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class ColumnFamilyDefinitionsTest {
-    private static final int ONE_DAY = 4 * 24 * 60 * 60;
+    private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
 
     @Test
     public void compactionStrategiesShouldMatchWithOrWithoutPackageName() {
@@ -46,7 +46,7 @@ public class ColumnFamilyDefinitionsTest {
 
 
     @Test
-    public void cfDefWithOldAndNewDefaultValuesShouldNotMatch() {
+    public void cfDefWithDifferingGcGraceSecondsValuesShouldNotMatch() {
         CfDef clientSideTable = ColumnFamilyDefinitions.getCfDef(
                 "test_keyspace",
                 TableReference.fromString("test_table"),
@@ -54,7 +54,7 @@ public class ColumnFamilyDefinitionsTest {
         CfDef clusterSideTable = ColumnFamilyDefinitions.getCfDef(
                 "test_keyspace",
                 TableReference.fromString("test_table"),
-                AtlasDbConstants.GENERIC_TABLE_METADATA).setGc_grace_seconds(ONE_DAY);
+                AtlasDbConstants.GENERIC_TABLE_METADATA).setGc_grace_seconds(FOUR_DAYS_IN_SECONDS);
 
         assertFalse("ColumnDefinitions with different gc_grace_seconds should not match",
                 ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
