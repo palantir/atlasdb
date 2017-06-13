@@ -17,8 +17,14 @@
 package com.palantir.atlasdb.performance.backend;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URL;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
@@ -42,8 +48,21 @@ public final class DockerizedDatabase implements Closeable {
     }
 
     private static String getDockerComposeFileAbsolutePath(String dockerComposeResourceFileName) {
-        String name = DockerizedDatabase.class.getResource("/" + dockerComposeResourceFileName).getFile();
-        return name;
+        try {
+            return writeResourceToTempFile(DockerizedDatabase.class, dockerComposeResourceFileName).getAbsolutePath();
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to write docker compose file to a temporary file.", e);
+        }
+    }
+
+    private static File writeResourceToTempFile(Class clazz, String resourcePath) throws IOException {
+        URL resource = clazz.getResource("/" + resourcePath);
+        File file = File.createTempFile(
+                FilenameUtils.getBaseName(resource.getFile()),
+                FilenameUtils.getExtension(resource.getFile()));
+        IOUtils.copy(resource.openStream(), FileUtils.openOutputStream(file));
+        file.deleteOnExit();
+        return file;
     }
 
     private static HealthCheck<DockerPort> toBeOpen() {

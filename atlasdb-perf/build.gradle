@@ -31,9 +31,21 @@ dependencies {
   }
 }
 
+task bla(type:Exec) {
+    dependsOn(installDist)
+    commandLine "./build/install/atlasdb-perf/bin/atlasdb-perf", "--test-run"
+    //distTar, '!!!!!!!!!!!!!!!!!!!!!!'//.execute()
+}
+
+task test {
+    dependsOn bla
+}
+
 distZip {
     into(project.name + '-' + project.version) {
         from '..'
         include 'docker-containers/**/*'
     }
 }
+
+

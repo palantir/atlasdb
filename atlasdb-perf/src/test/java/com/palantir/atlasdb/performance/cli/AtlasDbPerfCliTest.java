@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.performance.cli;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,51 +28,62 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.performance.backend.DatabasesContainer;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
+import com.palantir.atlasdb.performance.benchmarks.KvsGetRowsColumnRangeBenchmarks;
 
 @RunWith(Parameterized.class)
 public class AtlasDbPerfCliTest {
+    public static List<String> EXCLUDED_BENCHMARKS = ImmutableList.<String>builder()
+            .add("KvsGetRowsColumnRangeBenchmarks.getAllColumnsUnaligned")
+            .add("KvsGetRangeBenchmarks.getSingleRange")
+            .add("TransactionGetBenchmarks.getSingleCell")
+            .add("KvsGetRangeBenchmarks.getMultiRangeDirty")
+            .add("KvsGetRangeBenchmarks.getSingleLargeRange")
+            .add("TransactionGetBenchmarks.getRange")
+            .build();
+
     @Parameterized.Parameter
     public String benchmark;
 
     @Parameterized.Parameters
     public static Collection<String> benchmarks() {
         Set<String> list = AtlasDbPerfCli.getAllBenchmarks();
-        list.remove("KvsGetRangeBenchmarks.getSingleRange");
+        EXCLUDED_BENCHMARKS.forEach(list::remove);
         return list;
     }
 
     private static Map<KeyValueServiceInstrumentation, String> dockerMap;
     private static DatabasesContainer docker;
 
-    @BeforeClass
-    public static void setup() {
-        Set<String> backends = KeyValueServiceInstrumentation.getBackends();
-        docker = AtlasDbPerfCli.startupDatabase(backends);
-        dockerMap = docker.getDockerizedDatabases().stream().map(
-                DockerizedDatabase::getUri).collect(
-                Collectors.toMap(DockerizedDatabaseUri::getKeyValueServiceInstrumentation,
-                        DockerizedDatabaseUri::toString));
-    }
+//    @BeforeClass
+//    public static void setup() {
+//        Set<String> backends = KeyValueServiceInstrumentation.getBackends();
+//        docker = AtlasDbPerfCli.startupDatabase(backends);
+//        dockerMap = docker.getDockerizedDatabases().stream().map(
+//                DockerizedDatabase::getUri).collect(
+//                Collectors.toMap(DockerizedDatabaseUri::getKeyValueServiceInstrumentation,
+//                        DockerizedDatabaseUri::toString));
+//    }
 
     @Test
     public void postgresSingleIteration() throws Exception {
-        String[] args = {"--db-uri", dockerMap.get(KeyValueServiceInstrumentation.forDatabase("POSTGRES")),
+        String[] args = {"--db-uri", "CASSANDRA@127.0.0.1:9160", //dockerMap.get(KeyValueServiceInstrumentation.forDatabase("POSTGRES")),
                          "--test-run",
                          "--benchmark", benchmark};
         AtlasDbPerfCli.main(args);
     }
 
-    @Test
-    public void cassandraSingleIteration() throws Exception {
-        String[] args = {"--db-uri", dockerMap.get(KeyValueServiceInstrumentation.forDatabase("CASSANDRA")),
-                         "--test-run",
-                         "--benchmark", benchmark};
-        AtlasDbPerfCli.main(args);
-    }
+//    @Test
+//    public void cassandraSingleIteration() throws Exception {
+//        String[] args = {"--db-uri", dockerMap.get(KeyValueServiceInstrumentation.forDatabase("CASSANDRA")),
+//                         "--test-run",
+//                         "--benchmark", benchmark};
+//        AtlasDbPerfCli.main(args);
+//    }
 
     @AfterClass
     public static void close() throws Exception {
