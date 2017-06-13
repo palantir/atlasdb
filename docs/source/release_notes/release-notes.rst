@@ -42,9 +42,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
-
+    *    - |userbreak|
+         - Deprecate Cassandra config option 'safetyDisabled';
+           users should instead move to various 'ignoreMoreSpecificCheck' config options; for instance, 'ignoreBadNodeTopologyChecks'
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2024>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

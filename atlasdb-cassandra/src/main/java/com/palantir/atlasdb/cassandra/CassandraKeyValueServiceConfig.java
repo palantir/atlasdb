@@ -129,8 +129,37 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 5000;
     }
 
+    /**
+     * Ignore all safety checks. Not a good idea,
+     * but occasionally useful to perform some tasks to get a stack
+     * from a known bad configuration back into a good configuration.
+     *
+     * @deprecated Use the more specific "ignoreSpecificTypeOfCheck" relevant to you
+     *             e.g. {@link #ignoreBadNodeTopologyChecks()}
+     */
     @Value.Default
+    @Deprecated
     public boolean safetyDisabled() {
+        return false;
+    }
+
+    @Value.Default
+    public boolean ignoreBadNodeTopologyChecks() {
+        return false;
+    }
+
+    @Value.Default
+    public boolean ignoreInconsistentRingChecks() {
+        return false;
+    }
+
+    @Value.Default
+    public boolean ignoreBadDatacenterConfigurationChecks() {
+        return false;
+    }
+
+    @Value.Default
+    public boolean ignorePartitionerChecks() {
         return false;
     }
 

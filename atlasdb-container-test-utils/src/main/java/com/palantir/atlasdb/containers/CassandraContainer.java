@@ -49,7 +49,6 @@ public class CassandraContainer extends Container {
             .mutationBatchCount(10000)
             .mutationBatchSizeBytes(10000000)
             .fetchBatchCount(1000)
-            .safetyDisabled(false)
             .autoRefreshNodes(false)
             .jmx(ImmutableCassandraJmxCompactionConfig.builder()
                     .username(USERNAME)
