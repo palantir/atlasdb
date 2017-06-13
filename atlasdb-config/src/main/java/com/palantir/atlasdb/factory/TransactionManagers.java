@@ -86,7 +86,6 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
-import com.palantir.lock.TimeDuration;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.TimestampService;
@@ -183,7 +182,8 @@ public final class TransactionManagers {
 
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
-        LockRequest.setDefaultLockTimeout(SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
+        LockRequest.setDefaultLockTimeout(
+                SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
                 env,
