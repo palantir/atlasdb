@@ -49,7 +49,7 @@ Optional parameters:
          - Description
 
     *    - sslConfiguration
-         - The security settings to apply to client-side connections to the AtlasDB services at the endpoints, other than ``localServer``, listed in the ``leaders`` array, specified according to the `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__ library. (defaults to not using SSL)
+         - The security settings to apply to client-side connections to the AtlasDB services at the endpoints, other than ``localServer``, listed in the ``leaders`` array, specified according to the `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting2/config/ssl/SslConfiguration.java>`__ library. (defaults to not using SSL)
 
     *    - learnerLogDir
          - Path to the paxos learner logs (defaults to var/data/paxos/learner)

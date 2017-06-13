@@ -93,7 +93,7 @@ The following table summarizes whether SSL is enabled:
 sslConfiguration
 ----------------
 
-This object is specified according to the `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__ library. It directly specifies all aspects of the ssl configuration, instead of reading them from system properties.  The only required property is ``trustStorePath``, as seen in the example above.  In order to configure 2-way SSL, you would also have to set the optional properties ``keyStorePath`` and ``keyStorePassword``.
+This object is specified according to the `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting2/config/ssl/SslConfiguration.java>`__ library. It directly specifies all aspects of the ssl configuration, instead of reading them from system properties.  The only required property is ``trustStorePath``, as seen in the example above.  In order to configure 2-way SSL, you would also have to set the optional properties ``keyStorePath`` and ``keyStorePassword``.
 
 ssl
 ---

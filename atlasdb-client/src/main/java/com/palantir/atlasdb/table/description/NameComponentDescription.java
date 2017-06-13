@@ -34,6 +34,7 @@ public class NameComponentDescription {
     final ValueByteOrder order;
     @Nullable final UniformRowNamePartitioner uniformPartitioner;
     @Nullable final ExplicitRowNamePartitioner explicitPartitioner;
+    final boolean nameLoggable;
 
     public NameComponentDescription() {
         this("name", ValueType.BLOB);
@@ -50,6 +51,7 @@ public class NameComponentDescription {
         this.order = reverseOrder ? ValueByteOrder.DESCENDING : ValueByteOrder.ASCENDING;
         this.uniformPartitioner = new UniformRowNamePartitioner(type);
         this.explicitPartitioner = null;
+        this.nameLoggable = false;
     }
 
     public NameComponentDescription(String componentName,
@@ -63,6 +65,15 @@ public class NameComponentDescription {
                                     ValueByteOrder order,
                                     UniformRowNamePartitioner uniform,
                                     ExplicitRowNamePartitioner explicit) {
+        this(componentName, type, order, uniform, explicit, false);
+    }
+
+    public NameComponentDescription(String componentName,
+                                    ValueType type,
+                                    ValueByteOrder order,
+                                    UniformRowNamePartitioner uniform,
+                                    ExplicitRowNamePartitioner explicit,
+                                    boolean nameLoggable) {
         Validate.notNull(componentName);
         Validate.notNull(type);
         Validate.notNull(order);
@@ -71,6 +82,7 @@ public class NameComponentDescription {
         this.order = order;
         this.uniformPartitioner = uniform;
         this.explicitPartitioner = explicit;
+        this.nameLoggable = nameLoggable;
     }
 
     public String getComponentName() {
@@ -89,6 +101,10 @@ public class NameComponentDescription {
         return order;
     }
 
+    public boolean isNameLoggable() {
+        return nameLoggable;
+    }
+
     public TableMetadataPersistence.NameComponentDescription.Builder persistToProto() {
         Builder builder = TableMetadataPersistence.NameComponentDescription.newBuilder();
         builder.setComponentName(componentName);
@@ -98,6 +114,7 @@ public class NameComponentDescription {
         if (explicitPartitioner != null) {
             builder.addAllExplicitPartitions(explicitPartitioner.values);
         }
+        builder.setNameLoggable(nameLoggable);
         return builder;
     }
 
@@ -111,7 +128,8 @@ public class NameComponentDescription {
         if (message.getExplicitPartitionsCount() > 0) {
             e = new ExplicitRowNamePartitioner(type, message.getExplicitPartitionsList());
         }
-        return new NameComponentDescription(message.getComponentName(), type, message.getOrder(), u, e);
+        boolean nameLoggable = message.hasNameLoggable() && message.getNameLoggable();
+        return new NameComponentDescription(message.getComponentName(), type, message.getOrder(), u, e, nameLoggable);
     }
 
     /**
@@ -146,7 +164,7 @@ public class NameComponentDescription {
         if (!explicit.isEmpty()) {
             e = new ExplicitRowNamePartitioner(type, explicit);
         }
-        return new NameComponentDescription(componentName, type, order, u, e);
+        return new NameComponentDescription(componentName, type, order, u, e, nameLoggable);
     }
 
     @Override

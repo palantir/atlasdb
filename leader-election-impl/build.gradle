@@ -8,7 +8,7 @@ dependencies {
   compile group: "com.google.protobuf", name: "protobuf-java", version: libVersions.protobuf
   compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
   compile group: "commons-io", name: "commons-io"
-  compile group: 'com.palantir.remoting1', name: 'tracing'
+  compile group: 'com.palantir.remoting2', name: 'tracing'
 
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'

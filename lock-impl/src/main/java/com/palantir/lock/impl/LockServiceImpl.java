@@ -97,7 +97,7 @@ import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.JMXUtils;
 
 /**
@@ -148,12 +148,8 @@ import com.palantir.util.JMXUtils;
             this.locks = locks;
         }
 
-        public List<LockDescriptor> getLockDescriptors() {
-            List<LockDescriptor> descriptors = Lists.newArrayListWithCapacity(locks.size());
-            for (ClientAwareReadWriteLock lock : locks) {
-                descriptors.add(lock.getDescriptor());
-            }
-            return descriptors;
+        public T getRealToken() {
+            return realToken;
         }
 
         @Override public String toString() {

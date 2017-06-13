@@ -15,113 +15,45 @@
  */
 package com.palantir.timestamp;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.concurrent.TimeUnit;
-
-import com.palantir.common.time.Clock;
-import com.palantir.common.time.SystemClock;
-import com.palantir.exception.PalantirInterruptedException;
+import com.google.common.annotations.VisibleForTesting;
 
 public class PersistentUpperLimit {
-    private final TimestampBoundStore tbs;
-    private final Clock clock;
-    private final TimestampAllocationFailures allocationFailures;
 
-    private volatile long cachedValue;
-    private volatile long lastIncreasedTime;
+    @VisibleForTesting
+    static final long BUFFER = 1_000_000;
 
-    public PersistentUpperLimit(TimestampBoundStore tbs, Clock clock, TimestampAllocationFailures allocationFailures) {
-        DebugLogger.logger.info("Creating PersistentUpperLimit object on thread {}."
-                        + " If you are running embedded AtlasDB, this should only happen once."
-                        + " If you are using Timelock, this should happen once per client per leadership election",
-                Thread.currentThread().getName());
-        this.tbs = tbs;
-        this.clock = clock;
-        this.allocationFailures = checkNotNull(allocationFailures);
-
-        cachedValue = tbs.getUpperLimit();
-        lastIncreasedTime = clock.getTimeMillis();
-    }
+    private volatile long currentLimit;
+    private final TimestampBoundStore store;
 
     public PersistentUpperLimit(TimestampBoundStore boundStore) {
-        this(boundStore, new SystemClock(), new TimestampAllocationFailures());
+        this.store = boundStore;
+        this.currentLimit = boundStore.getUpperLimit();
     }
 
-    /**
-     * Gets the current upper limit timestamp.
-     * @return upper limit timestamp
-     */
     public long get() {
-        allocationFailures.verifyWeShouldIssueMoreTimestamps();
-        return cachedValue;
+        return currentLimit;
     }
 
-    /**
-     * Increases the stored upper limit to at least the minimum value. The store is only performed if the cached value
-     * is lower than the minimum. If the check is successful, the value stored will be equal to
-     * minimum + additionalBuffer. This way we can avoid persisting a new limit if not necessary, but also add a buffer
-     * when the CAS is necessary.
-     * @param minimum minimum upper limit to be persisted. The CAS will only be invoked if the current cached value
-     * is lower than minimum.
-     * @param additionalBuffer if a CAS is necessary, this value determines the additional buffer on top of minimum to
-     * be persisted.
-     * @return currently cached value
-     */
-    public synchronized long increaseToAtLeast(long minimum, long additionalBuffer) {
-        long currentValue = get();
-        if (currentValue < minimum) {
-            return store(minimum + additionalBuffer);
-        } else {
-            DebugLogger.logger.trace(
-                    "Not storing upper limit of {}, as the cached value {} was higher.",
-                    minimum,
-                    currentValue);
-            return currentValue;
+    public void increaseToAtLeast(long newLimit) {
+        if (newLimit > currentLimit) {
+            updateLimit(newLimit);
         }
     }
 
-    /**
-     * Determines if the upper limit has changed within the most recent specified period.
-     * @param time time
-     * @param unit time unit
-     * @return true if the upper limit has increased within the most recent specified period
-     */
-    public boolean hasIncreasedWithin(int time, TimeUnit unit) {
-        long durationInMillis = unit.toMillis(time);
-        long timeSinceIncrease = clock.getTimeMillis() - lastIncreasedTime;
-
-        return timeSinceIncrease < durationInMillis;
-    }
-
-    /**
-     * Stores the upper limit.
-     * @param upperLimit new upper limit
-     * @return the stored upper limit
-     */
-    private synchronized long store(long upperLimit) {
-        DebugLogger.logger.trace("Storing new upper limit of {}.", upperLimit);
-        checkWeHaveNotBeenInterrupted();
-        allocationFailures.verifyWeShouldIssueMoreTimestamps();
-        persistNewUpperLimit(upperLimit);
-        cachedValue = upperLimit;
-        lastIncreasedTime = clock.getTimeMillis();
-        DebugLogger.logger.trace("Stored; upper limit is now {}.", upperLimit);
-        return upperLimit;
-    }
-
-    private void checkWeHaveNotBeenInterrupted() {
-        if (Thread.currentThread().isInterrupted()) {
-            throw new PalantirInterruptedException("Was interrupted while trying to allocate more timestamps");
+    private synchronized void updateLimit(long newLimit) {
+        if (currentLimit >= newLimit) {
+            return;
         }
+
+        long newLimitWithBuffer = newLimit + BUFFER;
+        storeUpperLimit(newLimitWithBuffer);
+        currentLimit = newLimitWithBuffer;
     }
 
-    private void persistNewUpperLimit(long upperLimit) {
-        try {
-            tbs.storeUpperLimit(upperLimit);
-        } catch (Throwable error) {
-            throw allocationFailures.responseTo(error);
-        }
+    private void storeUpperLimit(long upperLimit) {
+        DebugLogger.willStoreNewUpperLimit(upperLimit);
+        store.storeUpperLimit(upperLimit);
+        DebugLogger.didStoreNewUpperLimit(upperLimit);
     }
 
 }

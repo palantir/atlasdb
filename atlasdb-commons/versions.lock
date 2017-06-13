@@ -25,7 +25,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1"
+            "locked": "3.1.2"
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
@@ -67,7 +67,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1"
+            "locked": "3.1.2"
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",

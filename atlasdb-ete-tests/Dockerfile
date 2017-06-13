@@ -1,6 +1,4 @@
-FROM frolvlad/alpine-oraclejdk8:slim
-
-RUN apk update && apk add libstdc++ bash wget
+FROM openjdk:8u131-jre
 
 ENV DOCKERIZE_VERSION v0.2.0
 

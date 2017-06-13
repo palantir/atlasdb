@@ -122,7 +122,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
-import com.palantir.remoting.ssl.SslSocketFactories;
+import com.palantir.remoting2.config.ssl.SslSocketFactories;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
