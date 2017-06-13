@@ -20,24 +20,19 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.performance.backend.DatabasesContainer;
-import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
-import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
-import com.palantir.atlasdb.performance.benchmarks.KvsGetRowsColumnRangeBenchmarks;
 
 @RunWith(Parameterized.class)
 public class AtlasDbPerfCliTest {
-    public static List<String> EXCLUDED_BENCHMARKS = ImmutableList.<String>builder()
+    public static List<String> excluded = ImmutableList.<String>builder()
             .add("KvsGetRowsColumnRangeBenchmarks.getAllColumnsUnaligned")
             .add("KvsGetRangeBenchmarks.getSingleRange")
             .add("TransactionGetBenchmarks.getSingleCell")
@@ -52,7 +47,7 @@ public class AtlasDbPerfCliTest {
     @Parameterized.Parameters
     public static Collection<String> benchmarks() {
         Set<String> list = AtlasDbPerfCli.getAllBenchmarks();
-        EXCLUDED_BENCHMARKS.forEach(list::remove);
+        excluded.forEach(list::remove);
         return list;
     }
 
@@ -71,7 +66,8 @@ public class AtlasDbPerfCliTest {
 
     @Test
     public void postgresSingleIteration() throws Exception {
-        String[] args = {"--db-uri", "CASSANDRA@127.0.0.1:9160", //dockerMap.get(KeyValueServiceInstrumentation.forDatabase("POSTGRES")),
+        String[] args = {"--db-uri", "CASSANDRA@127.0.0.1:9160",
+                         //dockerMap.get(KeyValueServiceInstrumentation.forDatabase("POSTGRES")),
                          "--test-run",
                          "--benchmark", benchmark};
         AtlasDbPerfCli.main(args);

@@ -31,14 +31,19 @@ dependencies {
   }
 }
 
-task bla(type:Exec) {
+task postgresBenchmarkTest(type:Exec) {
     dependsOn(installDist)
-    commandLine "./build/install/atlasdb-perf/bin/atlasdb-perf", "--test-run"
-    //distTar, '!!!!!!!!!!!!!!!!!!!!!!'//.execute()
+    commandLine "./build/install/atlasdb-perf/bin/atlasdb-perf", "--test-run", "--backend", "POSTGRES"
+}
+
+task cassandraBenchmarkTest(type:Exec) {
+    dependsOn(installDist)
+    commandLine "./build/install/atlasdb-perf/bin/atlasdb-perf", "--test-run", "--backend", "CASSANDRA"
 }
 
 test {
-    dependsOn bla
+    dependsOn postgresBenchmarkTest
+    dependsOn cassandraBenchmarkTest
 }
 
 distZip {
