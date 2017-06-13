@@ -81,7 +81,6 @@ develop
          - Read-only transactions will no longer make a remote call to fetch a timestamp, if no work is done on the transaction. 
            This will benefit services that execute read-only transactions around in-memory cache operations, and frequently never fall through to perform a read.
            (`Pull Request <https://github.com/palantir/1996>`__)
->>>>>>> 6d06a4f74b1b798a9ed74646efdda108cedb9d5a
 
     *    - |improved|
          - Timelock service now includes user agents for all inter-node requests.
