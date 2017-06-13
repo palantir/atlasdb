@@ -51,7 +51,7 @@ task cassandraBenchmarkTest(type:Test) {
 
 test {
     dependsOn postgresBenchmarkTest
-//    dependsOn cassandraBenchmarkTest
+    dependsOn cassandraBenchmarkTest
 }
 
 distZip {
