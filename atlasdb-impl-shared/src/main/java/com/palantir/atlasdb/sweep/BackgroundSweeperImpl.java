@@ -223,7 +223,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         }
     }
 
-    private void runOnceForTable(TableToSweep tableToSweep) {
+    void runOnceForTable(TableToSweep tableToSweep) {
         Stopwatch watch = Stopwatch.createStarted();
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
@@ -277,56 +277,19 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         }
     }
 
-    private final class TableToSweep {
-        private final TableReference tableRef;
-        @Nullable private final SweepProgress progress;
-
-        TableToSweep(TableReference tableRef, SweepProgress progress) {
-            this.tableRef = tableRef;
-            this.progress = progress;
-        }
-
-        TableReference getTableRef() {
-            return tableRef;
-        }
-
-        boolean hasPreviousProgress() {
-            return progress != null;
-        }
-
-        long getStaleValuesDeletedPreviously() {
-            return progress == null ? 0L : progress.staleValuesDeleted();
-        }
-
-        long getCellsExaminedPreviously() {
-            return progress == null ? 0L : progress.cellTsPairsExamined();
-        }
-
-        OptionalLong getPreviousMinimumSweptTimestamp() {
-            return progress == null ? OptionalLong.empty() : OptionalLong.of(progress.minimumSweptTimestamp());
-        }
-
-        byte[] getStartRow() {
-            return progress == null ? PtBytes.EMPTY_BYTE_ARRAY : progress.startRow();
-        }
-    }
-
     private Optional<TableToSweep> getTableToSweep() {
-        return txManager.runTaskWithRetry(new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
-            @Override
-            public Optional<TableToSweep> execute(Transaction tx) {
-                Optional<SweepProgress> progress = sweepProgressStore.loadProgress(tx);
-                if (progress.isPresent()) {
-                    return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
+        return txManager.runTaskWithRetry(tx -> {
+            Optional<SweepProgress> progress = sweepProgressStore.loadProgress(tx);
+            if (progress.isPresent()) {
+                return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
+            } else {
+                Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
+                        tx, sweepRunner.getConservativeSweepTimestamp());
+                if (nextTable.isPresent()) {
+                    log.debug("Now starting to sweep {}.", nextTable);
+                    return Optional.of(new TableToSweep(nextTable.get(), null));
                 } else {
-                    Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
-                            tx, sweepRunner.getConservativeSweepTimestamp());
-                    if (nextTable.isPresent()) {
-                        log.debug("Now starting to sweep {}.", nextTable);
-                        return Optional.of(new TableToSweep(nextTable.get(), null));
-                    } else {
-                        return Optional.empty();
-                    }
+                    return Optional.empty();
                 }
             }
         });
@@ -419,7 +382,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
      * Check whether the table being swept was dropped. If so, stop sweeping it and move on.
      * @return Whether the table being swept was dropped
      */
-    private boolean checkAndRepairTableDrop() {
+    boolean checkAndRepairTableDrop() {
         try {
             Set<TableReference> tables = kvs.getAllTableNames();
             Optional<SweepProgress> progress = txManager.runTaskReadOnly(sweepProgressStore::loadProgress);
@@ -437,7 +400,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     @VisibleForTesting
-    SweepLocks createSweepLocks() {
+    public SweepLocks createSweepLocks() {
         return new SweepLocks(lockService);
     }
 

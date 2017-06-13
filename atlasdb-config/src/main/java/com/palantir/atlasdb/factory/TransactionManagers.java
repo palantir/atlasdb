@@ -58,7 +58,6 @@ import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
-import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
@@ -66,6 +65,7 @@ import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -254,7 +254,7 @@ public final class TransactionManagers {
                 transactionService,
                 sweepStrategyManager,
                 cellsSweeper);
-        BackgroundSweeper backgroundSweeper = BackgroundSweeperImpl.create(
+        BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
                 transactionManager,
                 kvs,
                 sweepRunner,
@@ -265,6 +265,7 @@ public final class TransactionManagers {
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 persistentLockManager);
         backgroundSweeper.runInBackground();
+        env.register(SweeperServiceImpl.create(backgroundSweeper, kvs));
 
         return transactionManager;
     }
