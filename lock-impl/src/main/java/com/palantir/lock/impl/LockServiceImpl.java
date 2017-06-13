@@ -148,12 +148,8 @@ import com.palantir.util.JMXUtils;
             this.locks = locks;
         }
 
-        public List<LockDescriptor> getLockDescriptors() {
-            List<LockDescriptor> descriptors = Lists.newArrayListWithCapacity(locks.size());
-            for (ClientAwareReadWriteLock lock : locks) {
-                descriptors.add(lock.getDescriptor());
-            }
-            return descriptors;
+        public T getRealToken() {
+            return realToken;
         }
 
         @Override public String toString() {
