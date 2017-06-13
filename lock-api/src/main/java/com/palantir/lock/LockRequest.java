@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -48,8 +50,18 @@ import com.google.common.collect.Iterables;
 @Immutable public final class LockRequest implements Serializable {
     private static final long serialVersionUID = 0xf6c12b970b44af68L;
 
+    private static final TimeDuration DEFAULT_LOCK_TIMEOUT = SimpleTimeDuration.of(120, TimeUnit.SECONDS);
+
+    private static final AtomicReference<TimeDuration> defaultLockTimeout = new AtomicReference<>(DEFAULT_LOCK_TIMEOUT);
+
     /** The default amount of time that it takes a lock (lease) to expire. */
-    public static final TimeDuration DEFAULT_LOCK_TIMEOUT = SimpleTimeDuration.of(120, TimeUnit.SECONDS);
+    public static TimeDuration getDefaultLockTimeout() {
+        return defaultLockTimeout.get();
+    }
+
+    public static void setDefaultLockTimeout(TimeDuration timeout) {
+        defaultLockTimeout.set(timeout);
+    }
 
     private static final Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode> TO_LOCK_WITH_MODE_FUNCTION =
             new Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode>() {

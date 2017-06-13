@@ -203,6 +203,14 @@ public abstract class AtlasDbConfig {
         return 1000;
     }
 
+    /**
+     * The default lock expiration time for locks used by the transaction protocol.
+     */
+    @Value.Default
+    public int getDefaultLockTimeoutSeconds() {
+        return AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS;
+    }
+
     @Value.Check
     protected final void check() {
         if (leader().isPresent()) {
