@@ -37,7 +37,7 @@ task bla(type:Exec) {
     //distTar, '!!!!!!!!!!!!!!!!!!!!!!'//.execute()
 }
 
-task test {
+test {
     dependsOn bla
 }
 
