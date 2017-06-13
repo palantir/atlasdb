@@ -59,7 +59,8 @@ public final class CassandraVerifier {
         return null;
     };
 
-    static Set<String> sanityCheckDatacenters(Cassandra.Client client, int desiredRf, boolean safetyDisabled)
+    static Set<String> sanityCheckDatacenters(
+            Cassandra.Client client, CassandraKeyValueServiceConfig config)
             throws TException {
         Set<String> hosts = Sets.newHashSet();
         Multimap<String, String> dataCenterToRack = HashMultimap.create();
@@ -86,18 +87,21 @@ public final class CassandraVerifier {
             String dc = dataCenterToRack.keySet().iterator().next();
             String rack = dataCenterToRack.values().iterator().next();
             if (dc.equals(CassandraConstants.DEFAULT_DC) && rack.equals(CassandraConstants.DEFAULT_RACK)
-                    && desiredRf > 1) {
-                // We don't allow greater than RF=1 because they didn't set up their network.
+                    && config.replicationFactor() > 1) {
+                // We don't allow greater than RF=1 because they didn't set up their node topology
                 logErrorOrThrow("The cassandra cluster is not set up to be datacenter and rack aware.  "
-                        + "Please set this up before running with a replication factor higher than 1.", safetyDisabled);
+                        + "Please set this up before running with a replication factor higher than 1.",
+                        config.safetyDisabled() || config.ignoreBadNodeTopologyChecks());
 
             }
-            if (dataCenterToRack.values().size() < desiredRf && hosts.size() > desiredRf) {
+            if (dataCenterToRack.values().size() < config.replicationFactor()
+                    && hosts.size() > config.replicationFactor()) {
                 logErrorOrThrow("The cassandra cluster only has one DC, "
                         + "and is set up with less racks than the desired number of replicas, "
                         + "and there are more hosts than the replication factor. "
                         + "It is very likely that your rack configuration is incorrect and replicas "
-                        + "would not be placed correctly for the failure tolerance you want.", safetyDisabled);
+                        + "would not be placed correctly for the failure tolerance you want.",
+                        config.safetyDisabled() || config.ignoreBadNodeTopologyChecks());
             }
         }
 
@@ -111,8 +115,8 @@ public final class CassandraVerifier {
                 || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + tableName);
     }
 
-    static void logErrorOrThrow(String errorMessage, boolean safetyDisabled) {
-        if (safetyDisabled) {
+    static void logErrorOrThrow(String errorMessage, boolean shouldLogAndNotThrow) {
+        if (shouldLogAndNotThrow) {
             log.error("{} This would have normally resulted in Palantir exiting however "
                     + "safety checks have been disabled.", errorMessage);
         } else {
@@ -120,9 +124,8 @@ public final class CassandraVerifier {
         }
     }
 
-    static void validatePartitioner(Cassandra.Client client, CassandraKeyValueServiceConfig config) throws TException {
-        String partitioner = client.describe_partitioner();
-        if (!config.safetyDisabled()) {
+    static void validatePartitioner(String partitioner, CassandraKeyValueServiceConfig config) {
+        if (!(config.safetyDisabled() || config.ignorePartitionerChecks())) {
             Verify.verify(
                     CassandraConstants.ALLOWED_PARTITIONERS.contains(partitioner),
                     "Invalid partitioner. Allowed: %s, but partitioner is: %s",
@@ -194,8 +197,7 @@ public final class CassandraVerifier {
                 client,
                 ks,
                 true,
-                config.replicationFactor(),
-                config.safetyDisabled());
+                config);
         ks.setDurable_writes(true);
         client.system_add_keyspace(ks);
         log.info("Created keyspace: {}", config.keyspace());
@@ -230,8 +232,7 @@ public final class CassandraVerifier {
                         client,
                         modifiedKsDef,
                         false,
-                        config.replicationFactor(),
-                        config.safetyDisabled());
+                        config);
 
                 if (!modifiedKsDef.equals(originalKsDef)) {
                     // Can't call system_update_keyspace to update replication factor if CfDefs are set
@@ -252,12 +253,11 @@ public final class CassandraVerifier {
             Cassandra.Client client,
             KsDef ks,
             boolean freshInstance,
-            int desiredRf,
-            boolean safetyDisabled) throws TException {
+            CassandraKeyValueServiceConfig config) throws TException {
         if (freshInstance) {
-            Set<String> dcs = sanityCheckDatacenters(client, desiredRf, safetyDisabled);
+            Set<String> dcs = sanityCheckDatacenters(client, config);
             // If RF exceeds # hosts, then Cassandra will reject writes
-            ks.setStrategy_options(Maps2.createConstantValueMap(dcs, String.valueOf(desiredRf)));
+            ks.setStrategy_options(Maps2.createConstantValueMap(dcs, String.valueOf(config.replicationFactor())));
             return;
         }
 
@@ -271,38 +271,39 @@ public final class CassandraVerifier {
                     + " and running the appropriate repairs."
                     + " Contact the AtlasDB team to perform these steps.";
             if (currentRf != 1) {
-                logErrorOrThrow(errorMessage, safetyDisabled);
+                logErrorOrThrow(errorMessage, config.safetyDisabled() || config.ignoreBadNodeTopologyChecks());
             }
             // Automatically convert RF=1 to look like network partitioner.
-            dcs = sanityCheckDatacenters(client, desiredRf, safetyDisabled);
+            dcs = sanityCheckDatacenters(client, config);
             if (dcs.size() > 1) {
-                logErrorOrThrow(errorMessage, safetyDisabled);
+                logErrorOrThrow(errorMessage,
+                        config.safetyDisabled() || config.ignoreBadDatacenterConfigurationChecks());
             }
-            if (!safetyDisabled) {
+            if (!(config.safetyDisabled() || config.ignoreBadDatacenterConfigurationChecks())) {
                 ks.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
                 ks.setStrategy_options(ImmutableMap.of(dcs.iterator().next(), "1"));
             }
         } else {
-            dcs = sanityCheckDatacenters(client, desiredRf, safetyDisabled);
+            dcs = sanityCheckDatacenters(client, config);
         }
 
-        sanityCheckReplicationFactor(ks, desiredRf, safetyDisabled, dcs);
+        sanityCheckReplicationFactor(ks, config, dcs);
     }
 
-    static void currentRfOnKeyspaceMatchesDesiredRf(Client client, CassandraKeyValueServiceConfig config,
-            boolean safetyDisabled) throws TException {
+    static void currentRfOnKeyspaceMatchesDesiredRf(Client client, CassandraKeyValueServiceConfig config)
+            throws TException {
         KsDef ks = client.describe_keyspace(config.keyspace());
-        Set<String> dcs = sanityCheckDatacenters(client, config.replicationFactor(), safetyDisabled);
-        sanityCheckReplicationFactor(ks, config.replicationFactor(), safetyDisabled, dcs);
+        Set<String> dcs = sanityCheckDatacenters(client, config);
+        sanityCheckReplicationFactor(ks, config, dcs);
     }
 
-    private static void sanityCheckReplicationFactor(KsDef ks, int desiredRf, boolean safetyDisabled, Set<String> dcs) {
+    private static void sanityCheckReplicationFactor(KsDef ks, CassandraKeyValueServiceConfig config, Set<String> dcs) {
         Map<String, String> strategyOptions = Maps.newHashMap(ks.getStrategy_options());
         for (String dc : dcs) {
             if (strategyOptions.get(dc) == null) {
                 logErrorOrThrow("The datacenter for this cassandra cluster is invalid. "
                         + " failed dc: " + dc
-                        + "  strategyOptions: " + strategyOptions, safetyDisabled);
+                        + "  strategyOptions: " + strategyOptions, config.ignoreBadDatacenterConfigurationChecks());
             }
         }
 
@@ -311,7 +312,7 @@ public final class CassandraVerifier {
         int currentRf = Integer.parseInt(strategyOptions.get(dc));
 
         // We need to worry about user not running repair and user skipping replication levels.
-        if (currentRf != desiredRf) {
+        if (currentRf != config.replicationFactor()) {
             throw new UnsupportedOperationException("Your current Cassandra keyspace (" + ks.getName()
                     + ") has a replication factor not matching your Atlas Cassandra configuration."
                     + " Change them to match, but be mindful of what steps you'll need to"

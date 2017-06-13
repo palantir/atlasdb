@@ -746,7 +746,8 @@ public class CassandraClientPool {
                         tokenRangesToHost.get(set2));
             }
 
-            CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.safetyDisabled());
+            CassandraVerifier.logErrorOrThrow(ex.getMessage(),
+                    config.safetyDisabled() || config.ignoreInconsistentRingChecks());
         }
     }
 
@@ -784,7 +785,7 @@ public class CassandraClientPool {
             new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
                 @Override
                 public Void apply(Cassandra.Client client) throws Exception {
-                    CassandraVerifier.validatePartitioner(client, config);
+                    CassandraVerifier.validatePartitioner(client.describe_partitioner(), config);
                     return null;
                 }
             };

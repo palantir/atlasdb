@@ -215,12 +215,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     protected void init() {
-        if (configManager.getConfig().scyllaDb() && !configManager.getConfig().safetyDisabled()) {
-            throw new IllegalArgumentException("Not currently allowing Thrift-based access to ScyllaDB clusters;"
-                    + " there appears to be from our tests"
-                    + " an existing correctness bug with semi-complex column selections");
-        }
-
         boolean supportsCas = !configManager.getConfig().scyllaDb()
                 && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 
@@ -295,8 +289,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             dcs = clientPool.runWithRetry(client ->
                     CassandraVerifier.sanityCheckDatacenters(
                             client,
-                            config.replicationFactor(),
-                            config.safetyDisabled()));
+                            config));
             KsDef ksDef = clientPool.runWithRetry(client ->
                     client.describe_keyspace(config.keyspace()));
             strategyOptions = Maps.newHashMap(ksDef.getStrategy_options());
@@ -2143,7 +2136,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private boolean doesConfigReplicationFactorMatchWithCluster() {
         return clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, configManager.getConfig(), false);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, configManager.getConfig());
                 return true;
             } catch (Exception e) {
                 log.warn("The config and Cassandra cluster do not agree on the replication factor.", e);

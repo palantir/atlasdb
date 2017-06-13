@@ -44,9 +44,15 @@ develop
     *    - Type
          - Change
 
+
     *    - |fixed|
          - Fixed an issue that could cause AtlasConsole to print unnecessary amounts of input when commands were run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2130>`__)
+
+   *    - |userbreak|
+         - Remove Cassandra config option 'safetyDisabled';
+           users should instead move to various 'ignoreMoreSpecificCheck' config options; for instance, 'ignoreBadNodeTopologyChecks'
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2024>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
