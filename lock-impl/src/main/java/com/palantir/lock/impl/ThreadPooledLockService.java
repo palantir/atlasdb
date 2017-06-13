@@ -22,13 +22,9 @@ import java.util.concurrent.Semaphore;
 import javax.annotation.Nullable;
 
 import com.palantir.lock.CloseableRemoteLockService;
-import com.palantir.lock.ForwardingLockService;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockResponse;
-import com.palantir.lock.LockService;
 import com.palantir.lock.RemoteLockService;
 
 public class ThreadPooledLockService implements CloseableRemoteLockService {

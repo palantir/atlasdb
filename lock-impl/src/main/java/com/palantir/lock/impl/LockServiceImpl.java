@@ -21,7 +21,6 @@ import static com.palantir.lock.LockClient.INTERNAL_LOCK_GRANT_CLIENT;
 import static com.palantir.lock.LockGroupBehavior.LOCK_ALL_OR_NONE;
 import static com.palantir.lock.LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -106,7 +105,9 @@ import com.palantir.util.JMXUtils;
  *
  * @author jtamer
  */
-@ThreadSafe public final class LockServiceImpl implements LockService, RemoteLockService, LockServiceImplMBean, Closeable {
+@ThreadSafe
+public final class LockServiceImpl
+        implements LockService, CloseableRemoteLockService, RemoteLockService, LockServiceImplMBean {
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
