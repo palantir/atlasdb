@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.AfterClass;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -64,14 +63,14 @@ public class AtlasDbPerfCliTest {
 //                        DockerizedDatabaseUri::toString));
 //    }
 
-    @Test
-    public void postgresSingleIteration() throws Exception {
-        String[] args = {"--db-uri", "CASSANDRA@127.0.0.1:9160",
-                         //dockerMap.get(KeyValueServiceInstrumentation.forDatabase("POSTGRES")),
-                         "--test-run",
-                         "--benchmark", benchmark};
-        AtlasDbPerfCli.main(args);
-    }
+//    @Test
+//    public void postgresSingleIteration() throws Exception {
+//        String[] args = {"--db-uri", "CASSANDRA@127.0.0.1:9160",
+//                         //dockerMap.get(KeyValueServiceInstrumentation.forDatabase("POSTGRES")),
+//                         "--test-run",
+//                         "--benchmark", benchmark};
+//        AtlasDbPerfCli.main(args);
+//    }
 
 //    @Test
 //    public void cassandraSingleIteration() throws Exception {
