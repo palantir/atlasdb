@@ -18,10 +18,10 @@ package com.palantir.atlasdb.sweep;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweeperservice.SweeperService;
 
-public class SweeperServiceImpl implements SweeperService {
+public final class SweeperServiceImpl implements SweeperService {
     private SpecificTableSweeperImpl specificTableSweeper;
 
-    public SweeperServiceImpl(SpecificTableSweeperImpl specificTableSweeper) {
+    private SweeperServiceImpl(SpecificTableSweeperImpl specificTableSweeper) {
         this.specificTableSweeper = specificTableSweeper;
     }
 
