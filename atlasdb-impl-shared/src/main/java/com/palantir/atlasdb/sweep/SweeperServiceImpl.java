@@ -15,10 +15,14 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweeperservice.SweeperService;
 
 public final class SweeperServiceImpl implements SweeperService {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(SweeperService.class);
     private SpecificTableSweeperImpl specificTableSweeper;
 
     private SweeperServiceImpl(SpecificTableSweeperImpl specificTableSweeper) {
@@ -31,7 +35,12 @@ public final class SweeperServiceImpl implements SweeperService {
 
     @Override
     public boolean sweepTable(String tableName) {
-        return specificTableSweeper.runOnceForTable(new TableToSweep(TableReference.createFromFullyQualifiedName(tableName), null));
+        TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
+
+        Preconditions.checkArgument(TableReference.isFullyQualifiedName(tableName), "Table name is not fully qualified");
+        Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef), "Table requested to sweep does not exist");
+
+        return specificTableSweeper.runOnceForTable(new TableToSweep(tableRef, null), false);
     }
 }
 

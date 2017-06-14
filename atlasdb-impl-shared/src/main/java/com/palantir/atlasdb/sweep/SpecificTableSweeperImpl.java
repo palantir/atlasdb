@@ -36,68 +36,90 @@ import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.time.Clock;
 
 public final class SpecificTableSweeperImpl {
     private static final Logger log = LoggerFactory.getLogger(SpecificTableSweeperImpl.class);
-    private SweepTaskRunner sweepRunner;
-    private BackgroundSweeperPerformanceLogger sweepPerfLogger;
-    private Supplier<SweepBatchConfig> sweepBatchConfig;
-    private SweepProgressStore sweepProgressStore;
-    private TransactionManager txManager;
-    private SweepPriorityStore sweepPriorityStore;
-    private KeyValueService kvs;
-    private Clock wallClock;
-    private SweepMetrics sweepMetrics;
+    private final LockAwareTransactionManager txManager;
+    private final KeyValueService kvs;
+    private final SweepTaskRunner sweepRunner;
+    private final Supplier<SweepBatchConfig> sweepBatchConfig;
+    private final SweepPriorityStore sweepPriorityStore;
+    private final SweepProgressStore sweepProgressStore;
+    private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
+    private final SweepMetrics sweepMetrics;
+    private final Clock wallClock;
 
 
     @VisibleForTesting
     SpecificTableSweeperImpl(
-            SweepTaskRunner sweepRunner,
-            BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            Supplier<SweepBatchConfig> sweepBatchConfig,
-            TransactionManager txManager,
+            LockAwareTransactionManager txManager,
             KeyValueService kvs,
-            SweepProgressStore sweepProgressStore,
+            SweepTaskRunner sweepRunner,
+            Supplier<SweepBatchConfig> sweepBatchConfig,
             SweepPriorityStore sweepPriorityStore,
+            SweepProgressStore sweepProgressStore,
+            BackgroundSweeperPerformanceLogger sweepPerfLogger,
             SweepMetrics sweepMetrics,
             Clock wallclock) {
-        this.sweepProgressStore = sweepProgressStore;
-        this.sweepPriorityStore = sweepPriorityStore;
-        this.sweepRunner = sweepRunner;
-        this.sweepPerfLogger = sweepPerfLogger;
-        this.sweepBatchConfig = sweepBatchConfig;
         this.txManager = txManager;
         this.kvs = kvs;
+        this.sweepRunner = sweepRunner;
+        this.sweepBatchConfig = sweepBatchConfig;
+        this.sweepPriorityStore = sweepPriorityStore;
+        this.sweepProgressStore = sweepProgressStore;
+        this.sweepPerfLogger = sweepPerfLogger;
         this.sweepMetrics = sweepMetrics;
         this.wallClock = wallclock;
     }
 
-
     public static SpecificTableSweeperImpl create(
-            SweepTaskRunner sweepRunner,
-            BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            Supplier<SweepBatchConfig> sweepBatchConfig,
-            TransactionManager txManager,
+            LockAwareTransactionManager txManager,
             KeyValueService kvs,
+            SweepTaskRunner sweepRunner,
+            Supplier<SweepBatchConfig> sweepBatchConfig,
             SweepTableFactory tableFactory,
+            BackgroundSweeperPerformanceLogger sweepPerfLogger,
             SweepMetrics sweepMetrics) {
         SweepProgressStore sweepProgressStore = new SweepProgressStore(kvs, tableFactory);
         SweepPriorityStore sweepPriorityStore = new SweepPriorityStore(tableFactory);
-        return new SpecificTableSweeperImpl(sweepRunner,
-                sweepPerfLogger,
-                sweepBatchConfig,
-                txManager,
-                kvs,
-                sweepProgressStore,
-                sweepPriorityStore,
+        return new SpecificTableSweeperImpl(txManager, kvs, sweepRunner,
+                sweepBatchConfig, sweepPriorityStore, sweepProgressStore, sweepPerfLogger,
                 sweepMetrics,
                 System::currentTimeMillis);
     }
 
-    boolean runOnceForTable(TableToSweep tableToSweep) {
+    public LockAwareTransactionManager getTxManager() {
+        return txManager;
+    }
+
+    public KeyValueService getKvs() {
+        return kvs;
+    }
+
+    public SweepTaskRunner getSweepRunner() {
+        return sweepRunner;
+    }
+
+    public Supplier<SweepBatchConfig> getSweepBatchConfig() {
+        return sweepBatchConfig;
+    }
+
+    public SweepPriorityStore getSweepPriorityStore() {
+        return sweepPriorityStore;
+    }
+
+    public SweepProgressStore getSweepProgressStore() {
+        return sweepProgressStore;
+    }
+
+    public SweepMetrics getSweepMetrics() {
+        return sweepMetrics;
+    }
+
+    boolean runOnceForTable(TableToSweep tableToSweep, boolean saveSweepResults) {
         Stopwatch watch = Stopwatch.createStarted();
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
@@ -119,7 +141,9 @@ public final class SpecificTableSweeperImpl {
                             .tableName(tableRef.getQualifiedName())
                             .elapsedMillis(elapsedMillis)
                             .build());
-            saveSweepResults(tableToSweep, results);
+            if (saveSweepResults) {
+                saveSweepResults(tableToSweep, results);
+            }
             return true;
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.

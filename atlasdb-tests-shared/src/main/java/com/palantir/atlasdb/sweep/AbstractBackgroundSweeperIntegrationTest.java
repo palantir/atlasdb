@@ -83,24 +83,18 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
         SweepMetrics sweepMetrics = new SweepMetrics();
         SpecificTableSweeperImpl specificTableSweeper = SpecificTableSweeperImpl.create(
-                sweepRunner,
-                new NoOpBackgroundSweeperPerformanceLogger(),
-                () -> sweepBatchConfig,
                 txManager,
                 kvs,
+                sweepRunner,
+                () -> sweepBatchConfig,
                 SweepTableFactory.of(),
+                new NoOpBackgroundSweeperPerformanceLogger(),
                 sweepMetrics);
 
         backgroundSweeper = BackgroundSweeperImpl.create(
-                txManager,
-                kvs,
-                sweepRunner,
                 () -> true, // sweepEnabled
                 () -> 10L, // sweepPauseMillis
-                () -> sweepBatchConfig,
-                SweepTableFactory.of(),
                 persistentLockManager,
-                sweepMetrics,
                 specificTableSweeper);
     }
 

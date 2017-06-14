@@ -292,15 +292,9 @@ public final class TransactionManagers {
                 sweepMetrics);
 
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
-                transactionManager,
-                kvs,
-                sweepRunner,
                 Suppliers.ofInstance(config.enableSweep()),
                 Suppliers.ofInstance(config.getSweepPauseMillis()),
-                sweepBatchConfig,
-                SweepTableFactory.of(),
                 persistentLockManager,
-                sweepMetrics,
                 specificTableSweeper);
         backgroundSweeper.runInBackground();
     }
@@ -314,12 +308,12 @@ public final class TransactionManagers {
             Supplier<SweepBatchConfig> sweepBatchConfig,
             SweepMetrics sweepMetrics) {
         SpecificTableSweeperImpl specificTableSweeper = SpecificTableSweeperImpl.create(
-                sweepRunner,
-                sweepPerfLogger,
-                sweepBatchConfig,
                 transactionManager,
                 kvs,
+                sweepRunner,
+                sweepBatchConfig,
                 SweepTableFactory.of(),
+                sweepPerfLogger,
                 sweepMetrics);
         env.register(SweeperServiceImpl.create(specificTableSweeper));
         return specificTableSweeper;

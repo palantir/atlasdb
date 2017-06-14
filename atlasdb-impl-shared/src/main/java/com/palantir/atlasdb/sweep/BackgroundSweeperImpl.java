@@ -25,33 +25,21 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
-import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
-import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.RemoteLockService;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
-    private final TransactionManager txManager;
     private final RemoteLockService lockService;
-    private final KeyValueService kvs;
-    private final SweepProgressStore sweepProgressStore;
     private final NextTableToSweepProvider nextTableToSweepProvider;
-    private final SweepTaskRunner sweepRunner;
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
-    private final Supplier<SweepBatchConfig> sweepBatchConfig;
-    private final SweepMetrics sweepMetrics;
     private final PersistentLockManager persistentLockManager;
-    private final SpecificTableSweeperImpl specificTableSweeperImpl;
+    private final SpecificTableSweeperImpl specificTableSweeper;
 
     static volatile double batchSizeMultiplier = 1.0;
 
@@ -59,59 +47,34 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @VisibleForTesting
     BackgroundSweeperImpl(
-            TransactionManager txManager,
             RemoteLockService lockService,
-            KeyValueService kvs,
-            SweepProgressStore sweepProgressStore,
             NextTableToSweepProvider nextTableToSweepProvider,
-            SweepTaskRunner sweepRunner,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
-            Supplier<SweepBatchConfig> sweepBatchConfig,
-            SweepMetrics sweepMetrics,
             PersistentLockManager persistentLockManager,
-            SpecificTableSweeperImpl specificTableSweeperImpl) {
-        this.txManager = txManager;
+            SpecificTableSweeperImpl specificTableSweeper) {
         this.lockService = lockService;
-        this.kvs = kvs;
-        this.sweepProgressStore = sweepProgressStore;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
-        this.sweepRunner = sweepRunner;
         this.isSweepEnabled = isSweepEnabled;
         this.sweepPauseMillis = sweepPauseMillis;
-        this.sweepBatchConfig = sweepBatchConfig;
-        this.sweepMetrics = sweepMetrics;
         this.persistentLockManager = persistentLockManager;
-        this.specificTableSweeperImpl = specificTableSweeperImpl;
+        this.specificTableSweeper = specificTableSweeper;
     }
 
     public static BackgroundSweeperImpl create(
-            LockAwareTransactionManager txManager,
-            KeyValueService kvs,
-            SweepTaskRunner sweepRunner,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
-            Supplier<SweepBatchConfig> sweepBatchConfig,
-            SweepTableFactory tableFactory,
             PersistentLockManager persistentLockManager,
-            SweepMetrics sweepMetrics,
-            SpecificTableSweeperImpl specificTableSweeperImpl) {
-        SweepProgressStore sweepProgressStore = new SweepProgressStore(kvs, tableFactory);
-        SweepPriorityStore sweepPriorityStore = new SweepPriorityStore(tableFactory);
-        NextTableToSweepProvider nextTableToSweepProvider = new NextTableToSweepProviderImpl(kvs, sweepPriorityStore);
+            SpecificTableSweeperImpl specificTableSweeper) {
+        NextTableToSweepProvider nextTableToSweepProvider = new NextTableToSweepProviderImpl(
+                specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
         return new BackgroundSweeperImpl(
-                txManager,
-                txManager.getLockService(),
-                kvs,
-                sweepProgressStore,
+                specificTableSweeper.getTxManager().getLockService(),
                 nextTableToSweepProvider,
-                sweepRunner,
                 isSweepEnabled,
                 sweepPauseMillis,
-                sweepBatchConfig,
-                sweepMetrics,
                 persistentLockManager,
-                specificTableSweeperImpl);
+                specificTableSweeper);
     }
 
     @Override
@@ -128,10 +91,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 log.info("Shutdown complete!");
             } catch (Exception e) {
                 log.warn("An exception occurred while shutting down. This means that we had the backup lock out when"
-                        + "the shutdown was triggered, but failed to release it. If this is the case, sweep or backup"
-                        + "may fail to take out the lock in future. If this happens consistently, "
-                        + "consult the following documentation on how to release the dead lock: "
-                        + "https://palantir.github.io/atlasdb/html/troubleshooting/index.html#clearing-the-backup-lock",
+                                + "the shutdown was triggered, but failed to release it. If this is the case, sweep or backup"
+                                + "may fail to take out the lock in future. If this happens consistently, "
+                                + "consult the following documentation on how to release the dead lock: "
+                                + "https://palantir.github.io/atlasdb/html/troubleshooting/index.html#clearing-the-backup-lock",
                         e);
             }
         }));
@@ -175,7 +138,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         } catch (InsufficientConsistencyException e) {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
         } catch (RuntimeException e) {
-            sweepMetrics.sweepError();
+            specificTableSweeper.getSweepMetrics().sweepError();
             if (checkAndRepairTableDrop()) {
                 log.error("The table being swept by the background sweeper was dropped, moving on...");
             } else {
@@ -203,13 +166,13 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             return false;
         } else {
-            specificTableSweeperImpl.runOnceForTable(tableToSweep.get());
+            specificTableSweeper.runOnceForTable(tableToSweep.get(), true);
             return true;
         }
     }
 
     private SweepBatchConfig getAdjustedBatchConfig() {
-        SweepBatchConfig baseConfig = sweepBatchConfig.get();
+        SweepBatchConfig baseConfig = specificTableSweeper.getSweepBatchConfig().get();
         return ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(adjustBatchParameter(baseConfig.maxCellTsPairsToExamine()))
                 .candidateBatchSize(adjustBatchParameter(baseConfig.candidateBatchSize()))
@@ -222,13 +185,13 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private Optional<TableToSweep> getTableToSweep() {
-        return txManager.runTaskWithRetry(tx -> {
-            Optional<SweepProgress> progress = sweepProgressStore.loadProgress(tx);
+        return specificTableSweeper.getTxManager().runTaskWithRetry(tx -> {
+            Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress(tx);
             if (progress.isPresent()) {
                 return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
             } else {
                 Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
-                        tx, sweepRunner.getConservativeSweepTimestamp());
+                        tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
                 if (nextTable.isPresent()) {
                     log.debug("Now starting to sweep {}.", nextTable);
                     return Optional.of(new TableToSweep(nextTable.get(), null));
@@ -241,16 +204,18 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     /**
      * Check whether the table being swept was dropped. If so, stop sweeping it and move on.
+     *
      * @return Whether the table being swept was dropped
      */
     boolean checkAndRepairTableDrop() {
         try {
-            Set<TableReference> tables = kvs.getAllTableNames();
-            Optional<SweepProgress> progress = txManager.runTaskReadOnly(sweepProgressStore::loadProgress);
+            Set<TableReference> tables = specificTableSweeper.getKvs().getAllTableNames();
+            Optional<SweepProgress> progress = specificTableSweeper.getTxManager().runTaskReadOnly(
+                    specificTableSweeper.getSweepProgressStore()::loadProgress);
             if (!progress.isPresent() || tables.contains(progress.get().tableRef())) {
                 return false;
             } else {
-                sweepProgressStore.clearProgress();
+                specificTableSweeper.getSweepProgressStore().clearProgress();
                 return true;
             }
         } catch (RuntimeException e) {

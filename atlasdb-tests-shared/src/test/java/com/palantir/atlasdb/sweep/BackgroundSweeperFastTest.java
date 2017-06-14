@@ -32,8 +32,8 @@ import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
+import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.RemoteLockService;
 
@@ -60,26 +60,20 @@ public class BackgroundSweeperFastTest {
                 .build();
 
         SpecificTableSweeperImpl specificTableSweeperImpl = new SpecificTableSweeperImpl(
-                sweepTaskRunner,
-                Mockito.mock(BackgroundSweeperPerformanceLogger.class),
-                () -> sweepBatchConfig,
                 mockTxManager(),
                 kvs,
-                progressStore,
+                sweepTaskRunner,
+                () -> sweepBatchConfig,
                 priorityStore,
+                progressStore,
+                Mockito.mock(BackgroundSweeperPerformanceLogger.class),
                 sweepMetrics,
                 () -> currentTimeMillis);
         backgroundSweeper = new BackgroundSweeperImpl(
-                mockTxManager(),
                 Mockito.mock(RemoteLockService.class),
-                kvs,
-                progressStore,
                 nextTableToSweepProvider,
-                sweepTaskRunner,
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis
-                () -> sweepBatchConfig,
-                sweepMetrics,
                 Mockito.mock(PersistentLockManager.class),
                 specificTableSweeperImpl);
     }
@@ -250,8 +244,8 @@ public class BackgroundSweeperFastTest {
         Mockito.doReturn(results).when(sweepTaskRunner).run(Mockito.eq(TABLE_REF), Mockito.any(), Mockito.any());
     }
 
-    private static TransactionManager mockTxManager() {
-        TransactionManager txManager = Mockito.mock(TransactionManager.class);
+    private static LockAwareTransactionManager mockTxManager() {
+        LockAwareTransactionManager txManager = Mockito.mock(LockAwareTransactionManager.class);
         Answer runTaskAnswer = inv -> {
             Object[] args = inv.getArguments();
             TransactionTask<?, ?> task = (TransactionTask<?, ?>) args[0];
