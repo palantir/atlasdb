@@ -46,7 +46,6 @@ public class ExceptionMappersSerializationTest {
 
     static {
         MAPPER.registerModule(new Jdk8Module());
-
         SERVICE_NOT_AVAILABLE_EXCEPTION.setStackTrace(TRACES);
     }
 
