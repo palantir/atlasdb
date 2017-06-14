@@ -709,8 +709,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     private Transaction getReadOnlyTransaction(final long commitTs) {
         return new SnapshotTransaction(
                 keyValueService,
-                lockService,
-                timestampService,
+                protocolService,
                 defaultTransactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(commitTs + 1),

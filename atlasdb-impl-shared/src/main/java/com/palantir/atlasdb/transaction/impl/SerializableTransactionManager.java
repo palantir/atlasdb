@@ -74,7 +74,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     }
 
     @Override
-    protected SnapshotTransaction createTransaction(long immutableLockTs,
+    protected SnapshotTransaction createTransaction(long immutableTimestamp,
                                                   Supplier<Long> startTimestampSupplier,
                                                   ImmutableList<LockRefreshToken> allTokens) {
         return new SerializableTransaction(
@@ -86,7 +86,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 startTimestampSupplier,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                getImmutableTimestampInternal(immutableLockTs),
+                immutableTimestamp,
                 allTokens,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
