@@ -49,7 +49,6 @@ public class TimeLockServerConfigurationSerializationTest {
         OBJECT_MAPPER.registerModule(new Jdk8Module());
     }
 
-
     @Test
     public void canDeserializeTimeLockServerConfiguration() throws IOException {
         TimeLockServerConfiguration configuration =
@@ -59,8 +58,7 @@ public class TimeLockServerConfigurationSerializationTest {
         assertThat(configuration.cluster().servers()).containsExactlyInAnyOrder(
                 "localhost:8080", "localhost:8081", "localhost:8082");
 
-        assertThat(configuration.clients()).containsExactlyInAnyOrder(
-                "test", "test2", "test3", "acceptor", "learner");
+        assertThat(configuration.clients()).containsExactlyInAnyOrder("test", "test2", "test3", "acceptor", "learner");
 
         assertAlgorithmConfigurationCorrect(configuration.algorithm());
 
