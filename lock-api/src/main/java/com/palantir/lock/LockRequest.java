@@ -50,16 +50,16 @@ import com.google.common.collect.Iterables;
 @Immutable public final class LockRequest implements Serializable {
     private static final long serialVersionUID = 0xf6c12b970b44af68L;
 
-    private static final AtomicReference<TimeDuration> defaultLockTimeout = new AtomicReference<>(
+    private static final AtomicReference<TimeDuration> DEFAULT_LOCK_TIMEOUT = new AtomicReference<>(
             SimpleTimeDuration.of(120, TimeUnit.SECONDS));
 
     /** The default amount of time that it takes a lock (lease) to expire. */
     public static TimeDuration getDefaultLockTimeout() {
-        return defaultLockTimeout.get();
+        return DEFAULT_LOCK_TIMEOUT.get();
     }
 
     public static void setDefaultLockTimeout(TimeDuration timeout) {
-        defaultLockTimeout.set(timeout);
+        DEFAULT_LOCK_TIMEOUT.set(timeout);
     }
 
     private static final Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode> TO_LOCK_WITH_MODE_FUNCTION =

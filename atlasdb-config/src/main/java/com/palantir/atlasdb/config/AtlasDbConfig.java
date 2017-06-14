@@ -204,7 +204,7 @@ public abstract class AtlasDbConfig {
     }
 
     /**
-     * The default lock expiration time for locks used by the transaction protocol.
+     * The default lock expiration time for requests to the lock service.
      */
     @Value.Default
     public int getDefaultLockTimeoutSeconds() {

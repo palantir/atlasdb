@@ -160,7 +160,6 @@ public class TransactionManagersTest {
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .defaultLockTimeoutSeconds((int) expectedTimeout.getTime())
                 .build();
-
         TransactionManagers.create(realConfig, ImmutableSet.of(), environment, false);
 
         assertEquals(expectedTimeout, LockRequest.getDefaultLockTimeout());
