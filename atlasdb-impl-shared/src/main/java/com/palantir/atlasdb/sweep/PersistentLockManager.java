@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.SafeArg;
 
 // TODO move to persistentlock package?
 public class PersistentLockManager {
@@ -73,7 +74,7 @@ public class PersistentLockManager {
         while (true) {
             try {
                 lockId = persistentLockService.acquireBackupLock("Sweep");
-                log.info("Successfully acquired persistent lock for sweep: {}", lockId);
+                log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lock id", lockId));
                 return;
             } catch (CheckAndSetException e) {
                 lockFailureMeter.mark();
@@ -95,7 +96,8 @@ public class PersistentLockManager {
             lockId = null;
         } catch (CheckAndSetException e) {
             log.error("Failed to release persistent lock {}. "
-                    + "Either the lock was already released, or communications with the database failed.", lockId, e);
+                    + "Either the lock was already released, or communications with the database failed.",
+                    SafeArg.of("lock id", lockId), e);
         }
     }
 
