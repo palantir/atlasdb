@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.performance.schema;
+package com.palantir.atlasdb.performance;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -59,7 +59,7 @@ public final class MinimalReportFormatForTest implements OutputFormat {
     @Override
     public void endBenchmark(BenchmarkResult result) {
         out.println();
-        out.println("# Finished Running Benchmark: " + result.getParams().getBenchmark());
+        out.println("# Finished Benchmark: " + result.getParams().getBenchmark());
     }
 
     @Override

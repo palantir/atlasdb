@@ -41,7 +41,7 @@ import com.palantir.atlasdb.performance.backend.DatabasesContainer;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
-import com.palantir.atlasdb.performance.schema.MinimalReportFormatForTest;
+import com.palantir.atlasdb.performance.MinimalReportFormatForTest;
 
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
