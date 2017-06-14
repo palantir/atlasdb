@@ -27,9 +27,9 @@ import org.junit.Test;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.remoting2.config.ssl.SslConfiguration;
 
-public class AtlasDbConfigSerializationTest {
+public class AtlasDbConfigDeserializationTest {
     private static final File TEST_CONFIG_FILE = new File(
-            AtlasDbConfigSerializationTest.class.getResource("/test-config.yml").getPath());
+            AtlasDbConfigDeserializationTest.class.getResource("/test-config.yml").getPath());
 
     @Test
     public void canDeserializeAtlasDbConfig() throws IOException {

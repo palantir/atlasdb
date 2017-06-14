@@ -34,9 +34,9 @@ import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
-public class TimeLockServerConfigurationSerializationTest {
+public class TimeLockServerConfigurationDeserializationTest {
     private static final File TEST_CONFIG_FILE = new File(
-            TimeLockServerConfigurationSerializationTest.class.getResource("/paxosTestConfig.yml").getPath());
+            TimeLockServerConfigurationDeserializationTest.class.getResource("/paxosTestConfig.yml").getPath());
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
             .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
             .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
