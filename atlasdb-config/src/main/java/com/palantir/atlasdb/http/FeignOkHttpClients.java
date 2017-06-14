@@ -112,6 +112,7 @@ public final class FeignOkHttpClients {
         client.setSslSocketFactory(sslSocketFactory.orNull());
         client.setRetryOnConnectionFailure(retryOnConnectionFailure);
         client.interceptors().add(new UserAgentAddingInterceptor(userAgent));
+        client.setHostnameVerifier((a,b) -> true);
         return new OkHttpClient(client);
     }
 

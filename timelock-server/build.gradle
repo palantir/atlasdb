@@ -19,6 +19,9 @@ dependencies {
     compile project(":timestamp-impl")
     compile project(":lock-impl")
     compile project(":leader-election-impl")
+    compile (project(":atlasdb-cassandra")) {
+        exclude group:'com.codahale.metrics'
+    }
     compile (project(path: ":atlasdb-config", configuration: "shadow")) {
         exclude group:'io.dropwizard'
     }
@@ -45,4 +48,12 @@ dependencies {
     testCompile project(":atlasdb-tests-shared")
 
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.timelock_dropwizard
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'io.netty:netty-handler:4.1.5.Final'
+        force 'org.slf4j:log4j-over-slf4j:1.7.21'
+        force 'org.slf4j:jcl-over-slf4j:1.7.21'
+    }
 }
