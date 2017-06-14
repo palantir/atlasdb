@@ -58,7 +58,11 @@ import com.google.common.collect.Iterables;
         return DEFAULT_LOCK_TIMEOUT.get();
     }
 
+    /** Sets the default lock timeout for all lock requests that do not specify an explicit timeout. See {@link Builder#timeoutAfter}. */
     public static void setDefaultLockTimeout(TimeDuration timeout) {
+        Preconditions.checkNotNull(timeout);
+        Preconditions.checkArgument(timeout.getTime() > 0);
+
         DEFAULT_LOCK_TIMEOUT.set(timeout);
     }
 
@@ -252,11 +256,10 @@ import com.google.common.collect.Iterables;
 
         /**
          * Instructs the lock server to release these locks if a refresh request
-         * has not been received for the period of time represented by
-         * the <code>lockTimeout</code> parameter. By default, the lock server
-         * will release locks
-         * which have not been refreshed in the past 120 seconds. You may not
-         * call this method multiple times.
+         * has not been received for the period of time represented by the
+         * <code>lockTimeout</code> parameter. The default value is controlled
+         * by {@link #LockRequest#getDefaultLockTimeout()}.
+         * You may not call this method multiple times.
          */
         public Builder timeoutAfter(TimeDuration newLockTimeout) {
             Preconditions.checkArgument(newLockTimeout.toMillis() > 0);
