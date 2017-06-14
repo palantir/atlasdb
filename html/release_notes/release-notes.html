@@ -204,7 +204,12 @@
 <td>Fixed an issue where the lock service was not properly shut down after losing leadership, which could result in threads blocking unnecessarily.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2014">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Lock refresh requests are no longer restricted by lock service threadpool limiting.
+This allows transactions to make progress even when the threadpool is full.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2025">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Upgraded all usages of http-remoting to remoting2
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1999">Pull Request</a>)</td>
 </tr>
