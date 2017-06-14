@@ -31,6 +31,6 @@ public interface TransactionCommitProtocol {
 
     void releaseCommitLocks(LockRefreshToken locks);
 
-    Set<LockRefreshToken> refreshLocks(Set<LockRefreshToken> locks);
+    Set<LockRefreshToken> refreshCommitLocks(Set<LockRefreshToken> locks);
 
 }

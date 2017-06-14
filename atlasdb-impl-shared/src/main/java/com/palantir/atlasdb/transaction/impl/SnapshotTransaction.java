@@ -1366,7 +1366,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return ImmutableSet.of();
         }
 
-        return Sets.difference(toRefresh, protocolService.refreshLocks(toRefresh)).immutableCopy();
+        return Sets.difference(toRefresh, protocolService.refreshCommitLocks(toRefresh)).immutableCopy();
     }
 
     /**

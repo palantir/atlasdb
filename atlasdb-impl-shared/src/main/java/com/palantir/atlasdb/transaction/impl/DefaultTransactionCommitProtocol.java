@@ -82,7 +82,7 @@ public class DefaultTransactionCommitProtocol implements TransactionCommitProtoc
     }
 
     @Override
-    public Set<LockRefreshToken> refreshLocks(Set<LockRefreshToken> locks) {
+    public Set<LockRefreshToken> refreshCommitLocks(Set<LockRefreshToken> locks) {
         return lockService.refreshLockRefreshTokens(locks);
     }
 
