@@ -35,7 +35,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.performance.BenchmarkParam;
 import com.palantir.atlasdb.performance.PerformanceResults;
 import com.palantir.atlasdb.performance.backend.DatabasesContainer;
@@ -122,6 +121,7 @@ public class AtlasDbPerfCli {
 
     private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
+                .forks(1)
                 .measurementIterations(1)
                 .timeUnit(TimeUnit.MICROSECONDS)
                 .shouldFailOnError(true)
@@ -133,11 +133,9 @@ public class AtlasDbPerfCli {
 
         if (!cli.testRun) {
             optBuilder.warmupIterations(1)
-                    .forks(1)
                     .mode(Mode.SampleTime);
         } else {
             optBuilder.warmupIterations(0)
-                    .forks(1)
                     .mode(Mode.SingleShotTime);
         }
 
@@ -153,8 +151,7 @@ public class AtlasDbPerfCli {
         }
     }
 
-    @VisibleForTesting
-    static DatabasesContainer startupDatabase(Set<String> backends) {
+    private static DatabasesContainer startupDatabase(Set<String> backends) {
         return DatabasesContainer.startup(
                 backends.stream()
                         .map(KeyValueServiceInstrumentation::forDatabase)
@@ -193,8 +190,7 @@ public class AtlasDbPerfCli {
         getAllBenchmarks().forEach(System.out::println);
     }
 
-    @VisibleForTesting
-    static Set<String> getAllBenchmarks() {
+    private static Set<String> getAllBenchmarks() {
         Reflections reflections = new Reflections(
                 "com.palantir.atlasdb.performance.benchmarks",
                 new MethodAnnotationsScanner());
