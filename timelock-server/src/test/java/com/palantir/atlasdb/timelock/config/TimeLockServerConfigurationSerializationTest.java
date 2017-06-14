@@ -30,14 +30,13 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.palantir.atlasdb.config.AtlasDbConfigSerializationTest;
 import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
 public class TimeLockServerConfigurationSerializationTest {
     private static final File TEST_CONFIG_FILE = new File(
-            AtlasDbConfigSerializationTest.class.getResource("/paxosTestConfig.yml").getPath());
+            TimeLockServerConfigurationSerializationTest.class.getResource("/paxosTestConfig.yml").getPath());
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
             .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
             .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
