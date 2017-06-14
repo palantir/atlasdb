@@ -21,6 +21,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSocketFactory;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -348,23 +349,6 @@ public final class TransactionManagers {
         if (runtimeConfig == null) {
             log.warn("This service uses live reload configs. Please use the 'atlas-runtime' block for specifying"
                     + " live-reloadable atlas configs. Default to using configs specified on the 'atlas' block");
-            return;
-        }
-
-        if (runtimeConfig.enableSweep() == null) {
-            log.warn("Use the 'enableSweep' config on the atlas-runtime block to make it live-reloadable");
-        }
-        if (runtimeConfig.getSweepPauseMillis() == null) {
-            log.warn("Use the 'getSweepPauseMillis' config on the atlas-runtime block to make it live-reloadable");
-        }
-        if (runtimeConfig.getSweepReadLimit() == null) {
-            log.warn("Use the 'getSweepReadLimit' config on the atlas-runtime block to make it live-reloadable");
-        }
-        if (runtimeConfig.getSweepPauseMillis() == null) {
-            log.warn("Use the 'getSweepPauseMillis' config on the atlas-runtime block to make it live-reloadable");
-        }
-        if (runtimeConfig.getSweepDeleteBatchHint() == null) {
-            log.warn("Use the 'getSweepDeleteBatchHint' config on the atlas-runtime block to make it live-reloadable");
         }
     }
 
@@ -394,20 +378,11 @@ public final class TransactionManagers {
 
     private static int chooseBestValue(@Nullable Integer runtimeOption,
             @Nullable Integer newOption, @Nullable Integer oldOption, int defaultValue) {
-        if (runtimeOption != null) {
-            return runtimeOption;
-        }
-        return chooseBestValue(newOption, oldOption, defaultValue);
+        return ObjectUtils.firstNonNull(runtimeOption, newOption, oldOption, defaultValue);
     }
 
     private static int chooseBestValue(@Nullable Integer newOption, @Nullable Integer oldOption, int defaultValue) {
-        if (newOption != null) {
-            return newOption;
-        } else if (oldOption != null) {
-            return oldOption;
-        } else {
-            return defaultValue;
-        }
+        return ObjectUtils.firstNonNull(newOption, oldOption, defaultValue);
     }
 
     private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {

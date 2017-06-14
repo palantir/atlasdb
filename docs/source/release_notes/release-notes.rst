@@ -66,7 +66,7 @@ develop
     *    - |new|
          - Added support for live-reloading sweep configs.
 
-           There's a new config block, the `atlas-runtime`, which is live-reloaded. Currently, it accepts the config options:
+           There's a new set of `TransactionManagers.create()` methods, which accept a Supplier of the AtlasDbRuntimeConfig. The parameters of the new config are Sweep related:
 
              - `enableSweep`
              - `getSweepPauseMillis`
@@ -74,14 +74,11 @@ develop
              - `getSweepCandidateBatchHint`
              - `getSweepDeleteBatchHint`
 
-           And the deprecated config options:
-
-             - `getSweepBatchSize`
-             - `getSweepCellBatchSize`
+           The parameters are loaded and used at every sweep run. Please check :ref:`Sweep <sweep>` for information on how to use them.
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
 
-    *    - |devbreak|
+    *    - |deprecated|
          - As part of the live-reloading work, were deprecated:
 
            - the methods `TransactionManagers.create()` without the AtlasDB runtime config.
