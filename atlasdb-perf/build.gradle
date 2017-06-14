@@ -38,15 +38,12 @@ distZip {
     }
 }
 
-
 task postgresBenchmarkTest(type:Exec) {
-    logging.captureStandardOutput LogLevel.DEBUG
     dependsOn(installDist)
     commandLine "./build/install/atlasdb-perf/bin/atlasdb-perf", "--test-run", "--backend", "POSTGRES"
 }
 
 task cassandraBenchmarkTest(type:Exec) {
-    logging.captureStandardOutput LogLevel.DEBUG
     dependsOn(installDist)
     commandLine "./build/install/atlasdb-perf/bin/atlasdb-perf", "SweepBenchmarks.batchedSingleSweepRun", "--test-run", "--backend", "CASSANDRA"
 }
@@ -67,6 +64,7 @@ gradle.taskGraph.afterTask { Task task, TaskState state ->
         logger.lifecycle("")
         if (state.failure) {
             logger.lifecycle(task.name + " FAILED")
+            logger.error(state.failure.printStackTrace())
         } else {
             logger.lifecycle(task.name + " PASSED")
         }

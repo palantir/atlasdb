@@ -41,6 +41,7 @@ import com.palantir.atlasdb.performance.backend.DatabasesContainer;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
+import com.palantir.atlasdb.performance.schema.MinimalReportFormatForTest;
 
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
@@ -121,8 +122,8 @@ public class AtlasDbPerfCli {
 
     private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
-                .forks(1)
                 .measurementIterations(1)
+                .forks(1)
                 .timeUnit(TimeUnit.MICROSECONDS)
                 .shouldFailOnError(true)
                 .param(BenchmarkParam.URI.getKey(),
@@ -131,23 +132,25 @@ public class AtlasDbPerfCli {
                                 .collect(Collectors.toList())
                                 .toArray(new String[uris.size()]));
 
-        if (!cli.testRun) {
-            optBuilder.warmupIterations(1)
-                    .mode(Mode.SampleTime);
-        } else {
-            optBuilder.warmupIterations(0)
-                    .mode(Mode.SingleShotTime);
-        }
-
         if (cli.tests == null) {
             getAllBenchmarks().forEach(b -> optBuilder.include(".*" + b));
         } else {
             cli.tests.forEach(b -> optBuilder.include(".*" + b));
         }
 
-        Collection<RunResult> results = new Runner(optBuilder.build()).run();
-        if (cli.outputFile != null) {
-            new PerformanceResults(results).writeToFile(new File(cli.outputFile));
+        if (!cli.testRun) {
+            optBuilder.warmupIterations(1)
+                    .mode(Mode.SampleTime);
+
+            Collection<RunResult> results = new Runner(optBuilder.build()).run();
+
+            if (cli.outputFile != null) {
+                new PerformanceResults(results).writeToFile(new File(cli.outputFile));
+            }
+        } else {
+            optBuilder.warmupIterations(0)
+                    .mode(Mode.SingleShotTime);
+            new Runner(optBuilder.build(), MinimalReportFormatForTest.get()).run();
         }
     }
 
