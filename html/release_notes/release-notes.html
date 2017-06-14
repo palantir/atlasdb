@@ -196,11 +196,15 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Added a getRow() command to AtlasConsole for retrieving a single row.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1992">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an issue where the lock service was not properly shut down after losing leadership, which could result in threads blocking unnecessarily.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2014">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Upgraded all usages of http-remoting to remoting2
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1999">Pull Request</a>)</td>
 </tr>
