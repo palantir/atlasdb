@@ -43,23 +43,21 @@ public final class ImmutableTimestampSupplier implements Supplier<Long> {
                 TimeUnit.MILLISECONDS);
     }
 
-    private final RemoteLockService lockService;
     private final TimestampService timestampService;
-    private final LockClient lockClient;
+    private final MonitoredMinLockedVersionProvider minLockedVersionProvider;
 
     private ImmutableTimestampSupplier(RemoteLockService lockService,
                                       TimestampService timestampService,
                                       LockClient lockClient) {
         Preconditions.checkArgument(lockClient != LockClient.ANONYMOUS);
-        this.lockService = lockService;
         this.timestampService = timestampService;
-        this.lockClient = lockClient;
+        this.minLockedVersionProvider = new MonitoredMinLockedVersionProvider(lockService, lockClient);
     }
 
     @Override
     public Long get() {
         Long ts = timestampService.getFreshTimestamp();
-        Long minLocked = lockService.getMinLockedInVersionId(lockClient.getClientId());
+        Long minLocked = minLockedVersionProvider.getMinLockedVersion();
         return minLocked == null ? ts : minLocked;
     }
 }
