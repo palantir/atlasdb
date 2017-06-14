@@ -196,8 +196,9 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed an issue where the lock service was not properly shut down after losing leadership, which could result in threads blocking unnecessarily.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2014">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -617,6 +618,10 @@ If you do encounter breaks due to this addition, please contact the AtlasDB team
 <td><code class="docutils literal"><span class="pre">ConflictDetectionManagers.createDefault(KeyValueService)</span></code> has been deprecated.
 If you use this method, please replace it with <code class="docutils literal"><span class="pre">ConflictDetectionManagers.create(KeyValueService)</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1822">Pull Request 1</a>) and (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1850">Pull Request 2</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Improved memory footprint of lock state dumper and now it will include locking mode as well.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1891">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
