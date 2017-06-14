@@ -46,7 +46,9 @@ develop
          - Fixed an issue where the lock service was not properly shut down after losing leadership, which could result in threads blocking unnecessarily.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2014>`__)
 
-
+    *    - |devbreak| |improved|
+         - Upgraded all usages of http-remoting to remoting2
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -119,10 +121,6 @@ develop
     *    - |fixed|
          - Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2003>`__)
-
-    *    - |improved|
-         - Upgraded all usages of http-remoting to remoting2
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
