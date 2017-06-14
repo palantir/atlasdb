@@ -45,6 +45,11 @@ develop
     *    - |fixed|
          - Fixed an issue where the lock service was not properly shut down after losing leadership, which could result in threads blocking unnecessarily.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2014>`__)
+           
+    *    - |fixed|
+         - Lock refresh requests are no longer restricted by lock service threadpool limiting. 
+           This allows transactions to make progress even when the threadpool is full.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2025>`__)
 
     *    - |devbreak| |improved|
          - Upgraded all usages of http-remoting to remoting2
