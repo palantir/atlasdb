@@ -39,11 +39,13 @@ distZip {
 }
 
 task postgresBenchmarkTest(type:Exec) {
+    logging.captureStandardOutput LogLevel.LIFECYCLE
     dependsOn(installDist)
     commandLine "./build/install/atlasdb-perf/bin/atlasdb-perf", "--test-run", "--backend", "POSTGRES"
 }
 
 task cassandraBenchmarkTest(type:Exec) {
+    logging.captureStandardOutput LogLevel.LIFECYCLE
     dependsOn(installDist)
     commandLine "./build/install/atlasdb-perf/bin/atlasdb-perf", "SweepBenchmarks.batchedSingleSweepRun", "--test-run", "--backend", "CASSANDRA"
 }
