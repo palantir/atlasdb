@@ -50,6 +50,11 @@ develop
          - Upgraded all usages of http-remoting to remoting2
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
 
+    *    - |improved|
+         - The priority of logging on background sweep was increased from debug to info or warn.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
