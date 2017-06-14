@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
@@ -26,6 +28,7 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Optional;
 import com.google.common.net.HostAndPort;
+import com.palantir.leader.LeaderElectionService;
 
 import io.dropwizard.jackson.Jackson;
 
@@ -39,17 +42,22 @@ public class PaxosLeaderElectionServiceSerializationTest {
 
     @Test
     public void canSerializeNoSuspectedLeader() throws JsonProcessingException {
-        Optional<HostAndPort> noSuspectedLeader = Optional.absent();
+        LeaderElectionService leaderElectionService = mock(LeaderElectionService.class);
+        when(leaderElectionService.getSuspectedLeaderInMemory()).thenReturn(Optional.absent());
 
         // Be very careful about changing the following! Doing so would be a wire break.
-        assertThat(MAPPER.writeValueAsString(noSuspectedLeader)).isEqualTo("null");
+        assertThat(MAPPER.writeValueAsString(leaderElectionService.getSuspectedLeaderInMemory())).isEqualTo("null");
     }
 
     @Test
     public void canSerializeSuspectedLeader() throws JsonProcessingException {
         Optional<HostAndPort> suspectedLeader = Optional.of(HostAndPort.fromParts("foo", 123));
 
+        LeaderElectionService leaderElectionService = mock(LeaderElectionService.class);
+        when(leaderElectionService.getSuspectedLeaderInMemory()).thenReturn(suspectedLeader);
+
         // Be very careful about changing the following! Doing so would be a wire break.
-        assertThat(MAPPER.writeValueAsString(suspectedLeader)).isEqualTo("\"foo:123\"");
+        assertThat(MAPPER.writeValueAsString(leaderElectionService.getSuspectedLeaderInMemory()))
+                .isEqualTo("\"foo:123\"");
     }
 }
