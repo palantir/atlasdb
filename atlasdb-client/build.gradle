@@ -15,8 +15,17 @@ schemas = [
 
 libsDirName = file('build/artifacts')
 
+task myTestJar(type: Jar) {
+    from sourceSets.test.output
+    classifier = 'tests'
+}
+
 configurations {
-    testArtifacts.extendsFrom testRuntime
+    testArtifacts
+}
+
+artifacts {
+    testArtifacts myTestJar
 }
 
 dependencies {
@@ -37,7 +46,7 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
   compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
-  compile group: 'com.palantir.remoting1', name: 'tracing'
+  compile group: 'com.palantir.remoting2', name: 'tracing'
   compile group: 'com.palantir.tritium', name: 'tritium-lib'
 
   testCompile group: 'junit', name: 'junit'
@@ -46,6 +55,5 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'ch.qos.logback', name: 'logback-classic'
-
-  testArtifacts sourceSets.test.output
+  testCompile group: 'org.assertj', name: 'assertj-core'
 }

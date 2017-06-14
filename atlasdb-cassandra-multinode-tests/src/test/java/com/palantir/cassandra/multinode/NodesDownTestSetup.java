@@ -85,8 +85,8 @@ public abstract class NodesDownTestSetup {
         setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_1_2, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
         setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_2_1, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
 
-        setupDb.createTable(TEST_TABLE_TO_DROP, AtlasDbConstants.EMPTY_TABLE_METADATA);
-        setupDb.createTable(TEST_TABLE_TO_DROP_2, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        setupDb.createTable(TEST_TABLE_TO_DROP, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        setupDb.createTable(TEST_TABLE_TO_DROP_2, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         setupDb.close();
     }

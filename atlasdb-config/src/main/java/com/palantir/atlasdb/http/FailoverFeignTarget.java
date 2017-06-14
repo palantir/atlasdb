@@ -109,9 +109,9 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
                                 (BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2);
 
                 pauseForBackoff(ex, pauseTimeWithJitter);
-            } else {
-                pauseForBackoff(ex);
             }
+        } else {
+            pauseForBackoff(ex);
         }
     }
 

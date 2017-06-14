@@ -28,7 +28,7 @@ import com.palantir.atlasdb.timelock.config.AtomixConfiguration;
 import com.palantir.atlasdb.timelock.config.AtomixSslConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.remoting1.config.ssl.SslConfiguration;
+import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Address;

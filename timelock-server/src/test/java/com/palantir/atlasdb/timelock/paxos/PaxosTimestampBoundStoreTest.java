@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -50,7 +51,7 @@ import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.PaxosRoundFailureException;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.remoting2.tracing.Tracers;
 
 public class PaxosTimestampBoundStoreTest {
     private static final int NUM_NODES = 5;
@@ -291,6 +292,7 @@ public class PaxosTimestampBoundStoreTest {
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
                 NUM_NODES / 2 + 1,
+                UUID.randomUUID(),
                 executor);
     }
 

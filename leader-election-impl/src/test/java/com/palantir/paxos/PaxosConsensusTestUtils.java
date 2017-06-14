@@ -17,6 +17,7 @@ package com.palantir.paxos;
 
 import java.io.File;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,7 +35,7 @@ import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.remoting2.tracing.Tracers;
 
 public final class PaxosConsensusTestUtils {
 
@@ -79,6 +80,7 @@ public final class PaxosConsensusTestUtils {
                     ImmutableList.<PaxosAcceptor> copyOf(acceptors),
                     ImmutableList.<PaxosLearner> copyOf(learners),
                     quorumSize,
+                    UUID.randomUUID(),
                     executor);
             PaxosLeaderElectionService leader = new PaxosLeaderElectionServiceBuilder()
                     .proposer(proposer)

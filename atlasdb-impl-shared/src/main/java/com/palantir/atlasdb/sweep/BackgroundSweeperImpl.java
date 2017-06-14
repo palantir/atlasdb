@@ -114,7 +114,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
             PersistentLockManager persistentLockManager) {
-        SweepMetrics sweepMetrics = SweepMetrics.create();
+        SweepMetrics sweepMetrics = new SweepMetrics();
         SweepProgressStore sweepProgressStore = new SweepProgressStore(kvs, tableFactory);
         SweepPriorityStore sweepPriorityStore = new SweepPriorityStore(tableFactory);
         NextTableToSweepProvider nextTableToSweepProvider = new NextTableToSweepProviderImpl(kvs, sweepPriorityStore);
@@ -191,6 +191,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         } catch (InsufficientConsistencyException e) {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
         } catch (RuntimeException e) {
+            sweepMetrics.sweepError();
             if (checkAndRepairTableDrop()) {
                 log.error("The table being swept by the background sweeper was dropped, moving on...");
             } else {
@@ -226,7 +227,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         Stopwatch watch = Stopwatch.createStarted();
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
-        sweepMetrics.registerMetricsIfNecessary(tableRef);
         SweepBatchConfig batchConfig = getAdjustedBatchConfig();
         try {
             SweepResults results = sweepRunner.run(
@@ -411,7 +411,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             return null;
         });
 
-        sweepMetrics.recordMetrics(tableToSweep.getTableRef(), sweepResults);
+        sweepMetrics.examinedCells(tableToSweep.getTableRef(), sweepResults.getCellTsPairsExamined());
+        sweepMetrics.deletedCells(tableToSweep.getTableRef(), sweepResults.getStaleValuesDeleted());
     }
 
     /**

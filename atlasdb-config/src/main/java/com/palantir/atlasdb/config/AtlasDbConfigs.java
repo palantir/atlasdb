@@ -28,13 +28,14 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.palantir.config.crypto.DecryptingVariableSubstitutor;
 import com.palantir.config.crypto.jackson.JsonNodeStringReplacer;
 import com.palantir.config.crypto.jackson.JsonNodeVisitors;
-import com.palantir.remoting.ssl.SslConfiguration;
+import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
@@ -49,6 +50,7 @@ public final class AtlasDbConfigs {
         OBJECT_MAPPER.setSubtypeResolver(new DiscoverableSubtypeResolver());
         OBJECT_MAPPER.registerModule(new GuavaModule());
         OBJECT_MAPPER.registerModule(new Jdk7Module());
+        OBJECT_MAPPER.registerModule(new Jdk8Module());
     }
 
     private AtlasDbConfigs() {

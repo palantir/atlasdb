@@ -162,8 +162,7 @@ public class SweepTaskRunner {
                 .build();
 
         SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(transactionService, sweeper, sweepTs);
-        GetCandidateCellsForSweepingShim shim = new GetCandidateCellsForSweepingShim(keyValueService);
-        try (ClosableIterator<List<CandidateCellForSweeping>> candidates = shim.getCandidateCellsForSweeping(
+        try (ClosableIterator<List<CandidateCellForSweeping>> candidates = keyValueService.getCandidateCellsForSweeping(
                     tableRef, request)) {
             ExaminedCellLimit limit = new ExaminedCellLimit(startRow, batchConfig.maxCellTsPairsToExamine());
             Iterator<BatchOfCellsToSweep> batchesToSweep = getBatchesToSweep(

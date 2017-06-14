@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.timestamp;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+package com.palantir.timestamp;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Test;
 
-public class LastReturnedTimestampTest {
-    private static final long INITIAL_VALUE = 100;
+public class AtomicTimestampTests {
 
-    private final LastReturnedTimestamp timestamp = new LastReturnedTimestamp(INITIAL_VALUE);
+    private static final long INITIAL_TIMESTAMP = 1_000;
+    private final AtomicTimestamp timestamp = new AtomicTimestamp(INITIAL_TIMESTAMP);
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
     @After
@@ -39,32 +39,25 @@ public class LastReturnedTimestampTest {
 
     @Test
     public void shouldIncreaseTheValueToAHigherNumber() {
-        timestamp.increaseToAtLeast(INITIAL_VALUE + 10);
+        TimestampRange range = timestamp.incrementBy(10);
 
-        assertThat(timestamp.get(), is(INITIAL_VALUE + 10));
-    }
-
-    @Test
-    public void shouldNotIncreaseTheValueToALowerNumber() {
-        timestamp.increaseToAtLeast(INITIAL_VALUE - 10);
-
-        assertThat(timestamp.get(), is(INITIAL_VALUE));
+        assertThat(range.getUpperBound(), is(INITIAL_TIMESTAMP + 10));
     }
 
     @Test
     public void handleConcurrentlyIncreasingTheValue() throws InterruptedException {
-        for(int i = 0; i <= 100; i++) {
-            final int value = i;
-            executor.submit(() -> timestamp.increaseToAtLeast(INITIAL_VALUE + value));
+        for (int i = 0; i < 100; i++) {
+            executor.submit(() -> timestamp.incrementBy(1));
         }
 
         waitForExecutorToFinish();
 
-        assertThat(timestamp.get(), is(INITIAL_VALUE + 100));
+        assertThat(timestamp.incrementBy(1).getUpperBound(), is(INITIAL_TIMESTAMP + 101));
     }
 
     private void waitForExecutorToFinish() throws InterruptedException {
         executor.shutdown();
-        executor.awaitTermination(10, SECONDS);
+        executor.awaitTermination(10, TimeUnit.SECONDS);
     }
+
 }

@@ -45,4 +45,8 @@ public class TimeLockServerHolder extends ExternalResource {
     public int getTimelockPort() {
         return timelockServer.getLocalPort();
     }
+
+    public int getAdminPort() {
+        return timelockServer.getAdminPort();
+    }
 }

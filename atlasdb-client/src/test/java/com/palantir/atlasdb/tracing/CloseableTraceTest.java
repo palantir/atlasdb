@@ -23,15 +23,15 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.base.Optional;
-import com.palantir.remoting1.tracing.AlwaysSampler;
-import com.palantir.remoting1.tracing.Span;
-import com.palantir.remoting1.tracing.Tracer;
+import com.palantir.remoting2.tracing.AlwaysSampler;
+import com.palantir.remoting2.tracing.Span;
+import com.palantir.remoting2.tracing.Tracer;
 
 public class CloseableTraceTest {
 
