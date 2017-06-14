@@ -50,6 +50,8 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.time.Clock;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
@@ -163,13 +165,13 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         try (SweepLocks locks = createSweepLocks()) {
             // Wait a while before starting so short lived clis don't try to sweep.
             Thread.sleep(20 * (1000 + sweepPauseMillis.get()));
-            log.debug("Starting background sweeper.");
+            log.info("Starting background sweeper.");
             while (true) {
                 long millisToSleep = grabLocksAndRun(locks);
                 Thread.sleep(millisToSleep);
             }
         } catch (InterruptedException e) {
-            log.debug("Shutting down background sweeper.");
+            log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
         }
     }
 
@@ -183,10 +185,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 if (locks.haveLocks()) {
                     sweptSuccessfully = runOnce();
                 } else {
-                    log.debug("Skipping sweep because sweep is running elsewhere.");
+                    log.warn("Skipping sweep because sweep is running elsewhere.");
                 }
             } else {
-                log.debug("Skipping sweep because it is currently disabled.");
+                log.info("Skipping sweep because it is currently disabled.");
             }
         } catch (InsufficientConsistencyException e) {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
@@ -197,7 +199,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             } else {
                 SweepBatchConfig lastBatchConfig = getAdjustedBatchConfig();
                 log.error("The background sweep job failed unexpectedly with batch config {}"
-                        + ". Attempting to continue with a lower batch size...", lastBatchConfig, e);
+                        + ". Attempting to continue with a lower batch size...",
+                        SafeArg.of("", lastBatchConfig),
+                        e);
                 // Cut batch size in half, always sweep at least one row (we round down).
                 batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
             }
@@ -234,11 +238,15 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                     batchConfig,
                     startRow);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.debug("Swept {} unique cells from {} starting at {}"
+            log.info("Swept {} unique cells from {} starting at {}"
                             + " and performed {} deletions in {} ms"
                             + " up to timestamp {}.",
-                    results.getCellTsPairsExamined(), tableRef, startRowToHex(startRow),
-                    results.getStaleValuesDeleted(), elapsedMillis, results.getSweptTimestamp());
+                    SafeArg.of("", results.getCellTsPairsExamined()),
+                    UnsafeArg.of("table name", tableRef),
+                    SafeArg.of("row hex", startRowToHex(startRow)),
+                    SafeArg.of("", results.getStaleValuesDeleted()),
+                    SafeArg.of("", elapsedMillis),
+                    SafeArg.of("", results.getSweptTimestamp()));
             sweepPerfLogger.logSweepResults(
                     SweepPerformanceResults.builder()
                             .sweepResults(results)
@@ -248,10 +256,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             saveSweepResults(tableToSweep, results);
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
-            log.debug("Failed to sweep {} with batch config {} starting from row {}",
-                    tableRef,
-                    batchConfig,
-                    startRowToHex(startRow));
+            log.warn("Failed to sweep {} with batch config {} starting from row {}",
+                    UnsafeArg.of("table name", tableRef),
+                    SafeArg.of("", batchConfig),
+                    SafeArg.of("hex", startRowToHex(startRow)));
             throw e;
         }
     }
@@ -322,7 +330,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                     Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
                             tx, sweepRunner.getConservativeSweepTimestamp());
                     if (nextTable.isPresent()) {
-                        log.debug("Now starting to sweep {}.", nextTable);
+                        log.info("Now starting to sweep {}.", UnsafeArg.of("next table", nextTable));
                         return Optional.of(new TableToSweep(nextTable.get(), null));
                     } else {
                         return Optional.empty();
@@ -350,8 +358,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         } else {
             saveFinalSweepResults(tableToSweep, cumulativeResults);
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
-            log.debug("Finished sweeping {}, examined {} unique cells, deleted {} stale values.",
-                    tableToSweep.getTableRef(), cellsExamined, staleValuesDeleted);
+            log.info("Finished sweeping {}, examined {} unique cells, deleted {} stale values.",
+                    UnsafeArg.of("table name", tableToSweep.getTableRef()),
+                    SafeArg.of("", cellsExamined),
+                    SafeArg.of("", staleValuesDeleted));
             sweepProgressStore.clearProgress();
         }
     }
@@ -361,7 +371,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Stopwatch watch = Stopwatch.createStarted();
             kvs.compactInternally(tableRef);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.debug("Finished performing compactInternally on {} in {} ms.", tableRef, elapsedMillis);
+            log.info("Finished performing compactInternally on {} in {} ms.",
+                    UnsafeArg.of("table name", tableRef),
+                    SafeArg.of("", elapsedMillis));
             sweepPerfLogger.logInternalCompaction(
                     SweepCompactionPerformanceResults.builder()
                             .tableName(tableRef.getQualifiedName())
@@ -446,7 +458,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         if (daemon == null) {
             return;
         }
-        log.debug("Signalling background sweeper to shut down.");
+        log.info("Signalling background sweeper to shut down.");
         daemon.interrupt();
         try {
             daemon.join();
