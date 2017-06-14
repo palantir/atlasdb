@@ -41,7 +41,41 @@ develop
 
     *    - Type
          - Change
-         
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+0.44.x
+=======
+
+14 June 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed an issue where the lock service was not properly shut down after losing leadership, which could result in threads blocking unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2014>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.44.0
+======
+
+8 June 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - ``TimestampService`` now uses atomic variables rather than locking, and refreshes the bound synchronously rather than asynchronously.
            This should improve performance somewhat under heavy load, although there will be a short pause in responses when the bound needs to be refreshed (currently, once every 1 million timestamps).

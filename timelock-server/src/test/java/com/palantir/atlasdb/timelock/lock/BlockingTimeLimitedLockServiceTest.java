@@ -22,6 +22,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -31,10 +32,10 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.FakeTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
+import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 
@@ -50,12 +51,12 @@ public class BlockingTimeLimitedLockServiceTest {
     private final TimeLimiter interruptingLimiter = new ThrowingTimeLimiter(new InterruptedException());
     private final TimeLimiter throwingLimiter = new ThrowingTimeLimiter(new IllegalStateException());
 
-    private final LockService delegate = mock(LockService.class);
+    private final CloseableRemoteLockService delegate = mock(CloseableRemoteLockService.class);
 
-    private final LockService acceptingService = createService(acceptingLimiter);
-    private final LockService timingOutService = createService(timingOutLimiter);
-    private final LockService interruptingService = createService(interruptingLimiter);
-    private final LockService throwingService = createService(throwingLimiter);
+    private final BlockingTimeLimitedLockService acceptingService = createService(acceptingLimiter);
+    private final BlockingTimeLimitedLockService timingOutService = createService(timingOutLimiter);
+    private final BlockingTimeLimitedLockService interruptingService = createService(interruptingLimiter);
+    private final BlockingTimeLimitedLockService throwingService = createService(throwingLimiter);
 
     @Test
     public void delegatesInterruptibleOperations() throws InterruptedException {
@@ -92,18 +93,25 @@ public class BlockingTimeLimitedLockServiceTest {
 
     @Test
     public void rethrowsExceptionOccurringFromInterruptibleOperation() {
-        assertThatThrownBy(() -> throwingService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_REQUEST))
+        assertThatThrownBy(() -> throwingService.lock(LockClient.ANONYMOUS.getClientId(), LOCK_REQUEST))
                 .isInstanceOf(IllegalStateException.class);
     }
 
-    private void verifyCurrentTimeMillisDelegates(LockService service) {
+    @Test
+    public void closesDelegate() throws IOException {
+        acceptingService.close();
+
+        verify(delegate).close();
+    }
+
+    private void verifyCurrentTimeMillisDelegates(BlockingTimeLimitedLockService service) {
         when(delegate.currentTimeMillis()).thenReturn(TEST_CURRENT_TIME_MILLIS);
 
         assertThat(service.currentTimeMillis()).isEqualTo(TEST_CURRENT_TIME_MILLIS);
         verify(delegate, times(1)).currentTimeMillis();
     }
 
-    private LockService createService(TimeLimiter limiter) {
+    private BlockingTimeLimitedLockService createService(TimeLimiter limiter) {
         return new BlockingTimeLimitedLockService(delegate, limiter, BLOCKING_TIME_LIMIT_MILLIS);
     }
 
