@@ -81,6 +81,16 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+        SweepMetrics sweepMetrics = new SweepMetrics();
+        SpecificTableSweeperImpl specificTableSweeper = SpecificTableSweeperImpl.create(
+                sweepRunner,
+                new NoOpBackgroundSweeperPerformanceLogger(),
+                () -> sweepBatchConfig,
+                txManager,
+                kvs,
+                SweepTableFactory.of(),
+                sweepMetrics);
+
         backgroundSweeper = BackgroundSweeperImpl.create(
                 txManager,
                 kvs,
@@ -89,8 +99,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 () -> 10L, // sweepPauseMillis
                 () -> sweepBatchConfig,
                 SweepTableFactory.of(),
-                new NoOpBackgroundSweeperPerformanceLogger(),
-                persistentLockManager);
+                persistentLockManager,
+                sweepMetrics,
+                specificTableSweeper);
     }
 
     @Test
@@ -107,7 +118,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         sweepTimestamp.set(150);
         try (SweepLocks sweepLocks = backgroundSweeper.createSweepLocks()) {
             for (int i = 0; i < 50; ++i) {
-                backgroundSweeper.grabLocksAndRun(sweepLocks);
+                backgroundSweeper.checkConfigAndRunSweep(sweepLocks);
             }
         }
         verifyTableSwept(TABLE_1, 75, true);

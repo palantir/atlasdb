@@ -16,39 +16,26 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
-import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
-import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.time.Clock;
 import com.palantir.lock.RemoteLockService;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
@@ -57,18 +44,16 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private final RemoteLockService lockService;
     private final KeyValueService kvs;
     private final SweepProgressStore sweepProgressStore;
-    private final SweepPriorityStore sweepPriorityStore;
     private final NextTableToSweepProvider nextTableToSweepProvider;
     private final SweepTaskRunner sweepRunner;
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
     private final Supplier<SweepBatchConfig> sweepBatchConfig;
-    private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
     private final SweepMetrics sweepMetrics;
     private final PersistentLockManager persistentLockManager;
-    private final Clock wallClock;
+    private final SpecificTableSweeperImpl specificTableSweeperImpl;
 
-    private volatile double batchSizeMultiplier = 1.0;
+    static volatile double batchSizeMultiplier = 1.0;
 
     private Thread daemon;
 
@@ -78,30 +63,26 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             RemoteLockService lockService,
             KeyValueService kvs,
             SweepProgressStore sweepProgressStore,
-            SweepPriorityStore sweepPriorityStore,
             NextTableToSweepProvider nextTableToSweepProvider,
             SweepTaskRunner sweepRunner,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
             Supplier<SweepBatchConfig> sweepBatchConfig,
-            BackgroundSweeperPerformanceLogger sweepPerfLogger,
             SweepMetrics sweepMetrics,
             PersistentLockManager persistentLockManager,
-            Clock wallClock) {
+            SpecificTableSweeperImpl specificTableSweeperImpl) {
         this.txManager = txManager;
         this.lockService = lockService;
         this.kvs = kvs;
         this.sweepProgressStore = sweepProgressStore;
-        this.sweepPriorityStore = sweepPriorityStore;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
         this.sweepRunner = sweepRunner;
         this.isSweepEnabled = isSweepEnabled;
         this.sweepPauseMillis = sweepPauseMillis;
         this.sweepBatchConfig = sweepBatchConfig;
-        this.sweepPerfLogger = sweepPerfLogger;
         this.sweepMetrics = sweepMetrics;
         this.persistentLockManager = persistentLockManager;
-        this.wallClock = wallClock;
+        this.specificTableSweeperImpl = specificTableSweeperImpl;
     }
 
     public static BackgroundSweeperImpl create(
@@ -112,9 +93,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Long> sweepPauseMillis,
             Supplier<SweepBatchConfig> sweepBatchConfig,
             SweepTableFactory tableFactory,
-            BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            PersistentLockManager persistentLockManager) {
-        SweepMetrics sweepMetrics = new SweepMetrics();
+            PersistentLockManager persistentLockManager,
+            SweepMetrics sweepMetrics,
+            SpecificTableSweeperImpl specificTableSweeperImpl) {
         SweepProgressStore sweepProgressStore = new SweepProgressStore(kvs, tableFactory);
         SweepPriorityStore sweepPriorityStore = new SweepPriorityStore(tableFactory);
         NextTableToSweepProvider nextTableToSweepProvider = new NextTableToSweepProviderImpl(kvs, sweepPriorityStore);
@@ -123,16 +104,14 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 txManager.getLockService(),
                 kvs,
                 sweepProgressStore,
-                sweepPriorityStore,
                 nextTableToSweepProvider,
                 sweepRunner,
                 isSweepEnabled,
                 sweepPauseMillis,
                 sweepBatchConfig,
-                sweepPerfLogger,
                 sweepMetrics,
                 persistentLockManager,
-                System::currentTimeMillis);
+                specificTableSweeperImpl);
     }
 
     @Override
@@ -165,7 +144,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Thread.sleep(20 * (1000 + sweepPauseMillis.get()));
             log.debug("Starting background sweeper.");
             while (true) {
-                long millisToSleep = grabLocksAndRun(locks);
+                long millisToSleep = checkConfigAndRunSweep(locks);
                 Thread.sleep(millisToSleep);
             }
         } catch (InterruptedException e) {
@@ -175,18 +154,23 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     // Returns milliseconds to sleep
     @VisibleForTesting
-    long grabLocksAndRun(SweepLocks locks) throws InterruptedException {
+    long checkConfigAndRunSweep(SweepLocks locks) throws InterruptedException {
+        if (isSweepEnabled.get()) {
+            return grabLocksAndRun(locks);
+        } else {
+            log.debug("Skipping sweep because it is currently disabled.");
+        }
+        return 20 * (1000 + sweepPauseMillis.get());
+    }
+
+    private long grabLocksAndRun(SweepLocks locks) throws InterruptedException {
         boolean sweptSuccessfully = false;
         try {
-            if (isSweepEnabled.get()) {
-                locks.lockOrRefresh();
-                if (locks.haveLocks()) {
-                    sweptSuccessfully = runOnce();
-                } else {
-                    log.debug("Skipping sweep because sweep is running elsewhere.");
-                }
+            locks.lockOrRefresh();
+            if (locks.haveLocks()) {
+                sweptSuccessfully = runOnce();
             } else {
-                log.debug("Skipping sweep because it is currently disabled.");
+                log.debug("Skipping sweep because sweep is running elsewhere.");
             }
         } catch (InsufficientConsistencyException e) {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
@@ -202,6 +186,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
             }
         }
+
         if (sweptSuccessfully) {
             batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
             return sweepPauseMillis.get();
@@ -218,41 +203,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             return false;
         } else {
-            runOnceForTable(tableToSweep.get());
+            specificTableSweeperImpl.runOnceForTable(tableToSweep.get());
             return true;
-        }
-    }
-
-    void runOnceForTable(TableToSweep tableToSweep) {
-        Stopwatch watch = Stopwatch.createStarted();
-        TableReference tableRef = tableToSweep.getTableRef();
-        byte[] startRow = tableToSweep.getStartRow();
-        SweepBatchConfig batchConfig = getAdjustedBatchConfig();
-        try {
-            SweepResults results = sweepRunner.run(
-                    tableRef,
-                    batchConfig,
-                    startRow);
-            long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.debug("Swept {} unique cells from {} starting at {}"
-                            + " and performed {} deletions in {} ms"
-                            + " up to timestamp {}.",
-                    results.getCellTsPairsExamined(), tableRef, startRowToHex(startRow),
-                    results.getStaleValuesDeleted(), elapsedMillis, results.getSweptTimestamp());
-            sweepPerfLogger.logSweepResults(
-                    SweepPerformanceResults.builder()
-                            .sweepResults(results)
-                            .tableName(tableRef.getQualifiedName())
-                            .elapsedMillis(elapsedMillis)
-                            .build());
-            saveSweepResults(tableToSweep, results);
-        } catch (RuntimeException e) {
-            // Error logged at a higher log level above.
-            log.debug("Failed to sweep {} with batch config {} starting from row {}",
-                    tableRef,
-                    batchConfig,
-                    startRowToHex(startRow));
-            throw e;
         }
     }
 
@@ -265,16 +217,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 .build();
     }
 
-    private int adjustBatchParameter(int parameterValue) {
+    static int adjustBatchParameter(int parameterValue) {
         return Math.max(1, (int) (batchSizeMultiplier * parameterValue));
-    }
-
-    private static String startRowToHex(@Nullable byte[] row) {
-        if (row == null) {
-            return "0";
-        } else {
-            return PtBytes.encodeHexString(row);
-        }
     }
 
     private Optional<TableToSweep> getTableToSweep() {
@@ -293,89 +237,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 }
             }
         });
-    }
-
-    private void saveSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
-        long staleValuesDeleted = tableToSweep.getStaleValuesDeletedPreviously()
-                + currentIteration.getStaleValuesDeleted();
-        long cellsExamined = tableToSweep.getCellsExaminedPreviously() + currentIteration.getCellTsPairsExamined();
-        long minimumSweptTimestamp = Math.min(
-                tableToSweep.getPreviousMinimumSweptTimestamp().orElse(Long.MAX_VALUE),
-                currentIteration.getSweptTimestamp());
-        SweepResults cumulativeResults = SweepResults.builder()
-                .staleValuesDeleted(staleValuesDeleted)
-                .cellTsPairsExamined(cellsExamined)
-                .sweptTimestamp(minimumSweptTimestamp)
-                .nextStartRow(currentIteration.getNextStartRow())
-                .build();
-        if (currentIteration.getNextStartRow().isPresent()) {
-            saveIntermediateSweepResults(tableToSweep, cumulativeResults);
-        } else {
-            saveFinalSweepResults(tableToSweep, cumulativeResults);
-            performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
-            log.debug("Finished sweeping {}, examined {} unique cells, deleted {} stale values.",
-                    tableToSweep.getTableRef(), cellsExamined, staleValuesDeleted);
-            sweepProgressStore.clearProgress();
-        }
-    }
-
-    private void performInternalCompactionIfNecessary(TableReference tableRef, SweepResults results) {
-        if (results.getStaleValuesDeleted() > 0) {
-            Stopwatch watch = Stopwatch.createStarted();
-            kvs.compactInternally(tableRef);
-            long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.debug("Finished performing compactInternally on {} in {} ms.", tableRef, elapsedMillis);
-            sweepPerfLogger.logInternalCompaction(
-                    SweepCompactionPerformanceResults.builder()
-                            .tableName(tableRef.getQualifiedName())
-                            .cellsDeleted(results.getStaleValuesDeleted())
-                            .cellsExamined(results.getCellTsPairsExamined())
-                            .elapsedMillis(elapsedMillis)
-                            .build());
-        }
-    }
-
-    private void saveIntermediateSweepResults(TableToSweep tableToSweep, SweepResults results) {
-        Preconditions.checkArgument(results.getNextStartRow().isPresent(),
-                "Next start row should be present when saving intermediate results!");
-        txManager.runTaskWithRetry((TxTask) tx -> {
-            if (!tableToSweep.hasPreviousProgress()) {
-                // This is the first set of results being written for this table.
-                sweepPriorityStore.update(
-                        tx,
-                        tableToSweep.getTableRef(),
-                        ImmutableUpdateSweepPriority.builder().newWriteCount(0L).build());
-            }
-            SweepProgress newProgress = ImmutableSweepProgress.builder()
-                    .tableRef(tableToSweep.getTableRef())
-                    .staleValuesDeleted(results.getStaleValuesDeleted())
-                    .cellTsPairsExamined(results.getCellTsPairsExamined())
-                    //noinspection OptionalGetWithoutIsPresent // covered by precondition above
-                    .startRow(results.getNextStartRow().get())
-                    .minimumSweptTimestamp(results.getSweptTimestamp())
-                    .build();
-            sweepProgressStore.saveProgress(tx, newProgress);
-            return null;
-        });
-    }
-
-    private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults sweepResults) {
-        txManager.runTaskWithRetry((TxTask) tx -> {
-            ImmutableUpdateSweepPriority.Builder update = ImmutableUpdateSweepPriority.builder()
-                    .newStaleValuesDeleted(sweepResults.getStaleValuesDeleted())
-                    .newCellTsPairsExamined(sweepResults.getCellTsPairsExamined())
-                    .newLastSweepTimeMillis(wallClock.getTimeMillis())
-                    .newMinimumSweptTimestamp(sweepResults.getSweptTimestamp());
-            if (!tableToSweep.hasPreviousProgress()) {
-                // This is the first (and only) set of results being written for this table.
-                update.newWriteCount(0L);
-            }
-            sweepPriorityStore.update(tx, tableToSweep.getTableRef(), update.build());
-            return null;
-        });
-
-        sweepMetrics.examinedCells(tableToSweep.getTableRef(), sweepResults.getCellTsPairsExamined());
-        sweepMetrics.deletedCells(tableToSweep.getTableRef(), sweepResults.getStaleValuesDeleted());
     }
 
     /**
@@ -400,7 +261,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     @VisibleForTesting
-    public SweepLocks createSweepLocks() {
+    SweepLocks createSweepLocks() {
         return new SweepLocks(lockService);
     }
 
@@ -418,5 +279,4 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
-
 }

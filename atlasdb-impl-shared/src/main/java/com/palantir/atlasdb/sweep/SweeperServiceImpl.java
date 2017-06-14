@@ -15,73 +15,23 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweeperservice.SweeperService;
 
 public class SweeperServiceImpl implements SweeperService {
-    private static final Logger log = LoggerFactory.getLogger(SweeperService.class);
-    private BackgroundSweeperImpl backgroundSweeper;
-    private KeyValueService kvs;
+    private SpecificTableSweeperImpl specificTableSweeper;
 
-    public SweeperServiceImpl(BackgroundSweeperImpl backgroundSweeper,
-            KeyValueService kvs) {
-        this.backgroundSweeper = backgroundSweeper;
-        this.kvs = kvs;
+    public SweeperServiceImpl(SpecificTableSweeperImpl specificTableSweeper) {
+        this.specificTableSweeper = specificTableSweeper;
     }
 
-    public static SweeperServiceImpl create(BackgroundSweeperImpl backgroundSweeper, KeyValueService kvs) {
-        return new SweeperServiceImpl(backgroundSweeper, kvs);
+    public static SweeperServiceImpl create(SpecificTableSweeperImpl specificTableSweeper) {
+        return new SweeperServiceImpl(specificTableSweeper);
     }
 
     @Override
     public boolean sweepTable(String tableName) {
-        try {
-            return grabLocksAndRunForASpecificTable(tableName);
-        } catch (InterruptedException e) {
-            log.warn("Sweep runner for table {} was interrupted", tableName);
-        }
-        return false;
-    }
-
-    public boolean grabLocksAndRunForASpecificTable(String tableName) throws InterruptedException {
-        TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
-
-        if (!kvs.getAllTableNames().contains(tableRef)) {
-            log.warn("The table being asked to swept does not exist..");
-            return false;
-        }
-
-        try (SweepLocks locks = backgroundSweeper.createSweepLocks()) {
-            while (true) {
-                try {
-                    locks.lockOrRefresh();
-                    if (locks.haveLocks()) {
-                        backgroundSweeper.runOnceForTable(
-                                new TableToSweep(tableRef, null));
-                        return true;
-                    } else {
-                        log.debug("Skipping sweep because sweep is running elsewhere.");
-                    }
-                } catch (InsufficientConsistencyException e) {
-                    log.warn("Could not sweep because not all nodes of the database are online.", e);
-                } catch (RuntimeException e) {
-                    if (backgroundSweeper.checkAndRepairTableDrop()) {
-                        log.error("The table being swept by the background sweeper was dropped, moving on...");
-                        return false;
-                    } else {
-                        log.error("The background sweep job failed unexpectedly with batch config {}"
-                                + ". Attempting to continue...", e);
-                    }
-                } finally {
-                    Thread.sleep(20 * 1000);
-                }
-            }
-        }
+        return specificTableSweeper.runOnceForTable(new TableToSweep(TableReference.createFromFullyQualifiedName(tableName), null));
     }
 }
 
