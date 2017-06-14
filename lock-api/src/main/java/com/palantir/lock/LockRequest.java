@@ -58,10 +58,13 @@ import com.google.common.collect.Iterables;
         return DEFAULT_LOCK_TIMEOUT.get();
     }
 
-    /** Sets the default lock timeout for all lock requests that do not specify an explicit timeout. See {@link Builder#timeoutAfter}. */
+    /**
+     * Sets the default lock timeout for all lock requests that do not specify an explicit timeout. See {@link
+     * Builder#timeoutAfter}.
+     */
     public static void setDefaultLockTimeout(TimeDuration timeout) {
-        Preconditions.checkNotNull(timeout);
-        Preconditions.checkArgument(timeout.getTime() > 0);
+        Preconditions.checkNotNull(timeout, "timeout cannot be null");
+        Preconditions.checkArgument(timeout.getTime() > 0, "timeout must be > 0");
 
         DEFAULT_LOCK_TIMEOUT.set(timeout);
     }
