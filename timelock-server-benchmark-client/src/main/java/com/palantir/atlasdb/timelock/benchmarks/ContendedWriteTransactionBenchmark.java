@@ -35,15 +35,15 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class ContendedWriteTransactionPerfTest extends AbstractBenchmark {
+public class ContendedWriteTransactionBenchmark extends AbstractBenchmark {
 
-    private static final Logger log = LoggerFactory.getLogger(WriteTransactionPerfTest.class);
+    private static final Logger log = LoggerFactory.getLogger(WriteTransactionBenchmark.class);
 
     private static final TableReference TABLE1 = TableReference.create(
-            Namespace.create(ContendedWriteTransactionPerfTest.class.getSimpleName()),
+            Namespace.create(ContendedWriteTransactionBenchmark.class.getSimpleName()),
             "table1");
     private static final TableReference TABLE2 = TableReference.create(
-            Namespace.create(ContendedWriteTransactionPerfTest.class.getSimpleName()),
+            Namespace.create(ContendedWriteTransactionBenchmark.class.getSimpleName()),
             "table2");
     private static final byte[] METADATA = new TableMetadata(new NameMetadataDescription(),
             new ColumnMetadataDescription(),
@@ -66,10 +66,10 @@ public class ContendedWriteTransactionPerfTest extends AbstractBenchmark {
             return null;
         });
 
-        return new ContendedWriteTransactionPerfTest(txnManager, key, originalValue, numClients, requestsPerClient).execute();
+        return new ContendedWriteTransactionBenchmark(txnManager, key, originalValue, numClients, requestsPerClient).execute();
     }
 
-    private ContendedWriteTransactionPerfTest(TransactionManager txnManager, byte[] key, byte[] originalValue, int numClients, int requestsPerClient) {
+    private ContendedWriteTransactionBenchmark(TransactionManager txnManager, byte[] key, byte[] originalValue, int numClients, int requestsPerClient) {
         super(numClients, requestsPerClient);
 
         this.txnManager = txnManager;

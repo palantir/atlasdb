@@ -41,38 +41,38 @@ public class BenchmarksRunner {
             Optional.absent(), PERF_TEST_SERVER, BenchmarksService.class, "perf-test-runner");
 
     @Test
-    public void timestampPerf() {
-        runAndPrintResults(client::timestampPerf, 64, 10000);
+    public void timestamp() {
+        runAndPrintResults(client::timestamp, 64, 10000);
     }
 
     @Test
-    public void writeTransactionPerf() {
-        runAndPrintResults(client::writeTransactionPerf, 10, 100);
+    public void writeTransaction() {
+        runAndPrintResults(client::writeTransaction, 10, 100);
     }
 
     @Test
-    public void readTransactionPerf() {
-        runAndPrintResults(client::readTransactionPerf, 1, 500);
+    public void readTransaction() {
+        runAndPrintResults(client::readTransaction, 1, 500);
     }
 
     @Test
-    public void kvsCasPerf() {
-        runAndPrintResults(client::kvsCasPerf, 1, 5000);
+    public void kvsCas() {
+        runAndPrintResults(client::kvsCas, 1, 5000);
     }
 
     @Test
-    public void kvsWritePerf() {
-        runAndPrintResults(client::kvsWritePerf, 1, 1000);
+    public void kvsWrite() {
+        runAndPrintResults(client::kvsWrite, 1, 1000);
     }
 
     @Test
-    public void kvsReadPerf() {
-        runAndPrintResults(client::kvsReadPerf, 1, 5000);
+    public void kvsRead() {
+        runAndPrintResults(client::kvsRead, 1, 5000);
     }
 
     @Test
-    public void contendedWriteTransactionPerf() {
-        runAndPrintResults(client::contendedWriteTransactionPerf, 2000, 1);
+    public void contendedWriteTransaction() {
+        runAndPrintResults(client::contendedWriteTransaction, 2000, 1);
     }
 
     private void runAndPrintResults(BiFunction<Integer, Integer, Map<String, Object>> test, int numClients, int numRequestsPerClient) {

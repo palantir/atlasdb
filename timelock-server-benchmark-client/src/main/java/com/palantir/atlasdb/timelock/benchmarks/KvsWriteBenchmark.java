@@ -27,7 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class KvsCasPerfTest extends AbstractBenchmark {
+public class KvsWriteBenchmark extends AbstractBenchmark {
 
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "test");
 
@@ -37,10 +37,10 @@ public class KvsCasPerfTest extends AbstractBenchmark {
             int requestsPerClient) {
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        return new KvsCasPerfTest(txnManager.getKeyValueService(), numClients, requestsPerClient).execute();
+        return new KvsWriteBenchmark(txnManager.getKeyValueService(), numClients, requestsPerClient).execute();
     }
 
-    private KvsCasPerfTest(KeyValueService keyValueService, int numClients, int numRequestsPerClient) {
+    private KvsWriteBenchmark(KeyValueService keyValueService, int numClients, int numRequestsPerClient) {
         super(numClients, numRequestsPerClient);
         this.keyValueService = keyValueService;
     }
@@ -48,6 +48,6 @@ public class KvsCasPerfTest extends AbstractBenchmark {
     @Override
     protected void performOneCall() {
         byte[] data = UUID.randomUUID().toString().getBytes();
-        keyValueService.putUnlessExists(TABLE, ImmutableMap.of(Cell.create(data, data), data));
+        keyValueService.put(TABLE, ImmutableMap.of(Cell.create(data, data), data), 101L);
     }
 }
