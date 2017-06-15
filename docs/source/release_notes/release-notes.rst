@@ -42,9 +42,30 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |new|
+         - Added a getRow() command to AtlasConsole for retrieving a single row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1992>`__)
 
+    *    - |fixed|
+         - Fixed an issue where the lock service was not properly shut down after losing leadership, which could result in threads blocking unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2014>`__)
+           
+    *    - |fixed|
+         - Lock refresh requests are no longer restricted by lock service threadpool limiting. 
+           This allows transactions to make progress even when the threadpool is full.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2025>`__)
+
+    *    - |devbreak| |improved|
+         - Upgraded all usages of http-remoting to remoting2
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
+
+    *    - |devbreak|
+         - Switched from feign to openfeign and bumped version.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2005>`__)
+
+    *    - |improved|
+         - The priority of logging on background sweep was increased from debug to info or warn.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -119,9 +140,6 @@ develop
          - Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2003>`__)
 
-    *    - |improved|
-         - Upgraded all usages of http-remoting to remoting2
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
 
     *    - |devbreak| |improved|
          - Converted all compile time uses of Guava's ``com.google.common.base.Optional`` class to the Java8 equivalent ``java.util.Optional``.
@@ -458,6 +476,11 @@ This release contains (almost) exclusively baseline-related changes.
          - ``ConflictDetectionManagers.createDefault(KeyValueService)`` has been deprecated.
            If you use this method, please replace it with ``ConflictDetectionManagers.create(KeyValueService)``.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1822>`__) and (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1850>`__)
+
+    *    - |improved|
+         - Improved memory footprint of lock state dumper and now it will include locking mode as well.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1891>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

@@ -65,14 +65,14 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.Response;
 
 import feign.RetryableException;
 import io.dropwizard.testing.ResourceHelpers;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
@@ -344,7 +344,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void throwsOnQueryingTimestampWithWithInvalidClientName() {
         TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
         assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
-                .hasMessageContaining("Unexpected char 0x08 at 5 in header value: test");
+                .hasMessageContaining("Unexpected char 0x08");
     }
 
     @Test
@@ -392,7 +392,7 @@ public class PaxosTimeLockServerIntegrationTest {
         // time / lock services
         assertContainsTimer(metrics,
                 "com.palantir.atlasdb.timelock.paxos.ManagedTimestampService.test.getFreshTimestamp");
-        assertContainsTimer(metrics, "com.palantir.lock.LockService.test.currentTimeMillis");
+        assertContainsTimer(metrics, "com.palantir.lock.RemoteLockService.test.currentTimeMillis");
 
         // local leader election classes
         assertContainsTimer(metrics, "com.palantir.paxos.PaxosLearner.learn");

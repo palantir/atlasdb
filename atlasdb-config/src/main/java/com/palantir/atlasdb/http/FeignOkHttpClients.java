@@ -27,15 +27,15 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.RemoteLockService;
-import com.squareup.okhttp.CipherSuite;
-import com.squareup.okhttp.ConnectionPool;
-import com.squareup.okhttp.ConnectionSpec;
-import com.squareup.okhttp.Interceptor;
-import com.squareup.okhttp.Response;
-import com.squareup.okhttp.TlsVersion;
 
 import feign.Client;
 import feign.okhttp.OkHttpClient;
+import okhttp3.CipherSuite;
+import okhttp3.ConnectionPool;
+import okhttp3.ConnectionSpec;
+import okhttp3.Interceptor;
+import okhttp3.Response;
+import okhttp3.TlsVersion;
 
 public final class FeignOkHttpClients {
     @VisibleForTesting
@@ -91,7 +91,7 @@ public final class FeignOkHttpClients {
     }
 
     /**
-     * Returns a feign {@link Client} wrapping a {@link com.squareup.okhttp.OkHttpClient} client with optionally
+     * Returns a feign {@link Client} wrapping a {@link okhttp3.OkHttpClient} client with optionally
      * specified {@link SSLSocketFactory}.
      */
     public static <T> Client newOkHttpClient(
@@ -105,14 +105,15 @@ public final class FeignOkHttpClients {
             Optional<SSLSocketFactory> sslSocketFactory,
             String userAgent,
             boolean retryOnConnectionFailure) {
-        com.squareup.okhttp.OkHttpClient client = new com.squareup.okhttp.OkHttpClient();
-
-        client.setConnectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES);
-        client.setConnectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS));
-        client.setSslSocketFactory(sslSocketFactory.orElse(null));
-        client.setRetryOnConnectionFailure(retryOnConnectionFailure);
-        client.interceptors().add(new UserAgentAddingInterceptor(userAgent));
-        return new OkHttpClient(client);
+        okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
+                .connectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES)
+                .connectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS, TimeUnit.MILLISECONDS))
+                .retryOnConnectionFailure(retryOnConnectionFailure);
+        if (sslSocketFactory.isPresent()) {
+            builder.sslSocketFactory(sslSocketFactory.get());
+        }
+        builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
+        return new OkHttpClient(builder.build());
     }
 
     @VisibleForTesting
@@ -131,7 +132,7 @@ public final class FeignOkHttpClients {
 
         @Override
         public Response intercept(Chain chain) throws IOException {
-            com.squareup.okhttp.Request requestWithUserAgent = chain.request()
+            okhttp3.Request requestWithUserAgent = chain.request()
                     .newBuilder()
                     .addHeader(USER_AGENT_HEADER, userAgent)
                     .build();

@@ -1635,8 +1635,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 CassandraVerifier.sanityCheckTableName(table);
 
-                TableReference tableRefLowerCased = TableReference
-                        .createLowerCased(table);
+                TableReference tableRefLowerCased = TableReference.createLowerCased(table);
                 if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
                     filteredTables.put(table, metadata);
                 } else {

@@ -49,4 +49,9 @@ public class DelegatingManagedTimestampService implements ManagedTimestampServic
     public void fastForwardTimestamp(@QueryParam("currentTimestamp") long currentTimestamp) {
         timestampManagementService.fastForwardTimestamp(currentTimestamp);
     }
+
+    @Override
+    public String ping() {
+        return timestampManagementService.ping();
+    }
 }

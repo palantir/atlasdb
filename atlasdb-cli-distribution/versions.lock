@@ -70,7 +70,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
@@ -83,7 +82,8 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
-                "io.dropwizard:dropwizard-jackson"
+                "io.dropwizard:dropwizard-jackson",
+                "io.github.openfeign:feign-jackson"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -251,34 +251,6 @@
             "locked": "0.2.10",
             "transitive": [
                 "com.mchange:c3p0"
-            ]
-        },
-        "com.netflix.feign:feign-core": {
-            "locked": "8.6.1",
-            "transitive": [
-                "com.netflix.feign:feign-jackson",
-                "com.netflix.feign:feign-jaxrs",
-                "com.netflix.feign:feign-okhttp"
-            ]
-        },
-        "com.netflix.feign:feign-jackson": {
-            "locked": "8.6.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "com.netflix.feign:feign-jaxrs": {
-            "locked": "8.6.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "com.netflix.feign:feign-okhttp": {
-            "locked": "8.10.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.atlasdb:atlasdb-api": {
@@ -593,16 +565,16 @@
                 "com.palantir.tritium:tritium-lib"
             ]
         },
-        "com.squareup.okhttp:okhttp": {
-            "locked": "2.5.0",
+        "com.squareup.okhttp3:okhttp": {
+            "locked": "3.6.0",
             "transitive": [
-                "com.netflix.feign:feign-okhttp"
+                "io.github.openfeign:feign-okhttp"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.6.0",
+            "locked": "1.11.0",
             "transitive": [
-                "com.squareup.okhttp:okhttp"
+                "com.squareup.okhttp3:okhttp"
             ]
         },
         "com.zaxxer:HikariCP": {
@@ -668,6 +640,34 @@
             "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "io.github.openfeign:feign-core": {
+            "locked": "9.5.0",
+            "transitive": [
+                "io.github.openfeign:feign-jackson",
+                "io.github.openfeign:feign-jaxrs",
+                "io.github.openfeign:feign-okhttp"
+            ]
+        },
+        "io.github.openfeign:feign-jackson": {
+            "locked": "9.5.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "io.github.openfeign:feign-jaxrs": {
+            "locked": "9.5.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "io.github.openfeign:feign-okhttp": {
+            "locked": "9.5.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "io.netty:netty-buffer": {
@@ -806,6 +806,12 @@
             "locked": "3.6.4",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-jdbc"
+            ]
+        },
+        "org.jvnet:animal-sniffer-annotation": {
+            "locked": "1.0",
+            "transitive": [
+                "io.github.openfeign:feign-core"
             ]
         },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {

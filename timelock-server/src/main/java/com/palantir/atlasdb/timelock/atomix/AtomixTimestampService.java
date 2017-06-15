@@ -66,4 +66,9 @@ public class AtomixTimestampService implements TimestampService, TimestampManage
             latestTimestampFromService = Futures.getUnchecked(timestamp.get());
         }
     }
+
+    @Override
+    public String ping() {
+        return PING_RESPONSE;
+    }
 }
