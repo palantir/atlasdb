@@ -123,6 +123,10 @@ develop
          - Upgraded all usages of http-remoting to remoting2
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
 
+    *    - |improved|
+         - Default cleaner will be able to track immutable timestamp change over time. Will log on WARN level if the immutable timestamp doesn't change for an hour, on ERROR level - for 24 hours. Useful for debugging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1971>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======

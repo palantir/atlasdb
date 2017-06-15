@@ -23,14 +23,16 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
 
 class MonitoredMinLockedVersionProvider {
     private static final Logger log = LoggerFactory.getLogger(MonitoredMinLockedVersionProvider.class);
 
-    private static final long HOURS_TO_WARN = 1L;
-    private static final long HOURS_TO_ERROR = 24L;
+    private static final long TIME_TO_WARN = 1L;
+    private static final long TIME_TO_ERROR = 24L;
+    private static final TimeUnit TIME_UNIT = TimeUnit.HOURS;
     private static final String LONG_RUNNING_TRANSACTION_ERROR_MESSAGE = "Immutable timestamp has not been updated for [{}] hour(s) for LockClient [{}]."
             + " This indicates to a very long running transaction.";
 
@@ -42,8 +44,13 @@ class MonitoredMinLockedVersionProvider {
     MonitoredMinLockedVersionProvider(RemoteLockService lockService, LockClient lockClient) {
         this.lockService = lockService;
         this.lockClient = lockClient;
-        this.setupMonitoring(HOURS_TO_WARN, false);
-        this.setupMonitoring(HOURS_TO_ERROR, true);
+        this.setupMonitoring(TIME_TO_WARN, false);
+        this.setupMonitoring(TIME_TO_ERROR, true);
+    }
+
+    @VisibleForTesting
+    protected TimeUnit getTimeUnit() {
+        return TIME_UNIT;
     }
 
     private void setupMonitoring(long periodInHours, boolean isLogAsError) {
@@ -51,17 +58,21 @@ class MonitoredMinLockedVersionProvider {
             private Long lastLockedVersionId = null;
             @Override
             public void run() {
-                Long newLockedVersionId = getMinLockedVersion();
-                if (lastLockedVersionId != null && lastLockedVersionId.equals(newLockedVersionId)) {
-                    if (isLogAsError) {
-                        log.error(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, periodInHours, lockClient.getClientId());
-                    } else {
-                        log.warn(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, periodInHours, lockClient.getClientId());
+                try {
+                    Long newLockedVersionId = getMinLockedVersion();
+                    if (lastLockedVersionId != null && lastLockedVersionId.equals(newLockedVersionId)) {
+                        if (isLogAsError) {
+                            log.error(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, periodInHours, lockClient.getClientId());
+                        } else {
+                            log.warn(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, periodInHours, lockClient.getClientId());
+                        }
                     }
+                    lastLockedVersionId = newLockedVersionId;
+                } catch (Exception e) {
+                    log.error("Checking immutable timestamp failed", e);
                 }
-                lastLockedVersionId = newLockedVersionId;
             }
-        }, 0, periodInHours, TimeUnit.HOURS);
+        }, 0, periodInHours, getTimeUnit());
 
     }
 

@@ -35,5 +35,5 @@ dependencies {
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 
-  testRuntime group: 'ch.qos.logback', name: 'logback-classic'
+  testCompile group: 'uk.org.lidalia', name: 'slf4j-test', version: '1.1.0'
 }
