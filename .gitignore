@@ -43,3 +43,6 @@ var/
 # Memory tracker nohup
 nohup.out
 nohup.err
+
+# Benchmark hosts
+scripts/benchmarks/servers.txt

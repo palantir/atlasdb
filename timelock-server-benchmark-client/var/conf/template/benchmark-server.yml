@@ -1,0 +1,46 @@
+atlas:
+  namespace: benchmarks123
+  timelock:
+    serversList:
+      servers:
+        - https://SERVER1:9421
+        - https://SERVER2:9421
+        - https://SERVER3:9421
+      sslConfiguration:
+        keyStorePath: var/security/keyStore.jks
+        keyStorePassword: keystore
+        trustStorePath: var/security/trustStore.jks
+  defaultLockTimeoutSeconds: 20
+  keyValueService:
+    type: cassandra
+    ssl: false
+    replicationFactor: 3
+    poolSize: 100
+    maxConnectionBurstSize: 400
+    servers:
+      - 'CASSANDRA1:9160'
+      - 'CASSANDRA2:9160'
+      - 'CASSANDRA3:9160'
+
+server:
+  requestLog:
+    appenders:
+      - type: file
+        archive: false
+        currentLogFilename: var/log/request.log
+  applicationConnectors:
+  - type: http
+    port: 9425
+
+  adminConnectors:
+  - type: http
+    port: 7425
+
+logging:
+  appenders:
+    - type: file
+      archive: false
+      currentLogFilename: var/log/service.log
+  level: INFO
+  loggers:
+    dualschema.perf: DEBUG

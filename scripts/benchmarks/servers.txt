@@ -1,0 +1,7 @@
+SERVER1=<hostname>
+SERVER2=<hostname>
+SERVER3=<hostname>
+CLIENT=<hostname>
+CASSANDRA1=<hostname>
+CASSANDRA2=<hostname>
+CASSANDRA3=<hostname>
