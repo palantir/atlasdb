@@ -36,12 +36,12 @@ import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 
 import com.palantir.atlasdb.performance.BenchmarkParam;
+import com.palantir.atlasdb.performance.MinimalReportFormatForTest;
 import com.palantir.atlasdb.performance.PerformanceResults;
 import com.palantir.atlasdb.performance.backend.DatabasesContainer;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
-import com.palantir.atlasdb.performance.MinimalReportFormatForTest;
 
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
