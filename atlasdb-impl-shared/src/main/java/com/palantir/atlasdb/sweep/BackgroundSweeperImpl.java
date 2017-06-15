@@ -199,7 +199,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             } else {
                 SweepBatchConfig lastBatchConfig = getAdjustedBatchConfig();
                 log.warn("The background sweep job failed unexpectedly with batch config {}."
-                        + " Attempting to continue with a lower batch size...",
+                                + " Attempting to continue with a lower batch size...",
                         SafeArg.of("cell batch size", lastBatchConfig),
                         e);
                 // Cut batch size in half, always sweep at least one row (we round down).
@@ -256,7 +256,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             saveSweepResults(tableToSweep, results);
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
-            log.warn("Failed to sweep {} with batch config {} starting from row {}",
+            log.debug("Failed to sweep {} with batch config {} starting from row {}",
                     UnsafeArg.of("table name", tableRef),
                     SafeArg.of("cell batch size", batchConfig),
                     UnsafeArg.of("start row hex", startRowToHex(startRow)));
