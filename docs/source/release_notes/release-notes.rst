@@ -63,6 +63,10 @@ develop
          - Switched from feign to openfeign and bumped version.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2005>`__)
 
+    *    - |improved|
+         - The priority of logging on background sweep was increased from debug to info or warn.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
