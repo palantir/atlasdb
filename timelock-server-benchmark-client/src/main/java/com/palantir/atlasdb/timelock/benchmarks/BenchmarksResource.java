@@ -34,37 +34,37 @@ public class BenchmarksResource implements BenchmarksService {
     }
 
     @Override
-    public Map<String, Object> writeTransactionPerf(int numClients, int numRequestsPerClient) {
-        return WriteTransactionPerfTest.execute(txnManager, numClients, numRequestsPerClient);
+    public Map<String, Object> writeTransaction(int numClients, int numRequestsPerClient) {
+        return WriteTransactionBenchmark.execute(txnManager, numClients, numRequestsPerClient);
     }
 
     @Override
-    public Map<String, Object> contendedWriteTransactionPerf(int numClients, int numRequestsPerClient) {
-        return com.palantir.atlasdb.timelock.benchmarks.ContendedWriteTransactionPerfTest.execute(txnManager, numClients, numRequestsPerClient);
+    public Map<String, Object> contendedWriteTransaction(int numClients, int numRequestsPerClient) {
+        return ContendedWriteTransactionBenchmark.execute(txnManager, numClients, numRequestsPerClient);
     }
 
     @Override
-    public Map<String, Object> readTransactionPerf(int numClients, int numRequestsPerClient) {
-        return com.palantir.atlasdb.timelock.benchmarks.ReadTransactionPerfTest.execute(txnManager, numClients, numRequestsPerClient);
+    public Map<String, Object> readTransaction(int numClients, int numRequestsPerClient) {
+        return ReadTransactionBenchmark.execute(txnManager, numClients, numRequestsPerClient);
     }
 
     @Override
-    public Map<String, Object> kvsWritePerf(int numClients, int numRequestsPerClient) {
-        return KvsWritePerfTest.execute(txnManager, numClients, numRequestsPerClient);
+    public Map<String, Object> kvsWrite(int numClients, int numRequestsPerClient) {
+        return KvsWriteBenchmark.execute(txnManager, numClients, numRequestsPerClient);
     }
 
     @Override
-    public Map<String, Object> kvsCasPerf(int numClients, int numRequestsPerClient) {
-        return com.palantir.atlasdb.timelock.benchmarks.KvsCasPerfTest.execute(txnManager, numClients, numRequestsPerClient);
+    public Map<String, Object> kvsCas(int numClients, int numRequestsPerClient) {
+        return KvsCasBenchmark.execute(txnManager, numClients, numRequestsPerClient);
     }
 
     @Override
-    public Map<String, Object> kvsReadPerf(int numClients, int numRequestsPerClient) {
-        return KvsReadPerfTest.execute(txnManager, numClients, numRequestsPerClient);
+    public Map<String, Object> kvsRead(int numClients, int numRequestsPerClient) {
+        return KvsReadBenchmark.execute(txnManager, numClients, numRequestsPerClient);
     }
 
     @Override
-    public Map<String, Object> timestampPerf(int numClients, int numRequestsPerClient) {
-        return TimestampPerfTest.execute(txnManager, numClients, numRequestsPerClient);
+    public Map<String, Object> timestamp(int numClients, int numRequestsPerClient) {
+        return TimestampBenchmark.execute(txnManager, numClients, numRequestsPerClient);
     }
 }
