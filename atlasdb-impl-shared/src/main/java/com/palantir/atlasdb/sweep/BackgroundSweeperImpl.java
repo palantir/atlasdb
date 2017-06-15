@@ -166,7 +166,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             return false;
         } else {
-            specificTableSweeper.runOnceForTable(tableToSweep.get(), true);
+            specificTableSweeper.runOnceForTable(tableToSweep.get(), true, Optional.empty());
             return true;
         }
     }

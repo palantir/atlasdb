@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -119,11 +120,13 @@ public final class SpecificTableSweeperImpl {
         return sweepMetrics;
     }
 
-    boolean runOnceForTable(TableToSweep tableToSweep, boolean saveSweepResults) {
+    boolean runOnceForTable(TableToSweep tableToSweep,
+            boolean saveSweepResults,
+            Optional<SweepBatchConfig> newSweepBatchConfig) {
         Stopwatch watch = Stopwatch.createStarted();
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
-        SweepBatchConfig batchConfig = getAdjustedBatchConfig();
+        SweepBatchConfig batchConfig = newSweepBatchConfig.orElse(getAdjustedBatchConfig());
         try {
             SweepResults results = sweepRunner.run(
                     tableRef,
