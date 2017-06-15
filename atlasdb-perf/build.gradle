@@ -41,18 +41,17 @@ distZip {
 task postgresBenchmarkTest(type:Exec) {
     logging.captureStandardOutput LogLevel.LIFECYCLE
     dependsOn(installDist)
-    commandLine "./build/install/atlasdb-perf/bin/atlasdb-perf", "--test-run", "--backend", "POSTGRES"
+    commandLine project.buildDir.toString() + "/install/atlasdb-perf/bin/atlasdb-perf", "--test-run", "--backend", "POSTGRES"
 }
 
 task cassandraBenchmarkTest(type:Exec) {
     logging.captureStandardOutput LogLevel.LIFECYCLE
     dependsOn(installDist)
-    commandLine "./build/install/atlasdb-perf/bin/atlasdb-perf", "SweepBenchmarks.batchedSingleSweepRun", "--test-run", "--backend", "CASSANDRA"
+    commandLine project.buildDir.toString() + "/install/atlasdb-perf/bin/atlasdb-perf", "SweepBenchmarks.batchedSingleSweepRun", "--test-run", "--backend", "CASSANDRA"
 }
 
 test.dependsOn postgresBenchmarkTest
 test.dependsOn cassandraBenchmarkTest
-
 
 gradle.taskGraph.beforeTask { Task task ->
     if (task.name.contains("BenchmarkTest")) {

@@ -18,6 +18,7 @@
 package com.palantir.atlasdb.performance.cli;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -30,6 +31,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
@@ -122,8 +124,8 @@ public class AtlasDbPerfCli {
 
     private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
-                .measurementIterations(1)
                 .forks(1)
+                .measurementIterations(1)
                 .timeUnit(TimeUnit.MICROSECONDS)
                 .shouldFailOnError(true)
                 .param(BenchmarkParam.URI.getKey(),
@@ -139,19 +141,27 @@ public class AtlasDbPerfCli {
         }
 
         if (!cli.testRun) {
-            optBuilder.warmupIterations(1)
-                    .mode(Mode.SampleTime);
-
-            Collection<RunResult> results = new Runner(optBuilder.build()).run();
-
-            if (cli.outputFile != null) {
-                new PerformanceResults(results).writeToFile(new File(cli.outputFile));
-            }
+            runCli(cli, optBuilder);
         } else {
-            optBuilder.warmupIterations(0)
-                    .mode(Mode.SingleShotTime);
-            new Runner(optBuilder.build(), MinimalReportFormatForTest.get()).run();
+            runCliInTestMode(optBuilder);
         }
+    }
+
+    private static void runCli(AtlasDbPerfCli cli, ChainedOptionsBuilder optBuilder) throws Exception {
+        optBuilder.warmupIterations(1)
+                .mode(Mode.SampleTime);
+
+        Collection<RunResult> results = new Runner(optBuilder.build()).run();
+
+        if (cli.outputFile != null) {
+            new PerformanceResults(results).writeToFile(new File(cli.outputFile));
+        }
+    }
+
+    private static void runCliInTestMode(ChainedOptionsBuilder optBuilder) throws RunnerException {
+        optBuilder.warmupIterations(0)
+                .mode(Mode.SingleShotTime);
+        new Runner(optBuilder.build(), MinimalReportFormatForTest.get()).run();
     }
 
     private static DatabasesContainer startupDatabase(Set<String> backends) {
