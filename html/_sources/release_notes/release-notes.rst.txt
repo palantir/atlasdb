@@ -59,6 +59,11 @@ develop
          - Upgraded all usages of http-remoting to remoting2
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
 
+    *    - |devbreak|
+         - Switched from feign to openfeign and bumped version.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2005>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
@@ -130,6 +135,7 @@ develop
     *    - |fixed|
          - Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2003>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
