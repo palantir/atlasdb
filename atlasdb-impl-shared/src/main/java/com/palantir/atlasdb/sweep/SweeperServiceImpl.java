@@ -40,9 +40,9 @@ public final class SweeperServiceImpl implements SweeperService {
         TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
 
         Preconditions.checkArgument(TableReference.isFullyQualifiedName(tableName),
-                "Table name is not fully qualified");
+                String.format("Table name %s is not fully qualified", tableName));
         Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
-                "Table requested to sweep {} does not exist", tableName);
+                String.format("Table requested to sweep %s does not exist", tableName));
 
         return specificTableSweeper.runOnceForTable(new TableToSweep(tableRef, null), false, Optional.empty());
     }
