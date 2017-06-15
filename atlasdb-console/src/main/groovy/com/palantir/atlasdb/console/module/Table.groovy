@@ -58,6 +58,9 @@ class Table {
         getDescription()['columns'].collect {it['long_name']}
     }
 
+    List rowComponents() {
+        getDescription()['row'].collect() {it['name']}
+    }
     /**
      * Get data from atlas by specifying the row of data to return
      * @param row  A single row to get, where the row is a List of components
