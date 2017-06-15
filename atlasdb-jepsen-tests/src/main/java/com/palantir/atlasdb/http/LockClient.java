@@ -42,7 +42,15 @@ public final class LockClient {
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(descriptor, LockMode.WRITE))
                 .doNotBlock()
                 .build();
-        return service.lock(client, request);
+        LockRefreshToken token = service.lock(client, request);
+
+        // Some implementations of the lock service are uninterruptible.
+        // However, correctness of the Jepsen verifier relies on workers maintaining at most one open request.
+        // So we want to treat this request as cancelled.
+        if (Thread.currentThread().isInterrupted()) {
+            throw new InterruptedException("lock() was interrupted");
+        }
+        return token;
     }
 
     public static boolean unlock(RemoteLockService service, LockRefreshToken token) throws InterruptedException {
