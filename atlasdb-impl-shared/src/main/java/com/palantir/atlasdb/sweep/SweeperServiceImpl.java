@@ -22,6 +22,7 @@ import javax.annotation.Nullable;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweeperservice.SweeperService;
@@ -59,7 +60,7 @@ public final class SweeperServiceImpl implements SweeperService {
                 .staleValuesDeleted(0)
                 .cellTsPairsExamined(0)
                 .minimumSweptTimestamp(0)
-                .startRow(startRow.getBytes())
+                .startRow(decodeStartRow(startRow))
                 .build();
 
         return specificTableSweeper.runOnceForTable(new TableToSweep(tableRef, sweepProgress), false, Optional.empty());
@@ -78,15 +79,16 @@ public final class SweeperServiceImpl implements SweeperService {
         Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
                 "Table requested to sweep does not exist");
 
-        ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder().maxCellTsPairsToExamine(
-                maxCellTsPairsToExamine).candidateBatchSize(candidateBatchSize).deleteBatchSize(
-                deleteBatchSize).build();
+        ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
+                .maxCellTsPairsToExamine(maxCellTsPairsToExamine)
+                .candidateBatchSize(candidateBatchSize)
+                .deleteBatchSize(deleteBatchSize).build();
 
         ImmutableSweepProgress sweepProgress = ImmutableSweepProgress.builder().tableRef(tableRef)
                 .staleValuesDeleted(0)
                 .cellTsPairsExamined(0)
                 .minimumSweptTimestamp(0)
-                .startRow(startRow.getBytes())
+                .startRow(decodeStartRow(startRow))
                 .build();
 
         return specificTableSweeper.runOnceForTable(
@@ -95,5 +97,8 @@ public final class SweeperServiceImpl implements SweeperService {
                 Optional.of(sweepBatchConfig));
     }
 
+    private byte[] decodeStartRow(String rowString) {
+        return BaseEncoding.base16().decode(rowString);
+    }
 }
 

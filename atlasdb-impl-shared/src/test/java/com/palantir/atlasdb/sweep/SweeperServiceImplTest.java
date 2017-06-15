@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -112,21 +113,22 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     @Test
     public void testWritePriorityNotUpdatedAfterSecondRunCompletesSweep() {
+        byte[] startRow = {1, 2, 3};
         setProgress(progressStore, ImmutableSweepProgress.builder()
                 .tableRef(TABLE_REF)
                 .staleValuesDeleted(3)
                 .cellTsPairsExamined(11)
                 .minimumSweptTimestamp(4567L)
-                .startRow(new byte[] {1, 2, 3})
+                .startRow(startRow)
                 .build());
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(9999L)
-                .previousStartRow(new byte[] {1, 2, 3})
+                .previousStartRow(startRow)
                 .build(), sweepTaskRunner, TABLE_REF);
         when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
-        sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), "{1, 2, 3}");
+        sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), encodeStartRow(startRow));
         Mockito.verify(priorityStore, never()).update(
                 Mockito.any(),
                 Mockito.eq(TABLE_REF),
@@ -141,15 +143,16 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     @Test
     public void testNotPutZeroWriteCountAfterFreshIncompleteRun() {
         setNoProgress(progressStore);
+        byte[] nextStartRow = {1, 2, 3};
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
-                .nextStartRow(new byte[] {1, 2, 3})
+                .nextStartRow(nextStartRow)
                 .build(), sweepTaskRunner, TABLE_REF);
-        sweeperService.sweepTableFromStartRowWithBatchConfig(TABLE_REF.getQualifiedName(), "{1, 2, 3}", 10, 10, 1);
+        sweeperService.sweepTableFromStartRowWithBatchConfig(TABLE_REF.getQualifiedName(), encodeStartRow(nextStartRow), 10, 10, 1);
         when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
-        sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), "{1, 2, 3}");
+        sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), encodeStartRow(nextStartRow));
         Mockito.verify(priorityStore, never()).update(
                 Mockito.any(),
                 Mockito.eq(TABLE_REF),
@@ -157,4 +160,9 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
                         .newWriteCount(0L)
                         .build()));
     }
+
+    private String encodeStartRow(byte[] rowBytes) {
+        return BaseEncoding.base16().encode(rowBytes);
+    }
+
 }
