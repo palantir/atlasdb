@@ -33,6 +33,8 @@ public class KeyValueServiceInstrumentationTest {
                 .isExactlyInstanceOf(MockKeyValueServiceInstrumentation.class);
         assertThat(KeyValueServiceInstrumentation.forDatabase(mockKeyValueServiceInstrumentation.toString()))
                 .isExactlyInstanceOf(MockKeyValueServiceInstrumentation.class);
+
+        KeyValueServiceInstrumentation.removeBackendType(mockKeyValueServiceInstrumentation);
     }
 
     @Test
@@ -55,6 +57,8 @@ public class KeyValueServiceInstrumentationTest {
                 .isExactlyInstanceOf(mockKeyValueServiceInstrumentation.getClass());
         assertThat(KeyValueServiceInstrumentation.forDatabase(mockKeyValueServiceInstrumentation.toString()))
                 .isExactlyInstanceOf(mockKeyValueServiceInstrumentation.getClass());
+
+        KeyValueServiceInstrumentation.removeBackendType(mockKeyValueServiceInstrumentation);
     }
 
 }
