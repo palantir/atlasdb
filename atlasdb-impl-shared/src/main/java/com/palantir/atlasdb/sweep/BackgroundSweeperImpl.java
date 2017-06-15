@@ -185,22 +185,22 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 if (locks.haveLocks()) {
                     sweptSuccessfully = runOnce();
                 } else {
-                    log.warn("Skipping sweep because sweep is running elsewhere.");
+                    log.debug("Skipping sweep because sweep is running elsewhere.");
                 }
             } else {
-                log.info("Skipping sweep because it is currently disabled.");
+                log.debug("Skipping sweep because it is currently disabled.");
             }
         } catch (InsufficientConsistencyException e) {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
         } catch (RuntimeException e) {
             sweepMetrics.sweepError();
             if (checkAndRepairTableDrop()) {
-                log.error("The table being swept by the background sweeper was dropped, moving on...");
+                log.info("The table being swept by the background sweeper was dropped, moving on...");
             } else {
                 SweepBatchConfig lastBatchConfig = getAdjustedBatchConfig();
-                log.error("The background sweep job failed unexpectedly with batch config {}"
-                        + ". Attempting to continue with a lower batch size...",
-                        SafeArg.of("", lastBatchConfig),
+                log.warn("The background sweep job failed unexpectedly with batch config {}."
+                        + " Attempting to continue with a lower batch size...",
+                        SafeArg.of("cell batch size", lastBatchConfig),
                         e);
                 // Cut batch size in half, always sweep at least one row (we round down).
                 batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
@@ -241,12 +241,12 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             log.info("Swept {} unique cells from {} starting at {}"
                             + " and performed {} deletions in {} ms"
                             + " up to timestamp {}.",
-                    SafeArg.of("", results.getCellTsPairsExamined()),
+                    SafeArg.of("cellsExamined", results.getCellTsPairsExamined()),
                     UnsafeArg.of("table name", tableRef),
-                    SafeArg.of("row hex", startRowToHex(startRow)),
-                    SafeArg.of("", results.getStaleValuesDeleted()),
-                    SafeArg.of("", elapsedMillis),
-                    SafeArg.of("", results.getSweptTimestamp()));
+                    UnsafeArg.of("start row hex", startRowToHex(startRow)),
+                    SafeArg.of("staleValuesDeleted", results.getStaleValuesDeleted()),
+                    SafeArg.of("elapsedMillis", elapsedMillis),
+                    SafeArg.of("sweptTimestamp", results.getSweptTimestamp()));
             sweepPerfLogger.logSweepResults(
                     SweepPerformanceResults.builder()
                             .sweepResults(results)
@@ -258,8 +258,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             // Error logged at a higher log level above.
             log.warn("Failed to sweep {} with batch config {} starting from row {}",
                     UnsafeArg.of("table name", tableRef),
-                    SafeArg.of("", batchConfig),
-                    SafeArg.of("hex", startRowToHex(startRow)));
+                    SafeArg.of("cell batch size", batchConfig),
+                    UnsafeArg.of("start row hex", startRowToHex(startRow)));
             throw e;
         }
     }
@@ -330,7 +330,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                     Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
                             tx, sweepRunner.getConservativeSweepTimestamp());
                     if (nextTable.isPresent()) {
-                        log.info("Now starting to sweep {}.", UnsafeArg.of("next table", nextTable));
+                        log.debug("Now starting to sweep {}.", UnsafeArg.of("table name", nextTable));
                         return Optional.of(new TableToSweep(nextTable.get(), null));
                     } else {
                         return Optional.empty();
@@ -360,8 +360,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
             log.info("Finished sweeping {}, examined {} unique cells, deleted {} stale values.",
                     UnsafeArg.of("table name", tableToSweep.getTableRef()),
-                    SafeArg.of("", cellsExamined),
-                    SafeArg.of("", staleValuesDeleted));
+                    SafeArg.of("cellsExamined", cellsExamined),
+                    SafeArg.of("staleValuesDeleted", staleValuesDeleted));
             sweepProgressStore.clearProgress();
         }
     }
@@ -371,9 +371,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Stopwatch watch = Stopwatch.createStarted();
             kvs.compactInternally(tableRef);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.info("Finished performing compactInternally on {} in {} ms.",
+            log.debug("Finished performing compactInternally on {} in {} ms.",
                     UnsafeArg.of("table name", tableRef),
-                    SafeArg.of("", elapsedMillis));
+                    SafeArg.of("elapsedMillis", elapsedMillis));
             sweepPerfLogger.logInternalCompaction(
                     SweepCompactionPerformanceResults.builder()
                             .tableName(tableRef.getQualifiedName())
@@ -458,7 +458,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         if (daemon == null) {
             return;
         }
-        log.info("Signalling background sweeper to shut down.");
+        log.debug("Signalling background sweeper to shut down.");
         daemon.interrupt();
         try {
             daemon.join();
