@@ -76,8 +76,6 @@ public abstract class AtlasDbRuntimeConfig {
                 .sweepCandidateBatchHint(config.getSweepCandidateBatchHint())
                 .sweepReadLimit(config.getSweepReadLimit())
                 .sweepDeleteBatchHint(config.getSweepDeleteBatchHint())
-                .sweepBatchSize(config.getSweepBatchSize())
-                .sweepCellBatchSize(config.getSweepBatchSize())
                 .build();
     }
 }
