@@ -32,43 +32,43 @@ public interface BenchmarksService {
 
     @GET
     @Path("/write-txn")
-    Map<String, Object> writeTransactionPerf(
+    Map<String, Object> writeTransaction(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
     @GET
     @Path("/contended-write-txn")
-    Map<String, Object> contendedWriteTransactionPerf(
+    Map<String, Object> contendedWriteTransaction(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
     @GET
     @Path("/read-txn")
-    Map<String, Object> readTransactionPerf(
+    Map<String, Object> readTransaction(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
     @GET
     @Path("/kvs-write")
-    Map<String, Object> kvsWritePerf(
+    Map<String, Object> kvsWrite(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
     @GET
     @Path("/kvs-cas")
-    Map<String, Object> kvsCasPerf(
+    Map<String, Object> kvsCas(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
     @GET
     @Path("/kvs-read")
-    Map<String, Object> kvsReadPerf(
+    Map<String, Object> kvsRead(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
     @GET
     @Path("/timestamp")
-    Map<String, Object> timestampPerf(
+    Map<String, Object> timestamp(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 

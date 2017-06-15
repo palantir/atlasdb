@@ -21,16 +21,16 @@ import java.util.Map;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.timestamp.TimestampService;
 
-public class TimestampPerfTest extends AbstractBenchmark {
+public class TimestampBenchmark extends AbstractBenchmark {
 
     private final TimestampService timestampService;
 
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
             int requestsPerClient) {
-        return new TimestampPerfTest(txnManager.getTimestampService(), numClients, requestsPerClient).execute();
+        return new TimestampBenchmark(txnManager.getTimestampService(), numClients, requestsPerClient).execute();
     }
 
-    private TimestampPerfTest(TimestampService timestampService, int numClients, int numRequestsPerClient) {
+    private TimestampBenchmark(TimestampService timestampService, int numClients, int numRequestsPerClient) {
         super(numClients, numRequestsPerClient);
         this.timestampService = timestampService;
     }

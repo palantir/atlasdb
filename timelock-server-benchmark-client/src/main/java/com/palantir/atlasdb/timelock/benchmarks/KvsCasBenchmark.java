@@ -13,50 +13,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.timelock.benchmarks;
 
 import java.util.Map;
 import java.util.UUID;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class WriteTransactionPerfTest extends AbstractBenchmark {
-
-    private static final Logger log = LoggerFactory.getLogger(WriteTransactionPerfTest.class);
+public class KvsCasBenchmark extends AbstractBenchmark {
 
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "test");
 
-    private final TransactionManager txnManager;
+    private final KeyValueService keyValueService;
 
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
             int requestsPerClient) {
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        return new WriteTransactionPerfTest(txnManager, numClients, requestsPerClient).execute();
+        return new KvsCasBenchmark(txnManager.getKeyValueService(), numClients, requestsPerClient).execute();
     }
 
-    private WriteTransactionPerfTest(TransactionManager txnManager, int numClients, int requestsPerClient) {
-        super(numClients, requestsPerClient);
-
-        this.txnManager = txnManager;
+    private KvsCasBenchmark(KeyValueService keyValueService, int numClients, int numRequestsPerClient) {
+        super(numClients, numRequestsPerClient);
+        this.keyValueService = keyValueService;
     }
 
     @Override
-    public void performOneCall() {
-        txnManager.runTaskWithRetry(txn -> {
-            byte[] data = UUID.randomUUID().toString().getBytes();
-            txn.put(TABLE, ImmutableMap.of(Cell.create(data, data), data));
-            return null;
-        });
+    protected void performOneCall() {
+        byte[] data = UUID.randomUUID().toString().getBytes();
+        keyValueService.putUnlessExists(TABLE, ImmutableMap.of(Cell.create(data, data), data));
     }
-
 }
