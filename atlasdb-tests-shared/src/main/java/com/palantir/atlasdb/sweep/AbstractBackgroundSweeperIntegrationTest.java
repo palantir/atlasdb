@@ -82,7 +82,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
         SweepMetrics sweepMetrics = new SweepMetrics();
-        SpecificTableSweeperImpl specificTableSweeper = SpecificTableSweeperImpl.create(
+        SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 txManager,
                 kvs,
                 sweepRunner,

@@ -15,33 +15,26 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Optional;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.stubbing.Answer;
 
 import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
-import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
-import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.RemoteLockService;
 
-public class BackgroundSweeperFastTest {
+public class BackgroundSweeperFastTest extends SweeperTestSetup {
     private static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName(
             "backgroundsweeper.fasttest");
 
-    private BackgroundSweeperImpl backgroundSweeper;
+    protected SpecificTableSweeper specificTableSweeper;
+    protected BackgroundSweeperImpl backgroundSweeper;
     private KeyValueService kvs = Mockito.mock(KeyValueService.class);
     private SweepProgressStore progressStore = Mockito.mock(SweepProgressStore.class);
     private SweepPriorityStore priorityStore = Mockito.mock(SweepPriorityStore.class);
@@ -59,8 +52,8 @@ public class BackgroundSweeperFastTest {
                 .maxCellTsPairsToExamine(1000)
                 .build();
 
-        SpecificTableSweeperImpl specificTableSweeperImpl = new SpecificTableSweeperImpl(
-                mockTxManager(),
+        specificTableSweeper = new SpecificTableSweeper(
+                SweeperTestSetup.mockTxManager(),
                 kvs,
                 sweepTaskRunner,
                 () -> sweepBatchConfig,
@@ -75,18 +68,18 @@ public class BackgroundSweeperFastTest {
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis
                 Mockito.mock(PersistentLockManager.class),
-                specificTableSweeperImpl);
+                specificTableSweeper);
     }
 
     @Test
     public void testWritePriorityAfterCompleteFreshRun() {
-        setNoProgress();
-        setNextTableToSweep(TABLE_REF);
+        setNoProgress(progressStore);
+        setNextTableToSweep(TABLE_REF, nextTableToSweepProvider);
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
-                .build());
+                .build(), sweepTaskRunner, TABLE_REF);
         backgroundSweeper.runOnce();
         Mockito.verify(priorityStore).update(
                 Mockito.any(),
@@ -102,19 +95,19 @@ public class BackgroundSweeperFastTest {
 
     @Test
     public void testWritePriorityAfterSecondRunCompletesSweep() {
-        setProgress(ImmutableSweepProgress.builder()
-                        .tableRef(TABLE_REF)
-                        .staleValuesDeleted(3)
-                        .cellTsPairsExamined(11)
-                        .minimumSweptTimestamp(4567L)
-                        .startRow(new byte[] {1, 2, 3})
-                        .build());
+        setProgress(progressStore, ImmutableSweepProgress.builder()
+                .tableRef(TABLE_REF)
+                .staleValuesDeleted(3)
+                .cellTsPairsExamined(11)
+                .minimumSweptTimestamp(4567L)
+                .startRow(new byte[] {1, 2, 3})
+                .build());
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(9999L)
                 .previousStartRow(new byte[] {1, 2, 3})
-                .build());
+                .build(), sweepTaskRunner, TABLE_REF);
         backgroundSweeper.runOnce();
         Mockito.verify(priorityStore).update(
                 Mockito.any(),
@@ -129,14 +122,14 @@ public class BackgroundSweeperFastTest {
 
     @Test
     public void testWriteProgressAfterIncompleteRun() {
-        setNoProgress();
-        setNextTableToSweep(TABLE_REF);
+        setNoProgress(progressStore);
+        setNextTableToSweep(TABLE_REF, nextTableToSweepProvider);
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
                 .nextStartRow(new byte[] {1, 2, 3})
-                .build());
+                .build(), sweepTaskRunner, TABLE_REF);
         backgroundSweeper.runOnce();
         Mockito.verify(progressStore).saveProgress(
                 Mockito.any(),
@@ -151,14 +144,14 @@ public class BackgroundSweeperFastTest {
 
     @Test
     public void testPutZeroWriteCountAfterFreshIncompleteRun() {
-        setNoProgress();
-        setNextTableToSweep(TABLE_REF);
+        setNoProgress(progressStore);
+        setNextTableToSweep(TABLE_REF, nextTableToSweepProvider);
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
                 .nextStartRow(new byte[] {1, 2, 3})
-                .build());
+                .build(), sweepTaskRunner, TABLE_REF);
         backgroundSweeper.runOnce();
         Mockito.verify(priorityStore).update(
                 Mockito.any(),
@@ -170,32 +163,33 @@ public class BackgroundSweeperFastTest {
 
     @Test
     public void testMetricsNotRecordedAfterIncompleteRun() {
-        setNoProgress();
-        setNextTableToSweep(TABLE_REF);
+        setNoProgress(progressStore);
+        setNextTableToSweep(TABLE_REF, nextTableToSweepProvider);
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
                 .nextStartRow(new byte[] {1, 2, 3})
-                .build());
+                .build(), sweepTaskRunner, TABLE_REF);
         backgroundSweeper.runOnce();
         Mockito.verifyZeroInteractions(sweepMetrics);
     }
 
     @Test
     public void testRecordCumulativeMetricsAfterCompleteRun() {
-        setProgress(ImmutableSweepProgress.builder()
-                .tableRef(TABLE_REF)
-                .staleValuesDeleted(3)
-                .cellTsPairsExamined(11)
-                .minimumSweptTimestamp(4567L)
-                .startRow(new byte[] {1, 2, 3})
-                .build());
+        setProgress(progressStore,
+                ImmutableSweepProgress.builder()
+                        .tableRef(TABLE_REF)
+                        .staleValuesDeleted(3)
+                        .cellTsPairsExamined(11)
+                        .minimumSweptTimestamp(4567L)
+                        .startRow(new byte[] {1, 2, 3})
+                        .build());
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
-                .build());
+                .build(), sweepTaskRunner, TABLE_REF);
         backgroundSweeper.runOnce();
         Mockito.verify(sweepMetrics).examinedCells(TABLE_REF, 21);
         Mockito.verify(sweepMetrics).deletedCells(TABLE_REF, 5);
@@ -203,57 +197,27 @@ public class BackgroundSweeperFastTest {
 
     @Test
     public void testCompactInternallyAfterCompleteRunIfNonZeroDeletes() {
-        setNoProgress();
-        setNextTableToSweep(TABLE_REF);
+        setNoProgress(progressStore);
+        setNextTableToSweep(TABLE_REF, nextTableToSweepProvider);
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(1)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
-                .build());
+                .build(), sweepTaskRunner, TABLE_REF);
         backgroundSweeper.runOnce();
         Mockito.verify(kvs).compactInternally(TABLE_REF);
     }
 
     @Test
     public void testDontCompactInternallyAfterCompleteRunIfZeroDeletes() {
-        setNoProgress();
-        setNextTableToSweep(TABLE_REF);
+        setNoProgress(progressStore);
+        setNextTableToSweep(TABLE_REF, nextTableToSweepProvider);
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(0)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
-                .build());
+                .build(), sweepTaskRunner, TABLE_REF);
         backgroundSweeper.runOnce();
         Mockito.verify(kvs, Mockito.never()).compactInternally(TABLE_REF);
     }
-
-    private void setNoProgress() {
-        Mockito.doReturn(Optional.empty()).when(progressStore).loadProgress(Mockito.any());
-    }
-
-    private void setProgress(SweepProgress progress) {
-        Mockito.doReturn(Optional.of(progress)).when(progressStore).loadProgress(Mockito.any());
-    }
-
-    private void setNextTableToSweep(TableReference tableRef) {
-        Mockito.doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider)
-                .chooseNextTableToSweep(Mockito.any(), Mockito.anyLong());
-    }
-
-    private void setupTaskRunner(SweepResults results) {
-        Mockito.doReturn(results).when(sweepTaskRunner).run(Mockito.eq(TABLE_REF), Mockito.any(), Mockito.any());
-    }
-
-    private static LockAwareTransactionManager mockTxManager() {
-        LockAwareTransactionManager txManager = Mockito.mock(LockAwareTransactionManager.class);
-        Answer runTaskAnswer = inv -> {
-            Object[] args = inv.getArguments();
-            TransactionTask<?, ?> task = (TransactionTask<?, ?>) args[0];
-            return task.execute(Mockito.mock(Transaction.class));
-        };
-        Mockito.doAnswer(runTaskAnswer).when(txManager).runTaskReadOnly(Mockito.any());
-        Mockito.doAnswer(runTaskAnswer).when(txManager).runTaskWithRetry(Mockito.any());
-        return txManager;
-    }
-
 }

@@ -40,12 +40,13 @@ public interface SweeperService {
     @Path("sweep-table-from-row")
     @Produces(MediaType.APPLICATION_JSON)
     boolean sweepTableFromStartRow(@QueryParam("tablename") String tableName,
-            @Nullable @QueryParam("startRow") byte[] startRow)
+            @Nullable @QueryParam("startRow") String startRow);
+
     @POST
     @Path("sweep-table-from-row-with-batch")
     @Produces(MediaType.APPLICATION_JSON)
     boolean sweepTableFromStartRowWithBatchConfig(@QueryParam("tablename") String tableName,
-            @Nullable @QueryParam("startRow") byte[] startRow,
+            @Nullable @QueryParam("startRow") String startRow,
             @Nullable @QueryParam("maxCellTsPairsToExamine") int maxCellTsPairsToExamine,
             @Nullable @QueryParam("candidateBatchSize") int candidateBatchSize,
             @Nullable @QueryParam("deleteBatchSize") int deleteBatchSize);

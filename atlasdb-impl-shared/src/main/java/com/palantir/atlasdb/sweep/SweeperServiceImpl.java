@@ -28,14 +28,10 @@ import com.palantir.atlasdb.sweeperservice.SweeperService;
 
 public final class SweeperServiceImpl implements SweeperService {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(SweeperService.class);
-    private SpecificTableSweeperImpl specificTableSweeper;
+    private SpecificTableSweeper specificTableSweeper;
 
-    private SweeperServiceImpl(SpecificTableSweeperImpl specificTableSweeper) {
+    public SweeperServiceImpl(SpecificTableSweeper specificTableSweeper) {
         this.specificTableSweeper = specificTableSweeper;
-    }
-
-    public static SweeperServiceImpl create(SpecificTableSweeperImpl specificTableSweeper) {
-        return new SweeperServiceImpl(specificTableSweeper);
     }
 
     @Override
@@ -45,13 +41,13 @@ public final class SweeperServiceImpl implements SweeperService {
         Preconditions.checkArgument(TableReference.isFullyQualifiedName(tableName),
                 "Table name is not fully qualified");
         Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
-                "Table requested to sweep does not exist");
+                "Table requested to sweep {} does not exist", tableName);
 
         return specificTableSweeper.runOnceForTable(new TableToSweep(tableRef, null), false, Optional.empty());
     }
 
     @Override
-    public boolean sweepTableFromStartRow(String tableName, byte[] startRow) {
+    public boolean sweepTableFromStartRow(String tableName, String startRow) {
         TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
 
         Preconditions.checkArgument(TableReference.isFullyQualifiedName(tableName),
@@ -59,14 +55,19 @@ public final class SweeperServiceImpl implements SweeperService {
         Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
                 "Table requested to sweep does not exist");
 
-        ImmutableSweepProgress sweepProgress = ImmutableSweepProgress.builder().startRow(startRow).build();
+        ImmutableSweepProgress sweepProgress = ImmutableSweepProgress.builder().tableRef(tableRef)
+                .staleValuesDeleted(0)
+                .cellTsPairsExamined(0)
+                .minimumSweptTimestamp(0)
+                .startRow(startRow.getBytes())
+                .build();
 
         return specificTableSweeper.runOnceForTable(new TableToSweep(tableRef, sweepProgress), false, Optional.empty());
     }
 
     @Override
     public boolean sweepTableFromStartRowWithBatchConfig(String tableName,
-            byte[] startRow,
+            String startRow,
             @Nullable int maxCellTsPairsToExamine,
             @Nullable int candidateBatchSize,
             @Nullable int deleteBatchSize) {
@@ -81,9 +82,17 @@ public final class SweeperServiceImpl implements SweeperService {
                 maxCellTsPairsToExamine).candidateBatchSize(candidateBatchSize).deleteBatchSize(
                 deleteBatchSize).build();
 
-        ImmutableSweepProgress sweepProgress = ImmutableSweepProgress.builder().startRow(startRow).build();
+        ImmutableSweepProgress sweepProgress = ImmutableSweepProgress.builder().tableRef(tableRef)
+                .staleValuesDeleted(0)
+                .cellTsPairsExamined(0)
+                .minimumSweptTimestamp(0)
+                .startRow(startRow.getBytes())
+                .build();
 
-        return specificTableSweeper.runOnceForTable(new TableToSweep(tableRef, sweepProgress), false, Optional.of(sweepBatchConfig));
+        return specificTableSweeper.runOnceForTable(
+                new TableToSweep(tableRef, sweepProgress),
+                false,
+                Optional.of(sweepBatchConfig));
     }
 
 }

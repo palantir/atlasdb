@@ -64,7 +64,7 @@ import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
 import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
-import com.palantir.atlasdb.sweep.SpecificTableSweeperImpl;
+import com.palantir.atlasdb.sweep.SpecificTableSweeper;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepMetrics;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
@@ -282,7 +282,7 @@ public final class TransactionManagers {
         Supplier<SweepBatchConfig> sweepBatchConfig = Suppliers.ofInstance(getSweepBatchConfig(config));
         SweepMetrics sweepMetrics = new SweepMetrics();
 
-        SpecificTableSweeperImpl specificTableSweeper = initializeSweepEndpoint(
+        SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
                 env,
                 kvs,
                 transactionManager,
@@ -296,10 +296,11 @@ public final class TransactionManagers {
                 Suppliers.ofInstance(config.getSweepPauseMillis()),
                 persistentLockManager,
                 specificTableSweeper);
+
         backgroundSweeper.runInBackground();
     }
 
-    private static SpecificTableSweeperImpl initializeSweepEndpoint(
+    private static SpecificTableSweeper initializeSweepEndpoint(
             Environment env,
             KeyValueService kvs,
             SerializableTransactionManager transactionManager,
@@ -307,7 +308,7 @@ public final class TransactionManagers {
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
             Supplier<SweepBatchConfig> sweepBatchConfig,
             SweepMetrics sweepMetrics) {
-        SpecificTableSweeperImpl specificTableSweeper = SpecificTableSweeperImpl.create(
+        SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 transactionManager,
                 kvs,
                 sweepRunner,
@@ -315,7 +316,7 @@ public final class TransactionManagers {
                 SweepTableFactory.of(),
                 sweepPerfLogger,
                 sweepMetrics);
-        env.register(SweeperServiceImpl.create(specificTableSweeper));
+        env.register(new SweeperServiceImpl(specificTableSweeper));
         return specificTableSweeper;
     }
 

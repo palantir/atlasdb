@@ -41,8 +41,8 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.time.Clock;
 
-public final class SpecificTableSweeperImpl {
-    private static final Logger log = LoggerFactory.getLogger(SpecificTableSweeperImpl.class);
+public class SpecificTableSweeper {
+    private static final Logger log = LoggerFactory.getLogger(SpecificTableSweeper.class);
     private final LockAwareTransactionManager txManager;
     private final KeyValueService kvs;
     private final SweepTaskRunner sweepRunner;
@@ -55,7 +55,7 @@ public final class SpecificTableSweeperImpl {
 
 
     @VisibleForTesting
-    SpecificTableSweeperImpl(
+    SpecificTableSweeper(
             LockAwareTransactionManager txManager,
             KeyValueService kvs,
             SweepTaskRunner sweepRunner,
@@ -76,7 +76,7 @@ public final class SpecificTableSweeperImpl {
         this.wallClock = wallclock;
     }
 
-    public static SpecificTableSweeperImpl create(
+    public static SpecificTableSweeper create(
             LockAwareTransactionManager txManager,
             KeyValueService kvs,
             SweepTaskRunner sweepRunner,
@@ -86,7 +86,7 @@ public final class SpecificTableSweeperImpl {
             SweepMetrics sweepMetrics) {
         SweepProgressStore sweepProgressStore = new SweepProgressStore(kvs, tableFactory);
         SweepPriorityStore sweepPriorityStore = new SweepPriorityStore(tableFactory);
-        return new SpecificTableSweeperImpl(txManager, kvs, sweepRunner,
+        return new SpecificTableSweeper(txManager, kvs, sweepRunner,
                 sweepBatchConfig, sweepPriorityStore, sweepProgressStore, sweepPerfLogger,
                 sweepMetrics,
                 System::currentTimeMillis);

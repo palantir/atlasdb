@@ -39,7 +39,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
     private final PersistentLockManager persistentLockManager;
-    private final SpecificTableSweeperImpl specificTableSweeper;
+    private final SpecificTableSweeper specificTableSweeper;
 
     static volatile double batchSizeMultiplier = 1.0;
 
@@ -52,7 +52,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
-            SpecificTableSweeperImpl specificTableSweeper) {
+            SpecificTableSweeper specificTableSweeper) {
         this.lockService = lockService;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
         this.isSweepEnabled = isSweepEnabled;
@@ -65,7 +65,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
-            SpecificTableSweeperImpl specificTableSweeper) {
+            SpecificTableSweeper specificTableSweeper) {
         NextTableToSweepProvider nextTableToSweepProvider = new NextTableToSweepProviderImpl(
                 specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
         return new BackgroundSweeperImpl(
