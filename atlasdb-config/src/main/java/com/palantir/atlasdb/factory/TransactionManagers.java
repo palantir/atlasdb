@@ -87,6 +87,7 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -147,7 +148,7 @@ public final class TransactionManagers {
             boolean allowHiddenTableAccess) {
         log.info("Called TransactionManagers.create with live reloading config on thread {}."
                         + " This should only happen once.",
-                Thread.currentThread().getName());
+                UnsafeArg.of("thread name", Thread.currentThread().getName()));
         return create(config, runtimeConfig, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
     }
 
