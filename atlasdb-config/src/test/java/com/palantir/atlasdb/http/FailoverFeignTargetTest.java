@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.longThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,17 +31,11 @@ import static org.mockito.Mockito.when;
 
 import java.sql.Date;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.http.HttpStatus;
-import org.hamcrest.Matcher;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
@@ -64,6 +60,10 @@ public class FailoverFeignTargetTest {
     private static final RetryableException EXCEPTION_WITH_RETRY_AFTER = mock(RetryableException.class);
     private static final RetryableException EXCEPTION_WITHOUT_RETRY_AFTER = mock(RetryableException.class);
     private static final RetryableException BLOCKING_TIMEOUT_EXCEPTION = mock(RetryableException.class);
+
+    private static final long LOWER_BACKOFF_BOUND = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
+    private static final long UPPER_BACKOFF_BOUND =
+            (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
 
     private FailoverFeignTarget<Object> normalTarget;
     private FailoverFeignTarget<Object> spiedTarget;
@@ -169,87 +169,51 @@ public class FailoverFeignTargetTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void exceptionsWithRetryAfterBacksOffAfterQueryingAllNodesInTheCluster() {
         for (int i = 0; i < CLUSTER_SIZE; i++) {
             simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
         }
 
-        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
-        verify(spiedTarget, times(1)).pauseForBackoff(any(), argument.capture());
-
-        List<Long> arguments = argument.getAllValues();
-
-        long bottom = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
-        long cap = (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
-        MatcherAssert.assertThat(arguments, Matchers.contains(
-                is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)))));
+        verify(spiedTarget, times(1)).pauseForBackoff(any(),
+                longThat(is(both(greaterThanOrEqualTo(LOWER_BACKOFF_BOUND)).and(lessThan(UPPER_BACKOFF_BOUND)))));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void multipleExceptionsWithRetryAfterBackOffAfterQueryingAllNodesInTheCluster() {
         for (int i = 0; i < 3 * CLUSTER_SIZE; i++) {
             simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
         }
 
-        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
-        verify(spiedTarget, times(3)).pauseForBackoff(any(), argument.capture());
-
-        List<Long> arguments = argument.getAllValues();
-
-        long bottom = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
-        long cap = (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
-        Matcher<Long> jitteredBackoffMatcher = is(both(greaterThanOrEqualTo(bottom)).and(lessThan(cap)));
-        MatcherAssert.assertThat(arguments, Matchers.contains(
-                jitteredBackoffMatcher,
-                jitteredBackoffMatcher,
-                jitteredBackoffMatcher));
+        verify(spiedTarget, times(3)).pauseForBackoff(any(),
+                longThat(is(both(greaterThanOrEqualTo(LOWER_BACKOFF_BOUND)).and(lessThan(UPPER_BACKOFF_BOUND)))));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void blockingTimeoutExceptionsDoNotBackoff() {
         for (int i = 0; i < ITERATIONS; i++) {
             simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+
+            int expectedNumOfCalls = i + 1;
+            verify(spiedTarget, times(expectedNumOfCalls)).pauseForBackoff(any(), eq(0L));
         }
-
-        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
-        verify(spiedTarget, times(ITERATIONS)).pauseForBackoff(any(), argument.capture());
-
-        List<Long> arguments = argument.getAllValues();
-        Matcher[] expectedArguments = new Matcher[ITERATIONS];
-        Arrays.fill(expectedArguments, is(0L));
-
-        MatcherAssert.assertThat(arguments, Matchers.contains(expectedArguments));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void exceptionsWithoutRetryAfterBackoffExponentially() {
         int numIterations = 10;
 
         for (int i = 0; i < numIterations; i++) {
             simulateRequest(spiedTarget);
             spiedTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+
+            int expectedNumOfCalls = i + 1;
+            long cap = Math.round(Math.pow(GOLDEN_RATIO, expectedNumOfCalls));
+            verify(spiedTarget, times(expectedNumOfCalls)).pauseForBackoff(any(),
+                    longThat(is(both(greaterThanOrEqualTo(0L)).and(lessThan(cap)))));
         }
-
-        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
-        verify(spiedTarget, times(numIterations)).pauseForBackoff(any(), argument.capture());
-
-        List<Long> arguments = argument.getAllValues();
-
-        List<Matcher> expectedArguments = new ArrayList<>();
-        for (int i = 1; i <= numIterations; i++) {
-            long cap = Math.round(Math.pow(GOLDEN_RATIO, i));
-            expectedArguments.add(is(both(greaterThanOrEqualTo(0L)).and(lessThan(cap))));
-        }
-        Matcher[] expectedArgumentsArray = expectedArguments.toArray(new Matcher[expectedArguments.size()]);
-
-        MatcherAssert.assertThat(arguments, Matchers.contains(expectedArgumentsArray));
     }
 
     private void simulateRequest(FailoverFeignTarget target) {

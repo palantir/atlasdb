@@ -70,6 +70,9 @@ class AtlasCoreModule implements AtlasConsoleModule {
                          rows from the table, or getRange(args) to get a subset. Ex:
                          <TABLE>.getRange([start: <START-ROW-VALUE>, end: <END-ROW-VALUE>
                          , prefix: <OBJECT-ID-OR-ROW-VALUE>, cols: [<COL-NAMES>]])'''.stripIndent(),
+            'getRow': '''\
+                         Retrieve a single row from a table. Ex:
+                         <TABLE>.getRows(<ROW-VALUE>)'''.stripIndent(),
             'getRows': '''\
                          Retrieve one or more rows from a table. Ex:
                          <TABLE>.getRows([ <ROW-VALUE>, <ROW-VALUE> ])'''.stripIndent(),
