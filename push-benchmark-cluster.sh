@@ -33,11 +33,3 @@ do
 
   SERVER_INDEX=$((SERVER_INDEX+1))
 done
-
-
-
-
-
-
-
-

@@ -23,11 +23,3 @@ echo "starting server"
 ./service/bin/init.sh start
 
 echo "DONE"
-
-
-
-
-
-
-
-
