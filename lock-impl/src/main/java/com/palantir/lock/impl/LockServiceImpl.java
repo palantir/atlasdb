@@ -122,6 +122,8 @@ public final class LockServiceImpl
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
 
+    private static final long MAX_LOCK_REAPER_SLEEP_TIME_MS = 2_000;
+
     /** Executor for the reaper threads. */
     private final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
             new NamedThreadFactory(LockServiceImpl.class.getName(), true)));
@@ -921,8 +923,10 @@ public final class LockServiceImpl
                 T token = null;
                 try {
                     token = queue.take();
-                    long sleepTimeMs = token.getExpirationDateMs() - currentTimeMillis()
+                    long timeUntilTokenExpiredMs = token.getExpirationDateMs() - currentTimeMillis()
                             + maxAllowedClockDrift.toMillis();
+                    // it's possible that new lock requests will come in with a shorter timeout - so limit how long we sleep here
+                    long sleepTimeMs = Math.min(timeUntilTokenExpiredMs, MAX_LOCK_REAPER_SLEEP_TIME_MS);
                     if (sleepTimeMs > 0) {
                         Thread.sleep(sleepTimeMs);
                     }
