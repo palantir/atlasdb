@@ -35,6 +35,7 @@ public abstract class AtlasDbRuntimeConfig {
      * looking for cells to delete.
      */
     // TODO(ssouza): make this Default after removing support for mirror method on the AtlasDbConfig.
+    @Nullable
     public abstract Boolean enableSweep();
 
     /**
@@ -43,6 +44,7 @@ public abstract class AtlasDbRuntimeConfig {
      */
     // TODO(ssouza): make this Default after removing support for mirror method on the AtlasDbConfig. We need to detect
     // the absence of this value for now.
+    @Nullable
     public abstract Long getSweepPauseMillis();
 
     /**
