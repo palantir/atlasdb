@@ -56,21 +56,33 @@ public class MultiCassandraStartupOrderingEteTest {
     @Test
     public void shouldBeAbleToStartUpIfCassandraIsDownAndRunTransactionsWhenCassandraIsUp()
             throws IOException, InterruptedException {
-        EteSetup.runCliCommand("service/bin/init.sh stop");
+        stopTheAtlasClient();
         runOnCassandraNodes(MultiCassandraTestSuite::killCassandraContainer);
-        EteSetup.runCliCommand("service/bin/init.sh start");
+        startTheAtlasClient();
 
-        if (cassandraNodesToStartOrStop.size() > 1) {
+        if (aQuorumIsAlive()) {
+            addATodo();
+        } else {
             assertThatThrownBy(this::addATodo)
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageStartingWith("Error 500. Reason: Internal Server Error.")
                     .hasNoCause();
-        } else {
-            addATodo();
         }
 
         runOnCassandraNodes(MultiCassandraTestSuite::startCassandraContainer);
         addATodo();
+    }
+
+    private boolean aQuorumIsAlive() {
+        return cassandraNodesToStartOrStop.size() > 1;
+    }
+
+    private void stopTheAtlasClient() throws IOException, InterruptedException {
+        EteSetup.runCliCommand("service/bin/init.sh stop");
+    }
+
+    private void startTheAtlasClient() throws IOException, InterruptedException {
+        EteSetup.runCliCommand("service/bin/init.sh start");
     }
 
     private void runOnCassandraNodes(CassandraContainerOperator operator)
