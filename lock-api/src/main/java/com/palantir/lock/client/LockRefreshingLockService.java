@@ -57,7 +57,7 @@ public class LockRefreshingLockService extends ForwardingLockService {
                 } finally {
                     long elapsed = System.currentTimeMillis() - startTime;
 
-                    if (elapsed > LockRequest.DEFAULT_LOCK_TIMEOUT.toMillis() / 2) {
+                    if (elapsed > LockRequest.getDefaultLockTimeout().toMillis() / 2) {
                         log.error("Refreshing locks took {} milliseconds"
                                 + " for tokens: {}", elapsed, ret.toRefresh);
                     } else if (elapsed > ret.refreshFrequencyMillis) {

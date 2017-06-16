@@ -30,6 +30,7 @@ public interface TimestampManagementService {
     long SENTINEL_TIMESTAMP = Long.MIN_VALUE;
     String SENTINEL_TIMESTAMP_STRING =
             SENTINEL_TIMESTAMP + ""; // can't use valueOf/toString because we need a compile time constant!
+    String PING_RESPONSE = "pong";
 
     /**
      * Updates the timestamp service to the currentTimestamp to ensure that all fresh timestamps issued after
@@ -53,7 +54,5 @@ public interface TimestampManagementService {
     @Path("ping")
     @Produces(MediaType.TEXT_PLAIN)
     @CheckReturnValue(when = When.NEVER)
-    default String ping() {
-        return "pong";
-    }
+    String ping();
 }

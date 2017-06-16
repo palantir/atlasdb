@@ -19,12 +19,12 @@ dependencies {
     explicitShadow project(':leader-election-impl')
     explicitShadow project(':lock-impl')
 
-    explicitShadow group: 'com.netflix.feign', name: 'feign-jackson'
-    explicitShadow (group: 'com.netflix.feign', name: 'feign-jaxrs') {
+    explicitShadow group: 'io.github.openfeign', name: 'feign-jackson'
+    explicitShadow (group: 'io.github.openfeign', name: 'feign-jaxrs') {
         exclude module: 'jsr311-api'
     }
     // versions below 8.10.0 have a bug where POST requests must have a body
-    explicitShadow group: 'com.netflix.feign', name: 'feign-okhttp'
+    explicitShadow group: 'io.github.openfeign', name: 'feign-okhttp'
     explicitShadow group: 'javax.validation', name: 'validation-api'
     explicitShadow group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
     explicitShadow group: 'com.palantir.tritium', name: 'tritium-lib'

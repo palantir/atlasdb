@@ -21,17 +21,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public abstract class KeyValueServiceInstrumentation {
 
     private final int kvsPort;
     private final String dockerComposeFileName;
-
-    private static final Logger log = LoggerFactory.getLogger(KeyValueServiceInstrumentation.class);
 
     private static final Map<String, KeyValueServiceInstrumentation> backendMap =
             new TreeMap<>();
@@ -62,6 +58,14 @@ public abstract class KeyValueServiceInstrumentation {
         if (!backendMap.containsKey(backend.getClassName())) {
             classNames.put(backend.toString(), backend.getClassName());
             backendMap.put(backend.getClassName(), backend);
+        }
+    }
+
+    @VisibleForTesting
+    static void removeBackendType(KeyValueServiceInstrumentation backend) {
+        if (backendMap.containsKey(backend.getClassName())) {
+            classNames.remove(backend.toString());
+            backendMap.remove(backend.getClassName());
         }
     }
 
