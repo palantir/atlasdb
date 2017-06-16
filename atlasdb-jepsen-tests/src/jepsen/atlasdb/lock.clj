@@ -83,12 +83,12 @@
               :unlock
               (let [token (@token-store token-store-key)
                     response (LockClient/unlock lock-service token)]
-                (do (replace-token token-store token-store-key nil current-store-version)
+                (do (replace-token! token-store token-store-key nil current-store-version)
                   (assoc-ok-value op response token)))
               :refresh
               (let [token (@token-store token-store-key)
                     response (LockClient/refresh lock-service token)]
-                (do (replace-token token-store token-store-key token current-store-version)
+                (do (replace-token! token-store token-store-key token current-store-version)
                   (assoc-ok-value op response token)))))
           (catch Exception e
             (assoc op :type :fail :error (.toString e))))))
