@@ -163,7 +163,6 @@ public final class TransactionManagers {
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess) {
-        validateRuntimeConfig(runtimeConfig.get());
         return create(config, runtimeConfig, schemas, env, lockServerOptions, allowHiddenTableAccess,
                 UserAgents.DEFAULT_USER_AGENT);
     }
@@ -176,7 +175,6 @@ public final class TransactionManagers {
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             Class<?> callingClass) {
-        validateRuntimeConfig(runtimeConfig.get());
         return create(config, runtimeConfig, schemas, env, lockServerOptions, allowHiddenTableAccess,
                 UserAgents.fromClass(callingClass));
     }
@@ -189,6 +187,12 @@ public final class TransactionManagers {
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             String userAgent) {
+
+        java.util.function.Supplier<AtlasDbRuntimeConfig> wrappedRuntimeConfig = () -> {
+            validateRuntimeConfig(runtimeConfig.get());
+            return MoreObjects.firstNonNull(runtimeConfig.get(), AtlasDbRuntimeConfig.create(config));
+        };
+
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
 
@@ -273,9 +277,9 @@ public final class TransactionManagers {
                 transactionManager,
                 kvs,
                 sweepRunner,
-                () -> MoreObjects.firstNonNull(runtimeConfig.get().enableSweep(), config.enableSweep()),
-                () -> MoreObjects.firstNonNull(runtimeConfig.get().getSweepPauseMillis(), config.getSweepPauseMillis()),
-                () -> getSweepBatchConfig(runtimeConfig.get(), config),
+                () -> MoreObjects.firstNonNull(wrappedRuntimeConfig.get().enableSweep(), config.enableSweep()),
+                () -> MoreObjects.firstNonNull(wrappedRuntimeConfig.get().getSweepPauseMillis(), config.getSweepPauseMillis()),
+                () -> getSweepBatchConfig(wrappedRuntimeConfig.get(), config),
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 persistentLockManager);
