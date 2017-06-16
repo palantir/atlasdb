@@ -47,7 +47,7 @@ public abstract class AtlasDbConfig {
      */
     @Value.Default
     public boolean pollForDataBaseOnStartup() {
-        return true;
+        return false;
     }
 
     /**

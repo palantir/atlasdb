@@ -46,9 +46,6 @@ public class ServiceDiscoveringAtlasSupplier {
     private static final Logger log = LoggerFactory.getLogger(ServiceDiscoveringAtlasSupplier.class);
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
 
-    private static final double GOLDEN_RATIO = (Math.sqrt(5) + 1.0) / 2.0;
-    private static final int QUICK_MAX_BACKOFF_SECONDS = 1000;
-
     private static String timestampServiceCreationInfo = null;
 
     private final AtlasDbConfig atlasDbConfig;
@@ -92,19 +89,8 @@ public class ServiceDiscoveringAtlasSupplier {
             } catch (Exception ex) {
                 failureCount++;
                 log.warn("The KVS could not be instantiated, retrying with backoff");
-                pauseForBackOff(failureCount);
+                KvsBackoff.pauseForBackOff(failureCount);
             }
-        }
-    }
-
-    private void pauseForBackOff(int failureCount) {
-        long timeoutInSeconds = Math.min(QUICK_MAX_BACKOFF_SECONDS, Math.round(Math.pow(GOLDEN_RATIO, failureCount)));
-        try {
-            log.trace("Pausing {}s before retrying", timeoutInSeconds);
-            Thread.sleep(timeoutInSeconds * 1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("The thread was interrupted during backoff when creating the KVS.");
         }
     }
 
