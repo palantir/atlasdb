@@ -24,10 +24,10 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweeperservice.SweeperService;
 
-
 public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
     private SweeperService sweeperService;
 
+    @Override
     @Before
     public void setup() {
         super.setup();

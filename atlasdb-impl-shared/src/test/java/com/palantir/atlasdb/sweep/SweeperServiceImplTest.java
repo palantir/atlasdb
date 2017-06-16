@@ -79,7 +79,8 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         setProgress(Mockito.mock(SweepProgress.class));
         setupTaskRunner(Mockito.mock(SweepResults.class));
         when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
-        assertTrue(sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), encodeStartRow(new byte[] {1, 2, 3})));
+        assertTrue(sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(),
+                encodeStartRow(new byte[] {1, 2, 3})));
         Mockito.verify(priorityStore, never()).update(Mockito.any(), Mockito.any(), Mockito.any());
         Mockito.verify(progressStore, never()).saveProgress(Mockito.any(), Mockito.any());
         Mockito.verifyZeroInteractions(sweepMetrics);

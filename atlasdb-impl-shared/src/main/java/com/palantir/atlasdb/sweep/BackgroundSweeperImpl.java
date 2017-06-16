@@ -93,10 +93,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 log.info("Shutdown complete!");
             } catch (Exception e) {
                 log.warn("An exception occurred while shutting down. This means that we had the backup lock out when"
-                                + "the shutdown was triggered, but failed to release it. If this is the case, sweep or backup"
-                                + "may fail to take out the lock in future. If this happens consistently, "
-                                + "consult the following documentation on how to release the dead lock: "
-                                + "https://palantir.github.io/atlasdb/html/troubleshooting/index.html#clearing-the-backup-lock",
+                         + "the shutdown was triggered, but failed to release it. If this is the case, sweep or backup"
+                         + "may fail to take out the lock in future. If this happens consistently, "
+                         + "consult the following documentation on how to release the dead lock: "
+                         + "https://palantir.github.io/atlasdb/html/troubleshooting/index.html#clearing-the-backup-lock",
                         e);
             }
         }));
@@ -187,24 +187,26 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private Optional<TableToSweep> getTableToSweep() {
-        return specificTableSweeper.getTxManager().runTaskWithRetry(new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
-            @Override
-            public Optional<TableToSweep> execute(Transaction tx) {
-                Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress(tx);
-                if (progress.isPresent()) {
-                    return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
-                } else {
-                    Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
-                            tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
-                    if (nextTable.isPresent()) {
-                        log.debug("Now starting to sweep {}.", nextTable);
-                        return Optional.of(new TableToSweep(nextTable.get(), null));
-                    } else {
-                        return Optional.empty();
+        return specificTableSweeper.getTxManager().runTaskWithRetry(
+                new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
+                    @Override
+                    public Optional<TableToSweep> execute(Transaction tx) {
+                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress(
+                                tx);
+                        if (progress.isPresent()) {
+                            return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
+                        } else {
+                            Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
+                                    tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
+                            if (nextTable.isPresent()) {
+                                log.debug("Now starting to sweep {}.", nextTable);
+                                return Optional.of(new TableToSweep(nextTable.get(), null));
+                            } else {
+                                return Optional.empty();
+                            }
+                        }
                     }
-                }
-            }
-        });
+                });
     }
 
     /**
