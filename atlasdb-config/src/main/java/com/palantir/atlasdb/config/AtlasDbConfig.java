@@ -134,6 +134,7 @@ public abstract class AtlasDbConfig {
      * @deprecated Use {@link AtlasDbRuntimeConfig#enableSweep} to make this value
      * live-reloadable.
      */
+    // TODO(ssouza): when deleting this, add default value to AtlasDbRuntimeConfig#enableSweep.
     @Deprecated
     @Value.Default
     public boolean enableSweep() {
@@ -146,6 +147,7 @@ public abstract class AtlasDbConfig {
      * @deprecated Use {@link AtlasDbRuntimeConfig#getSweepPauseMillis} to make this value
      * live-reloadable.
      */
+    // TODO(ssouza): when deleting this, add default value to AtlasDbRuntimeConfig#getSweepPauseMillis.
     @Deprecated
     @Value.Default
     public long getSweepPauseMillis() {
@@ -166,8 +168,7 @@ public abstract class AtlasDbConfig {
      * @deprecated Use {@link AtlasDbRuntimeConfig#getSweepReadLimit} to make this value
      * live-reloadable.
      */
-    // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
-    // whether the field is present in the configuration file.
+    // TODO(ssouza): when deleting this, add default value to AtlasDbRuntimeConfig#getSweepReadLimit.
     @Deprecated
     @Nullable
     public abstract Integer getSweepReadLimit();
@@ -177,8 +178,7 @@ public abstract class AtlasDbConfig {
      * @deprecated Use {@link AtlasDbRuntimeConfig#getSweepCandidateBatchHint} to make this value
      * live-reloadable.
      */
-    // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
-    // whether the field is present in the configuration file.
+    // TODO(ssouza): when deleting this, add default value to AtlasDbRuntimeConfig#getSweepCandidateBatchHint.
     @Deprecated
     @Nullable
     public abstract Integer getSweepCandidateBatchHint();
@@ -188,8 +188,7 @@ public abstract class AtlasDbConfig {
      * @deprecated Use {@link AtlasDbRuntimeConfig#getSweepDeleteBatchHint} to make this value
      * live-reloadable.
      */
-    // TODO(gbonik): make this Default after we delete the deprecated options. For now, we need to be able to detect
-    // whether the field is present in the configuration file.
+    // TODO(ssouza): when deleting this, add default value to AtlasDbRuntimeConfig#getSweepDeleteBatchHint.
     @Deprecated
     @Nullable
     public abstract Integer getSweepDeleteBatchHint();
