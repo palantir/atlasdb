@@ -81,10 +81,13 @@ develop
     *    - |deprecated|
          - As part of the live-reloading work, were deprecated:
 
-           - the methods `TransactionManagers.create()` without the AtlasDB runtime config.
            - the `enableSweep`, `getSweepPauseMillis`, `getSweepReadLimit`, `getSweepCandidateBatchHint` and `getSweepDeleteBatchHint` options of the AtlasDB config.
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+
+    *    - |devbreak|
+         - As part of the live-reloading work, were removed the methods `TransactionManagers.create()` without the AtlasDB runtime config.
+           If needed, the helper method `AtlasDbRuntimeConfig.create(AtlasDbConfig config)` can be used to create a runtime config from the AtlasDbConfig.
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
