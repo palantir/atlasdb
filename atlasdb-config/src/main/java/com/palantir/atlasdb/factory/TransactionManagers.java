@@ -113,25 +113,13 @@ public final class TransactionManagers {
      * purposes only.
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
-        return create(ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build(),
+        AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
+        AtlasDbRuntimeConfig runtimeConfig = AtlasDbRuntimeConfig.create(config);
+        return create(config,
+                () -> runtimeConfig,
                 schemas,
                 x -> { },
                 false);
-    }
-
-    /**
-     * Create a {@link SerializableTransactionManager} with provided install configuration, {@link Schema},
-     * and an environment in which to register HTTP server endpoints.
-     *
-     * @deprecated Use mirror method with runtime configuration parameter.
-     */
-    @Deprecated
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            Schema schema,
-            Environment env,
-            boolean allowHiddenTableAccess) {
-        return create(config, ImmutableSet.of(schema), env, allowHiddenTableAccess);
     }
 
     /**
@@ -145,23 +133,6 @@ public final class TransactionManagers {
             Environment env,
             boolean allowHiddenTableAccess) {
         return create(config, runtimeConfig, ImmutableSet.of(schema), env, allowHiddenTableAccess);
-    }
-
-    /**
-     * Create a {@link SerializableTransactionManager} with provided install configuration, a set of
-     * {@link Schema}s, and an environment in which to register HTTP server endpoints.
-     *
-     * @deprecated Use mirror method with runtime configuration parameter.
-     */
-    @Deprecated
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            Set<Schema> schemas,
-            Environment env,
-            boolean allowHiddenTableAccess) {
-        log.info("Called TransactionManagers.create on thread {}. This should only happen once.",
-                Thread.currentThread().getName());
-        return create(config, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
     }
 
     /**
@@ -181,23 +152,6 @@ public final class TransactionManagers {
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided install configuration, a set of
-     * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
-     *
-     * @deprecated Use mirror method with runtime configuration parameter.
-     */
-    @Deprecated
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            Set<Schema> schemas,
-            Environment env,
-            LockServerOptions lockServerOptions,
-            boolean allowHiddenTableAccess) {
-        return create(config, () -> AtlasDbRuntimeConfig.create(config),
-                schemas, env, lockServerOptions, allowHiddenTableAccess, UserAgents.DEFAULT_USER_AGENT);
-    }
-
-    /**
      * Create a {@link SerializableTransactionManager} with provided configurations, a set of
      * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
      */
@@ -211,22 +165,6 @@ public final class TransactionManagers {
         validateRuntimeConfig(runtimeConfig.get());
         return create(config, runtimeConfig, schemas, env, lockServerOptions, allowHiddenTableAccess,
                 UserAgents.DEFAULT_USER_AGENT);
-    }
-
-    /**
-     * @deprecated Use mirror method with runtime configuration parameter.
-     */
-    @Deprecated
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            Set<Schema> schemas,
-            Environment env,
-            LockServerOptions lockServerOptions,
-            boolean allowHiddenTableAccess,
-            Class<?> callingClass) {
-        return create(config, () -> AtlasDbRuntimeConfig.create(config),
-                schemas, env, lockServerOptions, allowHiddenTableAccess,
-                UserAgents.fromClass(callingClass));
     }
 
     public static SerializableTransactionManager create(
