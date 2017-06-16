@@ -28,7 +28,7 @@
     (if (compare-and-set! store current-map (assoc current-map version-name target-version))
       target-version
       nil)))
-(defn update-token!
+(defn replace-token!
   "Updates a token in the store, if the version in the store matches our expected version.
   Returns true if and only if the store was successfully updated.
   "
@@ -74,7 +74,7 @@
         (try
           (let [lock-name (:value op)
                 token-store-key (str client-name lock-name)
-                current-store-version (version-bump! store)]
+                current-store-version (version-bump! token-store)]
             (case (:f op)
               :lock
               (let [response (LockClient/lock lock-service client-name lock-name)]
