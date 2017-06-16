@@ -347,7 +347,7 @@ public final class TransactionManagers {
 
     private static void validateRuntimeConfig(@Nullable AtlasDbRuntimeConfig runtimeConfig) {
         if (runtimeConfig == null) {
-            log.warn("This service uses live reload configs. Please use the 'atlas-runtime' block for specifying"
+            log.warn("AtlasDB now supports live reloadable configs. Please use the 'atlas-runtime' block for specifying"
                     + " live-reloadable atlas configs. Default to using configs specified on the 'atlas' block");
         }
     }
