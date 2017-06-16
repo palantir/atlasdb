@@ -213,11 +213,16 @@ This allows transactions to make progress even when the threadpool is full.
 <td>Upgraded all usages of http-remoting to remoting2
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1999">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>The default lock timeout is now configurable.
+Currently, the default lock timeout is 2 minutes. This can cause a large delay if a lock requester’s connection has died at the time it receives the lock. Since TransactionManagers#create provides an auto-refreshing lock service, it is safe to lower the default timeout to reduce the delay that happens in this case.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2025">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Switched from feign to openfeign and bumped version.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2005">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The priority of logging on background sweep was increased from debug to info or warn.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2031">Pull Request</a>)</td>
 </tr>
