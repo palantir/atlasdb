@@ -128,7 +128,11 @@ public class DefaultCleanerBuilder {
         Puncher puncher = buildPuncher();
         Supplier<Long> immutableTs = ImmutableTimestampSupplier
                 .createMemoizedWithExpiration(lockService, timestampService, lockClient);
-        Scrubber scrubber = buildScrubber(puncher.getTimestampSupplier(), immutableTs);
+
+        Supplier<Long> immutableTsWithDefaultProgressMonitoring = ImmutableTimestampSupplierProgressMonitor
+                .createWithDefaultMonitoring(immutableTs, lockClient);
+
+        Scrubber scrubber = buildScrubber(puncher.getTimestampSupplier(), immutableTsWithDefaultProgressMonitoring);
         return new SimpleCleaner(
                 scrubber,
                 puncher,
