@@ -1,8 +1,12 @@
 #!/bin/bash
 set -e
 
+source scripts/benchmarks/servers.txt
+
+./scripts/benchmarks/render-configs.sh
+
 SERVER_SIDE_SCRIPT="run-on-il.sh"
-declare -a servers=("il-pg-alpha-1536393.usw1.palantir.global" "il-pg-alpha-1086749.usw1.palantir.global" "il-pg-alpha-1086750.usw1.palantir.global")
+declare -a servers=("$SERVER1" "$SERVER2" "$SERVER3")
 
 rm -rf timelock-server-benchmark-cluster/build/distributions/
 ./gradlew --parallel timelock-server-benchmark-cluster:distTar
@@ -22,7 +26,7 @@ do
   scp $SLS_FILE "$server:$REMOTE_DIR"
 
   echo "running remote script"
-  scp $SERVER_SIDE_SCRIPT "$server:$REMOTE_DIR"
+  scp scripts/benchmarks/$SERVER_SIDE_SCRIPT "$server:$REMOTE_DIR"
 
   YML_FILE="timelock-remote$SERVER_INDEX.yml"
   ssh $server "$REMOTE_DIR/$SERVER_SIDE_SCRIPT $YML_FILE"

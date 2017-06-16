@@ -5,7 +5,7 @@ YML_FILE=$1
 
 cd "$(dirname "$0")"
 
-kill -9 $(jps | grep 'TimeLock' | grep -v 'grep' | awk '{print $1}') || { echo "unable to kill existing timelock - this is ok if it wasn't running" ; : ; }
+kill -9 $(jps | grep 'ServerLauncher' | grep -v 'grep' | awk '{print $1}') || { echo "unable to kill existing timelock - this is ok if it wasn't running" ; : ; }
 
 TARBALL="$(ls . | grep 'timelock' | tail -1)"
 

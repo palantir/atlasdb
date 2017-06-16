@@ -42,7 +42,7 @@ public class BenchmarksRunner {
 
     @Test
     public void timestamp() {
-        runAndPrintResults(client::timestamp, 64, 10000);
+        runAndPrintResults(client::timestamp, 8, 1000);
     }
 
     @Test

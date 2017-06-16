@@ -3,11 +3,11 @@ clients:
   - test2
 
 cluster:
-  localServer: il-pg-alpha-1086749.usw1.palantir.global:9421
+  localServer: SERVER3:9421
   servers:
-    - il-pg-alpha-1536393.usw1.palantir.global:9421
-    - il-pg-alpha-1086749.usw1.palantir.global:9421
-    - il-pg-alpha-1086750.usw1.palantir.global:9421
+    - SERVER1:9421
+    - SERVER2:9421
+    - SERVER3:9421
 
 algorithm:
   type: paxos

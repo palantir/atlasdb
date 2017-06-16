@@ -1,0 +1,7 @@
+SERVER1=il-pg-alpha-1536393.usw1.palantir.global
+SERVER2=il-pg-alpha-1086749.usw1.palantir.global
+SERVER3=il-pg-alpha-1086750.usw1.palantir.global
+CLIENT=il-pg-alpha-1086751.usw1.palantir.global
+CASSANDRA1=il-pg-alpha-1423306.usw1.palantir.global
+CASSANDRA2=il-pg-alpha-1423307.usw1.palantir.global
+CASSANDRA3=il-pg-alpha-1423308.usw1.palantir.global
