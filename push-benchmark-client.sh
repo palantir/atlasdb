@@ -1,8 +1,12 @@
 #!/bin/bash
 set -e
 
+source scripts/benchmarks/servers.txt
+
+./scripts/benchmarks/render-configs.sh
+
 SERVER_SIDE_SCRIPT="run-on-il.sh"
-server="il-pg-alpha-1086751.usw1.palantir.global"
+server="$CLIENT"
 
 rm -rf timelock-server-benchmark-client/build/distributions/
 ./gradlew --parallel timelock-server-benchmark-client:distTar
@@ -17,11 +21,7 @@ ssh $server "rm -rf $REMOTE_DIR/*"
 scp $SLS_FILE "$server:$REMOTE_DIR"
 
 echo "running remote script"
-scp $SERVER_SIDE_SCRIPT "$server:$REMOTE_DIR"
-ssh $server "$REMOTE_DIR/$SERVER_SIDE_SCRIPT benchmark-server.yml"
+scp scripts/benchmarks/$SERVER_SIDE_SCRIPT "$server:$REMOTE_DIR"
 
-
-
-
-
-
+YML_FILE="benchmark-server.yml"
+ssh $server "$REMOTE_DIR/$SERVER_SIDE_SCRIPT $YML_FILE"

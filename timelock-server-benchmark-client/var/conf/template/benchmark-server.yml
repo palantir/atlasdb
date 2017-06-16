@@ -3,9 +3,9 @@ atlas:
     client: test
     serversList:
       servers:
-        - https://il-pg-alpha-1536393.usw1.palantir.global:9421
-        - https://il-pg-alpha-1086749.usw1.palantir.global:9421
-        - https://il-pg-alpha-1086750.usw1.palantir.global:9421
+        - https://SERVER1:9421
+        - https://SERVER2:9421
+        - https://SERVER3:9421
       sslConfiguration:
         keyStorePath: var/security/keyStore.jks
         keyStorePassword: keystore
@@ -14,7 +14,7 @@ atlas:
     type: memory
 #  keyValueService:
 #    type: cassandra
-#    keyspace: razorback10
+#    keyspace: benchmarks
 #    ssl: true
 #    replicationFactor: 1
 #    poolSize: 100
@@ -24,9 +24,9 @@ atlas:
 #      keyStorePassword: W04xkPDALcCTlsU4
 #      trustStorePath: var/security/trustStore-cassandra.jks
 #    servers:
-#      - 'il-pg-alpha-1423306.usw1.palantir.global:9160'
-#      - 'il-pg-alpha-1423307.usw1.palantir.global:9160'
-#      - 'il-pg-alpha-1423308.usw1.palantir.global:9160'
+#      - 'CASSANDRA1:9160'
+#      - 'CASSANDRA2:9160'
+#      - 'CASSANDRA3:9160'
 
 server:
   requestLog:

@@ -3,11 +3,11 @@ clients:
   - test2
 
 cluster:
-  localServer: il-pg-alpha-1086750.usw1.palantir.global:9421
+  localServer: SERVER1:9421
   servers:
-    - il-pg-alpha-1536393.usw1.palantir.global:9421
-    - il-pg-alpha-1086749.usw1.palantir.global:9421
-    - il-pg-alpha-1086750.usw1.palantir.global:9421
+    - SERVER1:9421
+    - SERVER2:9421
+    - SERVER3:9421
 
 algorithm:
   type: paxos
@@ -35,7 +35,7 @@ server:
     keyStorePath: var/security/keyStore.jks
     keyStorePassword: keystore
     trustStorePath: var/security/trustStore.jks
-    validateCerts: false
+    validateCerts: false  
     supportedCipherSuites:
       - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
       - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
@@ -51,12 +51,11 @@ server:
       - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA
       - TLS_RSA_WITH_AES_256_CBC_SHA
       - TLS_RSA_WITH_AES_128_CBC_SHA
-      - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
-
+      - TLS_EMPTY_RENEGOTIATION_INFO_SCSV   
+           
   adminConnectors:
-  - type: http
+  - type: http 
     port: 7421
-
 
 logging:
   appenders:
