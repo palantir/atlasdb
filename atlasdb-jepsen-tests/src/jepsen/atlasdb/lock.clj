@@ -11,14 +11,35 @@
   (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
   (:import com.palantir.atlasdb.http.LockClient))
 
-(def lock-names ["bob" "sarah" "alfred" "shelly"])
+(def lock-names ["alpha" "bravo" "charlie" "delta"])
+(def version-name "version")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Client creation and invocations (i.e. locking, unlocking refreshing)
+;; Relevant utility methods, including administration of the token store's simple MVCC protocol
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn nullable-to-string    [obj] (if (nil? obj) "" (.toString obj)))
-(defn create-token-store    [] (atom {}))
-(defn replace-token         [store key obj] (swap! store assoc key obj))
+
+(defn create-token-store    [] (atom {version-name 0}))
+(defn version-bump!
+  "Attempts to increment the version key in a token store. Returns the version number if CAS succeded, nil if failed."
+  [store]
+  (let [current-map @store
+        target-version (inc (get current-map version-name))]
+    (if (compare-and-set! store current-map (assoc current-map version-name target-version))
+      target-version
+      nil)))
+(defn replace-token!
+  "Updates a token in the store, if the version in the store matches our expected version.
+  Returns true if and only if the store was successfully updated.
+  "
+  [store key obj expected-version]
+  (loop [current-map @store]
+    (if-not (== (get current-map version-name) expected-version)
+       false
+       (if (compare-and-set! store current-map (assoc current-map key obj))
+         true
+         (recur @store)))))
+
 (defn assoc-ok-value
   "Associate the map with ':ok', meaning that the server response was 200.
    Also capture the server response and the query parameters we used."
@@ -27,6 +48,9 @@
     :value (nullable-to-string response)
     :query-params (nullable-to-string query-params)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Client creation and invocations (i.e. locking, unlocking refreshing)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn create-client
   "Creates an object that implements the client/Client protocol.
    The object defines how you create a lock client, and how to request locks from it. The first call to this
@@ -49,22 +73,24 @@
         (assoc op :type :fail :error :timeout)
         (try
           (let [lock-name (:value op)
-                token-store-key (str client-name lock-name)]
-            (case (:f op)
-              :lock
-              (let [response (LockClient/lock lock-service client-name lock-name)]
-                (do (replace-token token-store token-store-key response)
-                  (assoc-ok-value op response [client-name lock-name])))
-              :unlock
-              (let [token (@token-store token-store-key)
-                    response (LockClient/unlock lock-service token)]
-                (do (replace-token token-store token-store-key nil)
-                  (assoc-ok-value op response token)))
-              :refresh
-              (let [token (@token-store token-store-key)
-                    response (LockClient/refresh lock-service token)]
-                (do (replace-token token-store token-store-key token)
-                  (assoc-ok-value op response token)))))
+                token-store-key (str client-name lock-name)
+                current-store-version (version-bump! token-store)]
+            (if ((complement nil?) current-store-version)
+              (case (:f op)
+                :lock
+                (let [response (LockClient/lock lock-service client-name lock-name)]
+                  (do (replace-token! token-store token-store-key response current-store-version)
+                    (assoc-ok-value op response [client-name lock-name])))
+                :unlock
+                (let [token (@token-store token-store-key)
+                      response (LockClient/unlock lock-service token)]
+                  (do (replace-token! token-store token-store-key nil current-store-version)
+                    (assoc-ok-value op response token)))
+                :refresh
+                (let [token (@token-store token-store-key)
+                      response (LockClient/refresh lock-service token)]
+                  (do (replace-token! token-store token-store-key token current-store-version)
+                    (assoc-ok-value op response token))))))
           (catch Exception e
             (assoc op :type :fail :error (.toString e))))))
 

@@ -42,6 +42,7 @@ import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellL
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.UnsafeArg;
 
 import gnu.trove.TDecorators;
 
@@ -122,7 +123,8 @@ public class SweepTaskRunner {
             return SweepResults.createEmptySweepResult();
         }
         if (keyValueService.getMetadataForTable(tableRef).length == 0) {
-            log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.", tableRef);
+            log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.",
+                    UnsafeArg.of("table name", tableRef));
             return SweepResults.createEmptySweepResult();
         }
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);

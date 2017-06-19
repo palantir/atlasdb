@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -48,8 +50,24 @@ import com.google.common.collect.Iterables;
 @Immutable public final class LockRequest implements Serializable {
     private static final long serialVersionUID = 0xf6c12b970b44af68L;
 
+    private static final AtomicReference<TimeDuration> DEFAULT_LOCK_TIMEOUT = new AtomicReference<>(
+            SimpleTimeDuration.of(120, TimeUnit.SECONDS));
+
     /** The default amount of time that it takes a lock (lease) to expire. */
-    public static final TimeDuration DEFAULT_LOCK_TIMEOUT = SimpleTimeDuration.of(120, TimeUnit.SECONDS);
+    public static TimeDuration getDefaultLockTimeout() {
+        return DEFAULT_LOCK_TIMEOUT.get();
+    }
+
+    /**
+     * Sets the default lock timeout for all lock requests that do not specify an explicit timeout. See {@link
+     * Builder#timeoutAfter}.
+     */
+    public static void setDefaultLockTimeout(TimeDuration timeout) {
+        Preconditions.checkNotNull(timeout, "timeout cannot be null");
+        Preconditions.checkArgument(timeout.getTime() > 0, "timeout must be > 0");
+
+        DEFAULT_LOCK_TIMEOUT.set(timeout);
+    }
 
     private static final Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode> TO_LOCK_WITH_MODE_FUNCTION =
             new Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode>() {
@@ -241,11 +259,10 @@ import com.google.common.collect.Iterables;
 
         /**
          * Instructs the lock server to release these locks if a refresh request
-         * has not been received for the period of time represented by
-         * the <code>lockTimeout</code> parameter. By default, the lock server
-         * will release locks
-         * which have not been refreshed in the past 120 seconds. You may not
-         * call this method multiple times.
+         * has not been received for the period of time represented by the
+         * <code>lockTimeout</code> parameter. The default value is controlled
+         * by {@link #LockRequest#getDefaultLockTimeout()}.
+         * You may not call this method multiple times.
          */
         public Builder timeoutAfter(TimeDuration newLockTimeout) {
             Preconditions.checkArgument(newLockTimeout.toMillis() > 0);
@@ -365,7 +382,7 @@ import com.google.common.collect.Iterables;
                 serverName = " (on server " + localServerName + ")";
             }
             LockRequest request = new LockRequest(lockMap,
-                    MoreObjects.firstNonNull(lockTimeout, DEFAULT_LOCK_TIMEOUT),
+                    MoreObjects.firstNonNull(lockTimeout, getDefaultLockTimeout()),
                     MoreObjects.firstNonNull(lockGroupBehavior, LockGroupBehavior.LOCK_ALL_OR_NONE),
                     MoreObjects.firstNonNull(blockingMode, BlockingMode.BLOCK_INDEFINITELY),
                     blockingDuration, versionId,

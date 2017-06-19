@@ -14,27 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.timestamp;
+package com.palantir.lock;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.io.Closeable;
 
-public class AtomicTimestamp {
-
-    private final AtomicLong value;
-
-    public AtomicTimestamp(long initialValue) {
-        value = new AtomicLong(initialValue);
-    }
-
-    public TimestampRange incrementBy(long delta) {
-        long upperBound = value.addAndGet(delta);
-        long lowerBound = upperBound - delta + 1L;
-        return TimestampRange.createInclusiveRange(lowerBound, upperBound);
-    }
-
-    public void increaseTo(long target) {
-        value.updateAndGet(current -> Math.max(current, target));
-    }
+public interface CloseableRemoteLockService extends RemoteLockService, Closeable {
 
 }
-re

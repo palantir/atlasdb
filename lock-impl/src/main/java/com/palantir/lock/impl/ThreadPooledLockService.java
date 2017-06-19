@@ -15,29 +15,25 @@
  */
 package com.palantir.lock.impl;
 
+import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
 
-import com.palantir.lock.ForwardingLockService;
+import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockResponse;
-import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 
-public class ThreadPooledLockService extends ForwardingLockService {
-    private final ThreadPooledWrapper<LockService> wrapper;
+public class ThreadPooledLockService implements CloseableRemoteLockService {
+    private final ThreadPooledWrapper<RemoteLockService> wrapper;
+    private final CloseableRemoteLockService delegate;
 
-    public ThreadPooledLockService(LockService delegate, int localThreadPoolSize, Semaphore sharedThreadPool) {
+    public ThreadPooledLockService(CloseableRemoteLockService delegate, int localThreadPoolSize, Semaphore sharedThreadPool) {
+        this.delegate = delegate;
         wrapper = new ThreadPooledWrapper<>(delegate, localThreadPoolSize, sharedThreadPool);
-    }
-
-    @Override
-    protected LockService delegate() {
-        return wrapper.delegate();
     }
 
     @Nullable
@@ -52,17 +48,33 @@ public class ThreadPooledLockService extends ForwardingLockService {
     }
 
     @Override
-    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
-        return wrapper.applyWithPermit(lockService -> lockService.lockWithFullLockResponse(client, request));
-    }
-
-    @Override
-    public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
-        return wrapper.applyWithPermit(lockService -> lockService.refreshTokens(tokens));
+    public boolean unlock(LockRefreshToken token) {
+        return delegate.unlock(token);
     }
 
     @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
-        return wrapper.applyWithPermit(lockService -> lockService.refreshLockRefreshTokens(tokens));
+        return delegate.refreshLockRefreshTokens(tokens);
+    }
+
+    @Nullable
+    @Override
+    public Long getMinLockedInVersionId(String client) {
+        return delegate.getMinLockedInVersionId(client);
+    }
+
+    @Override
+    public long currentTimeMillis() {
+        return delegate.currentTimeMillis();
+    }
+
+    @Override
+    public void logCurrentState() {
+        delegate.logCurrentState();
+    }
+
+    @Override
+    public void close() throws IOException {
+        delegate.close();
     }
 }
