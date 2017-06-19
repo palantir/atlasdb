@@ -64,7 +64,7 @@ artifactoryPublish.onlyIf {
 artifactoryPublish.dependsOn 'generatePomFileForDistsPublication', 'distTar', 'build'
 
 ext {
-    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta|-rc)?(\d+)?/
+    releaseVersionRegex = /\d+\.\d+\.\d+((-(alpha|beta|rc)[0-9]+))?/
 }
 
 tasks.getByName('distTar').doLast {
