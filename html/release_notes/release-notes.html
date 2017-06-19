@@ -300,6 +300,12 @@ Users that previously attempted to set a compression block size that was not a p
 <td>Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2003">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Converted all compile time uses of Guava’s <code class="docutils literal"><span class="pre">com.google.common.base.Optional</span></code> class to the Java8 equivalent <code class="docutils literal"><span class="pre">java.util.Optional</span></code>.
+Should not affect deployments as there is no change to <cite>json</cite> or <cite>yml</cite> representations of AtlasDB configurations.
+This is a relatively straightforward compile time break for products consuming AtlasDB libraries.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2016">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
