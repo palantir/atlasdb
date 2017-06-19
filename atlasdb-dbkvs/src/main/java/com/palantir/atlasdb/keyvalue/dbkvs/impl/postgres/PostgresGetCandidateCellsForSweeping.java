@@ -99,6 +99,9 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
     private final SqlConnectionSupplier connectionPool;
     private final IntToLongFunction sqlRowLimitProvider;
 
+    private final long[] emptyLongArray = new long[] {};
+    private static final int DEFAULT_BATCH_SIZE = 1000;
+
     public static PostgresGetCandidateCellsForSweeping create(
             PostgresPrefixedTableNames prefixedTableNames,
             SqlConnectionSupplier connectionPool) {
@@ -178,7 +181,7 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
                         AgnosticLightResultRow sqlRow = iter.next();
                         byte[] rowName = sqlRow.getBytes("row_name");
                         byte[] colName = sqlRow.getBytes("col_name");
-                        if (!Arrays.equals(currentRowName, rowName) || !Arrays.equals(currentColName, colName)) {
+                        if (!isCurrentCell(rowName, colName)) {
                             getCurrentCandidate().ifPresent(results::add);
                             currentCellTimestamps.clear();
                             currentRowName = rowName;
@@ -188,12 +191,12 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
                         for (Object ts : timestamps) {
                             currentCellTimestamps.add((Long) ts);
                         }
-                        cellTsPairsExaminedCurrentBatch = sqlRow.getLong("cell_ts_number");
+                        cellTsPairsExaminedCurrentBatch = sqlRow.getLong("max_row_number");
                         if (request.shouldCheckIfLatestValueIsEmpty()) {
                             currentIsLatestValueEmpty = sqlRow.getBoolean("latest_val_empty");
                         }
                     }
-                    if (noResults) {
+                    if (noResults || cellTsPairsExaminedCurrentBatch < sqlRowLimit) {
                         getCurrentCandidate().ifPresent(results::add);
                         endOfResults = true;
                     } else {
@@ -203,6 +206,10 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
                     return results;
                 }
             }
+        }
+
+        private boolean isCurrentCell(byte[] rowName, byte[] colName) {
+            return Arrays.equals(currentRowName, rowName) && Arrays.equals(currentColName, colName);
         }
 
         private void computeNextStartPosition() {
@@ -258,7 +265,7 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
                     .build();
             boolean ignoreSentinels = areSentinelsIgnored();
             String query = "/* GET_CANDIDATE_CELLS_FOR_SWEEPING(" + tableName + ") */"
-                    + "  SELECT cells.row_name, cells.col_name, cells.timestamps, cells.max_rn AS cell_ts_number"
+                    + "  SELECT cells.row_name, cells.col_name, cells.timestamps, cells.max_rn AS max_row_number"
                     +    (request.shouldCheckIfLatestValueIsEmpty() ? ", length(v.val) = 0 AS latest_val_empty" : "")
                     + "  FROM ("
                     + "    SELECT"
@@ -319,8 +326,5 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
             return ret.toString();
         }
     }
-
-    private final long[] emptyLongArray = new long[] {};
-    private static final int DEFAULT_BATCH_SIZE = 1000;
 
 }
