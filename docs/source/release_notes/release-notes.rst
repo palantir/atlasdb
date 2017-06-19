@@ -72,6 +72,9 @@ develop
          - The priority of logging on background sweep was increased from debug to info or warn.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
 
+    *    - |improved|
+         - Improved the performance of sweep on Postgres-backed DbKvs by making fewer round trips to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2021>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
