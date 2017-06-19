@@ -563,13 +563,13 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.6.0",
+            "locked": "3.4.1",
             "transitive": [
                 "io.github.openfeign:feign-okhttp"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.11.0",
+            "locked": "1.9.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
@@ -1896,13 +1896,13 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.6.0",
+            "locked": "3.4.1",
             "transitive": [
                 "io.github.openfeign:feign-okhttp"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.11.0",
+            "locked": "1.9.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]

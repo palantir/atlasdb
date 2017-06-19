@@ -50,3 +50,5 @@ org.slf4j:* = 1.7.5
 org.yaml:snakeyaml = 1.12
 
 io.github.openfeign:* = 9.5.0
+com.squareup.okhttp3:okhttp = 3.4.1
+
