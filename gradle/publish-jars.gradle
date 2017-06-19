@@ -81,5 +81,5 @@ artifactoryPublish.onlyIf {
 artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
 
 ext {
-    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
+    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\d{3})?/
 }
