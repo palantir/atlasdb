@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cli.command;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -27,7 +28,6 @@ import javax.annotation.Nullable;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -268,7 +268,7 @@ public class SweepCommand extends SingleBackendCommand {
     }
 
     private String encodeStartRow(Optional<byte[]> rowBytes) {
-        return BaseEncoding.base16().encode(rowBytes.or(FIRST_ROW));
+        return BaseEncoding.base16().encode(rowBytes.orElse(FIRST_ROW));
     }
 
     private String encodeEndRow(Optional<byte[]> rowBytes) {

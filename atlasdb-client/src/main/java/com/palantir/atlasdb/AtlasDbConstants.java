@@ -101,4 +101,6 @@ public class AtlasDbConstants {
 
     public static final int MAX_TABLE_PREFIX_LENGTH = 7;
     public static final int MAX_OVERFLOW_TABLE_PREFIX_LENGTH = 6;
+
+    public static final int DEFAULT_LOCK_TIMEOUT_SECONDS = 120;
 }

@@ -40,7 +40,7 @@ public abstract class InfoEvent implements Event {
 
     public abstract long time();
 
-    public abstract Optional<String> value();
+    public abstract Optional<Object> value();
 
     @Override
     public void accept(EventVisitor visitor) {

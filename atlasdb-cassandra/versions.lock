@@ -22,6 +22,8 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.palantir.atlasdb:atlasdb-client"
             ]
@@ -30,25 +32,43 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.remoting1:tracing",
-                "com.palantir.remoting:ssl-config"
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:ssl-config",
+                "com.palantir.remoting2:tracing",
+                "io.github.openfeign:feign-jackson"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
             "locked": "2.6.7",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.remoting1:tracing"
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.remoting1:tracing"
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.github.rholder:snowball-stemmer": {
@@ -87,8 +107,8 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting1:tracing",
-                "com.palantir.remoting:ssl-config",
+                "com.palantir.remoting2:ssl-config",
+                "com.palantir.remoting2:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics"
@@ -115,25 +135,6 @@
         },
         "com.googlecode.protobuf-java-format:protobuf-java-format": {
             "locked": "1.2",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.netflix.feign:feign-core": {
-            "locked": "8.6.1",
-            "transitive": [
-                "com.netflix.feign:feign-jackson",
-                "com.netflix.feign:feign-jaxrs"
-            ]
-        },
-        "com.netflix.feign:feign-jackson": {
-            "locked": "8.6.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.netflix.feign:feign-jaxrs": {
-            "locked": "8.6.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
@@ -187,17 +188,23 @@
         "com.palantir.atlasdb:timestamp-impl": {
             "project": true
         },
-        "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3",
+        "com.palantir.remoting2:jackson-support": {
+            "locked": "2.3.0",
+            "transitive": [
+                "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.palantir.remoting2:ssl-config": {
+            "locked": "2.3.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api"
+            ]
+        },
+        "com.palantir.remoting2:tracing": {
+            "locked": "2.3.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:timestamp-impl"
-            ]
-        },
-        "com.palantir.remoting:ssl-config": {
-            "locked": "0.13.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
@@ -271,6 +278,25 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+            ]
+        },
+        "io.github.openfeign:feign-core": {
+            "locked": "9.5.0",
+            "transitive": [
+                "io.github.openfeign:feign-jackson",
+                "io.github.openfeign:feign-jaxrs"
+            ]
+        },
+        "io.github.openfeign:feign-jackson": {
+            "locked": "9.5.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "io.github.openfeign:feign-jaxrs": {
+            "locked": "9.5.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "io.netty:netty-buffer": {
@@ -370,6 +396,12 @@
             "locked": "1.4.11.Final",
             "requested": "1.4.11.Final"
         },
+        "org.jvnet:animal-sniffer-annotation": {
+            "locked": "1.0",
+            "transitive": [
+                "io.github.openfeign:feign-core"
+            ]
+        },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",
             "transitive": [
@@ -392,7 +424,7 @@
             "locked": "1.7.5",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting1:tracing",
+                "com.palantir.remoting2:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -434,6 +466,8 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.palantir.atlasdb:atlasdb-client"
             ]
@@ -442,25 +476,43 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.remoting1:tracing",
-                "com.palantir.remoting:ssl-config"
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:ssl-config",
+                "com.palantir.remoting2:tracing",
+                "io.github.openfeign:feign-jackson"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
             "locked": "2.6.7",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.remoting1:tracing"
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.remoting1:tracing"
+                "com.palantir.remoting2:jackson-support",
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.github.rholder:snowball-stemmer": {
@@ -499,8 +551,8 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting1:tracing",
-                "com.palantir.remoting:ssl-config",
+                "com.palantir.remoting2:ssl-config",
+                "com.palantir.remoting2:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics"
@@ -527,25 +579,6 @@
         },
         "com.googlecode.protobuf-java-format:protobuf-java-format": {
             "locked": "1.2",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.netflix.feign:feign-core": {
-            "locked": "8.6.1",
-            "transitive": [
-                "com.netflix.feign:feign-jackson",
-                "com.netflix.feign:feign-jaxrs"
-            ]
-        },
-        "com.netflix.feign:feign-jackson": {
-            "locked": "8.6.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.netflix.feign:feign-jaxrs": {
-            "locked": "8.6.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
@@ -599,17 +632,23 @@
         "com.palantir.atlasdb:timestamp-impl": {
             "project": true
         },
-        "com.palantir.remoting1:tracing": {
-            "locked": "1.0.3",
+        "com.palantir.remoting2:jackson-support": {
+            "locked": "2.3.0",
+            "transitive": [
+                "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.palantir.remoting2:ssl-config": {
+            "locked": "2.3.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api"
+            ]
+        },
+        "com.palantir.remoting2:tracing": {
+            "locked": "2.3.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:timestamp-impl"
-            ]
-        },
-        "com.palantir.remoting:ssl-config": {
-            "locked": "0.13.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
@@ -683,6 +722,25 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+            ]
+        },
+        "io.github.openfeign:feign-core": {
+            "locked": "9.5.0",
+            "transitive": [
+                "io.github.openfeign:feign-jackson",
+                "io.github.openfeign:feign-jaxrs"
+            ]
+        },
+        "io.github.openfeign:feign-jackson": {
+            "locked": "9.5.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "io.github.openfeign:feign-jaxrs": {
+            "locked": "9.5.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "io.netty:netty-buffer": {
@@ -782,6 +840,12 @@
             "locked": "1.4.11.Final",
             "requested": "1.4.11.Final"
         },
+        "org.jvnet:animal-sniffer-annotation": {
+            "locked": "1.0",
+            "transitive": [
+                "io.github.openfeign:feign-core"
+            ]
+        },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",
             "transitive": [
@@ -804,7 +868,7 @@
             "locked": "1.7.5",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting1:tracing",
+                "com.palantir.remoting2:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",

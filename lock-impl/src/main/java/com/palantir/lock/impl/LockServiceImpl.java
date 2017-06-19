@@ -21,7 +21,6 @@ import static com.palantir.lock.LockClient.INTERNAL_LOCK_GRANT_CLIENT;
 import static com.palantir.lock.LockGroupBehavior.LOCK_ALL_OR_NONE;
 import static com.palantir.lock.LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -75,6 +74,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.random.SecureRandomPool;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.lock.BlockingMode;
+import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.ExpiringToken;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
@@ -97,7 +97,7 @@ import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.JMXUtils;
 
 /**
@@ -105,7 +105,9 @@ import com.palantir.util.JMXUtils;
  *
  * @author jtamer
  */
-@ThreadSafe public final class LockServiceImpl implements LockService, RemoteLockService, LockServiceImplMBean, Closeable {
+@ThreadSafe
+public final class LockServiceImpl
+        implements LockService, CloseableRemoteLockService, RemoteLockService, LockServiceImplMBean {
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
@@ -148,12 +150,8 @@ import com.palantir.util.JMXUtils;
             this.locks = locks;
         }
 
-        public List<LockDescriptor> getLockDescriptors() {
-            List<LockDescriptor> descriptors = Lists.newArrayListWithCapacity(locks.size());
-            for (ClientAwareReadWriteLock lock : locks) {
-                descriptors.add(lock.getDescriptor());
-            }
-            return descriptors;
+        public T getRealToken() {
+            return realToken;
         }
 
         @Override public String toString() {

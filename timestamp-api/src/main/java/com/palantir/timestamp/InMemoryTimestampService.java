@@ -49,4 +49,9 @@ public class InMemoryTimestampService implements TimestampService, TimestampMana
             latestTimestampFromService = counter.get();
         }
     }
+
+    @Override
+    public String ping() {
+        return PING_RESPONSE;
+    }
 }

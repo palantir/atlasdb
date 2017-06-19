@@ -18,12 +18,12 @@ package com.palantir.atlasdb.sweep;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.LongSupplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterators;
@@ -42,6 +42,7 @@ import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellL
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.UnsafeArg;
 
 import gnu.trove.TDecorators;
 
@@ -122,7 +123,8 @@ public class SweepTaskRunner {
             return SweepResults.createEmptySweepResult();
         }
         if (keyValueService.getMetadataForTable(tableRef).length == 0) {
-            log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.", tableRef);
+            log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.",
+                    UnsafeArg.of("table name", tableRef));
             return SweepResults.createEmptySweepResult();
         }
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
@@ -177,8 +179,8 @@ public class SweepTaskRunner {
                 lastRow = batch.lastCellExamined().getRowName();
             }
             return SweepResults.builder()
-                    .previousStartRow(startRow)
-                    .nextStartRow(Arrays.equals(startRow, lastRow) ? Optional.absent() : Optional.of(lastRow))
+                    .previousStartRow(Optional.of(startRow))
+                    .nextStartRow(Arrays.equals(startRow, lastRow) ? Optional.empty() : Optional.of(lastRow))
                     .cellTsPairsExamined(totalCellTsPairsExamined)
                     .staleValuesDeleted(totalCellTsPairsDeleted)
                     .sweptTimestamp(sweepTs)

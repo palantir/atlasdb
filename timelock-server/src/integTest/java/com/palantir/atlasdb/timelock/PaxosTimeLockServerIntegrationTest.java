@@ -28,6 +28,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.SortedMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -48,7 +49,6 @@ import org.junit.rules.TemporaryFolder;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -65,14 +65,14 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.Response;
 
 import feign.RetryableException;
 import io.dropwizard.testing.ResourceHelpers;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
@@ -93,7 +93,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final long TWO_MILLION = 2000000;
     private static final int FORTY_TWO = 42;
 
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
+    private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
     private static final String LOCK_CLIENT_NAME = "lock-client-name";
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP =
             ImmutableSortedMap.of(StringLockDescriptor.of("lock1"), LockMode.WRITE);
@@ -344,7 +344,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void throwsOnQueryingTimestampWithWithInvalidClientName() {
         TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
         assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
-                .hasMessageContaining("Unexpected char 0x08 at 5 in header value: test");
+                .hasMessageContaining("Unexpected char 0x08");
     }
 
     @Test
@@ -392,7 +392,7 @@ public class PaxosTimeLockServerIntegrationTest {
         // time / lock services
         assertContainsTimer(metrics,
                 "com.palantir.atlasdb.timelock.paxos.ManagedTimestampService.test.getFreshTimestamp");
-        assertContainsTimer(metrics, "com.palantir.lock.LockService.test.currentTimeMillis");
+        assertContainsTimer(metrics, "com.palantir.lock.RemoteLockService.test.currentTimeMillis");
 
         // local leader election classes
         assertContainsTimer(metrics, "com.palantir.paxos.PaxosLearner.learn");

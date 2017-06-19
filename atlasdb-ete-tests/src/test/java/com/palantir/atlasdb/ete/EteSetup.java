@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
@@ -27,7 +28,6 @@ import javax.net.ssl.SSLSocketFactory;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -48,7 +48,7 @@ import com.palantir.docker.proxy.DockerProxyRule;
 // please recompile them if any breaking changes are made to the setup ***
 public abstract class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
+    private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
 
     private static final short SERVER_PORT = 3828;
 

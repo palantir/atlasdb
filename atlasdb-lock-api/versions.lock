@@ -21,7 +21,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.remoting:ssl-config"
+                "com.palantir.remoting2:ssl-config"
             ]
         },
         "com.google.code.findbugs:annotations": {
@@ -44,7 +44,7 @@
             "locked": "18.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting:ssl-config"
+                "com.palantir.remoting2:ssl-config"
             ]
         },
         "com.palantir.atlasdb:atlasdb-api": {
@@ -72,8 +72,8 @@
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
-        "com.palantir.remoting:ssl-config": {
-            "locked": "0.13.0",
+        "com.palantir.remoting2:ssl-config": {
+            "locked": "2.3.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
@@ -151,7 +151,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.remoting:ssl-config"
+                "com.palantir.remoting2:ssl-config"
             ]
         },
         "com.google.code.findbugs:annotations": {
@@ -174,7 +174,7 @@
             "locked": "18.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting:ssl-config"
+                "com.palantir.remoting2:ssl-config"
             ]
         },
         "com.palantir.atlasdb:atlasdb-api": {
@@ -202,8 +202,8 @@
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
-        "com.palantir.remoting:ssl-config": {
-            "locked": "0.13.0",
+        "com.palantir.remoting2:ssl-config": {
+            "locked": "2.3.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]

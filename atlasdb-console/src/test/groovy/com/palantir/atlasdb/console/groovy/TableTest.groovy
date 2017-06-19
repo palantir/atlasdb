@@ -19,8 +19,7 @@ class TableTest {
     AtlasConsoleServiceWrapper service
     Table table
 
-    final String NAME = 't'
-    final RESULT = [data: ['a', 'b']]
+    final String TABLE_NAME = 't'
 
     final tableQuery1 = 'a'
     final tableQuery2=['a', 'b']
@@ -42,7 +41,7 @@ class TableTest {
     @Before
     void setup() {
         service = mock(AtlasConsoleServiceWrapper)
-        table = new Table(NAME, service)
+        table = new Table(TABLE_NAME, service)
     }
 
     @Test
@@ -54,42 +53,60 @@ class TableTest {
                 [long_name: 'bob']
             ]
         ]
-        service.getMetadata(NAME).returns(DESC).once()
+        service.getMetadata(TABLE_NAME).returns(DESC).once()
         play {
-            assertEquals table.describe(), DESC
+            assertEquals(DESC, table.describe())
             assert !table.isDynamic()
-            assertEquals table.columnNames(), ['alice', 'bob']
+            assertEquals(['alice', 'bob'], table.columnNames())
         }
     }
 
     private void rowQueryRunner(row, rowExpect, col=null, colExpect=null) {
         setup()
-        def query = [table: NAME, rows: rowExpect]
+        def query = [table: TABLE_NAME, rows: rowExpect]
         if(colExpect != null) {
             query.cols = colExpect
         }
         def token = mock(TransactionToken)
-        service.getRows(query, token).returns(RESULT).once()
+        service.getRows(query, token).returns([data: [['a': 'foo']]]).once()
         play {
-            assertEquals table.getRows(row, col, token), RESULT.data
+            assertEquals('a': 'foo', table.getRow(row, col, token))
+        }
+    }
+
+    @Test
+    void testGetRow() {
+        rowQueryRunner(['a'], [['a']])
+    }
+
+    private void rowsQueryRunner(row, rowExpect, col=null, colExpect=null) {
+        setup()
+        def query = [table: TABLE_NAME, rows: rowExpect]
+        if(colExpect != null) {
+            query.cols = colExpect
+        }
+        def token = mock(TransactionToken)
+        service.getRows(query, token).returns([data: [['a': 'foo'], ['b': 'bar']]]).once()
+        play {
+            assertEquals([['a': 'foo'], ['b': 'bar']], table.getRows(row, col, token))
         }
     }
 
     @Test
     void testGetRows() {
         tableQueryToServiceQuery.each {
-            rowQueryRunner(it.key, it.value)
-            rowQueryRunner(it.key, it.value, it.key, it.value)
+            rowsQueryRunner(it.key, it.value)
+            rowsQueryRunner(it.key, it.value, it.key, it.value)
         }
     }
 
     @Test
     void testGetPartialRows() {
-        def query = [table: NAME, rows: serviceQuery1, cols: serviceQuery1]
+        def query = [table: TABLE_NAME, rows: serviceQuery1, cols: serviceQuery1]
         def token = mock(TransactionToken)
-        service.getRows(query, token).returns(RESULT).once()
+        service.getRows(query, token).returns([data: [['a': 'foo'], ['b': 'bar']]]).once()
         play {
-            assertEquals table.getPartialRows(tableQuery1, tableQuery1, token), RESULT.data
+            assertEquals([['a': 'foo'], ['b': 'bar']], table.getPartialRows(tableQuery1, tableQuery1, token))
             shouldFail(MissingMethodException) {
                 table.getPartialRows(tableQuery1)
             }
@@ -98,11 +115,11 @@ class TableTest {
 
     private void cellQueryRunner(cells, cellsExpect) {
         setup()
-        def query = [table: NAME, data: cellsExpect]
+        def query = [table: TABLE_NAME, data: cellsExpect]
         def token = mock(TransactionToken)
-        service.getCells(query, token).returns(RESULT).once()
+        service.getCells(query, token).returns([data: [['a': 'foo'], ['b': 'bar']]]).once()
         play {
-            assertEquals table.getCells(cells, token), RESULT.data
+            assertEquals([['a': 'foo'], ['b': 'bar']], table.getCells(cells, token))
         }
 
     }
@@ -123,11 +140,11 @@ class TableTest {
     private void rangeTestRunner(query, expected) {
         setup()
         def token = mock(TransactionToken)
-        expected['table'] = NAME
+        expected['table'] = TABLE_NAME
         def result = [data: expected, next: null]
         service.getRange(expected, token).returns(result).once()
         play {
-            assertEquals table.getRange(query, token), new Range(service, result, token)
+            assertEquals(new Range(service, result, token), table.getRange(query, token))
         }
     }
 
@@ -144,20 +161,20 @@ class TableTest {
     }
 
     def queryize(data) {
-        [table: NAME, data: data]
+        [table: TABLE_NAME, data: data]
     }
 
     void testDeleteRunner(token, rowsInDatabase, input, output) {
         //have to reimplement part of table.getRows since partial mocks don't work :(
         service.delete(queryize(output), token).once()
         play {
-            Assert.assertEquals table.delete(input, token), null
+            assertEquals(null, table.delete(input, token))
         }
     }
 
     @Test
     void testDeleteNamed() {
-        service.getMetadata(NAME).returns([is_dynamic: false, columns: [[long_name: 'a'], [long_name: 'b']]]).once()
+        service.getMetadata(TABLE_NAME).returns([is_dynamic: false, columns: [[long_name: 'a'], [long_name: 'b']]]).once()
         def rowsInDatabase = [data: [[row: [1], a: 1, b: 2], [row: [2], a: 3, b: 4]]]
         def runTest = { input, output = null ->
             testDeleteRunner(mock(TransactionToken), rowsInDatabase, input, output)
@@ -173,7 +190,7 @@ class TableTest {
 
     @Test
     void testDeleteDynamic() {
-        service.getMetadata(NAME).returns([is_dynamic: true])
+        service.getMetadata(TABLE_NAME).returns([is_dynamic: true])
         def rowsInDatabase = [data: [
             [row: [1], cols: [[col: ['a'], val: 1], [col: ['b'], val: 2]]],
             [row: [2], cols: [[col: ['c'], val: 3]]]
@@ -204,7 +221,7 @@ class TableTest {
                     value: [type: [fields: [[name: 'value']]]]]
             ]
         ]
-        service.getMetadata(NAME).returns(DESC).once()
+        service.getMetadata(TABLE_NAME).returns(DESC).once()
         def token = mock(TransactionToken)
         def firstInput = [row: 1, cols: [a: [value: 1]]]
         def firstOutput = [row: [1], a: [value: 1]]
@@ -220,30 +237,30 @@ class TableTest {
             def message = shouldFail(IllegalArgumentException) {
                 table.put([firstInput, secondInput, thirdInput], token)
             }
-            assertEquals message.message, "Column c does not exist"
+            assertEquals("Column c does not exist", message.message)
             message = shouldFail(IllegalArgumentException) {
                 table.put(fourthInput, token)
             }
-            assertEquals message.message, "The following fields do not exist: [fake_field]"
+            assertEquals("The following fields do not exist: [fake_field]", message.message)
         }
     }
 
     @Test
     void testPutDynamic() {
-        service.getMetadata(NAME).returns([is_dynamic: true]).once()
+        service.getMetadata(TABLE_NAME).returns([is_dynamic: true]).once()
         def token = mock(TransactionToken)
         def firstInput = [row: 1, col: 'a', val: 2]
         def firstOutput = [row: [1], col: ['a'], val: 2]
         def secondInput = [row: [2], col: ['b'], val: 3]
         def secondOutput = [row: [2], col: ['b'], val: 3]
-        def queryize = { data -> [table: NAME, data: data] }
+        def queryize = { data -> [table: TABLE_NAME, data: data] }
         service.put(queryize([firstOutput]), token).once()
         service.put(queryize([secondOutput]), token).once()
         service.put(queryize([firstOutput, secondOutput]), token).once()
         play {
-            Assert.assertEquals table.put(firstInput, token), null
-            Assert.assertEquals table.put([secondInput], token), null
-            Assert.assertEquals table.put([firstInput, secondInput], token), null
+            assertEquals(null, table.put(firstInput, token))
+            assertEquals(null, table.put([secondInput], token))
+            assertEquals(null, table.put([firstInput, secondInput], token))
         }
     }
 }

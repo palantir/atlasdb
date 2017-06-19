@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -55,7 +56,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
@@ -210,8 +210,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private LockLeader whoIsTheLockCreator() {
         return leaderConfig
-                .transform((config) -> config.whoIsTheLockLeader())
-                .or(LockLeader.I_AM_THE_LOCK_LEADER);
+                .map((config) -> config.whoIsTheLockLeader())
+                .orElse(LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
     protected void init() {
@@ -1635,8 +1635,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 CassandraVerifier.sanityCheckTableName(table);
 
-                TableReference tableRefLowerCased = TableReference
-                        .createLowerCased(table);
+                TableReference tableRefLowerCased = TableReference.createLowerCased(table);
                 if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
                     filteredTables.put(table, metadata);
                 } else {
