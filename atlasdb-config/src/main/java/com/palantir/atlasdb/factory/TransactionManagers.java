@@ -39,6 +39,7 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.http.UserAgents;
@@ -266,9 +267,9 @@ public final class TransactionManagers {
                 transactionManager,
                 kvs,
                 sweepRunner,
-                () -> runtimeConfig.get().enableSweep(),
-                () -> runtimeConfig.get().getSweepPauseMillis(),
-                () -> getSweepBatchConfig(runtimeConfig.get()),
+                () -> runtimeConfig.get().sweep().enableSweep(),
+                () -> runtimeConfig.get().sweep().getSweepPauseMillis(),
+                () -> getSweepBatchConfig(runtimeConfig.get().sweep()),
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 persistentLockManager);
@@ -277,11 +278,11 @@ public final class TransactionManagers {
         return transactionManager;
     }
 
-    private static SweepBatchConfig getSweepBatchConfig(AtlasDbRuntimeConfig runtimeConfig) {
+    private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig) {
         return ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(runtimeConfig.getSweepReadLimit())
-                .candidateBatchSize(runtimeConfig.getSweepCandidateBatchHint())
-                .deleteBatchSize(runtimeConfig.getSweepDeleteBatchHint())
+                .maxCellTsPairsToExamine(sweepConfig.getSweepReadLimit())
+                .candidateBatchSize(sweepConfig.getSweepCandidateBatchHint())
+                .deleteBatchSize(sweepConfig.getSweepDeleteBatchHint())
                 .build();
     }
 

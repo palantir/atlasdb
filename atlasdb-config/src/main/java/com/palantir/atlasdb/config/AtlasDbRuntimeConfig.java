@@ -20,63 +20,20 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.AtlasDbConstants;
 
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @Value.Immutable
 public abstract class AtlasDbRuntimeConfig {
-    /**
-     * If true, a background thread will periodically delete cells that
-     * have been overwritten or deleted. This differs from scrubbing
-     * because it is an untargeted cleaning process that scans all data
-     * looking for cells to delete.
-     */
-    @Value.Default
-    public Boolean enableSweep() {
-        return AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
-    }
 
-    /**
-     * The number of milliseconds to wait between each batch of cells
-     * processed by the background sweeper.
-     */
     @Value.Default
-    public long getSweepPauseMillis() {
-        return AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS;
-    }
-
-    /**
-     * The target number of (cell, timestamp) pairs to examine in a single run of the background sweeper.
-     */
-    @Value.Default
-    public Integer getSweepReadLimit() {
-        return AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT;
-    }
-
-    /**
-     * The target number of candidate (cell, timestamp) pairs to load per batch while sweeping.
-     */
-    @Value.Default
-    public Integer getSweepCandidateBatchHint() {
-        return AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT;
-    }
-
-    /**
-     * The target number of (cell, timestamp) pairs to delete at once while sweeping.
-     */
-    @Value.Default
-    public Integer getSweepDeleteBatchHint() {
-        return AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT;
+    public SweepConfig sweep() {
+        return SweepConfig.defaultSweepConfig();
     }
 
     public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {
         return ImmutableAtlasDbRuntimeConfig.builder()
-                .enableSweep(AtlasDbConstants.DEFAULT_ENABLE_SWEEP)
-                .sweepPauseMillis(AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS)
-                .sweepReadLimit(AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)
-                .sweepCandidateBatchHint(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT)
-                .sweepDeleteBatchHint(AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT)
+                .sweep(SweepConfig.defaultSweepConfig())
                 .build();
     }
 }
