@@ -24,6 +24,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -40,11 +41,10 @@ import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
 public class AtlasDbHttpClientsTest {
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
+    private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
     private static final String TEST_ENDPOINT = "/number";
     private static final MappingBuilder ENDPOINT_MAPPING = get(urlEqualTo(TEST_ENDPOINT));
     private static final int TEST_NUMBER = 12;

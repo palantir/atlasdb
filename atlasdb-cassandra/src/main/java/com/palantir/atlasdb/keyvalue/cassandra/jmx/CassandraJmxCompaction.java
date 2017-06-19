@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.jmx;
 
 import java.io.File;
 import java.net.InetSocketAddress;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,7 +30,6 @@ import org.apache.cassandra.service.StorageServiceMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -57,7 +57,7 @@ public final class CassandraJmxCompaction {
         // need to set the property before creating the JMX compaction client
         if (!jmxConfig.isPresent()) {
             log.info("Jmx compaction is not enabled.");
-            return Optional.absent();
+            return Optional.empty();
         }
 
         jmxCompaction.setJmxSslProperty(jmxConfig.get());

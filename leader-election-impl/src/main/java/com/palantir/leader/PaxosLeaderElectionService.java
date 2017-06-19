@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentMap;
@@ -41,7 +42,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Defaults;
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -199,7 +199,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     public Optional<HostAndPort> getSuspectedLeaderInMemory() {
         Optional<PingableLeader> maybeLeader = getSuspectedLeader(false /* use network */);
         if (!maybeLeader.isPresent()) {
-            return Optional.absent();
+            return Optional.empty();
         }
         return Optional.of(potentialLeadersToHosts.get(maybeLeader.get()));
     }
@@ -207,7 +207,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     private Optional<PingableLeader> getSuspectedLeader(boolean useNetwork) {
         PaxosValue value = knowledge.getGreatestLearnedValue();
         if (value == null) {
-            return Optional.absent();
+            return Optional.empty();
         }
 
         // check leader cache
@@ -219,7 +219,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         if (useNetwork) {
             return getSuspectedLeaderOverNetwork(uuid);
         } else {
-            return Optional.absent();
+            return Optional.empty();
         }
     }
 
@@ -301,7 +301,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             }
         }
 
-        return Optional.absent();
+        return Optional.empty();
     }
 
     private void throwIfInvalidSetup(PingableLeader cachedService,

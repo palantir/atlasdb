@@ -31,6 +31,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
@@ -43,7 +44,6 @@ import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -108,10 +108,10 @@ public class TransactionManagersTest {
         availableServer.stubFor(TIMELOCK_LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("4")));
 
         config = mock(AtlasDbConfig.class);
-        when(config.leader()).thenReturn(Optional.absent());
-        when(config.timestamp()).thenReturn(Optional.absent());
-        when(config.lock()).thenReturn(Optional.absent());
-        when(config.timelock()).thenReturn(Optional.absent());
+        when(config.leader()).thenReturn(Optional.empty());
+        when(config.timestamp()).thenReturn(Optional.empty());
+        when(config.lock()).thenReturn(Optional.empty());
+        when(config.timelock()).thenReturn(Optional.empty());
         when(config.keyValueService()).thenReturn(new InMemoryAtlasDbConfig());
 
         environment = mock(TransactionManagers.Environment.class);

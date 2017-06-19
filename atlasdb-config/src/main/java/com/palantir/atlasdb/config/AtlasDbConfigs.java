@@ -18,6 +18,8 @@ package com.palantir.atlasdb.config;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -29,8 +31,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.palantir.config.crypto.DecryptingVariableSubstitutor;
 import com.palantir.config.crypto.jackson.JsonNodeStringReplacer;
@@ -124,23 +124,23 @@ public final class AtlasDbConfigs {
     private static Optional<LeaderConfig> addFallbackSslConfigurationToLeader(
             Optional<LeaderConfig> config,
             Optional<SslConfiguration> sslConfiguration) {
-        return config.transform(leader -> ImmutableLeaderConfig.builder()
+        return config.map(leader -> ImmutableLeaderConfig.builder()
                 .from(leader)
-                .sslConfiguration(leader.sslConfiguration().or(sslConfiguration))
+                .sslConfiguration(getFirstPresentOptional(leader.sslConfiguration(), sslConfiguration))
                 .build());
     }
 
     private static Optional<ServerListConfig> addFallbackSslConfigurationToServerList(
             Optional<ServerListConfig> config,
             Optional<SslConfiguration> sslConfiguration) {
-        return config.transform(addSslConfigurationToServerListFunction(sslConfiguration));
+        return config.map(addSslConfigurationToServerListFunction(sslConfiguration));
     }
 
     private static Optional<TimeLockClientConfig> addFallbackSslConfigurationToTimeLockClientConfig(
             Optional<TimeLockClientConfig> config,
             Optional<SslConfiguration> sslConfiguration) {
         //noinspection ConstantConditions - function returns an existing ServerListConfig, maybe with different SSL.
-        return config.transform(clientConfig -> ImmutableTimeLockClientConfig.builder()
+        return config.map(clientConfig -> ImmutableTimeLockClientConfig.builder()
                 .from(clientConfig)
                 .serversList(addSslConfigurationToServerListFunction(sslConfiguration)
                         .apply(clientConfig.serversList()))
@@ -151,8 +151,12 @@ public final class AtlasDbConfigs {
             Optional<SslConfiguration> sslConfiguration) {
         return serverList -> ImmutableServerListConfig.builder()
                 .from(serverList)
-                .sslConfiguration(serverList.sslConfiguration().or(sslConfiguration))
+                .sslConfiguration(getFirstPresentOptional(serverList.sslConfiguration(), sslConfiguration))
                 .build();
+    }
 
+    // this behavior mimics guava's "public abstract Optional<T> or(Optional<? extends T> secondChoice)" method
+    private static <T> Optional<T> getFirstPresentOptional(Optional<T> primary, Optional<T> secondary) {
+        return primary.isPresent() ? primary : secondary;
     }
 }

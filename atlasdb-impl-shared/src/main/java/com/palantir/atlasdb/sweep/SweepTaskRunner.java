@@ -18,12 +18,12 @@ package com.palantir.atlasdb.sweep;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.LongSupplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterators;
@@ -179,8 +179,8 @@ public class SweepTaskRunner {
                 lastRow = batch.lastCellExamined().getRowName();
             }
             return SweepResults.builder()
-                    .previousStartRow(startRow)
-                    .nextStartRow(Arrays.equals(startRow, lastRow) ? Optional.absent() : Optional.of(lastRow))
+                    .previousStartRow(Optional.of(startRow))
+                    .nextStartRow(Arrays.equals(startRow, lastRow) ? Optional.empty() : Optional.of(lastRow))
                     .cellTsPairsExamined(totalCellTsPairsExamined)
                     .staleValuesDeleted(totalCellTsPairsDeleted)
                     .sweptTimestamp(sweepTs)

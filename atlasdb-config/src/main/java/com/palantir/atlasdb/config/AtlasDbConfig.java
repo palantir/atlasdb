@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.config;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
@@ -22,7 +24,6 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -247,9 +248,9 @@ public abstract class AtlasDbConfig {
     public AtlasDbConfig toOfflineConfig() {
         return ImmutableAtlasDbConfig.builder()
                 .from(this)
-                .leader(Optional.absent())
-                .lock(Optional.absent())
-                .timestamp(Optional.absent())
+                .leader(Optional.empty())
+                .lock(Optional.empty())
+                .timestamp(Optional.empty())
                 .build();
     }
 }
