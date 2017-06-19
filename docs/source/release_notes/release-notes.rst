@@ -69,6 +69,12 @@ develop
            We previously used Feign 8.6.1 and OkHttp 2.5.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2006>`__)
 
+    *    - |devbreak| |improved|
+         - Converted all compile time uses of Guava's ``com.google.common.base.Optional`` class to the Java8 equivalent ``java.util.Optional``.
+           This change should not directly affect users as there is no change to `json` or `yml` representations of AtlasDB configurations.
+           This is a relatively straightforward compile time break for products consuming AtlasDB libraries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2016>`__)
+
     *    - |new|
          - Added a getRow() command to AtlasConsole for retrieving a single row.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1992>`__)
@@ -166,12 +172,6 @@ develop
          - Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2003>`__)
 
-
-    *    - |devbreak| |improved|
-         - Converted all compile time uses of Guava's ``com.google.common.base.Optional`` class to the Java8 equivalent ``java.util.Optional``.
-           Should not affect deployments as there is no change to `json` or `yml` representations of AtlasDB configurations.
-           This is a relatively straightforward compile time break for products consuming AtlasDB libraries.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2016>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
