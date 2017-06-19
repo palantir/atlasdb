@@ -34,7 +34,6 @@ import com.palantir.atlasdb.jepsen.events.EventVisitor;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
-
 import com.palantir.atlasdb.jepsen.utils.EventUtils;
 
 /**

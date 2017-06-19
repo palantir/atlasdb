@@ -16,8 +16,8 @@
 package com.palantir.atlasdb.cas;
 
 import java.util.Objects;
+import java.util.Optional;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.cas.generated.CheckAndSetSchemaTableFactory;
 import com.palantir.atlasdb.cas.generated.CheckAndSetTable;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -42,7 +42,7 @@ public class CheckAndSetPersistentValue {
 
     public Optional<Long> get() {
         CheckAndSetTable checkAndSetTable = CheckAndSetSchemaTableFactory.of().getCheckAndSetTable(transaction);
-        return checkAndSetTable.getRow(CHECK_AND_SET_ROW).transform(CheckAndSetTable.CheckAndSetRowResult::getValue);
+        return checkAndSetTable.getRow(CHECK_AND_SET_ROW).map(CheckAndSetTable.CheckAndSetRowResult::getValue);
     }
 
     public boolean checkAndSet(Optional<Long> oldValue, Optional<Long> newValue) {

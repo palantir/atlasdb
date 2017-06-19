@@ -16,8 +16,8 @@
 package com.palantir.leader;
 
 import java.io.Serializable;
+import java.util.Optional;
 
-import com.google.common.base.Optional;
 import com.google.common.net.HostAndPort;
 
 public interface LeaderElectionService {

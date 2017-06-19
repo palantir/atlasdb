@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.services.test;
 
+import java.util.Optional;
 import java.util.function.LongSupplier;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -48,8 +48,8 @@ public class TestSweeperModule {
     }
 
     public TestSweeperModule() {
-        this.unreadableTs = Optional.absent();
-        this.immutableTs = Optional.absent();
+        this.unreadableTs = Optional.empty();
+        this.immutableTs = Optional.empty();
     }
 
     private TestSweeperModule(Optional<LongSupplier> unreadableTs, Optional<LongSupplier> immutableTs) {
@@ -64,8 +64,8 @@ public class TestSweeperModule {
                                                   TransactionService transactionService,
                                                   SweepStrategyManager sweepStrategyManager,
                                                   Follower follower) {
-        LongSupplier unreadable = unreadableTs.or(txm::getUnreadableTimestamp);
-        LongSupplier immutable = immutableTs.or(txm::getImmutableTimestamp);
+        LongSupplier unreadable = unreadableTs.orElse(txm::getUnreadableTimestamp);
+        LongSupplier immutable = immutableTs.orElse(txm::getImmutableTimestamp);
         return new SweepTaskRunner(
                 kvs,
                 unreadable,

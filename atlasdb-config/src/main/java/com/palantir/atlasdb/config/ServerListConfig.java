@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.config;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.validation.constraints.Size;
@@ -23,7 +24,6 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Optional;
 import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 @JsonDeserialize(as = ImmutableServerListConfig.class)

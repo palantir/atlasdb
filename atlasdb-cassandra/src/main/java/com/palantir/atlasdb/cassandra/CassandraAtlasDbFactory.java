@@ -15,8 +15,9 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import java.util.Optional;
+
 import com.google.auto.service.AutoService;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
