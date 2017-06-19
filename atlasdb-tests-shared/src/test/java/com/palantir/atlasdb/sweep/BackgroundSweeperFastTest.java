@@ -109,7 +109,7 @@ public class BackgroundSweeperFastTest {
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(9999L)
-                .previousStartRow(new byte[] {1, 2, 3})
+                .previousStartRow(Optional.of(new byte[] {1, 2, 3}))
                 .build());
         backgroundSweeper.runOnce();
         Mockito.verify(priorityStore).update(
@@ -131,7 +131,7 @@ public class BackgroundSweeperFastTest {
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
-                .nextStartRow(new byte[] {1, 2, 3})
+                .nextStartRow(Optional.of(new byte[] {1, 2, 3}))
                 .build());
         backgroundSweeper.runOnce();
         Mockito.verify(progressStore).saveProgress(
@@ -153,7 +153,7 @@ public class BackgroundSweeperFastTest {
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
-                .nextStartRow(new byte[] {1, 2, 3})
+                .nextStartRow(Optional.of(new byte[] {1, 2, 3}))
                 .build());
         backgroundSweeper.runOnce();
         Mockito.verify(priorityStore).update(
@@ -172,7 +172,7 @@ public class BackgroundSweeperFastTest {
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .sweptTimestamp(12345L)
-                .nextStartRow(new byte[] {1, 2, 3})
+                .nextStartRow(Optional.of(new byte[] {1, 2, 3}))
                 .build());
         backgroundSweeper.runOnce();
         Mockito.verifyZeroInteractions(sweepMetrics);

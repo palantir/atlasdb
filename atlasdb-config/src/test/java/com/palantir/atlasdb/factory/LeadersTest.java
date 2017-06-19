@@ -25,13 +25,13 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.util.MetricsRule;
@@ -55,7 +55,7 @@ public class LeadersTest {
         List<PaxosLearner> paxosLearners = Leaders.createProxyAndLocalList(
                 localLearner,
                 REMOTE_SERVICE_ADDRESSES,
-                Optional.absent(),
+                Optional.empty(),
                 PaxosLearner.class);
 
         MatcherAssert.assertThat(paxosLearners.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
@@ -73,7 +73,7 @@ public class LeadersTest {
         List<PaxosAcceptor> paxosAcceptors = Leaders.createProxyAndLocalList(
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
-                Optional.absent(),
+                Optional.empty(),
                 PaxosAcceptor.class);
 
         MatcherAssert.assertThat(paxosAcceptors.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
@@ -92,7 +92,7 @@ public class LeadersTest {
         List<PaxosAcceptor> paxosAcceptors = Leaders.createProxyAndLocalList(
                 localAcceptor,
                 ImmutableSet.of(),
-                Optional.absent(),
+                Optional.empty(),
                 PaxosAcceptor.class);
 
         MatcherAssert.assertThat(paxosAcceptors.size(), is(1));
@@ -109,7 +109,7 @@ public class LeadersTest {
         Leaders.createProxyAndLocalList(
                 localBigInteger,
                 REMOTE_SERVICE_ADDRESSES,
-                Optional.absent(),
+                Optional.empty(),
                 BigInteger.class);
     }
 
@@ -120,7 +120,7 @@ public class LeadersTest {
         Leaders.createProxyAndLocalList(
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
-                Optional.absent(),
+                Optional.empty(),
                 null);
     }
 }

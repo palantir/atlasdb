@@ -388,7 +388,7 @@ public abstract class AbstractSweepTaskRunnerTest {
                             .build(),
                     startRow);
             assertEquals(ts, results.getSweptTimestamp());
-            assertArrayEquals(startRow, results.getPreviousStartRow().orNull());
+            assertArrayEquals(startRow, results.getPreviousStartRow().orElse(null));
             totalStaleValuesDeleted += results.getStaleValuesDeleted();
             totalCellsExamined += results.getCellTsPairsExamined();
             if (!results.getNextStartRow().isPresent()) {

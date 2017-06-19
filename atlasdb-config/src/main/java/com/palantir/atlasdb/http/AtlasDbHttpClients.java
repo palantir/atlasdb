@@ -17,13 +17,13 @@ package com.palantir.atlasdb.http;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 

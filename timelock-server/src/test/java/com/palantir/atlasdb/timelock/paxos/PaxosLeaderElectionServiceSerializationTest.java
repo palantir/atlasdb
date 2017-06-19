@@ -20,13 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
+
 import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.google.common.base.Optional;
 import com.google.common.net.HostAndPort;
 import com.palantir.leader.LeaderElectionService;
 
@@ -43,7 +44,7 @@ public class PaxosLeaderElectionServiceSerializationTest {
     @Test
     public void canSerializeNoSuspectedLeader() throws JsonProcessingException {
         LeaderElectionService leaderElectionService = mock(LeaderElectionService.class);
-        when(leaderElectionService.getSuspectedLeaderInMemory()).thenReturn(Optional.absent());
+        when(leaderElectionService.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
 
         // Be very careful about changing the following! Doing so would be a wire break.
         assertThat(MAPPER.writeValueAsString(leaderElectionService.getSuspectedLeaderInMemory())).isEqualTo("null");

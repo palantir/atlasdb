@@ -17,6 +17,7 @@ package com.palantir.atlasdb.performance.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
 import org.mockito.Mockito;
 

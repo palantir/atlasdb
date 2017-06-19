@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.Optional;
 import java.util.function.LongSupplier;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 
@@ -67,7 +67,7 @@ public enum Sweeper {
     public static Optional<Sweeper> of(TableMetadataPersistence.SweepStrategy sweepStrategy) {
         switch (sweepStrategy) {
             case NOTHING:
-                return Optional.absent();
+                return Optional.empty();
             case CONSERVATIVE:
                 return Optional.of(CONSERVATIVE);
             case THOROUGH:
