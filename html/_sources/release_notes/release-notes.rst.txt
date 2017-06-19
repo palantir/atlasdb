@@ -63,6 +63,11 @@ develop
          - The default lock timeout is now configurable. 
            Currently, the default lock timeout is 2 minutes. This can cause a large delay if a lock requester's connection has died at the time it receives the lock. Since TransactionManagers#create provides an auto-refreshing lock service, it is safe to lower the default timeout to reduce the delay that happens in this case.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2025>`__)
+           
+    *    - |fixed|
+         - Lock service now ensures that locks are reaped in a more timely manner. 
+           Previously the lock service could allow locks to be held past expiration, if they had a timeout shorter than the longest timeout in the expiration queue.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2041>`__)
 
     *    - |devbreak|
          - Switched from feign to openfeign and bumped version.
@@ -71,6 +76,11 @@ develop
     *    - |improved|
          - The priority of logging on background sweep was increased from debug to info or warn.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
+
+    *    - |new|
+         - Added a rowComponents() function to the AtlasConsole table() command to allow you to easily view the
+           fields that make up a row key.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2037>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
