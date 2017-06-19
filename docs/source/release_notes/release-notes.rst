@@ -42,6 +42,33 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+
+======
+0.45.0
+======
+
+19 June 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |devbreak| |improved|
+         - Upgraded all usages of http-remoting to remoting2.
+           Previously, depending on the use case, AtlasDB would use http-remoting, remoting1 and remoting2.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
+
+    *    - |devbreak| |improved|
+         - AtlasDB now ships with OpenFeign 9.5.0 and OkHttp 3.6.0.
+           We previously used Feign 8.6.1 and OkHttp 2.5.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2006>`__)
+
     *    - |new|
          - Added a getRow() command to AtlasConsole for retrieving a single row.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1992>`__)
@@ -55,18 +82,12 @@ develop
            This allows transactions to make progress even when the threadpool is full.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2025>`__)
 
-    *    - |devbreak| |improved|
-         - Upgraded all usages of http-remoting to remoting2
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
-           
     *    - |new|
          - The default lock timeout is now configurable. 
-           Currently, the default lock timeout is 2 minutes. This can cause a large delay if a lock requester's connection has died at the time it receives the lock. Since TransactionManagers#create provides an auto-refreshing lock service, it is safe to lower the default timeout to reduce the delay that happens in this case.
+           Currently, the default lock timeout is 2 minutes.
+           This can cause a large delay if a lock requester's connection has died at the time it receives the lock.
+           Since TransactionManagers#create provides an auto-refreshing lock service, it is safe to lower the default timeout to reduce the delay that happens in this case.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2025>`__)
-
-    *    - |devbreak|
-         - Switched from feign to openfeign and bumped version.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2005>`__)
 
     *    - |improved|
          - The priority of logging on background sweep was increased from debug to info or warn.
