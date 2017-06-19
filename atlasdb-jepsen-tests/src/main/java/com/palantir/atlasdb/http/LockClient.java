@@ -42,7 +42,9 @@ public final class LockClient {
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(descriptor, LockMode.WRITE))
                 .doNotBlock()
                 .build();
-        return service.lock(client, request);
+        LockRefreshToken token = service.lock(client, request);
+
+        return token;
     }
 
     public static boolean unlock(RemoteLockService service, LockRefreshToken token) throws InterruptedException {
