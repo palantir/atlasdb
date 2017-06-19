@@ -18,23 +18,19 @@ package com.palantir.atlasdb.factory;
 import java.util.ServiceLoader;
 import java.util.Set;
 
-import javax.annotation.Nullable;
 import javax.net.ssl.SSLSocketFactory;
 
-import org.apache.commons.lang3.ObjectUtils;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -116,7 +112,7 @@ public final class TransactionManagers {
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
         return create(config,
-                java.util.Optional::empty,
+                AtlasDbRuntimeConfig::defaultRuntimeConfig,
                 schemas,
                 x -> { },
                 false);
@@ -128,7 +124,7 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
             Schema schema,
             Environment env,
             boolean allowHiddenTableAccess) {
@@ -141,7 +137,7 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
@@ -157,7 +153,7 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
@@ -168,7 +164,7 @@ public final class TransactionManagers {
 
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
@@ -180,19 +176,12 @@ public final class TransactionManagers {
 
     private static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             String userAgent) {
-
-        validateRuntimeConfig(runtimeConfig);
-        java.util.function.Supplier<AtlasDbRuntimeConfig> wrappedRuntimeConfig = () -> {
-            java.util.Optional<AtlasDbRuntimeConfig> optionalRuntimeConfig = runtimeConfig.get();
-            return optionalRuntimeConfig.orElseGet(() -> AtlasDbRuntimeConfig.create(config));
-        };
-
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
 
@@ -277,10 +266,9 @@ public final class TransactionManagers {
                 transactionManager,
                 kvs,
                 sweepRunner,
-                () -> MoreObjects.firstNonNull(wrappedRuntimeConfig.get().enableSweep(), config.enableSweep()),
-                () -> MoreObjects.firstNonNull(wrappedRuntimeConfig.get().getSweepPauseMillis(),
-                        config.getSweepPauseMillis()),
-                () -> getSweepBatchConfig(wrappedRuntimeConfig.get(), config),
+                () -> runtimeConfig.get().enableSweep(),
+                () -> runtimeConfig.get().getSweepPauseMillis(),
+                () -> getSweepBatchConfig(runtimeConfig.get()),
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 persistentLockManager);
@@ -289,45 +277,12 @@ public final class TransactionManagers {
         return transactionManager;
     }
 
-    private static void validateRuntimeConfig(
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig) {
-        if (!runtimeConfig.get().isPresent()) {
-            log.warn("AtlasDB now supports live reloadable configs. Please use the 'atlas-runtime' block for specifying"
-                    + " live-reloadable atlas configs. Default to using configs specified on the 'atlas' block");
-        }
-    }
-
-    private static SweepBatchConfig getSweepBatchConfig(AtlasDbRuntimeConfig runtimeConfig, AtlasDbConfig config) {
-        if (config.getSweepBatchSize() != null || config.getSweepCellBatchSize() != null) {
-            log.warn("Configuration parameters 'sweepBatchSize' and 'sweepCellBatchSize' have been deprecated"
-                    + " in favor of 'sweepMaxCellTsPairsToExamine', 'sweepCandidateBatchSize'"
-                    + " and 'sweepDeleteBatchSize'. Please update your configuration files.");
-        }
+    private static SweepBatchConfig getSweepBatchConfig(AtlasDbRuntimeConfig runtimeConfig) {
         return ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(chooseBestValue(
-                        runtimeConfig.getSweepReadLimit(),
-                        config.getSweepReadLimit(),
-                        config.getSweepCellBatchSize(),
-                        AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT))
-                .candidateBatchSize(chooseBestValue(
-                        runtimeConfig.getSweepCandidateBatchHint(),
-                        config.getSweepCandidateBatchHint(),
-                        config.getSweepBatchSize(),
-                        AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
-                .deleteBatchSize(chooseBestValue(
-                        runtimeConfig.getSweepDeleteBatchHint(),
-                        config.getSweepDeleteBatchHint(),
-                        AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT))
+                .maxCellTsPairsToExamine(runtimeConfig.getSweepReadLimit())
+                .candidateBatchSize(runtimeConfig.getSweepCandidateBatchHint())
+                .deleteBatchSize(runtimeConfig.getSweepDeleteBatchHint())
                 .build();
-    }
-
-    private static int chooseBestValue(@Nullable Integer runtimeOption,
-            @Nullable Integer newOption, @Nullable Integer oldOption, int defaultValue) {
-        return ObjectUtils.firstNonNull(runtimeOption, newOption, oldOption, defaultValue);
-    }
-
-    private static int chooseBestValue(@Nullable Integer newOption, @Nullable Integer oldOption, int defaultValue) {
-        return ObjectUtils.firstNonNull(newOption, oldOption, defaultValue);
     }
 
     private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {

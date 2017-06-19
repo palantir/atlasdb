@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -27,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.table.description.Schema;
@@ -79,7 +79,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             try {
                 return TransactionManagers.create(
                         config.getAtlasDbConfig(),
-                        Optional::empty,
+                        AtlasDbRuntimeConfig::defaultRuntimeConfig,
                         ETE_SCHEMAS,
                         environment.jersey()::register,
                         DONT_SHOW_HIDDEN_TABLES);
