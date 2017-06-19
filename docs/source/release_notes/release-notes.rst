@@ -58,6 +58,11 @@ develop
     *    - |devbreak| |improved|
          - Upgraded all usages of http-remoting to remoting2
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
+           
+    *    - |new|
+         - The default lock timeout is now configurable. 
+           Currently, the default lock timeout is 2 minutes. This can cause a large delay if a lock requester's connection has died at the time it receives the lock. Since TransactionManagers#create provides an auto-refreshing lock service, it is safe to lower the default timeout to reduce the delay that happens in this case.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2025>`__)
 
     *    - |devbreak|
          - Switched from feign to openfeign and bumped version.

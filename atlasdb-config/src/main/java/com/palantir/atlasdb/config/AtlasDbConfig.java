@@ -204,6 +204,14 @@ public abstract class AtlasDbConfig {
         return 1000;
     }
 
+    /**
+     * The default lock expiration time for requests to the lock service.
+     */
+    @Value.Default
+    public int getDefaultLockTimeoutSeconds() {
+        return AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS;
+    }
+
     @Value.Check
     protected final void check() {
         if (leader().isPresent()) {

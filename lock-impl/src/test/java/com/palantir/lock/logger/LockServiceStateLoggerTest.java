@@ -84,7 +84,7 @@ public class LockServiceStateLoggerTest {
         return new HeldLocksToken(tokenId, LockClient.of(clientName),
                 System.currentTimeMillis(), System.currentTimeMillis(),
                 LockCollections.of(builder.build()),
-                LockRequest.DEFAULT_LOCK_TIMEOUT, 0L, requestingThread);
+                LockRequest.getDefaultLockTimeout(), 0L, requestingThread);
     }
 
     @Test
