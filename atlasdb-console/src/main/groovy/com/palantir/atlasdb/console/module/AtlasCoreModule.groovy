@@ -168,10 +168,10 @@ class AtlasCoreModule implements AtlasConsoleModule {
     private setupConnection(AtlasDbConfig config) {
         SerializableTransactionManager tm = TransactionManagers.create(
                 config,
-                new Supplier<AtlasDbRuntimeConfig>() {
+                new Supplier<Optional<AtlasDbRuntimeConfig>>() {
                     @Override
-                    AtlasDbRuntimeConfig get() {
-                        return AtlasDbRuntimeConfig.create(config);
+                    Optional<AtlasDbRuntimeConfig> get() {
+                        return Optional.empty();
                     }
                 },
                 ImmutableSet.<Schema>of(),

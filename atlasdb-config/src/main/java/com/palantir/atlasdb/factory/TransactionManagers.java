@@ -115,9 +115,8 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
-        AtlasDbRuntimeConfig runtimeConfig = AtlasDbRuntimeConfig.create(config);
         return create(config,
-                () -> runtimeConfig,
+                java.util.Optional::empty,
                 schemas,
                 x -> { },
                 false);
@@ -129,7 +128,7 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Schema schema,
             Environment env,
             boolean allowHiddenTableAccess) {
@@ -142,7 +141,7 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
@@ -158,7 +157,7 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
@@ -169,7 +168,7 @@ public final class TransactionManagers {
 
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
@@ -181,16 +180,17 @@ public final class TransactionManagers {
 
     private static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             String userAgent) {
 
+        validateRuntimeConfig(runtimeConfig);
         java.util.function.Supplier<AtlasDbRuntimeConfig> wrappedRuntimeConfig = () -> {
-            validateRuntimeConfig(runtimeConfig.get());
-            return MoreObjects.firstNonNull(runtimeConfig.get(), AtlasDbRuntimeConfig.create(config));
+            java.util.Optional<AtlasDbRuntimeConfig> optionalRuntimeConfig = runtimeConfig.get();
+            return optionalRuntimeConfig.orElseGet(() -> AtlasDbRuntimeConfig.create(config));
         };
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
@@ -289,8 +289,9 @@ public final class TransactionManagers {
         return transactionManager;
     }
 
-    private static void validateRuntimeConfig(@Nullable AtlasDbRuntimeConfig runtimeConfig) {
-        if (runtimeConfig == null) {
+    private static void validateRuntimeConfig(
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig) {
+        if (!runtimeConfig.get().isPresent()) {
             log.warn("AtlasDB now supports live reloadable configs. Please use the 'atlas-runtime' block for specifying"
                     + " live-reloadable atlas configs. Default to using configs specified on the 'atlas' block");
         }
