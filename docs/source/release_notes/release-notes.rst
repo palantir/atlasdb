@@ -70,6 +70,7 @@ develop
     *    - |new|
          - Added a rowComponents() function to the AtlasConsole table() command to allow you to easily view the
            fields that make up a row key.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2037>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
