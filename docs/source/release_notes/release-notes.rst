@@ -81,6 +81,10 @@ develop
          - Added a getRow() command to AtlasConsole for retrieving a single row.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1992>`__)
 
+    *    - |new|
+         - Added a rowComponents() function to the AtlasConsole table() command to allow you to easily view the fields that make up a row key.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2037>`__)
+
     *    - |fixed|
          - Fixed an issue where the lock service was not properly shut down after losing leadership, which could result in threads blocking unnecessarily.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2014>`__)
@@ -96,6 +100,11 @@ develop
            This can cause a large delay if a lock requester's connection has died at the time it receives the lock.
            Since TransactionManagers#create provides an auto-refreshing lock service, it is safe to lower the default timeout to reduce the delay that happens in this case.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2025>`__)
+           
+    *    - |fixed|
+         - Lock service now ensures that locks are reaped in a more timely manner. 
+           Previously the lock service could allow locks to be held past expiration, if they had a timeout shorter than the longest timeout in the expiration queue.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2041>`__)
 
     *    - |improved|
          - The priority of logging on background sweep was increased from debug to info or warn.

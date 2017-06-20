@@ -921,8 +921,10 @@ public final class LockServiceImpl
                 T token = null;
                 try {
                     token = queue.take();
-                    long sleepTimeMs = token.getExpirationDateMs() - currentTimeMillis()
+                    long timeUntilTokenExpiredMs = token.getExpirationDateMs() - currentTimeMillis()
                             + maxAllowedClockDrift.toMillis();
+                    // it's possible that new lock requests will come in with a shorter timeout - so limit how long we sleep here
+                    long sleepTimeMs = Math.min(timeUntilTokenExpiredMs, maxAllowedClockDrift.toMillis());
                     if (sleepTimeMs > 0) {
                         Thread.sleep(sleepTimeMs);
                     }
