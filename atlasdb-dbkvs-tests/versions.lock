@@ -169,13 +169,16 @@
             "locked": "8.17.0",
             "transitive": [
                 "com.netflix.feign:feign-jackson",
-                "com.netflix.feign:feign-jaxrs"
+                "com.netflix.feign:feign-jaxrs",
+                "com.netflix.feign:feign-okhttp"
             ]
         },
         "com.netflix.feign:feign-jackson": {
             "locked": "8.17.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
@@ -183,6 +186,17 @@
             "locked": "8.17.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:atlasdb-tests-shared"
+            ]
+        },
+        "com.netflix.feign:feign-okhttp": {
+            "locked": "8.17.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
@@ -411,6 +425,18 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.squareup.okhttp3:okhttp": {
+            "locked": "3.4.1",
+            "transitive": [
+                "com.netflix.feign:feign-okhttp"
+            ]
+        },
+        "com.squareup.okio:okio": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.squareup.okhttp3:okhttp"
             ]
         },
         "com.zaxxer:HikariCP": {
@@ -754,13 +780,16 @@
             "locked": "8.17.0",
             "transitive": [
                 "com.netflix.feign:feign-jackson",
-                "com.netflix.feign:feign-jaxrs"
+                "com.netflix.feign:feign-jaxrs",
+                "com.netflix.feign:feign-okhttp"
             ]
         },
         "com.netflix.feign:feign-jackson": {
             "locked": "8.17.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
@@ -768,6 +797,17 @@
             "locked": "8.17.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:atlasdb-tests-shared"
+            ]
+        },
+        "com.netflix.feign:feign-okhttp": {
+            "locked": "8.17.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
@@ -996,6 +1036,18 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.squareup.okhttp3:okhttp": {
+            "locked": "3.4.1",
+            "transitive": [
+                "com.netflix.feign:feign-okhttp"
+            ]
+        },
+        "com.squareup.okio:okio": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.squareup.okhttp3:okhttp"
             ]
         },
         "com.zaxxer:HikariCP": {
