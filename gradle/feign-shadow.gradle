@@ -1,14 +1,17 @@
+apply plugin: 'org.inferred.processors' // Super hack
 apply plugin: 'com.github.johnrengelman.shadow'
 
 configurations {
     explicitShadow
     shadow.extendsFrom(explicitShadow)
     compile.extendsFrom(explicitShadow)
+    testCompile.extendsFrom(explicitShadow)
 }
 
 dependencies {
     // Keep in sync with the dependencies excluded from shadowJar.
     explicitShadow group: 'com.netflix.feign', name: 'feign-jackson'
+    explicitShadow group: 'com.netflix.feign', name: 'feign-core'
     explicitShadow(group: 'com.netflix.feign', name: 'feign-jaxrs') {
         exclude module: 'jsr311-api'
     }
@@ -21,6 +24,7 @@ shadowJar {
     classifier = ''
     dependencies {
         include (dependency(group: 'com.netflix.feign', name: 'feign-jackson'))
+        include (dependency(group: 'com.netflix.feign', name: 'feign-core'))
         include (dependency(group: 'com.netflix.feign', name: 'feign-jaxrs'))
         include (dependency(group: 'com.netflix.feign', name: 'feign-okhttp'))
         exclude (dependency(group: 'javax.ws.rs', name: 'jsr311-api'))

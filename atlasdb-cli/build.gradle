@@ -1,8 +1,8 @@
+apply plugin: 'org.inferred.processors'
 apply from: "../gradle/publish-jars.gradle"
 apply from: '../gradle/shared.gradle'
 apply from: "../gradle/feign-shadow.gradle"
 
-apply plugin: 'org.inferred.processors'
 
 dependencies {
     compile project(':atlasdb-cassandra')
