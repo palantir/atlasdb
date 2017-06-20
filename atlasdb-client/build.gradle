@@ -23,6 +23,10 @@ task myTestJar(type: Jar) {
 
 configurations {
     testArtifacts
+
+    explicitShadow
+    compile.extendsFrom(explicitShadow)
+    shadow.extendsFrom(explicitShadow)
 }
 
 artifacts {
@@ -30,25 +34,27 @@ artifacts {
 }
 
 dependencies {
-  compile project(":atlasdb-commons")
-  compile project(":atlasdb-api")
-  compile project(":atlasdb-client-protobufs")
-  compile (group: 'com.googlecode.json-simple', name: 'json-simple') {
+  explicitShadow project(":atlasdb-commons")
+  explicitShadow project(":atlasdb-api")
+  explicitShadow project(":atlasdb-client-protobufs")
+  explicitShadow (group: 'com.googlecode.json-simple', name: 'json-simple') {
     exclude group: 'junit'
   }
-  compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
-  compile group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
-  compile group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
-  compile group: "com.google.protobuf", name: "protobuf-java", version: "2.6.0"
+  explicitShadow group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
+  explicitShadow group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
+  explicitShadow group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
+  explicitShadow group: "com.google.protobuf", name: "protobuf-java", version: "2.6.0"
+  explicitShadow group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+  explicitShadow group: 'com.fasterxml.jackson.core', name: 'jackson-core'
+  explicitShadow group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
+  explicitShadow group: 'com.palantir.remoting2', name: 'tracing'
+  explicitShadow group: 'com.palantir.tritium', name: 'tritium-lib'
+
+  // Not needed at runtime in the shadow JAR, because we have shaded it away.
   compile group: 'com.netflix.feign', name: 'feign-jackson'
   compile (group: 'com.netflix.feign', name: 'feign-jaxrs') {
     exclude module: 'jsr311-api'
   }
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
-  compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
-  compile group: 'com.palantir.remoting2', name: 'tracing'
-  compile group: 'com.palantir.tritium', name: 'tritium-lib'
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
