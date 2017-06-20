@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.LongSupplier;
 
 import org.slf4j.Logger;
@@ -166,6 +167,7 @@ public class SweepTaskRunner {
         SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(transactionService, sweeper, sweepTs);
         try (ClosableIterator<List<CandidateCellForSweeping>> candidates = keyValueService.getCandidateCellsForSweeping(
                     tableRef, request)) {
+
             ExaminedCellLimit limit = new ExaminedCellLimit(startRow, batchConfig.maxCellTsPairsToExamine());
             Iterator<BatchOfCellsToSweep> batchesToSweep = getBatchesToSweep(
                         candidates, batchConfig, sweepableCellFilter, limit);
@@ -192,8 +194,16 @@ public class SweepTaskRunner {
                                                             SweepBatchConfig batchConfig,
                                                             SweepableCellFilter sweepableCellFilter,
                                                             ExaminedCellLimit limit) {
+        candidates = Iterators.filter(candidates, Objects::nonNull);
+        candidates = Iterators.filter(candidates, list -> !list.isEmpty());
+
+        Iterator<Iterator<List<CandidateCellForSweeping>>> batchedCandidatesIterator = Iterators.transform(candidates,
+                (List<CandidateCellForSweeping> candidateList) ->
+                        Iterators.partition(candidateList.iterator(), batchConfig.deleteBatchSize()));
+        Iterator<List<CandidateCellForSweeping>> batchedCandidates = Iterators.concat(batchedCandidatesIterator);
+
         Iterator<BatchOfCellsToSweep> cellsToSweep = Iterators.transform(
-                Iterators.filter(candidates, list -> !list.isEmpty()),
+                batchedCandidates,
                 sweepableCellFilter::getCellsToSweep);
         return new CellsToSweepPartitioningIterator(cellsToSweep, batchConfig.deleteBatchSize(), limit);
     }
