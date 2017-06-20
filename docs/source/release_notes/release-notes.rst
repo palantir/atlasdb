@@ -62,11 +62,13 @@ develop
     *    - |devbreak| |improved|
          - Upgraded all usages of http-remoting to remoting2.
            Previously, depending on the use case, AtlasDB would use http-remoting, remoting1 and remoting2.
+           Developers may need to check their dependencies, as well as update instantiation of their calls to ``TransactionManagers.create()`` to use the remoting2 API.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
 
     *    - |devbreak| |improved|
          - AtlasDB now ships with OpenFeign 9.5.0 and OkHttp 3.6.0.
            We previously used Feign 8.6.1 and OkHttp 2.5.0.
+           Developers may need to check their dependencies, especially if they relied on AtlasDB to pull in Feign and OkHttp as there were package name changes.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2006>`__)
 
     *    - |devbreak| |improved|
