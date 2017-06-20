@@ -37,6 +37,8 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.remoting.BlockingTimeoutException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public class BlockingTimeLimitedLockService implements CloseableRemoteLockService {
     private static final Logger log = LoggerFactory.getLogger(BlockingTimeLimitedLockService.class);
@@ -102,7 +104,6 @@ public class BlockingTimeLimitedLockService implements CloseableRemoteLockServic
         delegate.logCurrentState();
     }
 
-    @SuppressWarnings("Slf4jConstantLogMessage") // TODO (jkong): Implement an exception producer-and-logger
     private <T> T callWithTimeLimit(Callable<T> callable, LockRequestSpecification specification)
             throws InterruptedException {
         try {
@@ -110,25 +111,35 @@ public class BlockingTimeLimitedLockService implements CloseableRemoteLockServic
         } catch (InterruptedException e) {
             // In this case, the thread was interrupted for some other reason, perhaps because we lost leadership.
             log.info("Lock service was interrupted when servicing {} for client \"{}\"; request was {}",
-                    specification.method(),
-                    specification.client(),
-                    specification.lockRequest(),
+                    SafeArg.of("method", specification.method()),
+                    SafeArg.of("client", specification.client()),
+                    UnsafeArg.of("lockRequest", specification.lockRequest()),
                     e);
             throw e;
         } catch (UncheckedTimeoutException e) {
             // This is the legitimate timeout case we're trying to catch.
-            String message = String.format(
-                    "Lock service timed out after %s milliseconds when servicing %s for client \"%s\"; request was %s",
-                    blockingTimeLimitMillis,
-                    specification.method(),
-                    specification.client(),
-                    specification.lockRequest());
-            log.info(message, e);
-            throw new BlockingTimeoutException(message);
+            throw logAndHandleTimeout(specification);
         } catch (Exception e) {
             // We don't know, and would prefer not to throw checked exceptions apart from InterruptedException.
             throw Throwables.propagate(e);
         }
+    }
+
+    private BlockingTimeoutException logAndHandleTimeout(LockRequestSpecification specification) {
+        final String logMessage = "Lock service timed out after {} milliseconds"
+                + " when servicing {} for client \"{}\"";
+        log.info(logMessage,
+                SafeArg.of("timeoutDurationMillis", blockingTimeLimitMillis),
+                SafeArg.of("method", specification.method()),
+                SafeArg.of("client", specification.client()),
+                UnsafeArg.of("lockRequest", specification.lockRequest()));
+
+        String errorMessage = String.format(
+                logMessage.replace("{}", "%s"),
+                blockingTimeLimitMillis,
+                specification.method(),
+                specification.client());
+        return new BlockingTimeoutException(errorMessage);
     }
 
     @Override

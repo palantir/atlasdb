@@ -56,6 +56,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedMap.Builder;
@@ -97,6 +98,8 @@ import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.JMXUtils;
 
@@ -489,19 +492,16 @@ public final class LockServiceImpl
     }
 
     @VisibleForTesting
-    @SuppressWarnings("Slf4jConstantLogMessage")
     protected void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
-        String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
+        final String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
+        Object[] messageParams = ImmutableList.of(
+                SafeArg.of("durationMillis", durationMillis),
+                UnsafeArg.of("lockId", lockId),
+                SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully")).toArray();
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
-            SlowLockLogger.logger.info(slowLockLogMessage,
-                    durationMillis,
-                    lockId,
-                    currentHolder == null ? "successfully" : "unsuccessfully");
+            SlowLockLogger.logger.info(slowLockLogMessage, messageParams);
         } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
-            log.debug(slowLockLogMessage,
-                    durationMillis,
-                    lockId,
-                    currentHolder == null ? "successfully" : "unsuccessfully");
+            log.debug(slowLockLogMessage, messageParams);
         }
     }
 
