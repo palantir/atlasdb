@@ -166,6 +166,7 @@ public class SweepTaskRunner {
         SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(transactionService, sweeper, sweepTs);
         try (ClosableIterator<List<CandidateCellForSweeping>> candidates = keyValueService.getCandidateCellsForSweeping(
                     tableRef, request)) {
+
             ExaminedCellLimit limit = new ExaminedCellLimit(startRow, batchConfig.maxCellTsPairsToExamine());
             Iterator<BatchOfCellsToSweep> batchesToSweep = getBatchesToSweep(
                         candidates, batchConfig, sweepableCellFilter, limit);
@@ -188,12 +189,19 @@ public class SweepTaskRunner {
         }
     }
 
+    // Each batch has at least deleteBatchSize and at most (2*deleteBatchSize-1) cells.
     private Iterator<BatchOfCellsToSweep> getBatchesToSweep(Iterator<List<CandidateCellForSweeping>> candidates,
                                                             SweepBatchConfig batchConfig,
                                                             SweepableCellFilter sweepableCellFilter,
                                                             ExaminedCellLimit limit) {
+        Iterator<List<CandidateCellForSweeping>> validCandidates =
+                Iterators.filter(candidates, list -> list != null && !list.isEmpty());
+
+        Iterator<List<CandidateCellForSweeping>> batchedCandidates = new CandidateCellForSweepingPartitioningIterator(
+                validCandidates, batchConfig.deleteBatchSize());
+
         Iterator<BatchOfCellsToSweep> cellsToSweep = Iterators.transform(
-                Iterators.filter(candidates, list -> !list.isEmpty()),
+                batchedCandidates,
                 sweepableCellFilter::getCellsToSweep);
         return new CellsToSweepPartitioningIterator(cellsToSweep, batchConfig.deleteBatchSize(), limit);
     }
