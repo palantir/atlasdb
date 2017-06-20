@@ -77,7 +77,7 @@ allprojects {
 
     configurations.all {
         resolutionStrategy {
-            failOnVersionConflict()
+//            failOnVersionConflict()
         }
 
         resolutionStrategy.eachDependency { details ->

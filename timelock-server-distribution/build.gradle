@@ -4,6 +4,7 @@ apply from: "../gradle/docker.gradle"
 apply from: "../gradle/publish-dists.gradle"
 apply from: "../gradle/shared.gradle"
 apply from: "../gradle/timelock.gradle"
+apply from: "../gradle/feign-shadow.gradle"
 
 dependencies {
     runtime project(':timelock-server')

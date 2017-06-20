@@ -1,4 +1,5 @@
 apply from: "../../gradle/shared.gradle"
+apply from: "../../gradle/feign-shadow.gradle"
 
 schemas = [
     'com.palantir.example.profile.schema.ProfileSchema'

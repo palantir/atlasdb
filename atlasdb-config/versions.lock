@@ -198,17 +198,23 @@
         "com.netflix.feign:feign-jackson": {
             "locked": "8.17.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.netflix.feign:feign-jaxrs": {
             "locked": "8.17.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.netflix.feign:feign-okhttp": {
-            "locked": "8.17.0"
+            "locked": "8.17.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
         },
         "com.palantir.atlasdb:atlasdb-api": {
             "project": true,
@@ -729,17 +735,23 @@
         "com.netflix.feign:feign-jackson": {
             "locked": "8.17.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.netflix.feign:feign-jaxrs": {
             "locked": "8.17.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.netflix.feign:feign-okhttp": {
-            "locked": "8.17.0"
+            "locked": "8.17.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
         },
         "com.palantir.atlasdb:atlasdb-api": {
             "project": true,
