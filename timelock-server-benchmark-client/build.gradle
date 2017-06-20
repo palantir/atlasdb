@@ -11,6 +11,9 @@ dependencies {
     }
 
     runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
+
 }
 
 distribution {

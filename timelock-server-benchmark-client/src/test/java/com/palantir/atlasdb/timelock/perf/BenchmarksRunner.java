@@ -16,33 +16,17 @@
 
 package com.palantir.atlasdb.timelock.perf;
 
-import java.util.Map;
-import java.util.function.BiFunction;
-
 import org.junit.Test;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.base.Optional;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.timelock.benchmarks.BenchmarksService;
 
 /**
  * Note that there is no warmup time included in any of these tests, so if the server has just been started you'll want
  * to execute many requests until the results stabilize (give the JIT compiler time to optimize).
  */
-public class BenchmarksRunner {
-
-    private static final String PERF_TEST_SERVER = "http://il-pg-alpha-1086751.usw1.palantir.global:9425";
-    private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
-    private final BenchmarksService client = AtlasDbHttpClients.createProxy(
-            Optional.absent(), PERF_TEST_SERVER, BenchmarksService.class, "perf-test-runner");
+public class BenchmarksRunner extends BenchmarkRunnerBase {
 
     @Test
     public void timestamp() {
-        runAndPrintResults(client::timestamp, 8, 1000);
+        runAndPrintResults(client::timestamp, 32, 5000);
     }
 
     @Test
@@ -73,19 +57,6 @@ public class BenchmarksRunner {
     @Test
     public void contendedWriteTransaction() {
         runAndPrintResults(client::contendedWriteTransaction, 2000, 1);
-    }
-
-    private void runAndPrintResults(BiFunction<Integer, Integer, Map<String, Object>> test, int numClients, int numRequestsPerClient) {
-        Map<String, Object> results = test.apply(numClients, numRequestsPerClient);
-        printResults(results);
-    }
-
-    private void printResults(Map<String, Object> results) {
-        try {
-            System.out.println(MAPPER.writeValueAsString(results));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
     }
 
 }

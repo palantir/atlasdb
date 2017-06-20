@@ -79,11 +79,11 @@ public class ContendedWriteTransactionBenchmark extends AbstractBenchmark {
 
     @Override
     public void performOneCall() {
-        runContendedTransaction(TABLE1, false);
-        runContendedTransaction(TABLE2, true);
+        runContendedTransaction(TABLE1);
+        runContendedTransaction(TABLE2);
     }
 
-    private void runContendedTransaction(TableReference table, boolean writeEitherWay) {
+    private void runContendedTransaction(TableReference table) {
         txnManager.runTaskWithRetry(txn -> {
             Cell cell = Cell.create(key, key);
             byte[] currentValue = txn.get(table, ImmutableSet.of(cell)).get(cell);
@@ -91,11 +91,6 @@ public class ContendedWriteTransactionBenchmark extends AbstractBenchmark {
             if (Arrays.equals(currentValue, originalValue)) {
                 byte[] newValue = UUID.randomUUID().toString().getBytes();
                 txn.put(table, ImmutableMap.of(cell, newValue));
-            }
-
-            if (writeEitherWay) {
-                byte[] randomData = UUID.randomUUID().toString().getBytes();
-                txn.put(table, ImmutableMap.of(Cell.create(randomData, randomData), randomData));
             }
 
             return null;

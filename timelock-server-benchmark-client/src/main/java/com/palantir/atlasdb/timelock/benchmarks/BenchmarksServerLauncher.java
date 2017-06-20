@@ -20,6 +20,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.timelock.benchmarks.config.TimelockBenchmarksConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
@@ -44,5 +45,6 @@ public class BenchmarksServerLauncher extends Application<TimelockBenchmarksConf
     @Override
     public void run(TimelockBenchmarksConfig configuration, Environment environment) throws Exception {
         environment.jersey().register(new BenchmarksResource(configuration.getAtlas()));
+        environment.jersey().register(HttpRemotingJerseyFeature.with(HttpRemotingJerseyFeature.StacktracePropagation.PROPAGATE));
     }
 }

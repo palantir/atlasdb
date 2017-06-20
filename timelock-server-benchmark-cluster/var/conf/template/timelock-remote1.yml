@@ -20,10 +20,12 @@ useClientRequestLimit: true
 
 timeLimiter:
   enableTimeLimiting: true
-  #blockingTimeoutErrorMargin: 0.5
+  blockingTimeoutErrorMargin: 0.8
 server:
   idleThreadTimeout: 60s
-  maxThreads: 2000
+  maxThreads: 2048
+  minThreads: 1024
+  maxQueuedRequests: 4096
   requestLog:
     appenders:
       - type: file
