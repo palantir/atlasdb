@@ -113,7 +113,7 @@ public final class TransactionManagers {
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
         return create(config,
-                AtlasDbRuntimeConfig::defaultRuntimeConfig,
+                java.util.Optional::empty,
                 schemas,
                 x -> { },
                 false);
@@ -125,7 +125,7 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Schema schema,
             Environment env,
             boolean allowHiddenTableAccess) {
@@ -138,7 +138,7 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
@@ -154,7 +154,7 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
@@ -165,7 +165,7 @@ public final class TransactionManagers {
 
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
@@ -177,7 +177,7 @@ public final class TransactionManagers {
 
     private static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
@@ -267,15 +267,20 @@ public final class TransactionManagers {
                 transactionManager,
                 kvs,
                 sweepRunner,
-                () -> runtimeConfig.get().sweep().enableSweep(),
-                () -> runtimeConfig.get().sweep().getSweepPauseMillis(),
-                () -> getSweepBatchConfig(runtimeConfig.get().sweep()),
+                () -> getAtlasDbRuntimeConfig(runtimeConfig).sweep().enableSweep(),
+                () -> getAtlasDbRuntimeConfig(runtimeConfig).sweep().getSweepPauseMillis(),
+                () -> getSweepBatchConfig(getAtlasDbRuntimeConfig(runtimeConfig).sweep()),
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 persistentLockManager);
         backgroundSweeper.runInBackground();
 
         return transactionManager;
+    }
+
+    private static AtlasDbRuntimeConfig getAtlasDbRuntimeConfig(
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig) {
+        return runtimeConfig.get().orElse(AtlasDbRuntimeConfig.defaultRuntimeConfig());
     }
 
     private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig) {
