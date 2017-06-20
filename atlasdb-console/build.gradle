@@ -1,6 +1,7 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 apply plugin: 'groovy'
+apply from: "../gradle/feign-shadow.gradle"
 
 dependencies {
     compile project(':atlasdb-service')

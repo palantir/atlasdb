@@ -1,4 +1,5 @@
 apply from: "../gradle/publish-jars.gradle"
+apply from: "../gradle/feign-shadow.gradle"
 apply from: "../gradle/shared.gradle"
 
 schemas = [
