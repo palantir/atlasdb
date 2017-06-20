@@ -99,6 +99,11 @@ develop
          - The priority of logging on background sweep was increased from debug to info or warn.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
 
+    *    - |improved|
+         - The lock service state logger now has a reduced memory footprint.
+           It also now logs the locking mode for each lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1891>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -502,10 +507,6 @@ This release contains (almost) exclusively baseline-related changes.
          - ``ConflictDetectionManagers.createDefault(KeyValueService)`` has been deprecated.
            If you use this method, please replace it with ``ConflictDetectionManagers.create(KeyValueService)``.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1822>`__) and (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1850>`__)
-
-    *    - |improved|
-         - Improved memory footprint of lock state dumper and now it will include locking mode as well.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1891>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
