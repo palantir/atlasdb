@@ -10,6 +10,7 @@ atlas:
         keyStorePath: var/security/keyStore.jks
         keyStorePassword: keystore
         trustStorePath: var/security/trustStore.jks
+  defaultLockTimeoutSeconds: 20
   keyValueService:
     type: memory
 #  keyValueService:
