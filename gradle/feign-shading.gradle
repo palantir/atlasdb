@@ -1,0 +1,23 @@
+apply plugin: 'org.inferred.processors'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+// Avoid conflicts between the location of the "lean" jar and the shadow jar.
+// The jar is around largely so that we can build multiproject dependencies without running into potential
+// class-loading problems.
+jar {
+    classifier 'lean'
+}
+
+shadowJar {
+    mergeServiceFiles()
+    relocate('feign', 'com.palantir.atlasdb.shaded.feign')
+
+    dependencies {
+        include (dependency (group: 'com.netflix.feign', name: 'feign-jackson'))
+        include (dependency (group: 'com.netflix.feign', name: 'feign-core'))
+        include (dependency (group: 'com.netflix.feign', name: 'feign-jaxrs'))
+        include (dependency (group: 'com.netflix.feign', name: 'feign-okhttp'))
+    }
+
+    classifier ''
+}
