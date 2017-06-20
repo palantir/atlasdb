@@ -278,13 +278,15 @@ public class JdbcKeyValueService implements KeyValueService {
         if (timestampByCell.isEmpty()) {
             return ImmutableMap.of();
         }
-        return run(new Function<DSLContext, Map<Cell, Value>>() {
-            @Override
-            public Map<Cell, Value> apply(DSLContext ctx) {
+
+        Map<Cell, Value> toReturn = new HashMap<>();
+
+        for (List<Entry<Cell, Long>> parition : Iterables.partition(timestampByCell.entrySet(), PARTITION_SIZE)) {
+            toReturn.putAll(run(ctx -> {
                 Select<? extends Record> query = getLatestTimestampQueryManyTimestamps(
                         ctx,
                         tableRef,
-                        toRows(timestampByCell));
+                        toRows(parition));
                 Result<? extends Record> records = fetchValues(ctx, tableRef, query);
                 Map<Cell, Value> results = Maps.newHashMapWithExpectedSize(records.size());
                 for (Record record : records) {
@@ -293,8 +295,8 @@ public class JdbcKeyValueService implements KeyValueService {
                             Value.create(record.getValue(A_VALUE), record.getValue(A_TIMESTAMP)));
                 }
                 return results;
-            }
-        });
+            }));
+        }
     }
 
     @Override
@@ -364,6 +366,15 @@ public class JdbcKeyValueService implements KeyValueService {
         RowN[] rows = new RowN[timestampByCell.size()];
         int i = 0;
         for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
+            rows[i++] = row(new Object[] {entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue()});
+        }
+        return rows;
+    }
+
+    private static RowN[] toRows(List<Entry<Cell, Long>> cellTimestampPairs) {
+        RowN[] rows = new RowN[cellTimestampPairs.size()];
+        int i = 0;
+        for (Entry<Cell, Long> entry : cellTimestampPairs) {
             rows[i++] = row(new Object[] {entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue()});
         }
         return rows;
