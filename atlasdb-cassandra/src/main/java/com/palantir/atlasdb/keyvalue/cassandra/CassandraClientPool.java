@@ -368,7 +368,7 @@ public class CassandraClientPool {
             return true;
         } catch (Exception e) {
             log.error("We tried to add {} back into the pool, but got an exception"
-                    + " that caused to us distrust this host further.", host, e);
+                    + " that caused us to distrust this host further.", host, e);
             return false;
         }
     }
