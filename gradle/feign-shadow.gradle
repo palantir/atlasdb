@@ -1,0 +1,16 @@
+apply plugin: 'com.github.johnrengelman.shadow'
+
+dependencies {
+    // Keep in sync with the dependencies excluded from shadowJar.
+}
+
+shadowJar {
+    mergeServiceFiles()
+    relocate('feign', 'atlasdb.shaded.feign')
+    classifier = ''
+}
+
+tasks.shadowJar {
+}
+
+jar.dependsOn shadowJar
