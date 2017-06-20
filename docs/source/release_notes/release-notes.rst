@@ -78,10 +78,16 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
 
-    *    - |deprecated|
-         - As part of the live-reloading work, were deprecated:
+    *    - |userbreak| |deprecated|
+         - As part of the live-reloading work, were deprecated the sweep options of the AtlasDB config, namely:
 
-           - the `enableSweep`, `getSweepPauseMillis`, `getSweepReadLimit`, `getSweepCandidateBatchHint` and `getSweepDeleteBatchHint` options of the AtlasDB config.
+           - `enableSweep`
+           - `getSweepPauseMillis`
+           - `getSweepReadLimit`
+           - `getSweepCandidateBatchHint`
+           - `getSweepDeleteBatchHint`
+
+           If any of these options are specified in the install config, **AtlasDB will fail to start**. Please specify them on the runtime config.
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
 

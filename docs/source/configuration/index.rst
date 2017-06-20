@@ -32,7 +32,7 @@ For a full list of the configurations available at the ``atlasdb`` root level, s
 `AtlasDbConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java>`__.
 
 A second root configuration block, denoted ``atlasdb-runtime``, can be specified for live-reloadable configs.
-Parameters related to :ref:`Sweep <sweep>` can be specified there and will be live-reloaded as the sweep runs.
+Parameters related to :ref:`Sweep <sweep>` can be specified there and will be reloaded in each sweep run.
 For a full list of the configurations available at this block, see
 `AtlasDbRuntimeConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java>`__.
 
@@ -79,7 +79,5 @@ Example Configuration
 
 
     atlasdb-runtime:
-      enableSweep: false
-      sweepBatchSize: 1000
-
-
+      sweep:
+        enableSweep: false
