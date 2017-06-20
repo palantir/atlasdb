@@ -82,6 +82,10 @@ develop
            fields that make up a row key.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2037>`__)
 
+    *    - |changed|
+         - Reduced the logging level of some messages relating to check-and-set operations in ``CassandraTimestampBoundStore`` to reduce noise in the logs.  These were designed to help debugging the ``MultipleRunningTimestampServicesException`` issues but we no longer require them to log all the time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2048>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
