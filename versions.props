@@ -49,4 +49,4 @@ org.ow2.asm:asm = 5.0.4
 org.slf4j:* = 1.7.5
 org.yaml:snakeyaml = 1.12
 
-io.github.openfeign:* = 9.5.0
+com.netflix.feign:* = 8.17.0
