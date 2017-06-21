@@ -69,9 +69,13 @@ develop
            Previously the lock service could allow locks to be held past expiration, if they had a timeout shorter than the longest timeout in the expiration queue.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2041>`__)
 
-    *    - |devbreak|
-         - Switched from feign to openfeign and bumped version.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2005>`__)
+    *    - |improved| |devbreak|
+         - AtlasDB has updated Feign to 8.17.0 and OkHttp to 3.4.1, following remoting2 in the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
+           Also, AtlasDB now shades Feign.
+           This was done to enable us to synchronize with remoting2 while limiting breaks for users of older versions of Feign, especially given an API break in Feign 8.16.
+           Users who previously relied on AtlasDB to pull in Feign may experience a compile break, and should explicitly pull Feign in on their own.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2005>`__) and
+           (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/205x>`__)
 
     *    - |improved|
          - The priority of logging on background sweep was increased from debug to info or warn.
