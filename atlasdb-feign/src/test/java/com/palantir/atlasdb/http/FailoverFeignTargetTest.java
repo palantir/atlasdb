@@ -25,6 +25,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.longThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,7 +37,6 @@ import java.util.List;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
@@ -80,7 +80,7 @@ public class FailoverFeignTargetTest {
     @Before
     public void setup() {
         normalTarget = new FailoverFeignTarget<>(SERVERS, 1, Object.class);
-        spiedTarget = Mockito.spy(new FailoverFeignTarget<>(SERVERS, 100, Object.class));
+        spiedTarget = spy(new FailoverFeignTarget<>(SERVERS, 100, Object.class));
     }
 
     @Test
