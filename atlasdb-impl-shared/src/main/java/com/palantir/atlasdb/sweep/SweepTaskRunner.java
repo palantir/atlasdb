@@ -18,7 +18,6 @@ package com.palantir.atlasdb.sweep;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.LongSupplier;
 
 import org.slf4j.Logger;
@@ -194,10 +193,11 @@ public class SweepTaskRunner {
                                                             SweepBatchConfig batchConfig,
                                                             SweepableCellFilter sweepableCellFilter,
                                                             ExaminedCellLimit limit) {
-        candidates = Iterators.filter(candidates, Objects::nonNull);
-        candidates = Iterators.filter(candidates, list -> !list.isEmpty());
+        Iterator<List<CandidateCellForSweeping>> validCandidates =
+                Iterators.filter(candidates, list -> list != null && !list.isEmpty());
 
-        Iterator<Iterator<List<CandidateCellForSweeping>>> batchedCandidatesIterator = Iterators.transform(candidates,
+        Iterator<Iterator<List<CandidateCellForSweeping>>> batchedCandidatesIterator = Iterators.transform(
+                validCandidates,
                 (List<CandidateCellForSweeping> candidateList) ->
                         Iterators.partition(candidateList.iterator(), batchConfig.deleteBatchSize()));
         Iterator<List<CandidateCellForSweeping>> batchedCandidates = Iterators.concat(batchedCandidatesIterator);
