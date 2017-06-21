@@ -175,14 +175,12 @@
         "com.netflix.feign:feign-jackson": {
             "locked": "8.17.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
         "com.netflix.feign:feign-jaxrs": {
             "locked": "8.17.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
@@ -760,14 +758,12 @@
         "com.netflix.feign:feign-jackson": {
             "locked": "8.17.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
         "com.netflix.feign:feign-jaxrs": {
             "locked": "8.17.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },

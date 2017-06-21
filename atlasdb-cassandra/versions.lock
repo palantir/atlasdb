@@ -35,7 +35,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting2:jackson-support",
@@ -135,25 +134,6 @@
         },
         "com.googlecode.protobuf-java-format:protobuf-java-format": {
             "locked": "1.2",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.netflix.feign:feign-core": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.netflix.feign:feign-jackson",
-                "com.netflix.feign:feign-jaxrs"
-            ]
-        },
-        "com.netflix.feign:feign-jackson": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.netflix.feign:feign-jaxrs": {
-            "locked": "8.17.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
@@ -395,12 +375,6 @@
         "org.jboss.marshalling:jboss-marshalling": {
             "locked": "1.4.11.Final",
             "requested": "1.4.11.Final"
-        },
-        "org.jvnet:animal-sniffer-annotation": {
-            "locked": "1.0",
-            "transitive": [
-                "com.netflix.feign:feign-core"
-            ]
         },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",
@@ -479,7 +453,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting2:jackson-support",
@@ -579,25 +552,6 @@
         },
         "com.googlecode.protobuf-java-format:protobuf-java-format": {
             "locked": "1.2",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.netflix.feign:feign-core": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.netflix.feign:feign-jackson",
-                "com.netflix.feign:feign-jaxrs"
-            ]
-        },
-        "com.netflix.feign:feign-jackson": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.netflix.feign:feign-jaxrs": {
-            "locked": "8.17.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
@@ -839,12 +793,6 @@
         "org.jboss.marshalling:jboss-marshalling": {
             "locked": "1.4.11.Final",
             "requested": "1.4.11.Final"
-        },
-        "org.jvnet:animal-sniffer-annotation": {
-            "locked": "1.0",
-            "transitive": [
-                "com.netflix.feign:feign-core"
-            ]
         },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",

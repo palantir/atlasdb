@@ -149,16 +149,10 @@
             ]
         },
         "com.netflix.feign:feign-jackson": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
+            "locked": "8.17.0"
         },
         "com.netflix.feign:feign-jaxrs": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
+            "locked": "8.17.0"
         },
         "com.palantir.atlasdb:atlasdb-api": {
             "project": true,
@@ -597,16 +591,10 @@
             ]
         },
         "com.netflix.feign:feign-jackson": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
+            "locked": "8.17.0"
         },
         "com.netflix.feign:feign-jaxrs": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
+            "locked": "8.17.0"
         },
         "com.palantir.atlasdb:atlasdb-api": {
             "project": true,
