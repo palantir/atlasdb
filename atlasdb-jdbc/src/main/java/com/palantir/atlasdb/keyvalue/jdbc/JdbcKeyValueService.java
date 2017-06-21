@@ -139,6 +139,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class JdbcKeyValueService implements KeyValueService {
     private final static int PARTITION_SIZE = 1000;
+    private static final int GET_BATCH_SIZE = 20_000;
     private final String tablePrefix;
     private final SQLDialect sqlDialect;
     private final DataSource dataSource;
@@ -281,7 +282,7 @@ public class JdbcKeyValueService implements KeyValueService {
 
         Map<Cell, Value> toReturn = new HashMap<>();
 
-        for (List<Entry<Cell, Long>> parition : Iterables.partition(timestampByCell.entrySet(), PARTITION_SIZE)) {
+        for (List<Entry<Cell, Long>> parition : Iterables.partition(timestampByCell.entrySet(), GET_BATCH_SIZE)) {
             toReturn.putAll(run(ctx -> {
                 Select<? extends Record> query = getLatestTimestampQueryManyTimestamps(
                         ctx,
@@ -297,6 +298,8 @@ public class JdbcKeyValueService implements KeyValueService {
                 return results;
             }));
         }
+
+        return toReturn;
     }
 
     @Override
