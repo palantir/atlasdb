@@ -4,6 +4,8 @@ apply from: "../gradle/shared.gradle"
 apply plugin: 'com.palantir.sls-java-service-distribution'
 apply plugin: 'org.inferred.processors'
 
+apply from: "../gradle/feign-shading.gradle"
+
 schemas = [
         'com.palantir.atlasdb.cas.CheckAndSetSchema'
 ]
@@ -11,7 +13,7 @@ schemas = [
 dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
-    compile project(path: ':atlasdb-config', configuration: 'shadow')
+    compile project(path: ':atlasdb-config', configuration: 'remotingShadow')
     compile project(':atlasdb-dropwizard-bundle')
     compile project(':atlasdb-hikari')
     compile project(':atlasdb-rocksdb')

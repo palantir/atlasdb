@@ -2,6 +2,7 @@ apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/shared.gradle"
+apply from: "../gradle/feign-shading.gradle"
 
 dependencies {
   compile project(":atlasdb-api")
@@ -12,7 +13,7 @@ dependencies {
   compile project(':commons-db')
   compile project(':commons-api')
 
-  testCompile project(':atlasdb-config')
+  testCompile project(path: ':atlasdb-config', configuration: 'remotingShadow')
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'org.mockito', name: 'mockito-core'

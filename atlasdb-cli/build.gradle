@@ -1,11 +1,12 @@
+apply plugin: 'org.inferred.processors'
+
 apply from: "../gradle/publish-jars.gradle"
 apply from: '../gradle/shared.gradle'
-
-apply plugin: 'org.inferred.processors'
+apply from: "../gradle/feign-shading.gradle"
 
 dependencies {
     compile project(':atlasdb-cassandra')
-    compile project(path: ':atlasdb-dagger', configuration: 'shadow')
+    compile project(path: ':atlasdb-dagger', configuration: 'daggerShadow')
     compileOnly 'com.google.dagger:dagger'
     compile 'io.airlift:airline:0.7'
 

@@ -1,5 +1,6 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
+apply from: "../gradle/feign-shading.gradle"
 
 apply plugin: 'application'
 mainClassName = 'com.palantir.atlasdb.server.AtlasDbServiceServer'
@@ -9,7 +10,7 @@ dependencies {
     compile project(':atlasdb-service')
     compile project(':lock-impl')
     compile project(':leader-election-impl')
-    compile project(path: ':atlasdb-config', configuration: 'shadow')
+    compile project(path: ':atlasdb-config', configuration: 'remotingShadow')
     runtime project(':atlasdb-rocksdb')
     runtime project(':atlasdb-cassandra')
 

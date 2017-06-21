@@ -1,10 +1,11 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
+apply from: "../gradle/feign-shading.gradle"
 
 dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
-    compile project(path: ':atlasdb-config', configuration: 'shadow')
+    compile project(path: ':atlasdb-config', configuration: 'remotingShadow')
     compile 'javax.inject:javax.inject:1'
 
     testCompile group: 'org.mockito', name: 'mockito-core'

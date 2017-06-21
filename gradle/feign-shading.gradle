@@ -1,0 +1,18 @@
+apply plugin: 'com.github.johnrengelman.shadow'
+
+// Avoid conflicts between the location of the "lean" jar and the shadow jar.
+// The jar is around largely so that we can build multiproject dependencies without running into potential
+// class-loading problems.
+jar {
+    classifier 'lean'
+}
+
+shadowJar {
+    mergeServiceFiles()
+    relocate('feign', 'com.palantir.atlasdb.shaded.feign')
+    classifier ''
+
+    dependencies {
+        include(dependency('com.netflix.feign:feign-.*'))
+    }
+}

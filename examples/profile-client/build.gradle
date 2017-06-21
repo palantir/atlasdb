@@ -7,9 +7,9 @@ schemas = [
 group = 'com.palantir.atlasdb.examples'
 
 dependencies {
-  compile project(":atlasdb-client")
+  compile project(path: ":atlasdb-client", configuration: "shadow")
   compile project(":examples:profile-client-protobufs")
 
-  testCompile project(":atlasdb-config")
+  testCompile project(path: ":atlasdb-config", configuration: "shadow")
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 }

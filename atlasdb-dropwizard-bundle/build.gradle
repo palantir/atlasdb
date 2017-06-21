@@ -1,9 +1,10 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
+apply from: "../gradle/feign-shading.gradle"
 
 dependencies {
     compile project(':atlasdb-cli')
-    compile project(path: ':atlasdb-config', configuration: 'shadow')
+    compile project(path: ':atlasdb-config', configuration: 'remotingShadow')
     compile project(':atlasdb-console')
 
     compile group: 'io.dropwizard', name: 'dropwizard-core'
