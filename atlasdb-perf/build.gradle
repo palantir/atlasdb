@@ -10,7 +10,7 @@ applicationName = 'atlasdb-perf'
 
 dependencies {
   compile project(':atlasdb-api')
-  compile project(':atlasdb-dagger')
+  compile project(path: ':atlasdb-dagger', configuration: 'daggerShadow')
   compile project(':atlasdb-dbkvs')
   compile project(':atlasdb-cassandra')
 

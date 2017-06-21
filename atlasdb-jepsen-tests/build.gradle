@@ -1,3 +1,7 @@
+apply plugin: 'org.inferred.processors'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'docker-compose'
+
 apply from: "../gradle/publish-jars.gradle"
 apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 apply from: "../gradle/feign-shading.gradle"
@@ -10,10 +14,6 @@ buildscript {
         classpath 'com.avast.gradle:docker-compose-gradle-plugin:0.3.5'
     }
 }
-
-apply plugin: 'org.inferred.processors'
-apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: 'docker-compose'
 
 task runUnitTestsForPrintLogsInChronologicalOrderScript(type: Exec) {
    commandLine 'python', 'scripts/print_logs_in_chronological_order.py', '--tests-only'
