@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.After;
@@ -37,7 +38,6 @@ import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -58,8 +58,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.tracing.TestSpanObserver;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
-import com.palantir.remoting1.tracing.SpanType;
-import com.palantir.remoting1.tracing.Tracer;
+import com.palantir.remoting2.tracing.SpanType;
+import com.palantir.remoting2.tracing.Tracer;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 @RunWith(MockitoJUnitRunner.class)

@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.cas;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public class SimpleCheckAndSetResource implements CheckAndSetResource {
     private CheckAndSetClient checkAndSetClient;
@@ -31,7 +31,7 @@ public class SimpleCheckAndSetResource implements CheckAndSetResource {
 
     @Override
     public Long get() {
-        return checkAndSetClient.get().orNull();
+        return checkAndSetClient.get().orElse(null);
     }
 
     @Override

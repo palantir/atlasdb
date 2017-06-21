@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 
@@ -30,7 +31,6 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -65,7 +65,7 @@ public class AtomixTimeLockServerIntegrationTest {
     private static final String INVALID_CLIENT = "invalid-client-with-symbol-$";
     private static final long ONE_MILLION = 1_000_000;
 
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
+    private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
     private static final String LOCK_CLIENT_NAME = "lock-client-name";
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP = ImmutableSortedMap.of(
             StringLockDescriptor.of("lock1"), LockMode.WRITE);

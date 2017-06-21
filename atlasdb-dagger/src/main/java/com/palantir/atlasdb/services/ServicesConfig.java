@@ -15,13 +15,13 @@
  */
 package com.palantir.atlasdb.services;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import org.immutables.value.Value;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;

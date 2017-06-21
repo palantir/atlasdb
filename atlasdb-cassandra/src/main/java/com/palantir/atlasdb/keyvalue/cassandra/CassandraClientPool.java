@@ -71,7 +71,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.remoting2.tracing.Tracers;
 
 /**
  * Feature breakdown:
@@ -368,7 +368,7 @@ public class CassandraClientPool {
             return true;
         } catch (Exception e) {
             log.error("We tried to add {} back into the pool, but got an exception"
-                    + " that caused to us distrust this host further.", host, e);
+                    + " that caused us to distrust this host further.", host, e);
             return false;
         }
     }

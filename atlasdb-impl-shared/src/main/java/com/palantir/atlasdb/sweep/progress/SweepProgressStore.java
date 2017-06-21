@@ -39,7 +39,7 @@ public class SweepProgressStore {
     public Optional<SweepProgress> loadProgress(Transaction tx)  {
         SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
         Optional<SweepProgressRowResult> result = Optional.ofNullable(
-                progressTable.getRow(SweepProgressRow.of(0)).orNull());
+                progressTable.getRow(SweepProgressRow.of(0)).orElse(null));
         return result.map(SweepProgressStore::hydrateProgress);
     }
 

@@ -13,11 +13,10 @@ com.jayway.awaitility:awaitility = 1.6.5
 com.palantir.config.crypto:encrypted-config-value-module = 1.0.0
 com.palantir.docker.compose:docker-compose-rule* = 0.31.0
 com.palantir.docker.proxy:docker-proxy-rule = 0.3.0
-com.palantir.remoting1:* = 1.0.3
-com.palantir.remoting:* = 0.13.0
 com.palantir.remoting2:* = 2.3.0
 com.palantir.safe-logging:* = 0.1.1
 com.palantir.tritium:tritium-lib = 0.6.0
+com.squareup.okhttp3:* = 3.4.1
 commons-cli:commons-cli = 1.2
 commons-codec:commons-codec = 1.10
 commons-io:commons-io = 2.1
@@ -51,6 +50,4 @@ org.ow2.asm:asm = 5.0.4
 org.slf4j:* = 1.7.5
 org.yaml:snakeyaml = 1.12
 
-// versions below 8.10.0 have a bug where POST requests must have a body
-com.netflix.feign:* = 8.6.1
-com.netflix.feign:feign-okhttp = 8.10.1
+com.netflix.feign:* = 8.17.0

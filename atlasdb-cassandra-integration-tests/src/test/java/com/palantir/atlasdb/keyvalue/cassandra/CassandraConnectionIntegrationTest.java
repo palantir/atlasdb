@@ -18,11 +18,12 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Optional;
+
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -36,7 +37,7 @@ public class CassandraConnectionIntegrationTest {
 
     private static final CassandraKeyValueServiceConfig NO_CREDS_CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
             .copyOf(CassandraContainer.KVS_CONFIG)
-            .withCredentials(Optional.absent());
+            .withCredentials(Optional.empty());
 
     @Test
     public void testAuthProvided() {

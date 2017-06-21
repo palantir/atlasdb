@@ -46,6 +46,49 @@ develop
          - `AssertUtils` logging methods will now ask for a sfl4j logger to log to, instead of using a default logger.
            This should make log events from AssertUtils easier to filter.
 
+    *    - |new|
+         - Added a getRow() command to AtlasConsole for retrieving a single row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1992>`__)
+
+    *    - |fixed|
+         - Fixed an issue where the lock service was not properly shut down after losing leadership, which could result in threads blocking unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2014>`__)
+           
+    *    - |fixed|
+         - Lock refresh requests are no longer restricted by lock service threadpool limiting. 
+           This allows transactions to make progress even when the threadpool is full.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2025>`__)
+
+    *    - |devbreak| |improved|
+         - Upgraded all usages of http-remoting to remoting2
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
+           
+    *    - |new|
+         - The default lock timeout is now configurable. 
+           Currently, the default lock timeout is 2 minutes. This can cause a large delay if a lock requester's connection has died at the time it receives the lock. Since TransactionManagers#create provides an auto-refreshing lock service, it is safe to lower the default timeout to reduce the delay that happens in this case.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2025>`__)
+           
+    *    - |fixed|
+         - Lock service now ensures that locks are reaped in a more timely manner. 
+           Previously the lock service could allow locks to be held past expiration, if they had a timeout shorter than the longest timeout in the expiration queue.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2041>`__)
+
+    *    - |devbreak|
+         - Switched from feign to openfeign and bumped version.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2005>`__)
+
+    *    - |improved|
+         - The priority of logging on background sweep was increased from debug to info or warn.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
+
+    *    - |new|
+         - Added a rowComponents() function to the AtlasConsole table() command to allow you to easily view the
+           fields that make up a row key.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2037>`__)
+
+    *    - |changed|
+         - Reduced the logging level of some messages relating to check-and-set operations in ``CassandraTimestampBoundStore`` to reduce noise in the logs.  These were designed to help debugging the ``MultipleRunningTimestampServicesException`` issues but we no longer require them to log all the time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2048>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -114,6 +157,17 @@ develop
            This can have a very large performance impact (both positive and negative in different cases), so users may need to remove the explicit compression request from their schema if this causes a performance regression.
            Users that previously attempted to set a compression block size that was not a power of 2 will also need to update their schema because Cassandra only allows this value to be a power of 2.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1995>`__)
+
+    *    - |fixed|
+         - Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2003>`__)
+
+
+    *    - |devbreak| |improved|
+         - Converted all compile time uses of Guava's ``com.google.common.base.Optional`` class to the Java8 equivalent ``java.util.Optional``.
+           Should not affect deployments as there is no change to `json` or `yml` representations of AtlasDB configurations.
+           This is a relatively straightforward compile time break for products consuming AtlasDB libraries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2016>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -444,6 +498,11 @@ This release contains (almost) exclusively baseline-related changes.
          - ``ConflictDetectionManagers.createDefault(KeyValueService)`` has been deprecated.
            If you use this method, please replace it with ``ConflictDetectionManagers.create(KeyValueService)``.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1822>`__) and (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1850>`__)
+
+    *    - |improved|
+         - Improved memory footprint of lock state dumper and now it will include locking mode as well.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1891>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

@@ -16,13 +16,13 @@
 package com.palantir.timestamp;
 
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public class InMemoryTimestampBoundStore implements TimestampBoundStore {
     private volatile long upperLimit = 0;
     private volatile int numberOfAllocations = 0;
     private boolean shouldThrowErrorMultipleServerError = false;
-    private Optional<RuntimeException> error = Optional.absent();
+    private Optional<RuntimeException> error = Optional.empty();
 
     @Override
     public long getUpperLimit() {
@@ -36,7 +36,7 @@ public class InMemoryTimestampBoundStore implements TimestampBoundStore {
         }
 
         if(error.isPresent()) {
-            throw error.orNull();
+            throw error.orElse(null);
         }
         numberOfAllocations++;
         upperLimit = newLimit;

@@ -41,7 +41,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.SimulatingServerProxy;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.logger.LockServiceLoggerTestUtils;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 
@@ -92,7 +92,7 @@ public abstract class LockServiceTest {
 
     /** Tests using doNotBlock() in the lock request. */
     @Test public void testDoNotBlock() throws InterruptedException {
-        long lockTimeoutMs = LockRequest.DEFAULT_LOCK_TIMEOUT.toMillis();
+        long lockTimeoutMs = LockRequest.getDefaultLockTimeout().toMillis();
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(
                 lock1, LockMode.READ, lock2, LockMode.WRITE))
                 .withLockedInVersionId(10).doNotBlock().build();
@@ -151,7 +151,7 @@ public abstract class LockServiceTest {
 
     /** Tests using blockForAtMost() in the lock request. */
     @Test public void testBlockForAtMost() throws Exception {
-        long lockTimeoutMs = LockRequest.DEFAULT_LOCK_TIMEOUT.toMillis();
+        long lockTimeoutMs = LockRequest.getDefaultLockTimeout().toMillis();
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(
                 lock1, LockMode.READ, lock2, LockMode.WRITE))
                 .withLockedInVersionId(10)
@@ -248,7 +248,7 @@ public abstract class LockServiceTest {
 
     /** Tests using block indefinitely mode */
     @Test public void testBlockIndefinitely() throws Exception {
-        long lockTimeoutMs = LockRequest.DEFAULT_LOCK_TIMEOUT.toMillis();
+        long lockTimeoutMs = LockRequest.getDefaultLockTimeout().toMillis();
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(
                 lock1, LockMode.READ, lock2, LockMode.WRITE)).withLockedInVersionId(10).build();
         long currentTimeMs = System.currentTimeMillis();
@@ -425,7 +425,7 @@ public abstract class LockServiceTest {
 
     /** Tests against LockService.logCurrentState() long-block bug (QA-87074) */
     @Test public void testLogCurrentState() throws Exception {
-        long lockTimeoutMs = LockRequest.DEFAULT_LOCK_TIMEOUT.toMillis();
+        long lockTimeoutMs = LockRequest.getDefaultLockTimeout().toMillis();
         // Timeout in private LockServiceImpl.LOG_STATE_DEBUG_LOCK_WAIT_TIME_IN_MILLIS; test value is double that
         long logCurrentStateCallTimeoutMs = 2 * 5000L;
 
