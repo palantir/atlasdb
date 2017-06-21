@@ -105,7 +105,7 @@ public class AssertUtils {
     }
 
     /**
-     * @deprecated Use {@link #assertAndLogWithException(boolean, String, Throwable)} instead.
+     * @deprecated Use {@link #assertAndLogWithException(Logger, boolean, String, Throwable)} instead.
      * This will make sure log events go to your logger instead of a hard-to-filter default.
      * (com.palantir.util.AssertUtils)
      */
@@ -122,7 +122,7 @@ public class AssertUtils {
     }
 
     /**
-     * @deprecated Use {@link #assertAndLogWithException(boolean, String, Throwable, Object...)} instead.
+     * @deprecated Use {@link #assertAndLogWithException(Logger, boolean, String, Throwable, Object...)} instead.
      * This will make sure log events go to your logger instead of a hard-to-filter default.
      * (com.palantir.util.AssertUtils)
      */
