@@ -189,6 +189,7 @@ public class SweepTaskRunner {
         }
     }
 
+    // Each batch has at least deleteBatchSize and at most (2*deleteBatchSize-1) cells.
     private Iterator<BatchOfCellsToSweep> getBatchesToSweep(Iterator<List<CandidateCellForSweeping>> candidates,
                                                             SweepBatchConfig batchConfig,
                                                             SweepableCellFilter sweepableCellFilter,
