@@ -22,40 +22,21 @@ import java.util.Optional;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
-import feign.Client;
-import feign.Contract;
-import feign.Feign;
-import feign.Request;
-import feign.codec.Decoder;
-import feign.codec.Encoder;
-import feign.codec.ErrorDecoder;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
-import feign.jaxrs.JAXRSContract;
-
 public final class AtlasDbHttpClients {
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 1000;
     private static final int QUICK_MAX_BACKOFF_MILLIS = 1000;
-    private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options();
-
-    private static final ObjectMapper mapper = new ObjectMapper();
-    private static final Contract contract = new JAXRSContract();
-    private static final Encoder encoder = new JacksonEncoder(mapper);
-    private static final Decoder decoder = new TextDelegateDecoder(new JacksonDecoder(mapper));
-    private static final ErrorDecoder errorDecoder = new AtlasDbErrorDecoder();
 
     private AtlasDbHttpClients() {
         // Utility class
     }
 
     /**
-     * Constructs a dynamic proxy for the specified type, using the supplied SSL factory if is present, and feign {@link
-     * feign.Client.Default} HTTP client.
+     * Constructs a dynamic proxy for the specified type, using the supplied SSL factory if is present, and the
+     * default Feign HTTP client.
      */
     public static <T> T createProxy(Optional<SSLSocketFactory> sslSocketFactory, String uri, Class<T> type) {
         return createProxy(sslSocketFactory, uri, type, UserAgents.DEFAULT_USER_AGENT);
@@ -68,13 +49,7 @@ public final class AtlasDbHttpClients {
             String userAgent) {
         return AtlasDbMetrics.instrument(
                 type,
-                Feign.builder()
-                        .contract(contract)
-                        .encoder(encoder)
-                        .decoder(decoder)
-                        .errorDecoder(errorDecoder)
-                        .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, userAgent, type))
-                        .target(type, uri),
+                AtlasDbFeignTargetFactory.createProxy(sslSocketFactory, uri, type, userAgent),
                 MetricRegistry.name(type, userAgent));
     }
 
@@ -123,50 +98,25 @@ public final class AtlasDbHttpClients {
             Collection<String> endpointUris,
             Class<T> type,
             String userAgent) {
-        return createProxyWithFailover(
-                sslSocketFactory,
-                endpointUris,
-                DEFAULT_FEIGN_OPTIONS,
-                FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
-                type,
-                userAgent);
-    }
-
-    /**
-     * @param feignOptions      Options to configure Feign timeouts.
-     * @param maxBackoffMillis  Passed through to the FailoverFeignTarget, this configures the maximum time that a
-     *                          backoff will be for.
-     */
-    private static <T> T createProxyWithFailover(
-            Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris,
-            Request.Options feignOptions, int maxBackoffMillis, Class<T> type, String userAgent) {
-        FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
-        Client client = failoverFeignTarget.wrapClient(
-                FeignOkHttpClients.newOkHttpClient(sslSocketFactory, userAgent, type));
         return AtlasDbMetrics.instrument(
                 type,
-                Feign.builder()
-                        .contract(contract)
-                        .encoder(encoder)
-                        .decoder(decoder)
-                        .errorDecoder(errorDecoder)
-                        .client(client)
-                        .retryer(failoverFeignTarget)
-                        .options(feignOptions)
-                        .target(failoverFeignTarget),
+                AtlasDbFeignTargetFactory.createProxyWithFailover(sslSocketFactory, endpointUris, type, userAgent),
                 MetricRegistry.name(type, userAgent));
     }
 
     @VisibleForTesting
     static <T> T createProxyWithQuickFailoverForTesting(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
-        Request.Options options = new Request.Options(QUICK_FEIGN_TIMEOUT_MILLIS, QUICK_FEIGN_TIMEOUT_MILLIS);
-        return createProxyWithFailover(
-                sslSocketFactory,
-                endpointUris,
-                options,
-                QUICK_MAX_BACKOFF_MILLIS,
+        return AtlasDbMetrics.instrument(
                 type,
-                UserAgents.DEFAULT_USER_AGENT);
+                AtlasDbFeignTargetFactory.createProxyWithFailover(
+                        sslSocketFactory,
+                        endpointUris,
+                        QUICK_FEIGN_TIMEOUT_MILLIS,
+                        QUICK_FEIGN_TIMEOUT_MILLIS,
+                        QUICK_MAX_BACKOFF_MILLIS,
+                        type,
+                        UserAgents.DEFAULT_USER_AGENT),
+                MetricRegistry.name(type, "atlasdb-testing"));
     }
 }
