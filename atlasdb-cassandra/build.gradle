@@ -1,6 +1,7 @@
 apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
 apply plugin: 'com.github.johnrengelman.shadow'
+apply from: "../gradle/feign-shading.gradle"
 
 apply from: "../gradle/shared.gradle"
 
@@ -65,6 +66,3 @@ shadowJar {
       include(dependency { false })
   }
 }
-
-jar.dependsOn shadowJar
-jar.onlyIf { false }
