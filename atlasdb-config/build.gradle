@@ -8,6 +8,28 @@ apply from: "../gradle/feign-shading.gradle"
 apply from: "../gradle/shared.gradle"
 
 configurations {
+    /*
+     * The configurations below may be visualized as follows:
+     *
+     *   +-------+        +--------------+       +------+
+     *   |compile+--+  +--+remotingShadow+---+   |shadow|
+     *   +---+---+  |  |  +--------------+   |   +----+-+
+     *       |      |  |                     |        |
+     *       +------+--+---------------+     |        |
+     *              |  |               |     |        |
+     *         +----v--v-+          +--v-----v-----+  |
+     *         |feignDeps|          |explicitShadow<--+
+     *         +---------+          +--------------+
+     *
+     * where we have an arrow from A to B if configuration A extends from B (i.e. A gets all dependencies of B).
+     *
+     * remotingShadow includes compile dependencies, except for remoting. It also includes the ALPN agent for HTTP/2.
+     * shadow includes compile dependencies, except for remoting and feign; it also includes the ALPN agent.
+     *
+     * Having shadow jar configurations extend from compile is not recommended
+     * (see https://github.com/johnrengelman/shadow/issues/142).
+     */
+
     remotingShadow
 
     explicitShadow
