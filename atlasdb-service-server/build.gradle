@@ -16,4 +16,6 @@ dependencies {
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
+    testCompile group: 'com.netflix.feign', name: 'feign-jaxrs'
+    testCompile group: 'com.netflix.feign', name: 'feign-jackson'
 }

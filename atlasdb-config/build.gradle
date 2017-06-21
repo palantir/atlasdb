@@ -15,16 +15,11 @@ dependencies {
     compile group: 'com.palantir.remoting2', name: 'jackson-support'
 
     explicitShadow project(':atlasdb-api')
+    explicitShadow project(path: ':atlasdb-feign', configuration: 'shadow')
     explicitShadow project(':atlasdb-impl-shared')
     explicitShadow project(':leader-election-impl')
     explicitShadow project(':lock-impl')
 
-    explicitShadow group: 'com.netflix.feign', name: 'feign-jackson'
-    explicitShadow (group: 'com.netflix.feign', name: 'feign-jaxrs') {
-        exclude module: 'jsr311-api'
-    }
-    // versions below 8.10.0 have a bug where POST requests must have a body
-    explicitShadow group: 'com.netflix.feign', name: 'feign-okhttp'
     explicitShadow group: 'javax.validation', name: 'validation-api'
     explicitShadow group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
     explicitShadow group: 'com.palantir.tritium', name: 'tritium-lib'
