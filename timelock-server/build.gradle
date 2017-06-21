@@ -43,6 +43,7 @@ dependencies {
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile project(":atlasdb-tests-shared")
+    testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.timelock_dropwizard
 }
