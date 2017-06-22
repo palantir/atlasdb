@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |deprecated|
+         - `AssertUtils` logging methods will now ask for a sfl4j logger to log to, instead of using a default logger.
+           This should make log events from AssertUtils easier to filter.
+
     *    - |improved|
          - JDBC KVS now batches cells in get operations via the config parameter ``batchSizeForReads``.
            This will prevent the driver from throwing due to many parameters in the resulting SQL select query.
@@ -96,7 +100,6 @@ develop
     *    - |changed|
          - Reduced the logging level of some messages relating to check-and-set operations in ``CassandraTimestampBoundStore`` to reduce noise in the logs.  These were designed to help debugging the ``MultipleRunningTimestampServicesException`` issues but we no longer require them to log all the time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2048>`__)
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

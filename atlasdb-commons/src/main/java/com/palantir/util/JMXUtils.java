@@ -104,7 +104,7 @@ public final class JMXUtils {
             //The bean was registered concurrently; log an error, but don't fail tests
             log.error("Failed to register mbean for name {}", objectName, e);
         } catch (Exception e) {
-            AssertUtils.assertAndLogWithException(false, "Failed to register mbean for name " + objectName, e);
+            AssertUtils.assertAndLogWithException(log, false, "Failed to register mbean for name " + objectName, e);
         }
     }
 
@@ -143,7 +143,7 @@ public final class JMXUtils {
             server.registerMBean(weakMBean, on);
             return bean;
         } catch (final Exception e) {
-            AssertUtils.assertAndLogWithException(false, "Failed to register mbean for name " + objectName, e);
+            AssertUtils.assertAndLogWithException(log, false, "Failed to register mbean for name " + objectName, e);
             return null;
         }
     }
@@ -154,7 +154,7 @@ public final class JMXUtils {
             final ObjectName on = new ObjectName(objectName);
             server.unregisterMBean(on);
         } catch (final Exception e) {
-            AssertUtils.assertAndLogWithException(false, "Failed to unregister mbean for name " + objectName, e);
+            AssertUtils.assertAndLogWithException(log, false, "Failed to unregister mbean for name " + objectName, e);
         }
     }
 
