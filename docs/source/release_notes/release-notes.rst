@@ -72,6 +72,9 @@ develop
          - The priority of logging on background sweep was increased from debug to info or warn.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
 
+    *    - |improved|
+         - Sweep now is capable of dynamically adjust the number of blocks - (cell, ts) pairs - per run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
