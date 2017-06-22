@@ -19,33 +19,12 @@ task testJar(type: Jar) {
 publishing {
     publications {
         artifactory(MavenPublication) {
-            // TODO This always generates the Java manifest, after a breaking change in Shadow 2.0.0.
-            from components.hasProperty('shadow') ? components.shadow : components.java
+            from components.java
 
-            pom.withXml {
-                // TODO Refactor this hack, which is in place to unblock the release.
-                if (project.name == 'atlasdb-feign') {
-                    def compileDependencies = project.configurations.getByName('compile').dependencies
-                    def explicitShadowDependencies = project.configurations.getByName('explicitShadow').dependencies
-                    def shadowDependencies = project.configurations.getByName('toBeShaded').dependencies
-                    def targetDependencies = compileDependencies + explicitShadowDependencies - shadowDependencies
-
-                    def newDependencyRoot = new Node(null, 'dependencies')
-                    targetDependencies.forEach { dependency ->
-                        def dependencyNode = newDependencyRoot.appendNode('dependency')
-                        dependencyNode.appendNode('groupId', dependency.getGroup())
-                        dependencyNode.appendNode('artifactId', dependency.getName())
-                        dependencyNode.appendNode('scope', 'runtime')
-
-                        def version = dependency.getVersion() == null ?
-                                dependencyRecommendations.getRecommendedVersion(
-                                        dependency.getGroup(), dependency.getName()) :
-                                dependency.getVersion()
-                        dependencyNode.appendNode('version', version)
-                    }
-                    println newDependencyRoot
-                    asNode().getByName('dependencies')[0].replaceNode(newDependencyRoot)
-                }
+            // This interfaces between Shadow and Nebula
+            def hasShadowConfiguration = project.configurations.findByName('shadow') != null
+            if (hasShadowConfiguration) {
+                replaceShadedDependencies(it)
             }
 
             artifact(sourceJar) {
@@ -64,6 +43,30 @@ publishing {
             }
         }
     }
+}
+
+private void replaceShadedDependencies(MavenPublication mavenPublication) {
+    mavenPublication.pom.withXml {
+        def targetDependencies = project.configurations.getByName('shadow').allDependencies
+
+        def newDependencyRoot = new Node(null, 'dependencies')
+        targetDependencies.forEach { dependency ->
+            def dependencyNode = newDependencyRoot.appendNode('dependency')
+            dependencyNode.appendNode('groupId', dependency.getGroup())
+            dependencyNode.appendNode('artifactId', dependency.getName())
+            dependencyNode.appendNode('scope', 'runtime')
+
+            def version = getVersion(dependency, dependencyRecommendations)
+            dependencyNode.appendNode('version', version)
+        }
+        asNode().getByName('dependencies')[0].replaceNode(newDependencyRoot)
+    }
+}
+
+private static String getVersion(Dependency dependency, provider) {
+    return dependency.getVersion() == null ?
+            provider.getRecommendedVersion(dependency.getGroup(), dependency.getName()) :
+            dependency.getVersion()
 }
 
 // Bintray publish
