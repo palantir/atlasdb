@@ -66,7 +66,6 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-import feign.RetryableException;
 import io.dropwizard.testing.ResourceHelpers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
