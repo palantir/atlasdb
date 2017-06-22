@@ -139,6 +139,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class JdbcKeyValueService implements KeyValueService {
     private final static int PARTITION_SIZE = 1000;
+    private final int batchSizeForReads;
     private final String tablePrefix;
     private final SQLDialect sqlDialect;
     private final DataSource dataSource;
@@ -146,14 +147,17 @@ public class JdbcKeyValueService implements KeyValueService {
 
     public final Table<Record> METADATA_TABLE;
 
-    private JdbcKeyValueService(String tablePrefix,
-                                SQLDialect sqlDialect,
-                                DataSource dataSource,
-                                Settings settings) {
-        this.tablePrefix = tablePrefix;
+    private JdbcKeyValueService(
+            Settings settings,
+            SQLDialect sqlDialect,
+            DataSource dataSource,
+            String tablePrefix,
+            int batchSizeForReads) {
+        this.settings = settings;
         this.sqlDialect = sqlDialect;
         this.dataSource = dataSource;
-        this.settings = settings;
+        this.tablePrefix = tablePrefix;
+        this.batchSizeForReads = batchSizeForReads;
 
         METADATA_TABLE = table(tablePrefix + "_metadata");
     }
@@ -164,7 +168,12 @@ public class JdbcKeyValueService implements KeyValueService {
         DataSource dataSource = dataSourceConfig.createDataSource();
         Settings settings = new Settings();
         settings.setRenderNameStyle(RenderNameStyle.AS_IS);
-        final JdbcKeyValueService kvs = new JdbcKeyValueService(config.getTablePrefix(), sqlDialect, dataSource, settings);
+        final JdbcKeyValueService kvs = new JdbcKeyValueService(
+                settings,
+                sqlDialect,
+                dataSource,
+                config.getTablePrefix(),
+                config.getBatchSizeForReads());
 
         kvs.run(new Function<DSLContext, Void>() {
             @Override
@@ -278,13 +287,15 @@ public class JdbcKeyValueService implements KeyValueService {
         if (timestampByCell.isEmpty()) {
             return ImmutableMap.of();
         }
-        return run(new Function<DSLContext, Map<Cell, Value>>() {
-            @Override
-            public Map<Cell, Value> apply(DSLContext ctx) {
+
+        Map<Cell, Value> toReturn = new HashMap<>();
+
+        for (List<Entry<Cell, Long>> partition : Iterables.partition(timestampByCell.entrySet(), batchSizeForReads)) {
+            toReturn.putAll(run(ctx -> {
                 Select<? extends Record> query = getLatestTimestampQueryManyTimestamps(
                         ctx,
                         tableRef,
-                        toRows(timestampByCell));
+                        toRows(partition));
                 Result<? extends Record> records = fetchValues(ctx, tableRef, query);
                 Map<Cell, Value> results = Maps.newHashMapWithExpectedSize(records.size());
                 for (Record record : records) {
@@ -293,8 +304,10 @@ public class JdbcKeyValueService implements KeyValueService {
                             Value.create(record.getValue(A_VALUE), record.getValue(A_TIMESTAMP)));
                 }
                 return results;
-            }
-        });
+            }));
+        }
+
+        return toReturn;
     }
 
     @Override
@@ -364,6 +377,15 @@ public class JdbcKeyValueService implements KeyValueService {
         RowN[] rows = new RowN[timestampByCell.size()];
         int i = 0;
         for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
+            rows[i++] = row(new Object[] {entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue()});
+        }
+        return rows;
+    }
+
+    private static RowN[] toRows(List<Entry<Cell, Long>> cellTimestampPairs) {
+        RowN[] rows = new RowN[cellTimestampPairs.size()];
+        int i = 0;
+        for (Entry<Cell, Long> entry : cellTimestampPairs) {
             rows[i++] = row(new Object[] {entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue()});
         }
         return rows;

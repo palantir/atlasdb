@@ -46,6 +46,17 @@ develop
          - `AssertUtils` logging methods will now ask for a sfl4j logger to log to, instead of using a default logger.
            This should make log events from AssertUtils easier to filter.
 
+    *    - |improved|
+         - JDBC KVS now batches cells in get operations via the config parameter ``batchSizeForReads``.
+           This will prevent the driver from throwing due to many parameters in the resulting SQL select query.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2063>`__)
+
+    *    - |fixed|
+         - The CLI distribution can now be run against JDBC with hikari connection pools.
+           In the past, it would fail to resolve the configuration due to a missing runtime dependency.
+           Note, this is not the problem if running with the dropwizard bundle.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2063>`__)
+
     *    - |new|
          - Added a getRow() command to AtlasConsole for retrieving a single row.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1992>`__)
@@ -53,7 +64,7 @@ develop
     *    - |fixed|
          - Fixed an issue where the lock service was not properly shut down after losing leadership, which could result in threads blocking unnecessarily.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2014>`__)
-           
+
     *    - |fixed|
          - Lock refresh requests are no longer restricted by lock service threadpool limiting. 
            This allows transactions to make progress even when the threadpool is full.
