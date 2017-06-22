@@ -196,6 +196,17 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>JDBC KVS now batches cells in get operations via the config parameter <code class="docutils literal"><span class="pre">batchSizeForReads</span></code>.
+This will prevent the driver from throwing due to many parameters in the resulting SQL select query.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2063">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The CLI distribution can now be run against JDBC with hikari connection pools.
+In the past, it would fail to resolve the configuration due to a missing runtime dependency.
+Note, this is not the problem if running with the dropwizard bundle.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2063">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Added a getRow() command to AtlasConsole for retrieving a single row.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1992">Pull Request</a>)</td>
