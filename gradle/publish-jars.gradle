@@ -21,6 +21,33 @@ publishing {
         artifactory(MavenPublication) {
             // TODO This always generates the Java manifest, after a breaking change in Shadow 2.0.0.
             from components.hasProperty('shadow') ? components.shadow : components.java
+
+            pom.withXml {
+                // TODO Refactor this hack, which is in place to unblock the release.
+                if (project.name == 'atlasdb-feign') {
+                    def compileDependencies = project.configurations.getByName('compile').dependencies
+                    def explicitShadowDependencies = project.configurations.getByName('explicitShadow').dependencies
+                    def shadowDependencies = project.configurations.getByName('toBeShaded').dependencies
+                    def targetDependencies = compileDependencies + explicitShadowDependencies - shadowDependencies
+
+                    def newDependencyRoot = new Node(null, 'dependencies')
+                    targetDependencies.forEach { dependency ->
+                        def dependencyNode = newDependencyRoot.appendNode('dependency')
+                        dependencyNode.appendNode('groupId', dependency.getGroup())
+                        dependencyNode.appendNode('artifactId', dependency.getName())
+                        dependencyNode.appendNode('scope', 'runtime')
+
+                        def version = dependency.getVersion() == null ?
+                                dependencyRecommendations.getRecommendedVersion(
+                                        dependency.getGroup(), dependency.getName()) :
+                                dependency.getVersion()
+                        dependencyNode.appendNode('version', version)
+                    }
+                    println newDependencyRoot
+                    asNode().getByName('dependencies')[0].replaceNode(newDependencyRoot)
+                }
+            }
+
             artifact(sourceJar) {
                 classifier 'sources'
             }

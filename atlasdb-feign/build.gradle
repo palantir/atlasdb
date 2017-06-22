@@ -9,9 +9,9 @@ configurations {
     compile.extendsFrom(explicitShadow)
     shadow.extendsFrom(explicitShadow)
 
+    // This is used for cleaning up the POM.
     toBeShaded
-    compileOnly.extendsFrom(toBeShaded)
-    testCompile.extendsFrom(toBeShaded)
+    compile.extendsFrom(toBeShaded)
 }
 
 dependencies {
