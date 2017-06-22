@@ -175,7 +175,8 @@ public class SweepTaskRunner {
             byte[] lastRow = startRow;
             while (batchesToSweep.hasNext()) {
                 BatchOfCellsToSweep batch = batchesToSweep.next();
-                totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells(), runType);
+                totalCellTsPairsDeleted += sweepBatchPartitioned(tableRef, batch.cells(), runType,
+                        batchConfig.deleteBatchSize());
                 totalCellTsPairsExamined = batch.numCellTsPairsExaminedSoFar();
                 lastRow = batch.lastCellExamined().getRowName();
             }
@@ -189,7 +190,9 @@ public class SweepTaskRunner {
         }
     }
 
-    // Each batch has at least deleteBatchSize and at most (2*deleteBatchSize-1) cells.
+    /**
+     * Returns batches with at least batchConfig.deleteBatchSize blocks per batch.
+     */
     private Iterator<BatchOfCellsToSweep> getBatchesToSweep(Iterator<List<CandidateCellForSweeping>> candidates,
                                                             SweepBatchConfig batchConfig,
                                                             SweepableCellFilter sweepableCellFilter,
@@ -197,17 +200,43 @@ public class SweepTaskRunner {
         Iterator<List<CandidateCellForSweeping>> validCandidates =
                 Iterators.filter(candidates, list -> list != null && !list.isEmpty());
 
-        Iterator<List<CandidateCellForSweeping>> batchedCandidates = new CandidateCellForSweepingPartitioningIterator(
-                validCandidates, batchConfig.deleteBatchSize());
-
         Iterator<BatchOfCellsToSweep> cellsToSweep = Iterators.transform(
-                batchedCandidates,
+                validCandidates,
                 sweepableCellFilter::getCellsToSweep);
         return new CellsToSweepPartitioningIterator(cellsToSweep, batchConfig.deleteBatchSize(), limit);
     }
 
     /**
-     * Returns the number of deleted (cell, timestamp) pairs.
+     * Partition batches until we have at most deleteBatchSize blocks per batch.
+     * Returns the number blocks, (cell, timestamp) pairs, that were deleted.
+     */
+    private int sweepBatchPartitioned(TableReference tableRef, List<CellToSweep> batch, RunType runType,
+            int deleteBatchSize) {
+        int numberOfSweptCells = 0;
+
+        int blocksOnCurrentBatch = 0;
+        List<CellToSweep> partitionedBatch = Lists.newArrayList();
+        for (CellToSweep cell : batch) {
+            if (blocksOnCurrentBatch < deleteBatchSize) {
+                blocksOnCurrentBatch += cell.sortedTimestamps().size();
+                partitionedBatch.add(cell);
+            } else {
+                numberOfSweptCells += sweepBatch(tableRef, partitionedBatch, runType);
+                blocksOnCurrentBatch = cell.sortedTimestamps().size();
+                partitionedBatch.clear();
+                partitionedBatch.add(cell);
+            }
+        }
+
+        if (!partitionedBatch.isEmpty()) {
+            numberOfSweptCells += sweepBatch(tableRef, partitionedBatch, runType);
+        }
+
+        return numberOfSweptCells;
+    }
+
+    /**
+     * Returns the number of blocks, (cell, timestamp) pairs, that were deleted.
      */
     private int sweepBatch(TableReference tableRef, List<CellToSweep> batch, RunType runType) {
         Multimap<Cell, Long> startTimestampsToSweepPerCell = ArrayListMultimap.create();
