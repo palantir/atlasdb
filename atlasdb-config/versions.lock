@@ -975,6 +975,10 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "org.mortbay.jetty.alpn:jetty-alpn-agent": {
+            "locked": "2.0.6",
+            "requested": "2.0.6"
+        },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",
             "transitive": [

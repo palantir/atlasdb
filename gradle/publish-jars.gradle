@@ -19,6 +19,7 @@ task testJar(type: Jar) {
 publishing {
     publications {
         artifactory(MavenPublication) {
+            // TODO This always generates the Java manifest, after a breaking change in Shadow 2.0.0.
             from components.hasProperty('shadow') ? components.shadow : components.java
             artifact(sourceJar) {
                 classifier 'sources'

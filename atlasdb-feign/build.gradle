@@ -8,20 +8,24 @@ configurations {
     explicitShadow
     compile.extendsFrom(explicitShadow)
     shadow.extendsFrom(explicitShadow)
+
+    toBeShaded
+    compileOnly.extendsFrom(toBeShaded)
+    testCompile.extendsFrom(toBeShaded)
 }
 
 dependencies {
   explicitShadow project(':lock-api')
   explicitShadow group: 'com.squareup.okhttp3', name: 'okhttp'
 
-  compile group: 'com.palantir.remoting2', name: 'error-handling'
-  compile group: 'com.palantir.remoting2', name: 'jackson-support'
+  toBeShaded group: 'com.palantir.remoting2', name: 'error-handling'
+  toBeShaded group: 'com.palantir.remoting2', name: 'jackson-support'
 
-  compile (group: 'com.netflix.feign', name: 'feign-jaxrs') {
+  toBeShaded (group: 'com.netflix.feign', name: 'feign-jaxrs') {
     exclude module: 'jsr311-api'
   }
-  compile group: 'com.netflix.feign', name: 'feign-jackson'
-  compile group: 'com.netflix.feign', name: 'feign-okhttp'
+  toBeShaded group: 'com.netflix.feign', name: 'feign-jackson'
+  toBeShaded group: 'com.netflix.feign', name: 'feign-okhttp'
 
   processor group: 'org.immutables', name: 'value'
 
