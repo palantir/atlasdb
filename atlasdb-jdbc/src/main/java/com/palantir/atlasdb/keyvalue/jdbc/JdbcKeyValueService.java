@@ -139,7 +139,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class JdbcKeyValueService implements KeyValueService {
     private final static int PARTITION_SIZE = 1000;
-    private static final int GET_BATCH_SIZE = 20;
+    private final int batchSizeForReads;
     private final String tablePrefix;
     private final SQLDialect sqlDialect;
     private final DataSource dataSource;
@@ -147,10 +147,13 @@ public class JdbcKeyValueService implements KeyValueService {
 
     public final Table<Record> METADATA_TABLE;
 
-    private JdbcKeyValueService(String tablePrefix,
-                                SQLDialect sqlDialect,
-                                DataSource dataSource,
-                                Settings settings) {
+    private JdbcKeyValueService(
+            Settings settings,
+            String tablePrefix,
+            SQLDialect sqlDialect,
+            DataSource dataSource,
+            int batchSizeForReads) {
+        this.batchSizeForReads = batchSizeForReads;
         this.tablePrefix = tablePrefix;
         this.sqlDialect = sqlDialect;
         this.dataSource = dataSource;
@@ -165,7 +168,8 @@ public class JdbcKeyValueService implements KeyValueService {
         DataSource dataSource = dataSourceConfig.createDataSource();
         Settings settings = new Settings();
         settings.setRenderNameStyle(RenderNameStyle.AS_IS);
-        final JdbcKeyValueService kvs = new JdbcKeyValueService(config.getTablePrefix(), sqlDialect, dataSource, settings);
+        final JdbcKeyValueService kvs = new JdbcKeyValueService(settings, config.getTablePrefix(), sqlDialect,
+                dataSource, config.getBatchSizeForReads());
 
         kvs.run(new Function<DSLContext, Void>() {
             @Override
@@ -282,7 +286,7 @@ public class JdbcKeyValueService implements KeyValueService {
 
         Map<Cell, Value> toReturn = new HashMap<>();
 
-        for (List<Entry<Cell, Long>> parition : Iterables.partition(timestampByCell.entrySet(), GET_BATCH_SIZE)) {
+        for (List<Entry<Cell, Long>> parition : Iterables.partition(timestampByCell.entrySet(), batchSizeForReads)) {
             toReturn.putAll(run(ctx -> {
                 Select<? extends Record> query = getLatestTimestampQueryManyTimestamps(
                         ctx,

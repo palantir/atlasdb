@@ -43,6 +43,11 @@ public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig
         return "at_";
     }
 
+    @Value.Default
+    public int getBatchSizeForReads() {
+        return 10_000;
+    }
+
     public abstract JdbcDataSourceConfiguration getDataSourceConfig();
 
     @Value.Check
