@@ -45,6 +45,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.UnsafeArg;
 
 import gnu.trove.TDecorators;
+import gnu.trove.list.TLongList;
 
 /**
  * Sweeps one individual table.
@@ -175,8 +176,7 @@ public class SweepTaskRunner {
             byte[] lastRow = startRow;
             while (batchesToSweep.hasNext()) {
                 BatchOfCellsToSweep batch = batchesToSweep.next();
-                totalCellTsPairsDeleted += sweepBatchPartitioned(tableRef, batch.cells(), runType,
-                        batchConfig.deleteBatchSize());
+                totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells(), runType, batchConfig.deleteBatchSize());
                 totalCellTsPairsExamined = batch.numCellTsPairsExaminedSoFar();
                 lastRow = batch.lastCellExamined().getRowName();
             }
@@ -207,50 +207,50 @@ public class SweepTaskRunner {
     }
 
     /**
-     * Partition batches until we have at most deleteBatchSize blocks per batch.
-     * Returns the number blocks, (cell, timestamp) pairs, that were deleted.
+     * Partitions batches of blocks down to @param deleteBatchSize blocks per sweep deletion call.
+     * Returns the number of blocks that were deleted.
      */
-    private int sweepBatchPartitioned(TableReference tableRef, List<CellToSweep> batch, RunType runType,
+    private int sweepBatch(TableReference tableRef, List<CellToSweep> batch, RunType runType,
             int deleteBatchSize) {
         int numberOfSweptCells = 0;
 
-        int blocksOnCurrentBatch = 0;
-        List<CellToSweep> partitionedBatch = Lists.newArrayList();
+        Multimap<Cell, Long> currentBatch = ArrayListMultimap.create();
+        List<Cell> currentBatchSentinels = Lists.newArrayList();
+
         for (CellToSweep cell : batch) {
-            if (blocksOnCurrentBatch < deleteBatchSize) {
-                blocksOnCurrentBatch += cell.sortedTimestamps().size();
-                partitionedBatch.add(cell);
-            } else {
-                numberOfSweptCells += sweepBatch(tableRef, partitionedBatch, runType);
-                blocksOnCurrentBatch = cell.sortedTimestamps().size();
-                partitionedBatch.clear();
-                partitionedBatch.add(cell);
+            if (cell.needsSentinel()) {
+                currentBatchSentinels.add(cell.cell());
             }
+
+            if (currentBatch.size() + cell.sortedTimestamps().size() < deleteBatchSize) {
+                currentBatch.putAll(cell.cell(), TDecorators.wrap(cell.sortedTimestamps()));
+                continue;
+            }
+
+            TLongList remainingCellTimestamps = cell.sortedTimestamps();
+            while (currentBatch.size() + remainingCellTimestamps.size() >= deleteBatchSize) {
+                int numberOfTimestampsForThisBatch = deleteBatchSize - currentBatch.size();
+                TLongList timestampsForThisBatch = remainingCellTimestamps.subList(0, numberOfTimestampsForThisBatch);
+
+                currentBatch.putAll(cell.cell(), TDecorators.wrap(timestampsForThisBatch));
+                if (runType == RunType.FULL) {
+                    cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
+                }
+                numberOfSweptCells += currentBatch.size();
+
+                currentBatch = ArrayListMultimap.create();
+                currentBatchSentinels = Lists.newArrayList();
+                remainingCellTimestamps = remainingCellTimestamps.subList(
+                        numberOfTimestampsForThisBatch, remainingCellTimestamps.size());
+            }
+            currentBatch.putAll(cell.cell(), TDecorators.wrap(remainingCellTimestamps));
         }
 
-        if (!partitionedBatch.isEmpty()) {
-            numberOfSweptCells += sweepBatch(tableRef, partitionedBatch, runType);
+        if (!currentBatch.isEmpty() && runType == RunType.FULL) {
+            cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
         }
+        numberOfSweptCells += currentBatch.size();
 
         return numberOfSweptCells;
     }
-
-    /**
-     * Returns the number of blocks, (cell, timestamp) pairs, that were deleted.
-     */
-    private int sweepBatch(TableReference tableRef, List<CellToSweep> batch, RunType runType) {
-        Multimap<Cell, Long> startTimestampsToSweepPerCell = ArrayListMultimap.create();
-        List<Cell> sentinels = Lists.newArrayList();
-        for (CellToSweep cell : batch) {
-            startTimestampsToSweepPerCell.putAll(cell.cell(), TDecorators.wrap(cell.sortedTimestamps()));
-            if (cell.needsSentinel()) {
-                sentinels.add(cell.cell());
-            }
-        }
-        if (runType == RunType.FULL) {
-            cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, sentinels);
-        }
-        return startTimestampsToSweepPerCell.size();
-    }
-
 }

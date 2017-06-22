@@ -47,6 +47,10 @@ develop
            to expose aggregate response time and service call metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2045>`__)
 
+    *    - |improved|
+         - Sweep now is capable of dynamically adjust the number of blocks - (cell, ts) pairs - per run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======

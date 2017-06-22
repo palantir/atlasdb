@@ -394,7 +394,7 @@ public abstract class AbstractSweepTaskRunnerTest {
                 wrappedCell("row", "c2"),
                 wrappedCell("row", "c3"),
                 wrappedCell("row", "c4"));
-        assertEquals(actualCells, expectedCells);
+        assertEquals(expectedCells, actualCells);
     }
 
     @Test
