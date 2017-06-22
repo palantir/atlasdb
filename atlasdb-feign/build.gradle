@@ -37,7 +37,6 @@ shadowJar {
   classifier ''
 
   relocate('feign', 'com.palantir.atlasdb.shaded.feign')
-  relocate('okhttp', 'com.palantir.atlasdb.shaded.okhttp')
   relocate('okio', 'com.palantir.atlasdb.shaded.okio')
   relocate('org.jvnet.animal_sniffer', 'com.palantir.atlasdb.shaded.org.jvnet.animal_sniffer')
   relocate('com.palantir.remoting2.errors', 'com.palantir.atlasdb.shaded.com.palantir.remoting2.errors')
@@ -45,6 +44,8 @@ shadowJar {
 
   dependencies {
     include (dependency('com.netflix.feign:feign-.*'))
+    include (dependency('com.squareup.okio:okio'))
+    include (dependency('org.jvnet:animal-sniffer-annotation'))
     include (dependency(group: 'com.palantir.remoting2', name: 'error-handling'))
     include (dependency(group: 'com.palantir.remoting2', name: 'jackson-support'))
   }

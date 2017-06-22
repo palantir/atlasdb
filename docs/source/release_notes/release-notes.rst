@@ -76,7 +76,7 @@ develop
            (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/2061>`__)
 
     *    - |improved| |devbreak|
-         - AtlasDB now shades Feign, OkHttp and Okio.
+         - AtlasDB now shades Feign and Okio (same as `palantir/http-remoting <https://github.com/palantir/http-remoting>`__).
            This was done to enable us to synchronize with remoting2 while limiting breaks for users of older versions of Feign, especially given an API break in Feign 8.16.
            Users who previously relied on AtlasDB to pull in these libraries may experience a compile break, and should consider explicitly depending on them.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2061>`__)
