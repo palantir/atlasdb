@@ -286,12 +286,12 @@ public class JdbcKeyValueService implements KeyValueService {
 
         Map<Cell, Value> toReturn = new HashMap<>();
 
-        for (List<Entry<Cell, Long>> parition : Iterables.partition(timestampByCell.entrySet(), batchSizeForReads)) {
+        for (List<Entry<Cell, Long>> partition : Iterables.partition(timestampByCell.entrySet(), batchSizeForReads)) {
             toReturn.putAll(run(ctx -> {
                 Select<? extends Record> query = getLatestTimestampQueryManyTimestamps(
                         ctx,
                         tableRef,
-                        toRows(parition));
+                        toRows(partition));
                 Result<? extends Record> records = fetchValues(ctx, tableRef, query);
                 Map<Cell, Value> results = Maps.newHashMapWithExpectedSize(records.size());
                 for (Record record : records) {
