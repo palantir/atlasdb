@@ -285,6 +285,7 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
@@ -852,6 +853,7 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
