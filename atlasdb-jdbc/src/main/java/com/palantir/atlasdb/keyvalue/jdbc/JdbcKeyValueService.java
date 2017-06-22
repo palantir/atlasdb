@@ -139,7 +139,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class JdbcKeyValueService implements KeyValueService {
     private final static int PARTITION_SIZE = 1000;
-    private static final int GET_BATCH_SIZE = 20_000;
+    private static final int GET_BATCH_SIZE = 20;
     private final String tablePrefix;
     private final SQLDialect sqlDialect;
     private final DataSource dataSource;
