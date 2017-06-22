@@ -149,15 +149,15 @@ public class JdbcKeyValueService implements KeyValueService {
 
     private JdbcKeyValueService(
             Settings settings,
-            String tablePrefix,
             SQLDialect sqlDialect,
             DataSource dataSource,
+            String tablePrefix,
             int batchSizeForReads) {
-        this.batchSizeForReads = batchSizeForReads;
-        this.tablePrefix = tablePrefix;
+        this.settings = settings;
         this.sqlDialect = sqlDialect;
         this.dataSource = dataSource;
-        this.settings = settings;
+        this.tablePrefix = tablePrefix;
+        this.batchSizeForReads = batchSizeForReads;
 
         METADATA_TABLE = table(tablePrefix + "_metadata");
     }
@@ -168,8 +168,12 @@ public class JdbcKeyValueService implements KeyValueService {
         DataSource dataSource = dataSourceConfig.createDataSource();
         Settings settings = new Settings();
         settings.setRenderNameStyle(RenderNameStyle.AS_IS);
-        final JdbcKeyValueService kvs = new JdbcKeyValueService(settings, config.getTablePrefix(), sqlDialect,
-                dataSource, config.getBatchSizeForReads());
+        final JdbcKeyValueService kvs = new JdbcKeyValueService(
+                settings,
+                sqlDialect,
+                dataSource,
+                config.getTablePrefix(),
+                config.getBatchSizeForReads());
 
         kvs.run(new Function<DSLContext, Void>() {
             @Override
