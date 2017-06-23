@@ -38,7 +38,8 @@ public class HeldLocksCollection {
     public CompletableFuture<LockTokenV2> getExistingOrAcquire(
             UUID requestId,
             Supplier<CompletableFuture<HeldLocks>> lockAcquirer) {
-        CompletableFuture<HeldLocks> locksFuture = heldLocksById.computeIfAbsent(requestId, ignored -> lockAcquirer.get());
+        CompletableFuture<HeldLocks> locksFuture = heldLocksById.computeIfAbsent(
+                requestId, ignored -> lockAcquirer.get());
         return locksFuture.thenApply(HeldLocks::getToken);
     }
 
