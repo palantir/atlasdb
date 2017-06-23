@@ -5,6 +5,16 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply from: '../gradle/shared.gradle'
 
 configurations {
+    /*
+     * A brief explanation of the various configurations:
+     * - `shadow` refers to dependencies that we expect to be available on the classpath at runtime,
+     *   if one is running with the shadow JAR.
+     * - `compile` refers to dependencies needed at compile time.
+     * - `explicitShadow` is a thing we use to mean "needed at both compile time and runtime-with-shadow-JAR" - the
+     *   shadow configuration doesn't automatically inherit from compile. Usually this is for dependencies we are not
+     *   shading. If not we have to write each dependency twice.
+     * - `toBeShaded` is purely for readability. This would be functionally unchanged if we just used compile.
+     */
     explicitShadow
     compile.extendsFrom(explicitShadow)
     shadow.extendsFrom(explicitShadow)
