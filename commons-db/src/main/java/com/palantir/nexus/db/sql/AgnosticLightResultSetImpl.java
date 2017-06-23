@@ -98,7 +98,7 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
         try {
             if (!hasBeenClosed) {
                 close();
-                AssertUtils.assertAndLogWithException(false, String.format(
+                AssertUtils.assertAndLogWithException(log, false, String.format(
                         "This AgnosticLightResultSet is being finalized, but it has not been closed.  " + //$NON-NLS-1$
                                 "This is a programming error and can lead to cursor leaks. Thread: %s", creationThreadName), //$NON-NLS-1$
                         creationLocation);
