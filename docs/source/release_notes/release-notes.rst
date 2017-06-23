@@ -78,10 +78,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2016>`__)
 
     *    - |improved| |deprecated|
-         - `AssertUtils` logging methods will now ask for a sfl4j logger to log to, instead of using a default logger.
+         - `AssertUtils` logging methods will now ask for an SLF4J logger to log to, instead of using a default logger.
            This should make log events from AssertUtils easier to filter.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2015>`__)
 
-    *    - |improved|
+    *    - |fixed|
          - JDBC KVS now batches cells in get operations via the config parameter ``batchSizeForReads``.
            This will prevent the driver from throwing due to many parameters in the resulting SQL select query.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2063>`__)
@@ -89,7 +90,7 @@ develop
     *    - |fixed|
          - The CLI distribution can now be run against JDBC with hikari connection pools.
            In the past, it would fail to resolve the configuration due to a missing runtime dependency.
-           Note, this is not the problem if running with the dropwizard bundle.
+           Note: this is not a problem if running with the dropwizard bundle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2063>`__)
 
     *    - |new|
