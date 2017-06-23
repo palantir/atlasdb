@@ -23,10 +23,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doAnswer;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -35,8 +36,8 @@ import java.util.function.LongSupplier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockito.stubbing.Answer;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -371,12 +372,14 @@ public abstract class AbstractSweepTaskRunnerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testSweepBatchesDownToDeleteBatchSize() {
-        CellsSweeper cellsSweeper =
-                Mockito.spy(new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of()));
+        CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
         SweepTaskRunner spiedSweepRunner =
                 new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
 
         putEightValuesInFourColumns();
+
+        List<List<Cell>> actualCells = Lists.newArrayList();
+        doAnswer(sweepCellsMockedAnswer(actualCells)).when(cellsSweeper).sweepCells(eq(TABLE_NAME), any(), any());
 
         spiedSweepRunner.run(TABLE_NAME, ImmutableSweepBatchConfig.builder()
                     .deleteBatchSize(1)
@@ -384,10 +387,6 @@ public abstract class AbstractSweepTaskRunnerTest {
                     .maxCellTsPairsToExamine(8)
                     .build(),
                 PtBytes.EMPTY_BYTE_ARRAY);
-
-        ArgumentCaptor<List> cells = ArgumentCaptor.forClass(List.class);
-        verify(cellsSweeper, times(4)).sweepCells(eq(TABLE_NAME), any(), cells.capture());
-        List actualCells = cells.getAllValues();
 
         List<List<Cell>> expectedCells = Lists.newArrayList(
                 wrappedCell("row", "c1"),
@@ -399,12 +398,14 @@ public abstract class AbstractSweepTaskRunnerTest {
 
     @Test
     public void testSweepBatchesUpToDeleteBatchSize() {
-        CellsSweeper cellsSweeper =
-                Mockito.spy(new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of()));
+        CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
         SweepTaskRunner spiedSweepRunner =
                 new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
 
         putEightValuesInFourColumns();
+
+        List<List<Cell>> actualCells = Lists.newArrayList();
+        doAnswer(sweepCellsMockedAnswer(actualCells)).when(cellsSweeper).sweepCells(eq(TABLE_NAME), any(), any());
 
         spiedSweepRunner.run(TABLE_NAME, ImmutableSweepBatchConfig.builder()
                         .deleteBatchSize(4)
@@ -419,7 +420,18 @@ public abstract class AbstractSweepTaskRunnerTest {
                 Cell.create("row".getBytes(StandardCharsets.UTF_8), "c3".getBytes(StandardCharsets.UTF_8)),
                 Cell.create("row".getBytes(StandardCharsets.UTF_8), "c4".getBytes(StandardCharsets.UTF_8)));
 
-        verify(cellsSweeper, times(1)).sweepCells(eq(TABLE_NAME), any(), eq(expectedCellList));
+        assertEquals(1, actualCells.size());
+        assertEquals(expectedCellList, actualCells.get(0));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Answer sweepCellsMockedAnswer(List<List<Cell>> actualCells) {
+        return (invocationOnMock) -> {
+            Object[] arguments = invocationOnMock.getArguments();
+            Collection<Cell> sentinelsToAdd = (Collection<Cell>) arguments[2];
+            actualCells.add(new ArrayList(sentinelsToAdd));
+            return null;
+        };
     }
 
     private void putEightValuesInFourColumns() {
