@@ -41,6 +41,10 @@ dependencies {
     testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")
 
     testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
+        exclude group: 'org.hamcrest'
+        exclude group: 'org.ow2.asm'
+    }
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile project(":atlasdb-tests-shared")
 
