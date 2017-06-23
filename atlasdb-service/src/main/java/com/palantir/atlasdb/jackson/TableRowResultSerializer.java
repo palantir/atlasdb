@@ -76,6 +76,7 @@ public class TableRowResultSerializer extends StdSerializer<TableRowResult> {
             }
             jgen.writeEndArray();
         } else {
+            jgen.writeObjectFieldStart("cols");
             SortedMap<byte[], byte[]> columnValues = result.getColumns();
             Set<NamedColumnDescription> namedColumns = columns.getNamedColumns();
             for (NamedColumnDescription description : namedColumns) {
@@ -85,6 +86,7 @@ public class TableRowResultSerializer extends StdSerializer<TableRowResult> {
                     AtlasSerializers.serializeNamedCol(jgen, description, val);
                 }
             }
+            jgen.writeEndObject();
         }
         jgen.writeEndObject();
     }
