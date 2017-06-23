@@ -23,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Queues;
 
 public class ExclusiveLock implements AsyncLock {
@@ -47,6 +48,11 @@ public class ExclusiveLock implements AsyncLock {
             currentHolder = null;
             processQueue();
         }
+    }
+
+    @VisibleForTesting
+    synchronized UUID getCurrentHolder() {
+        return currentHolder;
     }
 
     private void processQueue() {

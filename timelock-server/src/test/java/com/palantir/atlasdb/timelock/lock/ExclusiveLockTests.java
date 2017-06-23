@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -84,12 +85,21 @@ public class ExclusiveLockTests {
     @Test
     public void unlockByNonHolderDoesNothing() {
         lockSynchronously(REQUEST_1);
-        CompletableFuture<Void> future = lockAsync(REQUEST_2);
 
         unlock(UUID.randomUUID());
+
+        assertThat(lock.getCurrentHolder()).isEqualTo(REQUEST_1);
+    }
+
+    @Test
+    public void unlockByWaiterDoesNothing() {
+        lockSynchronously(REQUEST_1);
+
+        CompletableFuture<Void> request2 = lockAsync(REQUEST_2);
         unlock(REQUEST_2);
 
-        assertLocked(future);
+        assertThat(lock.getCurrentHolder()).isEqualTo(REQUEST_1);
+        assertFalse(request2.isDone());
     }
 
     @Test
