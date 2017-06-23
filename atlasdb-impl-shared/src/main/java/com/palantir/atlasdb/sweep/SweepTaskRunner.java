@@ -20,12 +20,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.LongSupplier;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -43,9 +45,6 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.UnsafeArg;
-
-import gnu.trove.TDecorators;
-import gnu.trove.list.TLongList;
 
 /**
  * Sweeps one individual table.
@@ -167,7 +166,6 @@ public class SweepTaskRunner {
         SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(transactionService, sweeper, sweepTs);
         try (ClosableIterator<List<CandidateCellForSweeping>> candidates = keyValueService.getCandidateCellsForSweeping(
                     tableRef, request)) {
-
             ExaminedCellLimit limit = new ExaminedCellLimit(startRow, batchConfig.maxCellTsPairsToExamine());
             Iterator<BatchOfCellsToSweep> batchesToSweep = getBatchesToSweep(
                         candidates, batchConfig, sweepableCellFilter, limit);
@@ -197,17 +195,14 @@ public class SweepTaskRunner {
                                                             SweepBatchConfig batchConfig,
                                                             SweepableCellFilter sweepableCellFilter,
                                                             ExaminedCellLimit limit) {
-        Iterator<List<CandidateCellForSweeping>> validCandidates =
-                Iterators.filter(candidates, list -> list != null && !list.isEmpty());
-
         Iterator<BatchOfCellsToSweep> cellsToSweep = Iterators.transform(
-                validCandidates,
+                Iterators.filter(candidates, list -> !list.isEmpty()),
                 sweepableCellFilter::getCellsToSweep);
         return new CellsToSweepPartitioningIterator(cellsToSweep, batchConfig.deleteBatchSize(), limit);
     }
 
     /**
-     * Partitions batches of blocks down to @param deleteBatchSize blocks per sweep deletion call.
+     * Partitions batches of cells down to deleteBatchSize blocks per sweep deletion call.
      * Returns the number of blocks that were deleted.
      */
     private int sweepBatch(TableReference tableRef, List<CellToSweep> batch, RunType runType,
@@ -222,28 +217,29 @@ public class SweepTaskRunner {
                 currentBatchSentinels.add(cell.cell());
             }
 
-            if (currentBatch.size() + cell.sortedTimestamps().size() < deleteBatchSize) {
-                currentBatch.putAll(cell.cell(), TDecorators.wrap(cell.sortedTimestamps()));
+            Long[] sortedTimestampsArray = ArrayUtils.toObject(cell.sortedTimestamps().toArray());
+            ImmutableList<Long> currentCellTimestamps = ImmutableList.copyOf(sortedTimestampsArray);
+
+            if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
+                currentBatch.putAll(cell.cell(), currentCellTimestamps);
                 continue;
             }
 
-            TLongList remainingCellTimestamps = cell.sortedTimestamps();
-            while (currentBatch.size() + remainingCellTimestamps.size() >= deleteBatchSize) {
+            while (currentBatch.size() + currentCellTimestamps.size() >= deleteBatchSize) {
                 int numberOfTimestampsForThisBatch = deleteBatchSize - currentBatch.size();
-                TLongList timestampsForThisBatch = remainingCellTimestamps.subList(0, numberOfTimestampsForThisBatch);
 
-                currentBatch.putAll(cell.cell(), TDecorators.wrap(timestampsForThisBatch));
+                currentBatch.putAll(cell.cell(), currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch));
                 if (runType == RunType.FULL) {
                     cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
                 }
                 numberOfSweptCells += currentBatch.size();
 
-                currentBatch = ArrayListMultimap.create();
-                currentBatchSentinels = Lists.newArrayList();
-                remainingCellTimestamps = remainingCellTimestamps.subList(
-                        numberOfTimestampsForThisBatch, remainingCellTimestamps.size());
+                currentBatch.clear();
+                currentBatchSentinels.clear();
+                currentCellTimestamps = currentCellTimestamps.subList(
+                        numberOfTimestampsForThisBatch, currentCellTimestamps.size());
             }
-            currentBatch.putAll(cell.cell(), TDecorators.wrap(remainingCellTimestamps));
+            currentBatch.putAll(cell.cell(), currentCellTimestamps);
         }
 
         if (!currentBatch.isEmpty() && runType == RunType.FULL) {
