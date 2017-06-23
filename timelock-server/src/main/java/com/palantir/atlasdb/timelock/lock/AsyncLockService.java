@@ -1,0 +1,112 @@
+/*
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.palantir.atlasdb.timelock.lock;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockTokenV2;
+
+public class AsyncLockService {
+
+    private static final Logger log = LoggerFactory.getLogger(AsyncLockService.class);
+
+    private final LockCollection locks;
+    private final LockAcquirer lockAcquirer;
+    private final ScheduledExecutorService reaperExecutor;
+    private final HeldLocksCollection heldLocks;
+    private final ImmutableTimestampTracker immutableTsTracker;
+
+    public AsyncLockService(
+            LockCollection locks,
+            ImmutableTimestampTracker immutableTimestampTracker,
+            LockAcquirer acquirer,
+            HeldLocksCollection heldLocks,
+            ScheduledExecutorService reaperExecutor) {
+        this.locks = locks;
+        this.immutableTsTracker = immutableTimestampTracker;
+        this.lockAcquirer = acquirer;
+        this.heldLocks = heldLocks;
+        this.reaperExecutor = reaperExecutor;
+
+        scheduleExpiredLockReaper();
+    }
+
+    private void scheduleExpiredLockReaper() {
+        reaperExecutor.scheduleAtFixedRate(() -> heldLocks.removeExpired(),
+                0, LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2, TimeUnit.MILLISECONDS);
+    }
+
+    public CompletableFuture<LockTokenV2> lock(UUID requestId, Set<LockDescriptor> lockDescriptors) {
+        return heldLocks.getExistingOrAcquire(
+                requestId,
+                () -> acquireLocks(requestId, lockDescriptors));
+    }
+
+    public CompletableFuture<LockTokenV2> lockImmutableTimestamp(UUID requestId, long timestamp) {
+        return heldLocks.getExistingOrAcquire(
+                requestId,
+                () -> acquireImmutableTimestampLock(requestId, timestamp));
+    }
+
+    public CompletableFuture<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors) {
+        List<AsyncLock> orderedLocks = locks.getSorted(lockDescriptors);
+        return lockAcquirer.waitForLocks(requestId, orderedLocks);
+    }
+
+    public Optional<Long> getImmutableTimestamp() {
+        return immutableTsTracker.getImmutableTimestamp();
+    }
+
+    private CompletableFuture<HeldLocks> acquireLocks(UUID requestId, Set<LockDescriptor> lockDescriptors) {
+        List<AsyncLock> orderedLocks = locks.getSorted(lockDescriptors);
+        return lockAcquirer.acquireLocks(requestId, orderedLocks);
+    }
+
+    private CompletableFuture<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
+        AsyncLock immutableTsLock = immutableTsTracker.getLockFor(timestamp);
+        return lockAcquirer.acquireLocks(requestId, ImmutableList.of(immutableTsLock));
+    }
+
+    public boolean unlock(LockTokenV2 token) {
+        return unlock(ImmutableSet.of(token)).contains(token);
+    }
+
+    public Set<LockTokenV2> unlock(Set<LockTokenV2> tokens) {
+        return heldLocks.unlock(tokens);
+    }
+
+    public boolean refresh(LockTokenV2 token) {
+        return refresh(ImmutableSet.of(token)).contains(token);
+    }
+
+    public Set<LockTokenV2> refresh(Set<LockTokenV2> tokens) {
+        return heldLocks.refresh(tokens);
+    }
+
+}
