@@ -4,8 +4,11 @@ apply from: "../gradle/shared.gradle"
 dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
-    compile project(path: ':atlasdb-config', configuration: 'shadow')
+    compile project(':atlasdb-config')
     compile 'javax.inject:javax.inject:1'
 
     testCompile group: 'org.mockito', name: 'mockito-core'
+
+    // Needed for Jersey Response-based tests
+    testCompile group: 'org.glassfish.jersey.core', name: 'jersey-common'
 }

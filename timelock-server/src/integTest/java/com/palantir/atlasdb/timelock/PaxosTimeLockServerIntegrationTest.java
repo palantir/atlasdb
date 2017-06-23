@@ -66,7 +66,6 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-import feign.RetryableException;
 import io.dropwizard.testing.ResourceHelpers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -199,8 +198,10 @@ public class PaxosTimeLockServerIntegrationTest {
             try {
                 assertNull(future.get());
             } catch (ExecutionException e) {
-                RetryableException retryableException = (RetryableException) e.getCause();
-                assertRemoteExceptionWithStatus(retryableException.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
+                // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
+                Throwable cause = e.getCause();
+                assertThat(cause.getClass().getName()).contains("RetryableException");
+                assertRemoteExceptionWithStatus(cause.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
                 exceptionCounter.getAndIncrement();
             } catch (InterruptedException e) {
                 throw Throwables.propagate(e);

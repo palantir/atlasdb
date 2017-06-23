@@ -25,7 +25,7 @@ jacocoTestReport {
 check.dependsOn runUnitTestsForPrintLogsInChronologicalOrderScript
 
 dependencies {
-    compile project(path: ':atlasdb-config', configuration: 'shadow')
+    compile project(':atlasdb-config')
 
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
