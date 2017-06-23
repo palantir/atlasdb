@@ -72,9 +72,7 @@ class Table {
      *         For named columns:
      *         [
      *             "row": {componentName1: component1, componentName2: component2, ...},
-     *             {column1Name}: {value},
-     *             {column2Name}: {value},
-     *             ...
+     *             "cols": {columnName1: {value1}, columnName2: {value2}, ...}
      *         ]
      *
      *         For dynamic columns:
@@ -110,9 +108,7 @@ class Table {
      *         For named colums:
      *         [
      *             "row": {componentName1: component1, componentName2: component2, ...},
-     *             {column1Name}: {value},
-     *             {column2Name}: {value},
-     *             ...
+     *             "cols": {columnName1: {value1}, columnName2: {value2}, ...}
      *         ]
      *
      *         For dynamic columns:
@@ -198,7 +194,7 @@ class Table {
      *         For named columns:
      *         [
      *             "row": {componentName1: component1, componentName2: component2, ...},
-     *             {columnName}: {value}
+     *             "cols": {columnName1: {value1}, columnName2: {value2}, ...}
      *         ]
      *         For dynamic columns:
      *         [
