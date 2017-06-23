@@ -66,10 +66,17 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
 
     *    - |devbreak| |improved|
-         - AtlasDB now ships with OpenFeign 9.5.0 and OkHttp 3.6.0.
+         - AtlasDB has updated Feign to 8.17.0 and OkHttp to 3.4.1, following remoting2 in the `palantir/http-remoting <https://github.com/palantir/http-remoting>`__ library.
            We previously used Feign 8.6.1 and OkHttp 2.5.0.
            Developers may need to check their dependencies, especially if they relied on AtlasDB to pull in Feign and OkHttp as there were package name changes.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2006>`__)
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2006>`__) and
+           (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/2061>`__)
+
+    *    - |devbreak| |improved|
+         - AtlasDB now shades Feign and Okio (same as `palantir/http-remoting <https://github.com/palantir/http-remoting>`__).
+           This was done to enable us to synchronize with remoting2 while limiting breaks for users of older versions of Feign, especially given an API break in Feign 8.16.
+           Users who previously relied on AtlasDB to pull in these libraries may experience a compile break, and should consider explicitly depending on them.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2061>`__)
 
     *    - |devbreak| |improved|
          - Converted all compile time uses of Guava's ``com.google.common.base.Optional`` class to the Java8 equivalent ``java.util.Optional``.
@@ -77,7 +84,7 @@ develop
            This is a relatively straightforward compile time break for products consuming AtlasDB libraries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2016>`__)
 
-    *    - |improved| |deprecated|
+    *    - |deprecated| |improved|
          - `AssertUtils` logging methods will now ask for an SLF4J logger to log to, instead of using a default logger.
            This should make log events from AssertUtils easier to filter.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2015>`__)
@@ -93,6 +100,20 @@ develop
            Note: this is not a problem if running with the dropwizard bundle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2063>`__)
 
+    *    - |fixed|
+         - Fixed an issue where the lock service was not properly shut down after losing leadership, which could result in threads blocking unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2014>`__)
+
+    *    - |fixed|
+         - Lock refresh requests are no longer restricted by lock service threadpool limiting.
+           This allows transactions to make progress even when the threadpool is full.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2025>`__)
+
+    *    - |fixed|
+         - Lock service now ensures that locks are reaped in a more timely manner.
+           Previously the lock service could allow locks to be held past expiration, if they had a timeout shorter than the longest timeout in the expiration queue.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2041>`__)
+
     *    - |new|
          - Added a getRow() command to AtlasConsole for retrieving a single row.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1992>`__)
@@ -101,15 +122,6 @@ develop
          - Added a rowComponents() function to the AtlasConsole table() command to allow you to easily view the fields that make up a row key.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2037>`__)
 
-    *    - |fixed|
-         - Fixed an issue where the lock service was not properly shut down after losing leadership, which could result in threads blocking unnecessarily.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2014>`__)
-
-    *    - |fixed|
-         - Lock refresh requests are no longer restricted by lock service threadpool limiting. 
-           This allows transactions to make progress even when the threadpool is full.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2025>`__)
-
     *    - |new|
          - The default lock timeout is now configurable. 
            Currently, the default lock timeout is 2 minutes.
@@ -117,11 +129,6 @@ develop
            Since TransactionManagers#create provides an auto-refreshing lock service, it is safe to lower the default timeout to reduce the delay that happens in this case.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2026>`__)
            
-    *    - |fixed|
-         - Lock service now ensures that locks are reaped in a more timely manner. 
-           Previously the lock service could allow locks to be held past expiration, if they had a timeout shorter than the longest timeout in the expiration queue.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2041>`__)
-
     *    - |improved|
          - The priority of logging on background sweep was increased from debug to info or warn.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
@@ -131,8 +138,9 @@ develop
            It also now logs the locking mode for each lock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1891>`__)
 
-    *    - |changed|
-         - Reduced the logging level of some messages relating to check-and-set operations in ``CassandraTimestampBoundStore`` to reduce noise in the logs.  These were designed to help debugging the ``MultipleRunningTimestampServicesException`` issues but we no longer require them to log all the time.
+    *    - |improved|
+         - Reduced the logging level of some messages relating to check-and-set operations in ``CassandraTimestampBoundStore`` to reduce noise in the logs.
+           These were designed to help debugging the ``MultipleRunningTimestampServicesException`` issues but we no longer require them to log all the time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2048>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

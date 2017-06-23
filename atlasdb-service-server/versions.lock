@@ -53,7 +53,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
@@ -222,34 +221,6 @@
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
-        "com.netflix.feign:feign-core": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.netflix.feign:feign-jackson",
-                "com.netflix.feign:feign-jaxrs",
-                "com.netflix.feign:feign-okhttp"
-            ]
-        },
-        "com.netflix.feign:feign-jackson": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "com.netflix.feign:feign-jaxrs": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "com.netflix.feign:feign-okhttp": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
         "com.palantir.atlasdb:atlasdb-api": {
             "project": true,
             "transitive": [
@@ -286,6 +257,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-service"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-feign": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.atlasdb:atlasdb-impl-shared": {
@@ -337,6 +314,7 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
@@ -417,6 +395,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
@@ -469,7 +448,7 @@
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.4.1",
             "transitive": [
-                "com.netflix.feign:feign-okhttp"
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.squareup.okio:okio": {
@@ -941,12 +920,6 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
-        "org.jvnet:animal-sniffer-annotation": {
-            "locked": "1.0",
-            "transitive": [
-                "com.netflix.feign:feign-core"
-            ]
-        },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
             "locked": "2.0.6",
             "transitive": [
@@ -1079,7 +1052,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
@@ -1267,34 +1239,6 @@
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
-        "com.netflix.feign:feign-core": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.netflix.feign:feign-jackson",
-                "com.netflix.feign:feign-jaxrs",
-                "com.netflix.feign:feign-okhttp"
-            ]
-        },
-        "com.netflix.feign:feign-jackson": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "com.netflix.feign:feign-jaxrs": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "com.netflix.feign:feign-okhttp": {
-            "locked": "8.17.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
         "com.palantir.atlasdb:atlasdb-api": {
             "project": true,
             "transitive": [
@@ -1340,6 +1284,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-service"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-feign": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.atlasdb:atlasdb-impl-shared": {
@@ -1406,6 +1356,7 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
@@ -1498,6 +1449,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
@@ -1554,7 +1506,7 @@
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.4.1",
             "transitive": [
-                "com.netflix.feign:feign-okhttp"
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.squareup.okio:okio": {
@@ -2106,12 +2058,6 @@
             "locked": "1.4.11.Final",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
-            ]
-        },
-        "org.jvnet:animal-sniffer-annotation": {
-            "locked": "1.0",
-            "transitive": [
-                "com.netflix.feign:feign-core"
             ]
         },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
