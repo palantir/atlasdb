@@ -202,12 +202,17 @@ public class SweepTaskRunner {
     }
 
     /**
-     * Partitions batches of cells down to deleteBatchSize blocks per sweep deletion call.
+     * Partitions batches of cells down to 2 * deleteBatchSize blocks per sweep deletion call.
      * Returns the number of blocks that were deleted.
      */
     private int sweepBatch(TableReference tableRef, List<CellToSweep> batch, RunType runType,
             int deleteBatchSize) {
         int numberOfSweptCells = 0;
+
+        // Previously we've grouped cells to have at least deleteBatchSize blocks per batch. Therefore we expect most
+        // of the batches to be slightly bigger than deleteBatchSize. Partitioning such batches with deleteBatchSize as
+        // a limit make us have a small second batch. Therefore, we set our limit per batch to 2 * deleteBatchSize.
+        deleteBatchSize = 2 * deleteBatchSize;
 
         Multimap<Cell, Long> currentBatch = ArrayListMultimap.create();
         List<Cell> currentBatchSentinels = Lists.newArrayList();
