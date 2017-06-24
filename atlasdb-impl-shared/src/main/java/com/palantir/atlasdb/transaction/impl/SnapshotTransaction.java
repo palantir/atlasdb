@@ -253,21 +253,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
     }
 
-    /**
-     * Used for read only transactions and subclasses that are read only and
-     * bypass aspects of the transaction protocol.
-     */
-//    protected SnapshotTransaction(KeyValueService keyValueService,
-//                                  TransactionService transactionService,
-//                                  RemoteLockService lockService,
-//                                  long startTimeStamp,
-//                                  AtlasDbConstraintCheckingMode constraintCheckingMode,
-//                                  TransactionReadSentinelBehavior readSentinelBehavior,
-//                                  TimestampCache timestampValidationReadCache) {
-//        this(keyValueService, transactionService, lockService, startTimeStamp,
-//                constraintCheckingMode, readSentinelBehavior, false, timestampValidationReadCache);
-//    }
-
     protected SnapshotTransaction(KeyValueService keyValueService,
                                   TransactionService transactionService,
                                   TimelockService timelockService,
