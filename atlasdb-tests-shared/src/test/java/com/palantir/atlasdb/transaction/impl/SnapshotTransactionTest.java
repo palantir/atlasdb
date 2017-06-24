@@ -111,6 +111,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.remoting2.tracing.Tracers;
 
 @SuppressWarnings("checkstyle:all")
@@ -285,8 +286,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         SnapshotTransaction snapshot = new SnapshotTransaction(
                 kvMock,
-                lock,
-                timestampService,
+                new LegacyTimelockService(timestampService, lock),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 transactionTs,
@@ -341,8 +341,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         SnapshotTransaction snapshot = new SnapshotTransaction(
                 kv,
-                lockService,
-                timestampService,
+                new LegacyTimelockService(timestampService, lockService),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 transactionTs,

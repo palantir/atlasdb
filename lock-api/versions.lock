@@ -4,7 +4,8 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
@@ -20,7 +21,8 @@
             "locked": "2.0.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-executors"
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -44,11 +46,15 @@
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
+        "com.palantir.atlasdb:timestamp-api": {
+            "project": true
+        },
         "com.palantir.safe-logging:safe-logging": {
             "locked": "0.1.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-executors"
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
@@ -61,7 +67,8 @@
             "locked": "2.0.1",
             "requested": "2.0.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "net.jpountz.lz4:lz4": {
@@ -83,7 +90,8 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
@@ -99,7 +107,8 @@
             "locked": "2.0.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-executors"
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -123,11 +132,15 @@
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
+        "com.palantir.atlasdb:timestamp-api": {
+            "project": true
+        },
         "com.palantir.safe-logging:safe-logging": {
             "locked": "0.1.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-executors"
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
@@ -140,7 +153,8 @@
             "locked": "2.0.1",
             "requested": "2.0.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "net.jpountz.lz4:lz4": {

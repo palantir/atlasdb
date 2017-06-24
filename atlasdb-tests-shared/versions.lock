@@ -208,7 +208,8 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:lock-api"
             ]
         },
         "com.palantir.patches.sourceforge:trove3": {
@@ -656,7 +657,8 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:lock-api"
             ]
         },
         "com.palantir.patches.sourceforge:trove3": {

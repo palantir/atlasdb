@@ -11,6 +11,7 @@ repositories {
 libsDirName = file('build/artifacts')
 dependencies {
     compile project(":atlasdb-commons")
+    compile project(":timestamp-api")
     compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
