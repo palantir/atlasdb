@@ -78,7 +78,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         CLUSTER.currentLeader().getFreshTimestamp();
 
         LockRefreshToken token = CLUSTER.currentLeader().lock(LOCK_CLIENT, LOCK_REQUEST);
-        CLUSTER.unlock(token);
+        CLUSTER.remoteUnlock(token);
     }
 
     @Test
@@ -130,13 +130,13 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void locksAreInvalidatedAcrossFailures() throws InterruptedException {
-        LockRefreshToken token = CLUSTER.lock(LOCK_CLIENT, LOCK_REQUEST);
+        LockRefreshToken token = CLUSTER.remoteLock(LOCK_CLIENT, LOCK_REQUEST);
 
         for (int i = 0; i < 3; i++) {
             CLUSTER.failoverToNewLeader();
 
-            assertThat(CLUSTER.unlock(token)).isFalse();
-            token = CLUSTER.lock(LOCK_CLIENT, LOCK_REQUEST);
+            assertThat(CLUSTER.remoteUnlock(token)).isFalse();
+            token = CLUSTER.remoteLock(LOCK_CLIENT, LOCK_REQUEST);
         }
     }
 
