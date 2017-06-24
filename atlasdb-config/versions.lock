@@ -271,7 +271,8 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:lock-api"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -802,7 +803,8 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:lock-api"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
