@@ -92,8 +92,7 @@ public class TransactionManagerModule {
                                                                     Cleaner cleaner) {
         return new SerializableTransactionManager(
                 kvs,
-                lts.time(),
-                lockClient,
+                lts.timelock(),
                 lts.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),

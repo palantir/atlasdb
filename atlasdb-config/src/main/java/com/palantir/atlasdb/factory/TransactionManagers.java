@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSocketFactory;
+import javax.ws.rs.NotSupportedException;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -75,19 +77,24 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.lock.ForwardingRemoteLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.LockRefreshingTimelockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -220,9 +227,7 @@ public final class TransactionManagers {
 
         Cleaner cleaner = new DefaultCleanerBuilder(
                 kvs,
-                lockAndTimestampServices.lock(),
-                lockAndTimestampServices.time(),
-                LOCK_CLIENT,
+                lockAndTimestampServices.timelock(),
                 ImmutableList.of(follower),
                 transactionService)
                 .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
@@ -234,8 +239,7 @@ public final class TransactionManagers {
                 .buildCleaner();
 
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
-                lockAndTimestampServices.time(),
-                LOCK_CLIENT,
+                lockAndTimestampServices.timelock(),
                 lockAndTimestampServices.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
@@ -357,7 +361,8 @@ public final class TransactionManagers {
             LockAndTimestampServices lockAndTimestampServices) {
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))
+                .lock(lockAndTimestampServices.lock().map(LockRefreshingRemoteLockService::create))
+                .timelock(LockRefreshingTimelockService.createDefault(lockAndTimestampServices.timelock()))
                 .build();
     }
 
@@ -392,14 +397,20 @@ public final class TransactionManagers {
     private static LockAndTimestampServices getLockAndTimestampServices(
             ServerListConfig timelockServerListConfig,
             String userAgent) {
-        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class, userAgent)
+        RemoteLockService lockService = new ForwardingRemoteLockService() {
+            @Override
+            protected RemoteLockService delegate() {
+                throw new NotSupportedException("Use of the RemoteLockService is not supported with Timelock server");
+            }
+        };
+        TimelockService timelockService = new ServiceCreator<>(TimelockService.class, userAgent)
                 .apply(timelockServerListConfig);
-        TimestampService timeService = new ServiceCreator<>(TimestampService.class, userAgent)
-                .apply(timelockServerListConfig);
+        TimestampService timeService = new TimelockTimestampServiceAdapter(timelockService);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
                 .time(timeService)
+                .timelock(timelockService)
                 .build();
     }
 
@@ -461,8 +472,15 @@ public final class TransactionManagers {
 
     @Value.Immutable
     public interface LockAndTimestampServices {
-        RemoteLockService lock();
+        Optional<RemoteLockService> lock();
         TimestampService time();
+
+        @Value.Default
+        default TimelockService timelock() {
+            Preconditions.checkState(lock().isPresent(),
+                    "Either a TimelockService or a RemoteLockService must be configured");
+            return new LegacyTimelockService(time(), lock().get(), LOCK_CLIENT);
+        }
     }
 
     public interface Environment {

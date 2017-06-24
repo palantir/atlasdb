@@ -18,6 +18,7 @@ package com.palantir.lock.v2;
 
 import java.util.Set;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -28,51 +29,44 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.timestamp.TimestampRange;
 
 @Path("/timelock")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
 public interface TimelockService {
 
     @POST
     @Path("fresh-timestamp")
-    @Produces(MediaType.APPLICATION_JSON)
     long getFreshTimestamp();
 
     @POST
     @Path("fresh-timestamps")
-    @Produces(MediaType.APPLICATION_JSON)
     TimestampRange getFreshTimestamps(@QueryParam("number") int numTimestampsRequested);
 
     @POST
     @Path("lock-immutable-timestamp")
-    @Produces(MediaType.APPLICATION_JSON)
     LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request);
 
     @POST
     @Path("immutable-timestamp")
-    @Produces(MediaType.APPLICATION_JSON)
     long getImmutableTimestamp();
 
     @POST
     @Path("lock")
-    @Produces(MediaType.APPLICATION_JSON)
     LockRefreshToken lock(LockRequestV2 request);
 
     @POST
     @Path("await-locks")
-    @Produces(MediaType.APPLICATION_JSON)
     void waitForLocks(WaitForLocksRequest request);
 
     @POST
     @Path("refresh-locks")
-    @Produces(MediaType.APPLICATION_JSON)
     Set<LockRefreshToken> refreshLockLeases(Set<LockRefreshToken> tokens);
 
     @POST
     @Path("unlock")
-    @Produces(MediaType.APPLICATION_JSON)
     Set<LockRefreshToken> unlock(Set<LockRefreshToken> tokens);
 
     @POST
     @Path("current-time-millis")
-    @Produces(MediaType.APPLICATION_JSON)
     long currentTimeMillis();
 
 }

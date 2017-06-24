@@ -47,7 +47,7 @@ public class LockAndTimestampModule {
     @Provides
     @Singleton
     public RemoteLockService provideLockService(TransactionManagers.LockAndTimestampServices lts) {
-        return lts.lock();
+        return lts.lock().get();
     }
 
 }

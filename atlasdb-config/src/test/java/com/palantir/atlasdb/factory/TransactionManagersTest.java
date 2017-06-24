@@ -201,7 +201,7 @@ public class TransactionManagersTest {
                         invalidator,
                         USER_AGENT);
         lockAndTimestampServices.time().getFreshTimestamp();
-        lockAndTimestampServices.lock().currentTimeMillis();
+        lockAndTimestampServices.lock().get().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(timestampPath))
                 .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));

@@ -34,9 +34,12 @@ public class TimeLockResourceTest {
     private static final TimestampService TIMESTAMP_SERVICE = mock(TimestampService.class);
     private static final TimestampManagementService TIMESTAMP_MANAGEMENT_SERVICE =
             mock(TimestampManagementService.class);
+    private static final AsyncTimelockResource TIMELOCK_SERVICE =
+            mock(AsyncTimelockResource.class);
     private static final TimeLockServices TIME_LOCK_SERVICES = TimeLockServices.create(
             TIMESTAMP_SERVICE,
             LOCK_SERVICE,
+            TIMELOCK_SERVICE,
             TIMESTAMP_MANAGEMENT_SERVICE);
 
     private static final TimeLockResource RESOURCE = new TimeLockResource(

@@ -26,15 +26,18 @@ public interface TimeLockServices {
     static TimeLockServices create(
             TimestampService timestampService,
             RemoteLockService lockService,
+            AsyncTimelockResource timelockService,
             TimestampManagementService timestampManagementService) {
         return ImmutableTimeLockServices.builder()
                 .timestampService(timestampService)
                 .lockService(lockService)
                 .timestampManagementService(timestampManagementService)
+                .timelockService(timelockService)
                 .build();
     }
 
     TimestampManagementService getTimestampManagementService();
     TimestampService getTimestampService();
+    AsyncTimelockResource getTimelockService();
     RemoteLockService getLockService();
 }

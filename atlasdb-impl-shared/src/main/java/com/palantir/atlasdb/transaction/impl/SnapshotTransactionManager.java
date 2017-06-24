@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nullable;
@@ -56,10 +57,9 @@ import com.palantir.timestamp.TimestampService;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
-    final RemoteLockService lockService;
+    final Optional<RemoteLockService> lockService;
     final ConflictDetectionManager conflictDetectionManager;
     final SweepStrategyManager sweepStrategyManager;
-    final LockClient lockClient;
     final Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier;
     final AtomicLong recentImmutableTs = new AtomicLong(-1L);
     final Cleaner cleaner;
@@ -79,11 +79,31 @@ import com.palantir.timestamp.TimestampService;
         Preconditions.checkArgument(lockClient != LockClient.ANONYMOUS);
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
+        this.lockService = Optional.of(lockService);
+        this.transactionService = transactionService;
+        this.conflictDetectionManager = conflictDetectionManager;
+        this.sweepStrategyManager = sweepStrategyManager;
+        this.constraintModeSupplier = constraintModeSupplier;
+        this.cleaner = cleaner;
+        this.allowHiddenTableAccess = allowHiddenTableAccess;
+    }
+
+    protected SnapshotTransactionManager(
+            KeyValueService keyValueService,
+            TimelockService timelockService,
+            Optional<RemoteLockService> lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            boolean allowHiddenTableAccess) {
+        this.keyValueService = keyValueService;
+        this.timelockService = timelockService;
         this.lockService = lockService;
         this.transactionService = transactionService;
         this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = sweepStrategyManager;
-        this.lockClient = lockClient;
         this.constraintModeSupplier = constraintModeSupplier;
         this.cleaner = cleaner;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
@@ -212,7 +232,10 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public RemoteLockService getLockService() {
-        return lockService;
+        Preconditions.checkState(
+                lockService.isPresent(),
+                "Use of RemoteLockService is not supported with Timelock server");
+        return lockService.get();
     }
 
     @Override

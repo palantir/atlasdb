@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Optional;
+
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -65,8 +67,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         this(
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                lockClient,
-                lockService,
+                Optional.of(lockService),
                 transactionService,
                 constraintModeSupplier,
                 conflictDetectionManager,
@@ -77,8 +78,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimelockService timelockService,
-            LockClient lockClient,
-            RemoteLockService lockService,
+            Optional<RemoteLockService> lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -88,7 +88,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         super(
                 keyValueService,
                 timelockService,
-                lockClient,
                 lockService,
                 transactionService,
                 constraintModeSupplier,

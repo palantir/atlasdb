@@ -22,6 +22,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
 /**
@@ -39,6 +40,13 @@ public final class ImmutableTimestampSupplier implements Supplier<Long> {
                                                               LockClient lockClient) {
         return Suppliers.memoizeWithExpiration(
                 new ImmutableTimestampSupplier(lockService, timestampService, lockClient),
+                RELOAD_INTERVAL_MILLIS,
+                TimeUnit.MILLISECONDS);
+    }
+
+    public static Supplier<Long> createMemoizedWithExpiration(TimelockService timelockService) {
+        return Suppliers.memoizeWithExpiration(
+                timelockService::getImmutableTimestamp,
                 RELOAD_INTERVAL_MILLIS,
                 TimeUnit.MILLISECONDS);
     }

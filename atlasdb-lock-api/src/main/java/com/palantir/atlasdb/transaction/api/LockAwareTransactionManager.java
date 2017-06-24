@@ -21,6 +21,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.v2.TimelockService;
 
+
 public interface LockAwareTransactionManager extends TransactionManager {
     /**
      * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)} but it will
@@ -75,11 +76,8 @@ public interface LockAwareTransactionManager extends TransactionManager {
     /**
      * Returns the lock service used by this transaction manager.
      *
-     * @deprecated use {#link #getTimelockService}
-     *
      * @return the lock service for this transaction manager
      */
-    @Deprecated
     RemoteLockService getLockService();
 
     TimelockService getTimelockService();
