@@ -20,6 +20,7 @@ import javax.inject.Singleton;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
 import dagger.Module;
@@ -40,8 +41,14 @@ public class LockAndTimestampModule {
 
     @Provides
     @Singleton
+    public TimelockService provideTimelockService(TransactionManagers.LockAndTimestampServices lts) {
+        return lts.timelock();
+    }
+
+    @Provides
+    @Singleton
     public TimestampService provideTimestampService(TransactionManagers.LockAndTimestampServices lts) {
-        return lts.time();
+        return lts.timestamp();
     }
 
     @Provides

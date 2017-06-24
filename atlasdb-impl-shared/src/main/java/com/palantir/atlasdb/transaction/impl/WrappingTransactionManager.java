@@ -25,6 +25,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.v2.TimelockService;
 
 public abstract class WrappingTransactionManager extends ForwardingLockAwareTransactionManager {
     private final LockAwareTransactionManager delegate;
@@ -69,6 +70,11 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     @Override
     public RemoteLockService getLockService() {
         return delegate.getLockService();
+    }
+
+    @Override
+    public TimelockService getTimelockService() {
+        return delegate.getTimelockService();
     }
 
     private <T, E extends Exception> TransactionTask<T, E> wrapTask(TransactionTask<T, E> task) {
