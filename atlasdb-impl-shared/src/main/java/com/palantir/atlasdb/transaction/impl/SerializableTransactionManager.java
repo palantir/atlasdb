@@ -25,6 +25,8 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
 public class SerializableTransactionManager extends SnapshotTransactionManager {
@@ -60,9 +62,32 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                                           SweepStrategyManager sweepStrategyManager,
                                           Cleaner cleaner,
                                           boolean allowHiddenTableAccess) {
+        this(
+                keyValueService,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
+                lockClient,
+                lockService,
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
+                allowHiddenTableAccess);
+    }
+
+    public SerializableTransactionManager(KeyValueService keyValueService,
+            TimelockService timelockService,
+            LockClient lockClient,
+            RemoteLockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            boolean allowHiddenTableAccess) {
         super(
                 keyValueService,
-                timestampService,
+                timelockService,
                 lockClient,
                 lockService,
                 transactionService,
@@ -74,19 +99,18 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     }
 
     @Override
-    protected SnapshotTransaction createTransaction(long immutableLockTs,
+    protected SnapshotTransaction createTransaction(long immutableTimestamp,
                                                   Supplier<Long> startTimestampSupplier,
                                                   ImmutableList<LockRefreshToken> allTokens) {
         return new SerializableTransaction(
                 keyValueService,
-                lockService,
-                timestampService,
+                timelockService,
                 transactionService,
                 cleaner,
                 startTimestampSupplier,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                getImmutableTimestampInternal(immutableLockTs),
+                immutableTimestamp,
                 allTokens,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),

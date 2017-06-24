@@ -58,7 +58,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.ImmutableSortedMap.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -114,19 +113,16 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.ForwardingClosableIterator;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -163,9 +159,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         FAILED
     }
 
-    protected final TimestampService timestampService;
+    protected final TimelockService timelockService;
     final KeyValueService keyValueService;
-    protected final RemoteLockService lockService;
     final TransactionService defaultTransactionService;
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
@@ -200,12 +195,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
      *                           grab a read lock for it because we know that no writers exist.
-     * @param tokensValidForCommit These tokens need to be valid with {@link #lockService} for this transaction
+     * @param tokensValidForCommit These tokens need to be valid with {@link #timelockService} for this transaction
      *                             to commit.  If these locks have expired then the commit will fail.
      */
     /* package */ SnapshotTransaction(KeyValueService keyValueService,
-                               RemoteLockService lockService,
-                               TimestampService timestampService,
+                               TimelockService timelockService,
                                TransactionService transactionService,
                                Cleaner cleaner,
                                Supplier<Long> startTimeStamp,
@@ -219,10 +213,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                boolean allowHiddenTableAccess,
                                TimestampCache timestampValidationReadCache) {
         this.keyValueService = keyValueService;
-        this.timestampService = timestampService;
+        this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
         this.cleaner = cleaner;
-        this.lockService = lockService;
         this.startTimestamp = startTimeStamp;
         this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = sweepStrategyManager;
@@ -237,8 +230,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     // TEST ONLY
     SnapshotTransaction(KeyValueService keyValueService,
-                        RemoteLockService lockService,
-                        TimestampService timestampService,
+                        TimelockService timelockService,
                         TransactionService transactionService,
                         Cleaner cleaner,
                         long startTimeStamp,
@@ -247,10 +239,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         TransactionReadSentinelBehavior readSentinelBehavior,
                         TimestampCache timestampValidationReadCache) {
         this.keyValueService = keyValueService;
-        this.timestampService = timestampService;
+        this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
         this.cleaner = cleaner;
-        this.lockService = lockService;
         this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
         this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
@@ -263,24 +254,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
     }
 
-    /**
-     * Used for read only transactions and subclasses that are read only and
-     * bypass aspects of the transaction protocol.
-     */
     protected SnapshotTransaction(KeyValueService keyValueService,
                                   TransactionService transactionService,
-                                  RemoteLockService lockService,
-                                  long startTimeStamp,
-                                  AtlasDbConstraintCheckingMode constraintCheckingMode,
-                                  TransactionReadSentinelBehavior readSentinelBehavior,
-                                  TimestampCache timestampValidationReadCache) {
-        this(keyValueService, transactionService, lockService, startTimeStamp,
-                constraintCheckingMode, readSentinelBehavior, false, timestampValidationReadCache);
-    }
-
-    protected SnapshotTransaction(KeyValueService keyValueService,
-                                  TransactionService transactionService,
-                                  RemoteLockService lockService,
+                                  TimelockService timelockService,
                                   long startTimeStamp,
                                   AtlasDbConstraintCheckingMode constraintCheckingMode,
                                   TransactionReadSentinelBehavior readSentinelBehavior,
@@ -289,11 +265,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
-        this.lockService = lockService;
+        this.timelockService = timelockService;
         this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
         this.conflictDetectionManager = ConflictDetectionManagers.createWithNoConflictDetection();
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        this.timestampService = null;
         this.immutableTimestamp = startTimeStamp;
         this.externalLocksTokens = ImmutableSet.of();
         this.constraintCheckingMode = constraintCheckingMode;
@@ -1040,7 +1015,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * This is protected to allow for different post filter behavior.
      */
     protected boolean shouldDeleteAndRollback() {
-        Validate.notNull(lockService, "if we don't have a valid lock server we can't roll back transactions");
+        Validate.notNull(timelockService, "if we don't have a valid lock server we can't roll back transactions");
         return true;
     }
 
@@ -1241,7 +1216,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // We must do this before we check that our locks are still valid to ensure that
             // other transactions that will hold these locks are sure to have start
             // timestamps after our commit timestamp.
-            long commitTimestamp = timestampService.getFreshTimestamp();
+            long commitTimestamp = timelockService.getFreshTimestamp();
             commitTsForScrubbing = commitTimestamp;
 
             // punch on commit so that if hard delete is the only thing happening on a system,
@@ -1283,7 +1258,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         millisForPunch, millisForCommitTs, millisSinceCreation, writesByTable.keySet());
             }
         } finally {
-            lockService.unlock(commitLocksToken);
+            timelockService.unlock(ImmutableSet.of(commitLocksToken));
         }
     }
 
@@ -1343,7 +1318,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return ImmutableSet.of();
         }
 
-        return Sets.difference(toRefresh, lockService.refreshLockRefreshTokens(toRefresh)).immutableCopy();
+        return Sets.difference(toRefresh, timelockService.refreshLockLeases(toRefresh)).immutableCopy();
     }
 
     /**
@@ -1585,51 +1560,44 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * This method should acquire any locks needed to do proper concurrency control at commit time.
      */
     protected LockRefreshToken acquireLocksForCommit() {
-        SortedMap<LockDescriptor, LockMode> lockMap = getLocksForWrites();
-        try {
-            return lockService.lock(LockClient.ANONYMOUS.getClientId(), LockRequest.builder(lockMap).build());
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+        Set<LockDescriptor> lockDescriptors = getLocksForWrites();
+        return timelockService.lock(LockRequestV2.of(lockDescriptors));
     }
 
-    protected ImmutableSortedMap<LockDescriptor, LockMode> getLocksForWrites() {
-        Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
+    protected Set<LockDescriptor> getLocksForWrites() {
+        Set<LockDescriptor> result = Sets.newHashSet();
         Iterable<TableReference> allTables = IterableUtils.append(
                 writesByTable.keySet(),
                 TransactionConstants.TRANSACTION_TABLE);
         for (TableReference tableRef : allTables) {
             if (tableRef.equals(TransactionConstants.TRANSACTION_TABLE)) {
-                builder.put(
+                result.add(
                         AtlasRowLockDescriptor.of(
                                 TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                                TransactionConstants.getValueForTimestamp(getStartTimestamp())),
-                        LockMode.WRITE);
+                                TransactionConstants.getValueForTimestamp(getStartTimestamp())));
                 continue;
             }
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
             if (conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE_CELL) {
                 for (Cell cell : getLocalWrites(tableRef).keySet()) {
-                    builder.put(
+                    result.add(
                             AtlasCellLockDescriptor.of(
                                     tableRef.getQualifiedName(),
                                     cell.getRowName(),
-                                    cell.getColumnName()),
-                            LockMode.WRITE);
+                                    cell.getColumnName()));
                 }
             } else if (conflictHandler != ConflictHandler.IGNORE_ALL) {
                 Cell lastCell = null;
                 for (Cell cell : getLocalWrites(tableRef).keySet()) {
                     if (lastCell == null || !Arrays.equals(lastCell.getRowName(), cell.getRowName())) {
-                        builder.put(
-                                AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName()),
-                                LockMode.WRITE);
+                        result.add(
+                                AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName()));
                     }
                     lastCell = cell;
                 }
             }
         }
-        return builder.build();
+        return result;
     }
 
     /**
@@ -1639,33 +1607,24 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     private void waitForCommitToComplete(Iterable<Long> startTimestamps) {
         boolean isEmpty = true;
-        Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
+        Set<LockDescriptor> lockDescriptors = Sets.newHashSet();
         for (long start : startTimestamps) {
             if (start < immutableTimestamp) {
                 // We don't need to block in this case because this transaction is already complete
                 continue;
             }
             isEmpty = false;
-            builder.put(
+            lockDescriptors.add(
                     AtlasRowLockDescriptor.of(
                             TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                            TransactionConstants.getValueForTimestamp(start)),
-                    LockMode.READ);
+                            TransactionConstants.getValueForTimestamp(start)));
         }
 
         if (isEmpty) {
             return;
         }
 
-        // TODO(carrino): This can have better performance if we have a blockAndReturn method in lock server
-        // However lock server blocking is an issue if we fill up all our requests
-        try {
-            lockService.lock(
-                    LockClient.ANONYMOUS.getClientId(),
-                    LockRequest.builder(builder.build()).lockAndRelease().build());
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+        timelockService.waitForLocks(WaitForLocksRequest.of(lockDescriptors));
     }
 
     ///////////////////////////////////////////////////////////////////////////

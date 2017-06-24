@@ -344,6 +344,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -1401,6 +1402,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },

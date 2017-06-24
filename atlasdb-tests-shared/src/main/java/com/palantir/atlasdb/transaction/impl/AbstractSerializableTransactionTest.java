@@ -58,6 +58,7 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.remoting2.tracing.Tracers;
 
 
@@ -86,8 +87,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 ConflictHandler.IGNORE_ALL);
         return new SerializableTransaction(
                 keyValueService,
-                lockService,
-                timestampService,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),
