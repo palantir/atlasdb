@@ -87,6 +87,21 @@ public class LockAcquirerTest {
     }
 
     @Test
+    public void doesNotStackOverflowIfManyRequestsWaitOnALock() {
+        lockA.lock(REQUEST_ID);
+
+        List<CompletableFuture<Void>> futures = IntStream.range(0, 500_000)
+                .mapToObj(i -> waitFor(lockA))
+                .collect(Collectors.toList());
+
+        lockA.unlock(REQUEST_ID);
+
+        for (int i = 0; i < futures.size(); i++) {
+            assertCompleteSuccessfully(futures.get(i));
+        }
+    }
+
+    @Test
     public void propagatesExceptionIfSynchronousLockAcquisitionFails() {
         CompletableFuture<Void> lockResult = new CompletableFuture<>();
         RuntimeException error = new RuntimeException("foo");
@@ -181,6 +196,9 @@ public class LockAcquirerTest {
     }
 
     private void assertCompleteSuccessfully(CompletableFuture<?> acquisitions) {
+        if (!acquisitions.isDone()) {
+            throw new IllegalStateException("test");
+        }
         assertTrue(acquisitions.isDone());
         acquisitions.join();
     }

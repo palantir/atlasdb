@@ -35,7 +35,15 @@ public class ExclusiveLock implements AsyncLock {
 
     @Override
     public synchronized CompletableFuture<Void> lock(UUID requestId) {
-        LockRequest request = new LockRequest(requestId);
+        return submit(new LockRequest(requestId, false));
+    }
+
+    @Override
+    public CompletableFuture<Void> waitUntilAvailable(UUID requestId) {
+        return submit(new LockRequest(requestId, true));
+    }
+
+    private CompletableFuture<Void> submit(LockRequest request) {
         queue.add(request);
         processQueue();
 
@@ -56,21 +64,24 @@ public class ExclusiveLock implements AsyncLock {
     }
 
     private void processQueue() {
-        if (currentHolder != null || queue.isEmpty()) {
-            return;
-        }
+        while (!queue.isEmpty() && currentHolder == null) {
+            LockRequest head = queue.poll();
+            if (!head.releaseImmediately) {
+                currentHolder = head.requestId;
+            }
 
-        LockRequest head = queue.poll();
-        currentHolder = head.requestId;
-        head.result.complete(null);
+            head.result.complete(null);
+        }
     }
 
     private class LockRequest {
         private final CompletableFuture<Void> result = new CompletableFuture<>();
         private final UUID requestId;
+        private final boolean releaseImmediately;
 
-        LockRequest(UUID requestId) {
+        LockRequest(UUID requestId, boolean releaseImmediately) {
             this.requestId = requestId;
+            this.releaseImmediately = releaseImmediately;
         }
     }
 
