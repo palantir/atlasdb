@@ -23,6 +23,8 @@ public interface AsyncLock {
 
     CompletableFuture<Void> lock(UUID requestId);
 
+    CompletableFuture<Void> waitUntilAvailable(UUID requestId);
+
     void unlock(UUID requestId);
 
 }
