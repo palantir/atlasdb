@@ -37,7 +37,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.stubbing.Answer;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -69,6 +68,31 @@ public abstract class AbstractSweepTaskRunnerTest {
     private static final String FULL_TABLE_NAME = "test_table.xyz_atlasdb_sweeper_test";
     protected static final TableReference TABLE_NAME = TableReference.createFromFullyQualifiedName(FULL_TABLE_NAME);
     private static final String COL = "c";
+
+    private static final Cell CELL1 =
+            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c0".getBytes(StandardCharsets.UTF_8));
+    private static final Cell CELL2 =
+            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c1".getBytes(StandardCharsets.UTF_8));
+    private static final Cell CELL3 =
+            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c2".getBytes(StandardCharsets.UTF_8));
+    private static final Cell CELL4 =
+            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c3".getBytes(StandardCharsets.UTF_8));
+    private static final Cell CELL5 =
+            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c4".getBytes(StandardCharsets.UTF_8));
+    private static final Cell CELL6 =
+            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c5".getBytes(StandardCharsets.UTF_8));
+    private static final Cell CELL7 =
+            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c6".getBytes(StandardCharsets.UTF_8));
+    private static final Cell CELL8 =
+            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c7".getBytes(StandardCharsets.UTF_8));
+    private static final Cell CELL9 =
+            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c8".getBytes(StandardCharsets.UTF_8));
+    private static final Cell CELL10 =
+            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c9".getBytes(StandardCharsets.UTF_8));
+    private static final List<Cell> SMALL_LIST_OF_CELLS = Lists.newArrayList(CELL1, CELL2, CELL3, CELL4);
+    private static final List<Cell> BIG_LIST_OF_CELLS = Lists.newArrayList(
+            CELL1, CELL2, CELL3, CELL4, CELL5, CELL6, CELL7, CELL8, CELL9, CELL10);
+
     protected static final int DEFAULT_BATCH_SIZE = 1000;
 
     protected KeyValueService kvs;
@@ -376,24 +400,14 @@ public abstract class AbstractSweepTaskRunnerTest {
         SweepTaskRunner spiedSweepRunner =
                 new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
 
-        putEightValuesInFourColumns();
+        putTwoValuesInEachCell(SMALL_LIST_OF_CELLS);
 
-        List<List<Cell>> actualCells = Lists.newArrayList();
-        doAnswer(sweepCellsMockedAnswer(actualCells)).when(cellsSweeper).sweepCells(eq(TABLE_NAME), any(), any());
+        int deleteBatchSize = 1;
+        List<List<Cell>> sweptCells = runSweep(cellsSweeper, spiedSweepRunner,
+                8, 8, deleteBatchSize);
 
-        spiedSweepRunner.run(TABLE_NAME, ImmutableSweepBatchConfig.builder()
-                    .deleteBatchSize(1)
-                    .candidateBatchSize(8)
-                    .maxCellTsPairsToExamine(8)
-                    .build(),
-                PtBytes.EMPTY_BYTE_ARRAY);
-
-        List<List<Cell>> expectedCells = Lists.newArrayList(
-                wrappedCell("row", "c1"),
-                wrappedCell("row", "c2"),
-                wrappedCell("row", "c3"),
-                wrappedCell("row", "c4"));
-        assertEquals(expectedCells, actualCells);
+        List<List<Cell>> expectedCells = groupCells(SMALL_LIST_OF_CELLS, 2 * deleteBatchSize);
+        assertEquals(expectedCells, sweptCells);
     }
 
     @Test
@@ -402,59 +416,73 @@ public abstract class AbstractSweepTaskRunnerTest {
         SweepTaskRunner spiedSweepRunner =
                 new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
 
-        putEightValuesInFourColumns();
+        putTwoValuesInEachCell(SMALL_LIST_OF_CELLS);
 
-        List<List<Cell>> actualCells = Lists.newArrayList();
-        doAnswer(sweepCellsMockedAnswer(actualCells)).when(cellsSweeper).sweepCells(eq(TABLE_NAME), any(), any());
+        List<List<Cell>> sweptCells = runSweep(cellsSweeper, spiedSweepRunner, 8, 1, 4);
 
-        spiedSweepRunner.run(TABLE_NAME, ImmutableSweepBatchConfig.builder()
-                        .deleteBatchSize(4)
-                        .candidateBatchSize(1)
-                        .maxCellTsPairsToExamine(8)
-                        .build(),
-                PtBytes.EMPTY_BYTE_ARRAY);
+        assertEquals(1, sweptCells.size());
+        assertEquals(SMALL_LIST_OF_CELLS, sweptCells.get(0));
+    }
 
-        List<Cell> expectedCellList = Lists.newArrayList(
-                Cell.create("row".getBytes(StandardCharsets.UTF_8), "c1".getBytes(StandardCharsets.UTF_8)),
-                Cell.create("row".getBytes(StandardCharsets.UTF_8), "c2".getBytes(StandardCharsets.UTF_8)),
-                Cell.create("row".getBytes(StandardCharsets.UTF_8), "c3".getBytes(StandardCharsets.UTF_8)),
-                Cell.create("row".getBytes(StandardCharsets.UTF_8), "c4".getBytes(StandardCharsets.UTF_8)));
+    @Test
+    public void testSweepBatches() {
+        CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
+        SweepTaskRunner spiedSweepRunner =
+                new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
 
-        assertEquals(1, actualCells.size());
-        assertEquals(expectedCellList, actualCells.get(0));
+        putTwoValuesInEachCell(BIG_LIST_OF_CELLS);
+
+        int deleteBatchSize = 2;
+        List<List<Cell>> sweptCells = runSweep(cellsSweeper, spiedSweepRunner,
+                8, 1, deleteBatchSize);
+
+        List<List<Cell>> expectedCells = groupCells(BIG_LIST_OF_CELLS, 2 * deleteBatchSize);
+        assertEquals(expectedCells, sweptCells);
+    }
+
+    private void putTwoValuesInEachCell(List<Cell> cells) {
+        createTable(SweepStrategy.CONSERVATIVE);
+
+        int ts = 1;
+        for (Cell cell : cells) {
+            put(cell, "val1", ts);
+            put(cell, "val2", ts + 5);
+            ts += 10;
+        }
+
+        sweepTimestamp.set(ts);
     }
 
     @SuppressWarnings("unchecked")
-    private Answer sweepCellsMockedAnswer(List<List<Cell>> actualCells) {
-        return (invocationOnMock) -> {
+    private List<List<Cell>> runSweep(CellsSweeper cellsSweeper, SweepTaskRunner spiedSweepRunner,
+            int maxCellTsPairsToExamine, int candidateBatchSize, int deleteBatchSize) {
+        List<List<Cell>> sweptCells = Lists.newArrayList();
+
+        doAnswer((invocationOnMock) -> {
             Object[] arguments = invocationOnMock.getArguments();
             Collection<Cell> sentinelsToAdd = (Collection<Cell>) arguments[2];
-            actualCells.add(new ArrayList(sentinelsToAdd));
+            sweptCells.add(new ArrayList(sentinelsToAdd));
             return null;
-        };
+        }).when(cellsSweeper).sweepCells(eq(TABLE_NAME), any(), any());
+
+        spiedSweepRunner.run(TABLE_NAME, ImmutableSweepBatchConfig.builder()
+                .maxCellTsPairsToExamine(maxCellTsPairsToExamine)
+                .candidateBatchSize(candidateBatchSize)
+                .deleteBatchSize(deleteBatchSize)
+                .build(), PtBytes.EMPTY_BYTE_ARRAY);
+
+        return sweptCells;
     }
 
-    private void putEightValuesInFourColumns() {
-        createTable(SweepStrategy.CONSERVATIVE);
+    private List<List<Cell>> groupCells(List<Cell> cells, int sizeOfEachGroup) {
+        List<List<Cell>> groupedCells = Lists.newArrayList();
 
-        put(TABLE_NAME, "row", "c1", "val1", 1);
-        put(TABLE_NAME, "row", "c1", "val2", 5);
+        for (int i = 0; i < cells.size(); i += sizeOfEachGroup) {
+            int groupMax = Math.min(i + sizeOfEachGroup, cells.size());
+            groupedCells.add(cells.subList(i, groupMax));
+        }
 
-        put(TABLE_NAME, "row", "c2", "val1", 10);
-        put(TABLE_NAME, "row", "c2", "val2", 15);
-
-        put(TABLE_NAME, "row", "c3", "val1", 20);
-        put(TABLE_NAME, "row", "c3", "val2", 25);
-
-        put(TABLE_NAME, "row", "c4", "val1", 30);
-        put(TABLE_NAME, "row", "c4", "val2", 35);
-
-        sweepTimestamp.set(40);
-    }
-
-    private List<Cell> wrappedCell(String rowName, String colName) {
-        return Lists.newArrayList(
-                Cell.create(rowName.getBytes(StandardCharsets.UTF_8), colName.getBytes(StandardCharsets.UTF_8)));
+        return groupedCells;
     }
 
     private void testSweepManyRows(SweepStrategy strategy) {
@@ -543,6 +571,14 @@ public abstract class AbstractSweepTaskRunnerTest {
             final String val,
             final long ts) {
         Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), column.getBytes(StandardCharsets.UTF_8));
+        put(tableRef, cell, val, ts);
+    }
+
+    protected void put(Cell cell, final String val, final long ts) {
+        put(TABLE_NAME, cell, val, ts);
+    }
+
+    protected void put(final TableReference tableRef, Cell cell, final String val, final long ts) {
         kvs.put(tableRef, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8)), ts);
         putTimestampIntoTransactionTable(ts);
     }
