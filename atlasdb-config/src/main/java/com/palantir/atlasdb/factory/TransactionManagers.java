@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -378,7 +378,7 @@ public final class TransactionManagers {
             TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
             return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
         } else {
-            return createRawEmbeddedServices(env, lock, time);
+            return createRawEmbeddedServices(env, lock, time, userAgent);
         }
     }
 
@@ -446,9 +446,14 @@ public final class TransactionManagers {
     private static LockAndTimestampServices createRawEmbeddedServices(
             Environment env,
             Supplier<RemoteLockService> lock,
-            Supplier<TimestampService> time) {
-        RemoteLockService lockService = lock.get();
-        TimestampService timeService = time.get();
+            Supplier<TimestampService> time,
+            String userAgent) {
+        RemoteLockService lockService = ServiceCreator.createInstrumentedService(lock.get(),
+                RemoteLockService.class,
+                userAgent);
+        TimestampService timeService = ServiceCreator.createInstrumentedService(time.get(),
+                TimestampService.class,
+                userAgent);
 
         env.register(lockService);
         env.register(timeService);

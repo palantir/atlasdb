@@ -15,9 +15,10 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import java.util.Optional;
+
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -40,7 +41,7 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
         CassandraKeyValueServiceConfig config = getCassandraKvsConfig();
         CassandraKeyValueService ckvs = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
-                Optional.absent());
+                Optional.empty());
 
         ckvs.cleanUpSchemaMutationLockTablesState();
         printer.info("Schema mutation lock cli completed successfully.");

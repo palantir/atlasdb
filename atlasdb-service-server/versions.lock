@@ -64,8 +64,7 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
-                "io.dropwizard:dropwizard-jackson",
-                "io.github.openfeign:feign-jackson"
+                "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -260,6 +259,12 @@
                 "com.palantir.atlasdb:atlasdb-service"
             ]
         },
+        "com.palantir.atlasdb:atlasdb-feign": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
         "com.palantir.atlasdb:atlasdb-impl-shared": {
             "project": true,
             "transitive": [
@@ -309,6 +314,7 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
@@ -389,6 +395,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
@@ -439,13 +446,13 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.6.0",
+            "locked": "3.4.1",
             "transitive": [
-                "io.github.openfeign:feign-okhttp"
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.11.0",
+            "locked": "1.9.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
@@ -608,34 +615,6 @@
                 "io.dropwizard:dropwizard-jersey",
                 "io.dropwizard:dropwizard-logging",
                 "io.dropwizard:dropwizard-metrics"
-            ]
-        },
-        "io.github.openfeign:feign-core": {
-            "locked": "9.5.0",
-            "transitive": [
-                "io.github.openfeign:feign-jackson",
-                "io.github.openfeign:feign-jaxrs",
-                "io.github.openfeign:feign-okhttp"
-            ]
-        },
-        "io.github.openfeign:feign-jackson": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "io.github.openfeign:feign-jaxrs": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "io.github.openfeign:feign-okhttp": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "javax.annotation:javax.annotation-api": {
@@ -941,12 +920,6 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
-        "org.jvnet:animal-sniffer-annotation": {
-            "locked": "1.0",
-            "transitive": [
-                "io.github.openfeign:feign-core"
-            ]
-        },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
             "locked": "2.0.6",
             "transitive": [
@@ -1090,8 +1063,7 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
-                "io.dropwizard:dropwizard-jackson",
-                "io.github.openfeign:feign-jackson"
+                "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -1314,6 +1286,12 @@
                 "com.palantir.atlasdb:atlasdb-service"
             ]
         },
+        "com.palantir.atlasdb:atlasdb-feign": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
         "com.palantir.atlasdb:atlasdb-impl-shared": {
             "project": true,
             "transitive": [
@@ -1378,6 +1356,7 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
@@ -1470,6 +1449,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
@@ -1524,13 +1504,13 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.6.0",
+            "locked": "3.4.1",
             "transitive": [
-                "io.github.openfeign:feign-okhttp"
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.11.0",
+            "locked": "1.9.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
@@ -1705,34 +1685,6 @@
                 "io.dropwizard:dropwizard-jersey",
                 "io.dropwizard:dropwizard-logging",
                 "io.dropwizard:dropwizard-metrics"
-            ]
-        },
-        "io.github.openfeign:feign-core": {
-            "locked": "9.5.0",
-            "transitive": [
-                "io.github.openfeign:feign-jackson",
-                "io.github.openfeign:feign-jaxrs",
-                "io.github.openfeign:feign-okhttp"
-            ]
-        },
-        "io.github.openfeign:feign-jackson": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "io.github.openfeign:feign-jaxrs": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "io.github.openfeign:feign-okhttp": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "io.netty:netty-buffer": {
@@ -2106,12 +2058,6 @@
             "locked": "1.4.11.Final",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
-            ]
-        },
-        "org.jvnet:animal-sniffer-annotation": {
-            "locked": "1.0",
-            "transitive": [
-                "io.github.openfeign:feign-core"
             ]
         },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {

@@ -15,7 +15,8 @@
  */
 package com.palantir.atlasdb.cas;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
+
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class CheckAndSetClient {

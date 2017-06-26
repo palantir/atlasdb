@@ -28,6 +28,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.SortedMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -48,7 +49,6 @@ import org.junit.rules.TemporaryFolder;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -66,7 +66,6 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-import feign.RetryableException;
 import io.dropwizard.testing.ResourceHelpers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -93,7 +92,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final long TWO_MILLION = 2000000;
     private static final int FORTY_TWO = 42;
 
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
+    private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
     private static final String LOCK_CLIENT_NAME = "lock-client-name";
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP =
             ImmutableSortedMap.of(StringLockDescriptor.of("lock1"), LockMode.WRITE);
@@ -199,8 +198,10 @@ public class PaxosTimeLockServerIntegrationTest {
             try {
                 assertNull(future.get());
             } catch (ExecutionException e) {
-                RetryableException retryableException = (RetryableException) e.getCause();
-                assertRemoteExceptionWithStatus(retryableException.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
+                // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
+                Throwable cause = e.getCause();
+                assertThat(cause.getClass().getName()).contains("RetryableException");
+                assertRemoteExceptionWithStatus(cause.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
                 exceptionCounter.getAndIncrement();
             } catch (InterruptedException e) {
                 throw Throwables.propagate(e);

@@ -50,7 +50,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
                          Ex: def x = table('stream_value')
 
                          To retrieve metadata about a table, use <TABLE>.describe(),
-                         <TABLE>.isDynamic(), and <TABLE>.columnNames().'''.stripIndent(),
+                         <TABLE>.isDynamic(), <TABLE>.rowComponents(), and <TABLE>.columnNames().'''.stripIndent(),
             'transactions': '''\
                          Atomic transactions used to avoid read/write or write/write
                          conflicts. Use startTransaction() to start, currentTransaction()

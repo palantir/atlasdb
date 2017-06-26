@@ -27,14 +27,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import java.util.stream.Stream;
+
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
@@ -42,7 +43,6 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -74,7 +74,7 @@ public class CassandraSchemaLockTest {
             for (int i = 0; i < THREAD_COUNT; i++) {
                 async(() -> {
                     CassandraKeyValueService keyValueService =
-                            CassandraKeyValueService.create(configManager, Optional.absent());
+                            CassandraKeyValueService.create(configManager, Optional.empty());
                     barrier.await();
                     keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
                     return null;
@@ -86,7 +86,7 @@ public class CassandraSchemaLockTest {
         }
 
         CassandraKeyValueService kvs =
-                CassandraKeyValueService.create(configManager, Optional.absent());
+                CassandraKeyValueService.create(configManager, Optional.empty());
         assertThat(kvs.getAllTableNames(), hasItem(table1));
 
         assertThat(new File(CONTAINERS.getLogDirectory()),

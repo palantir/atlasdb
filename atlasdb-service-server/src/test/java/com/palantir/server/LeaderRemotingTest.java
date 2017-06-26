@@ -16,13 +16,14 @@
 package com.palantir.server;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.palantir.atlasdb.http.TextDelegateDecoder;
+import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
+import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
@@ -32,10 +33,6 @@ import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosValue;
 
-import feign.Feign;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
-import feign.jaxrs.JAXRSContract;
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class LeaderRemotingTest {
@@ -60,13 +57,11 @@ public class LeaderRemotingTest {
 
     @Test
     public void testPing() {
-        ObjectMapper mapper = new ObjectMapper();
-
-        PingableLeader ping = Feign.builder()
-                .decoder(new TextDelegateDecoder(new JacksonDecoder()))
-                .encoder(new JacksonEncoder(mapper))
-                .contract(new JAXRSContract())
-                .target(PingableLeader.class, pingable.baseUri().toString());
+        PingableLeader ping = AtlasDbFeignTargetFactory.createProxy(
+                Optional.empty(),
+                pingable.baseUri().toString(),
+                PingableLeader.class,
+                UserAgents.DEFAULT_USER_AGENT);
 
         ping.getUUID();
         ping.ping();
@@ -74,15 +69,13 @@ public class LeaderRemotingTest {
 
     @Test
     public void testLearn() throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-
         PaxosValue value = new PaxosValue("asdfasdfsa", 0, new byte[] {0, 1, 2});
 
-        PaxosLearner learn = Feign.builder()
-                .decoder(new TextDelegateDecoder(new JacksonDecoder()))
-                .encoder(new JacksonEncoder(mapper))
-                .contract(new JAXRSContract())
-                .target(PaxosLearner.class, learner.baseUri().toString());
+        PaxosLearner learn = AtlasDbFeignTargetFactory.createProxy(
+                Optional.empty(),
+                learner.baseUri().toString(),
+                PaxosLearner.class,
+                UserAgents.DEFAULT_USER_AGENT);
 
         learn.getGreatestLearnedValue();
         learn.getLearnedValuesSince(0);
@@ -95,17 +88,14 @@ public class LeaderRemotingTest {
 
     @Test
     public void testAccept() throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-
         PaxosProposalId id = new PaxosProposalId(123123, UUID.randomUUID().toString());
         PaxosProposal paxosProposal = new PaxosProposal(id, new PaxosValue(id.getProposerUUID(), 0, new byte[] {0, 1, 2, 4, 1}));
 
-
-        PaxosAcceptor accept = Feign.builder()
-                .decoder(new TextDelegateDecoder(new JacksonDecoder()))
-                .encoder(new JacksonEncoder(mapper))
-                .contract(new JAXRSContract())
-                .target(PaxosAcceptor.class, acceptor.baseUri().toString());
+        PaxosAcceptor accept = AtlasDbFeignTargetFactory.createProxy(
+                Optional.empty(),
+                acceptor.baseUri().toString(),
+                PaxosAcceptor.class,
+                UserAgents.DEFAULT_USER_AGENT);
 
         accept.accept(0, paxosProposal);
         accept.getLatestSequencePreparedOrAccepted();

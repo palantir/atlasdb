@@ -80,7 +80,7 @@ public class TimestampRemotingTest {
                 .decoder(new JacksonDecoder(mapper))
                 .encoder(new JacksonEncoder(mapper))
                 .contract(new JAXRSContract())
-                // we try up to 30 times with .5 chance.  This means this test will strobe once in 1T times
+                // we try up to 40 times with .5 chance.  This means this test will strobe once in ~10^12 times
                 .retryer(new Retryer.Default(1, 1, 40))
                 .target(TimestampService.class, notLeader.baseUri().toString());
 

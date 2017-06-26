@@ -22,6 +22,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -39,6 +42,8 @@ import com.palantir.util.AssertUtils;
  * are allowed.
  */
 public class NoDuplicateWritesTransaction extends ForwardingTransaction {
+    private static final Logger log = LoggerFactory.getLogger(NoDuplicateWritesTransaction.class);
+
     final Transaction delegate;
     final ImmutableSet<TableReference> noDoubleWritesTables;
     final LoadingCache<TableReference, Map<Cell, byte[]>> writes = CacheBuilder.newBuilder().build(new CacheLoader<TableReference, Map<Cell, byte[]>>() {
@@ -88,7 +93,7 @@ public class NoDuplicateWritesTransaction extends ForwardingTransaction {
                 byte[] newValue = value.getValue();
                 byte[] oldValue = table.get(value.getKey());
                 if (oldValue != null && !Arrays.equals(oldValue, newValue)) {
-                    AssertUtils.assertAndLog(false, "table: " + tableRef
+                    AssertUtils.assertAndLog(log, false, "table: " + tableRef
                             + " cell was writen to twice: " + value.getKey()
                             + " old value: " + BaseEncoding.base16().lowerCase().encode(oldValue)
                             + " new value: " + BaseEncoding.base16().lowerCase().encode(newValue));

@@ -18,11 +18,11 @@ package com.palantir.atlasdb.dropwizard.commands;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
@@ -65,7 +65,7 @@ public final class AtlasDbCommandUtils {
 
         return ImmutableAtlasDbConfig.builder()
                 .from(serverConfig)
-                .leader(Optional.absent())
+                .leader(Optional.empty())
                 .lock(leaders)
                 .timestamp(leaders)
                 .build();

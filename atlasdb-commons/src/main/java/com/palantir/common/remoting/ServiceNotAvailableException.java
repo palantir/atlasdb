@@ -15,7 +15,8 @@
  */
 package com.palantir.common.remoting;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
+
 import com.google.common.net.HostAndPort;
 
 /**
@@ -41,17 +42,17 @@ public class ServiceNotAvailableException extends RuntimeException {
 
     public ServiceNotAvailableException(String message, Throwable cause) {
         super(message, cause);
-        this.serviceHint = Optional.absent();
+        this.serviceHint = Optional.empty();
     }
 
     public ServiceNotAvailableException(String message) {
         super(message);
-        this.serviceHint = Optional.absent();
+        this.serviceHint = Optional.empty();
     }
 
     public ServiceNotAvailableException(Throwable cause) {
         super(cause);
-        this.serviceHint = Optional.absent();
+        this.serviceHint = Optional.empty();
     }
 
     public Optional<HostAndPort> getServiceHint() {

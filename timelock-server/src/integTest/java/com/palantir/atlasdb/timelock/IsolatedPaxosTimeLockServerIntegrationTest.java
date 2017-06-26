@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
+import java.util.Optional;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -28,7 +29,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.leader.PingableLeader;
@@ -38,7 +38,6 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-import feign.RetryableException;
 import io.dropwizard.testing.ResourceHelpers;
 
 /**
@@ -49,7 +48,7 @@ import io.dropwizard.testing.ResourceHelpers;
 public class IsolatedPaxosTimeLockServerIntegrationTest {
     private static final String CLIENT = "isolated";
 
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
+    private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
 
     private static final File TIMELOCK_CONFIG_TEMPLATE =
             new File(ResourceHelpers.resourceFilePath("paxosThreeServers.yml"));
@@ -105,8 +104,12 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     }
 
     private void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
-        assertThat(throwable).isInstanceOf(RetryableException.class)
+        assertThat(throwable)
                 .hasMessageContaining("method invoked on a non-leader");
+
+        // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
+        assertThat(throwable.getClass().getName())
+                .contains("RetryableException");
     }
 
     private static RemoteLockService getLockService(String client) {
