@@ -118,7 +118,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         for (Map.Entry<TableReference, byte[]> entry : tableRefToTableMetadata.entrySet()) {
             createTable(entry.getKey(), entry.getValue());
         }
-        rehydrateLogArbitrator();
     }
 
     @Override
@@ -291,7 +290,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         for (Map.Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
             putMetadataForTable(entry.getKey(), entry.getValue());
         }
-        rehydrateLogArbitrator();
     }
 
     @Override
@@ -372,7 +370,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                                                                           timestamp);
     }
 
-    private void rehydrateLogArbitrator() {
+    @Override
+    public void rehydrateLogArbitrator() {
         this.argSupplier = new KeyValueServiceArgSupplier(
                 SafeLoggableDataUtils.fromTableMetadata(getMetadataForTables()));
     }

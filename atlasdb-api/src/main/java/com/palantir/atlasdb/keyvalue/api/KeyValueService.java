@@ -680,4 +680,14 @@ public interface KeyValueService extends AutoCloseable {
     @Path("node-availability-status")
     @Consumes(MediaType.APPLICATION_JSON)
     ClusterAvailabilityStatus getClusterAvailabilityStatus();
+
+    /**
+     * Some KVSs may provide a log arbitrator, which is a way of knowing if a construct is
+     * safe for logging (e.g. a table name or column name). This may need to be rehydrated
+     * if there is a change to the schema that possibly results in some construct becoming
+     * safe or unsafe to log.
+     */
+    default void rehydrateLogArbitrator() {
+        // no op
+    }
 }
