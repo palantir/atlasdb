@@ -517,15 +517,21 @@ public final class LockServiceImpl
     @VisibleForTesting
     protected void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
         final String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
-        Object[] messageParams = ImmutableList.of(
+
+        // Note: The construction of params is pushed into the branches, as it may be expensive.
+        if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
+            SlowLockLogger.logger.info(slowLockLogMessage,
+                    constructSlowLockLogParams(lockId, currentHolder, durationMillis));
+        } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
+            log.debug(slowLockLogMessage, constructSlowLockLogParams(lockId, currentHolder, durationMillis));
+        }
+    }
+
+    private Object[] constructSlowLockLogParams(String lockId, LockClient currentHolder, long durationMillis) {
+        return ImmutableList.of(
                 SafeArg.of("durationMillis", durationMillis),
                 UnsafeArg.of("lockId", lockId),
                 SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully")).toArray();
-        if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
-            SlowLockLogger.logger.info(slowLockLogMessage, messageParams);
-        } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
-            log.debug(slowLockLogMessage, messageParams);
-        }
     }
 
     @VisibleForTesting
