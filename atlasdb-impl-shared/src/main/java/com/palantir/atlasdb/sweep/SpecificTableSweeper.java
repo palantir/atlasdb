@@ -120,9 +120,9 @@ public class SpecificTableSweeper {
         return sweepMetrics;
     }
 
-    boolean runOnceForTable(TableToSweep tableToSweep,
-            boolean saveSweepResults,
-            Optional<SweepBatchConfig> newSweepBatchConfig) {
+    void runOnceForTable(TableToSweep tableToSweep,
+            Optional<SweepBatchConfig> newSweepBatchConfig,
+            boolean saveSweepResults) {
         Stopwatch watch = Stopwatch.createStarted();
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
@@ -147,7 +147,6 @@ public class SpecificTableSweeper {
             if (saveSweepResults) {
                 saveSweepResults(tableToSweep, results);
             }
-            return true;
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
             log.info("Failed to sweep {} with batch config {} starting from row {}",

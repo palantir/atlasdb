@@ -106,7 +106,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     public void run() {
         try (SweepLocks locks = createSweepLocks()) {
             // Wait a while before starting so short lived clis don't try to sweep.
-            Thread.sleep(20 * (1000 + sweepPauseMillis.get()));
+            Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
             log.debug("Starting background sweeper.");
             while (true) {
                 long millisToSleep = checkConfigAndRunSweep(locks);
@@ -125,7 +125,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         } else {
             log.debug("Skipping sweep because it is currently disabled.");
         }
-        return 20 * (1000 + sweepPauseMillis.get());
+        return getBackoffTimeWhenSweepHasNotRun();
     }
 
     private long grabLocksAndRun(SweepLocks locks) throws InterruptedException {
@@ -156,8 +156,12 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
             return sweepPauseMillis.get();
         } else {
-            return 20 * (1000 + sweepPauseMillis.get());
+            return getBackoffTimeWhenSweepHasNotRun();
         }
+    }
+
+    private long getBackoffTimeWhenSweepHasNotRun() {
+        return 20 * (1000 + sweepPauseMillis.get());
     }
 
     @VisibleForTesting
@@ -168,7 +172,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             return false;
         } else {
-            specificTableSweeper.runOnceForTable(tableToSweep.get(), true, Optional.empty());
+            specificTableSweeper.runOnceForTable(tableToSweep.get(), Optional.empty(), true);
             return true;
         }
     }

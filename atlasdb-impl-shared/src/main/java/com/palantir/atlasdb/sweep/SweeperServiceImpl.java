@@ -17,18 +17,17 @@ package com.palantir.atlasdb.sweep;
 
 import java.util.Optional;
 
-import javax.annotation.Nullable;
-
-import org.slf4j.LoggerFactory;
+import javax.annotation.Nonnull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
+import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.sweeperservice.SweeperService;
+import com.palantir.remoting2.servers.jersey.WebPreconditions;
 
 public final class SweeperServiceImpl implements SweeperService {
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(SweeperService.class);
     private SpecificTableSweeper specificTableSweeper;
 
     public SweeperServiceImpl(SpecificTableSweeper specificTableSweeper) {
@@ -36,69 +35,87 @@ public final class SweeperServiceImpl implements SweeperService {
     }
 
     @Override
-    public boolean sweepTable(String tableName) {
-        TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
+    public void sweepTable(String tableName) {
+        TableReference tableRef = getTableRef(tableName);
+        checkTableExists(tableName, tableRef);
 
-        Preconditions.checkArgument(TableReference.isFullyQualifiedName(tableName),
-                String.format("Table name %s is not fully qualified", tableName));
-        Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
-                String.format("Table requested to sweep %s does not exist", tableName));
-
-        return specificTableSweeper.runOnceForTable(new TableToSweep(tableRef, null), false, Optional.empty());
+        runSweepWithoutSavingResults(tableRef);
     }
 
     @Override
-    public boolean sweepTableFromStartRow(String tableName, String startRow) {
-        TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
+    public void sweepTableFromStartRow(String tableName, String startRow) {
+        TableReference tableRef = getTableRef(tableName);
+        checkTableExists(tableName, tableRef);
 
-        Preconditions.checkArgument(TableReference.isFullyQualifiedName(tableName),
-                "Table name is not fully qualified");
-        Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
-                "Table requested to sweep does not exist");
+        ImmutableSweepProgress sweepProgress = getSweepProgress(startRow, tableRef);
 
-        ImmutableSweepProgress sweepProgress = ImmutableSweepProgress.builder().tableRef(tableRef)
-                .staleValuesDeleted(0)
-                .cellTsPairsExamined(0)
-                .minimumSweptTimestamp(0)
-                .startRow(decodeStartRow(startRow))
-                .build();
-
-        return specificTableSweeper.runOnceForTable(new TableToSweep(tableRef, sweepProgress), false, Optional.empty());
+        runSweepWithoutSavingResults(tableRef, sweepProgress);
     }
 
     @Override
-    public boolean sweepTableFromStartRowWithBatchConfig(String tableName,
+    public void sweepTableFromStartRowWithBatchConfig(String tableName,
             String startRow,
-            @Nullable int maxCellTsPairsToExamine,
-            @Nullable int candidateBatchSize,
-            @Nullable int deleteBatchSize) {
-        TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
+            int maxCellTsPairsToExamine,
+            int candidateBatchSize,
+            int deleteBatchSize) {
+        TableReference tableRef = getTableRef(tableName);
+        checkTableExists(tableName, tableRef);
 
-        Preconditions.checkArgument(TableReference.isFullyQualifiedName(tableName),
-                "Table name is not fully qualified");
-        Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
-                "Table requested to sweep does not exist");
+        ImmutableSweepProgress sweepProgress = getSweepProgress(startRow, tableRef);
 
         ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(maxCellTsPairsToExamine)
                 .candidateBatchSize(candidateBatchSize)
-                .deleteBatchSize(deleteBatchSize).build();
+                .deleteBatchSize(deleteBatchSize)
+                .build();
 
-        ImmutableSweepProgress sweepProgress = ImmutableSweepProgress.builder().tableRef(tableRef)
+        runSweepWithoutSavingResults(tableRef, sweepProgress, Optional.of(sweepBatchConfig));
+    }
+
+    private TableReference getTableRef(String tableName) {
+        WebPreconditions.checkArgument(TableReference.isFullyQualifiedName(tableName),
+                "Table name {} is not fully qualified", tableName);
+        return TableReference.createFromFullyQualifiedName(tableName);
+    }
+
+    private void checkTableExists(String tableName, TableReference tableRef) {
+        Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
+                String.format("Table requested to sweep %s does not exist", tableName));
+    }
+
+    private ImmutableSweepProgress getSweepProgress(@Nonnull String startRow, TableReference tableRef) {
+        return ImmutableSweepProgress.builder()
+                .tableRef(tableRef)
                 .staleValuesDeleted(0)
                 .cellTsPairsExamined(0)
                 .minimumSweptTimestamp(0)
                 .startRow(decodeStartRow(startRow))
                 .build();
-
-        return specificTableSweeper.runOnceForTable(
-                new TableToSweep(tableRef, sweepProgress),
-                false,
-                Optional.of(sweepBatchConfig));
     }
 
-    private byte[] decodeStartRow(String rowString) {
-        return BaseEncoding.base16().decode(rowString);
+    private byte[] decodeStartRow(String startRow) {
+        WebPreconditions.checkArgument(startRow != null, "The startRow should not be null");
+        return BaseEncoding.base16().decode(startRow);
+    }
+
+    private void runSweepWithoutSavingResults(TableReference tableRef) {
+        runSweepWithoutSavingResults(tableRef, null);
+    }
+
+    private void runSweepWithoutSavingResults(TableReference tableRef, SweepProgress sweepProgress) {
+        runSweepWithoutSavingResults(tableRef, sweepProgress, Optional.empty());
+    }
+
+    private void runSweepWithoutSavingResults(
+            TableReference tableRef,
+            SweepProgress sweepProgress,
+            Optional<SweepBatchConfig> sweepBatchConfig) {
+        TableToSweep tableToSweep = getTableToSweep(tableRef, sweepProgress);
+        specificTableSweeper.runOnceForTable(tableToSweep, sweepBatchConfig, false);
+    }
+
+    private TableToSweep getTableToSweep(TableReference tableRef, SweepProgress sweepProgress) {
+        return new TableToSweep(tableRef, sweepProgress);
     }
 }
 

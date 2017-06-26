@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
@@ -79,8 +78,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         setProgress(Mockito.mock(SweepProgress.class));
         setupTaskRunner(Mockito.mock(SweepResults.class));
         when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
-        assertTrue(sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(),
-                encodeStartRow(new byte[] {1, 2, 3})));
+        sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), encodeStartRow(new byte[] {1, 2, 3}));
         Mockito.verify(priorityStore, never()).update(Mockito.any(), Mockito.any(), Mockito.any());
         Mockito.verify(progressStore, never()).saveProgress(Mockito.any(), Mockito.any());
         Mockito.verifyZeroInteractions(sweepMetrics);
