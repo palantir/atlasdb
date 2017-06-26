@@ -69,29 +69,16 @@ public abstract class AbstractSweepTaskRunnerTest {
     protected static final TableReference TABLE_NAME = TableReference.createFromFullyQualifiedName(FULL_TABLE_NAME);
     private static final String COL = "c";
 
-    private static final Cell CELL1 =
-            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c0".getBytes(StandardCharsets.UTF_8));
-    private static final Cell CELL2 =
-            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c1".getBytes(StandardCharsets.UTF_8));
-    private static final Cell CELL3 =
-            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c2".getBytes(StandardCharsets.UTF_8));
-    private static final Cell CELL4 =
-            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c3".getBytes(StandardCharsets.UTF_8));
-    private static final Cell CELL5 =
-            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c4".getBytes(StandardCharsets.UTF_8));
-    private static final Cell CELL6 =
-            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c5".getBytes(StandardCharsets.UTF_8));
-    private static final Cell CELL7 =
-            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c6".getBytes(StandardCharsets.UTF_8));
-    private static final Cell CELL8 =
-            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c7".getBytes(StandardCharsets.UTF_8));
-    private static final Cell CELL9 =
-            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c8".getBytes(StandardCharsets.UTF_8));
-    private static final Cell CELL10 =
-            Cell.create("row".getBytes(StandardCharsets.UTF_8), "c9".getBytes(StandardCharsets.UTF_8));
-    private static final List<Cell> SMALL_LIST_OF_CELLS = Lists.newArrayList(CELL1, CELL2, CELL3, CELL4);
-    private static final List<Cell> BIG_LIST_OF_CELLS = Lists.newArrayList(
-            CELL1, CELL2, CELL3, CELL4, CELL5, CELL6, CELL7, CELL8, CELL9, CELL10);
+    private static final List<Cell> SMALL_LIST_OF_CELLS = Lists.newArrayList();
+    private static final List<Cell> BIG_LIST_OF_CELLS = Lists.newArrayList();
+    static {
+        for (int i = 0; i < 10; i++) {
+            String colName = String.format("c%d", i);
+            BIG_LIST_OF_CELLS.add(
+                    Cell.create("row".getBytes(StandardCharsets.UTF_8), colName.getBytes(StandardCharsets.UTF_8)));
+        }
+        SMALL_LIST_OF_CELLS.addAll(BIG_LIST_OF_CELLS.subList(0, 4));
+    }
 
     protected static final int DEFAULT_BATCH_SIZE = 1000;
 
