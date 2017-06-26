@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
@@ -41,7 +42,8 @@ public final class SafeLoggableDataUtils {
         return builder.build();
     }
 
-    private static void addLoggableNamesToBuilder(
+    @VisibleForTesting
+    static void addLoggableNamesToBuilder(
             ImmutableSafeLoggableData.Builder builder,
             TableReference ref,
             TableMetadata tableMetadata) {
