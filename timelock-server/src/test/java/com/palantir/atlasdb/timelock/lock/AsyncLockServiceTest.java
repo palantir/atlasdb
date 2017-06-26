@@ -26,7 +26,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -61,16 +60,16 @@ public class AsyncLockServiceTest {
     @Before
     public void before() {
         when(acquirer.acquireLocks(any(), any())).thenReturn(new CompletableFuture<>());
-        when(locks.getSorted(any())).thenReturn(ImmutableList.of(new ExclusiveLock()));
+        when(locks.getAll(any())).thenReturn(OrderedLocks.fromSingleLock(new ExclusiveLock()));
         when(immutableTimestampTracker.getImmutableTimestamp()).thenReturn(Optional.empty());
         when(immutableTimestampTracker.getLockFor(anyLong())).thenReturn(new ExclusiveLock());
     }
 
     @Test
     public void passesOrderedLocksToAcquirer() {
-        List<AsyncLock> expected = ImmutableList.of(new ExclusiveLock(), new ExclusiveLock());
+        OrderedLocks expected = orderedLocks(new ExclusiveLock(), new ExclusiveLock());
         Set<LockDescriptor> descriptors = descriptors(LOCK_A, LOCK_B);
-        when(locks.getSorted(descriptors)).thenReturn(expected);
+        when(locks.getAll(descriptors)).thenReturn(expected);
 
         lockService.lock(REQUEST_1, descriptors);
 
@@ -79,9 +78,9 @@ public class AsyncLockServiceTest {
 
     @Test
     public void passesOrderedLocksToAcquirerWhenWaitingForLocks() {
-        List<AsyncLock> expected = ImmutableList.of(new ExclusiveLock(), new ExclusiveLock());
+        OrderedLocks expected = orderedLocks(new ExclusiveLock(), new ExclusiveLock());
         Set<LockDescriptor> descriptors = descriptors(LOCK_A, LOCK_B);
-        when(locks.getSorted(descriptors)).thenReturn(expected);
+        when(locks.getAll(descriptors)).thenReturn(expected);
 
         lockService.waitForLocks(REQUEST_1, descriptors);
 
@@ -107,7 +106,7 @@ public class AsyncLockServiceTest {
 
         lockService.lockImmutableTimestamp(requestId, timestamp);
 
-        verify(acquirer).acquireLocks(requestId, ImmutableList.of(immutableTsLock));
+        verify(acquirer).acquireLocks(requestId, orderedLocks(immutableTsLock));
     }
 
     @Test
@@ -120,6 +119,10 @@ public class AsyncLockServiceTest {
         return Arrays.stream(lockNames)
                 .map(StringLockDescriptor::of)
                 .collect(Collectors.toSet());
+    }
+
+    private OrderedLocks orderedLocks(AsyncLock... orderedLocks) {
+        return OrderedLocks.fromOrderedList(ImmutableList.copyOf(orderedLocks));
     }
 
 }

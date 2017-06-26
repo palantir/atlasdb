@@ -25,6 +25,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.List;
 import java.util.UUID;
@@ -152,31 +153,15 @@ public class LockAcquirerTest {
     }
 
     @Test
-    public void unlocksAfterWaitingForLocks() {
+    public void waitForLocksDoesNotAcquireLocks() {
         waitFor(lockA);
 
-        verify(lockA).lock(REQUEST_ID);
-        verify(lockA).unlock(REQUEST_ID);
-    }
-
-    @Test
-    public void unlocksEachLockImmediatelyWhenWaitingForLocks() {
-        UUID otherRequest = UUID.randomUUID();
-        lockB.lock(otherRequest);
-
-        waitFor(lockA, lockB);
-
-        verify(lockA).lock(REQUEST_ID);
-        verify(lockA).unlock(REQUEST_ID);
-        verify(lockB).lock(REQUEST_ID);
-
-        lockB.unlock(otherRequest);
-
-        verify(lockB).unlock(REQUEST_ID);
+        verify(lockA).waitUntilAvailable(REQUEST_ID);
+        verifyNoMoreInteractions(lockA);
     }
 
     private CompletableFuture<Void> waitFor(AsyncLock... locks) {
-        return lockAcquirer.waitForLocks(REQUEST_ID, ImmutableList.copyOf(locks));
+        return lockAcquirer.waitForLocks(REQUEST_ID, OrderedLocks.fromOrderedList(ImmutableList.copyOf(locks)));
     }
 
     private CompletableFuture<HeldLocks> acquire(AsyncLock... locks) {
@@ -184,7 +169,7 @@ public class LockAcquirerTest {
     }
 
     private CompletableFuture<HeldLocks> acquire(List<AsyncLock> locks) {
-        return lockAcquirer.acquireLocks(REQUEST_ID, locks);
+        return lockAcquirer.acquireLocks(REQUEST_ID, OrderedLocks.fromOrderedList(locks));
     }
 
     private void assertFailed(CompletableFuture<HeldLocks> acquisitions) {
@@ -196,9 +181,6 @@ public class LockAcquirerTest {
     }
 
     private void assertCompleteSuccessfully(CompletableFuture<?> acquisitions) {
-        if (!acquisitions.isDone()) {
-            throw new IllegalStateException("test");
-        }
         assertTrue(acquisitions.isDone());
         acquisitions.join();
     }

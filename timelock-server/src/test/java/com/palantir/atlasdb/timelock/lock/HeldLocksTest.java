@@ -44,6 +44,8 @@ public class HeldLocksTest {
     @Before
     public void before() {
         when(timer.isExpired()).thenReturn(false);
+        lockA.lock(REQUEST_ID);
+        lockB.lock(REQUEST_ID);
         heldLocks = new HeldLocks(ImmutableList.of(lockA, lockB), REQUEST_ID, timer);
     }
 
