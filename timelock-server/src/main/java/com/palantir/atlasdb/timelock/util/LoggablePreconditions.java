@@ -14,25 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.atlasdb.timelock.util;
 
-import java.util.UUID;
+import com.palantir.logsafe.Arg;
 
-import org.immutables.value.Value;
+public final class LoggablePreconditions {
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+    private LoggablePreconditions() { }
 
-@Value.Immutable
-@JsonSerialize(as=ImmutableLockTokenV2.class)
-@JsonDeserialize(as=ImmutableLockTokenV2.class)
-public interface LockTokenV2 {
-
-    @Value.Parameter
-    UUID getRequestId();
-
-    static LockTokenV2 of(UUID requestId) {
-        return ImmutableLockTokenV2.of(requestId);
+    public static void checkState(boolean condition, String message, Arg<?>... args) {
+        if (!condition) {
+            throw new LoggableIllegalStateException(message, args);
+        }
     }
 
 }

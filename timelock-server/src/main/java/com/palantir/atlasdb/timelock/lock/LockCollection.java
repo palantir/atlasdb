@@ -38,14 +38,14 @@ public class LockCollection {
                 }
             });
 
-    public List<AsyncLock> getSorted(Set<LockDescriptor> descriptors) {
+    public OrderedLocks getAll(Set<LockDescriptor> descriptors) {
         List<LockDescriptor> orderedDescriptors = sort(descriptors);
 
-        List<AsyncLock> locks = Lists.newArrayList();
+        List<AsyncLock> locks = Lists.newArrayListWithExpectedSize(descriptors.size());
         for (LockDescriptor descriptor : orderedDescriptors) {
             locks.add(getLock(descriptor));
         }
-        return locks;
+        return OrderedLocks.fromOrderedList(locks);
     }
 
     private List<LockDescriptor> sort(Set<LockDescriptor> descriptors) {
