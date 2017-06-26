@@ -378,7 +378,7 @@ public final class TransactionManagers {
             TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
             return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
         } else {
-            return createRawEmbeddedServices(env, lock, time);
+            return createRawEmbeddedServices(env, lock, time, userAgent);
         }
     }
 
@@ -446,9 +446,14 @@ public final class TransactionManagers {
     private static LockAndTimestampServices createRawEmbeddedServices(
             Environment env,
             Supplier<RemoteLockService> lock,
-            Supplier<TimestampService> time) {
-        RemoteLockService lockService = lock.get();
-        TimestampService timeService = time.get();
+            Supplier<TimestampService> time,
+            String userAgent) {
+        RemoteLockService lockService = ServiceCreator.createInstrumentedService(lock.get(),
+                RemoteLockService.class,
+                userAgent);
+        TimestampService timeService = ServiceCreator.createInstrumentedService(time.get(),
+                TimestampService.class,
+                userAgent);
 
         env.register(lockService);
         env.register(timeService);
