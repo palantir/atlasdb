@@ -17,8 +17,6 @@
 package com.palantir.atlasdb.logging;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -37,18 +35,16 @@ public class KeyValueServiceArgSupplier {
         return getArg(argName, tableReference, logArbitrator.isTableReferenceSafe(tableReference));
     }
 
-    public Arg<String> getRowComponentNameArg(String argName, TableReference tableReference,
-            NameComponentDescription nameComponentDescription) {
+    public Arg<String> getRowComponentNameArg(String argName, TableReference tableReference, String rowComponentName) {
         return getArg(argName,
-                nameComponentDescription.getComponentName(),
-                logArbitrator.isRowComponentNameSafe(tableReference, nameComponentDescription));
+                rowComponentName,
+                logArbitrator.isRowComponentNameSafe(tableReference, rowComponentName));
     }
 
-    public Arg<String> getColumnNameArg(String argName, TableReference tableReference,
-            NamedColumnDescription namedColumnDescription) {
+    public Arg<String> getColumnNameArg(String argName, TableReference tableReference, String columnName) {
         return getArg(argName,
-                namedColumnDescription.getLongName(),
-                logArbitrator.isColumnNameSafe(tableReference, namedColumnDescription));
+                columnName,
+                logArbitrator.isColumnNameSafe(tableReference, columnName));
     }
 
     private <T> Arg<T> getArg(String name, T value, boolean safe) {

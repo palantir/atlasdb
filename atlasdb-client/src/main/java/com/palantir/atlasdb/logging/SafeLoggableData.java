@@ -22,30 +22,29 @@ import java.util.Set;
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
 
 @Value.Immutable
 public abstract class SafeLoggableData implements KeyValueServiceLogArbitrator {
     public abstract Set<TableReference> permittedTableReferences();
 
-    public abstract Map<TableReference, Set<NameComponentDescription>> permittedRowComponents();
+    public abstract Map<TableReference, Set<String>> permittedRowComponents();
 
-    public abstract Map<TableReference, Set<NamedColumnDescription>> permittedColumnNames();
+    public abstract Map<TableReference, Set<String>> permittedColumnNames();
 
+    @Override
     public boolean isTableReferenceSafe(TableReference tableReference) {
         return permittedTableReferences().contains(tableReference);
     }
 
-    public boolean isRowComponentNameSafe(
-            TableReference tableReference,
-            NameComponentDescription nameComponentDescription) {
+    @Override
+    public boolean isRowComponentNameSafe(TableReference tableReference, String rowComponentName) {
         return permittedRowComponents().containsKey(tableReference)
-                && permittedRowComponents().get(tableReference).contains(nameComponentDescription);
+                && permittedRowComponents().get(tableReference).contains(rowComponentName);
     }
 
-    public boolean isColumnNameSafe(TableReference tableReference, NamedColumnDescription namedColumnDescription) {
+    @Override
+    public boolean isColumnNameSafe(TableReference tableReference, String columnName) {
         return permittedColumnNames().containsKey(tableReference)
-                && permittedColumnNames().get(tableReference).contains(namedColumnDescription);
+                && permittedColumnNames().get(tableReference).contains(columnName);
     }
 }

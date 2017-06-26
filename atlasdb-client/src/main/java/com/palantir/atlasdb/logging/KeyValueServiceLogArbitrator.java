@@ -17,8 +17,6 @@
 package com.palantir.atlasdb.logging;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
 
 public interface KeyValueServiceLogArbitrator {
     KeyValueServiceLogArbitrator ALL_UNSAFE = new KeyValueServiceLogArbitrator() {
@@ -28,13 +26,12 @@ public interface KeyValueServiceLogArbitrator {
         }
 
         @Override
-        public boolean isRowComponentNameSafe(TableReference tableReference,
-                NameComponentDescription nameComponentDescription) {
+        public boolean isRowComponentNameSafe(TableReference tableReference, String rowComponentName) {
             return false;
         }
 
         @Override
-        public boolean isColumnNameSafe(TableReference tableReference, NamedColumnDescription namedColumnDescription) {
+        public boolean isColumnNameSafe(TableReference tableReference, String longNameForColumn) {
             return false;
         }
     };
@@ -43,9 +40,9 @@ public interface KeyValueServiceLogArbitrator {
 
     boolean isRowComponentNameSafe(
             TableReference tableReference,
-            NameComponentDescription nameComponentDescription);
+            String rowComponentName);
 
     boolean isColumnNameSafe(
             TableReference tableReference,
-            NamedColumnDescription namedColumnDescription);
+            String longNameForColumn);
 }
