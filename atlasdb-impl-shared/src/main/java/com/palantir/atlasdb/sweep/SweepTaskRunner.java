@@ -20,14 +20,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.LongSupplier;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -45,6 +43,8 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.UnsafeArg;
+
+import gnu.trove.TDecorators;
 
 /**
  * Sweeps one individual table.
@@ -174,7 +174,14 @@ public class SweepTaskRunner {
             byte[] lastRow = startRow;
             while (batchesToSweep.hasNext()) {
                 BatchOfCellsToSweep batch = batchesToSweep.next();
-                totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells(), runType, batchConfig.deleteBatchSize());
+
+                // Previously we've grouped cells to have at least deleteBatchSize blocks per batch. Therefore we expect
+                // most of the batches to be slightly bigger than deleteBatchSize. Partitioning such batches with
+                // deleteBatchSize as a limit make us have, in most cases, a small second batch.
+                // Therefore, we set our limit to 2 * deleteBatchSize per batch.
+                totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells(), runType,
+                        2 * batchConfig.deleteBatchSize());
+
                 totalCellTsPairsExamined = batch.numCellTsPairsExaminedSoFar();
                 lastRow = batch.lastCellExamined().getRowName();
             }
@@ -202,17 +209,11 @@ public class SweepTaskRunner {
     }
 
     /**
-     * Partitions batches of cells down to 2 * deleteBatchSize blocks per sweep deletion call.
      * Returns the number of blocks that were deleted.
      */
     private int sweepBatch(TableReference tableRef, List<CellToSweep> batch, RunType runType,
             int deleteBatchSize) {
         int numberOfSweptCells = 0;
-
-        // Previously we've grouped cells to have at least deleteBatchSize blocks per batch. Therefore we expect most
-        // of the batches to be slightly bigger than deleteBatchSize. Partitioning such batches with deleteBatchSize as
-        // a limit make us have a small second batch. Therefore, we set our limit per batch to 2 * deleteBatchSize.
-        deleteBatchSize = 2 * deleteBatchSize;
 
         Multimap<Cell, Long> currentBatch = ArrayListMultimap.create();
         List<Cell> currentBatchSentinels = Lists.newArrayList();
@@ -222,8 +223,7 @@ public class SweepTaskRunner {
                 currentBatchSentinels.add(cell.cell());
             }
 
-            Long[] sortedTimestampsArray = ArrayUtils.toObject(cell.sortedTimestamps().toArray());
-            ImmutableList<Long> currentCellTimestamps = ImmutableList.copyOf(sortedTimestampsArray);
+            List<Long> currentCellTimestamps = TDecorators.wrap(cell.sortedTimestamps());
 
             if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
                 currentBatch.putAll(cell.cell(), currentCellTimestamps);
