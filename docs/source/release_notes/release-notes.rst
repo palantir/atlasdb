@@ -42,9 +42,12 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |new|
+         - AtlasDB now instruments embedded time and lock services, even if no leader block is present in the config,
+           to expose aggregate response time and service call metrics.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2045>`__)
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
 0.45.0
