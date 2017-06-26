@@ -24,53 +24,30 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 public class KeyValueServiceArgSupplier {
-    public static final KeyValueServiceArgSupplier NO_OP = new KeyValueServiceArgSupplier();
+    public static final KeyValueServiceArgSupplier ALL_UNSAFE = new KeyValueServiceArgSupplier(
+            KeyValueServiceLogArbitrator.ALL_UNSAFE);
 
     private final KeyValueServiceLogArbitrator logArbitrator;
 
-    public KeyValueServiceArgSupplier(SafeLoggableData safeLoggableData) {
-        this.logArbitrator = new SimpleKeyValueServiceLogArbitrator(safeLoggableData);
+    public KeyValueServiceArgSupplier(KeyValueServiceLogArbitrator logArbitrator) {
+        this.logArbitrator = logArbitrator;
     }
 
-    private KeyValueServiceArgSupplier() {
-        // By default, nothing is safe.
-        this.logArbitrator = new KeyValueServiceLogArbitrator() {
-            @Override
-            public boolean isTableReferenceSafe(TableReference tableReference) {
-                return false;
-            }
-
-            @Override
-            public boolean isRowComponentNameSafe(TableReference tableReference,
-                    NameComponentDescription nameComponentDescription) {
-                return false;
-            }
-
-            @Override
-            public boolean isColumnNameSafe(TableReference tableReference,
-                    NamedColumnDescription namedColumnDescription) {
-                return false;
-            }
-        };
+    public Arg<TableReference> getTableReferenceArg(String argName, TableReference tableReference) {
+        return getArg(argName, tableReference, logArbitrator.isTableReferenceSafe(tableReference));
     }
 
-    public <T> Arg<T> getArgDependingOnTableReference(String name, TableReference tableReference, T value) {
-        return getArg(name, value, logArbitrator.isTableReferenceSafe(tableReference));
-    }
-
-    public <T> Arg<T> getArgDependingOnRowComponentName(String name, TableReference tableReference,
-            NameComponentDescription nameComponentDescription, T value) {
-        return getArg(
-                name,
-                value,
+    public Arg<String> getRowComponentNameArg(String argName, TableReference tableReference,
+            NameComponentDescription nameComponentDescription) {
+        return getArg(argName,
+                nameComponentDescription.getComponentName(),
                 logArbitrator.isRowComponentNameSafe(tableReference, nameComponentDescription));
     }
 
-    public <T> Arg<T> getArgDependingOnColumnName(String name, TableReference tableReference,
-            NamedColumnDescription namedColumnDescription, T value) {
-        return getArg(
-                name,
-                value,
+    public Arg<String> getColumnNameArg(String argName, TableReference tableReference,
+            NamedColumnDescription namedColumnDescription) {
+        return getArg(argName,
+                namedColumnDescription.getLongName(),
                 logArbitrator.isColumnNameSafe(tableReference, namedColumnDescription));
     }
 
