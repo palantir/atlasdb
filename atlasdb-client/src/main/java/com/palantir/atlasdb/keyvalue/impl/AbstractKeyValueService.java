@@ -29,7 +29,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             + " while doing a write to {}. Attempting to batch anyways.";
 
     protected ExecutorService executor;
-    protected KeyValueServiceArgSupplier argSupplier = KeyValueServiceArgSupplier.NO_OP;
+    protected volatile KeyValueServiceArgSupplier argSupplier = KeyValueServiceArgSupplier.ALL_UNSAFE;
 
     protected final TracingPrefsConfig tracingPrefs;
     private final ScheduledExecutorService scheduledExecutor;
@@ -216,8 +216,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                                 log.warn(longerMessage,
                                         SafeArg.of("approximatePutSize", sizingFunction.apply(firstEntry)),
                                         SafeArg.of("maximumPutSize", maximumBytesPerPartition),
-                                        argSupplier.getArgDependingOnTableReference("table",
-                                                TableReference.createFromFullyQualifiedName(tableName), tableName));
+                                        argSupplier.getTableReferenceArg("table",
+                                                TableReference.createFromFullyQualifiedName(tableName)));
                             }
                         }
 
