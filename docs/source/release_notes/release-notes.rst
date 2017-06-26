@@ -73,7 +73,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
 
     *    - |improved|
-         - Sweep now is capable of dynamically adjust the number of blocks - (cell, ts) pairs - per run.
+         - Sweep now is capable of dynamically adjusting the number of blocks - (cell, ts) pairs - across runs:
+
+           - On a failure run, sweep halves the number of blocks to read and to delete on subsequent runs.
+           - On a success run, sweep slowly increases the number of blocks to read and to delete on subsequent runs, up to a configurable maximum.
+
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
