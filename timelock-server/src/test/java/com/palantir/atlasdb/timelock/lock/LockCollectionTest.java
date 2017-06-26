@@ -39,7 +39,7 @@ public class LockCollectionTest {
     public void createsLocksOnDemand() {
         Set<LockDescriptor> descriptors = descriptors("foo", "bar");
 
-        List<AsyncLock> locks = lockCollection.getSorted(descriptors);
+        List<AsyncLock> locks = lockCollection.getAll(descriptors).get();
 
         assertThat(locks.size()).isEqualTo(2);
         assertThat(ImmutableSet.copyOf(locks).size()).isEqualTo(2);
@@ -49,8 +49,8 @@ public class LockCollectionTest {
     public void returnsSameLockForMultipleRequests() {
         Set<LockDescriptor> descriptors = descriptors("foo", "bar");
 
-        List<AsyncLock> locks1 = lockCollection.getSorted(descriptors);
-        List<AsyncLock> locks2 = lockCollection.getSorted(descriptors);
+        List<AsyncLock> locks1 = lockCollection.getAll(descriptors).get();
+        List<AsyncLock> locks2 = lockCollection.getAll(descriptors).get();
 
         assertThat(locks1).isEqualTo(locks2);
     }
@@ -62,11 +62,11 @@ public class LockCollectionTest {
                 .map(StringLockDescriptor::of)
                 .sorted().collect(Collectors.toList());
         List<AsyncLock> expectedOrder = orderedDescriptors.stream()
-                .map(descriptor -> lockCollection.getSorted(ImmutableSet.of(descriptor)))
-                .map(set -> set.iterator().next())
+                .map(descriptor -> lockCollection.getAll(ImmutableSet.of(descriptor)))
+                .map(orderedLocks -> orderedLocks.get().get(0))
                 .collect(Collectors.toList());
 
-        List<AsyncLock> actualOrder = lockCollection.getSorted(ImmutableSet.copyOf(orderedDescriptors));
+        List<AsyncLock> actualOrder = lockCollection.getAll(ImmutableSet.copyOf(orderedDescriptors)).get();
 
         assertThat(actualOrder).isEqualTo(expectedOrder);
     }

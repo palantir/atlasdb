@@ -20,17 +20,18 @@ import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Queues;
+import com.palantir.atlasdb.timelock.util.LoggablePreconditions;
+import com.palantir.logsafe.SafeArg;
+
+import net.jcip.annotations.GuardedBy;
 
 public class ExclusiveLock implements AsyncLock {
 
-    private static final Logger log = LoggerFactory.getLogger(ExclusiveLock.class);
-
+    @GuardedBy("this")
     private final Queue<LockRequest> queue = Queues.newArrayDeque();
+    @GuardedBy("this")
     private UUID currentHolder = null;
 
     @Override
@@ -52,10 +53,10 @@ public class ExclusiveLock implements AsyncLock {
 
     @Override
     public synchronized void unlock(UUID requestId) {
-        if (requestId.equals(currentHolder)) {
-            currentHolder = null;
-            processQueue();
-        }
+        checkIsCurrentHolder(requestId);
+
+        currentHolder = null;
+        processQueue();
     }
 
     @VisibleForTesting
@@ -70,9 +71,26 @@ public class ExclusiveLock implements AsyncLock {
                 currentHolder = head.requestId;
             }
 
-            head.result.complete(null);
+            completeRequest(head);
         }
     }
+
+    private void completeRequest(LockRequest request) {
+        boolean wasCompleted = request.result.complete(null);
+        LoggablePreconditions.checkState(
+                wasCompleted,
+                "Request was already completed when it was granted the lock",
+                SafeArg.of("requestId", request.requestId));
+    }
+
+    private void checkIsCurrentHolder(UUID requestId) {
+        LoggablePreconditions.checkState(
+                requestId.equals(currentHolder),
+                "ExclusiveLock may not be unlocked by a non-holder",
+                SafeArg.of("currentHolder", currentHolder),
+                SafeArg.of("request", requestId));
+    }
+
 
     private class LockRequest {
         private final CompletableFuture<Void> result = new CompletableFuture<>();

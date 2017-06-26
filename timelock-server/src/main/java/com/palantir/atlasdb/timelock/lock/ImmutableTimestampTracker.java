@@ -40,6 +40,7 @@ public class ImmutableTimestampTracker {
         return Optional.of(timestamps.first());
     }
 
+    // TODO(nziebart): these locks should be created by LockCollection for consistency
     public AsyncLock getLockFor(long timestamp) {
         return new ImmutableTimestampLock(timestamp, this);
     }

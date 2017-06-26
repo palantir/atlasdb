@@ -175,7 +175,7 @@
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
                 "com.palantir.atlasdb.examples:profile-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-api",
@@ -494,7 +494,7 @@
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
                 "com.palantir.atlasdb.examples:profile-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-api",

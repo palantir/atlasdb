@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -27,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockTokenV2;
@@ -58,8 +56,13 @@ public class AsyncLockService {
     }
 
     private void scheduleExpiredLockReaper() {
-        reaperExecutor.scheduleAtFixedRate(() -> heldLocks.removeExpired(),
-                0, LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2, TimeUnit.MILLISECONDS);
+        reaperExecutor.scheduleAtFixedRate(() -> {
+            try {
+                heldLocks.removeExpired();
+            } catch (Throwable t) {
+                log.warn("Error while removing expired lock requests. Trying again on next iteration.", t);
+            }
+        }, 0, LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2, TimeUnit.MILLISECONDS);
     }
 
     public CompletableFuture<LockTokenV2> lock(UUID requestId, Set<LockDescriptor> lockDescriptors) {
@@ -75,7 +78,7 @@ public class AsyncLockService {
     }
 
     public CompletableFuture<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors) {
-        List<AsyncLock> orderedLocks = locks.getSorted(lockDescriptors);
+        OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
         return lockAcquirer.waitForLocks(requestId, orderedLocks);
     }
 
@@ -84,13 +87,13 @@ public class AsyncLockService {
     }
 
     private CompletableFuture<HeldLocks> acquireLocks(UUID requestId, Set<LockDescriptor> lockDescriptors) {
-        List<AsyncLock> orderedLocks = locks.getSorted(lockDescriptors);
+        OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
         return lockAcquirer.acquireLocks(requestId, orderedLocks);
     }
 
     private CompletableFuture<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
         AsyncLock immutableTsLock = immutableTsTracker.getLockFor(timestamp);
-        return lockAcquirer.acquireLocks(requestId, ImmutableList.of(immutableTsLock));
+        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock));
     }
 
     public boolean unlock(LockTokenV2 token) {

@@ -14,25 +14,26 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.atlasdb.timelock.lock;
 
-import java.util.UUID;
+import java.util.List;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.ImmutableList;
 
 @Value.Immutable
-@JsonSerialize(as=ImmutableLockTokenV2.class)
-@JsonDeserialize(as=ImmutableLockTokenV2.class)
-public interface LockTokenV2 {
+public interface OrderedLocks {
+
+    static OrderedLocks fromOrderedList(List<AsyncLock> orderedLocks) {
+        return ImmutableOrderedLocks.of(orderedLocks);
+    }
+
+    static OrderedLocks fromSingleLock(AsyncLock lock) {
+        return fromOrderedList(ImmutableList.of(lock));
+    }
 
     @Value.Parameter
-    UUID getRequestId();
-
-    static LockTokenV2 of(UUID requestId) {
-        return ImmutableLockTokenV2.of(requestId);
-    }
+    List<AsyncLock> get();
 
 }
