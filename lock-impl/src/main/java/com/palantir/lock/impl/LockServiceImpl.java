@@ -369,7 +369,7 @@ public final class LockServiceImpl
 
             if (request.getBlockingMode() == BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE) {
                 if (log.isTraceEnabled()) {
-                    logNullResponse(client, request);
+                    logNullResponse(client, request, null);
                 }
                 if (requestLogger.isDebugEnabled()) {
                     requestLogger.debug("Timed out requesting {} for requesting thread {} after {} ms",
@@ -383,7 +383,7 @@ public final class LockServiceImpl
             if (locks.isEmpty() || ((request.getLockGroupBehavior() == LOCK_ALL_OR_NONE)
                     && (locks.size() < request.getLockDescriptors().size()))) {
                 if (log.isTraceEnabled()) {
-                    logNullResponse(client, request);
+                    logNullResponse(client, request, null);
                 }
                 if (requestLogger.isDebugEnabled()) {
                     requestLogger.debug("Failed to acquire all locks for {} for requesting thread {} after {} ms",
@@ -408,7 +408,7 @@ public final class LockServiceImpl
                     request.getLockTimeout(), request.getVersionId(), request.getCreatingThreadName());
             locks.clear();
             if (log.isTraceEnabled()) {
-                logNullResponse(client, request);
+                logNullResponse(client, request, token);
             }
             if (Thread.interrupted()) {
                 throw new InterruptedException("Interrupted while locking.");
@@ -436,10 +436,11 @@ public final class LockServiceImpl
         }
     }
 
-    private void logNullResponse(LockClient client, LockRequest request) {
-        log.trace(".lock({}, {}) returns null",
+    private void logNullResponse(LockClient client, LockRequest request, @Nullable HeldLocksToken token) {
+        log.trace(".lock({}, {}) returns {}",
                 SafeArg.of("client", client),
-                UnsafeArg.of("request", request));
+                UnsafeArg.of("request", request),
+                token == null ? UnsafeArg.of("lockToken", "null") : UnsafeArg.of("lockToken", token));
     }
 
     private void logLockAcquisitionFailure(Map<LockDescriptor, LockClient> failedLocks) {
