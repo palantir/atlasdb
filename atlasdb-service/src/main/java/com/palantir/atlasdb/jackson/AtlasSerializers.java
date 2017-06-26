@@ -32,7 +32,6 @@ import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
-import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.util.Pair;
 
 public final class AtlasSerializers {
