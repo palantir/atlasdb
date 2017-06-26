@@ -21,6 +21,24 @@ import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 
 public interface KeyValueServiceLogArbitrator {
+    KeyValueServiceLogArbitrator ALL_UNSAFE = new KeyValueServiceLogArbitrator() {
+        @Override
+        public boolean isTableReferenceSafe(TableReference tableReference) {
+            return false;
+        }
+
+        @Override
+        public boolean isRowComponentNameSafe(TableReference tableReference,
+                NameComponentDescription nameComponentDescription) {
+            return false;
+        }
+
+        @Override
+        public boolean isColumnNameSafe(TableReference tableReference, NamedColumnDescription namedColumnDescription) {
+            return false;
+        }
+    };
+
     boolean isTableReferenceSafe(TableReference tableReference);
 
     boolean isRowComponentNameSafe(

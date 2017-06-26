@@ -26,10 +26,26 @@ import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 
 @Value.Immutable
-public abstract class SafeLoggableData {
+public abstract class SafeLoggableData implements KeyValueServiceLogArbitrator {
     public abstract Set<TableReference> permittedTableReferences();
 
     public abstract Map<TableReference, Set<NameComponentDescription>> permittedRowComponents();
 
     public abstract Map<TableReference, Set<NamedColumnDescription>> permittedColumnNames();
+
+    public boolean isTableReferenceSafe(TableReference tableReference) {
+        return permittedTableReferences().contains(tableReference);
+    }
+
+    public boolean isRowComponentNameSafe(
+            TableReference tableReference,
+            NameComponentDescription nameComponentDescription) {
+        return permittedRowComponents().containsKey(tableReference)
+                && permittedRowComponents().get(tableReference).contains(nameComponentDescription);
+    }
+
+    public boolean isColumnNameSafe(TableReference tableReference, NamedColumnDescription namedColumnDescription) {
+        return permittedColumnNames().containsKey(tableReference)
+                && permittedColumnNames().get(tableReference).contains(namedColumnDescription);
+    }
 }
