@@ -79,14 +79,22 @@ public final class AtlasDeserializers {
                 "Received %s values for a row with %s components.", size, components.size());
         byte[][] bytes = new byte[size][];
         for (int i = 0; i < size; i++) {
-            JsonNode value = node.get(components.get(i).getComponentName());
             NameComponentDescription component = components.get(i);
-            bytes[i] = component.getType().convertFromJson(value.toString());
+            String value = getRowValue(i, component, node);
+            bytes[i] = component.getType().convertFromJson(value);
             if (component.isReverseOrder()) {
                 EncodingUtils.flipAllBitsInPlace(bytes[i]);
             }
         }
         return Bytes.concat(bytes);
+    }
+
+    private static String getRowValue(int i, NameComponentDescription component, JsonNode node) {
+        if (node.has(component.getComponentName())) {
+            return node.get(component.getComponentName()).toString();
+        } else {
+            return node.get(i).toString();
+        }
     }
 
     public static Iterable<byte[]> deserializeRows(final NameMetadataDescription description,

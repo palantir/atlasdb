@@ -52,35 +52,62 @@ class AtlasCoreModule implements AtlasConsoleModule {
                          Ex: def x = table('stream_value')
 
                          To retrieve metadata about a table, use <TABLE>.describe(),
-                         <TABLE>.isDynamic(), <TABLE>.rowComponents(), and <TABLE>.columnNames().'''.stripIndent(),
+                         <TABLE>.isDynamic(), <TABLE>.rowComponents(), and <TABLE>.columnNames().
+                         '''.stripIndent(),
+
             'transactions': '''\
                          Atomic transactions used to avoid read/write or write/write
-                         conflicts. Use startTransaction() to start, currentTransaction()
-                         to view all operations in the current transaction, endTransaction()
-                         to end and commit the current transaction, and abortTransaction()
-                         to end and abort (undo) the current transaction.'''.stripIndent(),
-            'pretty print': '''\
+                         conflicts.
+
+                         Use startTransaction() to start.
+                         Use currentTransaction() to view all operations in the current transaction.
+                         Use endTransaction() to end and commit the current transaction.
+                         Use abortTransaction() to end and abort (undo) the current transaction.
+                         '''.stripIndent(),
+
+            'prettyPrint': '''\
                          Print tables and objects in a more human-readable format.
 
                          Use pp() to print objects. Ex: pp(obj).
 
                          Use pptable() to print ranges or lists of rows from a table. Ex:
                          pptable(table(<TABLE-NAME>)).getRange(), ['row': [width: 30],
-                         'base_object': [width: 50, format: 'json']])'''.stripIndent(),
+                         'base_object': [width: 50, format: 'json']])
+                         '''.stripIndent(),
+
             'getRange': '''\
-                         Retrieve a range of rows from a table. Use getRange() to get all
-                         rows from the table, or getRange(args) to get a subset. Ex:
+                         Retrieve a range of rows from a table.
+
+                         Use getRange() to get all rows from the table
+
+                         Use getRange(args) to get a subset. Ex:
+
                          <TABLE>.getRange([start: <START-ROW-VALUE>, end: <END-ROW-VALUE>
-                         , prefix: <OBJECT-ID-OR-ROW-VALUE>, cols: [<COL-NAMES>]])'''.stripIndent(),
+                         , prefix: <OBJECT-ID-OR-ROW-VALUE>, cols: [<COL-NAMES>]])
+                         '''.stripIndent(),
+
             'getRow': '''\
                          Retrieve a single row from a table. Ex:
-                         <TABLE>.getRows(<ROW-VALUE>)'''.stripIndent(),
+
+                         <TABLE>.getRows(<ROW-VALUE>).
+
+                         <ROW-VALUE> here can be either a list of row component values (e.g. [0,1,2])
+                         or a map including the row component names (e.g. [obj_id:0, foo_id:1, bar_id:2])
+                         '''.stripIndent(),
+
             'getRows': '''\
                          Retrieve one or more rows from a table. Ex:
-                         <TABLE>.getRows([ <ROW-VALUE>, <ROW-VALUE> ])'''.stripIndent(),
+
+                         <TABLE>.getRows([ <ROW-VALUE>, <ROW-VALUE> ])
+
+                         <ROW-VALUE> here can be either a list of row component values (e.g. [0,1,2])
+                         or a map including the row component names (e.g. [obj_id:0, foo_id:1, bar_id:2])
+                         '''.stripIndent(),
+
             'join': '''\
-                         Retreive one or more rows from a table and match them up by row-key
+                         Retrieve one or more rows from a table and match them up by row-key
                          with corresponding values.  Ex:
+
                          <TABLE>.join([[ <ROW-VALUE-1> : <EXTRA-DATA-1>], [ <ROW-VALUE-2> : <EXTRA-DATA-2]])
                          Returns:
                          [["JOIN_KEY" : <ROW-VALUE-1>, "INPUT_VALUE" : <EXTRA-DATA-1>, "OUTPUT_VALUE" : <TABLE-ROW-1>], 
@@ -99,6 +126,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
                          output.each { println it}
                          '''.stripIndent(),
 
+
             'getCells': '''\
                          Retrieve one or more cells from a table, specified by row and
                          column.
@@ -107,7 +135,8 @@ class AtlasCoreModule implements AtlasConsoleModule {
                          col: <COL-NAME>])
 
                          Ex (for dynamic columns): <TABLE>.getCells([row: <ROW-VALUE>,
-                         col: <COL-INDEX>])'''.stripIndent(),
+                         col: <COL-INDEX>])
+                         '''.stripIndent(),
             'put': '''\
                          Insert or update one or more rows in a table.
 
@@ -115,15 +144,21 @@ class AtlasCoreModule implements AtlasConsoleModule {
                          [<COL-NAME>: <COL-VALUE>]])
 
                          Ex (for dynamic columns): <TABLE>.put([row: <ROW-VALUE>, col:
-                         <COL-INDEX>, val: <COL-VALUE>])'''.stripIndent(),
+                         <COL-INDEX>, val: <COL-VALUE>])
+                         '''.stripIndent(),
+
             'delete': '''\
-                         Delete one or more rows in a table.
-                         Ex: <TABLE>.delete([row: <ROW-VALUE>, cols: [<COL-NAME>,
-                          <COL-NAME>]])'''.stripIndent(),
+                         Delete one or more rows in a table. Ex:
+
+                         <TABLE>.delete([row: <ROW-VALUE>, cols: [<COL-NAME>, <COL-NAME>]])
+                          '''.stripIndent(),
+
             'connect': '''\
                           Connect to an atlas server using settings from a dropwizard yaml
-                          file.
-                          Ex: connect(<PATH-TO-YAML-CONFIG>)'''.stripIndent(),
+                          file. Ex:
+
+                          connect(<PATH-TO-YAML-CONFIG>)
+                          '''.stripIndent(),
     ]
     private static final int COLUMN_PADDING = 5
 
