@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.sweeperservice;
 
 import javax.annotation.Nonnull;
-import javax.ws.rs.DefaultValue;
+import javax.annotation.Nullable;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -40,15 +40,17 @@ public interface SweeperService {
     @POST
     @Path("sweep-table-from-row")
     @Produces(MediaType.APPLICATION_JSON)
-    void sweepTableFromStartRow(@QueryParam("tablename") String tableName,
+    void sweepTableFromStartRow(
+            @QueryParam("tablename") String tableName,
             @Nonnull @QueryParam("startRow") String startRow);
 
     @POST
     @Path("sweep-table-from-row-with-batch")
     @Produces(MediaType.APPLICATION_JSON)
-    void sweepTableFromStartRowWithBatchConfig(@QueryParam("tablename") String tableName,
-            @Nonnull @QueryParam("startRow") String startRow,
-            @DefaultValue("100") @QueryParam("maxCellTsPairsToExamine") int maxCellTsPairsToExamine,
-            @DefaultValue("100") @QueryParam("candidateBatchSize") int candidateBatchSize,
-            @DefaultValue("1000") @QueryParam("deleteBatchSize") int deleteBatchSize);
+    void sweepTableFromStartRowWithBatchConfig(
+            @QueryParam("tablename") String tableName,
+            @Nullable @QueryParam("startRow") String startRow,
+            @Nullable @QueryParam("maxCellTsPairsToExamine") Integer maxCellTsPairsToExamine,
+            @Nullable @QueryParam("candidateBatchSize") Integer candidateBatchSize,
+            @Nullable @QueryParam("deleteBatchSize") Integer deleteBatchSize);
 }

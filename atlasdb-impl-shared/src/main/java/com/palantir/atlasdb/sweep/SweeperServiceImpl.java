@@ -18,9 +18,12 @@ package com.palantir.atlasdb.sweep;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.validation.constraints.Null;
 
 import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
@@ -28,6 +31,10 @@ import com.palantir.atlasdb.sweeperservice.SweeperService;
 import com.palantir.remoting2.servers.jersey.WebPreconditions;
 
 public final class SweeperServiceImpl implements SweeperService {
+    private static final int DEFAULT_SWEEP_READ_LIMIT = 1_000_000;
+    private static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 100;
+    private static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 1000;
+
     private SpecificTableSweeper specificTableSweeper;
 
     public SweeperServiceImpl(SpecificTableSweeper specificTableSweeper) {
@@ -43,7 +50,7 @@ public final class SweeperServiceImpl implements SweeperService {
     }
 
     @Override
-    public void sweepTableFromStartRow(String tableName, String startRow) {
+    public void sweepTableFromStartRow(String tableName, @Nonnull String startRow) {
         TableReference tableRef = getTableRef(tableName);
         checkTableExists(tableName, tableRef);
 
@@ -54,19 +61,23 @@ public final class SweeperServiceImpl implements SweeperService {
 
     @Override
     public void sweepTableFromStartRowWithBatchConfig(String tableName,
-            String startRow,
-            int maxCellTsPairsToExamine,
-            int candidateBatchSize,
-            int deleteBatchSize) {
+            @Nullable String startRow,
+            @Nullable Integer maxCellTsPairsToExamine,
+            @Nullable Integer candidateBatchSize,
+            @Nullable Integer deleteBatchSize) {
         TableReference tableRef = getTableRef(tableName);
         checkTableExists(tableName, tableRef);
 
         ImmutableSweepProgress sweepProgress = getSweepProgress(startRow, tableRef);
 
+        WebPreconditions.checkArgument(
+                !(maxCellTsPairsToExamine == null && candidateBatchSize == null && deleteBatchSize == null),
+                "No batch size config parameters were provided");
+
         ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(maxCellTsPairsToExamine)
-                .candidateBatchSize(candidateBatchSize)
-                .deleteBatchSize(deleteBatchSize)
+                .maxCellTsPairsToExamine(maxCellTsPairsToExamine == null ? DEFAULT_SWEEP_READ_LIMIT : maxCellTsPairsToExamine)
+                .candidateBatchSize(candidateBatchSize == null ? DEFAULT_SWEEP_CANDIDATE_BATCH_HINT : candidateBatchSize)
+                .deleteBatchSize(deleteBatchSize == null ? DEFAULT_SWEEP_DELETE_BATCH_HINT: deleteBatchSize)
                 .build();
 
         runSweepWithoutSavingResults(tableRef, sweepProgress, Optional.of(sweepBatchConfig));
@@ -83,7 +94,7 @@ public final class SweeperServiceImpl implements SweeperService {
                 String.format("Table requested to sweep %s does not exist", tableName));
     }
 
-    private ImmutableSweepProgress getSweepProgress(@Nonnull String startRow, TableReference tableRef) {
+    private ImmutableSweepProgress getSweepProgress(String startRow, TableReference tableRef) {
         return ImmutableSweepProgress.builder()
                 .tableRef(tableRef)
                 .staleValuesDeleted(0)
@@ -94,7 +105,9 @@ public final class SweeperServiceImpl implements SweeperService {
     }
 
     private byte[] decodeStartRow(String startRow) {
-        WebPreconditions.checkArgument(startRow != null, "The startRow should not be null");
+        if (startRow == null) {
+            return PtBytes.EMPTY_BYTE_ARRAY;
+        }
         return BaseEncoding.base16().decode(startRow);
     }
 

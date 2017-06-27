@@ -31,7 +31,6 @@ import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockServiceClientTest;
-import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.sweeperservice.SweeperService;
 import com.palantir.remoting2.clients.UserAgents;
 import com.palantir.remoting2.errors.RemoteException;
@@ -42,6 +41,8 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class SweeperServiceImplTest extends SweeperTestSetup {
 
+    private static final String VALID_START_ROW = "010203";
+    private static final String INVALID_START_ROW = "xyz";
     SweeperService sweeperService;
 
     @Rule
@@ -74,8 +75,64 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     }
 
     @Test
+    public void sweepTableFromStartRowWithStartRowNullShouldThrow() {
+        when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
+
+        assertThatExceptionOfType(RemoteException.class)
+                .isThrownBy(() -> sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), null))
+                .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
+    }
+
+    @Test
+    public void sweepTableFromStartRowWithValidStartRowShouldBeSuccessful() {
+        setupTaskRunner(Mockito.mock(SweepResults.class));
+
+        when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
+
+        sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), VALID_START_ROW);
+    }
+
+    @Test
+    public void sweepTableFromStartRowWithInValidStartRowShouldThrow() {
+        when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
+
+        assertThatExceptionOfType(RemoteException.class)
+                .isThrownBy(() ->
+                        sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), INVALID_START_ROW))
+                .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
+    }
+
+    @Test
+    public void sweepTableFromStartRowWithBatchConfigWithNullBatchConfigShouldThrow() {
+        setupTaskRunner(Mockito.mock(SweepResults.class));
+
+        when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
+
+        assertThatExceptionOfType(RemoteException.class)
+                .isThrownBy(() -> sweeperService.sweepTableFromStartRowWithBatchConfig(TABLE_REF.getQualifiedName(),
+                        encodeStartRow(new byte[] {1, 2, 3}), null, null, null))
+                .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
+    }
+
+    @Test
+    public void sweepTableFromStartRowWithBatchConfigWithNullStartRowShouldBeSuccessful() {
+        setupTaskRunner(Mockito.mock(SweepResults.class));
+
+        when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
+        sweeperService.sweepTableFromStartRowWithBatchConfig(TABLE_REF.getQualifiedName(), null, 1000, 1000, 500);
+    }
+
+    @Test
+    public void sweepTableFromStartRowWithBatchConfigWithExactlyOneNonNullBatchConfigShouldBeSuccessful() {
+        setupTaskRunner(Mockito.mock(SweepResults.class));
+
+        when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
+        sweeperService.sweepTableFromStartRowWithBatchConfig(TABLE_REF.getQualifiedName(),
+                encodeStartRow(new byte[] {1, 2, 3}), null, 10, null);
+    }
+
+    @Test
     public void testWriteProgressOrPriorityOrMetricsNotUpdatedAfterSweepRunsSuccessfully() {
-        setProgress(Mockito.mock(SweepProgress.class));
         setupTaskRunner(Mockito.mock(SweepResults.class));
         when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
         sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), encodeStartRow(new byte[] {1, 2, 3}));
