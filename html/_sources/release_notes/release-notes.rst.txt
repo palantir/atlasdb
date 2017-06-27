@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak|
+         - The previously deprecated RocksDBKVS has been removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1966>`__)
+
     *    - |new|
          - AtlasDB now instruments embedded time and lock services, even if no leader block is present in the config,
            to expose aggregate response time and service call metrics.

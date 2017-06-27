@@ -196,17 +196,21 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>The previously deprecated RocksDBKVS has been removed.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1966">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now instruments embedded time and lock services, even if no leader block is present in the config,
 to expose aggregate response time and service call metrics.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2045">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now adds endpoints for sweeping a specific table, with options for startRow and batch config parameters.
 This should be used in place of the deprecated sweep CLIs.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2040">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">Sweep now is capable of dynamically adjusting the number of blocks - (cell, ts) pairs - across runs:</p>
 <ul class="simple">
 <li>On a failure run, sweep halves the number of blocks to read and to delete on subsequent runs.</li>
