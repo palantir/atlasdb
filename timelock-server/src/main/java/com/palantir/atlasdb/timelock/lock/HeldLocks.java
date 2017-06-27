@@ -19,13 +19,13 @@ package com.palantir.atlasdb.timelock.lock;
 import java.util.Collection;
 import java.util.UUID;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.lock.v2.LockTokenV2;
-
-import net.jcip.annotations.GuardedBy;
 
 public class HeldLocks {
 
