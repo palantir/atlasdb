@@ -159,6 +159,7 @@ class TableTest {
     void testGetRange() {
         def stringExample = 'a'
         def listExample = [stringExample]
+        def mapExample = ['key': 'a']
         rangeTestRunner([start: stringExample], [start: listExample])
         rangeTestRunner([end: stringExample], [end: listExample])
         rangeTestRunner([prefix: stringExample], [prefix: listExample])
