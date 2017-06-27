@@ -136,7 +136,7 @@ public class SpecificTableSweeper {
                     startRow);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
             log.info("Swept successfully.",
-                    UnsafeArg.of("tableRef", tableRef),
+                    kvs.getLoggingArgSupplier().getTableReferenceArg("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
                     SafeArg.of("unique cells swept", results.getCellTsPairsExamined()),
                     SafeArg.of("deletion count", results.getStaleValuesDeleted()),
@@ -154,7 +154,7 @@ public class SpecificTableSweeper {
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
             log.info("Failed to sweep.",
-                    UnsafeArg.of("tableRef", tableRef),
+                    kvs.getLoggingArgSupplier().getTableReferenceArg("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
                     SafeArg.of("batchConfig", batchConfig));
             throw e;
@@ -199,7 +199,7 @@ public class SpecificTableSweeper {
             saveFinalSweepResults(tableToSweep, cumulativeResults);
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
             log.debug("Finished sweeping.",
-                    UnsafeArg.of("tableRef", tableToSweep.getTableRef()),
+                    kvs.getLoggingArgSupplier().getTableReferenceArg("tableRef", tableToSweep.getTableRef()),
                     SafeArg.of("unique cells examined count", cellsExamined),
                     SafeArg.of("stale values deleted count", staleValuesDeleted));
             sweepProgressStore.clearProgress();
