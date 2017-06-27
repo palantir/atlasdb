@@ -12,8 +12,6 @@ dependencies {
 
   // Unsupported KVSs (included for migration purposes)
   runtime project(':atlasdb-jdbc')
-  runtime project(':atlasdb-hikari')
-  runtime project(':atlasdb-rocksdb')
 }
 
 distribution {

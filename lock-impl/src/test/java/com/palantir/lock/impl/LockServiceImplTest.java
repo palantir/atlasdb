@@ -15,13 +15,13 @@
  */
 package com.palantir.lock.impl;
 
-import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import static uk.org.lidalia.slf4jtest.LoggingEvent.debug;
 import static uk.org.lidalia.slf4jtest.LoggingEvent.info;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.junit.After;
@@ -29,11 +29,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.collect.Iterables;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 
 import uk.org.lidalia.slf4jext.Level;
+import uk.org.lidalia.slf4jtest.LoggingEvent;
 import uk.org.lidalia.slf4jtest.TestLogger;
 import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 
@@ -100,9 +100,8 @@ public final class LockServiceImplTest {
         assertThat(testLockServiceImplLogger.getLoggingEvents().size(), is(0));
 
         assertThat(testSlowLogger.getLoggingEvents().size(), is(1));
-        assertThat(Iterables.getOnlyElement(testSlowLogger.getLoggingEvents()),
-                is(info("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID,
-                        "unsuccessfully")));
+        assertContainsMatchingLoggingEvent(testSlowLogger.getLoggingEvents(),
+                info("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
     }
 
     @Test
@@ -111,9 +110,9 @@ public final class LockServiceImplTest {
         lockServiceWithSlowLogDisabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
 
         assertThat(testLockServiceImplLogger.isDebugEnabled(), is(true));
-        assertThat(Iterables.getOnlyElement(testLockServiceImplLogger.getLoggingEvents()),
-                is(debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID,
-                        "unsuccessfully")));
+        assertThat(testLockServiceImplLogger.getLoggingEvents().size(), is(1));
+        assertContainsMatchingLoggingEvent(testLockServiceImplLogger.getLoggingEvents(),
+                debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
 
         assertThat(testSlowLogger.getLoggingEvents().size(), is(0));
     }
@@ -124,11 +123,8 @@ public final class LockServiceImplTest {
         lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
 
         assertThat(testLockServiceImplLogger.isDebugEnabled(), is(true));
-        assertThat(testLockServiceImplLogger.getLoggingEvents().stream()
-                        .filter(event -> event.getLevel().equals(Level.DEBUG))
-                        .collect(Collectors.toList()),
-                hasItem(debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID,
-                        "unsuccessfully")));
+        assertContainsMatchingLoggingEvent(testLockServiceImplLogger.getLoggingEvents(),
+                debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
 
         assertThat(testSlowLogger.getLoggingEvents().size(), is(0));
     }
@@ -139,5 +135,23 @@ public final class LockServiceImplTest {
                 TEST_LOCKID, LockClient.ANONYMOUS, LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS - 5);
         assertThat(testLockServiceImplLogger.getLoggingEvents().size(), is(0));
         assertThat(testSlowLogger.getLoggingEvents().size(), is(0));
+    }
+
+    private static void assertContainsMatchingLoggingEvent(List<LoggingEvent> actuals, LoggingEvent expected) {
+        List<String> expectedParamStrings = extractArgumentsAsStringList(expected);
+        assertThat(actuals.stream()
+                .filter(event -> event.getLevel() == expected.getLevel()
+                        && event.getMessage().equals(expected.getMessage())
+                        && expectedParamStrings.equals(extractArgumentsAsStringList(event)))
+                .collect(Collectors.toSet()).size(),
+                is(1));
+    }
+
+    private static List<String> extractArgumentsAsStringList(LoggingEvent event) {
+        return event.getArguments()
+                .asList()
+                .stream()
+                .map(Object::toString)
+                .collect(Collectors.toList());
     }
 }

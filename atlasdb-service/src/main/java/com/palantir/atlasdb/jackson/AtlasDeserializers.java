@@ -79,7 +79,7 @@ public final class AtlasDeserializers {
                 "Received %s values for a row with %s components.", size, components.size());
         byte[][] bytes = new byte[size][];
         for (int i = 0; i < size; i++) {
-            JsonNode value = node.get(i);
+            JsonNode value = node.get(components.get(i).getComponentName());
             NameComponentDescription component = components.get(i);
             bytes[i] = component.getType().convertFromJson(value.toString());
             if (component.isReverseOrder()) {

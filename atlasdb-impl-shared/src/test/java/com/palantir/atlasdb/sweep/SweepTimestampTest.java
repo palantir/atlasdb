@@ -23,7 +23,7 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
-public class SweeperTest {
+public class SweepTimestampTest {
     private final LongSupplier mockImmutableTimestampSupplier = mock(LongSupplier.class);
     private final LongSupplier mockUnreadableTimestampSupplier = mock(LongSupplier.class);
 

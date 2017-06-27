@@ -56,6 +56,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedMap.Builder;
@@ -97,6 +98,8 @@ import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.JMXUtils;
 
@@ -326,7 +329,6 @@ public final class LockServiceImpl
     }
 
     @Override
-    @SuppressWarnings("Slf4jConstantLogMessage")
     // We're concerned about sanitizing logs at the info level and above. This method just logs at debug and info.
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
         Preconditions.checkNotNull(client);
@@ -367,11 +369,13 @@ public final class LockServiceImpl
 
             if (request.getBlockingMode() == BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE) {
                 if (log.isTraceEnabled()) {
-                    log.trace(".lock({}, {}) returns null", client, request);
+                    logNullResponse(client, request, null);
                 }
                 if (requestLogger.isDebugEnabled()) {
                     requestLogger.debug("Timed out requesting {} for requesting thread {} after {} ms",
-                            request, request.getCreatingThreadName(), System.currentTimeMillis() - startTime);
+                            UnsafeArg.of("request", request),
+                            SafeArg.of("threadName", request.getCreatingThreadName()),
+                            SafeArg.of("timeoutMillis", System.currentTimeMillis() - startTime));
                 }
                 return new LockResponse(failedLocks);
             }
@@ -379,24 +383,16 @@ public final class LockServiceImpl
             if (locks.isEmpty() || ((request.getLockGroupBehavior() == LOCK_ALL_OR_NONE)
                     && (locks.size() < request.getLockDescriptors().size()))) {
                 if (log.isTraceEnabled()) {
-                    log.trace(".lock({}, {}) returns null", client, request);
+                    logNullResponse(client, request, null);
                 }
                 if (requestLogger.isDebugEnabled()) {
                     requestLogger.debug("Failed to acquire all locks for {} for requesting thread {} after {} ms",
-                            request, request.getCreatingThreadName(), System.currentTimeMillis() - startTime);
+                            UnsafeArg.of("request", request),
+                            SafeArg.of("threadName", request.getCreatingThreadName()),
+                            SafeArg.of("waitMillis", System.currentTimeMillis() - startTime));
                 }
                 if (requestLogger.isTraceEnabled()) {
-                    StringBuilder sb = new StringBuilder("Current holders of the first {} of {} total failed locks were: [");
-                    Iterator<Entry<LockDescriptor, LockClient>> entries = failedLocks.entrySet().iterator();
-                    for (int i = 0; i < MAX_FAILED_LOCKS_TO_LOG; i++) {
-                        if (entries.hasNext()) {
-                            Entry<LockDescriptor, LockClient> entry = entries.next();
-                            sb.append(" Lock: ").append(entry.getKey().toString()).append(
-                                    ", Holder: ").append(entry.getValue().toString()).append(";");
-                        }
-                    }
-                    sb.append(" ]");
-                    requestLogger.trace(sb.toString(), MAX_FAILED_LOCKS_TO_LOG, failedLocks.size());
+                    logLockAcquisitionFailure(failedLocks);
                 }
                 return new LockResponse(null, failedLocks);
             }
@@ -412,14 +408,16 @@ public final class LockServiceImpl
                     request.getLockTimeout(), request.getVersionId(), request.getCreatingThreadName());
             locks.clear();
             if (log.isTraceEnabled()) {
-                log.trace(".lock({}, {}) returns {}", client, request, token);
+                logNullResponse(client, request, token);
             }
             if (Thread.interrupted()) {
                 throw new InterruptedException("Interrupted while locking.");
             }
             if (requestLogger.isDebugEnabled()) {
                 requestLogger.debug("Successfully acquired locks {} for requesting thread {} after {} ms",
-                        request, request.getCreatingThreadName(), System.currentTimeMillis() - startTime);
+                        UnsafeArg.of("request", request),
+                        SafeArg.of("threadName", request.getCreatingThreadName()),
+                        SafeArg.of("waitMillis", System.currentTimeMillis() - startTime));
             }
             return new LockResponse(token, failedLocks);
         } finally {
@@ -430,10 +428,38 @@ public final class LockServiceImpl
                     entry.getKey().get(client, entry.getValue()).unlock();
                 }
             } catch (Throwable e) { // (authorized)
-                log.error("Internal lock server error: state has been corrupted!!", e);
+                log.error("Internal lock server error: state has been corrupted!!",
+                        UnsafeArg.of("exception", e),
+                        SafeArg.of("stacktrace", e.getStackTrace()));
                 throw Throwables.throwUncheckedException(e);
             }
         }
+    }
+
+    private void logNullResponse(LockClient client, LockRequest request, @Nullable HeldLocksToken token) {
+        log.trace(".lock({}, {}) returns {}",
+                SafeArg.of("client", client),
+                UnsafeArg.of("request", request),
+                token == null ? UnsafeArg.of("lockToken", "null") : UnsafeArg.of("lockToken", token));
+    }
+
+    private void logLockAcquisitionFailure(Map<LockDescriptor, LockClient> failedLocks) {
+        final String logMessage = "Current holders of the first {} of {} total failed locks were: {}";
+
+        List<String> lockDescriptions = Lists.newArrayList();
+        Iterator<Entry<LockDescriptor, LockClient>> entries = failedLocks.entrySet().iterator();
+        for (int i = 0; i < MAX_FAILED_LOCKS_TO_LOG && entries.hasNext(); i++) {
+            Entry<LockDescriptor, LockClient> entry = entries.next();
+            lockDescriptions.add(
+                    String.format("Lock: %s, Holder: %s",
+                            entry.getKey().toString(),
+                            entry.getValue().toString()));
+        }
+        requestLogger.trace(
+                logMessage,
+                SafeArg.of("numLocksLogged", Math.min(MAX_FAILED_LOCKS_TO_LOG, failedLocks.size())),
+                SafeArg.of("numLocksFailed", failedLocks.size()),
+                UnsafeArg.of("lockDescriptions", lockDescriptions));
     }
 
     private boolean isIndefinitelyBlocking(BlockingMode blockingMode) {
@@ -489,20 +515,23 @@ public final class LockServiceImpl
     }
 
     @VisibleForTesting
-    @SuppressWarnings("Slf4jConstantLogMessage")
     protected void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
-        String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
+        final String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
+
+        // Note: The construction of params is pushed into the branches, as it may be expensive.
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
             SlowLockLogger.logger.info(slowLockLogMessage,
-                    durationMillis,
-                    lockId,
-                    currentHolder == null ? "successfully" : "unsuccessfully");
+                    constructSlowLockLogParams(lockId, currentHolder, durationMillis));
         } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
-            log.debug(slowLockLogMessage,
-                    durationMillis,
-                    lockId,
-                    currentHolder == null ? "successfully" : "unsuccessfully");
+            log.debug(slowLockLogMessage, constructSlowLockLogParams(lockId, currentHolder, durationMillis));
         }
+    }
+
+    private Object[] constructSlowLockLogParams(String lockId, LockClient currentHolder, long durationMillis) {
+        return ImmutableList.of(
+                SafeArg.of("durationMillis", durationMillis),
+                UnsafeArg.of("lockId", lockId),
+                SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully")).toArray();
     }
 
     @VisibleForTesting

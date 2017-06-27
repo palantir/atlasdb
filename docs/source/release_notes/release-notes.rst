@@ -42,19 +42,39 @@ develop
     *    - Type
          - Change
 
-    *    - |devbreak|
-         - The implementation of the TimeLock server has been separated into a new project, `timelock-impl`.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+    *    - |improved|
+         - The implementation of the TimeLock server has been separated into a new project, ``timelock-impl``.
+           This should not affect users directly, unless they depended on classes from within the TimeLock server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2076>`__)
 
     *    - |userbreak|
-         - `TimelockServerConfiguration` now requires an algorithm to be specified.
+         - ``TimelockServerConfiguration`` now requires an algorithm to be specified.
            Previously, if no algorithm was specified, the configuration would default to atomix.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+           Furthermore, several classes were moved from package ``com.palantir.atlasdb.timelock.paxos`` to ``com.palantir.atlasdb.timelock``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2076>`__)
+
+    *    - |userbreak|
+         - The previously deprecated RocksDBKVS has been removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1966>`__)
 
     *    - |new|
          - AtlasDB now instruments embedded time and lock services, even if no leader block is present in the config,
            to expose aggregate response time and service call metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2045>`__)
+
+    *    - |new|
+         - AtlasDB now adds endpoints for sweeping a specific table, with options for startRow and batch config parameters.
+           This should be used in place of the deprecated sweep CLIs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2040>`__)
+
+    *    - |improved|
+         - Sweep now is capable of dynamically adjusting the number of blocks - (cell, ts) pairs - across runs:
+
+           - On a failure run, sweep halves the number of blocks to read and to delete on subsequent runs.
+           - On a success run, sweep slowly increases the number of blocks to read and to delete on subsequent runs, up to a configurable maximum.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -154,6 +174,10 @@ develop
          - Reduced the logging level of some messages relating to check-and-set operations in ``CassandraTimestampBoundStore`` to reduce noise in the logs.
            These were designed to help debugging the ``MultipleRunningTimestampServicesException`` issues but we no longer require them to log all the time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2048>`__)
+
+    *    - |improved|
+         - Improved the way rows and named columns are outputted in AtlasConsole to be more intuitive and easier to use. Note that this may break existing AtlasConsole scripts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2067>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
