@@ -87,7 +87,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 ConflictHandler.IGNORE_ALL);
         return new SerializableTransaction(
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService),
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),

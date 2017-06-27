@@ -92,7 +92,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     protected Transaction startTransaction() {
         return new SnapshotTransaction(
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService),
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 timestampService.getFreshTimestamp(),

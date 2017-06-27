@@ -26,9 +26,9 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
-@JsonSerialize(as=ImmutableLockRequestV2.class)
-@JsonDeserialize(as=ImmutableLockRequestV2.class)
-public interface LockRequestV2 {
+@JsonSerialize(as=ImmutableWaitForLocksRequest.class)
+@JsonDeserialize(as=ImmutableWaitForLocksRequest.class)
+public interface WaitForLocksRequest {
 
     @Value.Parameter
     Set<LockDescriptor> getLockDescriptors();
@@ -36,8 +36,8 @@ public interface LockRequestV2 {
     @Value.Parameter
     UUID getRequestId();
 
-    static LockRequestV2 of(Set<LockDescriptor> lockDescriptors) {
-        return ImmutableLockRequestV2.of(lockDescriptors, UUID.randomUUID());
+    static WaitForLocksRequest of(Set<LockDescriptor> lockDescriptors) {
+        return ImmutableWaitForLocksRequest.of(lockDescriptors, UUID.randomUUID());
     }
 
 }

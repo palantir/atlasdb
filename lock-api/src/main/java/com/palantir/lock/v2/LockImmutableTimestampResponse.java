@@ -16,49 +16,22 @@
 
 package com.palantir.lock.v2;
 
-import java.util.Objects;
+import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.lock.LockRefreshToken;
 
 // TODO: also return a start timestamp here?
-public class LockImmutableTimestampResponse {
+@Value.Immutable
+public interface LockImmutableTimestampResponse {
 
-    private final long immutableTimestamp;
-    private final LockRefreshToken lock;
+    @Value.Parameter
+    long getImmutableTimestamp();
 
-    public LockImmutableTimestampResponse(
-            @JsonProperty("immutableTimestamp") long immutableTimestamp,
-            @JsonProperty("lock") LockRefreshToken lock) {
-        this.immutableTimestamp = immutableTimestamp;
-        this.lock = lock;
+    @Value.Parameter
+    LockRefreshToken getLock();
+
+    static LockImmutableTimestampResponse of(long timestamp, LockRefreshToken lock) {
+        return ImmutableLockImmutableTimestampResponse.of(timestamp, lock);
     }
 
-    @JsonProperty("immutableTimestamp")
-    public long getImmutableTimestamp() {
-        return immutableTimestamp;
-    }
-
-    @JsonProperty("lock")
-    public LockRefreshToken getLock() {
-        return lock;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        LockImmutableTimestampResponse that = (LockImmutableTimestampResponse) o;
-        return immutableTimestamp == that.immutableTimestamp &&
-                Objects.equals(lock, that.lock);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(immutableTimestamp, lock);
-    }
 }

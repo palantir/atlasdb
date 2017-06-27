@@ -45,6 +45,7 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
@@ -112,7 +113,8 @@ import com.palantir.timestamp.TimestampService;
     }
 
     public RawTransaction setupRunTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens) {
-        LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp();
+        LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
+                LockImmutableTimestampRequest.create());
         try {
             LockRefreshToken immutableTsLock = immutableTsResponse.getLock();
             long immutableTs = immutableTsResponse.getImmutableTimestamp();

@@ -30,9 +30,11 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
@@ -60,7 +62,7 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp() {
+    public LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request) {
         long immutableLockTs = timestampService.getFreshTimestamp();
         LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
         LockRequest lockRequest = LockRequest.builder(ImmutableSortedMap.of(lockDesc, LockMode.READ))
@@ -74,7 +76,7 @@ public class LegacyTimelockService implements TimelockService {
         }
 
         try {
-            return new LockImmutableTimestampResponse(getImmutableTimestampInternal(immutableLockTs), lock);
+            return LockImmutableTimestampResponse.of(getImmutableTimestampInternal(immutableLockTs), lock);
         } catch (Throwable e) {
             if (lock != null) {
                 lockService.unlock(lock);
@@ -97,8 +99,8 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public void waitForLocks(Set<LockDescriptor> lockDescriptors) {
-        LockRequest legacyRequest = toLegacyWaitForLocksRequest(lockDescriptors);
+    public void waitForLocks(WaitForLocksRequest request) {
+        LockRequest legacyRequest = toLegacyWaitForLocksRequest(request.getLockDescriptors());
 
         lockAnonymous(legacyRequest);
     }

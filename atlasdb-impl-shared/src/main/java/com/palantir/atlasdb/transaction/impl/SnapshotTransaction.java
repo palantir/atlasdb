@@ -122,6 +122,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.v2.LockRequestV2;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -1560,7 +1561,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     protected LockRefreshToken acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
-        return timelockService.lock(new LockRequestV2(lockDescriptors));
+        return timelockService.lock(LockRequestV2.of(lockDescriptors));
     }
 
     protected Set<LockDescriptor> getLocksForWrites() {
@@ -1623,7 +1624,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        timelockService.waitForLocks(lockDescriptors);
+        timelockService.waitForLocks(WaitForLocksRequest.of(lockDescriptors));
     }
 
     ///////////////////////////////////////////////////////////////////////////

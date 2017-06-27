@@ -16,28 +16,18 @@
 
 package com.palantir.lock.v2;
 
-import java.util.Set;
 import java.util.UUID;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.LockDescriptor;
-
 @Value.Immutable
-@JsonSerialize(as=ImmutableLockRequestV2.class)
-@JsonDeserialize(as=ImmutableLockRequestV2.class)
-public interface LockRequestV2 {
-
-    @Value.Parameter
-    Set<LockDescriptor> getLockDescriptors();
+public interface LockImmutableTimestampRequest {
 
     @Value.Parameter
     UUID getRequestId();
 
-    static LockRequestV2 of(Set<LockDescriptor> lockDescriptors) {
-        return ImmutableLockRequestV2.of(lockDescriptors, UUID.randomUUID());
+    static LockImmutableTimestampRequest create() {
+        return ImmutableLockImmutableTimestampRequest.of(UUID.randomUUID());
     }
 
 }

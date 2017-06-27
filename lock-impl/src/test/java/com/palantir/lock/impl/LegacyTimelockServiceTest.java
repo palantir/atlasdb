@@ -41,9 +41,11 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
@@ -87,8 +89,8 @@ public class LegacyTimelockServiceTest {
         mockImmutableTsLockResponse();
         mockMinLockedInVersionIdResponse(immutableTs);
 
-        LockImmutableTimestampResponse expectedResponse = new LockImmutableTimestampResponse(immutableTs, LOCK_REFRESH_TOKEN);
-        assertEquals(expectedResponse, timelock.lockImmutableTimestamp());
+        LockImmutableTimestampResponse expectedResponse = LockImmutableTimestampResponse.of(immutableTs, LOCK_REFRESH_TOKEN);
+        assertEquals(expectedResponse, timelock.lockImmutableTimestamp(LockImmutableTimestampRequest.create()));
     }
 
     @Test
@@ -117,7 +119,7 @@ public class LegacyTimelockServiceTest {
 
         when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
 
-        assertEquals(LOCK_REFRESH_TOKEN, timelock.lock(new LockRequestV2(ImmutableSet.of(LOCK_A, LOCK_B))));
+        assertEquals(LOCK_REFRESH_TOKEN, timelock.lock(LockRequestV2.of(ImmutableSet.of(LOCK_A, LOCK_B))));
         verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
     }
 
@@ -127,7 +129,7 @@ public class LegacyTimelockServiceTest {
 
         when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
 
-        timelock.waitForLocks(ImmutableSet.of(LOCK_A, LOCK_B));
+        timelock.waitForLocks(WaitForLocksRequest.of(ImmutableSet.of(LOCK_A, LOCK_B)));
         verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
     }
 

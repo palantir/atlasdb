@@ -286,7 +286,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         SnapshotTransaction snapshot = new SnapshotTransaction(
                 kvMock,
-                new LegacyTimelockService(timestampService, lock),
+                new LegacyTimelockService(timestampService, lock, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 transactionTs,
@@ -341,7 +341,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         SnapshotTransaction snapshot = new SnapshotTransaction(
                 kv,
-                new LegacyTimelockService(timestampService, lockService),
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 transactionTs,

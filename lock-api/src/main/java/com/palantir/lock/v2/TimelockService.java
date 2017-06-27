@@ -24,7 +24,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.timestamp.TimestampRange;
 
@@ -44,7 +43,7 @@ public interface TimelockService {
     @POST
     @Path("lock-immutable-timestamp")
     @Produces(MediaType.APPLICATION_JSON)
-    LockImmutableTimestampResponse lockImmutableTimestamp();
+    LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request);
 
     @POST
     @Path("immutable-timestamp")
@@ -59,7 +58,7 @@ public interface TimelockService {
     @POST
     @Path("await-locks")
     @Produces(MediaType.APPLICATION_JSON)
-    void waitForLocks(Set<LockDescriptor> lockDescriptors);
+    void waitForLocks(WaitForLocksRequest request);
 
     @POST
     @Path("refresh-locks")
