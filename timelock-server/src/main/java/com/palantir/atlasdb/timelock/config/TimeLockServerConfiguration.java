@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-//import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.jetty.HttpConnectorFactory;
@@ -55,7 +54,6 @@ public class TimeLockServerConfiguration extends Configuration {
                     "Configuration enables clientRequestLimit but specifies non-positive number of available threads.");
         }
 
-        // TODO default
         this.algorithm = algorithm;
         this.cluster = cluster;
         this.clients = clients;
