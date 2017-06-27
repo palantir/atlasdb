@@ -18,18 +18,13 @@ package com.palantir.atlasdb.timelock.lock;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.ws.rs.NotSupportedException;
-
-import com.palantir.atlasdb.timelock.util.LoggablePreconditions;
-import com.palantir.logsafe.SafeArg;
 
 public class ImmutableTimestampLock implements AsyncLock {
 
     private final long timestamp;
     private final ImmutableTimestampTracker tracker;
-    private AtomicReference<UUID> holder = new AtomicReference<>(null);
 
     public ImmutableTimestampLock(long timestamp, ImmutableTimestampTracker tracker) {
         this.timestamp = timestamp;
@@ -38,9 +33,7 @@ public class ImmutableTimestampLock implements AsyncLock {
 
     @Override
     public CompletableFuture<Void> lock(UUID requestId) {
-        setHolderAndCheckNotHeld(requestId);
-
-        tracker.add(timestamp);
+        tracker.lock(timestamp, requestId);
         return CompletableFuture.completedFuture(null);
     }
 
@@ -51,23 +44,6 @@ public class ImmutableTimestampLock implements AsyncLock {
 
     @Override
     public void unlock(UUID requestId) {
-        checkIsCurrentHolder(requestId);
-
-        tracker.remove(timestamp);
-    }
-
-    private void checkIsCurrentHolder(UUID requestId) {
-        LoggablePreconditions.checkState(
-                requestId.equals(holder.get()),
-                "ExclusiveLock may not be unlocked by a non-holder",
-                SafeArg.of("currentHolder", holder.get()),
-                SafeArg.of("request", requestId));
-    }
-
-    private void setHolderAndCheckNotHeld(UUID requestId) {
-        LoggablePreconditions.checkState(holder.compareAndSet(null, requestId),
-                "ImmutableTimestampLock should not be avcquired twice",
-                SafeArg.of("currentHolder", holder.get()),
-                SafeArg.of("currentRequest", requestId));
+        tracker.unlock(timestamp, requestId);
     }
 }
