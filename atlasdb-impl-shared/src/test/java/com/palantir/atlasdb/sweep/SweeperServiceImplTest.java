@@ -31,7 +31,6 @@ import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockServiceClientTest;
-import com.palantir.atlasdb.sweeperservice.SweeperService;
 import com.palantir.remoting2.clients.UserAgents;
 import com.palantir.remoting2.errors.RemoteException;
 import com.palantir.remoting2.jaxrs.JaxRsClient;

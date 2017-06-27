@@ -19,7 +19,6 @@ import java.util.Optional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.validation.constraints.Null;
 
 import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
@@ -27,7 +26,6 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
-import com.palantir.atlasdb.sweeperservice.SweeperService;
 import com.palantir.remoting2.servers.jersey.WebPreconditions;
 
 public final class SweeperServiceImpl implements SweeperService {

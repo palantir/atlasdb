@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweeperservice;
+package com.palantir.atlasdb.sweep;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,14 +29,16 @@ import javax.ws.rs.core.MediaType;
 @Path("/sweep")
 public interface SweeperService {
     /**
-     * Attempt to sweep a particular table.
-     * @return a boolean which is true on success and false otherwise
+     * Sweep a particular table from EMPTY startRow with default {@link SweepBatchConfig}.
      */
     @POST
     @Path("sweep-table")
     @Produces(MediaType.APPLICATION_JSON)
     void sweepTable(@QueryParam("tablename") String tableName);
 
+    /**
+     * Sweep a particular table from specified startRow with default {@link SweepBatchConfig}.
+     */
     @POST
     @Path("sweep-table-from-row")
     @Produces(MediaType.APPLICATION_JSON)
@@ -44,6 +46,9 @@ public interface SweeperService {
             @QueryParam("tablename") String tableName,
             @Nonnull @QueryParam("startRow") String startRow);
 
+    /**
+     * Sweep a particular table from specified startRow with specified {@link SweepBatchConfig} parameters.
+     */
     @POST
     @Path("sweep-table-from-row-with-batch")
     @Produces(MediaType.APPLICATION_JSON)
