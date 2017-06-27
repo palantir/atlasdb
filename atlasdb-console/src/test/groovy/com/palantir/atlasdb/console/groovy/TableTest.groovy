@@ -82,6 +82,7 @@ class TableTest {
     @Test
     void testGetRow() {
         rowQueryRunner(['a'], [['a']])
+        rowQueryRunner(['a':'b', 'c':'d'], [['b', 'd']])
     }
 
     private void rowsQueryRunner(row, rowExpect, col=null, colExpect=null) {
@@ -103,6 +104,7 @@ class TableTest {
             rowsQueryRunner(it.key, it.value)
             rowsQueryRunner(it.key, it.value, it.key, it.value)
         }
+        rowQueryRunner(['a':'b', 'c':'d'], [['b', 'd']])
     }
 
     @Test
@@ -157,6 +159,7 @@ class TableTest {
     void testGetRange() {
         def stringExample = 'a'
         def listExample = [stringExample]
+        def mapExample = ['key': 'a']
         rangeTestRunner([start: stringExample], [start: listExample])
         rangeTestRunner([end: stringExample], [end: listExample])
         rangeTestRunner([prefix: stringExample], [prefix: listExample])
