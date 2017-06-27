@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+//import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.jetty.HttpConnectorFactory;
@@ -41,8 +41,10 @@ public class TimeLockServerConfiguration extends Configuration {
     private final boolean useClientRequestLimit;
     private final TimeLimiterConfiguration timeLimiterConfiguration;
 
+    public static final String LEADER_ELECTION_NAMESPACE = "leader";
+
     public TimeLockServerConfiguration(
-            @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
+            @JsonProperty(value = "algorithm", required = true) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients,
             @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit,
@@ -53,13 +55,18 @@ public class TimeLockServerConfiguration extends Configuration {
                     "Configuration enables clientRequestLimit but specifies non-positive number of available threads.");
         }
 
-        this.algorithm = MoreObjects.firstNonNull(algorithm, AtomixConfiguration.DEFAULT);
+        // TODO default
+        this.algorithm = algorithm;
         this.cluster = cluster;
         this.clients = clients;
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
         this.timeLimiterConfiguration =
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
 
+        if (algorithm == null) {
+            log.warn("TimeLockServer initialised without an algorithm specification. "
+                    + "This is only supported for testing purposes.");
+        }
         if (clients.isEmpty()) {
             log.warn("TimeLockServer initialised with an empty list of 'clients'. "
                     + "When adding clients, you will need to amend the config and restart TimeLock.");
@@ -71,9 +78,9 @@ public class TimeLockServerConfiguration extends Configuration {
                 client.matches(CLIENT_NAME_REGEX),
                 String.format("Client names must consist of alphanumeric characters, underscores or dashes only; "
                         + "'%s' does not.", client)));
-        Preconditions.checkState(!clientNames.contains(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
+        Preconditions.checkState(!clientNames.contains(LEADER_ELECTION_NAMESPACE),
                 String.format("The namespace '%s' is reserved for the leader election service. Please use a different"
-                        + " name.", PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE));
+                        + " name.", LEADER_ELECTION_NAMESPACE));
     }
 
     public TimeLockAlgorithmConfiguration algorithm() {

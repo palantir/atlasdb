@@ -1,0 +1,61 @@
+/**
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+apply plugin: 'org.inferred.processors'
+apply plugin: 'org.unbroken-dome.test-sets'
+
+apply from: "../gradle/publish-jars.gradle"
+apply from: "../gradle/shared.gradle"
+apply from: "../gradle/timelock.gradle"
+
+testSets {
+    integTest
+}
+
+jacocoTestReport {
+    executionData test, integTest
+}
+
+check.dependsOn integTest
+
+dependencies {
+    compile project(":timestamp-impl")
+    compile project(":timelock-server")
+
+    compile group: 'com.github.rholder', name: 'guava-retrying'
+    compile group: 'com.palantir.remoting2', name: 'jersey-servers'
+    compile group: 'com.palantir.remoting2', name: 'ssl-config'
+    compile group: 'com.palantir.remoting2', name: 'tracing'
+    compile group: 'com.palantir.tritium', name: 'tritium-lib'
+    compile group: 'io.atomix', name: 'atomix'
+    compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
+    compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
+    compile group: 'io.dropwizard', name: 'dropwizard-http2', version: libVersions.timelock_dropwizard
+    compile group: 'io.dropwizard', name: 'dropwizard-request-logging', version: libVersions.timelock_dropwizard
+    compile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
+
+    processor group: 'org.immutables', name: 'value'
+    processor "com.google.auto.service:auto-service:1.0-rc2"
+
+    testCompile project(":atlasdb-config")
+    testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
+    testCompile project(":atlasdb-tests-shared")
+    testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
+
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.timelock_dropwizard
+}

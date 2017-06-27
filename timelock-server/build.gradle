@@ -5,45 +5,18 @@ apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 apply from: "../gradle/timelock.gradle"
 
-testSets {
-    integTest
-}
-
 jacocoTestReport {
-    executionData test, integTest
+    executionData test
 }
-
-check.dependsOn integTest
 
 dependencies {
-    compile project(":timestamp-impl")
-    compile project(":lock-impl")
-    compile project(":leader-election-impl")
     compile (project(":atlasdb-config")) {
         exclude group:'io.dropwizard'
     }
-
-    compile group: 'com.github.rholder', name: 'guava-retrying'
-    compile group: 'com.palantir.remoting2', name: 'jersey-servers'
-    compile group: 'com.palantir.remoting2', name: 'ssl-config'
-    compile group: 'com.palantir.remoting2', name: 'tracing'
-    compile group: 'com.palantir.tritium', name: 'tritium-lib'
-    compile group: 'io.atomix', name: 'atomix'
-    compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
-    compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
-    compile group: 'io.dropwizard', name: 'dropwizard-http2', version: libVersions.timelock_dropwizard
-    compile group: 'io.dropwizard', name: 'dropwizard-request-logging', version: libVersions.timelock_dropwizard
     compile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
 
     processor group: 'org.immutables', name: 'value'
+    processor "com.google.auto.service:auto-service:1.0-rc2"
 
-    testCompile project(":atlasdb-config")
-    testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")
-
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile project(":atlasdb-tests-shared")
-    testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
-
-    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.timelock_dropwizard
 }

@@ -42,6 +42,15 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - The implementation of the TimeLock server has been separated into a new project, `timelock-impl`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+
+    *    - |userbreak|
+         - `TimelockServerConfiguration` now requires an algorithm to be specified.
+           Previously, if no algorithm was specified, the configuration would default to atomix.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+
     *    - |new|
          - AtlasDB now instruments embedded time and lock services, even if no leader block is present in the config,
            to expose aggregate response time and service call metrics.
