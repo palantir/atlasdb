@@ -18,13 +18,14 @@ package com.palantir.atlasdb.timelock.lock;
 
 import java.util.Collection;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.lock.v2.LockTokenV2;
+
+import net.jcip.annotations.GuardedBy;
 
 public class HeldLocks {
 
@@ -34,7 +35,8 @@ public class HeldLocks {
     private final LockTokenV2 token;
     private final LeaseExpirationTimer expirationTimer;
 
-    private AtomicBoolean isUnlocked = new AtomicBoolean(false);
+    @GuardedBy("this")
+    private boolean isUnlocked = false;
 
     public HeldLocks(Collection<AsyncLock> acquiredLocks, UUID requestId) {
         this(acquiredLocks, requestId, new LeaseExpirationTimer(System::currentTimeMillis));
@@ -47,12 +49,19 @@ public class HeldLocks {
         this.expirationTimer = expirationTimer;
     }
 
-    public boolean isExpired() {
-        return expirationTimer.isExpired();
+    /**
+     * Unlocks if expired, and returns whether the locks are now unlocked (regardless of whether or not they were
+     * unlocked as a result of calling this method).
+     */
+    public synchronized boolean unlockIfExpired() {
+        if (expirationTimer.isExpired()) {
+            unlock();
+        }
+        return isUnlocked;
     }
 
-    public boolean refresh() {
-        if (isUnlocked.get()) {
+    public synchronized boolean refresh() {
+        if (isUnlocked) {
             return false;
         }
 
@@ -60,10 +69,11 @@ public class HeldLocks {
         return true;
     }
 
-    public boolean unlock() {
-        if (!isUnlocked.compareAndSet(false, true)) {
+    public synchronized boolean unlock() {
+        if (isUnlocked) {
             return false;
         }
+        isUnlocked = true;
 
         for (AsyncLock lock : acquiredLocks) {
             lock.unlock(token.getRequestId());
