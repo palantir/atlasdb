@@ -89,4 +89,5 @@ The other batch parameters are still respected, but their values are unlikely to
     :hidden:
 
     sweep/background-sweep
+    sweep/sweep-endpoints
     sweep/sweep-cli
