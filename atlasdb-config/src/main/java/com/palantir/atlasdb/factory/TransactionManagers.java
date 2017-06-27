@@ -241,7 +241,7 @@ public final class TransactionManagers {
             Schemas.createTablesAndIndexes(schema, kvs);
         }
         // Prime the key value service with logging information.
-        kvs.rehydrateLogArbitrator();
+        kvs.rehydrateLoggingArgSupplier();
 
         CleanupFollower follower = CleanupFollower.create(schemas);
 

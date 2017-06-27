@@ -29,7 +29,7 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class KeyValueServiceArgSupplierTest {
+public class KeyValueServiceArgSupplierImplTest {
     private static final String ARG_NAME = "argName";
     private static final TableReference SAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.safe");
     private static final TableReference UNSAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.bar");
@@ -39,10 +39,8 @@ public class KeyValueServiceArgSupplierTest {
     private static final String SAFE_COLUMN_NAME = "safecolumn";
     private static final String UNSAFE_COLUMN_NAME = "column";
 
-    private static final KeyValueServiceArgSupplier ALL_UNSAFE = KeyValueServiceArgSupplier.ALL_UNSAFE;
-
     private final KeyValueServiceLogArbitrator arbitrator = mock(KeyValueServiceLogArbitrator.class);
-    private final KeyValueServiceArgSupplier supplier = new KeyValueServiceArgSupplier(arbitrator);
+    private final KeyValueServiceArgSupplier supplier = new KeyValueServiceArgSupplierImpl(arbitrator);
 
     @Before
     public void setUpMocks() {
@@ -60,46 +58,6 @@ public class KeyValueServiceArgSupplierTest {
             String columnName = (String) invocation.getArguments()[1];
             return columnName.contains("safe");
         });
-    }
-
-    @Test
-    public void allUnsafeSupplierReturnsUnsafeTableReferences() {
-        Arg<TableReference> tableReferenceArg = ALL_UNSAFE.getTableReferenceArg(ARG_NAME, SAFE_TABLE_REFERENCE);
-        assertThat(tableReferenceArg).isInstanceOf(UnsafeArg.class);
-    }
-
-    @Test
-    public void allUnsafeSupplierReturnsUnsafeRowComponents() {
-        Arg<String> rowNameArg = ALL_UNSAFE.getRowComponentNameArg(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_ROW_NAME);
-        assertThat(rowNameArg).isInstanceOf(UnsafeArg.class);
-    }
-
-    @Test
-    public void allUnsafeSupplierReturnsUnsafeColumnNames() {
-        Arg<String> columnNameArg = ALL_UNSAFE.getColumnNameArg(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME);
-        assertThat(columnNameArg).isInstanceOf(UnsafeArg.class);
-    }
-
-
-    @Test
-    public void propagatesNameAndTableReferenceIfUnsafe() {
-        Arg<TableReference> tableReferenceArg = ALL_UNSAFE.getTableReferenceArg(ARG_NAME, SAFE_TABLE_REFERENCE);
-        assertThat(tableReferenceArg.getName()).isEqualTo(ARG_NAME);
-        assertThat(tableReferenceArg.getValue()).isEqualTo(SAFE_TABLE_REFERENCE);
-    }
-
-    @Test
-    public void propagatesNameAndRowComponentNameIfUnsafe() {
-        Arg<String> rowNameArg = ALL_UNSAFE.getRowComponentNameArg(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_ROW_NAME);
-        assertThat(rowNameArg.getName()).isEqualTo(ARG_NAME);
-        assertThat(rowNameArg.getValue()).isEqualTo(SAFE_ROW_NAME);
-    }
-
-    @Test
-    public void propagatesNameAndColumnNameIfUnsafe() {
-        Arg<String> columnNameArg = ALL_UNSAFE.getColumnNameArg(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME);
-        assertThat(columnNameArg.getName()).isEqualTo(ARG_NAME);
-        assertThat(columnNameArg.getValue()).isEqualTo(SAFE_COLUMN_NAME);
     }
 
     @Test

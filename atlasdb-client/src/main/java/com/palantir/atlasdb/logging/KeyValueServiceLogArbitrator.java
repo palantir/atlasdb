@@ -18,7 +18,7 @@ package com.palantir.atlasdb.logging;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public interface KeyValueServiceLogArbitrator {
+interface KeyValueServiceLogArbitrator {
     KeyValueServiceLogArbitrator ALL_UNSAFE = new KeyValueServiceLogArbitrator() {
         @Override
         public boolean isTableReferenceSafe(TableReference tableReference) {

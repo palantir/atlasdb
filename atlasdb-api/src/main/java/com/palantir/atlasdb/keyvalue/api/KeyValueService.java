@@ -29,6 +29,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
+import com.palantir.atlasdb.logging.KeyValueServiceLogArbitrator;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
@@ -682,12 +684,19 @@ public interface KeyValueService extends AutoCloseable {
     ClusterAvailabilityStatus getClusterAvailabilityStatus();
 
     /**
-     * Some KVSs may provide a log arbitrator, which is a way of knowing if a construct is
+     * Some KVSs may provide a logging arg supplier, which knows whether constructs are
      * safe for logging (e.g. a table name or column name). This may need to be rehydrated
      * if there is a change to the schema that possibly results in some construct becoming
      * safe or unsafe to log.
      */
-    default void rehydrateLogArbitrator() {
+    default void rehydrateLoggingArgSupplier() {
         // no op
+    }
+
+    /**
+     * Provides a supplier that is able to determine whether constructs are safe for logging.
+     */
+    default KeyValueServiceArgSupplier getLoggingArgSupplier() {
+        return KeyValueServiceArgSupplier.ALL_UNSAFE;
     }
 }

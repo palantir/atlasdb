@@ -60,6 +60,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
+import com.palantir.atlasdb.logging.KeyValueServiceArgSupplierImpl;
 import com.palantir.atlasdb.logging.SafeLoggableDataUtils;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
@@ -371,8 +372,14 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void rehydrateLogArbitrator() {
-        this.argSupplier = new KeyValueServiceArgSupplier(
+    public void rehydrateLoggingArgSupplier() {
+        argSupplier = new KeyValueServiceArgSupplierImpl(
                 SafeLoggableDataUtils.fromTableMetadata(getMetadataForTables()));
+    }
+
+    @Override
+    public KeyValueServiceArgSupplier getLoggingArgSupplier() {
+        // The object is immutable and volatile, so it's fine for us to allow others to look at it.
+        return argSupplier;
     }
 }

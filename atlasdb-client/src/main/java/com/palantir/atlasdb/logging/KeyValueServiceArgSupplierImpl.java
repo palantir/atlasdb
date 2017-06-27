@@ -21,26 +21,26 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class KeyValueServiceArgSupplier {
-    public static final KeyValueServiceArgSupplier ALL_UNSAFE = new KeyValueServiceArgSupplier(
-            KeyValueServiceLogArbitrator.ALL_UNSAFE);
-
+public class KeyValueServiceArgSupplierImpl implements KeyValueServiceArgSupplier {
     private final KeyValueServiceLogArbitrator logArbitrator;
 
-    public KeyValueServiceArgSupplier(KeyValueServiceLogArbitrator logArbitrator) {
+    public KeyValueServiceArgSupplierImpl(KeyValueServiceLogArbitrator logArbitrator) {
         this.logArbitrator = logArbitrator;
     }
 
+    @Override
     public Arg<TableReference> getTableReferenceArg(String argName, TableReference tableReference) {
         return getArg(argName, tableReference, logArbitrator.isTableReferenceSafe(tableReference));
     }
 
+    @Override
     public Arg<String> getRowComponentNameArg(String argName, TableReference tableReference, String rowComponentName) {
         return getArg(argName,
                 rowComponentName,
                 logArbitrator.isRowComponentNameSafe(tableReference, rowComponentName));
     }
 
+    @Override
     public Arg<String> getColumnNameArg(String argName, TableReference tableReference, String columnName) {
         return getArg(argName,
                 columnName,
