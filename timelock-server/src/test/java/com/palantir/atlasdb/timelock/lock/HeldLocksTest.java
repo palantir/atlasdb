@@ -70,12 +70,15 @@ public class HeldLocksTest {
     }
 
     @Test
-    public void isExpiredDelegatesToExpirationTimer() {
+    public void unlocksIfExpired() {
         when(timer.isExpired()).thenReturn(true);
-        assertTrue(heldLocks.isExpired());
+        assertTrue(heldLocks.unlockIfExpired());
+    }
 
+    @Test
+    public void doesNotUnlockIfNotExpired() {
         when(timer.isExpired()).thenReturn(false);
-        assertFalse(heldLocks.isExpired());
+        assertFalse(heldLocks.unlockIfExpired());
     }
 
     @Test
