@@ -63,8 +63,7 @@ public class HeldLocksCollection {
                 iterator.remove();
             } else {
                 Optional<HeldLocks> heldLocks = getIfCompleted(locksFuture);
-                if (heldLocks.isPresent() && heldLocks.get().isExpired()) {
-                    heldLocks.get().unlock();
+                if (heldLocks.isPresent() && heldLocks.get().unlockIfExpired()) {
                     iterator.remove();
                 }
             }
