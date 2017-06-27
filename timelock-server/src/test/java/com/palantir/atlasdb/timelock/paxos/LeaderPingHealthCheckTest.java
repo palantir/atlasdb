@@ -22,9 +22,8 @@ import static org.mockito.Mockito.when;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.leader.PingableLeader;
-
-import feign.FeignException;
 
 public class LeaderPingHealthCheckTest {
     private static final String MULTIPLE_LEADERS_MESSAGE = "There are multiple leaders in the Paxos cluster.";
@@ -118,7 +117,7 @@ public class LeaderPingHealthCheckTest {
 
     private PingableLeader getMockOfPingableLeaderWherePingThrows() {
         PingableLeader mockLeader = mock(PingableLeader.class);
-        when(mockLeader.ping()).thenThrow(mock(FeignException.class));
+        when(mockLeader.ping()).thenThrow(mock(AtlasDbRemoteException.class));
         return mockLeader;
     }
 }

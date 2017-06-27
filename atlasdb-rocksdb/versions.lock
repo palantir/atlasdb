@@ -27,7 +27,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting2:jackson-support",
@@ -114,25 +113,6 @@
         },
         "com.googlecode.protobuf-java-format:protobuf-java-format": {
             "locked": "1.2",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.netflix.feign:feign-core": {
-            "locked": "8.6.1",
-            "transitive": [
-                "com.netflix.feign:feign-jackson",
-                "com.netflix.feign:feign-jaxrs"
-            ]
-        },
-        "com.netflix.feign:feign-jackson": {
-            "locked": "8.6.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.netflix.feign:feign-jaxrs": {
-            "locked": "8.6.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
@@ -346,7 +326,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting2:jackson-support",
@@ -433,25 +412,6 @@
         },
         "com.googlecode.protobuf-java-format:protobuf-java-format": {
             "locked": "1.2",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.netflix.feign:feign-core": {
-            "locked": "8.6.1",
-            "transitive": [
-                "com.netflix.feign:feign-jackson",
-                "com.netflix.feign:feign-jaxrs"
-            ]
-        },
-        "com.netflix.feign:feign-jackson": {
-            "locked": "8.6.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.netflix.feign:feign-jaxrs": {
-            "locked": "8.6.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]

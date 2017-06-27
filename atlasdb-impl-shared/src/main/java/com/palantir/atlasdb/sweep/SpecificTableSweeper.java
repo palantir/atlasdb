@@ -40,6 +40,8 @@ import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.time.Clock;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public class SpecificTableSweeper {
     private static final Logger log = LoggerFactory.getLogger(SpecificTableSweeper.class);
@@ -133,11 +135,13 @@ public class SpecificTableSweeper {
                     batchConfig,
                     startRow);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.info("Swept {} unique cells from {} starting at {}"
-                            + " and performed {} deletions in {} ms"
-                            + " up to timestamp {}.",
-                    results.getCellTsPairsExamined(), tableRef, startRowToHex(startRow),
-                    results.getStaleValuesDeleted(), elapsedMillis, results.getSweptTimestamp());
+            log.info("Swept successfully.",
+                    UnsafeArg.of("tableRef", tableRef),
+                    UnsafeArg.of("startRow", startRowToHex(startRow)),
+                    SafeArg.of("unique cells swept", results.getCellTsPairsExamined()),
+                    SafeArg.of("deletion count", results.getStaleValuesDeleted()),
+                    SafeArg.of("time taken", elapsedMillis),
+                    SafeArg.of("last swept timestamp", results.getSweptTimestamp()));
             sweepPerfLogger.logSweepResults(
                     SweepPerformanceResults.builder()
                             .sweepResults(results)
@@ -149,10 +153,10 @@ public class SpecificTableSweeper {
             }
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
-            log.info("Failed to sweep {} with batch config {} starting from row {}",
-                    tableRef,
-                    batchConfig,
-                    startRowToHex(startRow));
+            log.info("Failed to sweep.",
+                    UnsafeArg.of("tableRef", tableRef),
+                    UnsafeArg.of("startRow", startRowToHex(startRow)),
+                    SafeArg.of("batchConfig", batchConfig));
             throw e;
         }
     }

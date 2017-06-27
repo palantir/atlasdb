@@ -82,4 +82,8 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
         return Math.min(numTimestampsRequested, MAX_TIMESTAMPS_PER_REQUEST);
     }
 
+    @Override
+    public String ping() {
+        return PING_RESPONSE;
+    }
 }

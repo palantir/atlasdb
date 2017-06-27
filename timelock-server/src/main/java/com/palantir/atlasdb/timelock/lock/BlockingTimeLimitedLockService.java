@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.math.BigInteger;
+import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -32,27 +32,24 @@ import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
-import com.palantir.lock.HeldLocksGrant;
+import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockResponse;
-import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.LockService;
-import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.remoting.BlockingTimeoutException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
-public class BlockingTimeLimitedLockService implements LockService {
+public class BlockingTimeLimitedLockService implements CloseableRemoteLockService {
     private static final Logger log = LoggerFactory.getLogger(BlockingTimeLimitedLockService.class);
 
-    private final LockService delegate;
+    private final CloseableRemoteLockService delegate;
     private final TimeLimiter timeLimiter;
     private final long blockingTimeLimitMillis;
 
     @VisibleForTesting
     BlockingTimeLimitedLockService(
-            LockService delegate,
+            CloseableRemoteLockService delegate,
             TimeLimiter timeLimiter,
             long blockingTimeLimitMillis) {
         this.delegate = delegate;
@@ -60,7 +57,8 @@ public class BlockingTimeLimitedLockService implements LockService {
         this.blockingTimeLimitMillis = blockingTimeLimitMillis;
     }
 
-    public static LockService create(LockService lockService, long blockingTimeLimitMillis) {
+    public static BlockingTimeLimitedLockService create(CloseableRemoteLockService lockService,
+            long blockingTimeLimitMillis) {
         return new BlockingTimeLimitedLockService(lockService, new SimpleTimeLimiter(), blockingTimeLimitMillis);
     }
 
@@ -86,11 +84,6 @@ public class BlockingTimeLimitedLockService implements LockService {
     }
 
     @Override
-    public boolean unlock(HeldLocksToken token) {
-        return delegate.unlock(token);
-    }
-
-    @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
         return delegate.refreshLockRefreshTokens(tokens);
     }
@@ -99,76 +92,6 @@ public class BlockingTimeLimitedLockService implements LockService {
     @Override
     public Long getMinLockedInVersionId(@PathParam("client") String client) {
         return delegate.getMinLockedInVersionId(client);
-    }
-
-    @Nullable
-    @Override
-    public Long getMinLockedInVersionId() {
-        return delegate.getMinLockedInVersionId();
-    }
-
-    @Override
-    public Long getMinLockedInVersionId(LockClient client) {
-        return delegate.getMinLockedInVersionId(client);
-    }
-
-    @Override
-    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
-        return callWithTimeLimit(
-                () -> delegate.lockWithFullLockResponse(client, request),
-                ImmutableLockRequestSpecification.of("lockWithFullLockResponse", client.getClientId(), request));
-    }
-
-    @Override
-    public boolean unlockSimple(SimpleHeldLocksToken token) {
-        return delegate.unlockSimple(token);
-    }
-
-    @Override
-    public boolean unlockAndFreeze(HeldLocksToken token) {
-        return delegate.unlockAndFreeze(token);
-    }
-
-    @Override
-    public Set<HeldLocksToken> getTokens(LockClient client) {
-        return delegate.getTokens(client);
-    }
-
-    @Override
-    public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
-        return delegate.refreshTokens(tokens);
-    }
-
-    @Nullable
-    @Override
-    public HeldLocksGrant refreshGrant(HeldLocksGrant grant) {
-        return delegate.refreshGrant(grant);
-    }
-
-    @Nullable
-    @Override
-    public HeldLocksGrant refreshGrant(BigInteger grantId) {
-        return delegate.refreshGrant(grantId);
-    }
-
-    @Override
-    public HeldLocksGrant convertToGrant(HeldLocksToken token) {
-        return delegate.convertToGrant(token);
-    }
-
-    @Override
-    public HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant) {
-        return delegate.useGrant(client, grant);
-    }
-
-    @Override
-    public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
-        return delegate.useGrant(client, grantId);
-    }
-
-    @Override
-    public LockServerOptions getLockServerOptions() {
-        return delegate.getLockServerOptions();
     }
 
     @Override
@@ -181,7 +104,6 @@ public class BlockingTimeLimitedLockService implements LockService {
         delegate.logCurrentState();
     }
 
-    @SuppressWarnings("Slf4jConstantLogMessage") // TODO (jkong): Implement an exception producer-and-logger
     private <T> T callWithTimeLimit(Callable<T> callable, LockRequestSpecification specification)
             throws InterruptedException {
         try {
@@ -189,25 +111,40 @@ public class BlockingTimeLimitedLockService implements LockService {
         } catch (InterruptedException e) {
             // In this case, the thread was interrupted for some other reason, perhaps because we lost leadership.
             log.info("Lock service was interrupted when servicing {} for client \"{}\"; request was {}",
-                    specification.method(),
-                    specification.client(),
-                    specification.lockRequest(),
+                    SafeArg.of("method", specification.method()),
+                    SafeArg.of("client", specification.client()),
+                    UnsafeArg.of("lockRequest", specification.lockRequest()),
                     e);
             throw e;
         } catch (UncheckedTimeoutException e) {
             // This is the legitimate timeout case we're trying to catch.
-            String message = String.format(
-                    "Lock service timed out after %s milliseconds when servicing %s for client \"%s\"; request was %s",
-                    blockingTimeLimitMillis,
-                    specification.method(),
-                    specification.client(),
-                    specification.lockRequest());
-            log.info(message, e);
-            throw new BlockingTimeoutException(message);
+            throw logAndHandleTimeout(specification);
         } catch (Exception e) {
             // We don't know, and would prefer not to throw checked exceptions apart from InterruptedException.
             throw Throwables.propagate(e);
         }
+    }
+
+    private BlockingTimeoutException logAndHandleTimeout(LockRequestSpecification specification) {
+        final String logMessage = "Lock service timed out after {} milliseconds"
+                + " when servicing {} for client \"{}\"";
+        log.info(logMessage,
+                SafeArg.of("timeoutDurationMillis", blockingTimeLimitMillis),
+                SafeArg.of("method", specification.method()),
+                SafeArg.of("client", specification.client()),
+                UnsafeArg.of("lockRequest", specification.lockRequest()));
+
+        String errorMessage = String.format(
+                logMessage.replace("{}", "%s"),
+                blockingTimeLimitMillis,
+                specification.method(),
+                specification.client());
+        return new BlockingTimeoutException(errorMessage);
+    }
+
+    @Override
+    public void close() throws IOException {
+        delegate.close();
     }
 
     @Value.Immutable

@@ -21,8 +21,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
@@ -30,10 +36,12 @@ import java.util.function.LongSupplier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -62,21 +70,35 @@ public abstract class AbstractSweepTaskRunnerTest {
     private static final String COL = "c";
     protected static final int DEFAULT_BATCH_SIZE = 1000;
 
+    private static final List<Cell> SMALL_LIST_OF_CELLS = Lists.newArrayList();
+    private static final List<Cell> BIG_LIST_OF_CELLS = Lists.newArrayList();
+
+    static {
+        for (int i = 0; i < 10; i++) {
+            String colName = String.format("c%d", i);
+            BIG_LIST_OF_CELLS.add(
+                    Cell.create("row".getBytes(StandardCharsets.UTF_8), colName.getBytes(StandardCharsets.UTF_8)));
+        }
+        SMALL_LIST_OF_CELLS.addAll(BIG_LIST_OF_CELLS.subList(0, 4));
+    }
+
     protected KeyValueService kvs;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
     protected SweepTaskRunner sweepRunner;
     protected LockAwareTransactionManager txManager;
     protected TransactionService txService;
     protected PersistentLockManager persistentLockManager;
+    protected SweepStrategyManager ssm;
+    protected LongSupplier tsSupplier;
 
     @Before
     public void setup() {
         TimestampService tsService = new InMemoryTimestampService();
         kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService);
-        SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
+        ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
-        LongSupplier tsSupplier = sweepTimestamp::get;
+        tsSupplier = sweepTimestamp::get;
         persistentLockManager = new PersistentLockManager(
                 SweepTestUtils.getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
@@ -358,6 +380,98 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(2);
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSweepBatchesDownToDeleteBatchSize() {
+        CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
+        SweepTaskRunner spiedSweepRunner =
+                new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+
+        putTwoValuesInEachCell(SMALL_LIST_OF_CELLS);
+
+        int deleteBatchSize = 1;
+        List<List<Cell>> sweptCells = runSweep(cellsSweeper, spiedSweepRunner,
+                8, 8, deleteBatchSize);
+
+        List<List<Cell>> expectedCells = groupCells(SMALL_LIST_OF_CELLS, 2 * deleteBatchSize);
+        assertEquals(expectedCells, sweptCells);
+    }
+
+    @Test
+    public void testSweepBatchesUpToDeleteBatchSize() {
+        CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
+        SweepTaskRunner spiedSweepRunner =
+                new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+
+        putTwoValuesInEachCell(SMALL_LIST_OF_CELLS);
+
+        List<List<Cell>> sweptCells = runSweep(cellsSweeper, spiedSweepRunner, 8, 1, 4);
+
+        assertEquals(1, sweptCells.size());
+        assertEquals(SMALL_LIST_OF_CELLS, sweptCells.get(0));
+    }
+
+    @Test
+    public void testSweepBatches() {
+        CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
+        SweepTaskRunner spiedSweepRunner =
+                new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+
+        putTwoValuesInEachCell(BIG_LIST_OF_CELLS);
+
+        int deleteBatchSize = 2;
+        List<List<Cell>> sweptCells = runSweep(cellsSweeper, spiedSweepRunner,
+                8, 1, deleteBatchSize);
+
+        List<List<Cell>> expectedCells = groupCells(BIG_LIST_OF_CELLS, 2 * deleteBatchSize);
+        assertEquals(expectedCells, sweptCells);
+    }
+
+    private void putTwoValuesInEachCell(List<Cell> cells) {
+        createTable(SweepStrategy.CONSERVATIVE);
+
+        int ts = 1;
+        for (Cell cell : cells) {
+            put(cell, "val1", ts);
+            put(cell, "val2", ts + 5);
+            ts += 10;
+        }
+
+        sweepTimestamp.set(ts);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<List<Cell>> runSweep(CellsSweeper cellsSweeper, SweepTaskRunner spiedSweepRunner,
+            int maxCellTsPairsToExamine, int candidateBatchSize, int deleteBatchSize) {
+        List<List<Cell>> sweptCells = Lists.newArrayList();
+
+        doAnswer((invocationOnMock) -> {
+            Object[] arguments = invocationOnMock.getArguments();
+            Collection<Cell> sentinelsToAdd = (Collection<Cell>) arguments[2];
+            sweptCells.add(new ArrayList(sentinelsToAdd));
+            return null;
+        }).when(cellsSweeper).sweepCells(eq(TABLE_NAME), any(), any());
+
+        spiedSweepRunner.run(TABLE_NAME, ImmutableSweepBatchConfig.builder()
+                .maxCellTsPairsToExamine(maxCellTsPairsToExamine)
+                .candidateBatchSize(candidateBatchSize)
+                .deleteBatchSize(deleteBatchSize)
+                .build(), PtBytes.EMPTY_BYTE_ARRAY);
+
+        return sweptCells;
+    }
+
+    private List<List<Cell>> groupCells(List<Cell> cells, int sizeOfEachGroup) {
+        List<List<Cell>> groupedCells = Lists.newArrayList();
+
+        for (int i = 0; i < cells.size(); i += sizeOfEachGroup) {
+            int groupMax = Math.min(i + sizeOfEachGroup, cells.size());
+            groupedCells.add(cells.subList(i, groupMax));
+        }
+
+        return groupedCells;
+    }
+
     private void testSweepManyRows(SweepStrategy strategy) {
         createTable(strategy);
         putIntoDefaultColumn("foo", "bar1", 5);
@@ -388,7 +502,7 @@ public abstract class AbstractSweepTaskRunnerTest {
                             .build(),
                     startRow);
             assertEquals(ts, results.getSweptTimestamp());
-            assertArrayEquals(startRow, results.getPreviousStartRow().orNull());
+            assertArrayEquals(startRow, results.getPreviousStartRow().orElse(null));
             totalStaleValuesDeleted += results.getStaleValuesDeleted();
             totalCellsExamined += results.getCellTsPairsExamined();
             if (!results.getNextStartRow().isPresent()) {
@@ -444,6 +558,14 @@ public abstract class AbstractSweepTaskRunnerTest {
             final String val,
             final long ts) {
         Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), column.getBytes(StandardCharsets.UTF_8));
+        put(tableRef, cell, val, ts);
+    }
+
+    protected void put(Cell cell, final String val, final long ts) {
+        put(TABLE_NAME, cell, val, ts);
+    }
+
+    protected void put(final TableReference tableRef, Cell cell, final String val, final long ts) {
         kvs.put(tableRef, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8)), ts);
         putTimestampIntoTransactionTable(ts);
     }

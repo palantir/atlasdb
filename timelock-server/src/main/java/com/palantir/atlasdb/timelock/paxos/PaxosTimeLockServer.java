@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -29,7 +30,6 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -52,8 +52,9 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.impl.ThreadPooledLockService;
 import com.palantir.paxos.PaxosAcceptor;
@@ -71,7 +72,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private final Environment environment;
 
     private Set<String> remoteServers;
-    private Optional<SSLSocketFactory> optionalSecurity = Optional.absent();
+    private Optional<SSLSocketFactory> optionalSecurity = Optional.empty();
     private LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
     private Semaphore sharedThreadPool = new Semaphore(-1);
@@ -164,7 +165,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     private static Optional<SSLSocketFactory> constructOptionalSslSocketFactory(
             PaxosConfiguration configuration) {
-        return configuration.sslConfiguration().transform(SslSocketFactories::createSslSocketFactory);
+        return configuration.sslConfiguration().map(SslSocketFactories::createSslSocketFactory);
     }
 
     @Override
@@ -173,23 +174,24 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 ManagedTimestampService.class,
                 createPaxosBackedTimestampService(client),
                 client);
-        LockService lockService = instrument(
-                LockService.class,
+        RemoteLockService lockService = instrument(
+                RemoteLockService.class,
                 createLockService(slowLogTriggerMillis),
                 client);
 
         return TimeLockServices.create(timestampService, lockService, timestampService);
     }
 
-    private LockService createLockService(long slowLogTriggerMillis) {
+    private RemoteLockService createLockService(long slowLogTriggerMillis) {
         return AwaitingLeadershipProxy.newProxyInstance(
-                LockService.class,
+                RemoteLockService.class,
                 () -> createThreadPoolingLockService(slowLogTriggerMillis),
                 leaderElectionService);
     }
 
-    private LockService createThreadPoolingLockService(long slowLogTriggerMillis) {
-        LockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(slowLogTriggerMillis);
+    private CloseableRemoteLockService createThreadPoolingLockService(long slowLogTriggerMillis) {
+        CloseableRemoteLockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(
+                slowLogTriggerMillis);
 
         if (!timeLockServerConfiguration.useClientRequestLimit()) {
             return lockServiceNotUsingThreadPooling;
@@ -210,7 +212,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
         return new ThreadPooledLockService(lockServiceNotUsingThreadPooling, localThreadPoolSize, sharedThreadPool);
     }
 
-    private LockService createTimeLimitedLockService(long slowLogTriggerMillis) {
+    private CloseableRemoteLockService createTimeLimitedLockService(long slowLogTriggerMillis) {
         LockServerOptions lockServerOptions = new LockServerOptions() {
             @Override
             public long slowLogTriggerMillis() {
@@ -218,7 +220,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
             }
         };
 
-        LockService rawLockService = LockServiceImpl.create(lockServerOptions);
+        LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions);
 
         if (timeLockServerConfiguration.timeLimiterConfiguration().enableTimeLimiting()) {
             return BlockingTimeLimitedLockService.create(

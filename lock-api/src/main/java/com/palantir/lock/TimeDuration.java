@@ -16,6 +16,7 @@
 package com.palantir.lock;
 
 import java.util.concurrent.TimeUnit;
+
 import javax.annotation.Nullable;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;

@@ -20,9 +20,10 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
+
 import org.junit.Test;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.leader.LeaderElectionService;
@@ -36,7 +37,7 @@ public class AwaitingLeadershipProxyTest {
         Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
         LeaderElectionService mockLeader = mock(LeaderElectionService.class);
 
-        when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.absent());
+        when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
         when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
                 .thenReturn(LeaderElectionService.StillLeadingStatus.LEADING);
 
@@ -55,7 +56,7 @@ public class AwaitingLeadershipProxyTest {
         Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
         LeaderElectionService mockLeader = mock(LeaderElectionService.class);
 
-        when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.absent());
+        when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
         when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
                 .thenReturn(LeaderElectionService.StillLeadingStatus.NOT_LEADING);
 

@@ -15,9 +15,10 @@
  */
 package com.palantir.atlasdb.cas;
 
+import java.util.Optional;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Optional;
 
 public class CheckAndSetValueUpdate {
     private final Optional<Long> oldValue;

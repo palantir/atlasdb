@@ -27,6 +27,8 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 
+import com.palantir.lock.LockDescriptor;
+
 /**
  * A simple wrapper for writing lock state as YAML to a file.
  */
@@ -64,10 +66,11 @@ class LockStateYamlWriter implements Closeable {
     }
 
     private static Representer getRepresenter() {
-        Representer representer = new Representer();
+        Representer representer = new LockDescriptorAwareRepresenter();
         representer.addClassTag(ImmutableSimpleTokenInfo.class, Tag.MAP);
         representer.addClassTag(ImmutableSimpleLockRequest.class, Tag.MAP);
         representer.addClassTag(SimpleLockRequestsWithSameDescriptor.class, Tag.MAP);
+        representer.addClassTag(LockDescriptor.class, Tag.MAP);
         return representer;
     }
 
@@ -83,5 +86,12 @@ class LockStateYamlWriter implements Closeable {
     @Override
     public void close() throws IOException {
         writer.close();
+    }
+
+    private static class LockDescriptorAwareRepresenter extends Representer {
+        LockDescriptorAwareRepresenter() {
+            super();
+            this.representers.put(LockDescriptor.class, data -> representScalar(Tag.STR, data.toString()));
+        }
     }
 }

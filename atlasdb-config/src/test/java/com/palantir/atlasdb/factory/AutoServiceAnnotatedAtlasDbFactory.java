@@ -17,11 +17,11 @@ package com.palantir.atlasdb.factory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.jmock.Mockery;
 
 import com.google.auto.service.AutoService;
-import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;

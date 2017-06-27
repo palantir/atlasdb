@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
@@ -61,6 +62,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         bootstrap.setMetricRegistry(MetricRegistries.createWithHdrHistogramReservoirs());
         enableEnvironmentVariablesInConfig(bootstrap);
         bootstrap.addBundle(new AtlasDbBundle<>());
+        bootstrap.getObjectMapper().registerModule(new Jdk8Module());
     }
 
     @Override

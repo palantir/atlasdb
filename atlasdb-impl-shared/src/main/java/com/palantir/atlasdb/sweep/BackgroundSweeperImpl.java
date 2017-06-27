@@ -33,6 +33,8 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
@@ -107,13 +109,13 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         try (SweepLocks locks = createSweepLocks()) {
             // Wait a while before starting so short lived clis don't try to sweep.
             Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
-            log.debug("Starting background sweeper.");
+            log.info("Starting background sweeper.");
             while (true) {
                 long millisToSleep = checkConfigAndRunSweep(locks);
                 Thread.sleep(millisToSleep);
             }
         } catch (InterruptedException e) {
-            log.debug("Shutting down background sweeper.");
+            log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
         }
     }
 
@@ -142,11 +144,13 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         } catch (RuntimeException e) {
             specificTableSweeper.getSweepMetrics().sweepError();
             if (checkAndRepairTableDrop()) {
-                log.error("The table being swept by the background sweeper was dropped, moving on...");
+                log.info("The table being swept by the background sweeper was dropped, moving on...");
             } else {
                 SweepBatchConfig lastBatchConfig = getAdjustedBatchConfig();
-                log.error("The background sweep job failed unexpectedly with batch config {}"
-                        + ". Attempting to continue with a lower batch size...", lastBatchConfig, e);
+                log.warn("The background sweep job failed unexpectedly with batch config {}."
+                                + " Attempting to continue with a lower batch size...",
+                        SafeArg.of("cell batch size", lastBatchConfig),
+                        e);
                 // Cut batch size in half, always sweep at least one row (we round down).
                 batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
             }
