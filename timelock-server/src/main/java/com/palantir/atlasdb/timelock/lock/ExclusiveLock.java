@@ -40,7 +40,7 @@ public class ExclusiveLock implements AsyncLock {
     }
 
     @Override
-    public CompletableFuture<Void> waitUntilAvailable(UUID requestId) {
+    public synchronized CompletableFuture<Void> waitUntilAvailable(UUID requestId) {
         return submit(new LockRequest(requestId, true));
     }
 
