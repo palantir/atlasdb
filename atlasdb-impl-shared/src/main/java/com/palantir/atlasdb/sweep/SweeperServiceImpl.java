@@ -73,9 +73,11 @@ public final class SweeperServiceImpl implements SweeperService {
                 "No batch size config parameters were provided");
 
         ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(maxCellTsPairsToExamine == null ? DEFAULT_SWEEP_READ_LIMIT : maxCellTsPairsToExamine)
-                .candidateBatchSize(candidateBatchSize == null ? DEFAULT_SWEEP_CANDIDATE_BATCH_HINT : candidateBatchSize)
-                .deleteBatchSize(deleteBatchSize == null ? DEFAULT_SWEEP_DELETE_BATCH_HINT: deleteBatchSize)
+                .maxCellTsPairsToExamine(
+                        maxCellTsPairsToExamine == null ? DEFAULT_SWEEP_READ_LIMIT : maxCellTsPairsToExamine)
+                .candidateBatchSize(
+                        candidateBatchSize == null ? DEFAULT_SWEEP_CANDIDATE_BATCH_HINT : candidateBatchSize)
+                .deleteBatchSize(deleteBatchSize == null ? DEFAULT_SWEEP_DELETE_BATCH_HINT : deleteBatchSize)
                 .build();
 
         runSweepWithoutSavingResults(tableRef, sweepProgress, Optional.of(sweepBatchConfig));
