@@ -3,6 +3,9 @@
 AtlasDB Sweep CLI
 =================
 
+.. warning::
+  This is now deprecated in favor of :ref:`Sweep Endpoints <atlasdb-sweep-endpoints>`.
+
 .. note::
   For instructions on how to run an AtlasDB CLI, see :ref:`Command Line Utilities <clis>`.
   If you are using a recent version of AtlasDB, it may be easier to run the command via the

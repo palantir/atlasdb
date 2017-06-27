@@ -47,6 +47,11 @@ develop
            to expose aggregate response time and service call metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2045>`__)
 
+    *    - |new|
+         - AtlasDB now adds endpoints for sweeping a specific table, with options for startRow and batch config parameters.
+           This should be used in place of the deprecated sweep CLIs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2040>`__)
+
     *    - |improved|
          - Sweep now is capable of dynamically adjusting the number of blocks - (cell, ts) pairs - across runs:
 
