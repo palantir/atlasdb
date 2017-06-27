@@ -38,7 +38,6 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-import feign.RetryableException;
 import io.dropwizard.testing.ResourceHelpers;
 
 /**
@@ -105,8 +104,12 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     }
 
     private void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
-        assertThat(throwable).isInstanceOf(RetryableException.class)
+        assertThat(throwable)
                 .hasMessageContaining("method invoked on a non-leader");
+
+        // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
+        assertThat(throwable.getClass().getName())
+                .contains("RetryableException");
     }
 
     private static RemoteLockService getLockService(String client) {

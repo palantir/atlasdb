@@ -16,6 +16,7 @@
 package com.palantir.server;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.Assert;
@@ -25,7 +26,8 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
-import com.palantir.atlasdb.http.TextDelegateDecoder;
+import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
+import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
@@ -38,10 +40,6 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.logger.LockServiceLoggerTestUtils;
 
-import feign.Feign;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
-import feign.jaxrs.JAXRSContract;
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class LockRemotingTest {
@@ -76,12 +74,11 @@ public class LockRemotingTest {
         writeValueAsString = mapper.writeValueAsString(lockResponse);
         LockRefreshToken lockResponse2 = mapper.readValue(writeValueAsString, LockRefreshToken.class);
 
-        RemoteLockService lock = Feign.builder()
-                .decoder(new TextDelegateDecoder(new JacksonDecoder()))
-                .encoder(new JacksonEncoder(mapper))
-                .contract(new JAXRSContract())
-                .target(RemoteLockService.class, lockService.baseUri().toString());
-
+        RemoteLockService lock = AtlasDbFeignTargetFactory.createProxy(
+                Optional.empty(),
+                lockService.baseUri().toString(),
+                RemoteLockService.class,
+                UserAgents.DEFAULT_USER_AGENT);
 
         String lockClient = "23234";
         LockRefreshToken token = lock.lock(lockClient, request);

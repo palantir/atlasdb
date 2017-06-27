@@ -26,7 +26,18 @@ import com.google.common.collect.Sets;
 
 public class AssertUtils {
 
-    private static final Logger log = LoggerFactory.getLogger(AssertUtils.class);
+    /**
+     * Previously, failed asserts logged to this log.
+     * However, this led to the problem that the logger would always be com.palantir.util.AssertUtils,
+     * which is extremely annoying to try to filter based on your logging properties.
+     * (Should it go into the server error log, or maybe the upgrade log, or the import log file?
+     * Can't tell, cause it's all AssertUtils!)
+     *
+     * Until we get all downstream projects off of using defaultLog however,
+     * this will stay, just deprecated.
+     */
+    @Deprecated
+    private static final Logger defaultLog = LoggerFactory.getLogger(AssertUtils.class);
 
     public static <T> boolean nonNullItems(Collection<T> c) {
         for (T t : c) {
@@ -50,34 +61,75 @@ public class AssertUtils {
         return ret;
     }
 
-    public static void assertAndLog(boolean cheapTest, String msg) {
+    public static void assertAndLog(Logger log, boolean cheapTest, String msg) {
         if (!cheapTest) {
-            assertAndLogWithException(false, msg, getDebuggingException());
+            assertAndLogWithException(log, false, msg, getDebuggingException());
         }
+    }
+
+    /**
+     * @deprecated Use {@link #assertAndLog(Logger, boolean, String)} instead.
+     * This will make sure log events go to your logger instead of a hard-to-filter default.
+     * (com.palantir.util.AssertUtils)
+     */
+    @Deprecated
+    public static void assertAndLog(boolean cheapTest, String msg) {
+        assertAndLog(defaultLog, cheapTest, msg);
     }
 
     public static Exception getDebuggingException() {
         return new Exception("This stack trace is not from a thrown exception. It's provided just for debugging this error.");
     }
 
-    public static void assertAndLog(boolean cheapTest, String format, Object... args) {
+    public static void assertAndLog(Logger log, boolean cheapTest, String format, Object... args) {
         if (!cheapTest) {
-            assertAndLog(false, String.format(format, args));
+            assertAndLog(log, false, String.format(format, args));
         }
     }
 
-    public static void assertAndLogWithException(boolean cheapTest, String msg, Throwable t) {
+    /**
+     * @deprecated Use {@link #assertAndLog(Logger, boolean, String, Object...)} instead.
+     * This will make sure log events go to your logger instead of a hard-to-filter default.
+     * (com.palantir.util.AssertUtils)
+     */
+    @Deprecated
+    public static void assertAndLog(boolean cheapTest, String format, Object... args) {
+        assertAndLog(defaultLog, cheapTest, format, args);
+    }
+
+    public static void assertAndLogWithException(Logger log, boolean cheapTest, String msg, Throwable t) {
         if (!cheapTest) {
             log.error("Assertion {} with exception ", msg, t);
             assert false : msg;
         }
     }
 
-    public static void assertAndLogWithException(boolean cheapTest, String format, Throwable t,
+    /**
+     * @deprecated Use {@link #assertAndLogWithException(Logger, boolean, String, Throwable)} instead.
+     * This will make sure log events go to your logger instead of a hard-to-filter default.
+     * (com.palantir.util.AssertUtils)
+     */
+    @Deprecated
+    public static void assertAndLogWithException(boolean cheapTest, String msg, Throwable t) {
+        assertAndLogWithException(defaultLog, cheapTest, msg, t);
+    }
+
+    public static void assertAndLogWithException(Logger log, boolean cheapTest, String format, Throwable t,
             Object... args) {
         if (!cheapTest) {
-            assertAndLogWithException(false, String.format(format, args), t);
+            assertAndLogWithException(log, false, String.format(format, args), t);
         }
+    }
+
+    /**
+     * @deprecated Use {@link #assertAndLogWithException(Logger, boolean, String, Throwable, Object...)} instead.
+     * This will make sure log events go to your logger instead of a hard-to-filter default.
+     * (com.palantir.util.AssertUtils)
+     */
+    @Deprecated
+    public static void assertAndLogWithException(boolean cheapTest, String format, Throwable t,
+            Object... args) {
+        assertAndLogWithException(defaultLog, cheapTest, format, t, args);
     }
 
 }

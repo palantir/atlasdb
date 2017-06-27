@@ -59,14 +59,17 @@ import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
-import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
+import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
 import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
+import com.palantir.atlasdb.sweep.SpecificTableSweeper;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
+import com.palantir.atlasdb.sweep.SweepMetrics;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -247,6 +250,27 @@ public final class TransactionManagers {
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
                 config.getSweepPersistentLockWaitMillis());
+        initializeSweepEndpointAndBackgroundProcess(config,
+                env,
+                kvs,
+                transactionService,
+                sweepStrategyManager,
+                follower,
+                transactionManager,
+                persistentLockManager);
+
+        return transactionManager;
+    }
+
+    private static void initializeSweepEndpointAndBackgroundProcess(
+            AtlasDbConfig config,
+            Environment env,
+            KeyValueService kvs,
+            TransactionService transactionService,
+            SweepStrategyManager sweepStrategyManager,
+            CleanupFollower follower,
+            SerializableTransactionManager transactionManager,
+            PersistentLockManager persistentLockManager) {
         CellsSweeper cellsSweeper = new CellsSweeper(
                 transactionManager,
                 kvs,
@@ -259,19 +283,46 @@ public final class TransactionManagers {
                 transactionService,
                 sweepStrategyManager,
                 cellsSweeper);
-        BackgroundSweeper backgroundSweeper = BackgroundSweeperImpl.create(
+        BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
+        Supplier<SweepBatchConfig> sweepBatchConfig = Suppliers.ofInstance(getSweepBatchConfig(config));
+        SweepMetrics sweepMetrics = new SweepMetrics();
+
+        SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
+                env,
+                kvs,
+                transactionManager,
+                sweepRunner,
+                sweepPerfLogger,
+                sweepBatchConfig,
+                sweepMetrics);
+
+        BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
+                Suppliers.ofInstance(config.enableSweep()),
+                Suppliers.ofInstance(config.getSweepPauseMillis()),
+                persistentLockManager,
+                specificTableSweeper);
+
+        backgroundSweeper.runInBackground();
+    }
+
+    private static SpecificTableSweeper initializeSweepEndpoint(
+            Environment env,
+            KeyValueService kvs,
+            SerializableTransactionManager transactionManager,
+            SweepTaskRunner sweepRunner,
+            BackgroundSweeperPerformanceLogger sweepPerfLogger,
+            Supplier<SweepBatchConfig> sweepBatchConfig,
+            SweepMetrics sweepMetrics) {
+        SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 transactionManager,
                 kvs,
                 sweepRunner,
-                Suppliers.ofInstance(config.enableSweep()),
-                Suppliers.ofInstance(config.getSweepPauseMillis()),
-                Suppliers.ofInstance(getSweepBatchConfig(config)),
+                sweepBatchConfig,
                 SweepTableFactory.of(),
-                new NoOpBackgroundSweeperPerformanceLogger(),
-                persistentLockManager);
-        backgroundSweeper.runInBackground();
-
-        return transactionManager;
+                sweepPerfLogger,
+                sweepMetrics);
+        env.register(new SweeperServiceImpl(specificTableSweeper));
+        return specificTableSweeper;
     }
 
     private static SweepBatchConfig getSweepBatchConfig(AtlasDbConfig config) {
@@ -378,7 +429,7 @@ public final class TransactionManagers {
             TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
             return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
         } else {
-            return createRawEmbeddedServices(env, lock, time);
+            return createRawEmbeddedServices(env, lock, time, userAgent);
         }
     }
 
@@ -446,9 +497,14 @@ public final class TransactionManagers {
     private static LockAndTimestampServices createRawEmbeddedServices(
             Environment env,
             Supplier<RemoteLockService> lock,
-            Supplier<TimestampService> time) {
-        RemoteLockService lockService = lock.get();
-        TimestampService timeService = time.get();
+            Supplier<TimestampService> time,
+            String userAgent) {
+        RemoteLockService lockService = ServiceCreator.createInstrumentedService(lock.get(),
+                RemoteLockService.class,
+                userAgent);
+        TimestampService timeService = ServiceCreator.createInstrumentedService(time.get(),
+                TimestampService.class,
+                userAgent);
 
         env.register(lockService);
         env.register(timeService);

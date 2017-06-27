@@ -59,7 +59,7 @@ public final class AtlasSerializers {
             byte[] row) throws IOException {
         int offset = 0;
         byte[] flippedRow = null;
-        jgen.writeStartArray();
+        jgen.writeStartObject();
         for (NameComponentDescription part : rowDescription.getRowParts()) {
             if (part.isReverseOrder() && flippedRow == null) {
                 flippedRow = EncodingUtils.flipAllBits(row);
@@ -70,10 +70,11 @@ public final class AtlasSerializers {
             } else {
                 parse = part.getType().convertToJson(row, offset);
             }
+            jgen.writeFieldName(part.getComponentName());
             jgen.writeRawValue(parse.getLhSide());
             offset += parse.getRhSide();
         }
-        jgen.writeEndArray();
+        jgen.writeEndObject();
     }
 
     public static void serializeNamedCol(JsonGenerator jgen,

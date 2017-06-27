@@ -174,7 +174,16 @@ public class SweepTaskRunner {
             byte[] lastRow = startRow;
             while (batchesToSweep.hasNext()) {
                 BatchOfCellsToSweep batch = batchesToSweep.next();
-                totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells(), runType);
+
+                /*
+                 * At this point cells were merged in batches of at least deleteBatchSize blocks per batch. Therefore we
+                 * expect most batches to have slightly more than deleteBatchSize blocks. Partitioning such batches with
+                 * deleteBatchSize as a limit results in a small second batch, which is bad for performance reasons.
+                 * Therefore, deleteBatchSize is doubled.
+                 */
+                totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells(), runType,
+                        2 * batchConfig.deleteBatchSize());
+
                 totalCellTsPairsExamined = batch.numCellTsPairsExaminedSoFar();
                 lastRow = batch.lastCellExamined().getRowName();
             }
@@ -188,6 +197,9 @@ public class SweepTaskRunner {
         }
     }
 
+    /**
+     * Returns batches with at least batchConfig.deleteBatchSize blocks per batch.
+     */
     private Iterator<BatchOfCellsToSweep> getBatchesToSweep(Iterator<List<CandidateCellForSweeping>> candidates,
                                                             SweepBatchConfig batchConfig,
                                                             SweepableCellFilter sweepableCellFilter,
@@ -199,21 +211,49 @@ public class SweepTaskRunner {
     }
 
     /**
-     * Returns the number of deleted (cell, timestamp) pairs.
+     * Returns the number of blocks - (cell, timestamp) pairs - that were deleted.
      */
-    private int sweepBatch(TableReference tableRef, List<CellToSweep> batch, RunType runType) {
-        Multimap<Cell, Long> startTimestampsToSweepPerCell = ArrayListMultimap.create();
-        List<Cell> sentinels = Lists.newArrayList();
-        for (CellToSweep cell : batch) {
-            startTimestampsToSweepPerCell.putAll(cell.cell(), TDecorators.wrap(cell.sortedTimestamps()));
-            if (cell.needsSentinel()) {
-                sentinels.add(cell.cell());
-            }
-        }
-        if (runType == RunType.FULL) {
-            cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, sentinels);
-        }
-        return startTimestampsToSweepPerCell.size();
-    }
+    private int sweepBatch(TableReference tableRef, List<CellToSweep> batch, RunType runType,
+            int deleteBatchSize) {
+        int numberOfSweptCells = 0;
 
+        Multimap<Cell, Long> currentBatch = ArrayListMultimap.create();
+        List<Cell> currentBatchSentinels = Lists.newArrayList();
+
+        for (CellToSweep cell : batch) {
+            if (cell.needsSentinel()) {
+                currentBatchSentinels.add(cell.cell());
+            }
+
+            List<Long> currentCellTimestamps = TDecorators.wrap(cell.sortedTimestamps());
+
+            if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
+                currentBatch.putAll(cell.cell(), currentCellTimestamps);
+                continue;
+            }
+
+            while (currentBatch.size() + currentCellTimestamps.size() >= deleteBatchSize) {
+                int numberOfTimestampsForThisBatch = deleteBatchSize - currentBatch.size();
+
+                currentBatch.putAll(cell.cell(), currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch));
+                if (runType == RunType.FULL) {
+                    cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
+                }
+                numberOfSweptCells += currentBatch.size();
+
+                currentBatch.clear();
+                currentBatchSentinels.clear();
+                currentCellTimestamps = currentCellTimestamps.subList(
+                        numberOfTimestampsForThisBatch, currentCellTimestamps.size());
+            }
+            currentBatch.putAll(cell.cell(), currentCellTimestamps);
+        }
+
+        if (!currentBatch.isEmpty() && runType == RunType.FULL) {
+            cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
+        }
+        numberOfSweptCells += currentBatch.size();
+
+        return numberOfSweptCells;
+    }
 }

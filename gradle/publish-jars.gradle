@@ -19,7 +19,14 @@ task testJar(type: Jar) {
 publishing {
     publications {
         artifactory(MavenPublication) {
-            from components.hasProperty('shadow') ? components.shadow : components.java
+            from components.java
+
+            // This interfaces between Shadow and Nebula
+            def hasShadowConfiguration = project.configurations.findByName('shadow') != null
+            if (hasShadowConfiguration) {
+                replaceShadedDependencies(it)
+            }
+
             artifact(sourceJar) {
                 classifier 'sources'
             }
@@ -36,6 +43,30 @@ publishing {
             }
         }
     }
+}
+
+private void replaceShadedDependencies(MavenPublication mavenPublication) {
+    mavenPublication.pom.withXml {
+        def targetDependencies = project.configurations.getByName('shadow').allDependencies
+
+        def newDependencyRoot = new Node(null, 'dependencies')
+        targetDependencies.forEach { dependency ->
+            def dependencyNode = newDependencyRoot.appendNode('dependency')
+            dependencyNode.appendNode('groupId', dependency.getGroup())
+            dependencyNode.appendNode('artifactId', dependency.getName())
+            dependencyNode.appendNode('scope', 'runtime')
+
+            def version = getVersion(dependency, dependencyRecommendations)
+            dependencyNode.appendNode('version', version)
+        }
+        asNode().getByName('dependencies')[0].replaceNode(newDependencyRoot)
+    }
+}
+
+private static String getVersion(Dependency dependency, provider) {
+    return dependency.getVersion() == null ?
+            provider.getRecommendedVersion(dependency.getGroup(), dependency.getName()) :
+            dependency.getVersion()
 }
 
 // Bintray publish
@@ -81,5 +112,5 @@ artifactoryPublish.onlyIf {
 artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
 
 ext {
-    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
+    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta|-rc)?(\d+)?/
 }
