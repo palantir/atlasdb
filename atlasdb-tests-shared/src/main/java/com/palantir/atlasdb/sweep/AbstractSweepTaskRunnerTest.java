@@ -68,9 +68,11 @@ public abstract class AbstractSweepTaskRunnerTest {
     private static final String FULL_TABLE_NAME = "test_table.xyz_atlasdb_sweeper_test";
     protected static final TableReference TABLE_NAME = TableReference.createFromFullyQualifiedName(FULL_TABLE_NAME);
     private static final String COL = "c";
+    protected static final int DEFAULT_BATCH_SIZE = 1000;
 
     private static final List<Cell> SMALL_LIST_OF_CELLS = Lists.newArrayList();
     private static final List<Cell> BIG_LIST_OF_CELLS = Lists.newArrayList();
+
     static {
         for (int i = 0; i < 10; i++) {
             String colName = String.format("c%d", i);
@@ -79,8 +81,6 @@ public abstract class AbstractSweepTaskRunnerTest {
         }
         SMALL_LIST_OF_CELLS.addAll(BIG_LIST_OF_CELLS.subList(0, 4));
     }
-
-    protected static final int DEFAULT_BATCH_SIZE = 1000;
 
     protected KeyValueService kvs;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
