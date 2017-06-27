@@ -17,30 +17,50 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import java.util.Optional;
-import java.util.SortedSet;
+import java.util.SortedMap;
+import java.util.UUID;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
+import com.palantir.logsafe.SafeArg;
+
+import net.jcip.annotations.GuardedBy;
 
 public class ImmutableTimestampTracker {
 
-    private final SortedSet<Long> timestamps = Sets.newTreeSet();
+    @GuardedBy("this")
+    private final SortedMap<Long, UUID> holdersByTimestamp = Maps.newTreeMap();
 
-    public synchronized void add(long timestamp) {
-        timestamps.add(timestamp);
+    public synchronized void lock(long timestamp, UUID requestId) {
+        boolean wasAdded = holdersByTimestamp.putIfAbsent(timestamp, requestId) == null;
+        if (!wasAdded) {
+            throw new LoggableIllegalStateException(
+                    "A request attempted to lock a timestamp that was already locked",
+                    SafeArg.of("timestamp", timestamp),
+                    SafeArg.of("requestId", requestId),
+                    SafeArg.of("currentHolder", holdersByTimestamp.get(timestamp)));
+        }
     }
 
-    public synchronized void remove(long timestamp) {
-        timestamps.remove(timestamp);
+    public synchronized void unlock(long timestamp, UUID requestId) {
+        boolean wasRemoved = holdersByTimestamp.remove(timestamp, requestId);
+        if (!wasRemoved) {
+            throw new LoggableIllegalStateException(
+                    "A request attempted to unlock a timestamp that was not locked or was locked by another request",
+                    SafeArg.of("timestamp", timestamp),
+                    SafeArg.of("requestId", requestId),
+                    SafeArg.of("currentHolder", holdersByTimestamp.get(requestId)));
+        }
     }
 
     public synchronized Optional<Long> getImmutableTimestamp() {
-        if (timestamps.isEmpty()) {
+        if (holdersByTimestamp.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(timestamps.first());
+        return Optional.of(holdersByTimestamp.firstKey());
     }
 
-    // TODO(nziebart): these locks should be created by LockCollection for consistency
+    // TODO(nziebart): should these locks should be created by LockCollection for consistency?
     public AsyncLock getLockFor(long timestamp) {
         return new ImmutableTimestampLock(timestamp, this);
     }

@@ -22,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Queues;
-import com.palantir.atlasdb.timelock.util.LoggablePreconditions;
+import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
 import com.palantir.logsafe.SafeArg;
 
 import net.jcip.annotations.GuardedBy;
@@ -77,20 +77,21 @@ public class ExclusiveLock implements AsyncLock {
 
     private void completeRequest(LockRequest request) {
         boolean wasCompleted = request.result.complete(null);
-        LoggablePreconditions.checkState(
-                wasCompleted,
-                "Request was already completed when it was granted the lock",
-                SafeArg.of("requestId", request.requestId));
+        if (!wasCompleted) {
+            throw new LoggableIllegalStateException(
+                    "Request was already completed when it was granted the lock",
+                    SafeArg.of("requestId", request.requestId));
+        }
     }
 
     private void checkIsCurrentHolder(UUID requestId) {
-        LoggablePreconditions.checkState(
-                requestId.equals(currentHolder),
-                "ExclusiveLock may not be unlocked by a non-holder",
-                SafeArg.of("currentHolder", currentHolder),
-                SafeArg.of("request", requestId));
+        if (!requestId.equals(currentHolder)) {
+            throw new LoggableIllegalStateException(
+                    "ExclusiveLock may not be unlocked by a non-holder",
+                    SafeArg.of("currentHolder", currentHolder),
+                    SafeArg.of("request", requestId));
+        }
     }
-
 
     private class LockRequest {
         private final CompletableFuture<Void> result = new CompletableFuture<>();
