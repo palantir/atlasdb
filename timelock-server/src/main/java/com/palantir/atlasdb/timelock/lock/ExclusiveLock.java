@@ -20,12 +20,12 @@ import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Queues;
 import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
 import com.palantir.logsafe.SafeArg;
-
-import net.jcip.annotations.GuardedBy;
 
 public class ExclusiveLock implements AsyncLock {
 
