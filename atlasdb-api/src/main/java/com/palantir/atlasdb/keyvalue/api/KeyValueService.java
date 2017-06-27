@@ -30,7 +30,6 @@ import javax.ws.rs.core.MediaType;
 
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
-import com.palantir.atlasdb.logging.KeyValueServiceLogArbitrator;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
