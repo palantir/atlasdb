@@ -11,5 +11,4 @@ server:
 
 atlasdb:
   keyValueService:
-    type: rocksdb
-    dataDir: var/data/rocksdb
+    type: memory
