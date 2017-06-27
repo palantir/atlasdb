@@ -207,7 +207,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                             Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
                                     tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
                             if (nextTable.isPresent()) {
-                                log.debug("Now starting to sweep {}.", nextTable);
+                                log.debug("Now starting to sweep next table.", UnsafeArg.of("table name", nextTable));
                                 return Optional.of(new TableToSweep(nextTable.get(), null));
                             } else {
                                 return Optional.empty();

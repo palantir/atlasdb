@@ -198,8 +198,10 @@ public class SpecificTableSweeper {
         } else {
             saveFinalSweepResults(tableToSweep, cumulativeResults);
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
-            log.debug("Finished sweeping {}, examined {} unique cells, deleted {} stale values.",
-                    tableToSweep.getTableRef(), cellsExamined, staleValuesDeleted);
+            log.debug("Finished sweeping.",
+                    UnsafeArg.of("tableRef", tableToSweep.getTableRef()),
+                    SafeArg.of("unique cells examined count", cellsExamined),
+                    SafeArg.of("stale values deleted count", staleValuesDeleted));
             sweepProgressStore.clearProgress();
         }
     }

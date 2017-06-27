@@ -49,6 +49,8 @@ public final class SweeperServiceImpl implements SweeperService {
 
     @Override
     public void sweepTableFromStartRow(String tableName, @Nonnull String startRow) {
+        WebPreconditions.checkArgument(startRow != null, "startRow must not be null.");
+
         TableReference tableRef = getTableRef(tableName);
         checkTableExists(tableName, tableRef);
 
