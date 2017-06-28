@@ -24,12 +24,15 @@ import java.nio.file.Paths;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 public class AtlasDbConfigDeserializationTest {
     private static final File TEST_CONFIG_FILE = new File(
             AtlasDbConfigDeserializationTest.class.getResource("/test-config.yml").getPath());
+    private static final File MINIMAL_TEST_CONFIG_FILE = new File(
+            AtlasDbConfigDeserializationTest.class.getResource("/test-config-minimal.yml").getPath());
 
     @Test
     public void canDeserializeAtlasDbConfig() throws IOException {
@@ -39,6 +42,21 @@ public class AtlasDbConfigDeserializationTest {
         assertTimeLockConfigDeserializedCorrectly(config.timelock().get());
         assertThat(config.leader().isPresent()).isFalse();
         assertThat(config.enableSweep()).isTrue();
+        assertTimestampClientConfigDeserializedCorrectly(config.timestampClient());
+    }
+
+    @Test
+    public void canDeserializeMinimalAtlasDbConfig() throws IOException {
+        AtlasDbConfig config = AtlasDbConfigs.load(MINIMAL_TEST_CONFIG_FILE);
+        assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
+
+        assertThat(config.timelock().isPresent()).isFalse();
+        assertThat(config.leader().isPresent()).isFalse();
+
+        assertThat(config.enableSweep()).isEqualTo(AtlasDbConstants.DEFAULT_ENABLE_SWEEP);
+
+        assertThat(config.timestampClient().enableTimestampBatching())
+                .isEqualTo(AtlasDbConstants.DEFAULT_ENABLE_TIMESTAMP_BATCHING);
     }
 
     private void assertTimeLockConfigDeserializedCorrectly(TimeLockClientConfig timeLockClientConfig) {
@@ -55,5 +73,9 @@ public class AtlasDbConfigDeserializationTest {
         assertThat(sslConfiguration.keyStorePassword()).hasValue("1234567890");
         assertThat(sslConfiguration.keyStorePath()).hasValue(Paths.get("var", "security", "keyStore.jks"));
         assertThat(sslConfiguration.trustStorePath()).isEqualTo(Paths.get("var", "security", "trustStore.jks"));
+    }
+
+    private void assertTimestampClientConfigDeserializedCorrectly(TimestampClientConfig timestampClientConfig) {
+        assertThat(timestampClientConfig.enableTimestampBatching()).isFalse();
     }
 }

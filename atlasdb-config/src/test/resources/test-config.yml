@@ -15,3 +15,6 @@ atlasdb:
         keyStorePassword: 1234567890
 
   enableSweep: true
+
+  timestampClient:
+    enableTimestampBatching: false

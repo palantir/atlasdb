@@ -395,7 +395,7 @@ public final class TransactionManagers {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawServices(config, env, lock, time, invalidator, userAgent);
         return withRateLimitedTimestampService(
-                config.getTimestampClientConfig(),
+                config.timestampClient(),
                 withRefreshingLockService(lockAndTimestampServices));
     }
 
@@ -413,8 +413,9 @@ public final class TransactionManagers {
         if (timestampClientConfig.enableTimestampBatching()) {
             return ImmutableLockAndTimestampServices.builder()
                     .from(lockAndTimestampServices)
-                    .time(new RateLimitedTimestampService(lockAndTimestampServices.time(),
-                            timestampClientConfig.getMinimumMillisBetweenBatches()))
+                    .time(new RateLimitedTimestampService(
+                            lockAndTimestampServices.time(),
+                            AtlasDbConstants.DEFAULT_MINIMUM_MILLIS_BETWEEN_BATCHES))
                     .build();
         }
         return lockAndTimestampServices;

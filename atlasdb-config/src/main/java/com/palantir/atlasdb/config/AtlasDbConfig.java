@@ -228,7 +228,7 @@ public abstract class AtlasDbConfig {
      * should be used, and if so, the minimum time interval between batches.
      */
     @Value.Default
-    public TimestampClientConfig getTimestampClientConfig() {
+    public TimestampClientConfig timestampClient() {
         return ImmutableTimestampClientConfig.builder().build();
     }
 

@@ -18,9 +18,12 @@ package com.palantir.atlasdb.config;
 
 import org.immutables.value.Value;
 
-import com.google.common.base.Preconditions;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 
+@JsonSerialize(as = ImmutableTimestampClientConfig.class)
+@JsonDeserialize(as = ImmutableTimestampClientConfig.class)
 @Value.Immutable
 public abstract class TimestampClientConfig {
     @Value.Default
@@ -28,15 +31,8 @@ public abstract class TimestampClientConfig {
         return AtlasDbConstants.DEFAULT_ENABLE_TIMESTAMP_BATCHING;
     }
 
-    @Value.Default
-    public long getMinimumMillisBetweenBatches() {
-        return AtlasDbConstants.DEFAULT_MINIMUM_MILLIS_BETWEEN_BATCHES;
-    }
-
-    @Value.Check
-    protected final void check() {
-        Preconditions.checkState(getMinimumMillisBetweenBatches() >= 0,
-                "Minimum time interval between batches must be a positive integer, but found %s",
-                getMinimumMillisBetweenBatches());
-    }
+    // TODO (jkong): Make timestamp wait intervals configurable.
+    // This should ONLY be done once the timestamp client supports nanosecond precision;
+    // millisecond precision isn't too useful (realistically it's very unlikely you want to set this beyond
+    // 2 ms or so).
 }
