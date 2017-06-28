@@ -7,6 +7,7 @@ dependencies {
   compile project(":timestamp-api")
   compile project(":atlasdb-commons")
 
-  testCompile project(":atlasdb-tests-shared")
+  testCompile group: 'com.palantir.remoting2', name: 'tracing'
+
   testCompile group: 'junit', name: 'junit'
 }
