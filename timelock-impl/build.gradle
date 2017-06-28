@@ -18,7 +18,6 @@ dependencies {
     }
 
     compile group: 'com.github.rholder', name: 'guava-retrying'
-    compile group: 'io.atomix', name: 'atomix'
 
     processor group: 'org.immutables', name: 'value'
 
