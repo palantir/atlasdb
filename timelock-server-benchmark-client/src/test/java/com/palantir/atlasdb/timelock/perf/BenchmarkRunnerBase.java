@@ -40,7 +40,7 @@ import feign.okhttp.OkHttpClient;
 
 public class BenchmarkRunnerBase {
 
-    private static final String BENCHMARK_SERVER = "http://il-pg-alpha-1086751.usw1.palantir.global:9425";
+    private static final String BENCHMARK_SERVER = "http://asdf:9425";
     private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
     protected static final BenchmarksService client = createClient();

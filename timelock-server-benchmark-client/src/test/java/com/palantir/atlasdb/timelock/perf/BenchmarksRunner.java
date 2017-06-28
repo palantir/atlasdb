@@ -30,6 +30,11 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
     }
 
     @Test
+    public void timestampBurstShot() {
+        runAndPrintResults(client::timestamp, 8192, 1000);
+    }
+
+    @Test
     public void writeTransaction() {
         runAndPrintResults(client::writeTransaction, 10, 100);
     }

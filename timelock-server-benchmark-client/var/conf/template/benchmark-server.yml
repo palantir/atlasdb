@@ -11,23 +11,23 @@ atlas:
         keyStorePassword: keystore
         trustStorePath: var/security/trustStore.jks
   defaultLockTimeoutSeconds: 20
-  keyValueService:
-    type: memory
 #  keyValueService:
-#    type: cassandra
-#    keyspace: benchmarks
-#    ssl: true
-#    replicationFactor: 1
-#    poolSize: 100
-#    maxConnectionBurstSize: 400
-#    sslConfiguration:
-#      keyStorePath: var/security/keyStore-cassandra.jks
-#      keyStorePassword: W04xkPDALcCTlsU4
-#      trustStorePath: var/security/trustStore-cassandra.jks
-#    servers:
-#      - 'CASSANDRA1:9160'
-#      - 'CASSANDRA2:9160'
-#      - 'CASSANDRA3:9160'
+#    type: memory
+  keyValueService:
+    type: cassandra
+    keyspace: benchmarks
+    ssl: true
+    replicationFactor: 1
+    poolSize: 100
+    maxConnectionBurstSize: 400
+    sslConfiguration:
+      keyStorePassword: asdf
+      keyStorePath: asdfasdf
+      trustStorePath: asdfasdfasdf
+    servers:
+      - 'CASSANDRA1:9160'
+      - 'CASSANDRA2:9160'
+      - 'CASSANDRA3:9160'
 
 server:
   requestLog:

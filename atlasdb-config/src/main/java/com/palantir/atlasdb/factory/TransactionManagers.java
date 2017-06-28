@@ -35,6 +35,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.SmartBatchingTimestampService;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -396,6 +397,7 @@ public final class TransactionManagers {
                 .apply(timelockServerListConfig);
         TimestampService timeService = new ServiceCreator<>(TimestampService.class, userAgent)
                 .apply(timelockServerListConfig);
+        timeService = new SmartBatchingTimestampService(timeService, 4);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)

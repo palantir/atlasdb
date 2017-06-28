@@ -17,6 +17,8 @@ DIR="$(ls -d */ | grep 'timelock' | tail -1)"
 cd $DIR
 
 sed -i -e "s/timelock.yml/$YML_FILE/g" service/bin/launcher-static.yml
+sed -i -e 's/- "-XX:+CrashOnOutOfMemoryError"//' service/bin/launcher-static.yml
+sed -i -e '/^$/d' service/bin/launcher-static.yml
 
 echo "starting server"
 

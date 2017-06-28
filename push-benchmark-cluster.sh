@@ -22,14 +22,16 @@ do
 
   echo "copying sls file"
   REMOTE_DIR="/opt/palantir/timelock"
-  ssh $server "rm -rf $REMOTE_DIR/*"
-  scp $SLS_FILE "$server:$REMOTE_DIR"
+  ssh -t -t $server "su -c 'rm -rf $REMOTE_DIR/*' - palantir"
+  scp $SLS_FILE "$server:~"
+  ssh -t -t $server "su -c 'cp /home/jkong/timelock-server-0.44.0-31-g460eee0.dirty.sls.tgz $REMOTE_DIR' - palantir"
 
   echo "running remote script"
-  scp scripts/benchmarks/$SERVER_SIDE_SCRIPT "$server:$REMOTE_DIR"
+  scp scripts/benchmarks/$SERVER_SIDE_SCRIPT "$server:~"
+  ssh -t -t $server "su -c 'cp /home/jkong/$SERVER_SIDE_SCRIPT $REMOTE_DIR' - palantir"
 
   YML_FILE="timelock-remote$SERVER_INDEX.yml"
-  ssh $server "$REMOTE_DIR/$SERVER_SIDE_SCRIPT $YML_FILE"
+  ssh -t -t $server "su -c '$REMOTE_DIR/$SERVER_SIDE_SCRIPT $YML_FILE' - palantir"
 
   SERVER_INDEX=$((SERVER_INDEX+1))
 done
