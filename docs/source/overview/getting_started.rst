@@ -76,6 +76,8 @@ Standalone JSON/REST Server
 
 The standalone server is a lightweight way to try out AtlasDB and can be
 done by running AtlasDbServiceServer in the atlasdb-service-server project.
+The default configuration file uses an ephemeral in-memory DB;
+if you'd like to run tests with persisted data there is also an `atlasdb_standalone_postgres.yml`
 
 .. code:: bash
 

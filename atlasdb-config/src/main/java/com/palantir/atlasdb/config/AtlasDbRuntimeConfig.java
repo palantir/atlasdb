@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.rocksdb.impl;
+
+package com.palantir.atlasdb.config;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@JsonDeserialize(as = ImmutableWriteOpts.class)
-@JsonSerialize(as = ImmutableWriteOpts.class)
+@JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
+@JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @Value.Immutable
-public abstract class WriteOpts {
+public abstract class AtlasDbRuntimeConfig {
 
     @Value.Default
-    public boolean fsyncPut() {
-        return true;
+    public SweepConfig sweep() {
+        return SweepConfig.defaultSweepConfig();
     }
 
-    @Value.Default
-    public boolean fsyncCommit() {
-        return true;
+    public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {
+        return ImmutableAtlasDbRuntimeConfig.builder()
+                .sweep(SweepConfig.defaultSweepConfig())
+                .build();
     }
 }

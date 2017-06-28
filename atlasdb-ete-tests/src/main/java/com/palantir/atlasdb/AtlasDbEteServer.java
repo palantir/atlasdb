@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -80,6 +81,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             try {
                 return TransactionManagers.create(
                         config.getAtlasDbConfig(),
+                        Optional::empty,
                         ETE_SCHEMAS,
                         environment.jersey()::register,
                         DONT_SHOW_HIDDEN_TABLES);

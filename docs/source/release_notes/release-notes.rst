@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak|
+         - The previously deprecated RocksDBKVS has been removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1966>`__)
+
     *    - |new|
          - AtlasDB now instruments embedded time and lock services, even if no leader block is present in the config,
            to expose aggregate response time and service call metrics.
@@ -51,6 +55,55 @@ develop
          - The lock service state logger now has a reduced memory footprint.
            It also now logs the locking mode for each lock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1891>`__)
+
+    *    - |new|
+         - AtlasDB now adds endpoints for sweeping a specific table, with options for startRow and batch config parameters.
+           This should be used in place of the deprecated sweep CLIs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2040>`__)
+
+    *    - |improved|
+         - Sweep now is capable of dynamically adjusting the number of blocks - (cell, ts) pairs - across runs:
+
+           - On a failure run, sweep halves the number of blocks to read and to delete on subsequent runs.
+           - On a success run, sweep slowly increases the number of blocks to read and to delete on subsequent runs, up to a configurable maximum.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
+
+    *    - |new|
+         - Added support for live-reloading sweep configs.
+
+           There's a new set of `TransactionManagers.create()` methods, which accept a Supplier of the AtlasDbRuntimeConfig.
+           The AtlasDbRuntimeConfig wraps a SweepConfig block with the options:
+
+             - `enabled`
+             - `pauseMillis`
+             - `readLimit`
+             - `candidateBatchHint`
+             - `deleteBatchHint`
+
+           The parameters are loaded and used at every sweep run. Please check :ref:`Sweep <sweep>` for information on how to use them.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+
+    *    - |userbreak|
+         - As part of the live-reloading work, were deprecated the sweep options of the install config, namely:
+
+             - `enableSweep`
+             - `sweepPauseMillis`
+             - `sweepReadLimit`
+             - `sweepCandidateBatchHint`
+             - `sweepDeleteBatchHint`
+
+           If any of these options are specified in the install config, **AtlasDB will fail to start**. Please specify them on the runtime config.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+
+    *    - |devbreak|
+         - As part of the live-reloading work, the methods `TransactionManagers.create()` without the runtime config parameter were removed.
+           If needed, the helper method `AtlasDbRuntimeConfig.defaultRuntimeConfig()` can be used to create a runtime config with the default values.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -146,6 +199,10 @@ develop
          - Reduced the logging level of some messages relating to check-and-set operations in ``CassandraTimestampBoundStore`` to reduce noise in the logs.
            These were designed to help debugging the ``MultipleRunningTimestampServicesException`` issues but we no longer require them to log all the time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2048>`__)
+
+    *    - |improved|
+         - Improved the way rows and named columns are outputted in AtlasConsole to be more intuitive and easier to use. Note that this may break existing AtlasConsole scripts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2067>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
