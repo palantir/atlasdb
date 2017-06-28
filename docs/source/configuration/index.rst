@@ -80,15 +80,9 @@ Example Configuration
         sslConfiguration:
           trustStorePath: var/security/truststore.jks
 
-<<<<<<< HEAD
+      timestampClient:
+        enableTimestampBatching: true
 
     atlasdb-runtime:
       sweep:
         enabled: false
-=======
-      enableSweep: false
-      sweepBatchSize: 1000
-
-      timestampClient:
-        enableTimestampBatching: true
->>>>>>> 0a9e6a7... False by default, and docs
