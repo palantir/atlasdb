@@ -42,6 +42,7 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -91,6 +92,7 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.timestamp.RateLimitedTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -392,7 +394,9 @@ public final class TransactionManagers {
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawServices(config, env, lock, time, invalidator, userAgent);
-        return withRefreshingLockService(lockAndTimestampServices);
+        return withRateLimitedTimestampService(
+                config.getTimestampClientConfig(),
+                withRefreshingLockService(lockAndTimestampServices));
     }
 
     private static LockAndTimestampServices withRefreshingLockService(
@@ -401,6 +405,19 @@ public final class TransactionManagers {
                 .from(lockAndTimestampServices)
                 .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))
                 .build();
+    }
+
+    private static LockAndTimestampServices withRateLimitedTimestampService(
+            TimestampClientConfig timestampClientConfig,
+            LockAndTimestampServices lockAndTimestampServices) {
+        if (timestampClientConfig.enableTimestampBatching()) {
+            return ImmutableLockAndTimestampServices.builder()
+                    .from(lockAndTimestampServices)
+                    .time(new RateLimitedTimestampService(lockAndTimestampServices.time(),
+                            timestampClientConfig.getMinimumMillisBetweenBatches()))
+                    .build();
+        }
+        return lockAndTimestampServices;
     }
 
     @VisibleForTesting
