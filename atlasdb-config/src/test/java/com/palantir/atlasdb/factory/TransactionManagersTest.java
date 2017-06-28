@@ -178,7 +178,7 @@ public class TransactionManagersTest {
 
     @Test
     public void createsRateLimitingTimestampServiceIfBatchingEnabled() {
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+        AtlasDbConfig configWithBatching = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .timestampClient(ImmutableTimestampClientConfig.builder()
                         .enableTimestampBatching(true)
@@ -186,13 +186,13 @@ public class TransactionManagersTest {
                 .build();
 
         TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                createLockAndTimestampServicesForConfig(config);
+                createLockAndTimestampServicesForConfig(configWithBatching);
         assertThat(lockAndTimestampServices.time()).isInstanceOf(RateLimitedTimestampService.class);
     }
 
     @Test
     public void doesNotCreateRateLimitingTimestampServiceIfBatchingDisabled() {
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+        AtlasDbConfig configWithoutBatching = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .timestampClient(ImmutableTimestampClientConfig.builder()
                         .enableTimestampBatching(false)
@@ -200,7 +200,7 @@ public class TransactionManagersTest {
                 .build();
 
         TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                createLockAndTimestampServicesForConfig(config);
+                createLockAndTimestampServicesForConfig(configWithoutBatching);
         assertThat(lockAndTimestampServices.time()).isNotInstanceOf(RateLimitedTimestampService.class);
     }
 
@@ -250,9 +250,9 @@ public class TransactionManagersTest {
     }
 
     private TransactionManagers.LockAndTimestampServices createLockAndTimestampServicesForConfig(
-            AtlasDbConfig config) {
+            AtlasDbConfig atlasDbConfig) {
         return TransactionManagers.createLockAndTimestampServices(
-                config,
+                atlasDbConfig,
                 environment,
                 LockServiceImpl::create,
                 InMemoryTimestampService::new,

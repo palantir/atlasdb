@@ -29,20 +29,20 @@ import com.palantir.remoting2.tracing.Tracers;
 public class RateLimitedTimestampServiceTest {
     @Test
     public void testRateLimiting() throws Exception {
-        final long MIN_REQUEST_MILLIS = 100L;
-        final long TEST_DURATION_MILLIS = 2000L;
-        final int NUM_THREADS = 3;
+        final long minRequestMillis = 100L;
+        final long testDurationMillis = 2000L;
+        final int numThreads = 3;
 
         final StatsTrackingTimestampService rawTs = new StatsTrackingTimestampService(new InMemoryTimestampService());
-        final RateLimitedTimestampService cachedTs = new RateLimitedTimestampService(rawTs, MIN_REQUEST_MILLIS);
+        final RateLimitedTimestampService cachedTs = new RateLimitedTimestampService(rawTs, minRequestMillis);
         final AtomicLong timestampsGenerated = new AtomicLong(0);
         final long startMillis = System.currentTimeMillis();
 
         ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool());
         try {
-            for (int i = 0; i < NUM_THREADS; ++i) {
+            for (int i = 0; i < numThreads; ++i) {
                 executor.submit(() -> {
-                    while (System.currentTimeMillis() - startMillis < TEST_DURATION_MILLIS) {
+                    while (System.currentTimeMillis() - startMillis < testDurationMillis) {
                         cachedTs.getFreshTimestamp();
                         timestampsGenerated.incrementAndGet();
                     }
@@ -55,7 +55,7 @@ public class RateLimitedTimestampServiceTest {
         }
 
         assertEquals(0, rawTs.getFreshTimestampReqCount.get());
-        long approxFreshTimestampReqTotal = rawTs.getFreshTimestampsReqCount.get() * NUM_THREADS;
+        long approxFreshTimestampReqTotal = rawTs.getFreshTimestampsReqCount.get() * numThreads;
         assertEquals(approxFreshTimestampReqTotal, timestampsGenerated.get(), approxFreshTimestampReqTotal);
     }
 
@@ -66,7 +66,7 @@ public class RateLimitedTimestampServiceTest {
 
         final TimestampService delegate;
 
-        public StatsTrackingTimestampService(TimestampService delegate) {
+        StatsTrackingTimestampService(TimestampService delegate) {
             this.delegate = delegate;
         }
 

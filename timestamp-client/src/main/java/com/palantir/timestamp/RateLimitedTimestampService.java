@@ -40,7 +40,7 @@ import com.palantir.util.timer.LoggingOperationTimer;
  */
 @ThreadSafe
 public class RateLimitedTimestampService implements TimestampService {
-    private final static OperationTimer timer = LoggingOperationTimer.create(RateLimitedTimestampService.class);
+    private static final OperationTimer timer = LoggingOperationTimer.create(RateLimitedTimestampService.class);
     private static final Logger log = LoggerFactory.getLogger(RateLimitedTimestampService.class);
 
     @GuardedBy("this")
@@ -91,12 +91,15 @@ public class RateLimitedTimestampService implements TimestampService {
     private static class JoinedBatch {
         public final TimestampHolder batch;
         public final boolean thisThreadOwnsBatch;
-        public JoinedBatch(TimestampHolder batch, boolean thisThreadOwnsBatch) {
+
+        JoinedBatch(TimestampHolder batch, boolean thisThreadOwnsBatch) {
             this.batch = batch;
             this.thisThreadOwnsBatch = thisThreadOwnsBatch;
         }
     }
+
     private static final int MAX_BATCH_JOIN_ATTEMPTS = 5;
+
     private JoinedBatch joinBatch() {
         @Nullable TimestampHolder batch = null;
         boolean installedFreshBatch = false;
@@ -126,8 +129,8 @@ public class RateLimitedTimestampService implements TimestampService {
                      * need to block on each other. All of this is inefficient but not incorrect, and doing it
                      * guarantees progress, and it should be rare to get this unlucky.
                      */
-                    log.warn("Failed to join a timestamp batch {} times; blindly installing a batch. " +
-                            "This should be rare!", MAX_BATCH_JOIN_ATTEMPTS);
+                    log.warn("Failed to join a timestamp batch {} times; blindly installing a batch. "
+                            + "This should be rare!", MAX_BATCH_JOIN_ATTEMPTS);
                     currentBatch.set(freshBatch);
                     installedFreshBatch = true;
                 }
@@ -157,13 +160,13 @@ public class RateLimitedTimestampService implements TimestampService {
         try {
             int numTimestampsToGet = batch.getRequestCountAndSetInvalid();
             Preconditions.checkState(TimestampHolder.isRequestCountValid(numTimestampsToGet),
-                    "Timestamp batch's number of requests has already been invalidated. " +
-                    "This should not have happened yet. numTimestampsToGet = %s", numTimestampsToGet);
+                    "Timestamp batch's number of requests has already been invalidated. "
+                    + "This should not have happened yet. numTimestampsToGet = %s", numTimestampsToGet);
 
             // NOTE: At this point, we are sure no new requests for fresh timestamps
             // for "batch" can come in. We can now safely populate the batch
             // with fresh timestamps without violating any freshness guarantees.
-            // TODO: probably need to adjust this formula
+            // TODO(jkong): probably need to adjust this formula
             TimestampRange freshTimestamps = delegate.getFreshTimestamps(numTimestampsToGet);
 
             batch.populate(freshTimestamps);
@@ -205,7 +208,7 @@ public class RateLimitedTimestampService implements TimestampService {
         private volatile long endInclusive;
         private final AtomicLong valueToReturnNext;
 
-        public TimestampHolder() {
+        TimestampHolder() {
             requestCount = new AtomicInteger(1); // 1 because the current thread wants to make a request.
 
             // This will count down after it's been populated, which happens only once.
@@ -236,6 +239,8 @@ public class RateLimitedTimestampService implements TimestampService {
         }
 
         /**
+         * Attempts to join a timestamp request batch.
+         *
          * @return true if we are included in the batch and false otherwise
          */
         public boolean joinBatch() {
