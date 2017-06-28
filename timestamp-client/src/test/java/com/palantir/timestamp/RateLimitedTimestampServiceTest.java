@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package com.palantir.timestamp;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -42,15 +41,12 @@ public class RateLimitedTimestampServiceTest {
         ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool());
         try {
             for (int i = 0; i < NUM_THREADS; ++i) {
-                executor.submit(new Callable<Void>() {
-                    @Override
-                    public Void call() {
-                        while (System.currentTimeMillis() - startMillis < TEST_DURATION_MILLIS) {
-                            cachedTs.getFreshTimestamp();
-                            timestampsGenerated.incrementAndGet();
-                        }
-                        return null;
+                executor.submit(() -> {
+                    while (System.currentTimeMillis() - startMillis < TEST_DURATION_MILLIS) {
+                        cachedTs.getFreshTimestamp();
+                        timestampsGenerated.incrementAndGet();
                     }
+                    return null;
                 });
             }
         } finally {
