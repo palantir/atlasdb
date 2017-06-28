@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -52,6 +53,7 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
+import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
@@ -62,6 +64,7 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.RateLimitedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -113,6 +116,7 @@ public class TransactionManagersTest {
         when(config.lock()).thenReturn(Optional.empty());
         when(config.timelock()).thenReturn(Optional.empty());
         when(config.keyValueService()).thenReturn(new InMemoryAtlasDbConfig());
+        when(config.timestampClient()).thenReturn(ImmutableTimestampClientConfig.builder().build());
 
         environment = mock(TransactionManagers.Environment.class);
 
@@ -172,6 +176,34 @@ public class TransactionManagersTest {
         assertEquals(expectedTimeout, lockRequest.getLockTimeout());
     }
 
+    @Test
+    public void createsRateLimitingTimestampServiceIfBatchingEnabled() {
+        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .timestampClient(ImmutableTimestampClientConfig.builder()
+                        .enableTimestampBatching(true)
+                        .build())
+                .build();
+
+        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
+                createLockAndTimestampServicesForConfig(config);
+        assertThat(lockAndTimestampServices.time()).isInstanceOf(RateLimitedTimestampService.class);
+    }
+
+    @Test
+    public void doesNotCreateRateLimitingTimestampServiceIfBatchingDisabled() {
+        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .timestampClient(ImmutableTimestampClientConfig.builder()
+                        .enableTimestampBatching(false)
+                        .build())
+                .build();
+
+        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
+                createLockAndTimestampServicesForConfig(config);
+        assertThat(lockAndTimestampServices.time()).isNotInstanceOf(RateLimitedTimestampService.class);
+    }
+
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
         verifyUserAgentOnTimestampAndLockRequests(TIMESTAMP_PATH, LOCK_PATH);
     }
@@ -194,13 +226,7 @@ public class TransactionManagersTest {
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
         TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                TransactionManagers.createLockAndTimestampServices(
-                        config,
-                        environment,
-                        LockServiceImpl::create,
-                        InMemoryTimestampService::new,
-                        invalidator,
-                        USER_AGENT);
+                createLockAndTimestampServicesForConfig(config);
         lockAndTimestampServices.time().getFreshTimestamp();
         lockAndTimestampServices.lock().currentTimeMillis();
 
@@ -221,5 +247,16 @@ public class TransactionManagersTest {
                         .addAllServers(servers)
                         .build())
                 .build();
+    }
+
+    private TransactionManagers.LockAndTimestampServices createLockAndTimestampServicesForConfig(
+            AtlasDbConfig config) {
+        return TransactionManagers.createLockAndTimestampServices(
+                config,
+                environment,
+                LockServiceImpl::create,
+                InMemoryTimestampService::new,
+                invalidator,
+                USER_AGENT);
     }
 }
