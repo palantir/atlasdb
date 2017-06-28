@@ -18,10 +18,14 @@ package com.palantir.lock.v2;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockRefreshToken;
 
 // TODO: also return a start timestamp here?
 @Value.Immutable
+@JsonSerialize(as=ImmutableLockImmutableTimestampResponse.class)
+@JsonDeserialize(as=ImmutableLockImmutableTimestampResponse.class)
 public interface LockImmutableTimestampResponse {
 
     @Value.Parameter
