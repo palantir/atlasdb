@@ -85,6 +85,7 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.tritium:tritium-api",
                 "com.palantir.tritium:tritium-core",
@@ -159,6 +160,7 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:commons-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -181,6 +183,13 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:timestamp-client",
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:timestamp-client": {
+            "project": true,
+            "transitive": [
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -217,6 +226,7 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -503,6 +513,7 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.tritium:tritium-api",
                 "com.palantir.tritium:tritium-core",
@@ -577,6 +588,7 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:commons-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -599,6 +611,13 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:timestamp-client",
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:timestamp-client": {
+            "project": true,
+            "transitive": [
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -635,6 +654,7 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
