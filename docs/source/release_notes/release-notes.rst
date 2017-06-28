@@ -42,6 +42,17 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - The implementation of the TimeLock server has been separated into a new project, ``timelock-impl``.
+           This should not affect users directly, unless they depended on classes from within the TimeLock server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2076>`__)
+
+    *    - |userbreak|
+         - ``TimelockServerConfiguration`` now requires an algorithm to be specified.
+           Previously, if no algorithm was specified, the configuration would default to atomix.
+           Furthermore, several classes were moved from package ``com.palantir.atlasdb.timelock.paxos`` to ``com.palantir.atlasdb.timelock``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2076>`__)
+
     *    - |userbreak|
          - The previously deprecated RocksDBKVS has been removed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1966>`__)

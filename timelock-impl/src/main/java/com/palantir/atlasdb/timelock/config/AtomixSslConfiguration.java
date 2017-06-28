@@ -15,17 +15,17 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.auto.service.AutoService;
-import com.palantir.atlasdb.timelock.TimeLockServer;
+import org.immutables.value.Value;
 
-import io.dropwizard.jackson.Discoverable;
-import io.dropwizard.setup.Environment;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.remoting2.config.ssl.SslConfiguration;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.PROPERTY,
-        property = "type")
-@AutoService(Discoverable.class)
-public interface TimeLockAlgorithmConfiguration {
-    TimeLockServer createServerImpl(Environment environment);
+@JsonSerialize(as = ImmutableAtomixSslConfiguration.class)
+@JsonDeserialize(as = ImmutableAtomixSslConfiguration.class)
+@Value.Immutable
+public abstract class AtomixSslConfiguration {
+    public abstract SslConfiguration sslConfiguration();
+
+    public abstract String trustStorePassword();
 }

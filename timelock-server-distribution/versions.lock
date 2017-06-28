@@ -168,7 +168,7 @@
         "com.github.rholder:guava-retrying": {
             "locked": "2.0.0",
             "transitive": [
-                "com.palantir.atlasdb:timelock-server"
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "com.google.code.findbugs:annotations": {
@@ -188,6 +188,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timelock-impl",
                 "com.palantir.atlasdb:timelock-server",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl",
@@ -332,8 +333,7 @@
         "com.palantir.atlasdb:leader-election-impl": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:timelock-server"
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.atlasdb:lock-api": {
@@ -348,12 +348,17 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:timelock-server"
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
-        "com.palantir.atlasdb:timelock-server": {
+        "com.palantir.atlasdb:timelock-impl": {
             "project": true
+        },
+        "com.palantir.atlasdb:timelock-server": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timelock-impl"
+            ]
         },
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
@@ -366,7 +371,7 @@
         "com.palantir.atlasdb:timestamp-impl": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:timelock-server"
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -405,14 +410,14 @@
             "locked": "2.3.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:timelock-server"
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "com.palantir.remoting2:ssl-config": {
             "locked": "2.3.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:timelock-server"
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "com.palantir.remoting2:tracing": {
@@ -422,7 +427,7 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-impl",
-                "com.palantir.atlasdb:timelock-server",
+                "com.palantir.atlasdb:timelock-impl",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.remoting2:jersey-servers"
             ]
@@ -444,6 +449,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timelock-impl",
                 "com.palantir.atlasdb:timelock-server",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl"
@@ -471,7 +477,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:timelock-server"
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "com.palantir.tritium:tritium-metrics": {
@@ -539,7 +545,7 @@
         "io.atomix.catalyst:catalyst-netty": {
             "locked": "1.1.2",
             "transitive": [
-                "com.palantir.atlasdb:timelock-server"
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "io.atomix.catalyst:catalyst-serializer": {
@@ -578,7 +584,7 @@
         "io.atomix:atomix": {
             "locked": "1.0.0-rc9",
             "transitive": [
-                "com.palantir.atlasdb:timelock-server"
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "io.atomix:atomix-collections": {
@@ -692,6 +698,7 @@
         "io.dropwizard.modules:dropwizard-java8": {
             "locked": "0.9.0-1",
             "transitive": [
+                "com.palantir.atlasdb:timelock-impl",
                 "com.palantir.atlasdb:timelock-server"
             ]
         },
@@ -704,14 +711,14 @@
         "io.dropwizard:dropwizard-core": {
             "locked": "1.0.6",
             "transitive": [
-                "com.palantir.atlasdb:timelock-server",
+                "com.palantir.atlasdb:timelock-impl",
                 "io.dropwizard.modules:dropwizard-java8"
             ]
         },
         "io.dropwizard:dropwizard-http2": {
             "locked": "1.0.6",
             "transitive": [
-                "com.palantir.atlasdb:timelock-server"
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "io.dropwizard:dropwizard-jackson": {
@@ -763,7 +770,7 @@
         "io.dropwizard:dropwizard-request-logging": {
             "locked": "1.0.6",
             "transitive": [
-                "com.palantir.atlasdb:timelock-server",
+                "com.palantir.atlasdb:timelock-impl",
                 "io.dropwizard:dropwizard-core"
             ]
         },

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import java.util.Set;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 
 public class TimeLockServerConfigurationTest {
     private static final String ADDRESS = "localhost:8701";
@@ -41,7 +40,7 @@ public class TimeLockServerConfigurationTest {
     @Test
     public void shouldAddDefaultConfigurationIfNotIncluded() {
         TimeLockServerConfiguration configuration = createSimpleConfig(CLUSTER, CLIENTS);
-        assertThat(configuration.algorithm()).isEqualTo(ImmutableAtomixConfiguration.DEFAULT);
+        assertThat(configuration.algorithm()).isEqualTo(null);
     }
 
     @Test
@@ -60,7 +59,7 @@ public class TimeLockServerConfigurationTest {
     public void shouldRejectClientsConflictingWithInternalClients() {
         assertThatThrownBy(() -> createSimpleConfig(
                 CLUSTER,
-                ImmutableSet.of(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE)))
+                ImmutableSet.of(TimeLockServerConfiguration.LEADER_ELECTION_NAMESPACE)))
                 .isInstanceOf(IllegalStateException.class);
     }
 

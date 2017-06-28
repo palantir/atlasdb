@@ -13,19 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.config;
+package com.palantir.atlasdb.timelock;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.auto.service.AutoService;
-import com.palantir.atlasdb.timelock.TimeLockServer;
+import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampService;
 
-import io.dropwizard.jackson.Discoverable;
-import io.dropwizard.setup.Environment;
-
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.PROPERTY,
-        property = "type")
-@AutoService(Discoverable.class)
-public interface TimeLockAlgorithmConfiguration {
-    TimeLockServer createServerImpl(Environment environment);
+public interface ManagedTimestampService extends TimestampService, TimestampManagementService {
 }
