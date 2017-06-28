@@ -553,15 +553,6 @@
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
-        "org.eclipse.jetty:jetty-http": {
-            "locked": "9.3.9.v20160517"
-        },
-        "org.eclipse.jetty:jetty-util": {
-            "locked": "9.3.9.v20160517",
-            "transitive": [
-                "org.eclipse.jetty:jetty-http"
-            ]
-        },
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.9",
             "transitive": [
@@ -1176,15 +1167,6 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.config.crypto:encrypted-config-value-module"
-            ]
-        },
-        "org.eclipse.jetty:jetty-http": {
-            "locked": "9.3.9.v20160517"
-        },
-        "org.eclipse.jetty:jetty-util": {
-            "locked": "9.3.9.v20160517",
-            "transitive": [
-                "org.eclipse.jetty:jetty-http"
             ]
         },
         "org.hdrhistogram:HdrHistogram": {

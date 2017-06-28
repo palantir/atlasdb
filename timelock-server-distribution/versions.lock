@@ -959,7 +959,6 @@
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.3.9.v20160517",
             "transitive": [
-                "com.palantir.atlasdb:timelock-impl",
                 "io.dropwizard:dropwizard-jetty",
                 "org.eclipse.jetty.http2:http2-hpack",
                 "org.eclipse.jetty:jetty-server",
