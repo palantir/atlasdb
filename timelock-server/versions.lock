@@ -158,7 +158,10 @@
             ]
         },
         "com.github.rholder:guava-retrying": {
-            "locked": "2.0.0"
+            "locked": "2.0.0",
+            "transitive": [
+                "com.palantir.atlasdb:timelock-impl"
+            ]
         },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3",
@@ -177,6 +180,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timelock-impl",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.tritium:tritium-api",
@@ -270,7 +274,10 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-config": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timelock-impl"
+            ]
         },
         "com.palantir.atlasdb:atlasdb-feign": {
             "project": true,
@@ -335,6 +342,9 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
+        "com.palantir.atlasdb:timelock-impl": {
+            "project": true
+        },
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
             "transitive": [
@@ -344,7 +354,10 @@
             ]
         },
         "com.palantir.atlasdb:timestamp-impl": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timelock-impl"
+            ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
             "locked": "1.0.0",
@@ -418,6 +431,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timelock-impl",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
@@ -545,7 +559,10 @@
             ]
         },
         "io.atomix:atomix": {
-            "locked": "1.0.0-rc9"
+            "locked": "1.0.0-rc9",
+            "transitive": [
+                "com.palantir.atlasdb:timelock-impl"
+            ]
         },
         "io.atomix:atomix-collections": {
             "locked": "1.0.0-rc9",
@@ -1070,7 +1087,6 @@
         "org.glassfish.jersey.core:jersey-server": {
             "locked": "2.23.2",
             "transitive": [
-                "com.palantir.remoting2:jersey-servers",
                 "io.dropwizard:dropwizard-jersey",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",
@@ -1368,7 +1384,10 @@
             ]
         },
         "com.github.rholder:guava-retrying": {
-            "locked": "2.0.0"
+            "locked": "2.0.0",
+            "transitive": [
+                "com.palantir.atlasdb:timelock-impl"
+            ]
         },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3",
@@ -1387,6 +1406,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timelock-impl",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.tritium:tritium-api",
@@ -1480,7 +1500,10 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-config": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timelock-impl"
+            ]
         },
         "com.palantir.atlasdb:atlasdb-feign": {
             "project": true,
@@ -1545,6 +1568,9 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
+        "com.palantir.atlasdb:timelock-impl": {
+            "project": true
+        },
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
             "transitive": [
@@ -1554,7 +1580,10 @@
             ]
         },
         "com.palantir.atlasdb:timestamp-impl": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timelock-impl"
+            ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
             "locked": "1.0.0",
@@ -1628,6 +1657,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timelock-impl",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
@@ -1755,7 +1785,10 @@
             ]
         },
         "io.atomix:atomix": {
-            "locked": "1.0.0-rc9"
+            "locked": "1.0.0-rc9",
+            "transitive": [
+                "com.palantir.atlasdb:timelock-impl"
+            ]
         },
         "io.atomix:atomix-collections": {
             "locked": "1.0.0-rc9",
@@ -2280,7 +2313,6 @@
         "org.glassfish.jersey.core:jersey-server": {
             "locked": "2.23.2",
             "transitive": [
-                "com.palantir.remoting2:jersey-servers",
                 "io.dropwizard:dropwizard-jersey",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",

@@ -42,6 +42,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - The dropwizard independent implementation of the TimeLock server has been separated into a new project, ``timelock-impl``.
+           This should not affect users directly, unless they depended on classes from within the TimeLock server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+
     *    - |userbreak|
          - The previously deprecated RocksDBKVS has been removed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1966>`__)
