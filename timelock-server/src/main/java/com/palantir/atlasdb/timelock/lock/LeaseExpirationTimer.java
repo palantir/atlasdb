@@ -27,6 +27,7 @@ public class LeaseExpirationTimer {
 
     public LeaseExpirationTimer(Clock clock) {
         this.clock = clock;
+        this.lastRefreshTimeMillis = clock.getTimeMillis();
     }
 
     public void refresh() {
