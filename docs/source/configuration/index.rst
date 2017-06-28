@@ -15,6 +15,7 @@ Configuration
    enabling_cassandra_tracing
    leader_config
    logging
+   timestamp_client
 
 AtlasDB Configuration
 =====================
@@ -27,6 +28,8 @@ parameters will go. Please see :ref:`key-value-service-configs` for details on s
 In addition to the ``keyValueServiceConfig``, you must specify a configuration for the timestamp and lock services.
 If you are using an embedded timestamp and lock service, see the :ref:`Leader Configuration <leader-config>` documentation.
 If you are using the :ref:`external Timelock service <external-timelock-service>`, then see the :ref:`Timelock client configuration <timelock-client-configuration>`.
+
+Parameters concerning batching of timestamp requests may also be configured; see :ref:`Timestamp Client <timestamp-client-config>` for more details.
 
 For a full list of the configurations available at the ``atlasdb`` root level, see
 `AtlasDbConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java>`__.
@@ -77,7 +80,15 @@ Example Configuration
         sslConfiguration:
           trustStorePath: var/security/truststore.jks
 
+<<<<<<< HEAD
 
     atlasdb-runtime:
       sweep:
         enabled: false
+=======
+      enableSweep: false
+      sweepBatchSize: 1000
+
+      timestampClient:
+        enableTimestampBatching: true
+>>>>>>> 0a9e6a7... False by default, and docs
