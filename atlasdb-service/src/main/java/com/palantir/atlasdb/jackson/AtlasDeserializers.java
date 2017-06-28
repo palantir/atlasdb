@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Bytes;
@@ -78,10 +79,10 @@ public final class AtlasDeserializers {
         Preconditions.checkArgument(!mustBeFull || size == components.size(),
                 "Received %s values for a row with %s components.", size, components.size());
         byte[][] bytes = new byte[size][];
+        Iterator<JsonNode> rowValues = getComponentNodes(node, components);
         for (int i = 0; i < size; i++) {
             NameComponentDescription component = components.get(i);
-            String value = getRowValue(i, component, node);
-            bytes[i] = component.getType().convertFromJson(value);
+            bytes[i] = component.getType().convertFromJson(rowValues.next().toString());
             if (component.isReverseOrder()) {
                 EncodingUtils.flipAllBitsInPlace(bytes[i]);
             }
@@ -89,11 +90,11 @@ public final class AtlasDeserializers {
         return Bytes.concat(bytes);
     }
 
-    private static String getRowValue(int i, NameComponentDescription component, JsonNode node) {
-        if (node.has(component.getComponentName())) {
-            return node.get(component.getComponentName()).toString();
+    private static Iterator<JsonNode> getComponentNodes(JsonNode node, List<NameComponentDescription> components) {
+        if (node.isArray()) {
+            return node.elements();
         } else {
-            return node.get(i).toString();
+            return Iterators.transform(components.iterator(), c -> node.get(c.getComponentName()));
         }
     }
 
