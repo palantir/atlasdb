@@ -11,12 +11,15 @@ jacocoTestReport {
 
 dependencies {
     compile project(":timestamp-impl")
+    compile project(":lock-impl")
     compile (project(":atlasdb-config")) {
         exclude group:'io.dropwizard'
     }
 
     compile group: 'com.github.rholder', name: 'guava-retrying'
+
     compile group: 'io.atomix', name: 'atomix'
+    compile group: 'org.eclipse.jetty', name:'jetty-http'
 
     processor group: 'org.immutables', name: 'value'
 
