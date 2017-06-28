@@ -22,7 +22,7 @@ import com.palantir.atlasdb.http.ExceptionMappers;
 import com.palantir.lock.impl.TooManyRequestsException;
 
 public class TooManyRequestsExceptionMapper implements ExceptionMapper<TooManyRequestsException> {
-    public final static int TOO_MANY_REQUESTS_429 = 429;
+    public static final int TOO_MANY_REQUESTS_429 = 429;
 
     @Override
     public Response toResponse(TooManyRequestsException exception) {
