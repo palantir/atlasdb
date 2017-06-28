@@ -324,7 +324,8 @@
         "com.palantir.atlasdb:leader-election-impl": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "com.palantir.atlasdb:lock-api": {
@@ -1089,6 +1090,7 @@
         "org.glassfish.jersey.core:jersey-server": {
             "locked": "2.23.2",
             "transitive": [
+                "com.palantir.remoting2:jersey-servers",
                 "io.dropwizard:dropwizard-jersey",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",
@@ -1552,7 +1554,8 @@
         "com.palantir.atlasdb:leader-election-impl": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "com.palantir.atlasdb:lock-api": {
@@ -2317,6 +2320,7 @@
         "org.glassfish.jersey.core:jersey-server": {
             "locked": "2.23.2",
             "transitive": [
+                "com.palantir.remoting2:jersey-servers",
                 "io.dropwizard:dropwizard-jersey",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",

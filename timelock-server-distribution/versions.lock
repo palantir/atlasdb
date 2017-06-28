@@ -333,7 +333,8 @@
         "com.palantir.atlasdb:leader-election-impl": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "com.palantir.atlasdb:lock-api": {
@@ -410,13 +411,15 @@
         "com.palantir.remoting2:jersey-servers": {
             "locked": "2.3.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:timelock-server"
             ]
         },
         "com.palantir.remoting2:ssl-config": {
             "locked": "2.3.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:timelock-server"
             ]
         },
         "com.palantir.remoting2:tracing": {
@@ -426,6 +429,7 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timelock-server",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.remoting2:jersey-servers"
             ]
@@ -474,7 +478,8 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:timelock-server"
             ]
         },
         "com.palantir.tritium:tritium-metrics": {
@@ -1113,6 +1118,7 @@
         "org.glassfish.jersey.core:jersey-server": {
             "locked": "2.23.2",
             "transitive": [
+                "com.palantir.remoting2:jersey-servers",
                 "io.dropwizard:dropwizard-jersey",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",
