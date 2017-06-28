@@ -47,6 +47,12 @@ develop
            to expose aggregate response time and service call metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2045>`__)
 
+    *    - |improved|
+         - The lock service state logger now has a reduced memory footprint.
+           It also now logs the locking mode for each lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1891>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
@@ -137,11 +143,6 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
 
     *    - |improved|
-         - The lock service state logger now has a reduced memory footprint.
-           It also now logs the locking mode for each lock.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1891>`__)
-
-    *    - |improved|
          - Reduced the logging level of some messages relating to check-and-set operations in ``CassandraTimestampBoundStore`` to reduce noise in the logs.
            These were designed to help debugging the ``MultipleRunningTimestampServicesException`` issues but we no longer require them to log all the time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2048>`__)
@@ -217,10 +218,6 @@ develop
     *    - |fixed|
          - Fixed a potential out-of-memory issue by limiting the number of rows getRange() can request from Postgres at once.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2003>`__)
-
-    *    - |improved|
-         - Upgraded all usages of http-remoting to remoting2
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1999>`__)
 
     *    - |improved|
          - Default cleaner will be able to track immutable timestamp change over time. Will log on WARN level if the immutable timestamp doesn't change for an hour, on ERROR level - for 24 hours. Useful for debugging.
