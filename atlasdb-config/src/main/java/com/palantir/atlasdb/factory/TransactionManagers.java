@@ -131,11 +131,11 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Schema schema,
             Environment env,
             boolean allowHiddenTableAccess) {
-        return create(config, runtimeConfig, ImmutableSet.of(schema), env, allowHiddenTableAccess);
+        return create(config, runtimeConfigSupplier, ImmutableSet.of(schema), env, allowHiddenTableAccess);
     }
 
     /**
@@ -144,14 +144,13 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
-        log.info("Called TransactionManagers.create with live reloading config on thread {}."
-                        + " This should only happen once.",
+        log.info("Called TransactionManagers.create. This should only happen once.",
                 UnsafeArg.of("thread name", Thread.currentThread().getName()));
-        return create(config, runtimeConfig, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
+        return create(config, runtimeConfigSupplier, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
     }
 
     /**
@@ -160,30 +159,30 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess) {
-        return create(config, runtimeConfig, schemas, env, lockServerOptions, allowHiddenTableAccess,
+        return create(config, runtimeConfigSupplier, schemas, env, lockServerOptions, allowHiddenTableAccess,
                 UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             Class<?> callingClass) {
-        return create(config, runtimeConfig, schemas, env, lockServerOptions, allowHiddenTableAccess,
+        return create(config, runtimeConfigSupplier, schemas, env, lockServerOptions, allowHiddenTableAccess,
                 UserAgents.fromClass(callingClass));
     }
 
     private static SerializableTransactionManager create(
             AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
@@ -259,7 +258,7 @@ public final class TransactionManagers {
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
                 config.getSweepPersistentLockWaitMillis());
-        initializeSweepEndpointAndBackgroundProcess(runtimeConfig,
+        initializeSweepEndpointAndBackgroundProcess(runtimeConfigSupplier,
                 env,
                 kvs,
                 transactionService,
@@ -272,7 +271,7 @@ public final class TransactionManagers {
     }
 
     private static void initializeSweepEndpointAndBackgroundProcess(
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Environment env,
             KeyValueService kvs,
             TransactionService transactionService,
@@ -294,7 +293,7 @@ public final class TransactionManagers {
                 cellsSweeper);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
         Supplier<SweepBatchConfig> sweepBatchConfig =
-                Suppliers.ofInstance(getSweepBatchConfig(getAtlasDbRuntimeConfig(runtimeConfig).sweep()));
+                Suppliers.ofInstance(getSweepBatchConfig(getAtlasDbRuntimeConfig(runtimeConfigSupplier).sweep()));
         SweepMetrics sweepMetrics = new SweepMetrics();
 
         SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
@@ -307,8 +306,8 @@ public final class TransactionManagers {
                 sweepMetrics);
 
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
-                () -> getAtlasDbRuntimeConfig(runtimeConfig).sweep().enabled(),
-                () -> getAtlasDbRuntimeConfig(runtimeConfig).sweep().pauseMillis(),
+                () -> getAtlasDbRuntimeConfig(runtimeConfigSupplier).sweep().enabled(),
+                () -> getAtlasDbRuntimeConfig(runtimeConfigSupplier).sweep().pauseMillis(),
                 persistentLockManager,
                 specificTableSweeper);
 
@@ -336,8 +335,8 @@ public final class TransactionManagers {
     }
 
     private static AtlasDbRuntimeConfig getAtlasDbRuntimeConfig(
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfig) {
-        return runtimeConfig.get().orElse(AtlasDbRuntimeConfig.defaultRuntimeConfig());
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier) {
+        return runtimeConfigSupplier.get().orElse(AtlasDbRuntimeConfig.defaultRuntimeConfig());
     }
 
     private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig) {
