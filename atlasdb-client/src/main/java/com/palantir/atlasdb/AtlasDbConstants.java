@@ -103,4 +103,7 @@ public class AtlasDbConstants {
     public static final int MAX_OVERFLOW_TABLE_PREFIX_LENGTH = 6;
 
     public static final int DEFAULT_LOCK_TIMEOUT_SECONDS = 120;
+
+    public static final boolean DEFAULT_ENABLE_TIMESTAMP_BATCHING = true;
+    public static final long DEFAULT_MINIMUM_MILLIS_BETWEEN_BATCHES = 0L;
 }

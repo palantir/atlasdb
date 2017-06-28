@@ -207,7 +207,10 @@ public class RateLimitedTimestampService implements TimestampService {
 
         public TimestampHolder() {
             requestCount = new AtomicInteger(1); // 1 because the current thread wants to make a request.
-            populationLatch = new CountDownLatch(1); // This will count down after it's been populated, which happens only once.
+
+            // This will count down after it's been populated, which happens only once.
+            populationLatch = new CountDownLatch(1);
+
             valueToReturnNext = new AtomicLong(-1L); // Dummy value. Will be populated.
             failed = false;
         }
