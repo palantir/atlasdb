@@ -200,8 +200,12 @@ parameters will go. Please see <a class="reference internal" href="key_value_ser
 <p>In addition to the <code class="docutils literal"><span class="pre">keyValueServiceConfig</span></code>, you must specify a configuration for the timestamp and lock services.
 If you are using an embedded timestamp and lock service, see the <a class="reference internal" href="leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a> documentation.
 If you are using the <a class="reference internal" href="../services/timelock_service/index.html#external-timelock-service"><span class="std std-ref">external Timelock service</span></a>, then see the <a class="reference internal" href="external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock client configuration</span></a>.</p>
-<p>Other parameters related to <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">Sweep</span></a> can also be specified here. For a full list of the configurations
-available at the <code class="docutils literal"><span class="pre">atlasdb</span></code> root level, see <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java">AtlasDbConfig.java</a>.</p>
+<p>For a full list of the configurations available at the <code class="docutils literal"><span class="pre">atlasdb</span></code> root level, see
+<a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java">AtlasDbConfig.java</a>.</p>
+<p>A second root configuration block, denoted <code class="docutils literal"><span class="pre">atlasdb-runtime</span></code>, can be specified for live-reloadable configs.
+Parameters related to <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">Sweep</span></a> can be specified there and will be reloaded in each sweep run.
+For a full list of the configurations available at this block, see
+<a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java">AtlasDbRuntimeConfig.java</a>.</p>
 </div>
 <div class="section" id="example-configuration">
 <h2>Example Configuration<a class="headerlink" href="#example-configuration" title="Permalink to this headline">¶</a></h2>
@@ -241,8 +245,10 @@ available at the <code class="docutils literal"><span class="pre">atlasdb</span>
     <span class="l l-Scalar l-Scalar-Plain">sslConfiguration</span><span class="p p-Indicator">:</span>
       <span class="l l-Scalar l-Scalar-Plain">trustStorePath</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
 
-  <span class="l l-Scalar l-Scalar-Plain">enableSweep</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
-  <span class="l l-Scalar l-Scalar-Plain">sweepBatchSize</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
+
+<span class="l l-Scalar l-Scalar-Plain">atlasdb-runtime</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">sweep</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">enabled</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
 </pre></div>
 </div>
 </div>

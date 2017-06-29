@@ -197,6 +197,17 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>The Atomix algorithm implementation for the TimeLock server and the corresponding configurations have been removed.
+The default algorithm for <code class="docutils literal"><span class="pre">TimeLockServer</span></code> has been changed to Paxos.
+This should not affect users as Atomix should not have been used due to known bugs in the implementation.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2082">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The dropwizard independent implementation of the TimeLock server has been separated into a new project, <code class="docutils literal"><span class="pre">timelock-impl</span></code>.
+This should not affect users directly, unless they depended on classes from within the TimeLock server.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2081">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>The previously deprecated RocksDBKVS has been removed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1966">Pull Request</a>)</td>
 </tr>
@@ -218,6 +229,44 @@ This should be used in place of the deprecated sweep CLIs.
 </ul>
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2060">Pull Request</a>)
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2060">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td><p class="first">Added support for live-reloading sweep configs.</p>
+<p>There’s a new set of <cite>TransactionManagers.create()</cite> methods, which accept a Supplier of the AtlasDbRuntimeConfig.
+The AtlasDbRuntimeConfig wraps a SweepConfig block with the options:</p>
+<blockquote>
+<div><ul class="simple">
+<li><cite>enabled</cite></li>
+<li><cite>pauseMillis</cite></li>
+<li><cite>readLimit</cite></li>
+<li><cite>candidateBatchHint</cite></li>
+<li><cite>deleteBatchHint</cite></li>
+</ul>
+</div></blockquote>
+<p>The parameters are loaded and used at every sweep run. Please check <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">Sweep</span></a> for information on how to use them.</p>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1976">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td><p class="first">As part of the live-reloading work, were deprecated the sweep options of the install config, namely:</p>
+<blockquote>
+<div><ul class="simple">
+<li><cite>enableSweep</cite></li>
+<li><cite>sweepPauseMillis</cite></li>
+<li><cite>sweepReadLimit</cite></li>
+<li><cite>sweepCandidateBatchHint</cite></li>
+<li><cite>sweepDeleteBatchHint</cite></li>
+</ul>
+</div></blockquote>
+<p>If any of these options are specified in the install config, <strong>AtlasDB will fail to start</strong>. Please specify them on the runtime config.</p>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1976">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><p class="first">As part of the live-reloading work, the methods <cite>TransactionManagers.create()</cite> without the runtime config parameter were removed.
+If needed, the helper method <cite>AtlasDbRuntimeConfig.defaultRuntimeConfig()</cite> can be used to create a runtime config with the default values.</p>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1976">Pull Request</a>)</p>
 </td>
 </tr>
 </tbody>
