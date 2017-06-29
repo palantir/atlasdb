@@ -25,3 +25,12 @@ The timestamp client may be configured as follows:
     *    - enableTimestampBatching
          - If set to true, the AtlasDB client will batch requests as long as there is an outstanding request
            to the timestamp service.
+
+Live Reloading
+--------------
+The timestamp client supports live reloading; timestamp batching may be enabled or disabled without needing to
+bounce your AtlasDB client.
+
+Note that in the event one disables timestamp batching, timestamp requests that were batched and still in-flight
+will continue to be processed in a batch (and, should the current batches fail, they will continue to be retried as
+batches).
