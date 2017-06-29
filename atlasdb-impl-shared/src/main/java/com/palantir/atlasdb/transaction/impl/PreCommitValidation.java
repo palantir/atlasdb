@@ -14,25 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.atlasdb.transaction.impl;
 
-import java.util.UUID;
+/**
+ * A validation to be run immediately before committing a transaction.
+ */
+public interface PreCommitValidation {
 
-import org.immutables.value.Value;
+    /**
+     * Checks that any required conditions for committing still hold. The intended use case at
+     * time of writing is to validate that lock service locks are still valid. In this case implementations
+     * should throw a {@link com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException} if locks
+     * are expired, so that the transaction can be retried.
+     */
+    void check();
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
-@Value.Immutable
-@JsonSerialize(as = ImmutableLockTokenV2.class)
-@JsonDeserialize(as = ImmutableLockTokenV2.class)
-public interface LockTokenV2 {
-
-    @Value.Parameter
-    UUID getRequestId();
-
-    static LockTokenV2 of(UUID requestId) {
-        return ImmutableLockTokenV2.of(requestId);
-    }
+    PreCommitValidation NO_OP = () -> { };
 
 }

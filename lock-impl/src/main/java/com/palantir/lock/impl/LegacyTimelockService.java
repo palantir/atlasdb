@@ -16,9 +16,14 @@
 
 package com.palantir.lock.impl;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -33,11 +38,15 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
+/**
+ * A {@link TimelockService} implementation that delegates to a {@link RemoteLockService} and {@link TimestampService}.
+ */
 public class LegacyTimelockService implements TimelockService {
 
     private final TimestampService timestampService;
@@ -76,7 +85,9 @@ public class LegacyTimelockService implements TimelockService {
         }
 
         try {
-            return LockImmutableTimestampResponse.of(getImmutableTimestampInternal(immutableLockTs), lock);
+            return LockImmutableTimestampResponse.of(
+                    getImmutableTimestampInternal(immutableLockTs),
+                    new LockRefreshTokenV2Adapter(lock));
         } catch (Throwable e) {
             if (lock != null) {
                 lockService.unlock(lock);
@@ -92,7 +103,7 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public LockRefreshToken lock(LockRequestV2 request) {
+    public LockRefreshTokenV2Adapter lock(LockRequestV2 request) {
         LockRequest legacyRequest = toLegacyLockRequest(request);
 
         return lockAnonymous(legacyRequest);
@@ -116,19 +127,32 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public Set<LockRefreshToken> refreshLockLeases(Set<LockRefreshToken> tokens) {
-        return lockService.refreshLockRefreshTokens(tokens);
+    public Set<LockTokenV2> refreshLockLeases(Set<LockTokenV2> tokens) {
+        Set<LockRefreshToken> refreshTokens = tokens.stream()
+                .map(this::getRefreshToken)
+                .collect(Collectors.toSet());
+        return lockService.refreshLockRefreshTokens(refreshTokens).stream()
+                .map(LockRefreshTokenV2Adapter::new)
+                .collect(Collectors.toSet());
     }
 
     @Override
-    public Set<LockRefreshToken> unlock(Set<LockRefreshToken> tokens) {
-        Set<LockRefreshToken> unlocked = Sets.newHashSet();
-        for (LockRefreshToken token : tokens) {
-            if (lockService.unlock(token)) {
-                unlocked.add(token);
+    public Set<LockTokenV2> unlock(Set<LockTokenV2> tokens) {
+        Set<LockTokenV2> unlocked = Sets.newHashSet();
+        for (LockTokenV2 tokenV2 : tokens) {
+            if (lockService.unlock(getRefreshToken(tokenV2))) {
+                unlocked.add(tokenV2);
             }
         }
         return unlocked;
+    }
+
+    private LockRefreshToken getRefreshToken(LockTokenV2 tokenV2) {
+        Preconditions.checkArgument(
+                (tokenV2 instanceof LockRefreshTokenV2Adapter),
+                "The LockTokenV2 instance passed to LegacyTimelockService was of an unexpected type. "
+                        + "LegacyTimelockService only supports operations on the tokens it returns.");
+        return ((LockRefreshTokenV2Adapter) tokenV2).getToken();
     }
 
     @Override
@@ -141,9 +165,10 @@ public class LegacyTimelockService implements TimelockService {
         return minLocked == null ? ts : minLocked;
     }
 
-    private LockRefreshToken lockAnonymous(LockRequest lockRequest) {
+    private LockRefreshTokenV2Adapter lockAnonymous(LockRequest lockRequest) {
         try {
-            return lockService.lock(LockClient.ANONYMOUS.getClientId(), lockRequest);
+            LockRefreshToken token = lockService.lock(LockClient.ANONYMOUS.getClientId(), lockRequest);
+            return token == null ? null : new LockRefreshTokenV2Adapter(token);
         } catch (InterruptedException ex) {
             throw new RuntimeException(ex);
         }
@@ -155,5 +180,50 @@ public class LegacyTimelockService implements TimelockService {
             locks.put(descriptor, lockMode);
         }
         return locks;
+    }
+
+    @VisibleForTesting
+    static class LockRefreshTokenV2Adapter implements LockTokenV2 {
+
+        private final LockRefreshToken token;
+        private final UUID requestId;
+
+        LockRefreshTokenV2Adapter(LockRefreshToken token) {
+            this.token = token;
+            this.requestId = getRequestId(token);
+        }
+
+        @Override
+        public UUID getRequestId() {
+            return requestId;
+        }
+
+        public LockRefreshToken getToken() {
+            return token;
+        }
+
+        private static UUID getRequestId(LockRefreshToken token) {
+            long msb = token.getTokenId().shiftRight(64).longValue();
+            long lsb = token.getTokenId().longValue();
+            return new UUID(msb, lsb);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            LockRefreshTokenV2Adapter that = (LockRefreshTokenV2Adapter) o;
+            return Objects.equals(token, that.token) &&
+                    Objects.equals(requestId, that.requestId);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(token, requestId);
+        }
     }
 }

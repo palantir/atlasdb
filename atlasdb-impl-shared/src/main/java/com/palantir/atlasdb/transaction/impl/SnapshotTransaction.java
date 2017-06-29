@@ -119,8 +119,8 @@ import com.palantir.common.collect.MapEntries;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.util.AssertUtils;
@@ -166,8 +166,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Supplier<Long> startTimestamp;
 
     protected final long immutableTimestamp;
-    protected final ImmutableSet<LockRefreshToken> externalLocksTokens;
-
+    protected final ImmutableSet<LockTokenV2> externalLocksTokens;
+    private final PreCommitValidation preCommitValidation;
     protected final long timeCreated = System.currentTimeMillis();
 
     protected final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
@@ -206,7 +206,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                ConflictDetectionManager conflictDetectionManager,
                                SweepStrategyManager sweepStrategyManager,
                                long immutableTimestamp,
-                               Iterable<LockRefreshToken> tokensValidForCommit,
+                               Iterable<LockTokenV2> tokensValidForCommit,
+                               PreCommitValidation preCommitValidation,
                                AtlasDbConstraintCheckingMode constraintCheckingMode,
                                Long transactionTimeoutMillis,
                                TransactionReadSentinelBehavior readSentinelBehavior,
@@ -221,6 +222,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepStrategyManager = sweepStrategyManager;
         this.immutableTimestamp = immutableTimestamp;
         this.externalLocksTokens = ImmutableSet.copyOf(tokensValidForCommit);
+        this.preCommitValidation = preCommitValidation;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = transactionTimeoutMillis;
         this.readSentinelBehavior = readSentinelBehavior;
@@ -247,6 +249,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.immutableTimestamp = 0;
         this.externalLocksTokens = ImmutableSet.of();
+        this.preCommitValidation = PreCommitValidation.NO_OP;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = null;
         this.readSentinelBehavior = readSentinelBehavior;
@@ -271,6 +274,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.immutableTimestamp = startTimeStamp;
         this.externalLocksTokens = ImmutableSet.of();
+        this.preCommitValidation = PreCommitValidation.NO_OP;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = null;
         this.readSentinelBehavior = readSentinelBehavior;
@@ -671,7 +675,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!isValidationNecessary(tableRef)) {
             return;
         }
-        throwIfExternalAndCommitLocksNotValid(null);
+        throwIfPreCommitRequirementsNotMet(null);
     }
 
     private boolean isValidationNecessary(TableReference tableRef) {
@@ -1107,7 +1111,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Preconditions.checkState(state.get() == State.UNCOMMITTED, "Transaction must be uncommitted.");
             if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
                 if (hasWrites()) {
-                    throwIfExternalAndCommitLocksNotValid(null);
+                    throwIfPreCommitRequirementsNotMet(null);
                 }
                 return;
             }
@@ -1202,7 +1206,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
-        LockRefreshToken commitLocksToken = acquireLocksForCommit();
+        LockTokenV2 commitLocksToken = acquireLocksForCommit();
         long millisForLocks = TimeUnit.NANOSECONDS.toMillis(acquireLocksTimer.stop());
         try {
             Timer.Context conflictsTimer = getTimer("commitCheckingForConflicts").time();
@@ -1230,13 +1234,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             // Verify that our locks are still valid before we actually commit;
             // this check is required by the transaction protocol for correctness
-            throwIfExternalAndCommitLocksNotValid(commitLocksToken);
+            throwIfPreCommitRequirementsNotMet(commitLocksToken);
 
             Timer.Context commitTsTimer = getTimer("commitPutCommitTs").time();
             putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService);
             long millisForCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTsTimer.stop());
 
-            Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
+            Set<LockTokenV2> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
             if (!expiredLocks.isEmpty()) {
                 final String baseMsg = "This isn't a bug but it should happen very infrequently. "
                         + "Required locks are no longer valid but we have already committed successfully. ";
@@ -1283,15 +1287,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             tableRef);
     }
 
-    private String getExpiredLocksErrorString(@Nullable LockRefreshToken commitLocksToken,
-                                              Set<LockRefreshToken> expiredLocks) {
+    private String getExpiredLocksErrorString(@Nullable LockTokenV2 commitLocksToken,
+                                              Set<LockTokenV2> expiredLocks) {
         return "The following external locks were required: " + externalLocksTokens
             + "; the following commit locks were required: " + commitLocksToken
             + "; the following locks are no longer valid: " + expiredLocks;
     }
 
-    private void throwIfExternalAndCommitLocksNotValid(@Nullable LockRefreshToken commitLocksToken) {
-        Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
+    private void throwIfPreCommitRequirementsNotMet(@Nullable LockTokenV2 commitLocksToken) {
+        Set<LockTokenV2> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
         if (!expiredLocks.isEmpty()) {
             final String baseMsg = "Required locks are no longer valid. ";
             String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
@@ -1299,32 +1303,26 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             log.error(baseMsg + "{}", expiredLocksErrorString, ex);
             throw ex;
         }
+        preCommitValidation.check();
     }
 
     /**
      * Refreshes external and commit locks.
      * @return set of locks that could not be refreshed
      */
-    private Set<LockRefreshToken> refreshExternalAndCommitLocks(@Nullable LockRefreshToken commitLocksToken) {
-        ImmutableSet<LockRefreshToken> toRefresh;
-        if (commitLocksToken == null) {
-            toRefresh = externalLocksTokens;
-        } else {
-            toRefresh = ImmutableSet.<LockRefreshToken>builder()
-                    .addAll(externalLocksTokens)
-                    .add(commitLocksToken).build();
+    private Set<LockTokenV2> refreshExternalAndCommitLocks(@Nullable LockTokenV2 commitLocksToken) {
+        Set<LockTokenV2> toRefresh = Sets.newHashSet();
+        if (commitLocksToken != null) {
+            toRefresh.add(commitLocksToken);
         }
-        if (toRefresh.isEmpty()) {
-            return ImmutableSet.of();
-        }
-
+        toRefresh.addAll(externalLocksTokens);
         return Sets.difference(toRefresh, timelockService.refreshLockLeases(toRefresh)).immutableCopy();
     }
 
     /**
      * Make sure we have all the rows we are checking already locked before calling this.
      */
-    protected void throwIfConflictOnCommit(LockRefreshToken commitLocksToken, TransactionService transactionService)
+    protected void throwIfConflictOnCommit(LockTokenV2 commitLocksToken, TransactionService transactionService)
             throws TransactionConflictException {
         for (Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> write : writesByTable.entrySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(write.getKey());
@@ -1340,7 +1338,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected void throwIfWriteAlreadyCommitted(TableReference tableRef,
                                                 Map<Cell, byte[]> writes,
                                                 ConflictHandler conflictHandler,
-                                                LockRefreshToken commitLocksToken,
+                                                LockTokenV2 commitLocksToken,
                                                 TransactionService transactionService)
             throws TransactionConflictException {
         if (writes.isEmpty() || conflictHandler == ConflictHandler.IGNORE_ALL) {
@@ -1381,7 +1379,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                              Map<Cell, byte[]> writes,
                                              Set<CellConflict> spanningWrites,
                                              Set<CellConflict> dominatingWrites,
-                                             LockRefreshToken commitLocksToken) {
+                                             LockTokenV2 commitLocksToken) {
         Map<Cell, CellConflict> cellToConflict = Maps.newHashMap();
         Map<Cell, Long> cellToTs = Maps.newHashMap();
         for (CellConflict c : Sets.union(spanningWrites, dominatingWrites)) {
@@ -1401,13 +1399,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
             if (!conflictingValues.containsKey(cell)) {
                 // This error case could happen if our locks expired.
-                throwIfExternalAndCommitLocksNotValid(commitLocksToken);
+                throwIfPreCommitRequirementsNotMet(commitLocksToken);
                 Validate.isTrue(false, "Missing conflicting value for cell: " + cellToConflict.get(cell)
                         + " for table " + table);
             }
             if (conflictingValues.get(cell).getTimestamp() != (cellEntry.getValue() - 1)) {
                 // This error case could happen if our locks expired.
-                throwIfExternalAndCommitLocksNotValid(commitLocksToken);
+                throwIfPreCommitRequirementsNotMet(commitLocksToken);
                 Validate.isTrue(false, "Wrong timestamp for cell in table " + table
                         + " Expected: " + cellToConflict.get(cell)
                         + " Actual: " + conflictingValues.get(cell));
@@ -1559,7 +1557,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     /**
      * This method should acquire any locks needed to do proper concurrency control at commit time.
      */
-    protected LockRefreshToken acquireLocksForCommit() {
+    protected LockTokenV2 acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
         return timelockService.lock(LockRequestV2.of(lockDescriptors));
     }
@@ -1696,7 +1694,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     private void putCommitTimestamp(
             long commitTimestamp,
-            LockRefreshToken locksToken,
+            LockTokenV2 locksToken,
             TransactionService transactionService)
             throws TransactionFailedException {
         Validate.isTrue(commitTimestamp > getStartTimestamp(), "commitTs must be greater than startTs");
@@ -1716,14 +1714,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void handleKeyAlreadyExistsException(
             long commitTs,
             KeyAlreadyExistsException ex,
-            LockRefreshToken commitLocksToken) {
+            LockTokenV2 commitLocksToken) {
         try {
             if (wasCommitSuccessful(commitTs)) {
                 // We did actually commit successfully.  This case could happen if the impl
                 // for putUnlessExists did a retry and we had committed already
                 return;
             }
-            Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
+            Set<LockTokenV2> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
             if (!expiredLocks.isEmpty()) {
                 throw new TransactionLockTimeoutException("Our commit was already rolled back at commit time"
                         + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "

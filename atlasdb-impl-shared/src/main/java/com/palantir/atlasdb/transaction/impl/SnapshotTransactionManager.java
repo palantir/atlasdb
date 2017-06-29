@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nullable;
@@ -27,6 +27,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTasks;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -47,7 +49,9 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
@@ -113,24 +117,41 @@ import com.palantir.timestamp.TimestampService;
     }
 
     public RawTransaction setupRunTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens) {
+
         LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
                 LockImmutableTimestampRequest.create());
         try {
-            LockRefreshToken immutableTsLock = immutableTsResponse.getLock();
+            LockTokenV2 immutableTsLock = immutableTsResponse.getLock();
             long immutableTs = immutableTsResponse.getImmutableTimestamp();
             recordImmutableTimestamp(immutableTsResponse.getImmutableTimestamp());
             Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
 
-            ImmutableList<LockRefreshToken> allTokens = ImmutableList.<LockRefreshToken>builder()
-                    .add(immutableTsLock)
-                    .addAll(lockTokens)
-                    .build();
-            SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier, allTokens);
+            PreCommitValidation preCommitCheck = getPreCommitCheckForLockServiceLocks(lockTokens);
+            SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
+                    ImmutableList.of(immutableTsLock), preCommitCheck);
             return new RawTransaction(transaction, immutableTsLock);
         } catch (Throwable e) {
             timelockService.unlock(ImmutableSet.of(immutableTsResponse.getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
+    }
+
+    private PreCommitValidation getPreCommitCheckForLockServiceLocks(Iterable<LockRefreshToken> tokens) {
+        if (Iterables.isEmpty(tokens)) {
+            return PreCommitValidation.NO_OP;
+        }
+
+        Set<LockRefreshToken> toRefresh = ImmutableSet.copyOf(tokens);
+        return () -> {
+            Set<LockRefreshToken> refreshed = getLockService().refreshLockRefreshTokens(toRefresh);
+            Set<LockRefreshToken> notRefreshed = Sets.difference(toRefresh, refreshed).immutableCopy();
+            if (!notRefreshed.isEmpty()) {
+                log.warn("Lock service locks were no longer valid at commit time",
+                        UnsafeArg.of("invalidTokens", notRefreshed));
+                throw new TransactionLockTimeoutException(
+                        "Lock service locks were no longer valid at commit time: " + notRefreshed);
+            }
+        };
     }
 
     public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
@@ -155,7 +176,8 @@ import com.palantir.timestamp.TimestampService;
     protected SnapshotTransaction createTransaction(
             long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
-            ImmutableList<LockRefreshToken> allTokens) {
+            ImmutableList<LockTokenV2> allTokens,
+            PreCommitValidation preCommitValidation) {
         return new SnapshotTransaction(
                 keyValueService,
                 timelockService,
@@ -166,6 +188,7 @@ import com.palantir.timestamp.TimestampService;
                 sweepStrategyManager,
                 immutableTimestamp,
                 allTokens,
+                preCommitValidation,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -186,7 +209,8 @@ import com.palantir.timestamp.TimestampService;
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTs,
-                Collections.<LockRefreshToken>emptyList(),
+                ImmutableList.of(),
+                PreCommitValidation.NO_OP,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
