@@ -59,6 +59,7 @@ develop
     *    - |improved|
          - AtlasDB now supports batching of timestamp requests on the client-side; see :ref:`Timestamp Client Options <timestamp-client-config>` for details.
            On internal benchmarks, the AtlasDB team has obtained an almost 2x improvement in timestamp throughput and latency under modest load (32 threads), and an over 10x improvement under heavy load (8,192 threads).
+           There may be a very small increase in latency under extremely light load (e.g. 2-4 threads).
            Note that this is not enabled by default.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2083>`__)
 
