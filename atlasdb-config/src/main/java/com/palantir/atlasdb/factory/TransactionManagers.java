@@ -38,7 +38,6 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.SweepConfig;
@@ -96,6 +95,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.RateLimitedTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.timestamp.client.ImmutableTimestampClientConfig;
 import com.palantir.timestamp.client.TimestampClientConfig;
 
 public final class TransactionManagers {

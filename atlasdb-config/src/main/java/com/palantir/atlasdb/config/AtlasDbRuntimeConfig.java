@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.timestamp.client.ImmutableTimestampClientConfig;
 import com.palantir.timestamp.client.TimestampClientConfig;
 
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)

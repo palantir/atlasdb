@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableTimestampClientConfig.class)
 @Value.Immutable
 public abstract class TimestampClientConfig {
+    @Value.Parameter
     @Value.Default
     public boolean enableTimestampBatching() {
         return false;

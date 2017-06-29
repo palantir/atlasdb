@@ -16,15 +16,21 @@
 package com.palantir.timestamp;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import org.junit.Test;
 
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.timestamp.client.ImmutableTimestampClientConfig;
+import com.palantir.timestamp.client.TimestampClientConfig;
 
 public class RateLimitedTimestampServiceTest {
     @Test
@@ -59,6 +65,26 @@ public class RateLimitedTimestampServiceTest {
         assertEquals(approxFreshTimestampReqTotal, timestampsGenerated.get(), approxFreshTimestampReqTotal);
     }
 
+    @Test
+    public void canDynamicallyEnableAndDisableBatching() throws Exception {
+        ToggleableTimestampConfigSupplier configSupplier = new ToggleableTimestampConfigSupplier();
+        InMemoryTimestampService delegate = spy(new InMemoryTimestampService());
+
+        RateLimitedTimestampService timestampService = new RateLimitedTimestampService(delegate, configSupplier);
+
+        // This relies on the fact that if batching we NEVER call getFreshTimestamp(), only getFreshTimestamps(n).
+        int iterations = 50;
+        for (int i = 0; i < iterations; i++) {
+            configSupplier.setShouldBatch(true);
+            timestampService.getFreshTimestamp();
+            verify(delegate, times(i)).getFreshTimestamp();
+
+            configSupplier.setShouldBatch(false);
+            timestampService.getFreshTimestamp();
+            verify(delegate, times(i + 1)).getFreshTimestamp();
+        }
+    }
+
     private static class StatsTrackingTimestampService implements TimestampService {
         AtomicLong getFreshTimestampReqCount = new AtomicLong(0);
         AtomicLong getFreshTimestampsReqCount = new AtomicLong(0);
@@ -82,6 +108,19 @@ public class RateLimitedTimestampServiceTest {
             getFreshTimestampsReqCount.incrementAndGet();
             timestampsCount.addAndGet(numTimestampsRequested);
             return delegate.getFreshTimestamps(numTimestampsRequested);
+        }
+    }
+
+    private static class ToggleableTimestampConfigSupplier implements Supplier<TimestampClientConfig> {
+        private boolean shouldBatch = false;
+
+        @Override
+        public TimestampClientConfig get() {
+            return shouldBatch ? ImmutableTimestampClientConfig.of(true) : ImmutableTimestampClientConfig.of(false);
+        }
+
+        public void setShouldBatch(boolean shouldBatch) {
+            this.shouldBatch = shouldBatch;
         }
     }
 }
