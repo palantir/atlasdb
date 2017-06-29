@@ -32,9 +32,9 @@ public interface LockImmutableTimestampResponse {
     long getImmutableTimestamp();
 
     @Value.Parameter
-    LockRefreshToken getLock();
+    LockTokenV2 getLock();
 
-    static LockImmutableTimestampResponse of(long timestamp, LockRefreshToken lock) {
+    static LockImmutableTimestampResponse of(long timestamp, LockTokenV2 lock) {
         return ImmutableLockImmutableTimestampResponse.of(timestamp, lock);
     }
 

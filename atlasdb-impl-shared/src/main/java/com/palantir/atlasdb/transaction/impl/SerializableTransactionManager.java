@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Optional;
+
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -23,9 +25,9 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -65,8 +67,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         this(
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                lockClient,
-                lockService,
+                Optional.of(lockService),
                 transactionService,
                 constraintModeSupplier,
                 conflictDetectionManager,
@@ -77,8 +78,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimelockService timelockService,
-            LockClient lockClient,
-            RemoteLockService lockService,
+            Optional<RemoteLockService> lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -88,7 +88,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         super(
                 keyValueService,
                 timelockService,
-                lockClient,
                 lockService,
                 transactionService,
                 constraintModeSupplier,
@@ -101,7 +100,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     @Override
     protected SnapshotTransaction createTransaction(long immutableTimestamp,
                                                   Supplier<Long> startTimestampSupplier,
-                                                  ImmutableList<LockRefreshToken> allTokens) {
+                                                  ImmutableList<LockTokenV2> lockTokens,
+                                                  PreCommitValidation preCommitValidation) {
         return new SerializableTransaction(
                 keyValueService,
                 timelockService,
@@ -111,7 +111,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTimestamp,
-                allTokens,
+                lockTokens,
+                preCommitValidation,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
