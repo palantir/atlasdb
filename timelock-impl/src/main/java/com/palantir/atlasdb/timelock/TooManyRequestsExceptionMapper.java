@@ -18,15 +18,15 @@ package com.palantir.atlasdb.timelock;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
-import org.eclipse.jetty.http.HttpStatus;
-
 import com.palantir.atlasdb.http.ExceptionMappers;
 import com.palantir.lock.impl.TooManyRequestsException;
 
 public class TooManyRequestsExceptionMapper implements ExceptionMapper<TooManyRequestsException> {
+    public static final int TOO_MANY_REQUESTS_429 = 429;
+
     @Override
     public Response toResponse(TooManyRequestsException exception) {
-        return ExceptionMappers.encodeExceptionResponse(exception, HttpStatus.TOO_MANY_REQUESTS_429)
+        return ExceptionMappers.encodeExceptionResponse(exception, TOO_MANY_REQUESTS_429)
                 .build();
     }
 }

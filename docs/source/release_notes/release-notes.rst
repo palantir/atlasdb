@@ -17,6 +17,8 @@ Changelog
     :class: changetype changetype-improved
 .. role:: changetype-deprecated
     :class: changetype changetype-deprecated
+.. role:: strike
+    :class: strike
 
 .. |userbreak| replace:: :changetype-breaking:`USER BREAK`
 .. |devbreak| replace:: :changetype-breaking:`DEV BREAK`
@@ -42,20 +44,6 @@ develop
     *    - Type
          - Change
 
-    *    - |userbreak|
-         - The previously deprecated RocksDBKVS has been removed.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1966>`__)
-
-    *    - |new|
-         - AtlasDB now instruments embedded time and lock services, even if no leader block is present in the config,
-           to expose aggregate response time and service call metrics.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2045>`__)
-
-    *    - |new|
-         - AtlasDB now adds endpoints for sweeping a specific table, with options for startRow and batch config parameters.
-           This should be used in place of the deprecated sweep CLIs.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2040>`__)
-
     *    - |improved|
          - AtlasDB now supports batching of timestamp requests on the client-side; see :ref:`Timestamp Client Options <timestamp-client-config>` for details.
            On internal benchmarks, the AtlasDB team has obtained an almost 2x improvement in timestamp throughput and latency under modest load (32 threads), and an over 10x improvement under heavy load (8,192 threads).
@@ -63,48 +51,82 @@ develop
            Note that this is not enabled by default.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2083>`__)
 
-    *    - |improved|
-         - Sweep now is capable of dynamically adjusting the number of blocks - (cell, ts) pairs - across runs:
 
-           - On a failure run, sweep halves the number of blocks to read and to delete on subsequent runs.
-           - On a success run, sweep slowly increases the number of blocks to read and to delete on subsequent runs, up to a configurable maximum.
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
+======
+0.46.0
+======
 
-    *    - |new|
-         - Added support for live-reloading sweep configs.
+29 June 2017
 
-           There's a new set of `TransactionManagers.create()` methods, which accept a Supplier of the AtlasDbRuntimeConfig.
-           The AtlasDbRuntimeConfig wraps a SweepConfig block with the options:
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
 
-             - `enabled`
-             - `pauseMillis`
-             - `readLimit`
-             - `candidateBatchHint`
-             - `deleteBatchHint`
 
-           The parameters are loaded and used at every sweep run. Please check :ref:`Sweep <sweep>` for information on how to use them.
+    *    - Type
+         - Change
 
+    *    - |userbreak| |devbreak| |improved|
+         - Added support for live-reloading sweep configurations.
+           ``TransactionManagers.create()`` methods now accept a Supplier of ``AtlasDbRuntimeConfig`` in addition to an ``AtlasDbConfig``.
+           If needed, the helper method ``defaultRuntimeConfig()`` can be used to create a runtime config with the default values.
+           As part of this improvement, we made the sweep options of ``AtlasDbConfig`` unavailable.
+           The following options now **may not** be specified in the install config and must instead be specified in the runtime config:
+
+            +-----------------------------------+---------------------------+
+            | ``AtlasDbConfig``                 | ``AtlasDbRuntimeConfig``  |
+            +===================================+===========================+
+            | :strike:`enableSweep`             | **enabled**               |
+            +-----------------------------------+---------------------------+
+            | :strike:`sweepPauseMillis`        | **pauseMillis**           |
+            +-----------------------------------+---------------------------+
+            | :strike:`sweepReadLimit`          | **readLimit**             |
+            +-----------------------------------+---------------------------+
+            | :strike:`sweepCandidateBatchHint` | **candidateBatchHint**    |
+            +-----------------------------------+---------------------------+
+            | :strike:`sweepDeleteBatchHint`    | **deleteBatchHint**       |
+            +-----------------------------------+---------------------------+
+
+           Specifying any of the above install options will result in **AtlasDB failing to start**.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
 
     *    - |userbreak|
-         - As part of the live-reloading work, were deprecated the sweep options of the install config, namely:
+         - The Atomix algorithm implementation for the TimeLock server and the corresponding configurations have been removed.
+           The default algorithm for ``TimeLockServer`` has been changed to Paxos.
+           This should not affect users as Atomix should not have been used due to known bugs in the implementation.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2082>`__)
 
-             - `enableSweep`
-             - `sweepPauseMillis`
-             - `sweepReadLimit`
-             - `sweepCandidateBatchHint`
-             - `sweepDeleteBatchHint`
+    *    - |userbreak|
+         - The previously deprecated RocksDBKVS has been removed.
+           Developers that relied on RocksDB for testing should move to H2 on JdbcKvs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1966>`__)
 
-           If any of these options are specified in the install config, **AtlasDB will fail to start**. Please specify them on the runtime config.
+    *    - |fixed| |improved|
+         - Sweep now dynamically adjusts the number of (cell, ts) pairs across runs:
 
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+           - On a failure run, sweep halves the number of pairs to read and to delete on subsequent runs.
+           - On a success run, sweep slowly increases the number of pairs to read and to delete on subsequent runs, up to a configurable maximum.
 
-    *    - |devbreak|
-         - As part of the live-reloading work, the methods `TransactionManagers.create()` without the runtime config parameter were removed.
-           If needed, the helper method `AtlasDbRuntimeConfig.defaultRuntimeConfig()` can be used to create a runtime config with the default values.
+           This should fix the issue where we were unable to sweep cells with a high number of mutations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
 
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+    *    - |new|
+         - AtlasDB now instruments embedded timestamp and lock services, even if no leader block is present in the config, to expose aggregate response time and service call metrics.
+           Note that this may cause a minor performance hit.
+           If that is a concern, the instrumentation can be turned off by setting the tritium system properties ``instrument.com.palantir.timestamp.TimestampService`` and ``instrument.com.palantir.lock.RemoteLockService`` to false.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2073>`__)
+
+    *    - |new|
+         - AtlasDB now adds endpoints for sweeping a specific table, with options for startRow and batch config parameters.
+           This should be used in place of the deprecated sweep CLIs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2040>`__)
+
+    *    - |improved|
+         - The dropwizard independent implementation of the TimeLock server has been separated into a new project, ``timelock-impl``.
+           This should not affect users directly, unless they depended on classes from within the TimeLock server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2081>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
