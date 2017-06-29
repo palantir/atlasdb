@@ -24,6 +24,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.timestamp.TimestampRange;
 
 @Path("/timelock")
@@ -52,7 +53,7 @@ public interface TimelockService {
     @POST
     @Path("lock")
     @Produces(MediaType.APPLICATION_JSON)
-    LockTokenV2 lock(LockRequestV2 request);
+    LockRefreshToken lock(LockRequestV2 request);
 
     @POST
     @Path("await-locks")
@@ -62,12 +63,12 @@ public interface TimelockService {
     @POST
     @Path("refresh-locks")
     @Produces(MediaType.APPLICATION_JSON)
-    Set<LockTokenV2> refreshLockLeases(Set<LockTokenV2> tokens);
+    Set<LockRefreshToken> refreshLockLeases(Set<LockRefreshToken> tokens);
 
     @POST
     @Path("unlock")
     @Produces(MediaType.APPLICATION_JSON)
-    Set<LockTokenV2> unlock(Set<LockTokenV2> tokens);
+    Set<LockRefreshToken> unlock(Set<LockRefreshToken> tokens);
 
     @POST
     @Path("current-time-millis")

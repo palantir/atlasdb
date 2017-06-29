@@ -24,8 +24,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLockTokenV2.class)
-@JsonDeserialize(as = ImmutableLockTokenV2.class)
+@JsonSerialize(as=ImmutableLockTokenV2.class)
+@JsonDeserialize(as=ImmutableLockTokenV2.class)
 public interface LockTokenV2 {
 
     @Value.Parameter

@@ -23,9 +23,9 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -101,8 +101,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     @Override
     protected SnapshotTransaction createTransaction(long immutableTimestamp,
                                                   Supplier<Long> startTimestampSupplier,
-                                                  ImmutableList<LockTokenV2> lockTokens,
-                                                  PreCommitValidation preCommitValidation) {
+                                                  ImmutableList<LockRefreshToken> allTokens) {
         return new SerializableTransaction(
                 keyValueService,
                 timelockService,
@@ -112,8 +111,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTimestamp,
-                lockTokens,
-                preCommitValidation,
+                allTokens,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

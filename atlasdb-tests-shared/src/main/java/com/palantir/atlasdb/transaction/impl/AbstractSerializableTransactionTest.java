@@ -57,6 +57,7 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.remoting2.tracing.Tracers;
 
@@ -93,8 +94,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
-                ImmutableList.of(),
-                PreCommitValidation.NO_OP,
+                ImmutableList.<LockRefreshToken>of(),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

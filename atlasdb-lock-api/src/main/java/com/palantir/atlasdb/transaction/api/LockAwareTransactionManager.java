@@ -75,8 +75,11 @@ public interface LockAwareTransactionManager extends TransactionManager {
     /**
      * Returns the lock service used by this transaction manager.
      *
+     * @deprecated use {#link #getTimelockService}
+     *
      * @return the lock service for this transaction manager
      */
+    @Deprecated
     RemoteLockService getLockService();
 
     TimelockService getTimelockService();
