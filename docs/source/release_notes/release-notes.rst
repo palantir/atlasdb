@@ -64,10 +64,10 @@ develop
     *    - Type
          - Change
 
-    *    - |userbreak| |improved|
+    *    - |userbreak| |devbreak| |improved|
          - Added support for live-reloading sweep configurations.
            ``TransactionManagers.create()`` methods now accept a Supplier of ``AtlasDbRuntimeConfig`` in addition to an ``AtlasDbConfig``.
-           If needed, the helper method `AtlasDbRuntimeConfig.defaultRuntimeConfig()` can be used to create a runtime config with the default values.
+           If needed, the helper method ``defaultRuntimeConfig()`` can be used to create a runtime config with the default values.
            As part of this improvement, we made the sweep options of ``AtlasDbConfig`` unavailable.
            The following options now **may not** be specified in the install config and must instead be specified in the runtime config:
 
@@ -96,21 +96,23 @@ develop
 
     *    - |userbreak|
          - The previously deprecated RocksDBKVS has been removed.
+           Developers that relied on RocksDB for testing should move to H2 on JdbcKvs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1966>`__)
 
     *    - |fixed| |improved|
-         - Sweep now dynamically adjusts the number of blocks, i.e., (cell, ts) pairs, across runs:
+         - Sweep now dynamically adjusts the number of (cell, ts) pairs across runs:
 
-           - On a failure run, sweep halves the number of blocks to read and to delete on subsequent runs.
-           - On a success run, sweep slowly increases the number of blocks to read and to delete on subsequent runs, up to a configurable maximum.
+           - On a failure run, sweep halves the number of pairs to read and to delete on subsequent runs.
+           - On a success run, sweep slowly increases the number of pairs to read and to delete on subsequent runs, up to a configurable maximum.
 
-           This should fix the issue where we were unable to sweep cells with high number of mutations.
+           This should fix the issue where we were unable to sweep cells with a high number of mutations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
 
     *    - |new|
-         - AtlasDB now instruments embedded timestamp and lock services, even if no leader block is present in the config,
-           to expose aggregate response time and service call metrics.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2045>`__)
+         - AtlasDB now instruments embedded timestamp and lock services, even if no leader block is present in the config, to expose aggregate response time and service call metrics.
+           Note that this may cause a minor performance hit.
+           If that is a concern, the instrumentation can be turned off by setting the tritium system properties ``instrument.com.palantir.timestamp.TimestampService`` and ``instrument.com.palantir.lock.RemoteLockService`` to false.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2073>`__)
 
     *    - |new|
          - AtlasDB now adds endpoints for sweeping a specific table, with options for startRow and batch config parameters.
