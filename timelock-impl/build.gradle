@@ -1,0 +1,28 @@
+apply plugin: 'org.inferred.processors'
+apply plugin: 'org.unbroken-dome.test-sets'
+
+apply from: "../gradle/publish-jars.gradle"
+apply from: "../gradle/shared.gradle"
+apply from: "../gradle/timelock.gradle"
+
+jacocoTestReport {
+    executionData test
+}
+
+dependencies {
+    compile project(":timestamp-impl")
+    compile project(":lock-impl")
+    compile project(":leader-election-impl")
+    compile (project(":atlasdb-config")) {
+        exclude group:'io.dropwizard'
+    }
+
+    processor group: 'org.immutables', name: 'value'
+
+    testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")
+    testCompile project(":atlasdb-tests-shared")
+
+    testCompile group: 'com.palantir.remoting2', name: 'jersey-servers'
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
+}
