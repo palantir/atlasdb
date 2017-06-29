@@ -165,12 +165,6 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
-        "com.github.rholder:guava-retrying": {
-            "locked": "2.0.0",
-            "transitive": [
-                "com.palantir.atlasdb:timelock-impl"
-            ]
-        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3",
             "transitive": [
@@ -202,7 +196,6 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "1.3.9",
             "transitive": [
-                "com.github.rholder:guava-retrying",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",
                 "io.dropwizard:dropwizard-util",
@@ -213,7 +206,6 @@
             "locked": "18.0",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
-                "com.github.rholder:guava-retrying",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
@@ -519,116 +511,6 @@
                 "com.palantir.atlasdb:leader-election-impl"
             ]
         },
-        "io.atomix.catalyst:catalyst-buffer": {
-            "locked": "1.1.2",
-            "transitive": [
-                "io.atomix.catalyst:catalyst-serializer"
-            ]
-        },
-        "io.atomix.catalyst:catalyst-common": {
-            "locked": "1.1.2",
-            "transitive": [
-                "io.atomix.catalyst:catalyst-buffer",
-                "io.atomix.catalyst:catalyst-serializer"
-            ]
-        },
-        "io.atomix.catalyst:catalyst-concurrent": {
-            "locked": "1.1.2",
-            "transitive": [
-                "io.atomix.catalyst:catalyst-transport"
-            ]
-        },
-        "io.atomix.catalyst:catalyst-local": {
-            "locked": "1.1.1",
-            "transitive": [
-                "io.atomix:atomix"
-            ]
-        },
-        "io.atomix.catalyst:catalyst-netty": {
-            "locked": "1.1.2",
-            "transitive": [
-                "com.palantir.atlasdb:timelock-server"
-            ]
-        },
-        "io.atomix.catalyst:catalyst-serializer": {
-            "locked": "1.1.2",
-            "transitive": [
-                "io.atomix.catalyst:catalyst-concurrent"
-            ]
-        },
-        "io.atomix.catalyst:catalyst-transport": {
-            "locked": "1.1.2",
-            "transitive": [
-                "io.atomix.catalyst:catalyst-local",
-                "io.atomix.catalyst:catalyst-netty",
-                "io.atomix.copycat:copycat-protocol"
-            ]
-        },
-        "io.atomix.copycat:copycat-client": {
-            "locked": "1.1.4",
-            "transitive": [
-                "io.atomix:atomix-resource"
-            ]
-        },
-        "io.atomix.copycat:copycat-protocol": {
-            "locked": "1.1.4",
-            "transitive": [
-                "io.atomix.copycat:copycat-client",
-                "io.atomix.copycat:copycat-server"
-            ]
-        },
-        "io.atomix.copycat:copycat-server": {
-            "locked": "1.1.4",
-            "transitive": [
-                "io.atomix:atomix-resource"
-            ]
-        },
-        "io.atomix:atomix": {
-            "locked": "1.0.0-rc9",
-            "transitive": [
-                "com.palantir.atlasdb:timelock-impl"
-            ]
-        },
-        "io.atomix:atomix-collections": {
-            "locked": "1.0.0-rc9",
-            "transitive": [
-                "io.atomix:atomix"
-            ]
-        },
-        "io.atomix:atomix-concurrent": {
-            "locked": "1.0.0-rc9",
-            "transitive": [
-                "io.atomix:atomix"
-            ]
-        },
-        "io.atomix:atomix-groups": {
-            "locked": "1.0.0-rc9",
-            "transitive": [
-                "io.atomix:atomix"
-            ]
-        },
-        "io.atomix:atomix-resource": {
-            "locked": "1.0.0-rc9",
-            "transitive": [
-                "io.atomix:atomix-collections",
-                "io.atomix:atomix-concurrent",
-                "io.atomix:atomix-groups",
-                "io.atomix:atomix-resource-manager",
-                "io.atomix:atomix-variables"
-            ]
-        },
-        "io.atomix:atomix-resource-manager": {
-            "locked": "1.0.0-rc9",
-            "transitive": [
-                "io.atomix:atomix"
-            ]
-        },
-        "io.atomix:atomix-variables": {
-            "locked": "1.0.0-rc9",
-            "transitive": [
-                "io.atomix:atomix"
-            ]
-        },
         "io.dropwizard.metrics:metrics-annotation": {
             "locked": "3.1.2",
             "transitive": [
@@ -799,46 +681,6 @@
                 "io.dropwizard:dropwizard-jersey",
                 "io.dropwizard:dropwizard-logging",
                 "io.dropwizard:dropwizard-metrics"
-            ]
-        },
-        "io.netty:netty-buffer": {
-            "locked": "4.1.5.Final",
-            "transitive": [
-                "io.netty:netty-handler",
-                "io.netty:netty-transport"
-            ]
-        },
-        "io.netty:netty-codec": {
-            "locked": "4.1.5.Final",
-            "transitive": [
-                "io.netty:netty-handler"
-            ]
-        },
-        "io.netty:netty-common": {
-            "locked": "4.1.5.Final",
-            "transitive": [
-                "io.netty:netty-buffer",
-                "io.netty:netty-resolver"
-            ]
-        },
-        "io.netty:netty-handler": {
-            "locked": "4.1.5.Final",
-            "transitive": [
-                "io.atomix.catalyst:catalyst-netty"
-            ]
-        },
-        "io.netty:netty-resolver": {
-            "locked": "4.1.5.Final",
-            "transitive": [
-                "io.netty:netty-transport"
-            ]
-        },
-        "io.netty:netty-transport": {
-            "locked": "4.1.5.Final",
-            "transitive": [
-                "io.atomix.catalyst:catalyst-netty",
-                "io.netty:netty-codec",
-                "io.netty:netty-handler"
             ]
         },
         "javax.annotation:javax.annotation-api": {
@@ -1214,23 +1056,6 @@
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
                 "com.palantir.tritium:tritium-slf4j",
-                "io.atomix.catalyst:catalyst-buffer",
-                "io.atomix.catalyst:catalyst-common",
-                "io.atomix.catalyst:catalyst-concurrent",
-                "io.atomix.catalyst:catalyst-local",
-                "io.atomix.catalyst:catalyst-netty",
-                "io.atomix.catalyst:catalyst-serializer",
-                "io.atomix.catalyst:catalyst-transport",
-                "io.atomix.copycat:copycat-client",
-                "io.atomix.copycat:copycat-protocol",
-                "io.atomix.copycat:copycat-server",
-                "io.atomix:atomix",
-                "io.atomix:atomix-collections",
-                "io.atomix:atomix-concurrent",
-                "io.atomix:atomix-groups",
-                "io.atomix:atomix-resource",
-                "io.atomix:atomix-resource-manager",
-                "io.atomix:atomix-variables",
                 "io.dropwizard.metrics:metrics-annotation",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
