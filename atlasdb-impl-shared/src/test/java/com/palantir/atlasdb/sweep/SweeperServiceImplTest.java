@@ -29,6 +29,7 @@ import org.mockito.Mockito;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockServiceClientTest;
 import com.palantir.remoting2.clients.UserAgents;
@@ -50,12 +51,17 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
             new CheckAndSetExceptionMapper(),
             HttpRemotingJerseyFeature.DEFAULT);
 
+    // This method overrides the SweeperTestSetup method. Not sure if this is the intention, but leaving
+    // as such for now.
+    @Override
     @Before
     public void setup() {
         sweeperService = JaxRsClient.builder().build(
                 SweeperService.class,
                 UserAgents.fromClass(KvsBackedPersistentLockServiceClientTest.class, "test", "unknown"),
                 dropwizardClientRule.baseUri().toString());
+
+        when(kvs.getLoggingArgSupplier()).thenReturn(KeyValueServiceArgSupplier.ALL_UNSAFE);
     }
 
     @Test
