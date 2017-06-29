@@ -71,7 +71,7 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
-import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.util.Pair;
 
@@ -105,7 +105,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    ConflictDetectionManager conflictDetectionManager,
                                    SweepStrategyManager sweepStrategyManager,
                                    long immutableTimestamp,
-                                   Iterable<LockRefreshToken> tokensValidForCommit,
+                                   Iterable<LockTokenV2> tokensValidForCommit,
+                                   PreCommitValidation preCommitValidation,
                                    AtlasDbConstraintCheckingMode constraintCheckingMode,
                                    Long transactionTimeoutMillis,
                                    TransactionReadSentinelBehavior readSentinelBehavior,
@@ -120,6 +121,7 @@ public class SerializableTransaction extends SnapshotTransaction {
               sweepStrategyManager,
               immutableTimestamp,
               tokensValidForCommit,
+              preCommitValidation,
               constraintCheckingMode,
               transactionTimeoutMillis,
               readSentinelBehavior,
@@ -714,6 +716,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 sweepStrategyManager,
                 immutableTimestamp,
                 Collections.emptyList(),
+                PreCommitValidation.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 transactionReadTimeoutMillis,
                 getReadSentinelBehavior(),
