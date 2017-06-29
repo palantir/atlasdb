@@ -55,9 +55,16 @@ public class NameComponentDescription {
     }
 
     public NameComponentDescription(String componentName,
-                                    ValueType type,
-                                    ValueByteOrder order) {
-        this(componentName, type, order, new UniformRowNamePartitioner(type), null);
+            ValueType type,
+            ValueByteOrder order) {
+        this(componentName, type, order, false);
+    }
+
+    public NameComponentDescription(String componentName,
+            ValueType type,
+            ValueByteOrder order,
+            boolean nameLoggable) {
+        this(componentName, type, order, new UniformRowNamePartitioner(type), null, nameLoggable);
     }
 
     public NameComponentDescription(String componentName,
