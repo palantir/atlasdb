@@ -30,7 +30,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 public class AtlasDeserializersTest {
 
     @Test
-    public void testDeserializeRowFromJsonArray() throws Exception {
+    public void testDeserializeRowFromJsonList() throws Exception {
         JsonNode jsonNode = new ObjectMapper().readTree("[68, \"Smeagol\"]");
         NameMetadataDescription nameMetadataDescription = NameMetadataDescription.create(ImmutableList.of(
                 new NameComponentDescription("age", ValueType.FIXED_LONG),
