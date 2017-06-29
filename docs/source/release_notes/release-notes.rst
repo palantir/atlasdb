@@ -46,7 +46,7 @@ develop
          - The Atomix algorithm implementation for the TimeLock server and the corresponding configurations have been removed.
            The default algorithm for ``TimeLockServer`` has been changed to Paxos.
            This should not affect users as Atomix should not have been used due to known bugs in the implementation.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2082>`__)
 
     *    - |improved|
          - The dropwizard independent implementation of the TimeLock server has been separated into a new project, ``timelock-impl``.
