@@ -56,13 +56,15 @@ class AtlasCoreModule implements AtlasConsoleModule {
                          '''.stripIndent(),
 
             'transactions': '''\
-                         Atomic transactions used to avoid read/write or write/write
-                         conflicts.
+                         AtlasDB implements fully ACID transactions with snapshot isolation. By
+                         default, a transaction will be created for every statement you execute.
+                         To group several statements in a single transaction, you can use the
+                         following commands:
 
-                         Use startTransaction() to start.
-                         Use currentTransaction() to view all operations in the current transaction.
-                         Use endTransaction() to end and commit the current transaction.
-                         Use abortTransaction() to end and abort (undo) the current transaction.
+                         - startTransaction() to start a transaction.
+                         - currentTransaction() to view all operations in the current transaction.
+                         - endTransaction() to end and commit the current transaction.
+                         - abortTransaction() to end and abort (undo) the current transaction.
                          '''.stripIndent(),
 
             'prettyPrint': '''\

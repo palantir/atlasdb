@@ -161,6 +161,10 @@ develop
            the batch size for getRows is now controlled by a config parameter ``rowBatchSize``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2093>`__)
 
+    *    - |fixed|
+         - Added backwards compatibility for passing row values into AtlasConsole functions
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2080>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
@@ -261,7 +265,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2048>`__)
 
     *    - |improved|
-         - Improved the way rows and named columns are output in AtlasConsole to be more intuitive and easier to use. Note that this may break existing AtlasConsole scripts.
+         - Improved the way rows and named columns are outputted in AtlasConsole to be more intuitive and easier to use. Note that this may break existing AtlasConsole scripts.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2067>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
