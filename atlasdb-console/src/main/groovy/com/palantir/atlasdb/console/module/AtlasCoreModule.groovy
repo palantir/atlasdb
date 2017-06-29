@@ -138,6 +138,9 @@ class AtlasCoreModule implements AtlasConsoleModule {
 
                          Ex (for dynamic columns): <TABLE>.getCells([row: <ROW-VALUE>,
                          col: <COL-INDEX>])
+
+                         <ROW-VALUE> here can be either a list of row component values (e.g. [0,1,2])
+                         or a map including the row component names (e.g. [obj_id:0, foo_id:1, bar_id:2])
                          '''.stripIndent(),
             'put': '''\
                          Insert or update one or more rows in a table.
