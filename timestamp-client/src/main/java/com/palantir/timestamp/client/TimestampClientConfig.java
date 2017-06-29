@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.config;
+package com.palantir.timestamp.client;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.AtlasDbConstants;
 
 @JsonSerialize(as = ImmutableTimestampClientConfig.class)
 @JsonDeserialize(as = ImmutableTimestampClientConfig.class)
@@ -28,7 +27,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 public abstract class TimestampClientConfig {
     @Value.Default
     public boolean enableTimestampBatching() {
-        return AtlasDbConstants.DEFAULT_ENABLE_TIMESTAMP_BATCHING;
+        return false;
     }
 
     // TODO (jkong): Make timestamp wait intervals configurable.

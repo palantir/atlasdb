@@ -1,4 +1,4 @@
-import org.gradle.plugins.ide.eclipse.model.AccessRule
+apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
@@ -7,7 +7,11 @@ dependencies {
   compile project(":timestamp-api")
   compile project(":atlasdb-commons")
 
-  testCompile group: 'com.palantir.remoting2', name: 'tracing'
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
 
+  processor group: 'org.immutables', name: 'value'
+
+  testCompile group: 'com.palantir.remoting2', name: 'tracing'
   testCompile group: 'junit', name: 'junit'
 }

@@ -223,15 +223,6 @@ public abstract class AtlasDbConfig {
         return AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS;
     }
 
-    /**
-     * Returns a configuration for this timestamp client, indicating whether timestamp batching
-     * should be used, and if so, the minimum time interval between batches.
-     */
-    @Value.Default
-    public TimestampClientConfig timestampClient() {
-        return ImmutableTimestampClientConfig.builder().build();
-    }
-
     @Value.Check
     protected final void check() {
         if (leader().isPresent()) {

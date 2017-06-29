@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
@@ -31,6 +32,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.proxy.TimingProxy;
+import com.palantir.timestamp.client.ImmutableTimestampClientConfig;
+import com.palantir.timestamp.client.TimestampClientConfig;
 import com.palantir.util.jmx.OperationTimer;
 import com.palantir.util.timer.LoggingOperationTimer;
 
@@ -43,11 +46,14 @@ public class RateLimitedTimestampService implements TimestampService {
     private static final OperationTimer timer = LoggingOperationTimer.create(RateLimitedTimestampService.class);
     private static final Logger log = LoggerFactory.getLogger(RateLimitedTimestampService.class);
 
+    public static final long DEFAULT_MIN_TIME_BETWEEN_REQUESTS = 0L;
+
     @GuardedBy("this")
     private long lastRequestTimeNanos = 0;
     private final long minTimeBetweenRequestsMillis;
 
     private final TimestampService delegate;
+    private final Supplier<TimestampClientConfig> configSupplier;
 
     /* The currently outstanding remote call, if any. If it exists, it should be used,
      * thus batching remote calls. If there is none, one should be created and installed.
@@ -56,13 +62,29 @@ public class RateLimitedTimestampService implements TimestampService {
     private final AtomicReference</* nullable */ TimestampHolder> currentBatch =
             new AtomicReference<TimestampHolder>();
 
+    // Required for large internal product.
     public RateLimitedTimestampService(TimestampService delegate, long minTimeBetweenRequestsMillis) {
         this.delegate = TimingProxy.newProxyInstance(TimestampService.class, delegate, timer);
+        this.configSupplier = () -> ImmutableTimestampClientConfig.builder().enableTimestampBatching(true).build();
         this.minTimeBetweenRequestsMillis = minTimeBetweenRequestsMillis;
+    }
+
+    // Note that calls to configSupplier *MUST* be cheap, because it is called on every timestamp request.
+    public RateLimitedTimestampService(TimestampService delegate, Supplier<TimestampClientConfig> configSupplier) {
+        this.delegate = delegate;
+        this.configSupplier = configSupplier;
+        this.minTimeBetweenRequestsMillis = DEFAULT_MIN_TIME_BETWEEN_REQUESTS;
     }
 
     @Override
     public long getFreshTimestamp() {
+        if (!configSupplier.get().enableTimestampBatching()) {
+            return delegate.getFreshTimestamp();
+        }
+        return joinBatchAndGetTimestamp();
+    }
+
+    private long joinBatchAndGetTimestamp() {
         Long result = null;
         do {
             JoinedBatch joinedBatch = joinBatch();

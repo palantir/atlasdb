@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.timestamp.client.TimestampClientConfig;
 
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
@@ -29,6 +30,14 @@ public abstract class AtlasDbRuntimeConfig {
     @Value.Default
     public SweepConfig sweep() {
         return SweepConfig.defaultSweepConfig();
+    }
+
+    /**
+     * Returns a configuration for this timestamp client.
+     */
+    @Value.Default
+    public TimestampClientConfig timestampClient() {
+        return ImmutableTimestampClientConfig.builder().build();
     }
 
     public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {

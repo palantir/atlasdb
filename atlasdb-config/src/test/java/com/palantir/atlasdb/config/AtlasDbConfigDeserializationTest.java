@@ -27,6 +27,7 @@ import org.junit.Test;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.timestamp.client.TimestampClientConfig;
 
 public class AtlasDbConfigDeserializationTest {
     private static final File TEST_CONFIG_FILE = new File(

@@ -32,18 +32,17 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
-import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -83,6 +82,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
@@ -96,6 +96,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.RateLimitedTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.timestamp.client.TimestampClientConfig;
 
 public final class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
@@ -200,6 +201,10 @@ public final class TransactionManagers {
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
+                JavaSuppliers.compose(runtimeConfig ->
+                                runtimeConfig.map(AtlasDbRuntimeConfig::timestampClient)
+                                        .orElse(ImmutableTimestampClientConfig.builder().build()),
+                        runtimeConfigSupplier),
                 env,
                 () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService,
@@ -375,6 +380,7 @@ public final class TransactionManagers {
             Supplier<TimestampService> time) {
         return createLockAndTimestampServices(
                 config,
+                () -> ImmutableTimestampClientConfig.builder().build(),
                 env,
                 lock,
                 time,
@@ -388,6 +394,7 @@ public final class TransactionManagers {
     @VisibleForTesting
     static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
+            java.util.function.Supplier<TimestampClientConfig> runtimeConfigSupplier,
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
@@ -396,7 +403,7 @@ public final class TransactionManagers {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawServices(config, env, lock, time, invalidator, userAgent);
         return withRateLimitedTimestampService(
-                config.timestampClient(),
+                runtimeConfigSupplier,
                 withRefreshingLockService(lockAndTimestampServices));
     }
 
@@ -409,17 +416,14 @@ public final class TransactionManagers {
     }
 
     private static LockAndTimestampServices withRateLimitedTimestampService(
-            TimestampClientConfig timestampClientConfig,
+            java.util.function.Supplier<TimestampClientConfig> timestampClientConfigSupplier,
             LockAndTimestampServices lockAndTimestampServices) {
-        if (timestampClientConfig.enableTimestampBatching()) {
-            return ImmutableLockAndTimestampServices.builder()
-                    .from(lockAndTimestampServices)
-                    .time(new RateLimitedTimestampService(
-                            lockAndTimestampServices.time(),
-                            AtlasDbConstants.DEFAULT_MINIMUM_MILLIS_BETWEEN_BATCHES))
-                    .build();
-        }
-        return lockAndTimestampServices;
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .time(new RateLimitedTimestampService(
+                        lockAndTimestampServices.time(),
+                        timestampClientConfigSupplier))
+                .build();
     }
 
     @VisibleForTesting
