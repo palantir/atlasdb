@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.factory;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.isA;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,8 +34,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -47,6 +51,7 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
@@ -71,6 +76,8 @@ public class TransactionManagersTest {
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final long EMBEDDED_BOUND = 3;
 
+    private static final String SERVER_ID_PATH = "/timestamp/server-id";
+    private static final MappingBuilder SERVER_ID_MAPPING = get(urlEqualTo(SERVER_ID_PATH));
     private static final String TIMESTAMP_PATH = "/timestamp/fresh-timestamp";
     private static final MappingBuilder TIMESTAMP_MAPPING = post(urlEqualTo(TIMESTAMP_PATH));
     private static final String LOCK_PATH = "/lock/current-time-millis";
@@ -102,6 +109,13 @@ public class TransactionManagersTest {
 
     @Before
     public void setup() {
+        // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
+        TransactionManagers.runAsync = task -> {
+            Awaitility.await().atMost(2, TimeUnit.SECONDS).until(task);
+        };
+
+        availableServer.stubFor(SERVER_ID_MAPPING.willReturn(aResponse().withStatus(200).withBody(
+                ("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
         availableServer.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("1")));
         availableServer.stubFor(LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("2")));
         availableServer.stubFor(TIMELOCK_TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("3")));
@@ -124,6 +138,11 @@ public class TransactionManagersTest {
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
                 .build();
+    }
+
+    @After
+    public void restoreAsyncExecution() {
+        TransactionManagers.runAsync = task -> new Thread(task).run();
     }
 
     @Test
@@ -152,6 +171,73 @@ public class TransactionManagersTest {
                 .build()));
 
         verifyUserAgentOnRawTimestampAndLockRequests();
+    }
+
+    @Test
+    public void remoteCallsStillMadeIfServerIdService404s() throws IOException, InterruptedException {
+        availableServer.stubFor(SERVER_ID_MAPPING.willReturn(aResponse().withStatus(404)));
+        when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
+                .localServer(getUriForPort(availablePort))
+                .addLeaders(getUriForPort(availablePort))
+                .acceptorLogDir(temporaryFolder.newFolder())
+                .learnerLogDir(temporaryFolder.newFolder())
+                .quorumSize(1)
+                .build()));
+
+        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
+                TransactionManagers.createLockAndTimestampServices(
+                        config,
+                        environment,
+                        LockServiceImpl::create,
+                        InMemoryTimestampService::new,
+                        invalidator,
+                        USER_AGENT);
+        availableServer.verify(getRequestedFor(urlMatching(SERVER_ID_PATH)));
+
+        lockAndTimestampServices.time().getFreshTimestamp();
+        lockAndTimestampServices.lock().currentTimeMillis();
+
+        availableServer.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+        availableServer.verify(postRequestedFor(urlMatching(LOCK_PATH))
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+    }
+
+    @Test
+    public void remoteCallsElidedIfTalkingToLocalServer() throws IOException, InterruptedException {
+        doAnswer(invocation -> {
+            // Configure our server to reply with the same server ID as the registered ServerIdService.
+            ServerIdService localServerIdService = invocation.getArgumentAt(0, ServerIdService.class);
+            availableServer.stubFor(SERVER_ID_MAPPING.willReturn(aResponse()
+                    .withStatus(200)
+                    .withBody(("\"" + localServerIdService.getServerId().toString() + "\"").getBytes())));
+            return null;
+        }).when(environment).register(isA(ServerIdService.class));
+        when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
+                .localServer(getUriForPort(availablePort))
+                .addLeaders(getUriForPort(availablePort))
+                .acceptorLogDir(temporaryFolder.newFolder())
+                .learnerLogDir(temporaryFolder.newFolder())
+                .quorumSize(1)
+                .build()));
+
+        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
+                TransactionManagers.createLockAndTimestampServices(
+                        config,
+                        environment,
+                        LockServiceImpl::create,
+                        InMemoryTimestampService::new,
+                        invalidator,
+                        USER_AGENT);
+        availableServer.verify(getRequestedFor(urlMatching(SERVER_ID_PATH)));
+
+        lockAndTimestampServices.time().getFreshTimestamp();
+        lockAndTimestampServices.lock().currentTimeMillis();
+
+        availableServer.verify(0, postRequestedFor(urlMatching(TIMESTAMP_PATH))
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+        availableServer.verify(0, postRequestedFor(urlMatching(LOCK_PATH))
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
     }
 
     @Test

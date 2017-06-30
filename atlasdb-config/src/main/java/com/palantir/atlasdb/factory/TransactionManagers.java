@@ -17,9 +17,13 @@ package com.palantir.atlasdb.factory;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.net.ssl.SSLSocketFactory;
+import javax.ws.rs.ClientErrorException;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -31,6 +35,8 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -42,6 +48,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
@@ -96,6 +103,8 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 public final class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
+
+    @VisibleForTesting static Consumer<Runnable> runAsync = task -> new Thread(task).run();
 
     private TransactionManagers() {
         // Utility class
@@ -449,6 +458,9 @@ public final class TransactionManagers {
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
             String userAgent) {
+        if (leaderConfig.leaders().size() == 1) {
+            return createRawSingleLeaderServices(leaderConfig, env, lock, time, userAgent);
+        }
         LeaderElectionService leader = Leaders.create(env, leaderConfig, userAgent);
 
         env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
@@ -468,6 +480,81 @@ public final class TransactionManagers {
                         leaderConfig.leaders(),
                         TimestampService.class,
                         userAgent))
+                .build();
+    }
+
+    /*
+     * Attempting to connect to ourself while processing a request can lead to deadlock if incoming request
+     * volume is high, as all Jetty threads end up waiting for the timestamp server, and no threads remain to
+     * actually handle the timestamp server requests. If we are the only single leader, we can avoid the deadlock
+     * entirely; so use {@link TimestampService#getServerId} to detect this situation and eliminate the redundant
+     * call.
+     */
+    private static LockAndTimestampServices createRawSingleLeaderServices(
+            LeaderConfig leaderConfig,
+            Environment env,
+            Supplier<RemoteLockService> lock,
+            Supplier<TimestampService> time,
+            String userAgent) {
+        // Create a random server ID so we can detect if we are talking to ourself.
+        UUID localServerId = UUID.randomUUID();
+
+        // Create local services, that may or may not end up being registered in an environment.
+        RemoteLockService localLockService = ServiceCreator.createInstrumentedService(lock.get(),
+                RemoteLockService.class,
+                userAgent);
+        TimestampService localTimeService = ServiceCreator.createInstrumentedService(time.get(),
+                TimestampService.class,
+                userAgent);
+        ServerIdService localServerIdService = new ServerIdResource(localServerId);
+
+        env.register(localLockService);
+        env.register(localTimeService);
+        env.register(localServerIdService);
+
+        // Create remote services, that may end up calling our own local services.
+        Optional<SSLSocketFactory> sslSocketFactory = ServiceCreator.createSslSocketFactory(
+                leaderConfig.sslConfiguration());
+        RemoteLockService remoteLockService = ServiceCreator.createService(
+                sslSocketFactory,
+                leaderConfig.leaders(),
+                RemoteLockService.class,
+                userAgent);
+        TimestampService remoteTimeService = ServiceCreator.createService(
+                sslSocketFactory,
+                leaderConfig.leaders(),
+                TimestampService.class,
+                userAgent);
+        ServerIdService remoteServerIdService = AtlasDbFeignTargetFactory.createRsProxy(
+                sslSocketFactory, Iterables.getOnlyElement(leaderConfig.leaders()), ServerIdService.class, userAgent);
+
+        // Determine asynchronously whether the remote services are talking to our local services.
+        CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();
+        runAsync.accept(() -> {
+            while (true) {
+                try {
+                    UUID remoteServerId = remoteServerIdService.getServerId();
+                    useLocalServicesFuture.complete(localServerId.equals(remoteServerId));
+                    return;
+                } catch (ClientErrorException e) {
+                    useLocalServicesFuture.complete(false);
+                    return;
+                } catch (Throwable e) {
+                    log.warn("Failed to read remote timestamp server ID", e);
+                }
+                Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+            }
+        });
+
+        // Create dynamic service proxies, that switch to talking directly to our local services if it turns out our
+        // remote services are pointed at them anyway.
+        RemoteLockService dynamicLockService = LocalOrRemoteProxy.newProxyInstance(
+                RemoteLockService.class, localLockService, remoteLockService, useLocalServicesFuture);
+        TimestampService dynamicTimeService = LocalOrRemoteProxy.newProxyInstance(
+                TimestampService.class, localTimeService, remoteTimeService, useLocalServicesFuture);
+        return ImmutableLockAndTimestampServices.builder()
+                .lock(dynamicLockService)
+                .time(dynamicTimeService)
                 .build();
     }
 
