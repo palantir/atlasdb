@@ -17,8 +17,10 @@ package com.palantir.atlasdb.keyvalue.jdbc.impl;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -39,6 +41,11 @@ public class SingleTimestampPutBatch implements PutBatch {
 
     public SingleTimestampPutBatch(Map<Cell, byte[]> data, Long timestamp) {
         this.data = data;
+        this.timestamp = timestamp;
+    }
+
+    public SingleTimestampPutBatch(List<Entry<Cell, byte[]>> data, long timestamp) {
+        this.data = data.stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue));
         this.timestamp = timestamp;
     }
 

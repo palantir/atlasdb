@@ -52,6 +52,15 @@ public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig
         return 10_000;
     }
 
+    /**
+     * This value should be approximately 32k/4 to avoid https://github.com/pgjdbc/pgjdbc/issues/90. Lowering the value
+     * may cause a perf hit and increasing may exceed the parameter limit imposed by the driver.
+     **/
+    @Value.Default
+    public int getBatchSizeForMutations() {
+        return 8_0000;
+    }
+
     public abstract JdbcDataSourceConfiguration getDataSourceConfig();
 
     @Value.Check

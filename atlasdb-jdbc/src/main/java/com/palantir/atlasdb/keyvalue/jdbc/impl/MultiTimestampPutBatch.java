@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.jdbc.impl;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -41,6 +42,18 @@ public class MultiTimestampPutBatch implements PutBatch {
 
     public MultiTimestampPutBatch(Multimap<Cell, Value> data) {
         this.data = data;
+    }
+
+    public MultiTimestampPutBatch(List<Entry<Cell, Value>> values) {
+        this.data = listToMultiMap(values);
+    }
+
+    private Multimap<Cell, Value> listToMultiMap(List<Entry<Cell, Value>> values) {
+        Multimap<Cell, Value> map = ArrayListMultimap.create();
+        for (Entry<Cell, Value> val : values) {
+            map.put(val.getKey(), val.getValue());
+        }
+        return map;
     }
 
     @Override
