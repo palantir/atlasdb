@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.Optional;
-import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -96,7 +95,6 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public final class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
-    private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
     private TransactionManagers() {
@@ -451,6 +449,14 @@ public final class TransactionManagers {
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
             String userAgent) {
+        if (leaderConfig.leaders().size() == 1) {
+            // Attempting to connect to ourself while processing a request can lead to deadlock if incoming request
+            // volume is high, as all Jetty threads end up waiting for the timestamp server, and no threads remain to
+            // actually handle the timestamp server requests. If there is a single leader, it must be us, and we can
+            // avoid the deadlock entirely; the leader block is only there to allow other services reading the
+            // configuration to find the timestamp server.
+            return createRawEmbeddedServices(env, lock, time, userAgent);
+        }
         LeaderElectionService leader = Leaders.create(env, leaderConfig, userAgent);
 
         env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
