@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.Optional;
-import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -96,7 +95,6 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public final class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
-    private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
     private TransactionManagers() {
