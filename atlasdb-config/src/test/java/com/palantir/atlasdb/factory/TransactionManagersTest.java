@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.junit.After;
 import org.junit.Before;
@@ -100,6 +101,7 @@ public class TransactionManagersTest {
     private AtlasDbConfig config;
     private TransactionManagers.Environment environment;
     private TimestampStoreInvalidator invalidator;
+    private Consumer<Runnable> originalAsyncMethod;
 
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -110,6 +112,7 @@ public class TransactionManagersTest {
     @Before
     public void setup() {
         // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
+        originalAsyncMethod = TransactionManagers.runAsync;
         TransactionManagers.runAsync = task -> {
             Awaitility.await().atMost(2, TimeUnit.SECONDS).until(task);
         };
@@ -142,7 +145,7 @@ public class TransactionManagersTest {
 
     @After
     public void restoreAsyncExecution() {
-        TransactionManagers.runAsync = task -> new Thread(task).run();
+        TransactionManagers.runAsync = originalAsyncMethod;
     }
 
     @Test

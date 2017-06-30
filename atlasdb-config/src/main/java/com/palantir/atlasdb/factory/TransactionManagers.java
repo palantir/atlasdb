@@ -104,7 +104,11 @@ public final class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
-    @VisibleForTesting static Consumer<Runnable> runAsync = task -> new Thread(task).run();
+    @VisibleForTesting static Consumer<Runnable> runAsync = task -> {
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.run();
+    };
 
     private TransactionManagers() {
         // Utility class
