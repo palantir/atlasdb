@@ -11,9 +11,8 @@ configurations {
 }
 
 dependencies {
-  explicitShadow (group: 'de.jflex', name: 'jflex', version: '1.6.0') {
-    exclude(group: 'org.apache.ant', module: 'ant')
-  }
+  explicitShadow (group: 'de.jflex', name: 'jflex', version: '1.6.0')
+
   explicitShadow group: 'com.github.rholder', name: 'snowball-stemmer', version: '1.3.0.581.1'
   explicitShadow group: 'com.carrotsearch', name: 'hppc', version: '0.5.4'
 
