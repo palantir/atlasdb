@@ -51,6 +51,10 @@ develop
            Note that this is not enabled by default.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2083>`__)
 
+    *    - |devbreak|
+         - The ``RateLimitingTimestampService`` in ``timestamp-impl`` has been renamed to ``RequestBatchingTimestampService``, to better reflect what the service does and avoid confusion with the ``ThreadPooledLockService`` (which performs resource-limiting).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2083>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

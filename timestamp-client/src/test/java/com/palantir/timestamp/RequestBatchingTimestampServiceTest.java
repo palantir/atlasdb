@@ -26,7 +26,7 @@ import org.junit.Test;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.remoting2.tracing.Tracers;
 
-public class RateLimitedTimestampServiceTest {
+public class RequestBatchingTimestampServiceTest {
     @Test
     public void testRateLimiting() throws Exception {
         final long minRequestMillis = 100L;
@@ -34,7 +34,7 @@ public class RateLimitedTimestampServiceTest {
         final int numThreads = 3;
 
         final StatsTrackingTimestampService rawTs = new StatsTrackingTimestampService(new InMemoryTimestampService());
-        final RateLimitedTimestampService cachedTs = new RateLimitedTimestampService(rawTs, minRequestMillis);
+        final RequestBatchingTimestampService cachedTs = new RequestBatchingTimestampService(rawTs, minRequestMillis);
         final AtomicLong timestampsGenerated = new AtomicLong(0);
         final long startMillis = System.currentTimeMillis();
 

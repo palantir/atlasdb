@@ -21,11 +21,11 @@ import java.util.function.Supplier;
 import javax.ws.rs.QueryParam;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.util.JavaSuppliers;
-import com.palantir.timestamp.RateLimitedTimestampService;
+import com.palantir.timestamp.RequestBatchingTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.atlasdb.config.TimestampClientConfig;
 
 public class DynamicDecoratedTimestampService implements TimestampService {
     private final TimestampService decoratedService;
@@ -45,7 +45,7 @@ public class DynamicDecoratedTimestampService implements TimestampService {
     public static DynamicDecoratedTimestampService createWithRateLimiting(
             TimestampService delegateService, Supplier<TimestampClientConfig> configSupplier) {
         return new DynamicDecoratedTimestampService(
-                new RateLimitedTimestampService(delegateService),
+                new RequestBatchingTimestampService(delegateService),
                 delegateService,
                 JavaSuppliers.compose(TimestampClientConfig::enableTimestampBatching, configSupplier));
     }

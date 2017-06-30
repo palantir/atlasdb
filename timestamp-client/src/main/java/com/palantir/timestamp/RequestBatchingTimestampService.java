@@ -39,9 +39,9 @@ import com.palantir.util.timer.LoggingOperationTimer;
  * @author carrino
  */
 @ThreadSafe
-public class RateLimitedTimestampService implements TimestampService {
-    private static final OperationTimer timer = LoggingOperationTimer.create(RateLimitedTimestampService.class);
-    private static final Logger log = LoggerFactory.getLogger(RateLimitedTimestampService.class);
+public class RequestBatchingTimestampService implements TimestampService {
+    private static final OperationTimer timer = LoggingOperationTimer.create(RequestBatchingTimestampService.class);
+    private static final Logger log = LoggerFactory.getLogger(RequestBatchingTimestampService.class);
 
     public static final long DEFAULT_MIN_TIME_BETWEEN_REQUESTS = 0L;
 
@@ -58,11 +58,11 @@ public class RateLimitedTimestampService implements TimestampService {
     private final AtomicReference</* nullable */ TimestampHolder> currentBatch =
             new AtomicReference<TimestampHolder>();
 
-    public RateLimitedTimestampService(TimestampService delegate) {
+    public RequestBatchingTimestampService(TimestampService delegate) {
         this(delegate, DEFAULT_MIN_TIME_BETWEEN_REQUESTS);
     }
 
-    public RateLimitedTimestampService(TimestampService delegate, long minTimeBetweenRequestsMillis) {
+    public RequestBatchingTimestampService(TimestampService delegate, long minTimeBetweenRequestsMillis) {
         this.delegate = TimingProxy.newProxyInstance(TimestampService.class, delegate, timer);
         this.minTimeBetweenRequestsMillis = minTimeBetweenRequestsMillis;
     }
