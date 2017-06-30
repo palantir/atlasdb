@@ -61,6 +61,20 @@ public final class AtlasDbFeignTargetFactory {
                 .target(type, uri);
     }
 
+    public static <T> T createRsProxy(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            String uri,
+            Class<T> type,
+            String userAgent) {
+        return Feign.builder()
+                .contract(contract)
+                .encoder(encoder)
+                .decoder(decoder)
+                .errorDecoder(new RsErrorDecoder())
+                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, userAgent, type))
+                .target(type, uri);
+    }
+
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
             Collection<String> endpointUris,
