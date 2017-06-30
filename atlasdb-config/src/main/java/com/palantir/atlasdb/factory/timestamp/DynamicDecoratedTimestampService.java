@@ -25,7 +25,7 @@ import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.timestamp.RateLimitedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.timestamp.client.TimestampClientConfig;
+import com.palantir.atlasdb.config.TimestampClientConfig;
 
 public class DynamicDecoratedTimestampService implements TimestampService {
     private final TimestampService decoratedService;

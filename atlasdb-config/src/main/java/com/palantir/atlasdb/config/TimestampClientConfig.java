@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.timestamp.client;
+package com.palantir.atlasdb.config;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.timestamp.client.ImmutableTimestampClientConfig;
 
 @JsonSerialize(as = ImmutableTimestampClientConfig.class)
 @JsonDeserialize(as = ImmutableTimestampClientConfig.class)

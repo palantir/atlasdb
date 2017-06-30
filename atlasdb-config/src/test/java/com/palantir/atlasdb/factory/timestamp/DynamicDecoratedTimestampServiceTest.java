@@ -27,10 +27,10 @@ import java.util.function.Supplier;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
+import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.timestamp.client.ImmutableTimestampClientConfig;
-import com.palantir.timestamp.client.TimestampClientConfig;
 
 public class DynamicDecoratedTimestampServiceTest {
     private final TimestampService decorated = mock(TimestampService.class);
