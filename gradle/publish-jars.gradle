@@ -48,7 +48,6 @@ publishing {
 private void replaceShadedDependencies(MavenPublication mavenPublication) {
     mavenPublication.pom.withXml {
         def targetDependencies = project.configurations.getByName('shadow').allDependencies
-        println targetDependencies.getClass()
 
         def newDependencyRoot = new Node(null, 'dependencies')
         def existingDependencies = asNode().getByName('dependencies')[0]
@@ -58,7 +57,6 @@ private void replaceShadedDependencies(MavenPublication mavenPublication) {
                     getGroupIdFromNode(dependency),
                     getArtifactIdFromNode(dependency))) {
                 newDependencyRoot.append(dependency)
-                println newDependencyRoot.children()
             }
         }
 
@@ -77,18 +75,19 @@ private static String hasMatchingDependency(DependencySet dependencies, String g
 
 // We assume that there is only one groupId tag, which has exactly one element in it.
 private static String getGroupIdFromNode(Node dependency) {
-    if (dependency.groupId.size() != 1 || dependency.groupId[0].children().size() != 1) {
-        throw new IllegalArgumentException("Encountered an XML node which had more than one groupId!");
-    }
-    return dependency.groupId[0].children()[0]
+    return getOnlyValue(dependency.groupId)
 }
 
 // We assume that there is only one artifactId tag, which has exactly one element in it.
 private static String getArtifactIdFromNode(Node dependency) {
-    if (dependency.artifactId.size() != 1 || dependency.artifactId[0].children().size() != 1) {
-        throw new IllegalArgumentException("Encountered an XML node which had more than one artifactId!");
+    return getOnlyValue(dependency.artifactId)
+}
+
+private static String getOnlyValue(List<Node> nodeList) {
+    if (nodeList.size() != 1 || nodeList[0].children().size() != 1) {
+        throw new IllegalArgumentException("getOnlyValue() called on a node list which didn't have an only value");
     }
-    return dependency.artifactId[0].children()[0]
+    return nodeList[0].children()[0]
 }
 
 // Bintray publish
