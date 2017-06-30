@@ -48,25 +48,47 @@ publishing {
 private void replaceShadedDependencies(MavenPublication mavenPublication) {
     mavenPublication.pom.withXml {
         def targetDependencies = project.configurations.getByName('shadow').allDependencies
+        println targetDependencies.getClass()
 
         def newDependencyRoot = new Node(null, 'dependencies')
-        targetDependencies.forEach { dependency ->
-            def dependencyNode = newDependencyRoot.appendNode('dependency')
-            dependencyNode.appendNode('groupId', dependency.getGroup())
-            dependencyNode.appendNode('artifactId', dependency.getName())
-            dependencyNode.appendNode('scope', 'runtime')
-
-            def version = getVersion(dependency, dependencyRecommendations)
-            dependencyNode.appendNode('version', version)
+        def existingDependencies = asNode().getByName('dependencies')[0]
+        existingDependencies.children().forEach { dependency ->
+            if (hasMatchingDependency(
+                    targetDependencies,
+                    getGroupIdFromNode(dependency),
+                    getArtifactIdFromNode(dependency))) {
+                newDependencyRoot.append(dependency)
+                println newDependencyRoot.children()
+            }
         }
+
         asNode().getByName('dependencies')[0].replaceNode(newDependencyRoot)
     }
 }
 
-private static String getVersion(Dependency dependency, provider) {
-    return dependency.getVersion() == null ?
-            provider.getRecommendedVersion(dependency.getGroup(), dependency.getName()) :
-            dependency.getVersion()
+/**
+ * Returns true if and only if there exists some dependency in the provided list of dependencies.
+ * We can consider this for further optimisation e.g. with a hashset if this is too slow.
+ */
+private static String hasMatchingDependency(DependencySet dependencies, String groupId, String artifactId) {
+    return dependencies.stream()
+                       .anyMatch({dep -> dep.getGroup().equals(groupId) && dep.getName().equals(artifactId)});
+}
+
+// We assume that there is only one groupId tag, which has exactly one element in it.
+private static String getGroupIdFromNode(Node dependency) {
+    if (dependency.groupId.size() != 1 || dependency.groupId[0].children().size() != 1) {
+        throw new IllegalArgumentException("Encountered an XML node which had more than one groupId!");
+    }
+    return dependency.groupId[0].children()[0]
+}
+
+// We assume that there is only one artifactId tag, which has exactly one element in it.
+private static String getArtifactIdFromNode(Node dependency) {
+    if (dependency.artifactId.size() != 1 || dependency.artifactId[0].children().size() != 1) {
+        throw new IllegalArgumentException("Encountered an XML node which had more than one artifactId!");
+    }
+    return dependency.artifactId[0].children()[0]
 }
 
 // Bintray publish
