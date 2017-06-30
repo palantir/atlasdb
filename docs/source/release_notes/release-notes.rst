@@ -44,8 +44,11 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - AtlasDB now generates Maven POM files for shadowed jars correctly.
+           Previously, we would regenerate the XML for shadow dependencies by creating a node with corresponding groupId, artifactId, scope and version tags *only*, which is incorrect because it loses information about, for example, specific or transitive exclusions.
+           We now respect these additional tags.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/abcd>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
