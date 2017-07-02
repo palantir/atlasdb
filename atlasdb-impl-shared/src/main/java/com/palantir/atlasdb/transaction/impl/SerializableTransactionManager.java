@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Optional;
-
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -34,14 +32,14 @@ import com.palantir.timestamp.TimestampService;
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public SerializableTransactionManager(KeyValueService keyValueService,
-                                          TimestampService timestampService,
-                                          LockClient lockClient,
-                                          RemoteLockService lockService,
-                                          TransactionService transactionService,
-                                          Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-                                          ConflictDetectionManager conflictDetectionManager,
-                                          SweepStrategyManager sweepStrategyManager,
-                                          Cleaner cleaner) {
+            TimestampService timestampService,
+            LockClient lockClient,
+            RemoteLockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner) {
         this(keyValueService,
                 timestampService,
                 lockClient,
@@ -55,19 +53,19 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
-                                          TimestampService timestampService,
-                                          LockClient lockClient,
-                                          RemoteLockService lockService,
-                                          TransactionService transactionService,
-                                          Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-                                          ConflictDetectionManager conflictDetectionManager,
-                                          SweepStrategyManager sweepStrategyManager,
-                                          Cleaner cleaner,
-                                          boolean allowHiddenTableAccess) {
+            TimestampService timestampService,
+            LockClient lockClient,
+            RemoteLockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            boolean allowHiddenTableAccess) {
         this(
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                Optional.of(lockService),
+                lockService,
                 transactionService,
                 constraintModeSupplier,
                 conflictDetectionManager,
@@ -78,7 +76,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimelockService timelockService,
-            Optional<RemoteLockService> lockService,
+            RemoteLockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -99,9 +97,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     @Override
     protected SnapshotTransaction createTransaction(long immutableTimestamp,
-                                                  Supplier<Long> startTimestampSupplier,
-                                                  ImmutableList<LockTokenV2> lockTokens,
-                                                  PreCommitValidation preCommitValidation) {
+            Supplier<Long> startTimestampSupplier,
+            ImmutableList<LockTokenV2> lockTokens,
+            PreCommitValidation preCommitValidation) {
         return new SerializableTransaction(
                 keyValueService,
                 timelockService,

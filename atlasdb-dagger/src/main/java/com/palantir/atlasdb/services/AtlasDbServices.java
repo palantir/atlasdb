@@ -24,6 +24,7 @@ import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
 import dagger.Component;
@@ -34,6 +35,8 @@ import dagger.Component;
 public abstract class AtlasDbServices implements AutoCloseable {
 
     public abstract AtlasDbConfig getAtlasDbConfig();
+
+    public abstract TimelockService getTimelockService();
 
     public abstract TimestampService getTimestampService();
 
