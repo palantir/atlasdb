@@ -58,6 +58,6 @@ public interface PreCommitValidation {
                         "Lock service locks were no longer valid at commit time: " + notRefreshed);
             }
         };
-    };
+    }
 
 }

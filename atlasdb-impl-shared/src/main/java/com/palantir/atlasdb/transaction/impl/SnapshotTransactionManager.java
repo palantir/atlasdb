@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -56,7 +54,7 @@ import com.palantir.timestamp.TimestampService;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
-    final Optional<RemoteLockService> lockService;
+    final RemoteLockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
     final SweepStrategyManager sweepStrategyManager;
     final Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier;
@@ -67,7 +65,7 @@ import com.palantir.timestamp.TimestampService;
     protected SnapshotTransactionManager(
             KeyValueService keyValueService,
             TimelockService timelockService,
-            Optional<RemoteLockService> lockService,
+            RemoteLockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -209,11 +207,7 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public RemoteLockService getLockService() {
-        Preconditions.checkState(
-                lockService.isPresent(),
-                "This transaction manager has not been configured with a RemoteLockService. "
-                        + "This is likely because you are using Timelock server, which does not support RemoteLockService.");
-        return lockService.get();
+        return lockService;
     }
 
     @Override

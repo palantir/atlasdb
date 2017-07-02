@@ -201,7 +201,7 @@ public class TransactionManagersTest {
                         InMemoryTimestampService::new,
                         invalidator,
                         USER_AGENT);
-        lockAndTimestampServices.time().getFreshTimestamp();
+        lockAndTimestampServices.timelock().getFreshTimestamp();
         lockAndTimestampServices.lock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(timestampPath))
