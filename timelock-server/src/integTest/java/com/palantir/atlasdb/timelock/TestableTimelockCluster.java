@@ -21,13 +21,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
-import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
@@ -60,18 +58,7 @@ public class TestableTimelockCluster {
     }
 
     public void waitUntilLeaderIsElected() {
-        TimestampService timestampService = timestampService();
-        Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
-                .pollInterval(500, TimeUnit.MILLISECONDS)
-                .until(() -> {
-                    try {
-                        timestampService.getFreshTimestamp();
-                        return true;
-                    } catch (Throwable t) {
-                        return false;
-                    }
-                });
+        getFreshTimestamp();
     }
 
     public void waitUntillAllSeversAreOnlineAndLeaderIsElected() {
