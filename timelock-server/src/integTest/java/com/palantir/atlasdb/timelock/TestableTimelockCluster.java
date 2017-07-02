@@ -65,8 +65,12 @@ public class TestableTimelockCluster {
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
-                    timestampService.getFreshTimestamp();
-                    return true;
+                    try {
+                        timestampService.getFreshTimestamp();
+                        return true;
+                    } catch (Throwable t) {
+                        return false;
+                    }
                 });
     }
 

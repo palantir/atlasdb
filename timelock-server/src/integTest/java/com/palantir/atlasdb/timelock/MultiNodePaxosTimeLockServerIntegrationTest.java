@@ -107,13 +107,11 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void canPerformRollingRestart() {
-        for (int i = 0; i < 20; i++) {
-            bringAllNodesOnline();
-            for (TestableTimelockServer server : CLUSTER.servers()) {
-                server.kill();
-                CLUSTER.getFreshTimestamp();
-                server.start();
-            }
+        bringAllNodesOnline();
+        for (TestableTimelockServer server : CLUSTER.servers()) {
+            server.kill();
+            CLUSTER.getFreshTimestamp();
+            server.start();
         }
     }
 
