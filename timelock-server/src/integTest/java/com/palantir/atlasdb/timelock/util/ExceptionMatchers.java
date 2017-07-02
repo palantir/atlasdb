@@ -18,7 +18,7 @@ package com.palantir.atlasdb.timelock.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ExceptionMatchers {
+public final class ExceptionMatchers {
 
     private ExceptionMatchers() { }
 

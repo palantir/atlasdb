@@ -17,18 +17,12 @@
 package com.palantir.atlasdb.timelock.util;
 
 import java.util.List;
-<<<<<<< 369acb3402a6ac790bd78bdcc88753547d883063
 import java.util.Optional;
-import java.util.stream.Collectors;
-
-=======
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
->>>>>>> cache proxies
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TestableTimelockServer;
@@ -57,7 +51,7 @@ public class TestProxies {
 
     public <T> T singleNode(Class<T> serviceInterface, String uri) {
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
-        return (T)proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
+        return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
                 Optional.empty(),
                 uri,
                 serviceInterface,
@@ -70,7 +64,7 @@ public class TestProxies {
 
     public <T> T failover(Class<T> serviceInterface, List<String> uris) {
         List<Object> key = ImmutableList.of(serviceInterface, uris, "failover");
-        return (T)proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
+        return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
                 Optional.empty(),
                 uris,
                 serviceInterface,
