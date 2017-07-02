@@ -78,7 +78,7 @@ public class LockAcquirerTest {
 
     @Test
     public void doesNotStackOverflowIfLocksAreAcquiredSynchronously() {
-        List<AsyncLock> locks = IntStream.range(0, 500_000)
+        List<AsyncLock> locks = IntStream.range(0, 100_000)
                 .mapToObj(i -> new ExclusiveLock())
                 .collect(Collectors.toList());
 
@@ -91,7 +91,7 @@ public class LockAcquirerTest {
     public void doesNotStackOverflowIfManyRequestsWaitOnALock() {
         lockA.lock(REQUEST_ID);
 
-        List<CompletableFuture<Void>> futures = IntStream.range(0, 500_000)
+        List<CompletableFuture<Void>> futures = IntStream.range(0, 100_000)
                 .mapToObj(i -> waitFor(lockA))
                 .collect(Collectors.toList());
 
