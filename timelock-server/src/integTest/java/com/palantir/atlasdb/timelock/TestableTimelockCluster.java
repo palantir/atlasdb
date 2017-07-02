@@ -38,7 +38,7 @@ import io.dropwizard.testing.ResourceHelpers;
 
 public class TestableTimelockCluster {
 
-    private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
+    private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private final String defaultClient;
     private final String baseUri;
@@ -136,7 +136,7 @@ public class TestableTimelockCluster {
     }
 
     public RuleChain getRuleChain() {
-        RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER);
+        RuleChain ruleChain = RuleChain.outerRule(temporaryFolder);
 
         for (TemporaryConfigurationHolder config : configs) {
             ruleChain = ruleChain.around(config);
@@ -156,7 +156,7 @@ public class TestableTimelockCluster {
     private TemporaryConfigurationHolder getConfigHolder(String configFileName) {
         File configTemplate =
                 new File(ResourceHelpers.resourceFilePath(configFileName));
-        return new TemporaryConfigurationHolder(TEMPORARY_FOLDER, configTemplate);
+        return new TemporaryConfigurationHolder(temporaryFolder, configTemplate);
     }
 
 }
