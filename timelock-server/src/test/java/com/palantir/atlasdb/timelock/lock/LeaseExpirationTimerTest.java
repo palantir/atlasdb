@@ -47,7 +47,7 @@ public class LeaseExpirationTimerTest {
     public void isExpiredWhenAppropriateTimeHasElapsed() {
         mockOffsetFromStartTime(LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS + 1L);
 
-        assertThat(timer.isExpired()).isFalse();
+        assertThat(timer.isExpired()).isTrue();
     }
 
     @Test
