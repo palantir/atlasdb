@@ -18,9 +18,7 @@ package com.palantir.atlasdb.http;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterables;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -28,37 +26,34 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
 
-public final class LockClient {
-    private LockClient() {
+public class LockClient implements JepsenLockClient<LockRefreshToken> {
+    private final RemoteLockService remoteLockService;
+
+    private LockClient(RemoteLockService remoteLockService) {
+        this.remoteLockService = remoteLockService;
     }
 
-    public static RemoteLockService create(List<String> hosts) {
-        return TimelockUtils.createClient(hosts, RemoteLockService.class);
+    public static JepsenLockClient<LockRefreshToken> create(List<String> hosts) {
+        return new LockClient(TimelockUtils.createClient(hosts, RemoteLockService.class));
     }
 
-    public static LockRefreshToken lock(RemoteLockService service, String client, String lock)
-            throws InterruptedException {
-        LockDescriptor descriptor = StringLockDescriptor.of(lock);
+    @Override
+    public LockRefreshToken lock(String client, String lockName) throws InterruptedException {
+        LockDescriptor descriptor = StringLockDescriptor.of(lockName);
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(descriptor, LockMode.WRITE))
                 .doNotBlock()
                 .build();
-        LockRefreshToken token = service.lock(client, request);
 
-        return token;
+        return remoteLockService.lock(client, request);
     }
 
-    public static boolean unlock(RemoteLockService service, LockRefreshToken token) throws InterruptedException {
-        if (token == null) {
-            return false;
-        }
-        return service.unlock(token);
+    @Override
+    public Set<LockRefreshToken> unlock(Set<LockRefreshToken> lockRefreshTokens) throws InterruptedException {
+        return remoteLockService.refreshLockRefreshTokens(lockRefreshTokens);
     }
 
-    public static LockRefreshToken refresh(RemoteLockService service, LockRefreshToken token) {
-        if (token == null) {
-            return null;
-        }
-        Set<LockRefreshToken> validTokens = service.refreshLockRefreshTokens(ImmutableList.of(token));
-        return Iterables.getOnlyElement(validTokens, null);
+    @Override
+    public Set<LockRefreshToken> refresh(Set<LockRefreshToken> lockRefreshTokens) throws InterruptedException {
+        return remoteLockService.refreshLockRefreshTokens(lockRefreshTokens);
     }
 }
