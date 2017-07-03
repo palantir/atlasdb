@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Set;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -41,11 +40,6 @@ public class JepsenLockClientTest {
     private final StringLockClient client = new StringLockClient(mockClient);
 
     private static final String LOCK_TOKEN = "foo";
-
-    @Before
-    public void setUp() throws InterruptedException {
-        // todo
-    }
 
     @Test
     public void unlockSingleDoesNotCallUnlockWithNull() throws InterruptedException {
