@@ -535,6 +535,7 @@ public final class TransactionManagers {
         // Determine asynchronously whether the remote services are talking to our local services.
         CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();
         runAsync.accept(() -> {
+            int logAfter = 60;
             while (true) {
                 try {
                     UUID remoteServerId = remoteServerIdService.getServerId();
@@ -544,7 +545,10 @@ public final class TransactionManagers {
                     useLocalServicesFuture.complete(false);
                     return;
                 } catch (Throwable e) {
-                    log.warn("Failed to read remote timestamp server ID", e);
+                    if (--logAfter == 0) {
+                        log.warn("Failed to read remote timestamp server ID", e);
+                        logAfter = 60;
+                    }
                 }
                 Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
             }
