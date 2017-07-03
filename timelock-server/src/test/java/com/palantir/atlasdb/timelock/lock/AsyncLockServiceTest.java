@@ -42,8 +42,7 @@ import com.palantir.lock.StringLockDescriptor;
 
 public class AsyncLockServiceTest {
 
-    private static final UUID REQUEST_1 = UUID.randomUUID();
-    private static final UUID REQUEST_2 = UUID.randomUUID();
+    private static final UUID REQUEST_ID = UUID.randomUUID();
 
     private static final String LOCK_A = "a";
     private static final String LOCK_B = "b";
@@ -71,9 +70,9 @@ public class AsyncLockServiceTest {
         Set<LockDescriptor> descriptors = descriptors(LOCK_A, LOCK_B);
         when(locks.getAll(descriptors)).thenReturn(expected);
 
-        lockService.lock(REQUEST_1, descriptors);
+        lockService.lock(REQUEST_ID, descriptors);
 
-        verify(acquirer).acquireLocks(REQUEST_1, expected);
+        verify(acquirer).acquireLocks(REQUEST_ID, expected);
     }
 
     @Test
@@ -82,16 +81,16 @@ public class AsyncLockServiceTest {
         Set<LockDescriptor> descriptors = descriptors(LOCK_A, LOCK_B);
         when(locks.getAll(descriptors)).thenReturn(expected);
 
-        lockService.waitForLocks(REQUEST_1, descriptors);
+        lockService.waitForLocks(REQUEST_ID, descriptors);
 
-        verify(acquirer).waitForLocks(REQUEST_1, expected);
+        verify(acquirer).waitForLocks(REQUEST_ID, expected);
     }
 
     @Test
     public void doesNotAcquireDuplicateRequests() {
         Set<LockDescriptor> descriptors = descriptors(LOCK_A);
-        lockService.lock(REQUEST_1, descriptors);
-        lockService.lock(REQUEST_1, descriptors);
+        lockService.lock(REQUEST_ID, descriptors);
+        lockService.lock(REQUEST_ID, descriptors);
 
         verify(acquirer, times(1)).acquireLocks(any(), any());
         verifyNoMoreInteractions(acquirer);

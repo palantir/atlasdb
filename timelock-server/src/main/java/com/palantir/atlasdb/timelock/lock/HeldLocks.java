@@ -21,15 +21,10 @@ import java.util.UUID;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.lock.v2.LockTokenV2;
 
 public class HeldLocks {
-
-    private static final Logger log = LoggerFactory.getLogger(HeldLocks.class);
 
     private final Collection<AsyncLock> acquiredLocks;
     private final LockTokenV2 token;

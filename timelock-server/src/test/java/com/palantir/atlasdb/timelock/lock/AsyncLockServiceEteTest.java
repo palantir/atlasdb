@@ -42,7 +42,7 @@ public class AsyncLockServiceEteTest {
     private static final String LOCK_A = "a";
     private static final String LOCK_B = "b";
     private static final String LOCK_C = "c";
-    private static final String LOCK_D = "c";
+    private static final String LOCK_D = "d";
 
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),

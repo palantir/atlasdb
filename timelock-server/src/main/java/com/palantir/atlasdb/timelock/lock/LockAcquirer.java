@@ -53,7 +53,7 @@ public class LockAcquirer {
 
     private void registerErrorHandler(CompletableFuture<Void> future, UUID requestId, OrderedLocks locks) {
         future.exceptionally(error -> {
-            log.warn("Error while acquiring locks", SafeArg.of("requestUd", requestId), error);
+            log.warn("Error while acquiring locks", SafeArg.of("requestId", requestId), error);
             unlockAll(requestId, locks.get());
             return null;
         });
