@@ -47,7 +47,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
 
-    private static final long MAX_NO_QUORUM_RETRIES = 10;
+    private static final long MAX_NO_QUORUM_RETRIES = 1;
 
     public static <U> U newProxyInstance(Class<U> interfaceClass,
                                          Supplier<U> delegateSupplier,
