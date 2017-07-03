@@ -18,6 +18,7 @@ package com.palantir.atlasdb.http;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -29,7 +30,8 @@ import com.palantir.lock.StringLockDescriptor;
 public class LockClient implements JepsenLockClient<LockRefreshToken> {
     private final RemoteLockService remoteLockService;
 
-    private LockClient(RemoteLockService remoteLockService) {
+    @VisibleForTesting
+    LockClient(RemoteLockService remoteLockService) {
         this.remoteLockService = remoteLockService;
     }
 

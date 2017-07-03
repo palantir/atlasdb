@@ -28,9 +28,8 @@ public interface JepsenLockClient<TOKEN> {
 
     Set<TOKEN> refresh(Set<TOKEN> tokens) throws InterruptedException;
 
-    @SuppressWarnings("ConstantConditions") // If the token is null, we shortcircuit and return null.
     default boolean unlockSingle(TOKEN token) throws InterruptedException {
-        return token == null ? null : !unlock(ImmutableSet.of(token)).isEmpty();
+        return token != null && !unlock(ImmutableSet.of(token)).isEmpty();
     }
 
     default TOKEN refreshSingle(TOKEN token) throws InterruptedException {
