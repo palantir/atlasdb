@@ -178,7 +178,7 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void remoteCallsStillMadeIfServerIdService404s() throws IOException, InterruptedException {
+    public void remoteCallsStillMadeIfPingableLeader404s() throws IOException, InterruptedException {
         availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(404)));
         when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
                 .localServer(getUriForPort(availablePort))

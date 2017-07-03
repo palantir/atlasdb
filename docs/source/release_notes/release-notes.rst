@@ -48,7 +48,8 @@ develop
          - AtlasDB now generates Maven POM files for shadowed jars correctly.
            Previously, we would regenerate the XML for shadow dependencies by creating a node with corresponding groupId, artifactId, scope and version tags *only*, which is incorrect because it loses information about, for example, specific or transitive exclusions.
            We now respect these additional tags.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/abcd>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2092>`__)
+
     *    - |improved|
          - Improved performance with a single leader block.
            If a single leader is configured, it will no longer go via HTTPS/Jetty to request
@@ -59,6 +60,7 @@ develop
 
            We recommend HA clusters under heavy load switch to using a standalone timestamp
            service, as they may also be vulnerable to this failure mode.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2091>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

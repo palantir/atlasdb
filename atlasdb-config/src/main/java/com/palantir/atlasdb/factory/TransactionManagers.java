@@ -102,6 +102,8 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public final class TransactionManagers {
+
+    private static final int LOGGING_INTERVAL = 60;
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
@@ -489,8 +491,8 @@ public final class TransactionManagers {
             // Attempting to connect to ourself while processing a request can lead to deadlock if incoming request
             // volume is high, as all Jetty threads end up waiting for the timestamp server, and no threads remain to
             // actually handle the timestamp server requests. If we are the only single leader, we can avoid the
-            // deadlock entirely; so use {@link TimestampService#getServerId} to detect this situation and eliminate the
-            // redundant call.
+            // deadlock entirely; so use PingableLeader's getUUID() to detect this situation and eliminate the redundant
+            // call.
 
             PingableLeader localPingableLeader = localPaxosServices.pingableLeader();
             String localServerId = localPingableLeader.getUUID();
@@ -503,7 +505,7 @@ public final class TransactionManagers {
             // Determine asynchronously whether the remote services are talking to our local services.
             CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();
             runAsync.accept(() -> {
-                int logAfter = 60;
+                int logAfter = LOGGING_INTERVAL;
                 while (true) {
                     try {
                         String remoteServerId = remotePingableLeader.getUUID();
@@ -515,7 +517,7 @@ public final class TransactionManagers {
                     } catch (Throwable e) {
                         if (--logAfter == 0) {
                             log.warn("Failed to read remote timestamp server ID", e);
-                            logAfter = 60;
+                            logAfter = LOGGING_INTERVAL;
                         }
                     }
                     Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
