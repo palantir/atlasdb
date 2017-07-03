@@ -107,7 +107,7 @@ public final class TransactionManagers {
     @VisibleForTesting static Consumer<Runnable> runAsync = task -> {
         Thread thread = new Thread(task);
         thread.setDaemon(true);
-        thread.run();
+        thread.start();
     };
 
     private TransactionManagers() {
