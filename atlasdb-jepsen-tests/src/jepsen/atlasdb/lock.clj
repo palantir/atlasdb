@@ -57,15 +57,16 @@
    The object defines how you create a lock client, and how to request locks from it. The first call to this
    function will return an invalid object: you should call 'setup' on the returned object to get a valid one.
   "
-  [lock-client, client-name, token-store]
+  [lock-client, client-name, token-store, client-supplier]
   (reify client/Client
     (setup!
       [this test node]
       "Factory that returns an object implementing client/Client"
       (create-client
-        (SynchronousLockClient/create '("n1" "n2" "n3" "n4" "n5"))
+        (apply client-supplier)
         (name node)
-        (create-token-store)))
+        (create-token-store)
+        client-supplier))
 
     (invoke!
       [this test op]
@@ -126,7 +127,7 @@
 (defn lock-test
   [nem]
   (assoc tests/noop-test
-    :client (create-client nil nil nil)
+    :client (create-client nil nil nil #(SynchronousLockClient/create '("n1" "n2" "n3" "n4" "n5")))
     :nemesis nem
     :generator (->> generator
                  (gen/stagger 0.05)
