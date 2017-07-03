@@ -85,12 +85,12 @@
                     (assoc-ok-value op response [client-name lock-name])))
                 :unlock
                 (let [token (@token-store token-store-key)
-                      response (.unlock lock-client token)]
+                      response (.unlockSingle lock-client token)]
                   (do (replace-token! token-store token-store-key nil current-store-version)
                     (assoc-ok-value op response token)))
                 :refresh
                 (let [token (@token-store token-store-key)
-                      response (.refresh lock-client token)]
+                      response (.refreshSingle lock-client token)]
                   (do (replace-token! token-store token-store-key token current-store-version)
                     (assoc-ok-value op response token))))))
           (catch Exception e
