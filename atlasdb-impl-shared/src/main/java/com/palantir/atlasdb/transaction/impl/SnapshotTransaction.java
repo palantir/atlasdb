@@ -58,7 +58,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.ImmutableSortedMap.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -97,6 +96,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
+import com.palantir.atlasdb.transaction.api.TransactionCommitProtocol;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
@@ -114,17 +114,13 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.ForwardingClosableIterator;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.AssertUtils;
@@ -163,9 +159,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         FAILED
     }
 
-    protected final TimestampService timestampService;
+    protected final TransactionCommitProtocol protocolService;
     final KeyValueService keyValueService;
-    protected final RemoteLockService lockService;
+
     final TransactionService defaultTransactionService;
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
@@ -200,7 +196,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
      *                           grab a read lock for it because we know that no writers exist.
-     * @param tokensValidForCommit These tokens need to be valid with {@link #lockService} for this transaction
+     * @param tokensValidForCommit These tokens need to be valid with {@code lockService} for this transaction
      *                             to commit.  If these locks have expired then the commit will fail.
      */
     /* package */ SnapshotTransaction(KeyValueService keyValueService,
@@ -219,10 +215,39 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                boolean allowHiddenTableAccess,
                                TimestampCache timestampValidationReadCache) {
         this.keyValueService = keyValueService;
-        this.timestampService = timestampService;
+        this.protocolService = new DefaultTransactionCommitProtocol(timestampService, lockService);
         this.defaultTransactionService = transactionService;
         this.cleaner = cleaner;
-        this.lockService = lockService;
+        this.startTimestamp = startTimeStamp;
+        this.conflictDetectionManager = conflictDetectionManager;
+        this.sweepStrategyManager = sweepStrategyManager;
+        this.immutableTimestamp = immutableTimestamp;
+        this.externalLocksTokens = ImmutableSet.copyOf(tokensValidForCommit);
+        this.constraintCheckingMode = constraintCheckingMode;
+        this.transactionReadTimeoutMillis = transactionTimeoutMillis;
+        this.readSentinelBehavior = readSentinelBehavior;
+        this.allowHiddenTableAccess = allowHiddenTableAccess;
+        this.timestampValidationReadCache = timestampValidationReadCache;
+    }
+
+    SnapshotTransaction(KeyValueService keyValueService,
+            TransactionCommitProtocol protocolService,
+            TransactionService transactionService,
+            Cleaner cleaner,
+            Supplier<Long> startTimeStamp,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            long immutableTimestamp,
+            Iterable<LockRefreshToken> tokensValidForCommit,
+            AtlasDbConstraintCheckingMode constraintCheckingMode,
+            Long transactionTimeoutMillis,
+            TransactionReadSentinelBehavior readSentinelBehavior,
+            boolean allowHiddenTableAccess,
+            TimestampCache timestampValidationReadCache) {
+        this.keyValueService = keyValueService;
+        this.protocolService = protocolService;
+        this.defaultTransactionService = transactionService;
+        this.cleaner = cleaner;
         this.startTimestamp = startTimeStamp;
         this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = sweepStrategyManager;
@@ -247,10 +272,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         TransactionReadSentinelBehavior readSentinelBehavior,
                         TimestampCache timestampValidationReadCache) {
         this.keyValueService = keyValueService;
-        this.timestampService = timestampService;
+        this.protocolService = new DefaultTransactionCommitProtocol(timestampService, lockService);
         this.defaultTransactionService = transactionService;
         this.cleaner = cleaner;
-        this.lockService = lockService;
         this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
         this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
@@ -289,11 +313,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
-        this.lockService = lockService;
+        this.protocolService = new DefaultTransactionCommitProtocol(null, lockService);
         this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
         this.conflictDetectionManager = ConflictDetectionManagers.createWithNoConflictDetection();
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        this.timestampService = null;
         this.immutableTimestamp = startTimeStamp;
         this.externalLocksTokens = ImmutableSet.of();
         this.constraintCheckingMode = constraintCheckingMode;
@@ -1040,7 +1063,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * This is protected to allow for different post filter behavior.
      */
     protected boolean shouldDeleteAndRollback() {
-        Validate.notNull(lockService, "if we don't have a valid lock server we can't roll back transactions");
         return true;
     }
 
@@ -1241,7 +1263,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // We must do this before we check that our locks are still valid to ensure that
             // other transactions that will hold these locks are sure to have start
             // timestamps after our commit timestamp.
-            long commitTimestamp = timestampService.getFreshTimestamp();
+            long commitTimestamp = protocolService.getCommitTimestamp();
             commitTsForScrubbing = commitTimestamp;
 
             // punch on commit so that if hard delete is the only thing happening on a system,
@@ -1261,6 +1283,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService);
             long millisForCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTsTimer.stop());
 
+            // TODO(nziebart): move this warning to the unlock call (warn if it returns false)
             Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
             if (!expiredLocks.isEmpty()) {
                 final String baseMsg = "This isn't a bug but it should happen very infrequently. "
@@ -1283,7 +1306,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         millisForPunch, millisForCommitTs, millisSinceCreation, writesByTable.keySet());
             }
         } finally {
-            lockService.unlock(commitLocksToken);
+            protocolService.releaseCommitLocks(commitLocksToken);
         }
     }
 
@@ -1343,7 +1366,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return ImmutableSet.of();
         }
 
-        return Sets.difference(toRefresh, lockService.refreshLockRefreshTokens(toRefresh)).immutableCopy();
+        return Sets.difference(toRefresh, protocolService.refreshCommitLocks(toRefresh)).immutableCopy();
     }
 
     /**
@@ -1585,51 +1608,44 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * This method should acquire any locks needed to do proper concurrency control at commit time.
      */
     protected LockRefreshToken acquireLocksForCommit() {
-        SortedMap<LockDescriptor, LockMode> lockMap = getLocksForWrites();
-        try {
-            return lockService.lock(LockClient.ANONYMOUS.getClientId(), LockRequest.builder(lockMap).build());
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+        Set<LockDescriptor> lockDescriptors = getLocksForWrites();
+        return protocolService.getCommitLocks(lockDescriptors);
     }
 
-    protected ImmutableSortedMap<LockDescriptor, LockMode> getLocksForWrites() {
-        Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
+    protected Set<LockDescriptor> getLocksForWrites() {
+        Set<LockDescriptor> lockDescriptors = Sets.newHashSet();
         Iterable<TableReference> allTables = IterableUtils.append(
                 writesByTable.keySet(),
                 TransactionConstants.TRANSACTION_TABLE);
         for (TableReference tableRef : allTables) {
             if (tableRef.equals(TransactionConstants.TRANSACTION_TABLE)) {
-                builder.put(
+                lockDescriptors.add(
                         AtlasRowLockDescriptor.of(
                                 TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                                TransactionConstants.getValueForTimestamp(getStartTimestamp())),
-                        LockMode.WRITE);
+                                TransactionConstants.getValueForTimestamp(getStartTimestamp())));
                 continue;
             }
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
             if (conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE_CELL) {
                 for (Cell cell : getLocalWrites(tableRef).keySet()) {
-                    builder.put(
+                    lockDescriptors.add(
                             AtlasCellLockDescriptor.of(
                                     tableRef.getQualifiedName(),
                                     cell.getRowName(),
-                                    cell.getColumnName()),
-                            LockMode.WRITE);
+                                    cell.getColumnName()));
                 }
             } else if (conflictHandler != ConflictHandler.IGNORE_ALL) {
                 Cell lastCell = null;
                 for (Cell cell : getLocalWrites(tableRef).keySet()) {
                     if (lastCell == null || !Arrays.equals(lastCell.getRowName(), cell.getRowName())) {
-                        builder.put(
-                                AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName()),
-                                LockMode.WRITE);
+                        lockDescriptors.add(
+                                AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName()));
                     }
                     lastCell = cell;
                 }
             }
         }
-        return builder.build();
+        return lockDescriptors;
     }
 
     /**
@@ -1639,33 +1655,24 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     private void waitForCommitToComplete(Iterable<Long> startTimestamps) {
         boolean isEmpty = true;
-        Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
+        Set<LockDescriptor> descriptors = Sets.newHashSet();
         for (long start : startTimestamps) {
             if (start < immutableTimestamp) {
                 // We don't need to block in this case because this transaction is already complete
                 continue;
             }
             isEmpty = false;
-            builder.put(
+            descriptors.add(
                     AtlasRowLockDescriptor.of(
                             TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                            TransactionConstants.getValueForTimestamp(start)),
-                    LockMode.READ);
+                            TransactionConstants.getValueForTimestamp(start)));
         }
 
         if (isEmpty) {
             return;
         }
 
-        // TODO(carrino): This can have better performance if we have a blockAndReturn method in lock server
-        // However lock server blocking is an issue if we fill up all our requests
-        try {
-            lockService.lock(
-                    LockClient.ANONYMOUS.getClientId(),
-                    LockRequest.builder(builder.build()).lockAndRelease().build());
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+        protocolService.waitForCommitsToComplete(descriptors);
     }
 
     ///////////////////////////////////////////////////////////////////////////

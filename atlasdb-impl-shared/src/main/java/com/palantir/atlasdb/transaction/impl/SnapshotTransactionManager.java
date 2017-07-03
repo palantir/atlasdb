@@ -25,29 +25,26 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.ImmutableTimestampAndLock;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTasks;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.TransactionStartProtocol;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.Throwables;
-import com.palantir.lock.AtlasTimestampLockDescriptor;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -58,6 +55,7 @@ import com.palantir.timestamp.TimestampService;
     final TransactionService transactionService;
     final TimestampService timestampService;
     final RemoteLockService lockService;
+    final TransactionStartProtocol protocolService;
     final ConflictDetectionManager conflictDetectionManager;
     final SweepStrategyManager sweepStrategyManager;
     final LockClient lockClient;
@@ -102,6 +100,7 @@ import com.palantir.timestamp.TimestampService;
         this.constraintModeSupplier = constraintModeSupplier;
         this.cleaner = cleaner;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
+        this.protocolService = new DefaultTransactionStartProtocol(timestampService, lockService, lockClient);
     }
 
     @Override
@@ -128,27 +127,21 @@ import com.palantir.timestamp.TimestampService;
     }
 
     public RawTransaction setupRunTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens) {
-        long immutableLockTs = timestampService.getFreshTimestamp();
+        ImmutableTimestampAndLock immutableTimestampAndLock = protocolService.getImmutableTimestampAndLock();
+        long immutableTimestamp = immutableTimestampAndLock.getImmutableTimestamp();
+        LockRefreshToken lock = immutableTimestampAndLock.getLock();
+
         Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
-        LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
-        LockRequest lockRequest = LockRequest.builder(ImmutableSortedMap.of(lockDesc, LockMode.READ))
-                .withLockedInVersionId(immutableLockTs).build();
-        LockRefreshToken lock;
-        try {
-            lock = lockService.lock(lockClient.getClientId(), lockRequest);
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
         try {
             ImmutableList<LockRefreshToken> allTokens = ImmutableList.<LockRefreshToken>builder()
                     .add(lock)
                     .addAll(lockTokens)
                     .build();
-            SnapshotTransaction transaction = createTransaction(immutableLockTs, startTimestampSupplier, allTokens);
+            SnapshotTransaction transaction = createTransaction(immutableTimestamp, startTimestampSupplier, allTokens);
             return new RawTransaction(transaction, lock);
         } catch (Throwable e) {
             if (lock != null) {
-                lockService.unlock(lock);
+                protocolService.releaseImmutableTimestampLock(lock);
             }
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
@@ -161,7 +154,7 @@ import com.palantir.timestamp.TimestampService;
         try {
             result = runTaskThrowOnConflict(task, tx);
         } finally {
-            lockService.unlock(tx.getImmutableTsLock());
+            protocolService.releaseImmutableTimestampLock(tx.getImmutableTsLock());
         }
         if ((tx.getTransactionType() == TransactionType.AGGRESSIVE_HARD_DELETE) && !tx.isAborted()) {
             // t.getCellsToScrubImmediately() checks that t has been committed
@@ -174,7 +167,7 @@ import com.palantir.timestamp.TimestampService;
     }
 
     protected SnapshotTransaction createTransaction(
-            long immutableLockTs,
+            long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             ImmutableList<LockRefreshToken> allTokens) {
         return new SnapshotTransaction(
@@ -186,7 +179,7 @@ import com.palantir.timestamp.TimestampService;
                 startTimestampSupplier,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                getImmutableTimestampInternal(immutableLockTs),
+                immutableTimestamp,
                 allTokens,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
@@ -198,7 +191,7 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
         checkOpen();
-        long immutableTs = getApproximateImmutableTimestamp();
+        long immutableTs = protocolService.getApproximateImmutableTimestamp();
         SnapshotTransaction transaction = new SnapshotTransaction(
                 keyValueService,
                 lockService,
@@ -226,13 +219,10 @@ import com.palantir.timestamp.TimestampService;
     }
 
     private Supplier<Long> getStartTimestampSupplier() {
-        return Suppliers.memoize(new Supplier<Long>() {
-            @Override
-            public Long get() {
-                long freshTimestamp = timestampService.getFreshTimestamp();
-                cleaner.punch(freshTimestamp);
-                return freshTimestamp;
-            }
+        return Suppliers.memoize(() -> {
+            long freshTimestamp = protocolService.getStartTimestamp();
+            cleaner.punch(freshTimestamp);
+            return freshTimestamp;
         });
     }
 
@@ -241,38 +231,9 @@ import com.palantir.timestamp.TimestampService;
         return lockService;
     }
 
-    /**
-     * This will always return a valid ImmutableTimestmap, but it may be slightly out of date.
-     * <p>
-     * This method is used to optimize the perf of read only transactions because getting a new immutableTs requires
-     * 2 extra remote calls which we can skip.
-     */
-    private long getApproximateImmutableTimestamp() {
-        long recentTs = recentImmutableTs.get();
-        if (recentTs >= 0) {
-            return recentTs;
-        }
-        return getImmutableTimestamp();
-    }
-
     @Override
     public long getImmutableTimestamp() {
-        long ts = timestampService.getFreshTimestamp();
-        return getImmutableTimestampInternal(ts);
-    }
-
-    protected long getImmutableTimestampInternal(long ts) {
-        Long minLocked = lockService.getMinLockedInVersionId(lockClient.getClientId());
-        long ret = minLocked == null ? ts : minLocked;
-        long recentTs = recentImmutableTs.get();
-        while (recentTs < ret) {
-            if (recentImmutableTs.compareAndSet(recentTs, ret)) {
-                break;
-            } else {
-                recentTs = recentImmutableTs.get();
-            }
-        }
-        return ret;
+        return protocolService.getImmutableTimestamp();
     }
 
     @Override
