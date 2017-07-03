@@ -63,7 +63,7 @@
       [this test node]
       "Factory that returns an object implementing client/Client"
       (create-client
-        (apply client-supplier)
+        (apply client-supplier [])
         (name node)
         (create-token-store)
         client-supplier))
@@ -127,7 +127,7 @@
 (defn lock-test
   [nem]
   (assoc tests/noop-test
-    :client (create-client nil nil nil #(SynchronousLockClient/create '("n1" "n2" "n3" "n4" "n5")))
+    :client (create-client nil nil nil (fn [] (SynchronousLockClient/create '("n1" "n2" "n3" "n4" "n5"))))
     :nemesis nem
     :generator (->> generator
                  (gen/stagger 0.05)
