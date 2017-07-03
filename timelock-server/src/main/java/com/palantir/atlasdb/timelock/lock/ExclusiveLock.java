@@ -44,13 +44,6 @@ public class ExclusiveLock implements AsyncLock {
         return submit(new LockRequest(requestId, true));
     }
 
-    private CompletableFuture<Void> submit(LockRequest request) {
-        queue.add(request);
-        processQueue();
-
-        return request.result;
-    }
-
     @Override
     public synchronized void unlock(UUID requestId) {
         checkIsCurrentHolder(requestId);
@@ -64,6 +57,15 @@ public class ExclusiveLock implements AsyncLock {
         return currentHolder;
     }
 
+    @GuardedBy("this")
+    private CompletableFuture<Void> submit(LockRequest request) {
+        queue.add(request);
+        processQueue();
+
+        return request.result;
+    }
+
+    @GuardedBy("this")
     private void processQueue() {
         while (!queue.isEmpty() && currentHolder == null) {
             LockRequest head = queue.poll();
@@ -75,6 +77,7 @@ public class ExclusiveLock implements AsyncLock {
         }
     }
 
+    @GuardedBy("this")
     private void completeRequest(LockRequest request) {
         boolean wasCompleted = request.result.complete(null);
         if (!wasCompleted) {
@@ -84,6 +87,7 @@ public class ExclusiveLock implements AsyncLock {
         }
     }
 
+    @GuardedBy("this")
     private void checkIsCurrentHolder(UUID requestId) {
         if (!requestId.equals(currentHolder)) {
             throw new LoggableIllegalStateException(
@@ -93,7 +97,7 @@ public class ExclusiveLock implements AsyncLock {
         }
     }
 
-    private class LockRequest {
+    private static class LockRequest {
         private final CompletableFuture<Void> result = new CompletableFuture<>();
         private final UUID requestId;
         private final boolean releaseImmediately;
