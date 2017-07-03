@@ -442,6 +442,7 @@ public final class TransactionManagers {
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
+                .timestamp(timeService)
                 .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
     }
@@ -473,6 +474,7 @@ public final class TransactionManagers {
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
+                .timestamp(timestampService)
                 .timelock(new LegacyTimelockService(timestampService, lockService, LOCK_CLIENT))
                 .build();
     }
@@ -485,6 +487,7 @@ public final class TransactionManagers {
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
+                .timestamp(timeService)
                 .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
     }
@@ -506,6 +509,7 @@ public final class TransactionManagers {
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
+                .timestamp(timeService)
                 .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
     }
@@ -513,6 +517,7 @@ public final class TransactionManagers {
     @Value.Immutable
     public interface LockAndTimestampServices {
         RemoteLockService lock();
+        TimestampService timestamp();
         TimelockService timelock();
     }
 

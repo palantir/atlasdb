@@ -21,7 +21,6 @@ import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 import dagger.Module;
@@ -49,18 +48,7 @@ public class LockAndTimestampModule {
     @Provides
     @Singleton
     public TimestampService provideTimestampService(TransactionManagers.LockAndTimestampServices lts) {
-        TimelockService timelock = lts.timelock();
-        return new TimestampService() {
-            @Override
-            public long getFreshTimestamp() {
-                return timelock.getFreshTimestamp();
-            }
-
-            @Override
-            public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-                return timelock.getFreshTimestamps(numTimestampsRequested);
-            }
-        };
+        return lts.timestamp();
     }
 
     @Provides
