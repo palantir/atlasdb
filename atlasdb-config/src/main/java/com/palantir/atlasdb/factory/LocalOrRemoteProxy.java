@@ -4,6 +4,10 @@
 
 package com.palantir.atlasdb.factory;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -13,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.leader.NotCurrentLeaderException;
 
 /**
  * A proxy that chooses between using a local or remote proxy based on a task that may take a while to complete.
@@ -44,10 +49,17 @@ final class LocalOrRemoteProxy<T> extends AbstractInvocationHandler {
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        try {
-            return method.invoke(delegate(), args);
-        } catch (InvocationTargetException e) {
-            throw e.getTargetException();
+        while (true) {
+            try {
+                return method.invoke(delegate(), args);
+            } catch (InvocationTargetException e) {
+                Throwable targetException = e.getTargetException();
+                if (targetException instanceof NotCurrentLeaderException) {
+                    sleepUninterruptibly(10, MILLISECONDS);
+                    continue;
+                }
+                throw targetException;
+            }
         }
     }
 

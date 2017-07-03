@@ -61,6 +61,7 @@ import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.SimpleTimeDuration;
@@ -77,8 +78,8 @@ public class TransactionManagersTest {
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final long EMBEDDED_BOUND = 3;
 
-    private static final String SERVER_ID_PATH = "/timestamp/server-id";
-    private static final MappingBuilder SERVER_ID_MAPPING = get(urlEqualTo(SERVER_ID_PATH));
+    private static final String LEADER_UUID_PATH = "/leader/uuid";
+    private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));
     private static final String TIMESTAMP_PATH = "/timestamp/fresh-timestamp";
     private static final MappingBuilder TIMESTAMP_MAPPING = post(urlEqualTo(TIMESTAMP_PATH));
     private static final String LOCK_PATH = "/lock/current-time-millis";
@@ -117,7 +118,7 @@ public class TransactionManagersTest {
             Awaitility.await().atMost(2, TimeUnit.SECONDS).until(task);
         };
 
-        availableServer.stubFor(SERVER_ID_MAPPING.willReturn(aResponse().withStatus(200).withBody(
+        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(200).withBody(
                 ("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
         availableServer.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("1")));
         availableServer.stubFor(LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("2")));
@@ -178,7 +179,7 @@ public class TransactionManagersTest {
 
     @Test
     public void remoteCallsStillMadeIfServerIdService404s() throws IOException, InterruptedException {
-        availableServer.stubFor(SERVER_ID_MAPPING.willReturn(aResponse().withStatus(404)));
+        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(404)));
         when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
                 .localServer(getUriForPort(availablePort))
                 .addLeaders(getUriForPort(availablePort))
@@ -195,7 +196,7 @@ public class TransactionManagersTest {
                         InMemoryTimestampService::new,
                         invalidator,
                         USER_AGENT);
-        availableServer.verify(getRequestedFor(urlMatching(SERVER_ID_PATH)));
+        availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
         lockAndTimestampServices.time().getFreshTimestamp();
         lockAndTimestampServices.lock().currentTimeMillis();
@@ -209,13 +210,13 @@ public class TransactionManagersTest {
     @Test
     public void remoteCallsElidedIfTalkingToLocalServer() throws IOException, InterruptedException {
         doAnswer(invocation -> {
-            // Configure our server to reply with the same server ID as the registered ServerIdService.
-            ServerIdService localServerIdService = invocation.getArgumentAt(0, ServerIdService.class);
-            availableServer.stubFor(SERVER_ID_MAPPING.willReturn(aResponse()
+            // Configure our server to reply with the same server ID as the registered PingableLeader.
+            PingableLeader localPingableLeader = invocation.getArgumentAt(0, PingableLeader.class);
+            availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
                     .withStatus(200)
-                    .withBody(("\"" + localServerIdService.getServerId().toString() + "\"").getBytes())));
+                    .withBody(("\"" + localPingableLeader.getUUID().toString() + "\"").getBytes())));
             return null;
-        }).when(environment).register(isA(ServerIdService.class));
+        }).when(environment).register(isA(PingableLeader.class));
         when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
                 .localServer(getUriForPort(availablePort))
                 .addLeaders(getUriForPort(availablePort))
@@ -232,7 +233,7 @@ public class TransactionManagersTest {
                         InMemoryTimestampService::new,
                         invalidator,
                         USER_AGENT);
-        availableServer.verify(getRequestedFor(urlMatching(SERVER_ID_PATH)));
+        availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
         lockAndTimestampServices.time().getFreshTimestamp();
         lockAndTimestampServices.lock().currentTimeMillis();
