@@ -423,7 +423,11 @@ public final class TransactionManagers {
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         if (config.leader().isPresent()) {
-            return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent);
+            if (config.leader().get().leaders().size() == 1) {
+                return createRawSingleLeaderServices(config.leader().get(), env, lock, time, userAgent);
+            } else {
+                return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent);
+            }
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
         } else if (config.timelock().isPresent()) {
@@ -462,9 +466,6 @@ public final class TransactionManagers {
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
             String userAgent) {
-        if (leaderConfig.leaders().size() == 1) {
-            return createRawSingleLeaderServices(leaderConfig, env, lock, time, userAgent);
-        }
         LeaderElectionService leader = Leaders.create(env, leaderConfig, userAgent);
 
         env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
