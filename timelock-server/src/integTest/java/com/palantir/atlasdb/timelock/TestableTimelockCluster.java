@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
@@ -27,6 +25,7 @@ import java.util.stream.Collectors;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.lock.LockRefreshToken;
@@ -100,15 +99,21 @@ public class TestableTimelockCluster {
     }
 
     public void failoverToNewLeader() {
-        TestableTimelockServer leader = currentLeader();
-        leader.kill();
-        leader.start();
+        int maxTries = 5;
+        for (int i = 0; i < maxTries; i++) {
+            TestableTimelockServer leader = currentLeader();
+            leader.kill();
+            Uninterruptibles.sleepUninterruptibly(1_000, TimeUnit.MILLISECONDS);
+            leader.start();
 
-        waitUntilLeaderIsElected();
+            waitUntilLeaderIsElected();
 
-        if (servers.size() > 1) {
-            assertThat(currentLeader()).isNotEqualTo(leader);
+            if (servers.size() > 1 || !currentLeader().equals(leader)) {
+                return;
+            }
         }
+
+        throw new IllegalStateException("unable to force a failover after " + maxTries + " tries");
     }
 
     public List<TestableTimelockServer> servers() {
