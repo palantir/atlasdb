@@ -196,8 +196,11 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB now generates Maven POM files for shadowed jars correctly.
+Previously, we would regenerate the XML for shadow dependencies by creating a node with corresponding groupId, artifactId, scope and version tags <em>only</em>, which is incorrect because it loses information about, for example, specific or transitive exclusions.
+We now respect these additional tags.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/abcd">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
