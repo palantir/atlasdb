@@ -18,6 +18,10 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.locks.LockSupport;
+
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -61,6 +65,41 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Before
     public void bringAllNodesOnline() {
         CLUSTER.waitUntillAllSeversAreOnlineAndLeaderIsElected();
+    }
+
+    @Test
+    public void lockRequest500sIfLeaderElectionOccurs() throws InterruptedException {
+        LockRequest request = LockRequest.builder(
+                ImmutableSortedMap.of(
+                        StringLockDescriptor.of("foo"),
+                        LockMode.WRITE))
+                .build();
+
+        CLUSTER.lock("1", request);
+
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.submit(() -> {
+            try {
+                System.out.println("locking");
+                CLUSTER.lock("2", request);
+                System.out.println("locked");
+            } catch (Throwable e) {
+                System.out.print("failed to lock");
+                e.printStackTrace();
+            }
+        });
+
+        Thread.sleep(5000L);
+        TestableTimelockServer leader = CLUSTER.currentLeader();
+        CLUSTER.nonLeaders().forEach(server -> {
+            server.kill();
+        });
+        try {
+            leader.lock("3", request);
+        } catch (Throwable t) {
+
+        }
+        LockSupport.park();
     }
 
     @Test
