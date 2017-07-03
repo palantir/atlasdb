@@ -38,43 +38,44 @@ import com.palantir.lock.RemoteLockService;
 
 public class LockClientTest {
     private static final RemoteLockService LOCK_SERVICE = mock(RemoteLockService.class);
+    private static final LockClient LOCK_CLIENT = new LockClient(LOCK_SERVICE);
     private static final LockRefreshToken TOKEN = new LockRefreshToken(BigInteger.ONE, 1L);
     private static final String CLIENT = "client";
     private static final String LOCK_NAME = "lock";
 
     @Test
     public void lockRequestIsNonBlocking() throws InterruptedException {
-        when(LockClient.lock(LOCK_SERVICE, CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
+        when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
             LockRequest request = (LockRequest) invocation.getArguments()[1];
             assertThat(request.getBlockingMode(), is(BlockingMode.DO_NOT_BLOCK));
             return null;
         });
-        LockClient.lock(LOCK_SERVICE, CLIENT, LOCK_NAME);
+        LOCK_CLIENT.lock(CLIENT, LOCK_NAME);
     }
 
     @Test
     public void lockRequestIsWrite() throws InterruptedException {
-        when(LockClient.lock(LOCK_SERVICE, CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
+        when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
             LockRequest request = (LockRequest) invocation.getArguments()[1];
             assertThat(request.getLocks(), contains(hasProperty("lockMode", is(LockMode.WRITE))));
             return null;
         });
-        LockClient.lock(LOCK_SERVICE, CLIENT, LOCK_NAME);
+        LOCK_CLIENT.lock(CLIENT, LOCK_NAME);
     }
 
     @Test
     public void unlockReturnsFalseIfTokenIsNull() throws InterruptedException {
-        assertFalse(LockClient.unlock(LOCK_SERVICE, null));
+        assertFalse(LOCK_CLIENT.unlockSingle(null));
     }
 
     @Test
-    public void refreshReturnsNullIfTokenIsNull() {
-        assertNull(LockClient.refresh(LOCK_SERVICE, null));
+    public void refreshReturnsNullIfTokenIsNull() throws InterruptedException {
+        assertNull(LOCK_CLIENT.refreshSingle(null));
     }
 
     @Test
-    public void refreshReturnsNullIfThereAreNoRefreshTokens() {
+    public void refreshReturnsNullIfThereAreNoRefreshTokens() throws InterruptedException {
         when(LOCK_SERVICE.refreshLockRefreshTokens(any())).thenReturn(Collections.emptySet());
-        assertNull(LockClient.refresh(LOCK_SERVICE, TOKEN));
+        assertNull(LOCK_CLIENT.refreshSingle(TOKEN));
     }
 }
