@@ -77,7 +77,7 @@ public class LockAcquirerTest {
         assertCompleteSuccessfully(acquisitions);
     }
 
-    @Test(timeout=10_000)
+    @Test(timeout = 10_000)
     @Ignore // tends to time out on Circle
     public void doesNotStackOverflowIfLocksAreAcquiredSynchronously() {
         List<AsyncLock> locks = IntStream.range(0, 100_000)
@@ -89,7 +89,7 @@ public class LockAcquirerTest {
         assertCompleteSuccessfully(acquisitions);
     }
 
-    @Test(timeout=10_000)
+    @Test(timeout = 10_000)
     @Ignore // tends to time out on Circle
     public void doesNotStackOverflowIfManyRequestsWaitOnALock() {
         lockA.lock(REQUEST_ID);
