@@ -20,6 +20,7 @@ import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Sets;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -27,16 +28,16 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
 
-public class LockClient implements JepsenLockClient<LockRefreshToken> {
+public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken> {
     private final RemoteLockService remoteLockService;
 
     @VisibleForTesting
-    LockClient(RemoteLockService remoteLockService) {
+    SynchronousLockClient(RemoteLockService remoteLockService) {
         this.remoteLockService = remoteLockService;
     }
 
     public static JepsenLockClient<LockRefreshToken> create(List<String> hosts) {
-        return new LockClient(TimelockUtils.createClient(hosts, RemoteLockService.class));
+        return new SynchronousLockClient(TimelockUtils.createClient(hosts, RemoteLockService.class));
     }
 
     @Override
@@ -51,7 +52,13 @@ public class LockClient implements JepsenLockClient<LockRefreshToken> {
 
     @Override
     public Set<LockRefreshToken> unlock(Set<LockRefreshToken> lockRefreshTokens) throws InterruptedException {
-        return remoteLockService.refreshLockRefreshTokens(lockRefreshTokens);
+        Set<LockRefreshToken> tokensUnlocked = Sets.newHashSet();
+        lockRefreshTokens.forEach(token -> {
+            if (remoteLockService.unlock(token)) {
+                tokensUnlocked.add(token);
+            }
+        });
+        return tokensUnlocked;
     }
 
     @Override
