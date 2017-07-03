@@ -58,7 +58,7 @@ public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig
      **/
     @Value.Default
     public int getBatchSizeForMutations() {
-        return 8_0000;
+        return 8_000;
     }
 
     public abstract JdbcDataSourceConfiguration getDataSourceConfig();
