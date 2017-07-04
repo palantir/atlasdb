@@ -142,4 +142,4 @@
 
 (defn sync-lock-test
   [nem]
-    lock-test nem (fn [] (SynchronousLockClient/create '("n1" "n2" "n3" "n4" "n5"))))
+    (lock-test nem (fn [] (SynchronousLockClient/create '("n1" "n2" "n3" "n4" "n5")))))
