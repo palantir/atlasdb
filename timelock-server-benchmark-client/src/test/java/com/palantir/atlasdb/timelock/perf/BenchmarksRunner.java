@@ -25,8 +25,24 @@ import org.junit.Test;
 public class BenchmarksRunner extends BenchmarkRunnerBase {
 
     @Test
+    public void warmup() {
+        runAndPrintResults(client::timestamp, 8, 20000);
+        runAndPrintResults(client::lockAndUnlockUncontended, 8, 10000);
+    }
+
+    @Test
     public void timestamp() {
-        runAndPrintResults(client::timestamp, 32, 5000);
+        runAndPrintResults(client::timestamp, 8, 1000);
+    }
+
+    @Test
+    public void lockAndUnlockUncontended() {
+        runAndPrintResults(client::lockAndUnlockUncontended, 4, 500);
+    }
+
+    @Test
+    public void lockAndUnlockContended() {
+        runAndPrintResults(() -> client.lockAndUnlockContended(8, 1000, 2));
     }
 
     @Test

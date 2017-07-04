@@ -22,6 +22,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -64,7 +65,7 @@ public class ReadTransactionBenchmark extends AbstractBenchmark {
             return txn.get(TABLE, ImmutableSet.of(cell)).get(cell);
         });
 
-        assert result != null;
+        Preconditions.checkState(result != null);
     }
 
 }

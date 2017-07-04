@@ -44,6 +44,17 @@ public class BenchmarksResource implements BenchmarksService {
     }
 
     @Override
+    public Map<String, Object> lockAndUnlockUncontended(int numClients, int numRequestsPerClient) {
+        return LockAndUnlockUncontendedBenchmark.execute(txnManager, numClients, numRequestsPerClient);
+    }
+
+    @Override
+    public Map<String, Object> lockAndUnlockContended(int numClients, int numRequestsPerClient, int numDistinctLocks) {
+        return LockAndUnlockContendedBenchmark.execute(txnManager, numClients, numRequestsPerClient, numDistinctLocks);
+    }
+
+
+    @Override
     public Map<String, Object> readTransaction(int numClients, int numRequestsPerClient) {
         return ReadTransactionBenchmark.execute(txnManager, numClients, numRequestsPerClient);
     }

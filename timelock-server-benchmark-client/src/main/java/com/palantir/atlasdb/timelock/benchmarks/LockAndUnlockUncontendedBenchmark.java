@@ -18,27 +18,18 @@ package com.palantir.atlasdb.timelock.benchmarks;
 
 import java.util.Map;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.lock.RemoteLockService;
 
-public class TimestampBenchmark extends AbstractBenchmark {
-
-    private final TimestampService timestampService;
+public class LockAndUnlockUncontendedBenchmark extends LockAndUnlockContendedBenchmark {
 
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
             int requestsPerClient) {
-        return new TimestampBenchmark(txnManager.getTimestampService(), numClients, requestsPerClient).execute();
+        return new LockAndUnlockUncontendedBenchmark(txnManager.getLockService(), numClients, requestsPerClient).execute();
     }
 
-    private TimestampBenchmark(TimestampService timestampService, int numClients, int numRequestsPerClient) {
-        super(numClients, numRequestsPerClient);
-        this.timestampService = timestampService;
+    private LockAndUnlockUncontendedBenchmark(RemoteLockService lockService, int numClients, int numRequestsPerClient) {
+        super(lockService, numClients, numRequestsPerClient, numClients * numRequestsPerClient);
     }
 
-    @Override
-    protected void performOneCall() {
-        long timestamp = timestampService.getFreshTimestamp();
-        Preconditions.checkState(timestamp > 0);
-    }
 }

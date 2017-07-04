@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.perf;
 
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,6 +49,11 @@ public class BenchmarkRunnerBase {
     protected void runAndPrintResults(BiFunction<Integer, Integer, Map<String, Object>> test, int numClients,
             int numRequestsPerClient) {
         Map<String, Object> results = test.apply(numClients, numRequestsPerClient);
+        printResults(results);
+    }
+
+    protected void runAndPrintResults(Supplier<Map<String, Object>> benchmark) {
+        Map<String, Object> results = benchmark.get();
         printResults(results);
     }
 

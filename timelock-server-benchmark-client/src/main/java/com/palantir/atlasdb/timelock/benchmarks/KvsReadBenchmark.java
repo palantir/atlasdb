@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.benchmarks;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -52,6 +53,6 @@ public class KvsReadBenchmark extends AbstractBenchmark {
     protected void performOneCall() {
         byte[] data = UUID.randomUUID().toString().getBytes();
         int size = keyValueService.get(TABLE, ImmutableMap.of(Cell.create(data, data), 200L)).size();
-        assert size > 0;
+        Preconditions.checkState(size > 0);
     }
 }

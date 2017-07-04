@@ -42,6 +42,20 @@ public interface BenchmarksService {
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
+
+    @GET
+    @Path("/lock-unlock-uncontended")
+    Map<String, Object> lockAndUnlockUncontended(
+            @QueryParam("numClients") int numClients,
+            @QueryParam("numRequestsPerClient") int numRequestsPerClient);
+
+    @GET
+    @Path("/lock-unlock-contended")
+    Map<String, Object> lockAndUnlockContended(
+            @QueryParam("numClients") int numClients,
+            @QueryParam("numRequestsPerClient") int numRequestsPerClient,
+            @QueryParam("numDistinctLocks") int numDistinctLocks);
+
     @GET
     @Path("/read-txn")
     Map<String, Object> readTransaction(

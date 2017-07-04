@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -135,6 +136,10 @@ public abstract class AbstractBenchmark {
 
     protected abstract void performOneCall();
 
+    protected Map<String, Object> getExtraParameters() {
+        return ImmutableMap.of();
+    }
+
     private Map<String, Object> getStatistics() {
         Map<String, Object> result = Maps.newHashMap();
         result.put("numClients", numClients);
@@ -146,6 +151,7 @@ public abstract class AbstractBenchmark {
         result.put("totalTime", totalTime / 1_000_000.0);
         result.put("throughput", getThroughput());
         result.put("name", getClass().getSimpleName());
+        result.putAll(getExtraParameters());
         return result;
     }
 
