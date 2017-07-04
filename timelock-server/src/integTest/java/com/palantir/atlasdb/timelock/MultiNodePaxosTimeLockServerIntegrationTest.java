@@ -17,10 +17,10 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
@@ -36,8 +37,12 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
 
+import feign.RetryableException;
+
 public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
+    private static final String CLIENT_2 = "test2";
+    private static final String CLIENT_3 = "test3";
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "http://localhost",
@@ -54,6 +59,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             .doNotBlock()
             .build();
 
+    private static final LockRequest BLOCKING_LOCK_REQUEST = LockRequest.builder(
+            ImmutableSortedMap.of(
+                    StringLockDescriptor.of("foo"),
+                    LockMode.WRITE))
+            .build();
+
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
@@ -68,38 +79,45 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void lockRequest500sIfLeaderElectionOccurs() throws InterruptedException {
-        LockRequest request = LockRequest.builder(
-                ImmutableSortedMap.of(
-                        StringLockDescriptor.of("foo"),
-                        LockMode.WRITE))
-                .build();
+    public void lockRequestThrows500DueToLeaderElection() throws InterruptedException {
+        CLUSTER.lock(CLIENT_1, BLOCKING_LOCK_REQUEST);
 
-        CLUSTER.lock("1", request);
+        TestableTimelockServer leader = CLUSTER.currentLeader();
+        Executors.newSingleThreadExecutor().submit(() -> {
+            assertThatThrownBy(() -> leader.lock(CLIENT_2, BLOCKING_LOCK_REQUEST))
+                    .isInstanceOf(InterruptedException.class);
+        });
 
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        executorService.submit(() -> {
+        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+        CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
+        // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
+        assertThatThrownBy(() -> leader.lock(CLIENT_3, BLOCKING_LOCK_REQUEST))
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+    }
+
+    @Test
+    public void lockRequestRetriesAfter500DueToLeaderElection() throws InterruptedException {
+        CLUSTER.lock(CLIENT_1, BLOCKING_LOCK_REQUEST);
+
+        Executors.newSingleThreadExecutor().submit(() -> {
             try {
-                System.out.println("locking");
-                CLUSTER.lock("2", request);
-                System.out.println("locked");
-            } catch (Throwable e) {
-                System.out.print("failed to lock");
-                e.printStackTrace();
+                assertThat(CLUSTER.lock(CLIENT_2, BLOCKING_LOCK_REQUEST)).isNotNull();
+            } catch (InterruptedException e) {
+                fail(String.format("The lock request for client %s was interrupted", CLIENT_2), e);
             }
         });
 
-        Thread.sleep(5000L);
+        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
         TestableTimelockServer leader = CLUSTER.currentLeader();
-        CLUSTER.nonLeaders().forEach(server -> {
-            server.kill();
-        });
-        try {
-            leader.lock("3", request);
-        } catch (Throwable t) {
+        CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
 
-        }
-        LockSupport.park();
+        // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
+        assertThatThrownBy(() -> leader.lock(CLIENT_3, BLOCKING_LOCK_REQUEST)).isInstanceOf(RetryableException.class);
+
+        CLUSTER.nonLeaders().forEach(TestableTimelockServer::start);
+
+        // Wait for the client2 to actually get the lock.
+        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
     }
 
     @Test
@@ -178,7 +196,4 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             token = CLUSTER.lock(LOCK_CLIENT, LOCK_REQUEST);
         }
     }
-
-
-
 }
