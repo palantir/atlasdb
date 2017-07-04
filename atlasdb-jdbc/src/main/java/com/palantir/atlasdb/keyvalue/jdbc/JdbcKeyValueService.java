@@ -138,7 +138,7 @@ import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class JdbcKeyValueService implements KeyValueService {
-    private final static int PARTITION_SIZE = 1000;
+    private final int rowBatchSize;
     private final int batchSizeForReads;
     private final int batchSizeForMutations;
     private final String tablePrefix;
@@ -153,12 +153,14 @@ public class JdbcKeyValueService implements KeyValueService {
             SQLDialect sqlDialect,
             DataSource dataSource,
             String tablePrefix,
+            int rowBatchSize,
             int batchSizeForReads,
             int batchSizeForMutations) {
         this.settings = settings;
         this.sqlDialect = sqlDialect;
         this.dataSource = dataSource;
         this.tablePrefix = tablePrefix;
+        this.rowBatchSize = rowBatchSize;
         this.batchSizeForReads = batchSizeForReads;
         this.batchSizeForMutations = batchSizeForMutations;
 
@@ -176,6 +178,7 @@ public class JdbcKeyValueService implements KeyValueService {
                 sqlDialect,
                 dataSource,
                 config.getTablePrefix(),
+                config.getRowBatchSize(),
                 config.getBatchSizeForReads(),
                 config.getBatchSizeForMutations());
 
@@ -211,7 +214,7 @@ public class JdbcKeyValueService implements KeyValueService {
                                     ColumnSelection columnSelection,
                                     long timestamp) {
         HashMap<Cell, Value> ret = Maps.newHashMap();
-        for (List<byte[]> part : Iterables.partition(rows, PARTITION_SIZE)) {
+        for (List<byte[]> part : Iterables.partition(rows, rowBatchSize)) {
             ret.putAll(getRowsPartition(tableRef, part, columnSelection, timestamp));
         }
         return ret;
@@ -235,25 +238,21 @@ public class JdbcKeyValueService implements KeyValueService {
             return ImmutableMap.of();
         }
 
-        Map<Cell, Value> toReturn = new HashMap<>();
-        for (List<byte[]> part : Iterables.partition(rows, PARTITION_SIZE)) {
-            toReturn.putAll(run(ctx -> {
-                Select<? extends Record> query = getLatestTimestampQueryAllColumns(
-                        ctx,
-                        tableRef,
-                        ImmutableList.copyOf(part),
-                        timestamp);
-                Result<? extends Record> records = fetchValues(ctx, tableRef, query);
-                Map<Cell, Value> results = Maps.newHashMapWithExpectedSize(records.size());
-                for (Record record : records) {
-                    results.put(
-                            Cell.create(record.getValue(A_ROW_NAME), record.getValue(A_COL_NAME)),
-                            Value.create(record.getValue(A_VALUE), record.getValue(A_TIMESTAMP)));
-                }
-                return results;
-            }));
-        }
-        return toReturn;
+        return run(ctx -> {
+            Select<? extends Record> query = getLatestTimestampQueryAllColumns(
+                    ctx,
+                    tableRef,
+                    ImmutableList.copyOf(rows),
+                    timestamp);
+            Result<? extends Record> records = fetchValues(ctx, tableRef, query);
+            Map<Cell, Value> results = Maps.newHashMapWithExpectedSize(records.size());
+            for (Record record : records) {
+                results.put(
+                        Cell.create(record.getValue(A_ROW_NAME), record.getValue(A_COL_NAME)),
+                        Value.create(record.getValue(A_VALUE), record.getValue(A_TIMESTAMP)));
+            }
+            return results;
+        });
     }
 
     private Map<Cell, Value> getRowsSomeColumns(final TableReference tableRef,
@@ -264,26 +263,22 @@ public class JdbcKeyValueService implements KeyValueService {
             return ImmutableMap.of();
         }
 
-        Map<Cell, Value> toReturn = new HashMap<>();
-        for (List<byte[]> part : Iterables.partition(rows, PARTITION_SIZE)) {
-             toReturn.putAll(run(ctx -> {
-                 Select<? extends Record> query = getLatestTimestampQuerySomeColumns(
-                         ctx,
-                         tableRef,
-                         ImmutableList.copyOf(part),
-                         columnSelection.getSelectedColumns(),
-                         timestamp);
-                 Result<? extends Record> records = fetchValues(ctx, tableRef, query);
-                 Map<Cell, Value> results = Maps.newHashMapWithExpectedSize(records.size());
-                 for (Record record : records) {
-                     results.put(
-                             Cell.create(record.getValue(A_ROW_NAME), record.getValue(A_COL_NAME)),
-                             Value.create(record.getValue(A_VALUE), record.getValue(A_TIMESTAMP)));
-                 }
-                 return results;
-             }));
-        }
-        return toReturn;
+        return run(ctx -> {
+            Select<? extends Record> query = getLatestTimestampQuerySomeColumns(
+                    ctx,
+                    tableRef,
+                    ImmutableList.copyOf(rows),
+                    columnSelection.getSelectedColumns(),
+                    timestamp);
+            Result<? extends Record> records = fetchValues(ctx, tableRef, query);
+            Map<Cell, Value> results = Maps.newHashMapWithExpectedSize(records.size());
+            for (Record record : records) {
+                results.put(
+                        Cell.create(record.getValue(A_ROW_NAME), record.getValue(A_COL_NAME)),
+                        Value.create(record.getValue(A_VALUE), record.getValue(A_TIMESTAMP)));
+            }
+            return results;
+        });
     }
 
     @Override
@@ -502,7 +497,7 @@ public class JdbcKeyValueService implements KeyValueService {
 
         for (List<Entry<Cell, byte[]>> partition : Iterables.partition(values.entrySet(), batchSizeForMutations)) {
             run((Function<DSLContext, Void>) ctx -> {
-                putBatch(ctx, tableRef, new SingleTimestampPutBatch(partition, timestamp), true);
+                putBatch(ctx, tableRef, SingleTimestampPutBatch.create(partition, timestamp), true);
                 return null;
             });
         }
@@ -518,7 +513,7 @@ public class JdbcKeyValueService implements KeyValueService {
                 if (!values.isEmpty()) {
                     for (List<Entry<Cell, byte[]>> partition : Iterables.partition(values.entrySet(),
                             batchSizeForMutations)) {
-                        putBatch(ctx, tableRef, new SingleTimestampPutBatch(partition, timestamp), true);
+                        putBatch(ctx, tableRef, SingleTimestampPutBatch.create(partition, timestamp), true);
                     }
                 }
             }
@@ -549,7 +544,7 @@ public class JdbcKeyValueService implements KeyValueService {
         }
         for (List<Entry<Cell, byte[]>> partValues : Iterables.partition(values.entrySet(), batchSizeForMutations)) {
             run((Function<DSLContext, Void>) ctx -> {
-                putBatch(ctx, tableRef, new SingleTimestampPutBatch(partValues, 0L), false);
+                putBatch(ctx, tableRef, SingleTimestampPutBatch.create(partValues, 0L), false);
                 return null;
             });
         }

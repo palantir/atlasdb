@@ -34,6 +34,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.common.collect.Maps2;
 
 public class SingleTimestampPutBatch implements PutBatch {
     private final Map<Cell, byte[]> data;
@@ -44,9 +45,8 @@ public class SingleTimestampPutBatch implements PutBatch {
         this.timestamp = timestamp;
     }
 
-    public SingleTimestampPutBatch(List<Entry<Cell, byte[]>> data, long timestamp) {
-        this.data = data.stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-        this.timestamp = timestamp;
+    public static SingleTimestampPutBatch create(List<Entry<Cell, byte[]>> data, long timestamp) {
+        return new SingleTimestampPutBatch(Maps2.fromEntries(data), timestamp);
     }
 
     @Override
