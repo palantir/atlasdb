@@ -37,8 +37,6 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
 
-import feign.RetryableException;
-
 public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
@@ -112,7 +110,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
 
         // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
-        assertThatThrownBy(() -> leader.lock(CLIENT_3, BLOCKING_LOCK_REQUEST)).isInstanceOf(RetryableException.class);
+        assertThatThrownBy(() -> leader.lock(CLIENT_3, BLOCKING_LOCK_REQUEST))
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
 
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::start);
 
