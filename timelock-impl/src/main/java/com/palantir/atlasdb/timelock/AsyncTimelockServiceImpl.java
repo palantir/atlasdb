@@ -28,6 +28,8 @@ import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 
+// TODO(nziebart): implement Closeable
+// TODO(nziebart): allow a timeout for blocking requests
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     private final AsyncLockService lockService;

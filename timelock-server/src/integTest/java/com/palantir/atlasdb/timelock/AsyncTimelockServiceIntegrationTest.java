@@ -68,9 +68,7 @@ public class AsyncTimelockServiceIntegrationTest {
     @Test
     public void locksAreExclusive() {
         LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A));
-        Future<LockTokenV2> futureToken = executor.submit(() -> {
-            return CLUSTER.lock(requestFor(LOCK_A));
-        });
+        Future<LockTokenV2> futureToken = executor.submit(() -> CLUSTER.lock(requestFor(LOCK_A)));
 
         assertNotYetLocked(futureToken);
 
@@ -104,7 +102,8 @@ public class AsyncTimelockServiceIntegrationTest {
     public void canWaitForLocks() {
         LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A, LOCK_B));
 
-        Future<?> future = executor.submit(() -> CLUSTER.timelockService().waitForLocks(waitRequestFor(LOCK_A, LOCK_B)));
+        Future<?> future = executor.submit(
+                () -> CLUSTER.timelockService().waitForLocks(waitRequestFor(LOCK_A, LOCK_B)));
         assertNotDone(future);
 
         CLUSTER.unlock(token);
@@ -120,11 +119,11 @@ public class AsyncTimelockServiceIntegrationTest {
         assertThat(ts2).isGreaterThan(ts1);
     }
 
-    private final LockRequestV2 requestFor(LockDescriptor... locks) {
+    private LockRequestV2 requestFor(LockDescriptor... locks) {
         return LockRequestV2.of(ImmutableSet.copyOf(locks));
     }
 
-    private final WaitForLocksRequest waitRequestFor(LockDescriptor... locks) {
+    private WaitForLocksRequest waitRequestFor(LockDescriptor... locks) {
         return WaitForLocksRequest.of(ImmutableSet.copyOf(locks));
     }
 

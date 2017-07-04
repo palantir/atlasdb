@@ -194,14 +194,17 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private AsyncTimelockService createAsyncTimelockService(String client) {
-        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = createRawPaxosBackedTimestampServiceSupplier(client);
+        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = createRawPaxosBackedTimestampServiceSupplier(
+                client);
 
         Supplier<AsyncTimelockService> rawAsyncTimelockServiceSupplier = () -> {
-            ScheduledExecutorService reaperExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-                    .setNameFormat("async-lock-reaper-" + client + "-%d")
-                    .setDaemon(true)
-                    .build());
-            return new AsyncTimelockServiceImpl(AsyncLockService.createDefault(reaperExecutor), rawTimestampServiceSupplier.get());
+            ScheduledExecutorService reaperExecutor = Executors.newSingleThreadScheduledExecutor(
+                    new ThreadFactoryBuilder()
+                            .setNameFormat("async-lock-reaper-" + client + "-%d")
+                            .setDaemon(true)
+                            .build());
+            return new AsyncTimelockServiceImpl(AsyncLockService.createDefault(reaperExecutor),
+                    rawTimestampServiceSupplier.get());
         };
 
         return AwaitingLeadershipProxy.newProxyInstance(

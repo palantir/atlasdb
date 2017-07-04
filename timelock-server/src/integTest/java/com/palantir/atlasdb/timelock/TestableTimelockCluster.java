@@ -26,8 +26,8 @@ import java.util.stream.Collectors;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.lock.LockRefreshToken;
