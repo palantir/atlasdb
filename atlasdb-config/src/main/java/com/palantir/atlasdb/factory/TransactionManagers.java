@@ -414,6 +414,7 @@ public final class TransactionManagers {
     private static LockAndTimestampServices withRefreshingLockService(
             LockAndTimestampServices lockAndTimestampServices) {
         return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
                 .timelock(LockRefreshingTimelockService.createDefault(lockAndTimestampServices.timelock()))
                 .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))
                 .build();
