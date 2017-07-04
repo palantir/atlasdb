@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -107,13 +108,14 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
         Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
         TestableTimelockServer leader = CLUSTER.currentLeader();
-        CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
+        List<TestableTimelockServer> nonLeaders = CLUSTER.nonLeaders();
+        nonLeaders.forEach(TestableTimelockServer::kill);
 
         // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
         assertThatThrownBy(() -> leader.lock(CLIENT_3, BLOCKING_LOCK_REQUEST))
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
 
-        CLUSTER.nonLeaders().forEach(TestableTimelockServer::start);
+        nonLeaders.forEach(TestableTimelockServer::start);
 
         // Wait for the client2 to actually get the lock.
         Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
