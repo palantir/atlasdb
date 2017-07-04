@@ -49,7 +49,7 @@ public class ImmutableTimestampTracker {
                     "A request attempted to unlock a timestamp that was not locked or was locked by another request",
                     SafeArg.of("timestamp", timestamp),
                     SafeArg.of("requestId", requestId),
-                    SafeArg.of("currentHolder", holdersByTimestamp.get(requestId)));
+                    SafeArg.of("currentHolder", holdersByTimestamp.get(timestamp)));
         }
     }
 
