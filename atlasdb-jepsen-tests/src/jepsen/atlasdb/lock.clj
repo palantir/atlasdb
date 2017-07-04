@@ -125,9 +125,9 @@
 ;; Defining the Jepsen test
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn lock-test
-  [nem]
+  [nem lock-client-supplier]
   (assoc tests/noop-test
-    :client (create-client nil nil nil (fn [] (SynchronousLockClient/create '("n1" "n2" "n3" "n4" "n5"))))
+    :client (create-client nil nil nil lock-client-supplier)
     :nemesis nem
     :generator (->> generator
                  (gen/stagger 0.05)
@@ -139,3 +139,7 @@
                  (gen/time-limit 360))
     :db (timelock/create-db)
     :checker checker))
+
+(defn sync-lock-test
+  [nem]
+    lock-test nem (fn [] (SynchronousLockClient/create '("n1" "n2" "n3" "n4" "n5"))))

@@ -10,10 +10,10 @@
 ;; Tests successful iff the value for the key ":valid?" is truthy
 
 (deftest lock-test-crash-sync
-  (is (:valid? (:results (jepsen/run! (lock/lock-test timelock/crash-nemesis))))))
+  (is (:valid? (:results (jepsen/run! (lock/sync-lock-test timelock/crash-nemesis))))))
 
 (deftest lock-test-partition-sync
-  (is (:valid? (:results (jepsen/run! (lock/lock-test (nemesis/partition-random-halves)))))))
+  (is (:valid? (:results (jepsen/run! (lock/sync-lock-test (nemesis/partition-random-halves)))))))
 
 (deftest timestamp-test-crash
   (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test timelock/crash-nemesis))))))
