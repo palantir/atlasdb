@@ -83,7 +83,7 @@ public class LegacyTimelockServiceTest {
     public void freshTimestampsDelegatesToTimestampService() {
         int numTimestamps = 10;
         TimestampRange range = TimestampRange.createInclusiveRange(21L, 30L);
-        when(timestampService.getFreshTimestamps(10)).thenReturn(range);
+        when(timestampService.getFreshTimestamps(numTimestamps)).thenReturn(range);
 
         assertEquals(range, timelock.getFreshTimestamps(numTimestamps));
     }

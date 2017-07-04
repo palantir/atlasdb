@@ -51,13 +51,13 @@ public class LegacyTimelockService implements TimelockService {
 
     private final TimestampService timestampService;
     private final RemoteLockService lockService;
-    private final LockClient immutableTimestampClient;
+    private final LockClient immutableTsLockClient;
 
     public LegacyTimelockService(TimestampService timestampService, RemoteLockService lockService,
-            LockClient immutableTimestampClient) {
+            LockClient immutableTsLockClient) {
         this.timestampService = timestampService;
         this.lockService = lockService;
-        this.immutableTimestampClient = immutableTimestampClient;
+        this.immutableTsLockClient = immutableTsLockClient;
     }
 
     @Override
@@ -79,7 +79,7 @@ public class LegacyTimelockService implements TimelockService {
         LockRefreshToken lock;
 
         try {
-            lock = lockService.lock(immutableTimestampClient.getClientId(), lockRequest);
+            lock = lockService.lock(immutableTsLockClient.getClientId(), lockRequest);
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -162,7 +162,7 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     protected long getImmutableTimestampInternal(long ts) {
-        Long minLocked = lockService.getMinLockedInVersionId(immutableTimestampClient.getClientId());
+        Long minLocked = lockService.getMinLockedInVersionId(immutableTsLockClient.getClientId());
         return minLocked == null ? ts : minLocked;
     }
 
