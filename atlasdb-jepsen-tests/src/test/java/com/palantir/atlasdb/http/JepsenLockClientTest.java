@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.http;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -80,7 +80,7 @@ public class JepsenLockClientTest {
     @Test
     public void refreshSingleReturnsTokenIfCanBeRefreshed() throws InterruptedException {
         when(mockClient.refresh(any())).thenReturn(ImmutableSet.of(LOCK_TOKEN));
-        assertThat(client.refreshSingle(LOCK_TOKEN), equalTo(LOCK_TOKEN));
+        assertEquals(client.refreshSingle(LOCK_TOKEN), LOCK_TOKEN);
     }
 
     @Test
