@@ -92,10 +92,11 @@ public class LegacyTimelockServiceTest {
     public void lockImmutableTimestampLocksFreshTimestamp() throws InterruptedException {
         long immutableTs = 3L;
 
-        mockImmutableTsLockResponse();
+        LockRefreshToken expectedToken = mockImmutableTsLockResponse();
         mockMinLockedInVersionIdResponse(immutableTs);
 
-        LockImmutableTimestampResponse expectedResponse = LockImmutableTimestampResponse.of(immutableTs, LOCK_TOKEN_V2);
+        LockImmutableTimestampResponse expectedResponse = LockImmutableTimestampResponse.of(immutableTs,
+                new LockRefreshTokenV2Adapter(expectedToken));
         assertEquals(expectedResponse, timelock.lockImmutableTimestamp(LockImmutableTimestampRequest.create()));
     }
 
@@ -125,7 +126,7 @@ public class LegacyTimelockServiceTest {
 
         when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
 
-        assertEquals(LOCK_REFRESH_TOKEN, timelock.lock(LockRequestV2.of(ImmutableSet.of(LOCK_A, LOCK_B))));
+        assertEquals(LOCK_TOKEN_V2, timelock.lock(LockRequestV2.of(ImmutableSet.of(LOCK_A, LOCK_B))));
         verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
     }
 

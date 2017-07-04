@@ -534,14 +534,14 @@ public final class TransactionManagers {
                     TimestampService.class, localTime, remoteTime, useLocalServicesFuture);
             return ImmutableLockAndTimestampServices.builder()
                     .lock(dynamicLockService)
-                    .time(dynamicTimeService)
+                    .timestamp(dynamicTimeService)
                     .timelock(new LegacyTimelockService(dynamicTimeService, dynamicLockService, LOCK_CLIENT))
                     .build();
 
         } else {
             return ImmutableLockAndTimestampServices.builder()
                     .lock(remoteLock)
-                    .time(remoteTime)
+                    .timestamp(remoteTime)
                     .timelock(new LegacyTimelockService(remoteTime, remoteLock, LOCK_CLIENT))
                     .build();
         }
