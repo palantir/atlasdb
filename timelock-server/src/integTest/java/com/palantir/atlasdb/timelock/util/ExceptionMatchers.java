@@ -31,4 +31,14 @@ public final class ExceptionMatchers {
                 .contains("RetryableException");
     }
 
+    public static void isInternalServerError(Throwable throwable) {
+        assertThat(throwable)
+                .hasMessageContaining("method invoked on a non-leader");
+
+        // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
+        assertThat(throwable.getClass().getName())
+                .contains("RetryableException");
+    }
+
+
 }
