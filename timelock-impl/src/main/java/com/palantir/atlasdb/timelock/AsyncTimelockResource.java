@@ -108,6 +108,7 @@ public class AsyncTimelockResource {
         return timelock.unlock(tokens);
     }
 
+    @POST
     @Path("current-time-millis")
     public long currentTimeMillis() {
         return timelock.currentTimeMillis();

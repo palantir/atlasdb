@@ -49,6 +49,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -435,10 +436,12 @@ public class PaxosTimeLockServerIntegrationTest {
 
         JsonNode metrics = getMetricsOutput();
 
-        // time / remoteLock services
+        System.out.println(new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(metrics));
+
+        // time / lock services
         assertContainsTimer(metrics,
-                "com.palantir.atlasdb.timelock.TimelockService.test.getFreshTimestamp");
-        assertContainsTimer(metrics, "com.palantir.remoteLock.RemoteLockService.test.currentTimeMillis");
+                "com.palantir.atlasdb.timelock.AsyncTimelockService.test.getFreshTimestamp");
+        assertContainsTimer(metrics, "com.palantir.lock.RemoteLockService.test.currentTimeMillis");
 
         // local leader election classes
         assertContainsTimer(metrics, "com.palantir.paxos.PaxosLearner.learn");
