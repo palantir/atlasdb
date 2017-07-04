@@ -42,6 +42,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.impl.LegacyTimelockService.LockRefreshTokenV2Adapter;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
@@ -50,7 +51,6 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.lock.impl.LegacyTimelockService.LockRefreshTokenV2Adapter;
 
 public class LegacyTimelockServiceTest {
 
