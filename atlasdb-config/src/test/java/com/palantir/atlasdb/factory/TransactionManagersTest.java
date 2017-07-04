@@ -198,7 +198,7 @@ public class TransactionManagersTest {
                         USER_AGENT);
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
-        lockAndTimestampServices.time().getFreshTimestamp();
+        lockAndTimestampServices.timestamp().getFreshTimestamp();
         lockAndTimestampServices.lock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
@@ -235,7 +235,7 @@ public class TransactionManagersTest {
                         USER_AGENT);
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
-        lockAndTimestampServices.time().getFreshTimestamp();
+        lockAndTimestampServices.timestamp().getFreshTimestamp();
         lockAndTimestampServices.lock().currentTimeMillis();
 
         availableServer.verify(0, postRequestedFor(urlMatching(TIMESTAMP_PATH))

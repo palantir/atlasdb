@@ -15,8 +15,9 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Optional;
+
 import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,8 +99,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     @Override
     protected SnapshotTransaction createTransaction(long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
-            ImmutableList<LockTokenV2> lockTokens,
-            PreCommitValidation preCommitValidation) {
+            LockTokenV2 immutableTsLock,
+            AdvisoryLockPreCommitCheck advisoryLockCheck) {
         return new SerializableTransaction(
                 keyValueService,
                 timelockService,
@@ -109,8 +110,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTimestamp,
-                lockTokens,
-                preCommitValidation,
+                Optional.of(immutableTsLock),
+                advisoryLockCheck,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

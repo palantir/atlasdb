@@ -20,6 +20,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
@@ -93,8 +94,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
-                ImmutableList.of(),
-                PreCommitValidation.NO_OP,
+                Optional.empty(),
+                AdvisoryLockPreCommitCheck.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

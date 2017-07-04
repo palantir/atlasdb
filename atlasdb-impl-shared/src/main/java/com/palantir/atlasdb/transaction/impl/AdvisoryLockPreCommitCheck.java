@@ -29,26 +29,28 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.logsafe.UnsafeArg;
 
 /**
- * A validation to be run immediately before committing a transaction.
+ * Checks that advisory locks are still held immediately before committing a transaction.
  */
-public interface PreCommitValidation {
+final class AdvisoryLockPreCommitCheck {
 
-    Logger log = LoggerFactory.getLogger(PreCommitValidation.class);
+    private static final Logger log = LoggerFactory.getLogger(AdvisoryLockPreCommitCheck.class);
 
-    /**
-     * Checks that any required conditions for committing still hold.
-     */
-    void check();
+    private final Runnable check;
 
-    PreCommitValidation NO_OP = () -> { };
+    private AdvisoryLockPreCommitCheck(Runnable check) {
+        this.check = check;
+    }
 
-    static PreCommitValidation forLockServiceLocks(Iterable<LockRefreshToken> tokens, RemoteLockService lockService) {
+    public static final AdvisoryLockPreCommitCheck NO_OP = new AdvisoryLockPreCommitCheck(() -> { });
+
+    public static AdvisoryLockPreCommitCheck forLockServiceLocks(Iterable<LockRefreshToken> tokens,
+            RemoteLockService lockService) {
         Set<LockRefreshToken> toRefresh = ImmutableSet.copyOf(tokens);
         if (toRefresh.isEmpty()) {
             return NO_OP;
         }
 
-        return () -> {
+        return new AdvisoryLockPreCommitCheck(() -> {
             Set<LockRefreshToken> refreshed = lockService.refreshLockRefreshTokens(toRefresh);
             Set<LockRefreshToken> notRefreshed = Sets.difference(toRefresh, refreshed).immutableCopy();
             if (!notRefreshed.isEmpty()) {
@@ -57,7 +59,11 @@ public interface PreCommitValidation {
                 throw new TransactionLockTimeoutException(
                         "Lock service locks were no longer valid at commit time: " + notRefreshed);
             }
-        };
+        });
+    }
+
+    public void throwIfLocksExpired() {
+        check.run();
     }
 
 }

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nullable;
@@ -22,7 +23,6 @@ import javax.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -115,9 +115,10 @@ import com.palantir.timestamp.TimestampService;
             recordImmutableTimestamp(immutableTsResponse.getImmutableTimestamp());
             Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
 
-            PreCommitValidation preCommitCheck = PreCommitValidation.forLockServiceLocks(lockTokens, getLockService());
+            AdvisoryLockPreCommitCheck advisoryLockCheck =
+                    AdvisoryLockPreCommitCheck.forLockServiceLocks(lockTokens, getLockService());
             SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
-                    ImmutableList.of(immutableTsLock), preCommitCheck);
+                    immutableTsLock, advisoryLockCheck);
             return new RawTransaction(transaction, immutableTsLock);
         } catch (Throwable e) {
             timelockService.unlock(ImmutableSet.of(immutableTsResponse.getLock()));
@@ -147,8 +148,8 @@ import com.palantir.timestamp.TimestampService;
     protected SnapshotTransaction createTransaction(
             long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
-            ImmutableList<LockTokenV2> allTokens,
-            PreCommitValidation preCommitValidation) {
+            LockTokenV2 immutableTsLock,
+            AdvisoryLockPreCommitCheck advisoryLockCheck) {
         return new SnapshotTransaction(
                 keyValueService,
                 timelockService,
@@ -158,8 +159,8 @@ import com.palantir.timestamp.TimestampService;
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTimestamp,
-                allTokens,
-                preCommitValidation,
+                Optional.of(immutableTsLock),
+                advisoryLockCheck,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -180,8 +181,8 @@ import com.palantir.timestamp.TimestampService;
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTs,
-                ImmutableList.of(),
-                PreCommitValidation.NO_OP,
+                Optional.empty(),
+                AdvisoryLockPreCommitCheck.NO_OP,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

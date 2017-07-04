@@ -16,11 +16,11 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentMap;
@@ -105,8 +105,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    ConflictDetectionManager conflictDetectionManager,
                                    SweepStrategyManager sweepStrategyManager,
                                    long immutableTimestamp,
-                                   Iterable<LockTokenV2> tokensValidForCommit,
-                                   PreCommitValidation preCommitValidation,
+                                   Optional<LockTokenV2> immutableTsLock,
+                                   AdvisoryLockPreCommitCheck advisoryLockCheck,
                                    AtlasDbConstraintCheckingMode constraintCheckingMode,
                                    Long transactionTimeoutMillis,
                                    TransactionReadSentinelBehavior readSentinelBehavior,
@@ -120,8 +120,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               conflictDetectionManager,
               sweepStrategyManager,
               immutableTimestamp,
-              tokensValidForCommit,
-              preCommitValidation,
+              immutableTsLock,
+              advisoryLockCheck,
               constraintCheckingMode,
               transactionTimeoutMillis,
               readSentinelBehavior,
@@ -715,8 +715,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 ConflictDetectionManagers.createWithNoConflictDetection(),
                 sweepStrategyManager,
                 immutableTimestamp,
-                Collections.emptyList(),
-                PreCommitValidation.NO_OP,
+                Optional.empty(),
+                AdvisoryLockPreCommitCheck.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 transactionReadTimeoutMillis,
                 getReadSentinelBehavior(),
