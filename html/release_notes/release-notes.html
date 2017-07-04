@@ -308,6 +308,12 @@ This should be used in place of the deprecated sweep CLIs.
 This should not affect users directly, unless they depended on classes from within the TimeLock server.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2081">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>JDBC KVS now batches cells in put/delete operations via the config parameter <code class="docutils literal"><span class="pre">batchSizeForMutations</span></code>.
+This will prevent the driver from throwing due to many parameters in the resulting SQL select query. Also,
+the batch size for getRows is now controlled by a config parameter <code class="docutils literal"><span class="pre">rowBatchSize</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2093">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
