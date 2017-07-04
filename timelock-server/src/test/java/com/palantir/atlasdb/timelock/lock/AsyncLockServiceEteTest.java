@@ -62,10 +62,12 @@ public class AsyncLockServiceEteTest {
 
     @Test
     public void canLockAndUnlockMultipleLocks() {
-        LockTokenV2 token = lockSynchronously(REQUEST_1, LOCK_A);
+        LockTokenV2 token = lockSynchronously(REQUEST_1, LOCK_A, LOCK_B, LOCK_C);
 
         assertTrue(service.unlock(token));
         assertNotLocked(LOCK_A);
+        assertNotLocked(LOCK_B);
+        assertNotLocked(LOCK_C);
     }
 
     @Test
@@ -73,10 +75,10 @@ public class AsyncLockServiceEteTest {
         LockTokenV2 request1 = lockSynchronously(REQUEST_1, LOCK_A);
 
         CompletableFuture<LockTokenV2> request2 = lock(REQUEST_2, LOCK_A);
-        assertNotDone(request2);
+        assertNotCompleted(request2);
 
         service.unlock(request1);
-        assertCompleteSuccessfully(request2);
+        assertCompletedSuccessfully(request2);
     }
 
     @Test
@@ -84,10 +86,10 @@ public class AsyncLockServiceEteTest {
         LockTokenV2 request1 = lockSynchronously(REQUEST_1, LOCK_A, LOCK_C);
 
         CompletableFuture<LockTokenV2> request2 = lock(REQUEST_2, LOCK_A, LOCK_B, LOCK_C, LOCK_D);
-        assertNotDone(request2);
+        assertNotCompleted(request2);
 
         service.unlock(request1);
-        assertCompleteSuccessfully(request2);
+        assertCompletedSuccessfully(request2);
     }
 
     @Test
@@ -99,8 +101,8 @@ public class AsyncLockServiceEteTest {
 
         service.unlock(currentHolder);
 
-        LockTokenV2 token = assertCompleteSuccessfully(tokenFuture);
-        LockTokenV2 duplicate = assertCompleteSuccessfully(duplicateFuture);
+        LockTokenV2 token = assertCompletedSuccessfully(tokenFuture);
+        LockTokenV2 duplicate = assertCompletedSuccessfully(duplicateFuture);
 
         assertThat(token).isEqualTo(duplicate);
     }
@@ -161,11 +163,11 @@ public class AsyncLockServiceEteTest {
         LockTokenV2 lockAHolder = lockSynchronously(REQUEST_1, LOCK_A);
 
         CompletableFuture<Void> waitFuture = waitForLocks(REQUEST_2, LOCK_A);
-        assertNotDone(waitFuture);
+        assertNotCompleted(waitFuture);
 
         service.unlock(lockAHolder);
 
-        assertCompleteSuccessfully(waitFuture);
+        assertCompletedSuccessfully(waitFuture);
         assertNotLocked(LOCK_A);
     }
 
@@ -174,22 +176,22 @@ public class AsyncLockServiceEteTest {
         LockTokenV2 lockAHolder = lockSynchronously(REQUEST_1, LOCK_B, LOCK_C);
 
         CompletableFuture<Void> waitFuture = waitForLocks(REQUEST_2, LOCK_A, LOCK_B, LOCK_C);
-        assertNotDone(waitFuture);
+        assertNotCompleted(waitFuture);
         assertNotLocked(LOCK_A);
 
         service.unlock(lockAHolder);
 
-        assertCompleteSuccessfully(waitFuture);
+        assertCompletedSuccessfully(waitFuture);
         assertNotLocked(LOCK_A);
         assertNotLocked(LOCK_C);
     }
 
-    private void assertNotDone(CompletableFuture<?> request) {
+    private void assertNotCompleted(CompletableFuture<?> request) {
         assertFalse(request.isDone());
     }
 
     private LockTokenV2 lockSynchronously(UUID requestId, String... locks) {
-        return assertCompleteSuccessfully(lock(requestId, locks));
+        return assertCompletedSuccessfully(lock(requestId, locks));
     }
 
     private CompletableFuture<LockTokenV2> lock(UUID requestId, String... locks) {
@@ -206,7 +208,7 @@ public class AsyncLockServiceEteTest {
                 .collect(Collectors.toSet());
     }
 
-    private <T> T assertCompleteSuccessfully(CompletableFuture<T> future) {
+    private <T> T assertCompletedSuccessfully(CompletableFuture<T> future) {
         assertTrue(future.isDone());
         return future.join();
     }
