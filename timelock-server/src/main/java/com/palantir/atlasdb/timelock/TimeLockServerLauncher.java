@@ -75,7 +75,8 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
                         configuration.slowLockLogTriggerMillis())));
 
         environment.getObjectMapper().registerModule(new Jdk8Module());
-        environment.jersey().register(HttpRemotingJerseyFeature.with(HttpRemotingJerseyFeature.StacktracePropagation.PROPAGATE));
+        environment.jersey().register(
+                HttpRemotingJerseyFeature.with(HttpRemotingJerseyFeature.StacktracePropagation.PROPAGATE));
         environment.jersey().register(new TimeLockResource(clientToServices));
     }
 
