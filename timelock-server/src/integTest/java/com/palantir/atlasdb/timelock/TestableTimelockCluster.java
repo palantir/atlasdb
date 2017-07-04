@@ -99,21 +99,31 @@ public class TestableTimelockCluster {
     }
 
     public void failoverToNewLeader() {
+        if (servers.size() == 1) {
+            // if there is only one server, it's going to become the leader again
+            tryFailoverToNewLeader();
+            return;
+        }
+
         int maxTries = 5;
         for (int i = 0; i < maxTries; i++) {
-            TestableTimelockServer leader = currentLeader();
-            leader.kill();
-            Uninterruptibles.sleepUninterruptibly(1_000, TimeUnit.MILLISECONDS);
-            leader.start();
-
-            waitUntilLeaderIsElected();
-
-            if (servers.size() > 1 || !currentLeader().equals(leader)) {
+            if (tryFailoverToNewLeader()) {
                 return;
             }
         }
 
         throw new IllegalStateException("unable to force a failover after " + maxTries + " tries");
+    }
+
+    private boolean tryFailoverToNewLeader() {
+        TestableTimelockServer leader = currentLeader();
+        leader.kill();
+        Uninterruptibles.sleepUninterruptibly(1_000, TimeUnit.MILLISECONDS);
+        leader.start();
+
+        waitUntilLeaderIsElected();
+
+        return !currentLeader().equals(leader);
     }
 
     public List<TestableTimelockServer> servers() {
