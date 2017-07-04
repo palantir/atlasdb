@@ -222,7 +222,8 @@ public final class TransactionManagers {
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
-        kvs = SweepStatsKeyValueService.create(kvs, new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
+        kvs = SweepStatsKeyValueService.create(kvs,
+                new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
         kvs = TracingKeyValueService.create(kvs);
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs,
                 MetricRegistry.name(KeyValueService.class, userAgent));
@@ -411,7 +412,7 @@ public final class TransactionManagers {
 
     private static LockAndTimestampServices withRefreshingLockService(
             LockAndTimestampServices lockAndTimestampServices) {
-        // TODO(nziebart) refreshing timelock service
+        // TODO(nziebart): refreshing timelock service
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
                 .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))

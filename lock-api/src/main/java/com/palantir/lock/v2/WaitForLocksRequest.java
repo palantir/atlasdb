@@ -26,8 +26,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
-@JsonSerialize(as=ImmutableWaitForLocksRequest.class)
-@JsonDeserialize(as=ImmutableWaitForLocksRequest.class)
+@JsonSerialize(as = ImmutableWaitForLocksRequest.class)
+@JsonDeserialize(as = ImmutableWaitForLocksRequest.class)
 public interface WaitForLocksRequest {
 
     @Value.Parameter

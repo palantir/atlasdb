@@ -24,8 +24,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as=ImmutableLockImmutableTimestampRequest.class)
-@JsonDeserialize(as=ImmutableLockImmutableTimestampRequest.class)
+@JsonSerialize(as = ImmutableLockImmutableTimestampRequest.class)
+@JsonDeserialize(as = ImmutableLockImmutableTimestampRequest.class)
 public interface LockImmutableTimestampRequest {
 
     @Value.Parameter
