@@ -124,6 +124,11 @@ develop
            This should not affect users directly, unless they depended on classes from within the TimeLock server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2081>`__)
 
+    *    - |fixed|
+         - JDBC KVS now batches cells in put/delete operations via the config parameter ``batchSizeForMutations``.
+           This will prevent the driver from throwing due to many parameters in the resulting SQL select query. Also,
+           the batch size for getRows is now controlled by a config parameter ``rowBatchSize``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2093>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
