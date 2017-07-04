@@ -44,6 +44,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Proxies created via ``AtlasDbHttpClients`` now retry lock requests on receiving an ``InterruptedException`` if leadership is lost.
+           In the past, blocking lock requests waiting on the lock service will not retry if a leader election occurs while the request is in flight.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
+
     *    - |fixed|
          - AtlasDB now generates Maven POM files for shadowed jars correctly.
            Previously, we would regenerate the XML for shadow dependencies by creating a node with corresponding groupId, artifactId, scope and version tags *only*, which is incorrect because it loses information about, for example, specific or transitive exclusions.
@@ -61,23 +66,6 @@ develop
            We recommend HA clusters under heavy load switch to using a standalone timestamp
            service, as they may also be vulnerable to this failure mode.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2091>`__)
-
-
-.. <<<<------------------------------------------------------------------------------------------------------------->>>>
-
-======
-0.46.0
-======
-
-29 June 2017
-
-.. list-table::
-    :widths: 5 40
-    :header-rows: 1
-
-
-    *    - Type
-         - Change
 
     *    - |userbreak| |devbreak| |improved|
          - Added support for live-reloading sweep configurations.
