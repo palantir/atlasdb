@@ -46,7 +46,7 @@ public class ExclusiveLockTests {
         lockSynchronously(REQUEST_1);
 
         CompletableFuture<Void> future = lockAsync(REQUEST_2);
-        assertNotComplete(future);
+        assertNotCompleted(future);
     }
 
     @Test
@@ -64,7 +64,7 @@ public class ExclusiveLockTests {
 
         unlock(REQUEST_1);
 
-        assertCompleteSuccessfully(future);
+        assertCompletedSuccessfully(future);
     }
 
     @Test
@@ -75,16 +75,16 @@ public class ExclusiveLockTests {
 
         unlock(REQUEST_1);
 
-        assertCompleteSuccessfully(future2);
-        assertNotComplete(future3);
+        assertCompletedSuccessfully(future2);
+        assertNotCompleted(future3);
 
         unlock(REQUEST_2);
 
-        assertCompleteSuccessfully(future3);
+        assertCompletedSuccessfully(future3);
     }
 
     @Test
-    public void unlockByNonHolderThrows() {
+    public void unlockByNonHolderThrowsWithoutAffectingState() {
         lockSynchronously(REQUEST_1);
 
         assertThatThrownBy(() -> unlock(UUID.randomUUID()))
@@ -93,7 +93,7 @@ public class ExclusiveLockTests {
     }
 
     @Test
-    public void unlockByWaiterThrows() {
+    public void unlockByWaiterThrowsWithoutAffectingState() {
         lockSynchronously(REQUEST_1);
 
         CompletableFuture<Void> request2 = lockAsync(REQUEST_2);
@@ -101,7 +101,11 @@ public class ExclusiveLockTests {
                 .isInstanceOf(IllegalStateException.class);
 
         assertThat(lock.getCurrentHolder()).isEqualTo(REQUEST_1);
-        assertNotComplete(request2);
+        assertNotCompleted(request2);
+
+        // request2 should still get the lock when it's available
+        unlock(REQUEST_1);
+        assertCompletedSuccessfully(request2);
     }
 
     @Test
@@ -121,11 +125,11 @@ public class ExclusiveLockTests {
         lockSynchronously(REQUEST_1);
         CompletableFuture<Void> future = lock.waitUntilAvailable(REQUEST_2);
 
-        assertNotComplete(future);
+        assertNotCompleted(future);
 
         unlock(REQUEST_1);
 
-        assertCompleteSuccessfully(future);
+        assertCompletedSuccessfully(future);
     }
 
     @Test
@@ -134,11 +138,11 @@ public class ExclusiveLockTests {
         lock.waitUntilAvailable(REQUEST_2);
         CompletableFuture<Void> lockRequest = lock.lock(REQUEST_3);
 
-        assertNotComplete(lockRequest);
+        assertNotCompleted(lockRequest);
 
         unlock(REQUEST_1);
 
-        assertCompleteSuccessfully(lockRequest);
+        assertCompletedSuccessfully(lockRequest);
     }
 
     @Test
@@ -149,21 +153,21 @@ public class ExclusiveLockTests {
 
         unlock(REQUEST_1);
 
-        assertCompleteSuccessfully(request2);
-        assertCompleteSuccessfully(request3);
+        assertCompletedSuccessfully(request2);
+        assertCompletedSuccessfully(request3);
     }
 
-    private void assertCompleteSuccessfully(CompletableFuture<Void> lockRequest) {
+    private void assertCompletedSuccessfully(CompletableFuture<Void> lockRequest) {
         assertTrue(lockRequest.isDone());
         lockRequest.join();
     }
 
-    private void assertNotComplete(CompletableFuture<Void> lockRequest) {
+    private void assertNotCompleted(CompletableFuture<Void> lockRequest) {
         assertFalse(lockRequest.isDone());
     }
 
     private void lockSynchronously(UUID requestId) {
-        assertCompleteSuccessfully(lock.lock(requestId));
+        assertCompletedSuccessfully(lock.lock(requestId));
     }
 
     private CompletableFuture<Void> lockAsync(UUID requestId) {

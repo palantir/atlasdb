@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InOrder;
 
@@ -78,9 +77,8 @@ public class LockAcquirerTest {
     }
 
     @Test(timeout = 10_000)
-    @Ignore // tends to time out on Circle
     public void doesNotStackOverflowIfLocksAreAcquiredSynchronously() {
-        List<AsyncLock> locks = IntStream.range(0, 100_000)
+        List<AsyncLock> locks = IntStream.range(0, 10_000)
                 .mapToObj(i -> new ExclusiveLock())
                 .collect(Collectors.toList());
 
@@ -90,11 +88,10 @@ public class LockAcquirerTest {
     }
 
     @Test(timeout = 10_000)
-    @Ignore // tends to time out on Circle
     public void doesNotStackOverflowIfManyRequestsWaitOnALock() {
         lockA.lock(REQUEST_ID);
 
-        List<CompletableFuture<Void>> futures = IntStream.range(0, 100_000)
+        List<CompletableFuture<Void>> futures = IntStream.range(0, 10_000)
                 .mapToObj(i -> waitFor(lockA))
                 .collect(Collectors.toList());
 
