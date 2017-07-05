@@ -27,8 +27,6 @@ import feign.RetryableException;
 import feign.codec.ErrorDecoder;
 
 public class AtlasDbErrorDecoder implements ErrorDecoder {
-    private static final String LOCK_METHOD_KEY = "RemoteLockService#lock(String,LockRequest)";
-
     private ErrorDecoder delegateDecoder = new SerializableErrorDecoder();
 
     public AtlasDbErrorDecoder() {
@@ -42,9 +40,6 @@ public class AtlasDbErrorDecoder implements ErrorDecoder {
     @Override
     public Exception decode(String methodKey, Response response) {
         Exception exception = delegateDecoder.decode(methodKey, response);
-        if (methodKey.equals(LOCK_METHOD_KEY) && response500AndExceptionIsNotRetryable(response, exception)) {
-            return new RetryableException(exception.getMessage(), exception, parseRetryAfter(response));
-        }
         if (response503ButExceptionIsNotRetryable(response, exception)) {
             return new RetryableException(exception.getMessage(), exception, parseRetryAfter(response));
         }
@@ -66,10 +61,6 @@ public class AtlasDbErrorDecoder implements ErrorDecoder {
         }
         String retryAfterValue = retryAfterValues.iterator().next();
         return new Date(Long.parseLong(retryAfterValue));
-    }
-
-    private boolean response500AndExceptionIsNotRetryable(Response response, Exception exception) {
-        return (response.status() == 500) && !isExceptionRetryable(exception);
     }
 
     private boolean response503ButExceptionIsNotRetryable(Response response, Exception exception) {
