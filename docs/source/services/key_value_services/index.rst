@@ -47,12 +47,6 @@ This matrix details the current state of available Key Value Services supported 
          -
          -
 
-    *    - RocksDB KVS
-         - Unsupported
-         -
-         -
-         -
-
 Details
 =======
 
@@ -89,14 +83,8 @@ JDBC KVS
 JDBC KVS existed prior to DB KVS and was the primary means for deploying applications on Postgres.
 JDBC KVS has been deprecated in favor of DB KVS.
 
-.. _rocksdb-kvs:
-
-RocksDB KVS
------------
-
-Java RocksDB is not well supported, and we have seen major corruption under normal usage, internal ticket QA-95061.
-
 Deleted
 =======
 
 ClusterKeyValueService.java - Intended to be run on top of a MySQL/Cluster
+RocksDbKVS - Removed in 0.44

@@ -48,6 +48,10 @@ class TableTest {
     void testDescribe() {
         final Map DESC = [
             isDynamic:false,
+            row: [
+                [name: 'foo'],
+                [name: 'bar']
+            ],
             columns: [
                 [long_name: 'alice'],
                 [long_name: 'bob']
@@ -58,6 +62,7 @@ class TableTest {
             assertEquals(DESC, table.describe())
             assert !table.isDynamic()
             assertEquals(['alice', 'bob'], table.columnNames())
+            assertEquals(['foo', 'bar'], table.rowComponents())
         }
     }
 

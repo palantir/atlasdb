@@ -21,6 +21,7 @@ import com.palantir.atlasdb.api.AtlasDbService
 import com.palantir.atlasdb.api.TransactionToken
 import com.palantir.atlasdb.config.AtlasDbConfig
 import com.palantir.atlasdb.config.AtlasDbConfigs
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig
 import com.palantir.atlasdb.console.AtlasConsoleModule
 import com.palantir.atlasdb.console.AtlasConsoleService
 import com.palantir.atlasdb.console.AtlasConsoleServiceImpl
@@ -34,6 +35,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager
 import groovy.json.JsonBuilder
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
+import java.util.function.Supplier
 
 /**
  * Public methods that clients can call within AtlasConsole.
@@ -50,7 +52,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
                          Ex: def x = table('stream_value')
 
                          To retrieve metadata about a table, use <TABLE>.describe(),
-                         <TABLE>.isDynamic(), and <TABLE>.columnNames().'''.stripIndent(),
+                         <TABLE>.isDynamic(), <TABLE>.rowComponents(), and <TABLE>.columnNames().'''.stripIndent(),
             'transactions': '''\
                          Atomic transactions used to avoid read/write or write/write
                          conflicts. Use startTransaction() to start, currentTransaction()
@@ -164,7 +166,15 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     private setupConnection(AtlasDbConfig config) {
-        SerializableTransactionManager tm = TransactionManagers.create(config, ImmutableSet.<Schema>of(),
+        SerializableTransactionManager tm = TransactionManagers.create(
+                config,
+                new Supplier<Optional<AtlasDbRuntimeConfig>>() {
+                    @Override
+                    Optional<AtlasDbRuntimeConfig> get() {
+                        return Optional.empty();
+                    }
+                },
+                ImmutableSet.<Schema>of(),
                 new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
                     @Override
                     public void register(Object resource) {

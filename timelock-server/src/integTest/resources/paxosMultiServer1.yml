@@ -1,0 +1,24 @@
+algorithm:
+  type: paxos
+  leaderPingResponseWaitMs: 1000
+  paxosDataDir: <TEMP_DATA_DIR>
+
+cluster:
+  localServer: localhost:9081
+  servers:
+    - localhost:9080
+    - localhost:9081
+    - localhost:9082
+
+clients:
+  - test
+  - test2
+  - test3
+
+server:
+  applicationConnectors:
+    - type: http
+      port: 9081
+  adminConnectors:
+    - type: http
+      port: 7091

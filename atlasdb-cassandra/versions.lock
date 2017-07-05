@@ -39,8 +39,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
-                "com.palantir.remoting2:tracing",
-                "io.github.openfeign:feign-jackson"
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
@@ -280,25 +279,6 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
-        "io.github.openfeign:feign-core": {
-            "locked": "9.5.0",
-            "transitive": [
-                "io.github.openfeign:feign-jackson",
-                "io.github.openfeign:feign-jaxrs"
-            ]
-        },
-        "io.github.openfeign:feign-jackson": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "io.github.openfeign:feign-jaxrs": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
         "io.netty:netty-buffer": {
             "locked": "4.0.27.Final",
             "transitive": [
@@ -395,12 +375,6 @@
         "org.jboss.marshalling:jboss-marshalling": {
             "locked": "1.4.11.Final",
             "requested": "1.4.11.Final"
-        },
-        "org.jvnet:animal-sniffer-annotation": {
-            "locked": "1.0",
-            "transitive": [
-                "io.github.openfeign:feign-core"
-            ]
         },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",
@@ -483,8 +457,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
-                "com.palantir.remoting2:tracing",
-                "io.github.openfeign:feign-jackson"
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
@@ -724,25 +697,6 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
-        "io.github.openfeign:feign-core": {
-            "locked": "9.5.0",
-            "transitive": [
-                "io.github.openfeign:feign-jackson",
-                "io.github.openfeign:feign-jaxrs"
-            ]
-        },
-        "io.github.openfeign:feign-jackson": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "io.github.openfeign:feign-jaxrs": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
         "io.netty:netty-buffer": {
             "locked": "4.0.27.Final",
             "transitive": [
@@ -839,12 +793,6 @@
         "org.jboss.marshalling:jboss-marshalling": {
             "locked": "1.4.11.Final",
             "requested": "1.4.11.Final"
-        },
-        "org.jvnet:animal-sniffer-annotation": {
-            "locked": "1.0",
-            "transitive": [
-                "io.github.openfeign:feign-core"
-            ]
         },
         "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
             "locked": "1.1.2",

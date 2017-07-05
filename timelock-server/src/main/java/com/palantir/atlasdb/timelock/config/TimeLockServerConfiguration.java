@@ -53,7 +53,7 @@ public class TimeLockServerConfiguration extends Configuration {
                     "Configuration enables clientRequestLimit but specifies non-positive number of available threads.");
         }
 
-        this.algorithm = MoreObjects.firstNonNull(algorithm, AtomixConfiguration.DEFAULT);
+        this.algorithm = MoreObjects.firstNonNull(algorithm, PaxosConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);

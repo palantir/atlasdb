@@ -58,6 +58,9 @@ class Table {
         getDescription()['columns'].collect {it['long_name']}
     }
 
+    List rowComponents() {
+        getDescription()['row'].collect() {it['name']}
+    }
     /**
      * Get data from atlas by specifying the row of data to return
      * @param row  A single row to get, where the row is a List of components
@@ -68,15 +71,13 @@ class Table {
      * @return Returns a Map object.
      *         For named columns:
      *         [
-     *             "row": [{component1}, {component2}, ...],
-     *             {column1Name}: {value},
-     *             {column2Name}: {value},
-     *             ...
+     *             "row": {componentName1: component1, componentName2: component2, ...},
+     *             "cols": {columnName1: {value1}, columnName2: {value2}, ...}
      *         ]
      *
      *         For dynamic columns:
      *         [
-     *             "row": [{component1}, {component2}, ...],
+     *             "row": {componentName1: component1, componentName2: component2, ...},
      *             "cols": [
      *             [
      *                 "col": [{component1}, ...],
@@ -106,15 +107,13 @@ class Table {
      * @return Returns a List of Map objects.
      *         For named colums:
      *         [
-     *             "row": [{component1}, {component2}, ...],
-     *             {column1Name}: {value},
-     *             {column2Name}: {value},
-     *             ...
+     *             "row": {componentName1: component1, componentName2: component2, ...},
+     *             "cols": {columnName1: {value1}, columnName2: {value2}, ...}
      *         ]
      *
      *         For dynamic columns:
      *         [
-     *             "row": [{component1}, {component2}, ...],
+     *             "row": {componentName1: component1, componentName2: component2, ...},
      *             "cols": [
      *             [
      *                 "col": [{component1}, ...],
@@ -152,12 +151,12 @@ class Table {
      * @param cells List of Cell objects.
      *        For named columns:
      *        [
-     *            "row": [{component1}, ...],
+     *            "row": {componentName1: component1, componentName2: component2, ...},
      *            "col": "columnName"
      *        ]
      *        For dynamic columns:
      *        [
-     *            "row": [{component1}, ...],
+     *            "row": {componentName1: component1, componentName2: component2, ...},
      *            "col": [{component1}, ...]
      *        ]
      * @param token Optional TransactionToken representing current transaction.
@@ -165,12 +164,12 @@ class Table {
      * @return List of Objects.
      *         For named columns:
      *         [
-     *             "row": [{component1}, ...],
+     *             "row": {componentName1: component1, componentName2: component2, ...},
      *             {columnName}: {value}
      *         ]
      *         For dynamic columns:
      *         [
-     *             "row": [{component1}, ...],
+     *             "row": {componentName1: component1, componentName2: component2, ...},
      *             "col": [{component1}, ...],
      *             "val": {value}
      *         ]
@@ -194,12 +193,12 @@ class Table {
      * @return A Range iterable with a next() method that returns objects of the following form:
      *         For named columns:
      *         [
-     *             "row": [{component1}, ...],
-     *             {columnName}: {value}
+     *             "row": {componentName1: component1, componentName2: component2, ...},
+     *             "cols": {columnName1: {value1}, columnName2: {value2}, ...}
      *         ]
      *         For dynamic columns:
      *         [
-     *             "row": [{component1}, ...],
+     *             "row": {componentName1: component1, componentName2: component2, ...},
      *             "cols": [
      *             [
      *                 "col": [{component1}, ...],

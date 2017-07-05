@@ -19,6 +19,9 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
@@ -28,6 +31,8 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.util.AssertUtils;
 
 public class BatchSizeIncreasingIterator<T> {
+    private static final Logger log = LoggerFactory.getLogger(BatchSizeIncreasingIterator.class);
+
     final int originalBatchSize;
 
     final BatchProvider<T> batchProvider;
@@ -52,7 +57,7 @@ public class BatchSizeIncreasingIterator<T> {
 
     public void markNumResultsNotDeleted(int resultsInBatch) {
         numNotDeleted += resultsInBatch;
-        AssertUtils.assertAndLog(numNotDeleted <= numReturned,
+        AssertUtils.assertAndLog(log, numNotDeleted <= numReturned,
                 "NotDeleted is bigger than the number of results we returned.");
     }
 

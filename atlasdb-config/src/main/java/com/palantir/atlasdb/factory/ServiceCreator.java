@@ -61,4 +61,10 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
                 MetricRegistry.name(serviceClass, userAgent));
     }
 
+    public static <T> T createInstrumentedService(T service, Class<T> serviceClass, String userAgent) {
+        return AtlasDbMetrics.instrument(
+                serviceClass,
+                service,
+                MetricRegistry.name(serviceClass, userAgent));
+    }
 }

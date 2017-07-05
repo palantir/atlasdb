@@ -42,8 +42,7 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
-                "com.palantir.remoting2:tracing",
-                "io.github.openfeign:feign-jackson"
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
@@ -207,6 +206,12 @@
                 "com.palantir.atlasdb:atlasdb-dbkvs"
             ]
         },
+        "com.palantir.atlasdb:atlasdb-feign": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-tests-shared"
+            ]
+        },
         "com.palantir.atlasdb:atlasdb-impl-shared": {
             "project": true,
             "transitive": [
@@ -264,6 +269,7 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
@@ -392,6 +398,18 @@
                 "com.palantir.tritium:tritium-lib"
             ]
         },
+        "com.squareup.okhttp3:okhttp": {
+            "locked": "3.4.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign"
+            ]
+        },
+        "com.squareup.okio:okio": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.squareup.okhttp3:okhttp"
+            ]
+        },
         "com.zaxxer:HikariCP": {
             "locked": "2.4.7",
             "transitive": [
@@ -423,27 +441,6 @@
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
-            ]
-        },
-        "io.github.openfeign:feign-core": {
-            "locked": "9.5.0",
-            "transitive": [
-                "io.github.openfeign:feign-jackson",
-                "io.github.openfeign:feign-jaxrs"
-            ]
-        },
-        "io.github.openfeign:feign-jackson": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-tests-shared"
-            ]
-        },
-        "io.github.openfeign:feign-jaxrs": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
         "javax.validation:validation-api": {
@@ -523,12 +520,6 @@
             "transitive": [
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
-            ]
-        },
-        "org.jvnet:animal-sniffer-annotation": {
-            "locked": "1.0",
-            "transitive": [
-                "io.github.openfeign:feign-core"
             ]
         },
         "org.mockito:mockito-core": {
@@ -627,8 +618,7 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
-                "com.palantir.remoting2:tracing",
-                "io.github.openfeign:feign-jackson"
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
@@ -792,6 +782,12 @@
                 "com.palantir.atlasdb:atlasdb-dbkvs"
             ]
         },
+        "com.palantir.atlasdb:atlasdb-feign": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-tests-shared"
+            ]
+        },
         "com.palantir.atlasdb:atlasdb-impl-shared": {
             "project": true,
             "transitive": [
@@ -849,6 +845,7 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
@@ -977,6 +974,18 @@
                 "com.palantir.tritium:tritium-lib"
             ]
         },
+        "com.squareup.okhttp3:okhttp": {
+            "locked": "3.4.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign"
+            ]
+        },
+        "com.squareup.okio:okio": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.squareup.okhttp3:okhttp"
+            ]
+        },
         "com.zaxxer:HikariCP": {
             "locked": "2.4.7",
             "transitive": [
@@ -1008,27 +1017,6 @@
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
-            ]
-        },
-        "io.github.openfeign:feign-core": {
-            "locked": "9.5.0",
-            "transitive": [
-                "io.github.openfeign:feign-jackson",
-                "io.github.openfeign:feign-jaxrs"
-            ]
-        },
-        "io.github.openfeign:feign-jackson": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-tests-shared"
-            ]
-        },
-        "io.github.openfeign:feign-jaxrs": {
-            "locked": "9.5.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
         "javax.validation:validation-api": {
@@ -1108,12 +1096,6 @@
             "transitive": [
                 "com.palantir.tritium:tritium-metrics",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
-            ]
-        },
-        "org.jvnet:animal-sniffer-annotation": {
-            "locked": "1.0",
-            "transitive": [
-                "io.github.openfeign:feign-core"
             ]
         },
         "org.mockito:mockito-core": {

@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.jdbc.impl;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -32,6 +33,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.common.collect.Maps2;
 
 public class SingleTimestampPutBatch implements PutBatch {
     private final Map<Cell, byte[]> data;
@@ -40,6 +42,10 @@ public class SingleTimestampPutBatch implements PutBatch {
     public SingleTimestampPutBatch(Map<Cell, byte[]> data, Long timestamp) {
         this.data = data;
         this.timestamp = timestamp;
+    }
+
+    public static SingleTimestampPutBatch create(List<Entry<Cell, byte[]>> data, long timestamp) {
+        return new SingleTimestampPutBatch(Maps2.fromEntries(data), timestamp);
     }
 
     @Override

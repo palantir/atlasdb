@@ -59,8 +59,9 @@ public class TableRowResultDeserializer extends StdDeserializer<TableRowResult> 
                     cols.put(col, val);
                 }
             } else {
+                JsonNode namedCols = rowResult.get("cols");
                 for (NamedColumnDescription namedCol : metadata.getColumns().getNamedColumns()) {
-                    JsonNode valNode = rowResult.get(namedCol.getLongName());
+                    JsonNode valNode = namedCols.get(namedCol.getLongName());
                     if (valNode != null) {
                         byte[] col = namedCol.getShortName().getBytes(StandardCharsets.UTF_8);
                         byte[] val = AtlasDeserializers.deserializeVal(namedCol.getValue(), valNode);

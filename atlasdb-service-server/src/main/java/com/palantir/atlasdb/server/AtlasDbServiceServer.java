@@ -15,14 +15,19 @@
  */
 package com.palantir.atlasdb.server;
 
+import java.util.Optional;
+
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
+import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
 public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfiguration> {
@@ -32,9 +37,18 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
     }
 
     @Override
+    public void initialize(Bootstrap<AtlasDbServiceServerConfiguration> bootstrap) {
+        super.initialize(bootstrap);
+        bootstrap.setMetricRegistry(MetricRegistries.createWithHdrHistogramReservoirs());
+    }
+
+    @Override
     public void run(AtlasDbServiceServerConfiguration config, final Environment environment) throws Exception {
+        AtlasDbMetrics.setMetricRegistry(environment.metrics());
+
         SerializableTransactionManager tm = TransactionManagers.create(
                 config.getConfig(),
+                Optional::empty,
                 ImmutableSet.of(),
                 environment.jersey()::register,
                 false);

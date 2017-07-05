@@ -67,14 +67,18 @@ public final class Leaders {
     }
 
     public static LeaderElectionService create(Environment env, LeaderConfig config, String userAgent) {
+        return createAndRegisterLocalServices(env, config, userAgent).leaderElectionService();
+    }
+
+    public static LocalPaxosServices createAndRegisterLocalServices(
+            Environment env, LeaderConfig config, String userAgent) {
         LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(config, userAgent);
 
         env.register(localPaxosServices.ourAcceptor());
         env.register(localPaxosServices.ourLearner());
-        env.register(localPaxosServices.leaderElectionService());
+        env.register(localPaxosServices.pingableLeader());
         env.register(new NotCurrentLeaderExceptionMapper());
-
-        return localPaxosServices.leaderElectionService();
+        return localPaxosServices;
     }
 
     public static LocalPaxosServices createInstrumentedLocalServices(LeaderConfig config, String userAgent) {
