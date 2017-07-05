@@ -90,12 +90,12 @@ public class AtlasDbConstants {
     public static final long SCRUBBER_RETRY_DELAY_MILLIS = 500L;
     public static final char SCRUB_TABLE_SEPARATOR_CHAR = '\0';
 
-    public static final boolean DEFAULT_ENABLE_SWEEP = false;
+    public static final boolean DEFAULT_ENABLE_SWEEP = true;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
     public static final long DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS = 30_000L;
-    public static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 1000;
-    public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 100; // TODO(gsheasby): Bump up this default once getRangeOfTimestamps has been replaced.
-    public static final int DEFAULT_SWEEP_READ_LIMIT = 1_000_000;
+    public static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 1_000;
+    public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 1; // TODO(gsheasby): Bump up this default once getRangeOfTimestamps has been replaced.
+    public static final int DEFAULT_SWEEP_READ_LIMIT = 1_000;
 
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 

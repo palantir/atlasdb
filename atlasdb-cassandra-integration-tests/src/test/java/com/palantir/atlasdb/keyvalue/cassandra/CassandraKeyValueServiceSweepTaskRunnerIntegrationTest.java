@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Arrays;
-import java.util.Optional;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
@@ -56,7 +55,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = useColumnBatchSize
                 ? ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
-                        .withTimestampsGetterBatchSize(Optional.of(10))
+                        .withTimestampsGetterBatchSize(10)
                 : CassandraContainer.KVS_CONFIG;
 
         return CassandraKeyValueService.create(
