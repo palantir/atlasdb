@@ -29,7 +29,6 @@ import org.junit.rules.RuleChain;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockRequestV2;
 import com.palantir.lock.v2.LockTokenV2;

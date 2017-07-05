@@ -75,11 +75,11 @@ public class AsyncTimelockResource {
     public void lock(@Suspended final AsyncResponse response, LockRequestV2 request) {
         CompletableFuture<LockTokenV2> future = timelock.lock(request);
         future.whenComplete((token, error) -> {
-           if (error != null) {
-               response.resume(error);
-           } else {
-               response.resume(token);
-           }
+            if (error != null) {
+                response.resume(error);
+            } else {
+                response.resume(token);
+            }
         });
     }
 
