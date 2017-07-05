@@ -225,7 +225,8 @@ import com.palantir.timestamp.TimestampService;
     }
 
     /**
-     * Registers a Runnable that will be run when the transaction manager is closed.
+     * Registers a Runnable that will be run when the transaction manager is closed, provided no callback already
+     * submitted throws an exception.
      *
      * Concurrency: If this method races with close(), then closingCallback may not be called.
      */
@@ -240,7 +241,8 @@ import com.palantir.timestamp.TimestampService;
      *
      * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
      * may be called (but is not necessarily called). Callbacks registered before the invocation of close() are
-     * guaranteed to be executed (because we use a synchronized list).
+     * guaranteed to be executed (because we use a synchronized list) as long as no exceptions arise. If an exception
+     * arises, then no guarantees are made with regard to subsequent callbacks being executed.
      */
     @Override
     public void close() {
