@@ -258,7 +258,7 @@ public class StreamStoreRenderer {
                     line(StreamMetadataTable, " metaTable = tables.get", StreamMetadataTable, "(t);");
                     line(StreamMetadataRow, " row = ", StreamMetadataRow, ".of(id);");
                     line("StreamMetadata metadata = metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();");
-                    line("Preconditions.checkState(metadata.getStatus() == Status.STORING, \"This stream is being cleaned up while storing blocks: \" + id);");
+                    line("Preconditions.checkState(metadata.getStatus() == Status.STORING, \"This stream is being cleaned up while storing blocks: %s\", id);");
                     line("Builder builder = StreamMetadata.newBuilder(metadata);");
                     line("builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);");
                     line("metaTable.putMetadata(row, builder.build());");
@@ -497,7 +497,7 @@ public class StreamStoreRenderer {
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : metadatas.entrySet()) {"); {
                         line("StreamMetadata metadata = e.getValue();");
                         line("Preconditions.checkState(metadata.getStatus() == Status.STORED,");
-                        line("\"Stream: \" + e.getKey().getId() + \" has status: \" + metadata.getStatus());");
+                        line("\"Stream: %s has status: %s\", e.getKey().getId(), metadata.getStatus());");
                         line("metaTable.putMetadata(e.getKey(), metadata);");
                     } line("}");
                     line("SetView<", StreamMetadataRow, "> missingRows = Sets.difference(rows, metadatas.keySet());");
