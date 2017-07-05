@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -80,7 +79,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void lockRequestThrows503OnLeaderElection() throws InterruptedException {
+    public void blockedLockRequestThrows503OnLeaderElection() throws InterruptedException {
         LockRefreshToken lock = CLUSTER.lock(CLIENT_1, BLOCKING_LOCK_REQUEST);
         assertThat(lock).isNotNull();
 
@@ -95,7 +94,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         try {
             lock2.get();
-            fail(String.format("Lock client %s should have thrown an execution exception as leader is not available", CLIENT_2));
+            fail(String.format("Lock client %s should have thrown an execution exception as leader is not available",
+                    CLIENT_2));
         } catch (ExecutionException e) {
             assertThat(e.getCause()).satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         }
