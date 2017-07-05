@@ -20,7 +20,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
@@ -79,19 +81,24 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void lockRequestThrows500DueToLeaderElection() throws InterruptedException {
-        CLUSTER.lock(CLIENT_1, BLOCKING_LOCK_REQUEST);
+        LockRefreshToken lock = CLUSTER.lock(CLIENT_1, BLOCKING_LOCK_REQUEST);
+        assertThat(lock).isNotNull();
 
         TestableTimelockServer leader = CLUSTER.currentLeader();
-        Executors.newSingleThreadExecutor().submit(() -> {
-            assertThatThrownBy(() -> leader.lock(CLIENT_2, BLOCKING_LOCK_REQUEST))
-                    .isInstanceOf(InterruptedException.class);
-        });
+        Future<LockRefreshToken> lock2 = Executors.newSingleThreadExecutor()
+                .submit(() -> leader.lock(CLIENT_2, BLOCKING_LOCK_REQUEST));
 
         Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
         // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
         assertThatThrownBy(() -> leader.lock(CLIENT_3, BLOCKING_LOCK_REQUEST))
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+        try {
+            lock2.get();
+            fail(String.format("Lock client %s should have thrown an execution exception as leader is not available", CLIENT_2));
+        } catch (ExecutionException e) {
+            assertThat(e.getCause()).satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+        }
     }
 
     @Test

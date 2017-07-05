@@ -182,8 +182,15 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                     || e.getCause() instanceof NotCurrentLeaderException) {
                 markAsNotLeading(leadershipToken, e.getCause());
             }
+            if (e.getTargetException() instanceof InterruptedException && !(checkIfLeading(leadershipToken))) {
+                throw notCurrentLeaderException("received an interrupt due to leader election.", e.getTargetException());
+            }
             throw e.getCause();
         }
+    }
+
+    private boolean checkIfLeading(LeadershipToken leadershipToken) {
+        return leaderElectionService.isStillLeading(leadershipToken) == StillLeadingStatus.LEADING;
     }
 
     private NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
