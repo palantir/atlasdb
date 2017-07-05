@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
@@ -80,24 +79,11 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     public void shouldMapInterruptedExceptionToNCLEIfLeadingStatusChanges() throws InterruptedException {
-        TestRunnableWithCheckedException runnableWithInterruptedException = () -> {
-            throw new InterruptedException(TEST_MESSAGE);
-        };
-        Supplier<TestRunnableWithCheckedException> delegateSupplier = Suppliers.ofInstance(
-                runnableWithInterruptedException);
-        LeaderElectionService mockLeader = mock(LeaderElectionService.class);
-        LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
-        when(mockLeader.blockOnBecomingLeader()).thenReturn(leadershipToken);
-
-        when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
-
-        //Loses leadership
-        when(mockLeader.isStillLeading(leadershipToken)).thenReturn(
+        //leadership lost while request in flight
+        TestRunnableWhichThrows proxy = getRunnableProxyWithCheckedException(
+                new InterruptedException(TEST_MESSAGE),
                 LeaderElectionService.StillLeadingStatus.LEADING,
                 LeaderElectionService.StillLeadingStatus.NOT_LEADING);
-
-        TestRunnableWithCheckedException proxy = AwaitingLeadershipProxy.newProxyInstance(
-                TestRunnableWithCheckedException.class, delegateSupplier, mockLeader);
 
         assertThatThrownBy(proxy::run).isInstanceOf(NotCurrentLeaderException.class)
                 .hasMessage("received an interrupt due to leader election.")
@@ -107,24 +93,11 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     public void shouldNotMapInterruptedExceptionToNCLEIfLeadingStatusDoesntChange() throws InterruptedException {
-        TestRunnableWithCheckedException runnableWithInterruptedException = () -> {
-            throw new InterruptedException(TEST_MESSAGE);
-        };
-        Supplier<TestRunnableWithCheckedException> delegateSupplier = Suppliers.ofInstance(
-                runnableWithInterruptedException);
-        LeaderElectionService mockLeaderService = mock(LeaderElectionService.class);
-        LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
-        when(mockLeaderService.blockOnBecomingLeader()).thenReturn(leadershipToken);
-
-        when(mockLeaderService.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
-
         //Always leading
-        when(mockLeaderService.isStillLeading(leadershipToken)).thenReturn(
+        TestRunnableWhichThrows proxy = getRunnableProxyWithCheckedException(
+                new InterruptedException(TEST_MESSAGE),
                 LeaderElectionService.StillLeadingStatus.LEADING,
                 LeaderElectionService.StillLeadingStatus.LEADING);
-
-        TestRunnableWithCheckedException proxy = AwaitingLeadershipProxy.newProxyInstance(
-                TestRunnableWithCheckedException.class, delegateSupplier, mockLeaderService);
 
         assertThatThrownBy(proxy::run).isInstanceOf(InterruptedException.class)
                 .hasMessage(TEST_MESSAGE);
@@ -132,21 +105,45 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     public void shouldNotMapOtherExceptionToNCLEIfLeadingStatusChanges() throws InterruptedException {
-        TestRunnableWithCheckedException runnableWithInterruptedException = () -> {
-            throw new IOException(TEST_MESSAGE);
-        };
-        Supplier<TestRunnableWithCheckedException> delegateSupplier = Suppliers.ofInstance(
-                runnableWithInterruptedException);
-        LeaderElectionService mockLeader = mock(LeaderElectionService.class);
-        LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
-        when(mockLeader.blockOnBecomingLeader()).thenReturn(leadershipToken);
-
-        when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
-        when(mockLeader.isStillLeading(leadershipToken)).thenReturn(LeaderElectionService.StillLeadingStatus.LEADING,
+        //leadership lost while request in flight
+        TestRunnableWhichThrows proxy = getRunnableProxyWithCheckedException(
+                new IOException(TEST_MESSAGE),
+                LeaderElectionService.StillLeadingStatus.LEADING,
                 LeaderElectionService.StillLeadingStatus.NOT_LEADING);
-        TestRunnableWithCheckedException proxy = AwaitingLeadershipProxy.newProxyInstance(
-                TestRunnableWithCheckedException.class, delegateSupplier, mockLeader);
 
         assertThatThrownBy(proxy::run).isNotInstanceOf(NotCurrentLeaderException.class).isInstanceOf(IOException.class);
+    }
+
+    private TestRunnableWhichThrows getRunnableProxyWithCheckedException(
+            Exception ex,
+            LeaderElectionService.StillLeadingStatus status1,
+            LeaderElectionService.StillLeadingStatus status2) throws InterruptedException {
+
+        TestRunnableWhichThrows runnableWithInterruptedException = () -> {
+            throw ex;
+        };
+
+        Supplier<TestRunnableWhichThrows> delegateSupplier = Suppliers.ofInstance(
+                runnableWithInterruptedException);
+        LeaderElectionService mockLeaderService = mock(LeaderElectionService.class);
+        setUpTheLeaderElectionService(mockLeaderService, status1, status2);
+
+        TestRunnableWhichThrows proxy = AwaitingLeadershipProxy.newProxyInstance(
+                TestRunnableWhichThrows.class, delegateSupplier, mockLeaderService);
+
+        //waiting for trytoGainLeadership
+        Uninterruptibles.sleepUninterruptibly(3, TimeUnit.SECONDS);
+        return proxy;
+    }
+
+    private void setUpTheLeaderElectionService(
+            LeaderElectionService mockLeaderService,
+            LeaderElectionService.StillLeadingStatus status1,
+            LeaderElectionService.StillLeadingStatus status2)
+            throws InterruptedException {
+        LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
+        when(mockLeaderService.blockOnBecomingLeader()).thenReturn(leadershipToken);
+        when(mockLeaderService.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
+        when(mockLeaderService.isStillLeading(leadershipToken)).thenReturn(status1, status2);
     }
 }
