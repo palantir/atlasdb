@@ -80,7 +80,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void lockRequestThrows500DueToLeaderElection() throws InterruptedException {
+    public void lockRequestThrows503OnLeaderElection() throws InterruptedException {
         LockRefreshToken lock = CLUSTER.lock(CLIENT_1, BLOCKING_LOCK_REQUEST);
         assertThat(lock).isNotNull();
 
@@ -99,33 +99,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         } catch (ExecutionException e) {
             assertThat(e.getCause()).satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         }
-    }
-
-    @Test
-    public void lockRequestRetriesAfter500DueToLeaderElection() throws InterruptedException {
-        CLUSTER.lock(CLIENT_1, BLOCKING_LOCK_REQUEST);
-
-        Executors.newSingleThreadExecutor().submit(() -> {
-            try {
-                assertThat(CLUSTER.lock(CLIENT_2, BLOCKING_LOCK_REQUEST)).isNotNull();
-            } catch (InterruptedException e) {
-                fail(String.format("The lock request for client %s was interrupted", CLIENT_2), e);
-            }
-        });
-
-        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
-        TestableTimelockServer leader = CLUSTER.currentLeader();
-        List<TestableTimelockServer> nonLeaders = CLUSTER.nonLeaders();
-        nonLeaders.forEach(TestableTimelockServer::kill);
-
-        // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
-        assertThatThrownBy(() -> leader.lock(CLIENT_3, BLOCKING_LOCK_REQUEST))
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
-
-        nonLeaders.forEach(TestableTimelockServer::start);
-
-        // Wait for the client2 to actually get the lock.
-        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
     }
 
     @Test
