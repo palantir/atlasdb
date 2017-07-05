@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nullable;
@@ -71,6 +72,8 @@ import com.palantir.timestamp.TimestampService;
     final boolean allowHiddenTableAccess;
     final List<Runnable> closingCallbacks;
 
+    private AtomicBoolean isClosed;
+
     protected SnapshotTransactionManager(
             KeyValueService keyValueService,
             TimestampService timestampService,
@@ -108,6 +111,7 @@ import com.palantir.timestamp.TimestampService;
         this.cleaner = cleaner;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
+        this.isClosed = new AtomicBoolean(false);
     }
 
     @Override
@@ -246,12 +250,14 @@ import com.palantir.timestamp.TimestampService;
      */
     @Override
     public void close() {
-        super.close();
-        cleaner.close();
-        keyValueService.close();
-        closeLockServiceIfPossible();
-        for (Runnable callback : closingCallbacks) {
-            callback.run();
+        if (isClosed.compareAndSet(false, true)) {
+            super.close();
+            cleaner.close();
+            keyValueService.close();
+            closeLockServiceIfPossible();
+            for (Runnable callback : closingCallbacks) {
+                callback.run();
+            }
         }
     }
 
