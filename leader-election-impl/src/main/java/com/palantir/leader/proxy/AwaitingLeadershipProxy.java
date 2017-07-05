@@ -178,14 +178,14 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         try {
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
-            if (e.getCause() instanceof ServiceNotAvailableException
-                    || e.getCause() instanceof NotCurrentLeaderException) {
+            if (e.getTargetException() instanceof ServiceNotAvailableException
+                    || e.getTargetException() instanceof NotCurrentLeaderException) {
                 markAsNotLeading(leadershipToken, e.getCause());
             }
             if (e.getTargetException() instanceof InterruptedException && !(checkIfLeading(leadershipToken))) {
                 throw notCurrentLeaderException("received an interrupt due to leader election.", e.getTargetException());
             }
-            throw e.getCause();
+            throw e.getTargetException();
         }
     }
 
