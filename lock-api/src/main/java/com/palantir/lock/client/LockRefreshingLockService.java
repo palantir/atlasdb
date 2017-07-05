@@ -164,4 +164,9 @@ public class LockRefreshingLockService extends ForwardingLockService {
         isClosed = true;
     }
 
+    @Override
+    public void close() {
+        super.close();
+        dispose();
+    }
 }
