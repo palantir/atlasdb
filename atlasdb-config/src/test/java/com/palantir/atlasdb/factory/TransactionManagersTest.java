@@ -61,6 +61,7 @@ import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
@@ -260,6 +261,22 @@ public class TransactionManagersTest {
                 .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"),
                         LockMode.WRITE)).build();
         assertEquals(expectedTimeout, lockRequest.getLockTimeout());
+    }
+
+    @Test
+    public void runsClosingCallbackOnShutdown() throws Exception {
+        AtlasDbConfig realConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .defaultLockTimeoutSeconds(120)
+                .build();
+
+        Runnable callback = mock(Runnable.class);
+
+        SerializableTransactionManager manager = TransactionManagers.create(
+                realConfig, Optional::empty, ImmutableSet.of(), environment, false);
+        manager.registerClosingCallback(callback);
+        manager.close();
+        verify(callback, times(1)).run();
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {

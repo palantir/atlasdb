@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.client;
 
+import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -130,5 +131,11 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
     public void dispose() {
         exec.shutdown();
         isClosed = true;
+    }
+
+    @Override
+    public void close() throws IOException {
+        super.close();
+        dispose();
     }
 }

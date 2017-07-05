@@ -15,7 +15,11 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nullable;
@@ -65,6 +69,7 @@ import com.palantir.timestamp.TimestampService;
     final AtomicLong recentImmutableTs = new AtomicLong(-1L);
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
+    final List<Runnable> closingCallbacks;
 
     protected SnapshotTransactionManager(
             KeyValueService keyValueService,
@@ -102,6 +107,7 @@ import com.palantir.timestamp.TimestampService;
         this.constraintModeSupplier = constraintModeSupplier;
         this.cleaner = cleaner;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
+        this.closingCallbacks = new CopyOnWriteArrayList<>();
     }
 
     @Override
@@ -218,11 +224,43 @@ import com.palantir.timestamp.TimestampService;
         return runTaskThrowOnConflict(task, new ReadTransaction(transaction, sweepStrategyManager));
     }
 
+    /**
+     * Registers a Runnable that will be run when the transaction manager is closed.
+     *
+     * Concurrency: If this method races with close(), then closingCallback may not be called.
+     */
+    public void registerClosingCallback(Runnable closingCallback) {
+        Preconditions.checkNotNull(closingCallback, "Cannot register a null callback.");
+        closingCallbacks.add(closingCallback);
+    }
+
+    /**
+     * Frees resources used by this SnapshotTransactionManager, and invokes any callbacks registered to run on close.
+     * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
+     *
+     * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
+     * may be called (but is not necessarily called). Callbacks registered before the invocation of close() are
+     * guaranteed to be executed (because we use a synchronized list).
+     */
     @Override
     public void close() {
         super.close();
         cleaner.close();
         keyValueService.close();
+        closeLockServiceIfPossible();
+        for (Runnable callback : closingCallbacks) {
+            callback.run();
+        }
+    }
+
+    private void closeLockServiceIfPossible() {
+        if (lockService instanceof Closeable) {
+            try {
+                ((Closeable) lockService).close();
+            } catch (IOException e) {
+                throw Throwables.rewrapAndThrowUncheckedException(e);
+            }
+        }
     }
 
     private Supplier<Long> getStartTimestampSupplier() {
