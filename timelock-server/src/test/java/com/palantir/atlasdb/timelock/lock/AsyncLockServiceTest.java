@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.lock;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.jmock.lib.concurrent.DeterministicScheduler;
@@ -46,6 +48,7 @@ public class AsyncLockServiceTest {
 
     private static final String LOCK_A = "a";
     private static final String LOCK_B = "b";
+    public static final long REAPER_PERIOD_MS = LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2;
 
     private final LockAcquirer acquirer = mock(LockAcquirer.class);
     private final LockCollection locks = mock(LockCollection.class);
@@ -109,9 +112,21 @@ public class AsyncLockServiceTest {
     }
 
     @Test
-    public void schedulesReaper() {
-        reaperExecutor.runNextPendingCommand();
-        verify(heldLocks).removeExpired();
+    public void schedulesReaperAtAppropriateInterval() {
+        triggerNextReaperIteration();
+        triggerNextReaperIteration();
+        triggerNextReaperIteration();
+
+        verify(heldLocks, times(3)).removeExpired();
+    }
+
+    @Test
+    public void reaperDoesNotDieIfItEncountersAnException() {
+        doThrow(new RuntimeException("test")).when(heldLocks).removeExpired();
+        triggerNextReaperIteration();
+        triggerNextReaperIteration();
+
+        verify(heldLocks, times(2)).removeExpired();
     }
 
     private Set<LockDescriptor> descriptors(String... lockNames) {
@@ -122,6 +137,10 @@ public class AsyncLockServiceTest {
 
     private OrderedLocks orderedLocks(AsyncLock... orderedLocks) {
         return OrderedLocks.fromOrderedList(ImmutableList.copyOf(orderedLocks));
+    }
+
+    private void triggerNextReaperIteration() {
+        reaperExecutor.tick(REAPER_PERIOD_MS - 1, TimeUnit.MILLISECONDS);
     }
 
 }
