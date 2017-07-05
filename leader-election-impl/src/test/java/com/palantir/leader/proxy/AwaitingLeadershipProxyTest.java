@@ -55,8 +55,6 @@ public class AwaitingLeadershipProxyTest {
         assertThat(proxy.equals(proxy)).isTrue();
         assertThat(proxy.equals(null)).isFalse();
         assertThat(proxy.toString()).startsWith("com.palantir.leader.proxy.AwaitingLeadershipProxy@");
-        Runtime.getRuntime().gc();
-
     }
 
     @Test
@@ -76,8 +74,6 @@ public class AwaitingLeadershipProxyTest {
         assertThat(proxy.equals(proxy)).isTrue();
         assertThat(proxy.equals(null)).isFalse();
         assertThat(proxy.toString()).startsWith("com.palantir.leader.proxy.AwaitingLeadershipProxy@");
-        Runtime.getRuntime().gc();
-
     }
 
     @Test
@@ -104,7 +100,6 @@ public class AwaitingLeadershipProxyTest {
                 .hasMessage("received an interrupt due to leader election.")
                 .hasCauseExactlyInstanceOf(InterruptedException.class)
                 .hasStackTraceContaining(TEST_MESSAGE);
-        Runtime.getRuntime().gc();
     }
 
     @Test
@@ -129,10 +124,7 @@ public class AwaitingLeadershipProxyTest {
 
         assertThatThrownBy(proxy::run).isInstanceOf(InterruptedException.class)
                 .hasMessage(TEST_MESSAGE);
-
-        Runtime.getRuntime().gc();
     }
-
 
     @Test
     public void shouldNotMapOtherExceptionToNCLEIfLeadingStatusChanges() throws InterruptedException {
@@ -151,6 +143,5 @@ public class AwaitingLeadershipProxyTest {
                 TestRunnableWithCheckedException.class, delegateSupplier, mockLeader);
 
         assertThatThrownBy(proxy::run).isNotInstanceOf(NotCurrentLeaderException.class).isInstanceOf(IOException.class);
-        Runtime.getRuntime().gc();
     }
 }
