@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -32,6 +30,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -70,9 +69,9 @@ import com.palantir.timestamp.TimestampService;
     final AtomicLong recentImmutableTs = new AtomicLong(-1L);
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
-    final List<Runnable> closingCallbacks;
 
-    private AtomicBoolean isClosed;
+    final List<Runnable> closingCallbacks;
+    final AtomicBoolean isClosed;
 
     protected SnapshotTransactionManager(
             KeyValueService keyValueService,
@@ -255,18 +254,18 @@ import com.palantir.timestamp.TimestampService;
             cleaner.close();
             keyValueService.close();
             closeLockServiceIfPossible();
-            for (Runnable callback : closingCallbacks) {
+            for (Runnable callback : Lists.reverse(closingCallbacks)) {
                 callback.run();
             }
         }
     }
 
     private void closeLockServiceIfPossible() {
-        if (lockService instanceof Closeable) {
+        if (lockService instanceof AutoCloseable) {
             try {
-                ((Closeable) lockService).close();
-            } catch (IOException e) {
-                throw Throwables.rewrapAndThrowUncheckedException(e);
+                ((AutoCloseable) lockService).close();
+            } catch (Exception e) {
+                throw Throwables.rewrapAndThrowUncheckedException("Exception when closing the lock service", e);
             }
         }
     }

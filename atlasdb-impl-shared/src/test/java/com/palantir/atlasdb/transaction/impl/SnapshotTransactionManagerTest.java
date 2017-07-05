@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -94,12 +95,13 @@ public class SnapshotTransactionManagerTest {
         Runnable callback = mock(Runnable.class);
 
         snapshotTransactionManager.registerClosingCallback(callback);
+        verify(callback, never()).run();
         snapshotTransactionManager.close();
-        verify(callback, times(1)).run();
+        verify(callback).run();
     }
 
     @Test
-    public void invokesMultipleSuccessfulCallbacksInOrder() {
+    public void invokesCallbacksInReverseOrderOfRegistration() {
         Runnable callback1 = mock(Runnable.class);
         Runnable callback2 = mock(Runnable.class);
         InOrder inOrder = inOrder(callback1, callback2);
@@ -107,7 +109,7 @@ public class SnapshotTransactionManagerTest {
         snapshotTransactionManager.registerClosingCallback(callback1);
         snapshotTransactionManager.registerClosingCallback(callback2);
         snapshotTransactionManager.close();
-        inOrder.verify(callback1).run();
         inOrder.verify(callback2).run();
+        inOrder.verify(callback1).run();
     }
 }
