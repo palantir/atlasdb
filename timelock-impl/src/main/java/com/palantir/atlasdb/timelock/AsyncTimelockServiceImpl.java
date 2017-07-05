@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock;
 
+import java.io.IOException;
 import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
@@ -29,7 +30,6 @@ import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 
-// TODO(nziebart): implement Closeable
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     private final AsyncLockService lockService;
@@ -108,4 +108,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         return timestampService.ping();
     }
 
+    @Override
+    public void close() throws IOException {
+        lockService.close();
+    }
 }

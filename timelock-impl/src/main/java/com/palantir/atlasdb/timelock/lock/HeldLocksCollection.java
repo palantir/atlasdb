@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.LockTokenV2;
 
 public class HeldLocksCollection {
@@ -62,6 +63,11 @@ public class HeldLocksCollection {
                 iterator.remove();
             }
         }
+    }
+    
+    public void failAllOutstandingRequestsWithNotCurrentLeaderException() {
+        NotCurrentLeaderException ex = new NotCurrentLeaderException("This lock service has been closed");
+        heldLocksById.values().forEach(future -> future.completeExceptionally(ex));
     }
 
     private boolean shouldRemove(AsyncResult<HeldLocks> lockResult) {
