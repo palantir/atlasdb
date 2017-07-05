@@ -16,6 +16,6 @@
 
 package com.palantir.leader.proxy;
 
-public interface TestRunnableWithCheckedException {
+public interface TestRunnableWhichThrows {
     void run() throws Exception;
 }
