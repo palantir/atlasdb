@@ -39,7 +39,8 @@ public class AwaitingLeadershipProxyTest {
     private static final String TEST_MESSAGE = "test_message";
 
     @Test
-    @SuppressWarnings("SelfEquals") // We're asserting that calling .equals on a proxy does not redirect the .equals call to the instance its being proxied.
+    @SuppressWarnings("SelfEquals")
+    // We're asserting that calling .equals on a proxy does not redirect the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenLeading() throws Exception {
         Runnable mockRunnable = mock(Runnable.class);
         Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
@@ -58,7 +59,8 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    @SuppressWarnings("SelfEquals") // We're asserting that calling .equals on a proxy does not redirect the .equals call to the instance its being proxied.
+    @SuppressWarnings("SelfEquals")
+    // We're asserting that calling .equals on a proxy does not redirect the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenNotLeading() throws Exception {
         Runnable mockRunnable = mock(Runnable.class);
         Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
@@ -81,7 +83,8 @@ public class AwaitingLeadershipProxyTest {
         TestRunnableWithCheckedException runnableWithInterruptedException = () -> {
             throw new InterruptedException(TEST_MESSAGE);
         };
-        Supplier<TestRunnableWithCheckedException> delegateSupplier = Suppliers.ofInstance(runnableWithInterruptedException);
+        Supplier<TestRunnableWithCheckedException> delegateSupplier = Suppliers.ofInstance(
+                runnableWithInterruptedException);
         LeaderElectionService mockLeader = mock(LeaderElectionService.class);
         LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
         when(mockLeader.blockOnBecomingLeader()).thenReturn(leadershipToken);
@@ -107,7 +110,8 @@ public class AwaitingLeadershipProxyTest {
         TestRunnableWithCheckedException runnableWithInterruptedException = () -> {
             throw new InterruptedException(TEST_MESSAGE);
         };
-        Supplier<TestRunnableWithCheckedException> delegateSupplier = Suppliers.ofInstance(runnableWithInterruptedException);
+        Supplier<TestRunnableWithCheckedException> delegateSupplier = Suppliers.ofInstance(
+                runnableWithInterruptedException);
         LeaderElectionService mockLeaderService = mock(LeaderElectionService.class);
         LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
         when(mockLeaderService.blockOnBecomingLeader()).thenReturn(leadershipToken);
@@ -131,7 +135,8 @@ public class AwaitingLeadershipProxyTest {
         TestRunnableWithCheckedException runnableWithInterruptedException = () -> {
             throw new IOException(TEST_MESSAGE);
         };
-        Supplier<TestRunnableWithCheckedException> delegateSupplier = Suppliers.ofInstance(runnableWithInterruptedException);
+        Supplier<TestRunnableWithCheckedException> delegateSupplier = Suppliers.ofInstance(
+                runnableWithInterruptedException);
         LeaderElectionService mockLeader = mock(LeaderElectionService.class);
         LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
         when(mockLeader.blockOnBecomingLeader()).thenReturn(leadershipToken);
