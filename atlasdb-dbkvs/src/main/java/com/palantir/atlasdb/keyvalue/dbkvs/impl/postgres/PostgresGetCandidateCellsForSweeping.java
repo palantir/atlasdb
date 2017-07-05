@@ -306,7 +306,8 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
                       // (4) V is true and the cell value corresponding to the maximum element of T is empty
                     +      (request.shouldCheckIfLatestValueIsEmpty() ? " OR length(v.val) = 0" : "")
                       // Also, always get the first cell, as well as the last one if the limit was reached
-                    + "    OR min_rn = 1 OR max_rn = " + sqlRowLimit;
+                    + "    OR min_rn = 1 OR max_rn = " + sqlRowLimit
+                    + "  ORDER BY cells.row_name, cells.col_name";
             return new FullQuery(query)
                     .withArg(request.sweepTimestamp()) // "WHERE ts < ?"
                     .withArgs(bounds.args)
