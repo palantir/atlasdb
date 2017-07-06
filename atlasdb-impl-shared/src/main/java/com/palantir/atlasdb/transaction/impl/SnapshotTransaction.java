@@ -367,6 +367,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection) {
+        checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
             return ImmutableMap.of();
         }
@@ -389,6 +390,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                                 Iterable<byte[]> rows,
                                                                 ColumnRangeSelection columnRangeSelection,
                                                                 int batchHint) {
+        checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
@@ -957,6 +959,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 log.debug("The first 10 results of your request were {}.", Iterables.limit(rawResults.entrySet(), 10),
                         new RuntimeException("This exception and stack trace are provided for debugging purposes."));
             }
+        }
+
+        if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
+            Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
+            // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
+            // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
+            // this case is hit when reading a hidden table from console
+            for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
+                results.put(e.getKey(), transformer.apply(e.getValue()));
+            }
+            return;
         }
 
         Map<Cell, Value> remainingResultsToPostfilter = rawResults;
