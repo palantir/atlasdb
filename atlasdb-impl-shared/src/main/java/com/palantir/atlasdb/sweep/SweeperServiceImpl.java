@@ -73,13 +73,13 @@ public final class SweeperServiceImpl implements SweeperService {
 
         ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(
-                        maxCellTsPairsToExamine == null ? AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT :
-                                maxCellTsPairsToExamine)
+                        maxCellTsPairsToExamine == null
+                                ? AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT : maxCellTsPairsToExamine)
                 .candidateBatchSize(
-                        candidateBatchSize == null ? AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT :
-                                candidateBatchSize)
-                .deleteBatchSize(deleteBatchSize == null ? AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT :
-                        deleteBatchSize)
+                        candidateBatchSize == null
+                                ? AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT : candidateBatchSize)
+                .deleteBatchSize(deleteBatchSize == null
+                        ? AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT : deleteBatchSize)
                 .build();
 
         runSweepWithoutSavingResults(tableRef, sweepProgress, Optional.of(sweepBatchConfig));
