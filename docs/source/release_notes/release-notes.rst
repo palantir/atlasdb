@@ -63,8 +63,12 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2091>`__)
 
     *    - |new|
-         - Enable background sweep by default on AtlasDB.
-           Background sweep is now considered safe for all use cases. Please delete any custom configs regarding background sweep to use the recommended default values.
+         - Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the :ref:`sweep docs<sweep>`, in particular, the :ref:`background sweep docs<background-sweep>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
+
+    *    - |changed|
+         - Default configs regarding sweep runs were lowered, to ensure that sweep works in any situation. For more information, please check the :ref:`sweep docs<sweep>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
