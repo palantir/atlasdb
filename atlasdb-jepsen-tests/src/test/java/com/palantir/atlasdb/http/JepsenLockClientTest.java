@@ -31,15 +31,19 @@ import static org.mockito.Mockito.when;
 import java.util.Set;
 
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 import com.google.common.collect.ImmutableSet;
 
 public class JepsenLockClientTest {
-    @SuppressWarnings("unchecked") // Mock in a test
-    private final JepsenLockClient<String> mockClient = (JepsenLockClient<String>) mock(JepsenLockClient.class);
-    private final StringLockClient client = new StringLockClient(mockClient);
-
     private static final String LOCK_TOKEN = "foo";
+
+    @SuppressWarnings("unchecked") // Answer concerning mock behaviour
+    private static final Answer<Object> REPLY_WITH_FIRST_TOKEN = invocation -> invocation.getArguments()[0];
+
+    @SuppressWarnings("unchecked") // Mock in a test
+    private final JepsenLockClient<String> mockClient = mock(JepsenLockClient.class);
+    private final StringLockClient client = new StringLockClient(mockClient);
 
     @Test
     public void unlockSingleDoesNotCallUnlockWithNull() throws InterruptedException {
@@ -55,7 +59,7 @@ public class JepsenLockClientTest {
 
     @Test
     public void unlockSingleReturnsTrueIfTokenCanBeUnlocked() throws InterruptedException {
-        when(mockClient.unlock(any())).thenReturn(ImmutableSet.of(LOCK_TOKEN));
+        when(mockClient.unlock(any())).then(REPLY_WITH_FIRST_TOKEN);
         assertTrue(client.unlockSingle(LOCK_TOKEN));
     }
 
@@ -79,7 +83,7 @@ public class JepsenLockClientTest {
 
     @Test
     public void refreshSingleReturnsTokenIfCanBeRefreshed() throws InterruptedException {
-        when(mockClient.refresh(any())).thenReturn(ImmutableSet.of(LOCK_TOKEN));
+        when(mockClient.refresh(any())).then(REPLY_WITH_FIRST_TOKEN);
         assertEquals(client.refreshSingle(LOCK_TOKEN), LOCK_TOKEN);
     }
 
