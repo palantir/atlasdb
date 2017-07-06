@@ -55,8 +55,8 @@ Note that some of these parameters are just used as a hint. Sweep dynamically mo
 
    ``enabled``, "Only specified in config", "1,000", "Target number of (cell, timestamp) pairs to examine in a single run."
    ``readLimit``, ``maxCellTsPairsToExamine``, "1,000", "Target number of (cell, timestamp) pairs to examine in a single run."
-   ``candidateBatchHint``, ``candidate-batch-hint``, "1", "Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
-   ``deleteBatchHint``, ``delete-batch-hint``, "1,000", "Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance."
+   ``candidateBatchHint``, ``candidateBatchSize``, "1", "Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
+   ``deleteBatchHint``, ``deleteBatchSize``, "1,000", "Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance."
    ``pauseMillis``, "Only specified in config", "5000 ms", "Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours."
 
 .. csv-table::
