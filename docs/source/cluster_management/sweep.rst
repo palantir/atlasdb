@@ -5,7 +5,7 @@ AtlasDB Sweep Job
 
 .. warning::
 
-   Running the Sweep Job while taking a Backup can cause **SEVERE DATA CORRUPTION** to your Backup.
+   If you're using sweep through either a) the deprecated Sweep CLI or b) the background sweeper on AtlasDB < 0.32.0, it can cause **SEVERE DATA CORRUPTION** to any ongoing backups.
 
 Under normal usage, the data written to the key value service backing AtlasDB is never updated or deleted.
 When a row in AtlasDB is "updated", a new version of the row with a higher timestamp is written.
