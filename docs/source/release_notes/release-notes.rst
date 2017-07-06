@@ -62,6 +62,10 @@ develop
            service, as they may also be vulnerable to this failure mode.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2091>`__)
 
+    *    - |fixed|
+         - Fixed a bug that caused hidden tables to be wiped when they were read from console.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2106>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
