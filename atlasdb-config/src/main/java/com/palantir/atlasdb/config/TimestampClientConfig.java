@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @JsonSerialize(as = ImmutableTimestampClientConfig.class)
 @JsonDeserialize(as = ImmutableTimestampClientConfig.class)
-@Value.Immutable
+@Value.Immutable(singleton = true)
 public abstract class TimestampClientConfig {
     @Value.Parameter
     @Value.Default

@@ -48,10 +48,9 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
-import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
-import com.palantir.atlasdb.factory.timestamp.DynamicDecoratedTimestampService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.factory.timestamp.DynamicDecoratedTimestampService;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -218,7 +217,7 @@ public final class TransactionManagers {
                 config,
                 JavaSuppliers.compose(runtimeConfig ->
                                 runtimeConfig.map(AtlasDbRuntimeConfig::timestampClient)
-                                        .orElse(ImmutableTimestampClientConfig.builder().build()),
+                                        .orElse(ImmutableTimestampClientConfig.of()),
                         runtimeConfigSupplier),
                 env,
                 () -> LockServiceImpl.create(lockServerOptions),

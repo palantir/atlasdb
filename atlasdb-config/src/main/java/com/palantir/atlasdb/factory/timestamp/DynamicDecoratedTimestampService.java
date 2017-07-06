@@ -29,16 +29,16 @@ import com.palantir.timestamp.TimestampService;
 
 public class DynamicDecoratedTimestampService implements TimestampService {
     private final TimestampService decoratedService;
-    private final TimestampService delegateService;
+    private final TimestampService defaultService;
     private final Supplier<Boolean> shouldDecorate;
 
     @VisibleForTesting
     DynamicDecoratedTimestampService(
             TimestampService decoratedService,
-            TimestampService delegateService,
+            TimestampService defaultService,
             Supplier<Boolean> shouldDecorate) {
         this.decoratedService = decoratedService;
-        this.delegateService = delegateService;
+        this.defaultService = defaultService;
         this.shouldDecorate = shouldDecorate;
     }
 
@@ -55,7 +55,7 @@ public class DynamicDecoratedTimestampService implements TimestampService {
         if (shouldDecorate.get()) {
             return decoratedService.getFreshTimestamp();
         }
-        return delegateService.getFreshTimestamp();
+        return defaultService.getFreshTimestamp();
     }
 
     @Override
@@ -63,6 +63,6 @@ public class DynamicDecoratedTimestampService implements TimestampService {
         if (shouldDecorate.get()) {
             return decoratedService.getFreshTimestamps(numTimestampsRequested);
         }
-        return delegateService.getFreshTimestamps(numTimestampsRequested);
+        return defaultService.getFreshTimestamps(numTimestampsRequested);
     }
 }
