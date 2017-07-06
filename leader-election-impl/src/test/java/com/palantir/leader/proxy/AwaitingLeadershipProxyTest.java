@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
@@ -78,14 +79,14 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldMapInterruptedExceptionToNCLEIfLeadingStatusChanges() throws InterruptedException {
+    public void shouldMapInterruptedExceptionToNCLEIfLeadingStatusChanges() throws Exception {
         //leadership lost while request in flight
-        TestRunnableWhichThrows proxy = getRunnableProxyWithCheckedException(
+        Callable proxy = getRunnableProxyWithCheckedException(
                 new InterruptedException(TEST_MESSAGE),
                 LeaderElectionService.StillLeadingStatus.LEADING,
                 LeaderElectionService.StillLeadingStatus.NOT_LEADING);
 
-        assertThatThrownBy(proxy::run).isInstanceOf(NotCurrentLeaderException.class)
+        assertThatThrownBy(proxy::call).isInstanceOf(NotCurrentLeaderException.class)
                 .hasMessage("received an interrupt due to leader election.")
                 .hasCauseExactlyInstanceOf(InterruptedException.class)
                 .hasStackTraceContaining(TEST_MESSAGE);
@@ -94,42 +95,41 @@ public class AwaitingLeadershipProxyTest {
     @Test
     public void shouldNotMapInterruptedExceptionToNCLEIfLeadingStatusDoesntChange() throws InterruptedException {
         //Always leading
-        TestRunnableWhichThrows proxy = getRunnableProxyWithCheckedException(
+        Callable proxy = getRunnableProxyWithCheckedException(
                 new InterruptedException(TEST_MESSAGE),
                 LeaderElectionService.StillLeadingStatus.LEADING,
                 LeaderElectionService.StillLeadingStatus.LEADING);
 
-        assertThatThrownBy(proxy::run).isInstanceOf(InterruptedException.class)
-                .hasMessage(TEST_MESSAGE);
+        assertThatThrownBy(proxy::call).isInstanceOf(InterruptedException.class).hasMessage(TEST_MESSAGE);
     }
 
     @Test
     public void shouldNotMapOtherExceptionToNCLEIfLeadingStatusChanges() throws InterruptedException {
         //leadership lost while request in flight
-        TestRunnableWhichThrows proxy = getRunnableProxyWithCheckedException(
+        Callable proxy = getRunnableProxyWithCheckedException(
                 new IOException(TEST_MESSAGE),
                 LeaderElectionService.StillLeadingStatus.LEADING,
                 LeaderElectionService.StillLeadingStatus.NOT_LEADING);
 
-        assertThatThrownBy(proxy::run).isNotInstanceOf(NotCurrentLeaderException.class).isInstanceOf(IOException.class);
+        assertThatThrownBy(proxy::call).isNotInstanceOf(NotCurrentLeaderException.class).isInstanceOf(IOException.class);
     }
 
-    private TestRunnableWhichThrows getRunnableProxyWithCheckedException(
+    private Callable getRunnableProxyWithCheckedException(
             Exception ex,
             LeaderElectionService.StillLeadingStatus status1,
             LeaderElectionService.StillLeadingStatus status2) throws InterruptedException {
 
-        TestRunnableWhichThrows runnableWithInterruptedException = () -> {
+        Callable runnableWithInterruptedException = () -> {
             throw ex;
         };
 
-        Supplier<TestRunnableWhichThrows> delegateSupplier = Suppliers.ofInstance(
+        Supplier<Callable> delegateSupplier = Suppliers.ofInstance(
                 runnableWithInterruptedException);
         LeaderElectionService mockLeaderService = mock(LeaderElectionService.class);
         setUpTheLeaderElectionService(mockLeaderService, status1, status2);
 
-        TestRunnableWhichThrows proxy = AwaitingLeadershipProxy.newProxyInstance(
-                TestRunnableWhichThrows.class, delegateSupplier, mockLeaderService);
+        Callable proxy = AwaitingLeadershipProxy.newProxyInstance(
+                Callable.class, delegateSupplier, mockLeaderService);
 
         //waiting for trytoGainLeadership
         Uninterruptibles.sleepUninterruptibly(3, TimeUnit.SECONDS);
