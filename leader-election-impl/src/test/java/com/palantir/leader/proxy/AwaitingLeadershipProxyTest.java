@@ -18,7 +18,6 @@ package com.palantir.leader.proxy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -171,7 +170,8 @@ public class AwaitingLeadershipProxyTest {
             LeaderElectionService.StillLeadingStatus status2)
             throws InterruptedException {
         LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
-        when(mockLeaderService.blockOnBecomingLeader()).thenReturn(getToken(status1, leadershipToken), getToken(status2, leadershipToken));
+        when(mockLeaderService.blockOnBecomingLeader()).thenReturn(getToken(status1, leadershipToken),
+                getToken(status2, leadershipToken));
         when(mockLeaderService.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
         when(mockLeaderService.isStillLeading(leadershipToken)).thenReturn(status1, status2);
     }
