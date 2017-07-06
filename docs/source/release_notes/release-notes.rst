@@ -62,6 +62,9 @@ develop
            service, as they may also be vulnerable to this failure mode.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2091>`__)
 
+    *    - |new|
+         - Enable background sweep by default on AtlasDB.
+           Background sweep is now considered safe for all use cases. Please delete any custom configs regarding background sweep to use the recommended default values.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
