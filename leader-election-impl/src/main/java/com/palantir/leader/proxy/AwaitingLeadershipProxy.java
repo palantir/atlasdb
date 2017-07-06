@@ -183,7 +183,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 markAsNotLeading(leadershipToken, e.getCause());
             }
             // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts in case of a leader election.
-            if (e.getTargetException() instanceof InterruptedException && !stillLeading(leadershipToken)) {
+            if (e.getTargetException() instanceof InterruptedException && !isStillCurrentToken(leadershipToken)) {
                 throw notCurrentLeaderException("received an interrupt due to leader election.",
                         e.getTargetException());
             }
@@ -191,7 +191,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
     }
 
-    private boolean stillLeading(LeadershipToken leadershipToken) {
+    private boolean isStillCurrentToken(LeadershipToken leadershipToken) {
         return leadershipTokenRef.get() == leadershipToken;
     }
 
