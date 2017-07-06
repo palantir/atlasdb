@@ -21,34 +21,45 @@ import java.util.List;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 
-public class PageJoiningIterator<T> extends AbstractIterator<List<T>> {
-    private final Iterator<List<T>> sourceIterator;
+public class CandidatePageJoiningIterator extends AbstractIterator<List<CandidateCellForSweeping>> {
+    private final Iterator<List<CandidateCellForSweeping>> sourceIterator;
     private final int minPageSize;
 
-    public PageJoiningIterator(Iterator<List<T>> sourceIterator, int minPageSize) {
+    public CandidatePageJoiningIterator(Iterator<List<CandidateCellForSweeping>> sourceIterator, int minPageSize) {
         this.sourceIterator = sourceIterator;
         this.minPageSize = minPageSize;
     }
 
     @Override
-    protected List<T> computeNext() {
+    protected List<CandidateCellForSweeping> computeNext() {
         if (!sourceIterator.hasNext()) {
             return endOfData();
         } else {
-            List<T> page = sourceIterator.next();
-            if (page.size() >= minPageSize) {
+            List<CandidateCellForSweeping> page = sourceIterator.next();
+            int pageSize = getSizeOfPage(page);
+            if (pageSize >= minPageSize) {
                 return page;
             } else {
-                List<T> ret = Lists.newArrayList();
+                List<CandidateCellForSweeping> ret = Lists.newArrayList();
+                int retSize = pageSize;
                 ret.addAll(page);
                 // The order is important: calling hasNext() is expensive,
                 // so we should check first if we reached the desired page size
-                while (ret.size() < minPageSize && sourceIterator.hasNext()) {
-                    ret.addAll(sourceIterator.next());
+                while (retSize < minPageSize && sourceIterator.hasNext()) {
+                    List<CandidateCellForSweeping> nextPage = sourceIterator.next();
+                    retSize += getSizeOfPage(nextPage);
+                    ret.addAll(nextPage);
                 }
                 return ret.isEmpty() ? endOfData() : ret;
             }
         }
+    }
+
+    private static int getSizeOfPage(List<CandidateCellForSweeping> page) {
+        // If a cell doesn't have any timestamps (i.e., is not a candidate), we don't want count
+        // it as zero because it still takes memory. Hence max(1, ...).
+        return page.stream().mapToInt(c -> Math.max(1, c.sortedTimestamps().length)).sum();
     }
 }

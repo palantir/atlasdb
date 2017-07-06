@@ -138,7 +138,7 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
         return ClosableIterators.wrap(
                 // Pages returned from rawIterator can be small or even empty,
                 // so we need to re-partition them
-                new PageJoiningIterator<>(rawIterator, request.batchSizeHint().orElse(DEFAULT_BATCH_SIZE)));
+                new CandidatePageJoiningIterator(rawIterator, request.batchSizeHint().orElse(DEFAULT_BATCH_SIZE)));
     }
 
     private class PageIterator extends AbstractIterator<List<CandidateCellForSweeping>> {
