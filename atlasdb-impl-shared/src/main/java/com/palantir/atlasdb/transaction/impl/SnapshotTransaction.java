@@ -147,6 +147,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private static final Logger perfLogger = LoggerFactory.getLogger("dualschema.perf");
     private static final Logger constraintLogger = LoggerFactory.getLogger("dualschema.constraints");
 
+    private static final long LOCK_ACQUISITION_TIMEOUT_MS = 45_000L;
+
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
 
     private enum State {
@@ -1582,7 +1584,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     protected LockTokenV2 acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
-        return timelockService.lock(LockRequestV2.of(lockDescriptors));
+
+        // TODO(nziebart): make this timeout configurable / think about desired behavior here
+        Optional<LockTokenV2> token = timelockService.lock(LockRequestV2.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
+        Preconditions.checkState(token.isPresent(), "Timed out while acquiring commit locks");
+        return token.get();
     }
 
     protected Set<LockDescriptor> getLocksForWrites() {
@@ -1645,7 +1651,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        timelockService.waitForLocks(WaitForLocksRequest.of(lockDescriptors));
+        // TODO(nziebart): make this timeout configurable / think about desired behavior here
+        boolean wasSuccessful = timelockService.waitForLocks(WaitForLocksRequest.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
+        Preconditions.checkState(wasSuccessful, "Timed out while waiting for commits to complete");
     }
 
     ///////////////////////////////////////////////////////////////////////////

@@ -24,12 +24,13 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.junit.Test;
 
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockTokenV2;
@@ -44,8 +45,12 @@ public class AsyncLockServiceEteTest {
     private static final String LOCK_C = "c";
     private static final String LOCK_D = "d";
 
+    private static final long DEADLINE = System.currentTimeMillis() + 30_000L;
+
+
     private final AsyncLockService service = new AsyncLockService(
-            new LockCollection(),
+            new LockCollection(() -> new ExclusiveLock(
+                    new DelayedExecutor(Executors.newSingleThreadScheduledExecutor(), System::currentTimeMillis))),
             new ImmutableTimestampTracker(),
             new LockAcquirer(),
             new HeldLocksCollection(),
@@ -74,37 +79,37 @@ public class AsyncLockServiceEteTest {
     public void waitingRequestGetsTheLockAfterItIsUnlocked() {
         LockTokenV2 request1 = lockSynchronously(REQUEST_1, LOCK_A);
 
-        CompletableFuture<LockTokenV2> request2 = lock(REQUEST_2, LOCK_A);
-        assertNotCompleted(request2);
+        AsyncResult<LockTokenV2> request2 = lock(REQUEST_2, LOCK_A);
+        assertThat(request2.isComplete()).isFalse();
 
         service.unlock(request1);
-        assertCompletedSuccessfully(request2);
+        assertThat(request2.isCompletedSuccessfully()).isTrue();
     }
 
     @Test
     public void waitingRequestGetsTheLockAfterItIsUnlockedWithMultipleLocks() {
         LockTokenV2 request1 = lockSynchronously(REQUEST_1, LOCK_A, LOCK_C);
 
-        CompletableFuture<LockTokenV2> request2 = lock(REQUEST_2, LOCK_A, LOCK_B, LOCK_C, LOCK_D);
-        assertNotCompleted(request2);
+        AsyncResult<LockTokenV2> request2 = lock(REQUEST_2, LOCK_A, LOCK_B, LOCK_C, LOCK_D);
+        assertThat(request2.isComplete()).isFalse();
 
         service.unlock(request1);
-        assertCompletedSuccessfully(request2);
+        assertThat(request2.isCompletedSuccessfully()).isTrue();
     }
 
     @Test
     public void requestsAreIdempotentDuringAcquisitionPhase() {
         LockTokenV2 currentHolder = lockSynchronously(REQUEST_1, LOCK_A);
 
-        CompletableFuture<LockTokenV2> tokenFuture = lock(REQUEST_2, LOCK_A);
-        CompletableFuture<LockTokenV2> duplicateFuture = lock(REQUEST_2, LOCK_A);
+        AsyncResult<LockTokenV2> tokenResult = lock(REQUEST_2, LOCK_A);
+        AsyncResult<LockTokenV2> duplicateResult = lock(REQUEST_2, LOCK_A);
 
         service.unlock(currentHolder);
 
-        LockTokenV2 token = assertCompletedSuccessfully(tokenFuture);
-        LockTokenV2 duplicate = assertCompletedSuccessfully(duplicateFuture);
+        assertThat(tokenResult.isCompletedSuccessfully()).isTrue();
+        assertThat(duplicateResult.isCompletedSuccessfully()).isTrue();
 
-        assertThat(token).isEqualTo(duplicate);
+        assertThat(tokenResult.get()).isEqualTo(duplicateResult.get());
     }
 
     @Test
@@ -149,7 +154,7 @@ public class AsyncLockServiceEteTest {
     @Test
     public void canLockAndUnlockImmutableTimestamp() {
         long timestamp = 123L;
-        LockTokenV2 token = service.lockImmutableTimestamp(REQUEST_1, timestamp).join();
+        LockTokenV2 token = service.lockImmutableTimestamp(REQUEST_1, timestamp).get();
 
         assertThat(service.getImmutableTimestamp().get()).isEqualTo(123L);
 
@@ -162,12 +167,12 @@ public class AsyncLockServiceEteTest {
     public void canWaitForLock() {
         LockTokenV2 lockAHolder = lockSynchronously(REQUEST_1, LOCK_A);
 
-        CompletableFuture<Void> waitFuture = waitForLocks(REQUEST_2, LOCK_A);
-        assertNotCompleted(waitFuture);
+        AsyncResult<Void> waitResult = waitForLocks(REQUEST_2, LOCK_A);
+        assertThat(waitResult.isComplete()).isFalse();
 
         service.unlock(lockAHolder);
 
-        assertCompletedSuccessfully(waitFuture);
+        assertThat(waitResult.isCompletedSuccessfully()).isTrue();
         assertNotLocked(LOCK_A);
     }
 
@@ -175,31 +180,86 @@ public class AsyncLockServiceEteTest {
     public void canWaitForMultipleLocks() {
         LockTokenV2 lockAHolder = lockSynchronously(REQUEST_1, LOCK_B, LOCK_C);
 
-        CompletableFuture<Void> waitFuture = waitForLocks(REQUEST_2, LOCK_A, LOCK_B, LOCK_C);
-        assertNotCompleted(waitFuture);
+        AsyncResult<Void> waitResult = waitForLocks(REQUEST_2, LOCK_A, LOCK_B, LOCK_C);
+        assertThat(waitResult.isComplete()).isFalse();
         assertNotLocked(LOCK_A);
 
         service.unlock(lockAHolder);
 
-        assertCompletedSuccessfully(waitFuture);
+        assertThat(waitResult.isCompletedSuccessfully()).isTrue();
         assertNotLocked(LOCK_A);
         assertNotLocked(LOCK_C);
     }
 
-    private void assertNotCompleted(CompletableFuture<?> request) {
-        assertFalse(request.isDone());
+    @Test
+    public void lockRequestTimesOutWhenDeadlinePasses() {
+        lockSynchronously(REQUEST_1, LOCK_A);
+
+        long deadline = System.currentTimeMillis() + 500L;
+        AsyncResult<LockTokenV2> result = service.lock(REQUEST_2, descriptors(LOCK_A), deadline);
+        assertThat(result.isTimedOut()).isFalse();
+
+        waitForDeadline(deadline);
+
+        assertThat(result.isTimedOut()).isTrue();
+    }
+
+    @Test
+    public void waitForLocksRequestTimesOutWhenDeadlinePasses() {
+        lockSynchronously(REQUEST_1, LOCK_A);
+
+        long deadline = System.currentTimeMillis() + 500L;
+        AsyncResult<Void> result = service.waitForLocks(REQUEST_2, descriptors(LOCK_A), deadline);
+        assertThat(result.isTimedOut()).isFalse();
+
+        waitForDeadline(deadline);
+
+        assertThat(result.isTimedOut()).isTrue();
+    }
+
+    @Test
+    public void lockRequestTimesOutIfDeadlineIsAlreadyPast() {
+        lockSynchronously(REQUEST_1, LOCK_A);
+
+        long deadline = System.currentTimeMillis() + 500L;
+        AsyncResult<LockTokenV2> result = service.lock(REQUEST_2, descriptors(LOCK_A), deadline);
+
+        Uninterruptibles.sleepUninterruptibly(1000L, TimeUnit.MILLISECONDS);
+
+        assertThat(result.isTimedOut()).isTrue();
+    }
+
+    @Test
+    public void timedOutRequestDoesNotHoldLocks() {
+        LockTokenV2 lockBToken = lockSynchronously(REQUEST_1, LOCK_B);
+
+        long deadline = System.currentTimeMillis() + 500L;
+        service.lock(REQUEST_2, descriptors(LOCK_A, LOCK_B), deadline);
+
+        waitForDeadline(deadline);
+
+        assertNotLocked(LOCK_A);
+        service.unlock(lockBToken);
+        assertNotLocked(LOCK_B);
+    }
+
+    private void waitForDeadline(long deadline) {
+        long buffer = 250L;
+        while (System.currentTimeMillis() < deadline + buffer) {
+            Uninterruptibles.sleepUninterruptibly(buffer, TimeUnit.MILLISECONDS);
+        }
     }
 
     private LockTokenV2 lockSynchronously(UUID requestId, String... locks) {
-        return assertCompletedSuccessfully(lock(requestId, locks));
+        return lock(requestId, locks).get();
     }
 
-    private CompletableFuture<LockTokenV2> lock(UUID requestId, String... locks) {
-        return service.lock(requestId, descriptors(locks));
+    private AsyncResult<LockTokenV2> lock(UUID requestId, String... locks) {
+        return service.lock(requestId, descriptors(locks), DEADLINE);
     }
 
-    private CompletableFuture<Void> waitForLocks(UUID requestId, String... locks) {
-        return service.waitForLocks(requestId, descriptors(locks));
+    private AsyncResult<Void> waitForLocks(UUID requestId, String... locks) {
+        return service.waitForLocks(requestId, descriptors(locks), DEADLINE);
     }
 
     private Set<LockDescriptor> descriptors(String... locks) {
@@ -208,21 +268,16 @@ public class AsyncLockServiceEteTest {
                 .collect(Collectors.toSet());
     }
 
-    private <T> T assertCompletedSuccessfully(CompletableFuture<T> future) {
-        assertTrue(future.isDone());
-        return future.join();
-    }
-
     private void assertNotLocked(String lock) {
         LockTokenV2 token = lockSynchronously(UUID.randomUUID(), lock);
         assertTrue(service.unlock(token));
     }
 
     private void assertLocked(String... locks) {
-        CompletableFuture<LockTokenV2> future = lock(UUID.randomUUID(), locks);
-        assertFalse(future.isDone());
+        AsyncResult<LockTokenV2> result = lock(UUID.randomUUID(), locks);
+        assertFalse(result.isComplete());
 
-        future.thenAccept(token -> service.unlock(token));
+        result.map(token -> service.unlock(token));
     }
 
 }

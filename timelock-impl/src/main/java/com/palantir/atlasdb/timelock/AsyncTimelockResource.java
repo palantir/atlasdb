@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.timelock;
 
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -26,8 +26,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
+import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
@@ -73,12 +73,14 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock")
     public void lock(@Suspended final AsyncResponse response, LockRequestV2 request) {
-        CompletableFuture<LockTokenV2> future = timelock.lock(request);
-        future.whenComplete((token, error) -> {
-            if (error != null) {
-                response.resume(error);
+        AsyncResult<LockTokenV2> future = timelock.lock(request);
+        future.onComplete(() -> {
+            if (future.isFailed()) {
+                response.resume(future.getError());
+            } else if (future.isTimedOut()) {
+                response.resume(Optional.empty());
             } else {
-                response.resume(token);
+                response.resume(Optional.of(future.get()));
             }
         });
     }
@@ -86,12 +88,14 @@ public class AsyncTimelockResource {
     @POST
     @Path("await-locks")
     public void waitForLocks(@Suspended final AsyncResponse response, WaitForLocksRequest request) {
-        CompletableFuture<Void> future = timelock.waitForLocks(request);
-        future.whenComplete((result, error) -> {
-            if (error != null) {
-                response.resume(error);
+        AsyncResult<Void> future = timelock.waitForLocks(request);
+        future.onComplete(() -> {
+            if (future.isFailed()) {
+                response.resume(false);
+            } else if (future.isTimedOut()) {
+                response.resume(Optional.empty());
             } else {
-                response.resume(Response.noContent().build());
+                response.resume(true);
             }
         });
     }

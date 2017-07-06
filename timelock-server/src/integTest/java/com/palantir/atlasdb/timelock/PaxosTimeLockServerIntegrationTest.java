@@ -116,6 +116,8 @@ public class PaxosTimeLockServerIntegrationTest {
             .blockForAtMost(SimpleTimeDuration.of(4, TimeUnit.SECONDS))
             .build();
 
+    private static final LockRequestV2 LOCK_REQUEST_V2 = LockRequestV2.of(ImmutableSet.of(LOCK_1), 10_000L);
+
     private final TimestampService timestampService = getTimestampService(CLIENT_1);
     private final TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
 
@@ -270,9 +272,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void asyncLockServiceShouldAllowUsToTakeOutLocks() throws InterruptedException {
         TimelockService timelockService = getTimelockService(CLIENT_1);
 
-        LockTokenV2 token = timelockService.lock(LockRequestV2.of(ImmutableSet.of(LOCK_1)));
-
-        assertThat(token).isNotNull();
+        LockTokenV2 token = timelockService.lock(LOCK_REQUEST_V2).get();
 
         assertThat(timelockService.unlock(ImmutableSet.of(token))).contains(token);
     }
@@ -282,11 +282,8 @@ public class PaxosTimeLockServerIntegrationTest {
         TimelockService lockService1 = getTimelockService(CLIENT_1);
         TimelockService lockService2 = getTimelockService(CLIENT_2);
 
-        LockTokenV2 token1 = lockService1.lock(LockRequestV2.of(ImmutableSet.of(LOCK_1)));
-        LockTokenV2 token2 = lockService2.lock(LockRequestV2.of(ImmutableSet.of(LOCK_1)));
-
-        assertThat(token1).isNotNull();
-        assertThat(token2).isNotNull();
+        LockTokenV2 token1 = lockService1.lock(LOCK_REQUEST_V2).get();
+        LockTokenV2 token2 = lockService2.lock(LOCK_REQUEST_V2).get();
 
         lockService1.unlock(ImmutableSet.of(token1));
         lockService2.unlock(ImmutableSet.of(token2));
@@ -297,9 +294,8 @@ public class PaxosTimeLockServerIntegrationTest {
         TimelockService lockService1 = getTimelockService(CLIENT_1);
         TimelockService lockService2 = getTimelockService(CLIENT_2);
 
-        LockTokenV2 token = lockService1.lock(LockRequestV2.of(ImmutableSet.of(LOCK_1)));
+        LockTokenV2 token = lockService1.lock(LOCK_REQUEST_V2).get();
 
-        assertThat(token).isNotNull();
         assertThat(lockService1.refreshLockLeases(ImmutableSet.of(token))).isNotEmpty();
         assertThat(lockService2.refreshLockLeases(ImmutableSet.of(token))).isEmpty();
 

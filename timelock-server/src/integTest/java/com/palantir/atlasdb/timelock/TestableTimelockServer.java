@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.timelock;
 
+import java.util.Optional;
+
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
@@ -52,7 +54,7 @@ public class TestableTimelockServer {
         return timestampService().getFreshTimestamp();
     }
 
-    public LockTokenV2 lock(LockRequestV2 lockRequest) throws InterruptedException {
+    public Optional<LockTokenV2> lock(LockRequestV2 lockRequest) throws InterruptedException {
         return timelockService().lock(lockRequest);
     }
 

@@ -67,6 +67,8 @@ public class LegacyTimelockServiceTest {
     private final TimestampService timestampService = mock(TimestampService.class);
     private final RemoteLockService lockService = mock(RemoteLockService.class);
 
+    private static final long TIMEOUT = 10_000;
+
     private final TimelockService timelock = new LegacyTimelockService(timestampService, lockService, LOCK_CLIENT);
 
     @Before
@@ -126,7 +128,7 @@ public class LegacyTimelockServiceTest {
 
         when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
 
-        assertEquals(LOCK_TOKEN_V2, timelock.lock(LockRequestV2.of(ImmutableSet.of(LOCK_A, LOCK_B))));
+        assertEquals(LOCK_TOKEN_V2, timelock.lock(LockRequestV2.of(ImmutableSet.of(LOCK_A, LOCK_B), TIMEOUT)));
         verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
     }
 
@@ -136,7 +138,7 @@ public class LegacyTimelockServiceTest {
 
         when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
 
-        timelock.waitForLocks(WaitForLocksRequest.of(ImmutableSet.of(LOCK_A, LOCK_B)));
+        timelock.waitForLocks(WaitForLocksRequest.of(ImmutableSet.of(LOCK_A, LOCK_B), TIMEOUT));
         verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
     }
 

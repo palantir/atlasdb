@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -153,7 +154,7 @@ public class TestableTimelockCluster {
         return lockService().unlock(token);
     }
 
-    public LockTokenV2 lock(LockRequestV2 requestV2) {
+    public Optional<LockTokenV2> lock(LockRequestV2 requestV2) {
         return timelockService().lock(requestV2);
     }
 

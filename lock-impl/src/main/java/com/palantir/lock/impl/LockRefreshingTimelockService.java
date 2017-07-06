@@ -16,6 +16,7 @@
 
 package com.palantir.lock.impl;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -75,15 +76,15 @@ public class LockRefreshingTimelockService implements TimelockService {
     }
 
     @Override
-    public LockTokenV2 lock(LockRequestV2 request) {
-        LockTokenV2 response = delegate.lock(request);
-        lockRefresher.registerLock(response);
-        return response;
+    public Optional<LockTokenV2> lock(LockRequestV2 request) {
+        Optional<LockTokenV2> maybeToken = delegate.lock(request);
+        maybeToken.ifPresent(lockRefresher::registerLock);
+        return maybeToken;
     }
 
     @Override
-    public void waitForLocks(WaitForLocksRequest request) {
-        delegate.waitForLocks(request);
+    public boolean waitForLocks(WaitForLocksRequest request) {
+        return delegate.waitForLocks(request);
     }
 
     @Override

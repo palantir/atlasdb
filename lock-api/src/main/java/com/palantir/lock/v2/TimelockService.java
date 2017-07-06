@@ -16,6 +16,7 @@
 
 package com.palantir.lock.v2;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
@@ -50,11 +51,11 @@ public interface TimelockService {
 
     @POST
     @Path("lock")
-    LockTokenV2 lock(LockRequestV2 request);
+    Optional<LockTokenV2> lock(LockRequestV2 request);
 
     @POST
     @Path("await-locks")
-    void waitForLocks(WaitForLocksRequest request);
+    boolean waitForLocks(WaitForLocksRequest request);
 
     @POST
     @Path("refresh-locks")

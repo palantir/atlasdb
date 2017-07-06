@@ -24,7 +24,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -41,8 +40,8 @@ public class HeldLocksCollectionTest {
 
     @Test
     public void callsSupplierForNewRequest() {
-        Supplier<CompletableFuture<HeldLocks>> supplier = mock(Supplier.class);
-        when(supplier.get()).thenReturn(new CompletableFuture<>());
+        Supplier<AsyncResult<HeldLocks>> supplier = mock(Supplier.class);
+        when(supplier.get()).thenReturn(new AsyncResult<>());
         heldLocksCollection.getExistingOrAcquire(REQUEST_ID, supplier);
 
         verify(supplier).get();
@@ -50,9 +49,9 @@ public class HeldLocksCollectionTest {
 
     @Test
     public void doesNotCallSupplierForExistingRequest() {
-        heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> new CompletableFuture<>());
+        heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> new AsyncResult<>());
 
-        Supplier<CompletableFuture<HeldLocks>> supplier = mock(Supplier.class);
+        Supplier<AsyncResult<HeldLocks>> supplier = mock(Supplier.class);
         heldLocksCollection.getExistingOrAcquire(REQUEST_ID, supplier);
 
         verifyNoMoreInteractions(supplier);
@@ -60,10 +59,10 @@ public class HeldLocksCollectionTest {
 
     @Test
     public void tracksRequests() {
-        CompletableFuture<HeldLocks> future = new CompletableFuture<>();
-        heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> future);
+        AsyncResult<HeldLocks> result = new AsyncResult<>();
+        heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
 
-        assertThat(heldLocksCollection.heldLocksById.get(REQUEST_ID)).isEqualTo(future);
+        assertThat(heldLocksCollection.heldLocksById.get(REQUEST_ID)).isEqualTo(result);
     }
 
     @Test
@@ -144,8 +143,8 @@ public class HeldLocksCollectionTest {
 
     private LockTokenV2 mockFailedRequest() {
         LockTokenV2 request = LockTokenV2.of(UUID.randomUUID());
-        CompletableFuture failedLocks = new CompletableFuture();
-        failedLocks.completeExceptionally(new RuntimeException());
+        AsyncResult failedLocks = new AsyncResult();
+        failedLocks.fail(new RuntimeException());
 
         heldLocksCollection.getExistingOrAcquire(request.getRequestId(), () -> failedLocks);
 
@@ -157,8 +156,10 @@ public class HeldLocksCollectionTest {
         HeldLocks heldLocks = mock(HeldLocks.class);
         mockApplier.accept(heldLocks);
 
+        AsyncResult<HeldLocks> completedResult = new AsyncResult<>();
+        completedResult.complete(heldLocks);
         heldLocksCollection.getExistingOrAcquire(request.getRequestId(),
-                () -> CompletableFuture.completedFuture(heldLocks));
+                () -> completedResult);
 
         return request;
     }

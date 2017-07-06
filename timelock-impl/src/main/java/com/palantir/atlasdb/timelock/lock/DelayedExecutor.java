@@ -16,14 +16,27 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-public interface AsyncLock {
+import com.palantir.common.time.Clock;
 
-    AsyncResult<Void> lock(UUID requestId, long timeoutMs);
+public class DelayedExecutor {
 
-    AsyncResult<Void> waitUntilAvailable(UUID requestId, long timeoutMs);
+    private final ScheduledExecutorService executor;
+    private final Clock clock;
 
-    void unlock(UUID requestId);
+    public DelayedExecutor(ScheduledExecutorService executor, Clock clock) {
+        this.executor = executor;
+        this.clock = clock;
+    }
+
+    public void runAt(Runnable task, long deadlineMs) {
+        long delay = Math.max(0L, deadlineMs - clock.getTimeMillis());
+        executor.schedule(
+                task,
+                delay,
+                TimeUnit.MILLISECONDS);
+    }
 
 }

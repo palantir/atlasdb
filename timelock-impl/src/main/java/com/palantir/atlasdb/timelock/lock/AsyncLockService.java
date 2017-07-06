@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.lock;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -40,9 +39,14 @@ public class AsyncLockService {
     private final HeldLocksCollection heldLocks;
     private final ImmutableTimestampTracker immutableTsTracker;
 
-    public static AsyncLockService createDefault(ScheduledExecutorService reaperExecutor) {
-        return new AsyncLockService(new LockCollection(), new ImmutableTimestampTracker(), new LockAcquirer(),
-                new HeldLocksCollection(), reaperExecutor);
+    public static AsyncLockService createDefault(ScheduledExecutorService reaperExecutor, ScheduledExecutorService cancellationExecutor) {
+        DelayedExecutor canceller = new DelayedExecutor(cancellationExecutor, System::currentTimeMillis);
+        return new AsyncLockService(
+                new LockCollection(() -> new ExclusiveLock(canceller)),
+                new ImmutableTimestampTracker(),
+                new LockAcquirer(),
+                new HeldLocksCollection(),
+                reaperExecutor);
     }
 
     public AsyncLockService(
@@ -70,35 +74,35 @@ public class AsyncLockService {
         }, 0, LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2, TimeUnit.MILLISECONDS);
     }
 
-    public CompletableFuture<LockTokenV2> lock(UUID requestId, Set<LockDescriptor> lockDescriptors) {
+    public AsyncResult<LockTokenV2> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, long deadlineMs) {
         return heldLocks.getExistingOrAcquire(
                 requestId,
-                () -> acquireLocks(requestId, lockDescriptors));
+                () -> acquireLocks(requestId, lockDescriptors, deadlineMs));
     }
 
-    public CompletableFuture<LockTokenV2> lockImmutableTimestamp(UUID requestId, long timestamp) {
+    public AsyncResult<LockTokenV2> lockImmutableTimestamp(UUID requestId, long timestamp) {
         return heldLocks.getExistingOrAcquire(
                 requestId,
                 () -> acquireImmutableTimestampLock(requestId, timestamp));
     }
 
-    public CompletableFuture<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors) {
+    public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, long deadlineMs) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
-        return lockAcquirer.waitForLocks(requestId, orderedLocks);
+        return lockAcquirer.waitForLocks(requestId, orderedLocks, deadlineMs);
     }
 
     public Optional<Long> getImmutableTimestamp() {
         return immutableTsTracker.getImmutableTimestamp();
     }
 
-    private CompletableFuture<HeldLocks> acquireLocks(UUID requestId, Set<LockDescriptor> lockDescriptors) {
+    private AsyncResult<HeldLocks> acquireLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, long deadlineMs) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
-        return lockAcquirer.acquireLocks(requestId, orderedLocks);
+        return lockAcquirer.acquireLocks(requestId, orderedLocks, deadlineMs);
     }
 
-    private CompletableFuture<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
+    private AsyncResult<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
         AsyncLock immutableTsLock = immutableTsTracker.getLockFor(timestamp);
-        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock));
+        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), Long.MAX_VALUE);
     }
 
     public boolean unlock(LockTokenV2 token) {

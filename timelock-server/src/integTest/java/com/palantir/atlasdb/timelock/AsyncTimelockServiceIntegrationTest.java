@@ -57,7 +57,7 @@ public class AsyncTimelockServiceIntegrationTest {
 
     @Test
     public void canLockRefreshAndUnlock() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A));
+        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).get();
         boolean wasRefreshed = CLUSTER.refreshLockLease(token);
         boolean wasUnlocked = CLUSTER.unlock(token);
 
@@ -67,7 +67,7 @@ public class AsyncTimelockServiceIntegrationTest {
 
     @Test
     public void locksAreExclusive() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A));
+        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).get();
         Future<LockTokenV2> futureToken = CLUSTER.lockAsync(requestFor(LOCK_A));
 
         assertNotYetLocked(futureToken);
@@ -104,7 +104,7 @@ public class AsyncTimelockServiceIntegrationTest {
 
     @Test
     public void canWaitForLocks() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A, LOCK_B));
+        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A, LOCK_B)).get();
 
         Future<?> future = CLUSTER.waitForLocksAsync(waitRequestFor(LOCK_A, LOCK_B));
         assertNotDone(future);
@@ -123,11 +123,11 @@ public class AsyncTimelockServiceIntegrationTest {
     }
 
     private LockRequestV2 requestFor(LockDescriptor... locks) {
-        return LockRequestV2.of(ImmutableSet.copyOf(locks));
+        return LockRequestV2.of(ImmutableSet.copyOf(locks), 10_000L);
     }
 
     private WaitForLocksRequest waitRequestFor(LockDescriptor... locks) {
-        return WaitForLocksRequest.of(ImmutableSet.copyOf(locks));
+        return WaitForLocksRequest.of(ImmutableSet.copyOf(locks), 10_000L);
     }
 
     private void assertNotYetLocked(Future<LockTokenV2> futureToken) {

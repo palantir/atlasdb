@@ -16,40 +16,45 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.Queue;
+import java.util.LinkedHashMap;
+import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Queues;
-import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
-import com.palantir.logsafe.SafeArg;
+import com.google.common.collect.Maps;
 
 public class ExclusiveLock implements AsyncLock {
 
     @GuardedBy("this")
-    private final Queue<LockRequest> queue = Queues.newArrayDeque();
+    private final Queue queue = new Queue();
     @GuardedBy("this")
     private UUID currentHolder = null;
 
-    @Override
-    public synchronized CompletableFuture<Void> lock(UUID requestId) {
-        return submit(new LockRequest(requestId, false));
+    private final DelayedExecutor canceller;
+
+    public ExclusiveLock(DelayedExecutor canceller) {
+        this.canceller = canceller;
     }
 
     @Override
-    public synchronized CompletableFuture<Void> waitUntilAvailable(UUID requestId) {
-        return submit(new LockRequest(requestId, true));
+    public synchronized AsyncResult<Void> lock(UUID requestId, long deadlineMs) {
+        return submit(new LockRequest(requestId, false), deadlineMs);
+    }
+
+    @Override
+    public synchronized AsyncResult<Void> waitUntilAvailable(UUID requestId, long deadlineMs) {
+        return submit(new LockRequest(requestId, true), deadlineMs);
     }
 
     @Override
     public synchronized void unlock(UUID requestId) {
-        checkIsCurrentHolder(requestId);
-
-        currentHolder = null;
-        processQueue();
+        if (Objects.equals(requestId, currentHolder)) {
+            currentHolder = null;
+            processQueue();
+        }
     }
 
     @VisibleForTesting
@@ -58,47 +63,37 @@ public class ExclusiveLock implements AsyncLock {
     }
 
     @GuardedBy("this")
-    private CompletableFuture<Void> submit(LockRequest request) {
-        queue.add(request);
+    private AsyncResult<Void> submit(LockRequest request, long deadline) {
+        queue.enqueue(request);
         processQueue();
 
-        return request.result;
+        AsyncResult<Void> result = request.result;
+        if (!result.isComplete()) {
+            canceller.runAt(() -> cancel(request.requestId), deadline);
+        }
+        return result;
+    }
+
+    @GuardedBy("this")
+    private synchronized void cancel(UUID requestId) {
+        queue.timeoutAndRemove(requestId);
     }
 
     @GuardedBy("this")
     private void processQueue() {
         while (!queue.isEmpty() && currentHolder == null) {
-            LockRequest head = queue.poll();
+            LockRequest head = queue.dequeue();
+
             if (!head.releaseImmediately) {
                 currentHolder = head.requestId;
             }
 
-            completeRequest(head);
-        }
-    }
-
-    @GuardedBy("this")
-    private void completeRequest(LockRequest request) {
-        boolean wasCompleted = request.result.complete(null);
-        if (!wasCompleted) {
-            throw new LoggableIllegalStateException(
-                    "Request was already completed when it was granted the lock",
-                    SafeArg.of("requestId", request.requestId));
-        }
-    }
-
-    @GuardedBy("this")
-    private void checkIsCurrentHolder(UUID requestId) {
-        if (!requestId.equals(currentHolder)) {
-            throw new LoggableIllegalStateException(
-                    "ExclusiveLock may not be unlocked by a non-holder",
-                    SafeArg.of("currentHolder", currentHolder),
-                    SafeArg.of("request", requestId));
+            head.result.complete(null);
         }
     }
 
     private static class LockRequest {
-        private final CompletableFuture<Void> result = new CompletableFuture<>();
+        private final AsyncResult<Void> result = new AsyncResult<>();
         private final UUID requestId;
         private final boolean releaseImmediately;
 
@@ -106,6 +101,32 @@ public class ExclusiveLock implements AsyncLock {
             this.requestId = requestId;
             this.releaseImmediately = releaseImmediately;
         }
+    }
+
+    @NotThreadSafe
+    private static class Queue {
+
+        private final LinkedHashMap<UUID, LockRequest> queue = Maps.newLinkedHashMap();
+
+        public void enqueue(LockRequest request) {
+            queue.put(request.requestId, request);
+        }
+
+        public boolean isEmpty() {
+            return queue.isEmpty();
+        }
+
+        public LockRequest dequeue() {
+            return queue.remove(queue.keySet().iterator().next());
+        }
+
+        public void timeoutAndRemove(UUID requestId) {
+            LockRequest request = queue.remove(requestId);
+            if (request != null) {
+                request.result.timeout();
+            }
+        }
+
     }
 
 }

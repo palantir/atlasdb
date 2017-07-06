@@ -17,6 +17,7 @@
 package com.palantir.lock.impl;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -103,18 +104,19 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public LockRefreshTokenV2Adapter lock(LockRequestV2 request) {
+    public Optional<LockTokenV2> lock(LockRequestV2 request) {
         LockRequest legacyRequest = toLegacyLockRequest(request);
 
         LockRefreshToken legacyToken = lockAnonymous(legacyRequest);
-        return new LockRefreshTokenV2Adapter(legacyToken);
+        return Optional.ofNullable(legacyToken).map(LockRefreshTokenV2Adapter::new);
     }
 
     @Override
-    public void waitForLocks(WaitForLocksRequest request) {
+    public boolean waitForLocks(WaitForLocksRequest request) {
         LockRequest legacyRequest = toLegacyWaitForLocksRequest(request.getLockDescriptors());
 
         lockAnonymous(legacyRequest);
+        return true;
     }
 
     private LockRequest toLegacyLockRequest(LockRequestV2 request) {

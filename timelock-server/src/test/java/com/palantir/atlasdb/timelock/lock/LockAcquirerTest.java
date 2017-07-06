@@ -17,20 +17,18 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -38,15 +36,20 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.timelock.FakeDelayedCanceller;
 
 public class LockAcquirerTest {
 
     private static final UUID REQUEST_ID = UUID.randomUUID();
     private static final UUID OTHER_REQUEST_ID = UUID.randomUUID();
 
-    private final ExclusiveLock lockA = spy(new ExclusiveLock());
-    private final ExclusiveLock lockB = spy(new ExclusiveLock());
-    private final ExclusiveLock lockC = spy(new ExclusiveLock());
+    private static final long DEADLINE = 123L;
+
+    private final FakeDelayedCanceller canceller = new FakeDelayedCanceller();
+
+    private final ExclusiveLock lockA = spy(new ExclusiveLock(canceller));
+    private final ExclusiveLock lockB = spy(new ExclusiveLock(canceller));
+    private final ExclusiveLock lockC = spy(new ExclusiveLock(canceller));
 
     private final LockAcquirer lockAcquirer = new LockAcquirer();
 
@@ -56,88 +59,88 @@ public class LockAcquirerTest {
 
         acquire(lockA, lockB, lockC);
 
-        inOrder.verify(lockA).lock(REQUEST_ID);
-        inOrder.verify(lockB).lock(REQUEST_ID);
-        inOrder.verify(lockC).lock(REQUEST_ID);
+        inOrder.verify(lockA).lock(REQUEST_ID, DEADLINE);
+        inOrder.verify(lockB).lock(REQUEST_ID, DEADLINE);
+        inOrder.verify(lockC).lock(REQUEST_ID, DEADLINE);
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void queuesAcquisitionsForHeldLocks() {
-        lockA.lock(OTHER_REQUEST_ID);
-        lockB.lock(OTHER_REQUEST_ID);
+        lockA.lock(OTHER_REQUEST_ID, DEADLINE);
+        lockB.lock(OTHER_REQUEST_ID, DEADLINE);
 
-        CompletableFuture<HeldLocks> acquisitions = acquire(lockA, lockB);
+        AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB);
 
         lockA.unlock(OTHER_REQUEST_ID);
-        assertFalse(acquisitions.isDone());
+        assertFalse(acquisitions.isComplete());
         lockB.unlock(OTHER_REQUEST_ID);
 
-        assertCompleteSuccessfully(acquisitions);
+        assertThat(acquisitions.isCompletedSuccessfully()).isTrue();
     }
 
     @Test(timeout = 10_000)
     public void doesNotStackOverflowIfLocksAreAcquiredSynchronously() {
         List<AsyncLock> locks = IntStream.range(0, 10_000)
-                .mapToObj(i -> new ExclusiveLock())
+                .mapToObj(i -> new ExclusiveLock(canceller))
                 .collect(Collectors.toList());
 
-        CompletableFuture<HeldLocks> acquisitions = acquire(locks);
+        AsyncResult<HeldLocks> acquisitions = acquire(locks);
 
-        assertCompleteSuccessfully(acquisitions);
+        assertThat(acquisitions.isCompletedSuccessfully()).isTrue();
     }
 
     @Test(timeout = 10_000)
     public void doesNotStackOverflowIfManyRequestsWaitOnALock() {
-        lockA.lock(REQUEST_ID);
+        lockA.lock(REQUEST_ID, DEADLINE);
 
-        List<CompletableFuture<Void>> futures = IntStream.range(0, 10_000)
+        List<AsyncResult<Void>> results = IntStream.range(0, 10_000)
                 .mapToObj(i -> waitFor(lockA))
                 .collect(Collectors.toList());
 
         lockA.unlock(REQUEST_ID);
 
-        for (int i = 0; i < futures.size(); i++) {
-            assertCompleteSuccessfully(futures.get(i));
+        for (int i = 0; i < results.size(); i++) {
+            assertThat(results.get(i).isCompletedSuccessfully()).isTrue();
         }
     }
 
     @Test
     public void propagatesExceptionIfSynchronousLockAcquisitionFails() {
-        CompletableFuture<Void> lockResult = new CompletableFuture<>();
+        AsyncResult<Void> lockResult = new AsyncResult<>();
         RuntimeException error = new RuntimeException("foo");
-        lockResult.completeExceptionally(new RuntimeException("foo"));
+        lockResult.fail(error);
 
-        doReturn(lockResult).when(lockA).lock(any());
-        CompletableFuture<HeldLocks> acquisitions = acquire(lockA);
+        doReturn(lockResult).when(lockA).lock(any(), anyLong());
+        AsyncResult<HeldLocks> acquisitions = acquire(lockA);
 
-        assertThatThrownBy(() -> acquisitions.get(1, TimeUnit.MILLISECONDS)).hasCause(error);
+        assertThat(acquisitions.getError()).isEqualTo(error);
     }
 
     @Test
     public void propagatesExceptionIfAsyncLockAcquisitionFails() {
-        CompletableFuture<Void> lockResult = new CompletableFuture<>();
+        AsyncResult<Void> lockResult = new AsyncResult<>();
         RuntimeException error = new RuntimeException("foo");
-        lockResult.completeExceptionally(error);
+        lockResult.fail(error);
 
-        doReturn(lockResult).when(lockB).lock(any());
+        doReturn(lockResult).when(lockB).lock(any(), anyLong());
 
-        lockA.lock(OTHER_REQUEST_ID);
-        CompletableFuture<HeldLocks> acquisitions = acquire(lockA, lockB);
+        lockA.lock(OTHER_REQUEST_ID, DEADLINE);
+        AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB);
         lockA.unlock(OTHER_REQUEST_ID);
 
-        assertThatThrownBy(() -> acquisitions.get(1, TimeUnit.MILLISECONDS)).hasCause(error);
+        assertThat(acquisitions.getError()).isEqualTo(error);
     }
 
     @Test
     public void unlocksOnFailure() {
-        CompletableFuture<Void> lockResult = new CompletableFuture<>();
-        lockResult.completeExceptionally(new RuntimeException("foo"));
+        AsyncResult<Void> lockResult = new AsyncResult<>();
+        lockResult.fail(new RuntimeException("foo"));
 
-        doReturn(lockResult).when(lockC).lock(any());
+        doReturn(lockResult).when(lockC).lock(any(), anyLong());
 
-        CompletableFuture<HeldLocks> acquisitions = acquire(lockA, lockB, lockC);
-        assertFailed(acquisitions);
+        AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB, lockC);
+        assertThat(acquisitions.isFailed()).isTrue();
 
         assertNotLocked(lockA);
         assertNotLocked(lockB);
@@ -145,8 +148,7 @@ public class LockAcquirerTest {
 
     @Test
     public void returnsCorrectlyConfiguredHeldLocks() throws Exception {
-        CompletableFuture<HeldLocks> acquisitions = acquire(lockA, lockB);
-        HeldLocks heldLocks = acquisitions.get(1, TimeUnit.MILLISECONDS);
+        HeldLocks heldLocks = acquire(lockA, lockB).get();
 
         assertThat(heldLocks.getLocks()).contains(lockA, lockB);
         assertThat(heldLocks.getRequestId()).isEqualTo(REQUEST_ID);
@@ -156,33 +158,36 @@ public class LockAcquirerTest {
     public void waitForLocksDoesNotAcquireLocks() {
         waitFor(lockA);
 
-        verify(lockA).waitUntilAvailable(REQUEST_ID);
+        verify(lockA).waitUntilAvailable(REQUEST_ID, DEADLINE);
         verifyNoMoreInteractions(lockA);
     }
 
-    private CompletableFuture<Void> waitFor(AsyncLock... locks) {
-        return lockAcquirer.waitForLocks(REQUEST_ID, OrderedLocks.fromOrderedList(ImmutableList.copyOf(locks)));
+    @Test
+    public void stopsAcquiringIfALockRequestTimesOut() {
+        acquire(lockB);
+        AsyncResult<?> result = acquire(lockA, lockB, lockC);
+
+        canceller.tick(DEADLINE + 1L);
+
+        assertThat(result.isTimedOut()).isTrue();
+        verify(lockC, never()).lock(any(), anyLong());
     }
 
-    private CompletableFuture<HeldLocks> acquire(AsyncLock... locks) {
+    private AsyncResult<Void> waitFor(AsyncLock... locks) {
+        return lockAcquirer.waitForLocks(REQUEST_ID, OrderedLocks.fromOrderedList(ImmutableList.copyOf(locks)),
+                DEADLINE);
+    }
+
+    private AsyncResult<HeldLocks> acquire(AsyncLock... locks) {
         return acquire(ImmutableList.copyOf(locks));
     }
 
-    private CompletableFuture<HeldLocks> acquire(List<AsyncLock> locks) {
-        return lockAcquirer.acquireLocks(REQUEST_ID, OrderedLocks.fromOrderedList(locks));
-    }
-
-    private void assertFailed(CompletableFuture<HeldLocks> acquisitions) {
-        assertTrue(acquisitions.isCompletedExceptionally());
+    private AsyncResult<HeldLocks> acquire(List<AsyncLock> locks) {
+        return lockAcquirer.acquireLocks(REQUEST_ID, OrderedLocks.fromOrderedList(locks), DEADLINE);
     }
 
     private void assertNotLocked(ExclusiveLock lock) {
-        assertCompleteSuccessfully(lock.lock(UUID.randomUUID()));
-    }
-
-    private void assertCompleteSuccessfully(CompletableFuture<?> acquisitions) {
-        assertTrue(acquisitions.isDone());
-        acquisitions.join();
+        assertThat(lock.lock(UUID.randomUUID(), DEADLINE).isCompletedSuccessfully()).isTrue();
     }
 
 }

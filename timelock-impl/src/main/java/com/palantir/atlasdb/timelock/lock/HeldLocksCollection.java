@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import java.util.Iterator;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -33,14 +32,14 @@ import com.palantir.lock.v2.LockTokenV2;
 public class HeldLocksCollection {
 
     @VisibleForTesting
-    final ConcurrentMap<UUID, CompletableFuture<HeldLocks>> heldLocksById = Maps.newConcurrentMap();
+    final ConcurrentMap<UUID, AsyncResult<HeldLocks>> heldLocksById = Maps.newConcurrentMap();
 
-    public CompletableFuture<LockTokenV2> getExistingOrAcquire(
+    public AsyncResult<LockTokenV2> getExistingOrAcquire(
             UUID requestId,
-            Supplier<CompletableFuture<HeldLocks>> lockAcquirer) {
-        CompletableFuture<HeldLocks> locksFuture = heldLocksById.computeIfAbsent(
+            Supplier<AsyncResult<HeldLocks>> lockAcquirer) {
+        AsyncResult<HeldLocks> locksFuture = heldLocksById.computeIfAbsent(
                 requestId, ignored -> lockAcquirer.get());
-        return locksFuture.thenApply(HeldLocks::getToken);
+        return locksFuture.map(HeldLocks::getToken);
     }
 
     public Set<LockTokenV2> unlock(Set<LockTokenV2> tokens) {
@@ -56,35 +55,21 @@ public class HeldLocksCollection {
     }
 
     public void removeExpired() {
-        Iterator<CompletableFuture<HeldLocks>> iterator = heldLocksById.values().iterator();
+        Iterator<AsyncResult<HeldLocks>> iterator = heldLocksById.values().iterator();
         while (iterator.hasNext()) {
-            CompletableFuture<HeldLocks> locksFuture = iterator.next();
-            if (isFailed(locksFuture)) {
+            AsyncResult<HeldLocks> lockResult = iterator.next();
+            if (lockResult.isFailed() || lockResult.test(HeldLocks::unlockIfExpired)) {
                 iterator.remove();
-            } else {
-                Optional<HeldLocks> heldLocks = getIfCompleted(locksFuture);
-                if (heldLocks.isPresent() && heldLocks.get().unlockIfExpired()) {
-                    iterator.remove();
-                }
             }
         }
-    }
-
-    private Optional<HeldLocks> getCompleted(UUID requestId) {
-        CompletableFuture<HeldLocks> locksFuture = heldLocksById.get(requestId);
-        if (locksFuture == null) {
-            return Optional.empty();
-        }
-
-        return getIfCompleted(locksFuture);
     }
 
     private Set<LockTokenV2> filter(Set<LockTokenV2> tokens, Predicate<HeldLocks> predicate) {
         Set<LockTokenV2> filtered = Sets.newHashSetWithExpectedSize(tokens.size());
 
         for (LockTokenV2 token : tokens) {
-            Optional<HeldLocks> heldLocks = getCompleted(token.getRequestId());
-            if (heldLocks.isPresent() && predicate.test(heldLocks.get())) {
+            AsyncResult<HeldLocks> lockResult = heldLocksById.get(token.getRequestId());
+            if (lockResult != null && lockResult.test(predicate)) {
                 filtered.add(token);
             }
         }
@@ -94,13 +79,6 @@ public class HeldLocksCollection {
 
     private boolean isFailed(CompletableFuture<?> future) {
         return future.isCancelled() || future.isCompletedExceptionally();
-    }
-
-    private Optional<HeldLocks> getIfCompleted(CompletableFuture<HeldLocks> future) {
-        if (future.isDone() && !isFailed(future)) {
-            return Optional.of(future.join());
-        }
-        return Optional.empty();
     }
 
 }

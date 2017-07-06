@@ -31,13 +31,16 @@ import com.palantir.lock.LockDescriptor;
 public interface LockRequestV2 {
 
     @Value.Parameter
+    UUID getRequestId();
+
+    @Value.Parameter
     Set<LockDescriptor> getLockDescriptors();
 
     @Value.Parameter
-    UUID getRequestId();
+    long getAcquireTimeoutMs();
 
-    static LockRequestV2 of(Set<LockDescriptor> lockDescriptors) {
-        return ImmutableLockRequestV2.of(lockDescriptors, UUID.randomUUID());
+    static LockRequestV2 of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
+        return ImmutableLockRequestV2.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs);
     }
 
 }

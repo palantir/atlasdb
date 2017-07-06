@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doThrow;
@@ -30,8 +31,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.jmock.lib.concurrent.DeterministicScheduler;
@@ -39,6 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.timelock.FakeDelayedCanceller;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 
@@ -50,52 +50,55 @@ public class AsyncLockServiceTest {
     private static final String LOCK_B = "b";
     public static final long REAPER_PERIOD_MS = LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2;
 
+    private static final long DEADLINE = 123L;
+
     private final LockAcquirer acquirer = mock(LockAcquirer.class);
     private final LockCollection locks = mock(LockCollection.class);
-    private final HeldLocksCollection heldLocks = spy(HeldLocksCollection.class);
+    private final HeldLocksCollection heldLocks = spy(new HeldLocksCollection());
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
+    private final DelayedExecutor canceller = new FakeDelayedCanceller();
 
     private final AsyncLockService lockService = new AsyncLockService(
             locks, immutableTimestampTracker, acquirer, heldLocks, reaperExecutor);
 
     @Before
     public void before() {
-        when(acquirer.acquireLocks(any(), any())).thenReturn(new CompletableFuture<>());
-        when(locks.getAll(any())).thenReturn(OrderedLocks.fromSingleLock(new ExclusiveLock()));
+        when(acquirer.acquireLocks(any(), any(), anyLong())).thenReturn(new AsyncResult<>());
+        when(locks.getAll(any())).thenReturn(OrderedLocks.fromSingleLock(newLock()));
         when(immutableTimestampTracker.getImmutableTimestamp()).thenReturn(Optional.empty());
-        when(immutableTimestampTracker.getLockFor(anyLong())).thenReturn(new ExclusiveLock());
+        when(immutableTimestampTracker.getLockFor(anyLong())).thenReturn(newLock());
     }
 
     @Test
     public void passesOrderedLocksToAcquirer() {
-        OrderedLocks expected = orderedLocks(new ExclusiveLock(), new ExclusiveLock());
+        OrderedLocks expected = orderedLocks(newLock(), newLock());
         Set<LockDescriptor> descriptors = descriptors(LOCK_A, LOCK_B);
         when(locks.getAll(descriptors)).thenReturn(expected);
 
-        lockService.lock(REQUEST_ID, descriptors);
+        lockService.lock(REQUEST_ID, descriptors, DEADLINE);
 
-        verify(acquirer).acquireLocks(REQUEST_ID, expected);
+        verify(acquirer).acquireLocks(REQUEST_ID, expected, DEADLINE);
     }
 
     @Test
     public void passesOrderedLocksToAcquirerWhenWaitingForLocks() {
-        OrderedLocks expected = orderedLocks(new ExclusiveLock(), new ExclusiveLock());
+        OrderedLocks expected = orderedLocks(newLock(), newLock());
         Set<LockDescriptor> descriptors = descriptors(LOCK_A, LOCK_B);
         when(locks.getAll(descriptors)).thenReturn(expected);
 
-        lockService.waitForLocks(REQUEST_ID, descriptors);
+        lockService.waitForLocks(REQUEST_ID, descriptors, DEADLINE);
 
-        verify(acquirer).waitForLocks(REQUEST_ID, expected);
+        verify(acquirer).waitForLocks(REQUEST_ID, expected, DEADLINE);
     }
 
     @Test
     public void doesNotAcquireDuplicateRequests() {
         Set<LockDescriptor> descriptors = descriptors(LOCK_A);
-        lockService.lock(REQUEST_ID, descriptors);
-        lockService.lock(REQUEST_ID, descriptors);
+        lockService.lock(REQUEST_ID, descriptors, DEADLINE);
+        lockService.lock(REQUEST_ID, descriptors, DEADLINE);
 
-        verify(acquirer, times(1)).acquireLocks(any(), any());
+        verify(acquirer, times(1)).acquireLocks(any(), any(), anyLong());
         verifyNoMoreInteractions(acquirer);
     }
 
@@ -103,12 +106,12 @@ public class AsyncLockServiceTest {
     public void delegatesImmutableTimestampRequestsToTracker() {
         UUID requestId = UUID.randomUUID();
         long timestamp = 123L;
-        AsyncLock immutableTsLock = spy(new ExclusiveLock());
+        AsyncLock immutableTsLock = spy(newLock());
         when(immutableTimestampTracker.getLockFor(timestamp)).thenReturn(immutableTsLock);
 
         lockService.lockImmutableTimestamp(requestId, timestamp);
 
-        verify(acquirer).acquireLocks(requestId, orderedLocks(immutableTsLock));
+        verify(acquirer).acquireLocks(requestId, orderedLocks(immutableTsLock), Long.MAX_VALUE);
     }
 
     @Test
@@ -127,6 +130,21 @@ public class AsyncLockServiceTest {
         triggerNextReaperIteration();
 
         verify(heldLocks, times(2)).removeExpired();
+    }
+
+    @Test
+    public void propagatesTimeoutExceptionIfRequestTimesOut() {
+        AsyncResult<HeldLocks> timedOutResult = new AsyncResult<>();
+        timedOutResult.timeout();
+        when(acquirer.acquireLocks(any(), any(), anyLong())).thenReturn(timedOutResult);
+
+        AsyncResult<?> result = lockService.lock(REQUEST_ID, descriptors(LOCK_A), DEADLINE);
+
+        assertThat(result.isTimedOut()).isTrue();
+    }
+
+    private ExclusiveLock newLock() {
+        return new ExclusiveLock(canceller);
     }
 
     private Set<LockDescriptor> descriptors(String... lockNames) {

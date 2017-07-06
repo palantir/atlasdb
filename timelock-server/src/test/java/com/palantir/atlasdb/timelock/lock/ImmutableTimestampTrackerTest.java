@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import org.junit.Test;
 
@@ -32,6 +31,8 @@ public class ImmutableTimestampTrackerTest {
 
     private static final long TIMESTAMP_1 = 1L;
     private static final long TIMESTAMP_2 = 2L;
+
+    private static final long DEADLINE = 123L;
 
     private final ImmutableTimestampTracker tracker = new ImmutableTimestampTracker();
 
@@ -50,7 +51,7 @@ public class ImmutableTimestampTrackerTest {
     @Test
     public void unRegistersTimestampWhenUnlocked() {
         AsyncLock lock1 = tracker.getLockFor(TIMESTAMP_1);
-        lock1.lock(REQUEST_1);
+        lock1.lock(REQUEST_1, DEADLINE);
         lock1.unlock(REQUEST_1);
 
         assertThat(tracker.getImmutableTimestamp()).isEqualTo(Optional.empty());
@@ -59,9 +60,9 @@ public class ImmutableTimestampTrackerTest {
     @Test
     public void tracksTimestampsInOrder() {
         AsyncLock lock2 = tracker.getLockFor(TIMESTAMP_2);
-        lock2.lock(REQUEST_1);
+        lock2.lock(REQUEST_1, DEADLINE);
         AsyncLock lock1 = tracker.getLockFor(TIMESTAMP_1);
-        lock1.lock(REQUEST_2);
+        lock1.lock(REQUEST_2, DEADLINE);
 
         assertThat(tracker.getImmutableTimestamp().get()).isEqualTo(TIMESTAMP_1);
 
@@ -82,8 +83,18 @@ public class ImmutableTimestampTrackerTest {
         assertThatThrownBy(() -> unlock(TIMESTAMP_1, REQUEST_1)).isInstanceOf(IllegalStateException.class);
     }
 
-    private CompletableFuture<Void> lock(long timestamp, UUID requestId) {
-        return tracker.getLockFor(timestamp).lock(requestId);
+    @Test
+    public void ignoresDeadline() {
+        assertThat(tracker.getLockFor(123L).lock(REQUEST_1, 0L)
+                .isCompletedSuccessfully()).isTrue();
+        assertThat(tracker.getLockFor(124L).lock(REQUEST_1, Long.MAX_VALUE)
+                .isCompletedSuccessfully()).isTrue();
+        assertThat(tracker.getLockFor(125L).lock(REQUEST_1, Long.MIN_VALUE)
+                .isCompletedSuccessfully()).isTrue();
+    }
+
+    private AsyncResult<Void> lock(long timestamp, UUID requestId) {
+        return tracker.getLockFor(timestamp).lock(requestId, DEADLINE);
     }
 
     private void unlock(long timestamp, UUID requestId) {

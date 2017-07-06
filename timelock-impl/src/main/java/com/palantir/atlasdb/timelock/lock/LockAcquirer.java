@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.lock;
 
 import java.util.Collection;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -30,38 +29,45 @@ public class LockAcquirer {
 
     private static final Logger log = LoggerFactory.getLogger(LockAcquirer.class);
 
-    public CompletableFuture<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks) {
-        CompletableFuture<Void> future = acquireAllLocks(locks, lock -> lock.lock(requestId));
-        registerErrorHandler(future, requestId, locks);
+    public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, long deadlineMs) {
+        AsyncResult<Void> future = acquireAllLocks(locks, lock -> lock.lock(requestId, deadlineMs));
+        registerCompletionHandlers(future, requestId, locks);
 
-        return future.thenApply(ignored -> new HeldLocks(locks.get(), requestId));
+        return future.map(ignored -> new HeldLocks(locks.get(), requestId));
     }
 
-    public CompletableFuture<Void> waitForLocks(UUID requestId, OrderedLocks locks) {
-        return acquireAllLocks(locks, lock -> lock.waitUntilAvailable(requestId));
+    public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, long deadlineMs) {
+        return acquireAllLocks(locks, lock -> lock.waitUntilAvailable(requestId, deadlineMs));
     }
 
-    private CompletableFuture<Void> acquireAllLocks(
+    private AsyncResult<Void> acquireAllLocks(
             OrderedLocks locks,
-            Function<AsyncLock, CompletableFuture<Void>> lockFunction) {
-        CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
+            Function<AsyncLock, AsyncResult<Void>> lockFunction) {
+        AsyncResult<Void> future = AsyncResult.completedResult();
         for (AsyncLock lock : locks.get()) {
-            future = future.thenCompose(ignored -> lockFunction.apply(lock));
+            future = future.concatWith(() -> lockFunction.apply(lock));
         }
         return future;
     }
 
-    private void registerErrorHandler(CompletableFuture<Void> future, UUID requestId, OrderedLocks locks) {
-        future.exceptionally(error -> {
+    private void registerCompletionHandlers(AsyncResult<Void> future, UUID requestId, OrderedLocks locks) {
+        future.onError(error -> {
             log.warn("Error while acquiring locks", SafeArg.of("requestId", requestId), error);
             unlockAll(requestId, locks.get());
-            return null;
+        });
+        future.onTimeout(() -> {
+            log.info("Lock request timed out", SafeArg.of("requestId", requestId));
+            unlockAll(requestId, locks.get());
         });
     }
 
     private void unlockAll(UUID requestId, Collection<AsyncLock> locks) {
-        for (AsyncLock lock : locks) {
-            lock.unlock(requestId);
+        try {
+            for (AsyncLock lock : locks) {
+                lock.unlock(requestId);
+            }
+        } catch (Throwable t) {
+            log.error("Error while unlocking locks", SafeArg.of("requestId", requestId), t);
         }
     }
 

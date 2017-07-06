@@ -46,6 +46,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final LockDescriptor LOCK = StringLockDescriptor.of("foo");
     private static final Set<LockDescriptor> LOCKS = ImmutableSet.of(LOCK);
 
+    private static final int DEFAULT_LOCK_TIMEOUT_MS = 10_000;
+
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
@@ -64,7 +66,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         CLUSTER.nonLeaders().forEach(server -> {
             assertThatThrownBy(() -> server.getFreshTimestamp())
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
-            assertThatThrownBy(() -> server.lock(LockRequestV2.of(LOCKS)))
+            assertThatThrownBy(() -> server.lock(LockRequestV2.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         });
     }
@@ -73,7 +75,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     public void leaderRespondsToRequests() throws InterruptedException {
         CLUSTER.currentLeader().getFreshTimestamp();
 
-        LockTokenV2 token = CLUSTER.currentLeader().lock(LockRequestV2.of(LOCKS));
+        LockTokenV2 token = CLUSTER.currentLeader().lock(LockRequestV2.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).get();
         CLUSTER.unlock(token);
     }
 
@@ -126,13 +128,13 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void locksAreInvalidatedAcrossFailures() throws InterruptedException {
-        LockTokenV2 token = CLUSTER.lock(LockRequestV2.of(LOCKS));
+        LockTokenV2 token = CLUSTER.lock(LockRequestV2.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).get();
 
         for (int i = 0; i < 3; i++) {
             CLUSTER.failoverToNewLeader();
 
             assertThat(CLUSTER.unlock(token)).isFalse();
-            token = CLUSTER.lock(LockRequestV2.of(LOCKS));
+            token = CLUSTER.lock(LockRequestV2.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).get();
         }
     }
 
