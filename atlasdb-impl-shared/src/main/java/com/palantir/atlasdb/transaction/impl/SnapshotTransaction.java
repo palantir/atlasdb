@@ -367,6 +367,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection) {
+        checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
             return ImmutableMap.of();
         }
@@ -389,6 +390,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                                 Iterable<byte[]> rows,
                                                                 ColumnRangeSelection columnRangeSelection,
                                                                 int batchHint) {
+        checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
