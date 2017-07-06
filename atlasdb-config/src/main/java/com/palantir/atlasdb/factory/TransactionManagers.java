@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.Optional;
-import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.net.ssl.SSLSocketFactory;
+import javax.ws.rs.ClientErrorException;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -32,6 +34,8 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -46,6 +50,9 @@ import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timestamp.DynamicDecoratedTimestampService;
+import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
+import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
@@ -86,6 +93,7 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
@@ -99,9 +107,16 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public final class TransactionManagers {
+
+    private static final int LOGGING_INTERVAL = 60;
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
-    private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
+
+    @VisibleForTesting static Consumer<Runnable> runAsync = task -> {
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
+    };
 
     private TransactionManagers() {
         // Utility class
@@ -474,26 +489,82 @@ public final class TransactionManagers {
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
             String userAgent) {
-        LeaderElectionService leader = Leaders.create(env, leaderConfig, userAgent);
+        // Create local services, that may or may not end up being registered in an environment.
+        LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(env, leaderConfig, userAgent);
+        LeaderElectionService leader = localPaxosServices.leaderElectionService();
+        RemoteLockService localLock = AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader);
+        TimestampService localTime = AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader);
+        env.register(localLock);
+        env.register(localTime);
 
-        env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
-        env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));
-
+        // Create remote services, that may end up calling our own local services.
         Optional<SSLSocketFactory> sslSocketFactory = ServiceCreator.createSslSocketFactory(
                 leaderConfig.sslConfiguration());
+        RemoteLockService remoteLock = ServiceCreator.createService(
+                sslSocketFactory,
+                leaderConfig.leaders(),
+                RemoteLockService.class,
+                userAgent);
+        TimestampService remoteTime = ServiceCreator.createService(
+                sslSocketFactory,
+                leaderConfig.leaders(),
+                TimestampService.class,
+                userAgent);
 
-        return ImmutableLockAndTimestampServices.builder()
-                .lock(ServiceCreator.createService(
-                        sslSocketFactory,
-                        leaderConfig.leaders(),
-                        RemoteLockService.class,
-                        userAgent))
-                .time(ServiceCreator.createService(
-                        sslSocketFactory,
-                        leaderConfig.leaders(),
-                        TimestampService.class,
-                        userAgent))
-                .build();
+        if (leaderConfig.leaders().size() == 1) {
+            // Attempting to connect to ourself while processing a request can lead to deadlock if incoming request
+            // volume is high, as all Jetty threads end up waiting for the timestamp server, and no threads remain to
+            // actually handle the timestamp server requests. If we are the only single leader, we can avoid the
+            // deadlock entirely; so use PingableLeader's getUUID() to detect this situation and eliminate the redundant
+            // call.
+
+            PingableLeader localPingableLeader = localPaxosServices.pingableLeader();
+            String localServerId = localPingableLeader.getUUID();
+            PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
+                    sslSocketFactory,
+                    Iterables.getOnlyElement(leaderConfig.leaders()),
+                    PingableLeader.class,
+                    userAgent);
+
+            // Determine asynchronously whether the remote services are talking to our local services.
+            CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();
+            runAsync.accept(() -> {
+                int logAfter = LOGGING_INTERVAL;
+                while (true) {
+                    try {
+                        String remoteServerId = remotePingableLeader.getUUID();
+                        useLocalServicesFuture.complete(localServerId.equals(remoteServerId));
+                        return;
+                    } catch (ClientErrorException e) {
+                        useLocalServicesFuture.complete(false);
+                        return;
+                    } catch (Throwable e) {
+                        if (--logAfter == 0) {
+                            log.warn("Failed to read remote timestamp server ID", e);
+                            logAfter = LOGGING_INTERVAL;
+                        }
+                    }
+                    Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+                }
+            });
+
+            // Create dynamic service proxies, that switch to talking directly to our local services if it turns out our
+            // remote services are pointed at them anyway.
+            RemoteLockService dynamicLockService = LocalOrRemoteProxy.newProxyInstance(
+                    RemoteLockService.class, localLock, remoteLock, useLocalServicesFuture);
+            TimestampService dynamicTimeService = LocalOrRemoteProxy.newProxyInstance(
+                    TimestampService.class, localTime, remoteTime, useLocalServicesFuture);
+            return ImmutableLockAndTimestampServices.builder()
+                    .lock(dynamicLockService)
+                    .time(dynamicTimeService)
+                    .build();
+
+        } else {
+            return ImmutableLockAndTimestampServices.builder()
+                    .lock(remoteLock)
+                    .time(remoteTime)
+                    .build();
+        }
     }
 
     private static LockAndTimestampServices createRawRemoteServices(AtlasDbConfig config, String userAgent) {

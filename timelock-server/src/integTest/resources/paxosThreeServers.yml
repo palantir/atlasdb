@@ -3,11 +3,19 @@ algorithm:
   paxosDataDir: <TEMP_DATA_DIR>
 
 cluster:
-  localServer: localhost:8080
+  localServer: localhost:9060
   servers:
-    - localhost:8080
-    - localhost:8082
-    - localhost:8084
+    - localhost:9060
+    - localhost:9061
+    - localhost:9062
 
 clients:
   - isolated
+
+server:
+  applicationConnectors:
+    - type: http
+      port: 9060
+  adminConnectors:
+    - type: http
+      port: 7060

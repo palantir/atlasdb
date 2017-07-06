@@ -55,6 +55,24 @@ develop
          - The ``RateLimitingTimestampService`` in ``timestamp-impl`` has been renamed to ``RequestBatchingTimestampService``, to better reflect what the service does and avoid confusion with the ``ThreadPooledLockService`` (which performs resource-limiting).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2083>`__)
 
+    *    - |fixed|
+         - AtlasDB now generates Maven POM files for shadowed jars correctly.
+           Previously, we would regenerate the XML for shadow dependencies by creating a node with corresponding groupId, artifactId, scope and version tags *only*, which is incorrect because it loses information about, for example, specific or transitive exclusions.
+           We now respect these additional tags.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2092>`__)
+
+    *    - |improved|
+         - Improved performance with a single leader block.
+           If a single leader is configured, it will no longer go via HTTPS/Jetty to request
+           timestamps and locks from itself. Aside from a minor perf improvement, this should also
+           fix a potential livelock/deadlock when the leader is under heavy load, where previously
+           the Jetty threadpool could become full of requests awaiting timestamps, preventing any
+           timestamp requests from being serviced, and requiring a server reboot to resolve.
+
+           We recommend HA clusters under heavy load switch to using a standalone timestamp
+           service, as they may also be vulnerable to this failure mode.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2091>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -132,6 +150,11 @@ develop
            This should not affect users directly, unless they depended on classes from within the TimeLock server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2081>`__)
 
+    *    - |fixed|
+         - JDBC KVS now batches cells in put/delete operations via the config parameter ``batchSizeForMutations``.
+           This will prevent the driver from throwing due to many parameters in the resulting SQL select query. Also,
+           the batch size for getRows is now controlled by a config parameter ``rowBatchSize``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2093>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
