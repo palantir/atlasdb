@@ -334,9 +334,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.hiddenTables.contains(tableRef));
 
-        boolean transactionUncommitted = state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING;
+        boolean transactionNotCommittedYet = state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING;
 
-        if (transactionUncommitted) {
+        if (transactionNotCommittedYet) {
             log.warn("Attempted to perform a get operation on a transaction after said transaction has committed."
                     + " This is dangerous; AtlasDB may not offer its standard transactional guarantees in this case.",
                     UnsafeArg.of("affectedTable", tableRef));
