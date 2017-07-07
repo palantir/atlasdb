@@ -19,18 +19,27 @@ package com.palantir.atlasdb.timelock;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.testing.ResourceHelpers;
@@ -44,6 +53,8 @@ public class TestableTimelockCluster {
     private final List<TemporaryConfigurationHolder> configs;
     private final List<TestableTimelockServer> servers;
     private final TestProxies proxies;
+
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     public TestableTimelockCluster(String baseUri, String defaultClient, String... configFileTemplates) {
         this.defaultClient = defaultClient;
@@ -134,12 +145,40 @@ public class TestableTimelockCluster {
         return timestampService().getFreshTimestamp();
     }
 
-    public LockRefreshToken lock(String client, LockRequest lockRequest) throws InterruptedException {
+    public LockRefreshToken remoteLock(String client, LockRequest lockRequest) throws InterruptedException {
         return lockService().lock(client, lockRequest);
     }
 
-    public boolean unlock(LockRefreshToken token) {
+    public boolean remoteUnlock(LockRefreshToken token) {
         return lockService().unlock(token);
+    }
+
+    public LockTokenV2 lock(LockRequestV2 requestV2) {
+        return timelockService().lock(requestV2);
+    }
+
+    public CompletableFuture<LockTokenV2> lockAsync(LockRequestV2 requestV2) {
+        return CompletableFuture.supplyAsync(() -> lock(requestV2), executor);
+    }
+
+    public boolean unlock(LockTokenV2 token) {
+        return timelockService().unlock(ImmutableSet.of(token)).contains(token);
+    }
+
+    public Set<LockTokenV2> refreshLockLeases(Set<LockTokenV2> tokens) {
+        return timelockService().refreshLockLeases(tokens);
+    }
+
+    public boolean refreshLockLease(LockTokenV2 token) {
+        return refreshLockLeases(ImmutableSet.of(token)).contains(token);
+    }
+
+    public void waitForLocks(WaitForLocksRequest request) {
+        timelockService().waitForLocks(request);
+    }
+
+    public CompletableFuture<Void> waitForLocksAsync(WaitForLocksRequest request) {
+        return CompletableFuture.runAsync(() -> waitForLocks(request), executor);
     }
 
     public TimestampService timestampService() {
@@ -148,6 +187,10 @@ public class TestableTimelockCluster {
 
     public RemoteLockService lockService() {
         return proxies.failoverForClient(defaultClient, RemoteLockService.class);
+    }
+
+    public TimelockService timelockService() {
+        return proxies.failoverForClient(defaultClient, TimelockService.class);
     }
 
     public RuleChain getRuleChain() {

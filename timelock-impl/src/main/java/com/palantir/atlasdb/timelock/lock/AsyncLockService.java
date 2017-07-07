@@ -40,6 +40,11 @@ public class AsyncLockService {
     private final HeldLocksCollection heldLocks;
     private final ImmutableTimestampTracker immutableTsTracker;
 
+    public static AsyncLockService createDefault(ScheduledExecutorService reaperExecutor) {
+        return new AsyncLockService(new LockCollection(), new ImmutableTimestampTracker(), new LockAcquirer(),
+                new HeldLocksCollection(), reaperExecutor);
+    }
+
     public AsyncLockService(
             LockCollection locks,
             ImmutableTimestampTracker immutableTimestampTracker,
