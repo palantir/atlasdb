@@ -19,7 +19,7 @@
             "project": true
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
                 "com.palantir.atlasdb:commons-executors"
             ]
@@ -61,7 +61,7 @@
             "project": true
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
                 "com.palantir.atlasdb:commons-executors"
             ]
