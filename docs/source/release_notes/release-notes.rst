@@ -66,6 +66,11 @@ develop
          - Fixed a bug that caused hidden tables to be wiped when they were read from console.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2106>`__)
 
+    *    - |improved|
+         - The lock service state logger now has a reduced memory footprint.
+           It also now logs the locking mode for each lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1891>`__)
+
     *    - |new|
          - Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the :ref:`sweep docs<sweep>`, in particular, the :ref:`background sweep docs<background-sweep>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
@@ -155,11 +160,6 @@ develop
            This will prevent the driver from throwing due to many parameters in the resulting SQL select query. Also,
            the batch size for getRows is now controlled by a config parameter ``rowBatchSize``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2093>`__)
-
-    *    - |improved|
-         - The lock service state logger now has a reduced memory footprint.
-           It also now logs the locking mode for each lock.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1891>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
