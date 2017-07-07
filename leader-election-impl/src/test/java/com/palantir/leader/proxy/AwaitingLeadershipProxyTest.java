@@ -17,31 +17,43 @@ package com.palantir.leader.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.PaxosLeadershipToken;
 
 public class AwaitingLeadershipProxyTest {
     private static final String TEST_MESSAGE = "test_message";
+
+    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final LeaderElectionService leaderElectionService = mock(LeaderElectionService.class);
+
+    @Before
+    public void before() throws InterruptedException {
+        LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
+        when(leaderElectionService.blockOnBecomingLeader()).thenReturn(leadershipToken);
+        when(leaderElectionService.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
+        when(leaderElectionService.isStillLeading(leadershipToken)).thenReturn(
+                LeaderElectionService.StillLeadingStatus.LEADING);
+    }
 
     @Test
     @SuppressWarnings("SelfEquals")
@@ -85,28 +97,11 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     public void shouldMapInterruptedExceptionToNCLEIfLeadingStatusChanges() throws Exception {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-
-        CountDownLatch leadershipToBeLost = new CountDownLatch(1);
-        CountDownLatch leadershipChecked = new CountDownLatch(1);
-
-        LeaderElectionService leaderElectionService = setUpTheLeaderElectionService(
-                LeaderElectionService.StillLeadingStatus.LEADING,
-                LeaderElectionService.StillLeadingStatus.NOT_LEADING);
-        Callable proxy = proxyFor(() -> () -> {
-            leadershipChecked.countDown();
-            leadershipToBeLost.await();
+        Callable<Void> delegate = () -> {
             throw new InterruptedException(TEST_MESSAGE);
-        }, leaderElectionService);
+        };
 
-
-        Future<?> blockingCall = executor.submit(() -> proxy.call());
-
-        leadershipChecked.await();
-        loseLeadership(proxy);
-        leadershipToBeLost.countDown();
-
-        assertThat(catchThrowable(blockingCall::get).getCause())
+        assertThatThrownBy(() -> loseLeadershipDuringCallToProxyFor(delegate))
                 .isInstanceOf(NotCurrentLeaderException.class)
                 .hasMessage("received an interrupt due to leader election.")
                 .hasCauseExactlyInstanceOf(InterruptedException.class)
@@ -114,71 +109,74 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldNotMapOtherExceptionToNCLEIfLeadingStatusChanges() throws InterruptedException {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
+    public void shouldNotMapOtherExceptionToNCLEIfLeadingStatusChanges()  {
+        Callable<Void> delegate = () -> {
+            throw new RuntimeException(TEST_MESSAGE);
+        };
 
-        CountDownLatch leadershipToBeLost = new CountDownLatch(1);
-        CountDownLatch leadershipChecked = new CountDownLatch(1);
-
-        LeaderElectionService leaderElectionService = setUpTheLeaderElectionService(
-                LeaderElectionService.StillLeadingStatus.LEADING,
-                LeaderElectionService.StillLeadingStatus.NOT_LEADING);
-        Callable proxy = proxyFor(() -> () -> {
-            leadershipChecked.countDown();
-            leadershipToBeLost.await();
-            throw new IOException(TEST_MESSAGE);
-        }, leaderElectionService);
-
-        Future<?> blockingCall = executor.submit(() -> proxy.call());
-        leadershipChecked.await();
-        loseLeadership(proxy);
-        leadershipToBeLost.countDown();
-
-        assertThat(catchThrowable(blockingCall::get).getCause())
-                .isInstanceOf(IOException.class)
+        assertThatThrownBy(() -> loseLeadershipDuringCallToProxyFor(delegate))
+                .isInstanceOf(RuntimeException.class)
                 .hasMessage(TEST_MESSAGE);
     }
 
     @Test
     public void shouldNotMapInterruptedExceptionToNCLEIfLeadingStatusDoesNotChange() throws InterruptedException {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-
-        CountDownLatch leadershipChecked = new CountDownLatch(1);
-
-        LeaderElectionService leaderElectionService = setUpTheLeaderElectionService(
-                LeaderElectionService.StillLeadingStatus.LEADING,
-                LeaderElectionService.StillLeadingStatus.LEADING);
-        Callable proxy = proxyFor(() -> () -> {
-            leadershipChecked.await();
+        Callable<Void> proxy = proxyFor(() -> {
             throw new InterruptedException(TEST_MESSAGE);
-        }, leaderElectionService);
+        });
 
-
-        Future<?> blockingCall = executor.submit(() -> proxy.call());
-
-        leadershipChecked.countDown();
-
-        assertThat(catchThrowable(blockingCall::get).getCause())
+        assertThatThrownBy(() -> proxy.call())
                 .isInstanceOf(InterruptedException.class)
                 .hasMessage(TEST_MESSAGE);
     }
 
+    private Void loseLeadershipDuringCallToProxyFor(Callable<Void> delegate) throws Throwable {
+        CountDownLatch delegateCallStarted = new CountDownLatch(1);
+        CountDownLatch leadershipLost = new CountDownLatch(1);
 
-    private void loseLeadership(Callable proxy) {
+        Callable<Void> proxy = proxyFor(() -> {
+            delegateCallStarted.countDown();
+            leadershipLost.await();
+
+            return delegate.call();
+        });
+
+        Future<Void> blockingCall = executor.submit(proxy);
+        delegateCallStarted.await();
+
+        loseLeadership(proxy);
+        leadershipLost.countDown();
+
+        try {
+            return blockingCall.get();
+        } catch (Throwable e) {
+            throw e.getCause();
+        }
+    }
+
+    private void loseLeadership(Callable proxy) throws InterruptedException {
+        when(leaderElectionService.isStillLeading(any()))
+                .thenReturn(LeaderElectionService.StillLeadingStatus.NOT_LEADING);
+        when(leaderElectionService.blockOnBecomingLeader()).then(invocation -> {
+            // never return
+            LockSupport.park();
+            return null;
+        });
+
+        // make a call so the proxy will realize that it has lost leadership
         assertThatThrownBy(proxy::call).isInstanceOf(NotCurrentLeaderException.class)
                 .hasMessage("method invoked on a non-leader (leadership lost)");
     }
 
-    private Callable proxyFor(Supplier<Callable> fn,
-            LeaderElectionService leaderElectionService) throws InterruptedException {
-        Callable proxy = AwaitingLeadershipProxy.newProxyInstance(Callable.class, fn, leaderElectionService);
+    private Callable proxyFor(Callable fn) throws InterruptedException {
+        Callable proxy = AwaitingLeadershipProxy.newProxyInstance(Callable.class, () -> fn, leaderElectionService);
 
-        //waiting for trytoGainLeadership
-        Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
+        // wait for leadership to be gained
+        verify(leaderElectionService, timeout(5_000)).blockOnBecomingLeader();
         return proxy;
     }
 
-    private LeaderElectionService setUpTheLeaderElectionService(
+    private LeaderElectionService mockLeaderElectionServiceWithSequence(
             LeaderElectionService.StillLeadingStatus status1,
             LeaderElectionService.StillLeadingStatus status2)
             throws InterruptedException {

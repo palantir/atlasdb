@@ -45,6 +45,11 @@ develop
          - Change
 
     *    - |fixed|
+         - Proxies created via ``AtlasDbHttpClients`` now retry lock requests if the server lose leadership while the request is blocking.
+           In the past, this scenario would cause 500 errors that were not retried by the client.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
+
+    *    - |fixed|
          - AtlasDB now generates Maven POM files for shadowed jars correctly.
            Previously, we would regenerate the XML for shadow dependencies by creating a node with corresponding groupId, artifactId, scope and version tags *only*, which is incorrect because it loses information about, for example, specific or transitive exclusions.
            We now respect these additional tags.
