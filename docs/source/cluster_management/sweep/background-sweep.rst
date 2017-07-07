@@ -3,11 +3,6 @@
 Background Sweep
 ================
 
-.. warning::
-
-   Background sweep is currently considered to be an experimental feature, and is disabled by default.
-   If you are interested in trialling background sweep, please contact the AtlasDB team.
-
 How Background Sweep Works
 --------------------------
 
@@ -22,8 +17,7 @@ The Background Sweep Job determines which table to sweep by estimating which wou
 Configuration
 -------------
 
-The background sweeper can be enabled by setting the ``enableSweep`` property in the :ref:`AtlasDB configuration <atlas-config>` to true.
-For other configuration options, see :ref:`Tunable Sweep Configuration Options<sweep_tunable_parameters>`.
+The background sweeper can be disabled by setting the ``enabled`` property in the `Sweep Config` block in the :ref:`AtlasDB Runtime Config<atlas-config>` block to false.
 
 Metrics
 -------
@@ -44,6 +38,9 @@ By default, the background sweeper only logs errors. If you'd like to watch the 
 
     # enable background sweep logging by setting this to 'debug'; for less verbose logging, use 'error'.
     log4j.logger.com.palantir.atlasdb.sweep.BackgroundSweeperImpl=debug, sweepAppend
+    log4j.logger.com.palantir.atlasdb.sweep.SpecificTableSweeper=debug, sweepAppend
+    log4j.logger.com.palantir.atlasdb.sweep.SweepTaskRunner=debug, sweepAppend
+    log4j.logger.com.palantir.atlasdb.sweep.CellSweeper=debug, sweepAppend
 
     # set additivity to false to make these logs only show up in background-sweeper.log
     log4j.additivity.com.palantir.atlasdb.sweep.BackgroundSweeperImpl=false
@@ -73,4 +70,3 @@ You can also query ``sweep.priority`` to get a breakdown per table of:
 - ``cells_deleted`` - The numbers of stale values deleted last time this table was swept.
 
 - ``cells_examined`` - The number of cell-timestamp pairs in the table total the last time this table was swept.
-

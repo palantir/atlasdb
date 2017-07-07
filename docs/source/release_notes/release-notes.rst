@@ -66,6 +66,13 @@ develop
          - Fixed a bug that caused hidden tables to be wiped when they were read from console.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2106>`__)
 
+    *    - |new|
+         - Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the :ref:`sweep docs<sweep>`, in particular, the :ref:`background sweep docs<background-sweep>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
+
+    *    - |changed|
+         - Default configs regarding sweep runs were lowered, to ensure that sweep works in any situation. For more information, please check the :ref:`sweep docs<sweep>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
