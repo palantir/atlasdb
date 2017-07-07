@@ -16,29 +16,19 @@
 
 package com.palantir.atlasdb.timelock;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.File;
 import java.util.Optional;
-
-import javax.net.ssl.SSLSocketFactory;
 
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
 
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.leader.PingableLeader;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
-
-import io.dropwizard.testing.ResourceHelpers;
 
 /**
  * This test creates a single TimeLock server that is configured in a three node configuration.
@@ -48,47 +38,37 @@ import io.dropwizard.testing.ResourceHelpers;
 public class IsolatedPaxosTimeLockServerIntegrationTest {
     private static final String CLIENT = "isolated";
 
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
+    private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
+            "http://localhost",
+            CLIENT,
+            "paxosThreeServers.yml");
 
-    private static final File TIMELOCK_CONFIG_TEMPLATE =
-            new File(ResourceHelpers.resourceFilePath("paxosThreeServers.yml"));
-
-    private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
-    private static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
-            new TemporaryConfigurationHolder(TEMPORARY_FOLDER, TIMELOCK_CONFIG_TEMPLATE);
-    private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
-            new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
+    private static final TestableTimelockServer SERVER = CLUSTER.servers().get(0);
 
     @ClassRule
-    public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
-            .around(TEMPORARY_CONFIG_HOLDER)
-            .around(TIMELOCK_SERVER_HOLDER);
+    public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
     @Test
     public void cannotIssueTimestampsWithoutQuorum() {
-        assertThatThrownBy(() -> getTimestampService(CLIENT).getFreshTimestamp())
-                .satisfies(this::isRetryableExceptionWhereLeaderCannotBeFound);
+        assertThatThrownBy(() -> SERVER.getFreshTimestamp())
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void cannotIssueLocksWithoutQuorum() {
-        assertThatThrownBy(() -> getLockService(CLIENT).currentTimeMillis())
-                .satisfies(this::isRetryableExceptionWhereLeaderCannotBeFound);
+        assertThatThrownBy(() -> SERVER.lockService().currentTimeMillis())
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void cannotPerformTimestampManagementWithoutQuorum() {
-        assertThatThrownBy(() -> getTimestampManagementService(CLIENT).fastForwardTimestamp(1000L))
-                .satisfies(this::isRetryableExceptionWhereLeaderCannotBeFound);
+        assertThatThrownBy(() -> SERVER.timestampManagementService().fastForwardTimestamp(1000L))
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void canPingWithoutQuorum() {
-        PingableLeader leader = AtlasDbHttpClients.createProxy(
-                NO_SSL,
-                "http://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
-                PingableLeader.class);
-        leader.ping(); // should succeed
+        SERVER.leaderPing(); // should succeed
     }
 
     @Test
@@ -103,46 +83,15 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
         learner.getGreatestLearnedValue();
     }
 
-    private void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
-        assertThat(throwable)
-                .hasMessageContaining("method invoked on a non-leader");
-
-        // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
-        assertThat(throwable.getClass().getName())
-                .contains("RetryableException");
-    }
-
-    private static RemoteLockService getLockService(String client) {
-        return getProxyForService(client, RemoteLockService.class);
-    }
-
-    private static TimestampService getTimestampService(String client) {
-        return getProxyForService(client, TimestampService.class);
-    }
-
-    private static TimestampManagementService getTimestampManagementService(String client) {
-        return getProxyForService(client, TimestampManagementService.class);
-    }
-
-    private static <T> T getProxyForService(String client, Class<T> clazz) {
-        return AtlasDbHttpClients.createProxy(
-                NO_SSL,
-                getRootUriForClient(client),
-                clazz);
-    }
-
     private static <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
-                NO_SSL,
+                Optional.empty(),
                 String.format("http://localhost:%d/%s/%s/%s",
-                        TIMELOCK_SERVER_HOLDER.getTimelockPort(),
+                        SERVER.serverHolder().getTimelockPort(),
                         PaxosTimeLockConstants.INTERNAL_NAMESPACE,
                         PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
                         CLIENT),
                 clazz);
     }
 
-    private static String getRootUriForClient(String client) {
-        return String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
-    }
 }

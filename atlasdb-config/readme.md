@@ -63,9 +63,7 @@ Which will enable the following config object:
 # AtlasDB Configuration
 # atlas:
 #   keyValueService: (configuration for the storage backend)
-#     type:          (rocksdb|cassandra) type of key value store to use
-#     # rocksdb specific config
-#     dataDir:       the data directory to use for storage
+#     type:          (postgres|cassandra) type of key value store to use
 #     # cassandra specific config
 #     servers:       a list of cassandra nodes to use
 #       - [hostname] e.g. localhost
@@ -100,13 +98,6 @@ Which will enable the following config object:
 #    acceptorLogDir: (optional, default var/data/paxos/acceptor) the persistence
 #                    directory for the acceptor, must actually persist between
 #                    executions of the server
-#
-# Example: a default configuration for running a single process Jobs Service
-# backed by rocksdb and using the embedded lock-stamp services:
-# atlas:
-#   keyValueService:
-#     type: rocksdb
-#     dataDir: var/data/rocksdb
 #
 # Example: a default configuration for running a single process Jobs Service
 # backed by a single node Cassandra instance and using the embedded

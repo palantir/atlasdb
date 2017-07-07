@@ -6,8 +6,6 @@ List<String> blacklistedBaselineProjects = [
         'atlasdb-dbkvs-hikari',
         'atlasdb-jdbc',
         'atlasdb-jdbc-tests',
-        'atlasdb-rocksdb',
-        'atlasdb-rocksdb-tests',
         'atlasdb-service-server',
         'cassandra-partitioner',
         'commons-db',

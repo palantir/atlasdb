@@ -28,8 +28,13 @@ In addition to the ``keyValueServiceConfig``, you must specify a configuration f
 If you are using an embedded timestamp and lock service, see the :ref:`Leader Configuration <leader-config>` documentation.
 If you are using the :ref:`external Timelock service <external-timelock-service>`, then see the :ref:`Timelock client configuration <timelock-client-configuration>`.
 
-Other parameters related to :ref:`Sweep <sweep>` can also be specified here. For a full list of the configurations
-available at the ``atlasdb`` root level, see `AtlasDbConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java>`__.
+For a full list of the configurations available at the ``atlasdb`` root level, see
+`AtlasDbConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java>`__.
+
+A second root configuration block can be specified for live-reloadable configs.
+Parameters related to :ref:`Sweep <sweep>` can be specified there and will be reloaded in each sweep run.
+For a full list of the configurations available at this block, see
+`AtlasDbRuntimeConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java>`__.
 
 Example Configuration
 =====================
@@ -72,7 +77,7 @@ Example Configuration
         sslConfiguration:
           trustStorePath: var/security/truststore.jks
 
-      enableSweep: false
-      sweepBatchSize: 1000
 
-
+    atlasdb-runtime:
+      sweep:
+        enabled: false

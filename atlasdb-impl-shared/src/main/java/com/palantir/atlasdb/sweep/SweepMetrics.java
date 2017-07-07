@@ -21,7 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
 
 @SuppressWarnings("checkstyle:FinalClass")
-class SweepMetrics {
+public class SweepMetrics {
     private final MetricsManager metricsManager = new MetricsManager();
 
     private final TableSpecificHistogramMetric cellsSweptHistogram =

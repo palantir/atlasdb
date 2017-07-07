@@ -41,7 +41,7 @@ public class TemporaryConfigurationHolder extends ExternalResource {
     }
 
     @Override
-    protected void before() throws Exception {
+    public void before() throws Exception {
         temporaryConfigFile = temporaryFolder.newFile();
         temporaryLogDirectory = temporaryFolder.newFolder();
         createTemporaryConfigFile();
