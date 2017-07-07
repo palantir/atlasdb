@@ -65,6 +65,10 @@ develop
     *    - |improved|
          - Improved the performance of sweep on Postgres-backed DbKvs by making fewer round trips to the database.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2021>`__)
+           
+    *    - |fixed|
+         - Fixed a bug that caused hidden tables to be wiped when they were read from console.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2106>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
