@@ -32,6 +32,10 @@ dependencies {
     testCompile project(":atlasdb-tests-shared")
 
     testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
+        exclude group: 'org.hamcrest'
+        exclude group: 'org.ow2.asm'
+    }
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
