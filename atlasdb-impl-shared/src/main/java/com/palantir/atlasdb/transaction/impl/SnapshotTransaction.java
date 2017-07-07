@@ -126,6 +126,7 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -321,14 +322,28 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return transactionTimer;
     }
 
+    // TODO (jkong): simplify to one method once hardFail is no longer needed
     protected void checkGetPreconditions(TableReference tableRef) {
+        checkGetPreconditions(tableRef, true);
+    }
+
+    private void checkGetPreconditions(TableReference tableRef, boolean hardFail) {
         if (transactionReadTimeoutMillis != null
                 && System.currentTimeMillis() - timeCreated > transactionReadTimeoutMillis) {
             throw new TransactionFailedRetriableException("Transaction timed out.");
         }
         Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.hiddenTables.contains(tableRef));
-        Preconditions.checkState(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING,
-                "Transaction must be uncommitted.");
+
+        boolean transactionNotCommittedYet = state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING;
+
+        if (!transactionNotCommittedYet) {
+            log.warn("Attempted to perform a get operation on a transaction after said transaction has committed."
+                    + " This is dangerous; AtlasDB may not offer its standard transactional guarantees in this case.",
+                    UnsafeArg.of("affectedTable", tableRef));
+            if (hardFail) {
+                throw new IllegalStateException("Transaction must be uncommitted.");
+            }
+        }
     }
 
     @Override
@@ -367,7 +382,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection) {
-        checkGetPreconditions(tableRef);
+        checkGetPreconditions(tableRef, false);
         if (Iterables.isEmpty(rows)) {
             return ImmutableMap.of();
         }
@@ -390,7 +405,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                                 Iterable<byte[]> rows,
                                                                 ColumnRangeSelection columnRangeSelection,
                                                                 int batchHint) {
-        checkGetPreconditions(tableRef);
+        checkGetPreconditions(tableRef, false);
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
