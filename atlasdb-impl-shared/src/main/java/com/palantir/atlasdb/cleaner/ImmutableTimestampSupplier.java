@@ -17,12 +17,9 @@ package com.palantir.atlasdb.cleaner;
 
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.RemoteLockService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.lock.v2.TimelockService;
 
 /**
  * This will return immutableTimestamps
@@ -31,35 +28,16 @@ import com.palantir.timestamp.TimestampService;
  * @author jweel
  *
  */
-public final class ImmutableTimestampSupplier implements Supplier<Long> {
+public final class ImmutableTimestampSupplier {
     private static final long RELOAD_INTERVAL_MILLIS = 1000L;
 
-    public static Supplier<Long> createMemoizedWithExpiration(RemoteLockService lockService,
-                                                              TimestampService timestampService,
-                                                              LockClient lockClient) {
+    private ImmutableTimestampSupplier() { }
+
+    public static Supplier<Long> createMemoizedWithExpiration(TimelockService timelockService) {
         return Suppliers.memoizeWithExpiration(
-                new ImmutableTimestampSupplier(lockService, timestampService, lockClient),
+                timelockService::getImmutableTimestamp,
                 RELOAD_INTERVAL_MILLIS,
                 TimeUnit.MILLISECONDS);
     }
 
-    private final RemoteLockService lockService;
-    private final TimestampService timestampService;
-    private final LockClient lockClient;
-
-    private ImmutableTimestampSupplier(RemoteLockService lockService,
-                                      TimestampService timestampService,
-                                      LockClient lockClient) {
-        Preconditions.checkArgument(lockClient != LockClient.ANONYMOUS);
-        this.lockService = lockService;
-        this.timestampService = timestampService;
-        this.lockClient = lockClient;
-    }
-
-    @Override
-    public Long get() {
-        Long ts = timestampService.getFreshTimestamp();
-        Long minLocked = lockService.getMinLockedInVersionId(lockClient.getClientId());
-        return minLocked == null ? ts : minLocked;
-    }
 }
