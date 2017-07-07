@@ -22,6 +22,9 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -49,8 +52,12 @@ public class TestableTimelockServer {
         return timestampService().getFreshTimestamp();
     }
 
-    public LockRefreshToken lock(String client, LockRequest lockRequest) throws InterruptedException {
+    public LockRefreshToken remoteLock(String client, LockRequest lockRequest) throws InterruptedException {
         return lockService().lock(client, lockRequest);
+    }
+
+    public LockTokenV2 lock(LockRequestV2 lockRequest) throws InterruptedException {
+        return timelockService().lock(lockRequest);
     }
 
     public void kill() {
@@ -75,6 +82,10 @@ public class TestableTimelockServer {
 
     public RemoteLockService lockService() {
         return proxies.singleNodeForClient(defaultClient, serverHolder, RemoteLockService.class);
+    }
+
+    public TimelockService timelockService() {
+        return proxies.singleNodeForClient(defaultClient, serverHolder, TimelockService.class);
     }
 
 }

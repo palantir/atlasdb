@@ -102,6 +102,7 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.impl.LockRefreshingTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.UnsafeArg;
@@ -438,9 +439,9 @@ public final class TransactionManagers {
 
     private static LockAndTimestampServices withRefreshingLockService(
             LockAndTimestampServices lockAndTimestampServices) {
-        // TODO(nziebart): refreshing timelock service
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
+                .timelock(LockRefreshingTimelockService.createDefault(lockAndTimestampServices.timelock()))
                 .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))
                 .build();
     }
