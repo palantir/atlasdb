@@ -367,7 +367,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection) {
-        checkGetPreconditions(tableRef);
+        // TODO (jkong): Add a call to checkGetPreconditions() here once large internal product is fixed
         if (Iterables.isEmpty(rows)) {
             return ImmutableMap.of();
         }
@@ -390,7 +390,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                                 Iterable<byte[]> rows,
                                                                 ColumnRangeSelection columnRangeSelection,
                                                                 int batchHint) {
-        checkGetPreconditions(tableRef);
+        // TODO (jkong): Add a call to checkGetPreconditions() here once large internal product is fixed
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
