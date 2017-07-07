@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
@@ -30,6 +31,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -41,11 +43,15 @@ import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
+import com.palantir.atlasdb.timelock.AsyncTimelockResource;
+import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -170,16 +176,41 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     @Override
     public TimeLockServices createInvalidatingTimeLockServices(String client, long slowLogTriggerMillis) {
-        ManagedTimestampService timestampService = instrument(
-                ManagedTimestampService.class,
-                createPaxosBackedTimestampService(client),
+        AsyncTimelockService asyncTimelockService = instrument(
+                AsyncTimelockService.class,
+                createAsyncTimelockService(client),
                 client);
         RemoteLockService lockService = instrument(
                 RemoteLockService.class,
                 createLockService(slowLogTriggerMillis),
                 client);
+        ManagedTimestampService timestampService = asyncTimelockService;
 
-        return TimeLockServices.create(timestampService, lockService, timestampService);
+        return TimeLockServices.create(
+                timestampService,
+                lockService,
+                new AsyncTimelockResource(asyncTimelockService),
+                timestampService);
+    }
+
+    private AsyncTimelockService createAsyncTimelockService(String client) {
+        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = createRawPaxosBackedTimestampServiceSupplier(
+                client);
+
+        Supplier<AsyncTimelockService> rawAsyncTimelockServiceSupplier = () -> {
+            ScheduledExecutorService reaperExecutor = Executors.newSingleThreadScheduledExecutor(
+                    new ThreadFactoryBuilder()
+                            .setNameFormat("async-lock-reaper-" + client + "-%d")
+                            .setDaemon(true)
+                            .build());
+            return new AsyncTimelockServiceImpl(AsyncLockService.createDefault(reaperExecutor),
+                    rawTimestampServiceSupplier.get());
+        };
+
+        return AwaitingLeadershipProxy.newProxyInstance(
+                AsyncTimelockService.class,
+                rawAsyncTimelockServiceSupplier,
+                leaderElectionService);
     }
 
     private RemoteLockService createLockService(long slowLogTriggerMillis) {
@@ -234,7 +265,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
         return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass, client));
     }
 
-    private ManagedTimestampService createPaxosBackedTimestampService(String client) {
+    private Supplier<ManagedTimestampService> createRawPaxosBackedTimestampServiceSupplier(String client) {
         paxosResource.addInstrumentedClient(client);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
@@ -270,10 +301,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
 
-        return AwaitingLeadershipProxy.newProxyInstance(
-                ManagedTimestampService.class,
-                () -> createManagedPaxosTimestampService(proposer, client, acceptors, learners),
-                leaderElectionService);
+        return () -> createManagedPaxosTimestampService(proposer, client, acceptors, learners);
     }
 
     private ManagedTimestampService createManagedPaxosTimestampService(

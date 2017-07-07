@@ -32,7 +32,7 @@ import com.palantir.paxos.PaxosLearner;
 
 /**
  * This test creates a single TimeLock server that is configured in a three node configuration.
- * Since it has no quorum, timestamp and lock requests (and fast-forward) should fail.
+ * Since it has no quorum, timestamp and remoteLock requests (and fast-forward) should fail.
  * However it should still be pingable and should be able to participate in Paxos as well.
  */
 public class IsolatedPaxosTimeLockServerIntegrationTest {

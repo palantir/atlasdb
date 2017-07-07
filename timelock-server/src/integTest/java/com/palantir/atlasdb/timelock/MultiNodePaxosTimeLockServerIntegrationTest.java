@@ -18,19 +18,20 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Set;
+
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
-import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockTokenV2;
 
 public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
@@ -42,13 +43,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             "paxosMultiServer1.yml",
             "paxosMultiServer2.yml");
 
-    private static final String LOCK_CLIENT = LockClient.ANONYMOUS.getClientId();
-    private static final LockRequest LOCK_REQUEST = LockRequest.builder(
-            ImmutableSortedMap.of(
-                    StringLockDescriptor.of("lock1"),
-                    LockMode.WRITE))
-            .doNotBlock()
-            .build();
+    private static final LockDescriptor LOCK = StringLockDescriptor.of("foo");
+    private static final Set<LockDescriptor> LOCKS = ImmutableSet.of(LOCK);
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
@@ -68,7 +64,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         CLUSTER.nonLeaders().forEach(server -> {
             assertThatThrownBy(() -> server.getFreshTimestamp())
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
-            assertThatThrownBy(() -> server.lock(LOCK_CLIENT, LOCK_REQUEST))
+            assertThatThrownBy(() -> server.lock(LockRequestV2.of(LOCKS)))
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         });
     }
@@ -77,7 +73,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     public void leaderRespondsToRequests() throws InterruptedException {
         CLUSTER.currentLeader().getFreshTimestamp();
 
-        LockRefreshToken token = CLUSTER.currentLeader().lock(LOCK_CLIENT, LOCK_REQUEST);
+        LockTokenV2 token = CLUSTER.currentLeader().lock(LockRequestV2.of(LOCKS));
         CLUSTER.unlock(token);
     }
 
@@ -130,16 +126,14 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void locksAreInvalidatedAcrossFailures() throws InterruptedException {
-        LockRefreshToken token = CLUSTER.lock(LOCK_CLIENT, LOCK_REQUEST);
+        LockTokenV2 token = CLUSTER.lock(LockRequestV2.of(LOCKS));
 
         for (int i = 0; i < 3; i++) {
             CLUSTER.failoverToNewLeader();
 
             assertThat(CLUSTER.unlock(token)).isFalse();
-            token = CLUSTER.lock(LOCK_CLIENT, LOCK_REQUEST);
+            token = CLUSTER.lock(LockRequestV2.of(LOCKS));
         }
     }
-
-
 
 }
