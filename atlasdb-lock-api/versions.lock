@@ -69,7 +69,8 @@
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:lock-api"
             ]
         },
         "com.palantir.remoting2:ssl-config": {
@@ -195,7 +196,8 @@
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:lock-api"
             ]
         },
         "com.palantir.remoting2:ssl-config": {
