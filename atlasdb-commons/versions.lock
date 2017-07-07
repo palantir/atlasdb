@@ -18,6 +18,12 @@
         "com.palantir.atlasdb:commons-executors": {
             "project": true
         },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.3",
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
+            ]
+        },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.2"
         },
@@ -53,6 +59,12 @@
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true
+        },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.3",
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
+            ]
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.2"
