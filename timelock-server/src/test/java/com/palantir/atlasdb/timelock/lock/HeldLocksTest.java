@@ -70,6 +70,12 @@ public class HeldLocksTest {
     }
 
     @Test
+    public void canOnlyUnlockOnce() {
+        assertTrue(heldLocks.unlock());
+        assertFalse(heldLocks.unlock());
+    }
+
+    @Test
     public void unlocksIfExpired() {
         when(timer.isExpired()).thenReturn(true);
         assertTrue(heldLocks.unlockIfExpired());
