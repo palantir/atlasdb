@@ -95,11 +95,10 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         conflictHandlersWithOverrides.putAll(conflictHandlerOverrides);
         return new SnapshotTransaction(
                 keyValueService,
-                lockService,
-                timestampService,
+                timelockService,
                 transactionService,
                 cleaner,
-                timestampService.getFreshTimestamp(),
+                timelockService.getFreshTimestamp(),
                 TestConflictDetectionManagers.createWithStaticConflictDetection(conflictHandlersWithOverrides),
                 constraintModeSupplier.get(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

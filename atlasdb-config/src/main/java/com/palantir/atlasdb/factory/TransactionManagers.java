@@ -86,6 +86,7 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -100,7 +101,9 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -229,7 +232,8 @@ public final class TransactionManagers {
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
-        kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
+        kvs = SweepStatsKeyValueService.create(kvs,
+                new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
         kvs = TracingKeyValueService.create(kvs);
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs,
                 MetricRegistry.name(KeyValueService.class, userAgent));
@@ -255,9 +259,7 @@ public final class TransactionManagers {
 
         Cleaner cleaner = new DefaultCleanerBuilder(
                 kvs,
-                lockAndTimestampServices.lock(),
-                lockAndTimestampServices.time(),
-                LOCK_CLIENT,
+                lockAndTimestampServices.timelock(),
                 ImmutableList.of(follower),
                 transactionService)
                 .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
@@ -269,8 +271,7 @@ public final class TransactionManagers {
                 .buildCleaner();
 
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
-                lockAndTimestampServices.time(),
-                LOCK_CLIENT,
+                lockAndTimestampServices.timelock(),
                 lockAndTimestampServices.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
@@ -437,6 +438,7 @@ public final class TransactionManagers {
 
     private static LockAndTimestampServices withRefreshingLockService(
             LockAndTimestampServices lockAndTimestampServices) {
+        // TODO(nziebart): refreshing timelock service
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
                 .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))
@@ -492,7 +494,8 @@ public final class TransactionManagers {
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .time(timeService)
+                .timestamp(timeService)
+                .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
     }
 
@@ -569,13 +572,15 @@ public final class TransactionManagers {
                     TimestampService.class, localTime, remoteTime, useLocalServicesFuture);
             return ImmutableLockAndTimestampServices.builder()
                     .lock(dynamicLockService)
-                    .time(dynamicTimeService)
+                    .timestamp(dynamicTimeService)
+                    .timelock(new LegacyTimelockService(dynamicTimeService, dynamicLockService, LOCK_CLIENT))
                     .build();
 
         } else {
             return ImmutableLockAndTimestampServices.builder()
                     .lock(remoteLock)
-                    .time(remoteTime)
+                    .timestamp(remoteTime)
+                    .timelock(new LegacyTimelockService(remoteTime, remoteLock, LOCK_CLIENT))
                     .build();
         }
     }
@@ -588,7 +593,8 @@ public final class TransactionManagers {
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .time(timeService)
+                .timestamp(timeService)
+                .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
     }
 
@@ -609,14 +615,16 @@ public final class TransactionManagers {
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .time(timeService)
+                .timestamp(timeService)
+                .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
     }
 
     @Value.Immutable
     public interface LockAndTimestampServices {
         RemoteLockService lock();
-        TimestampService time();
+        TimestampService timestamp();
+        TimelockService timelock();
     }
 
     public interface Environment {
