@@ -158,7 +158,7 @@ public class TestableTimelockCluster {
         return timelockService().lock(requestV2);
     }
 
-    public CompletableFuture<LockTokenV2> lockAsync(LockRequestV2 requestV2) {
+    public CompletableFuture<Optional<LockTokenV2>> lockAsync(LockRequestV2 requestV2) {
         return CompletableFuture.supplyAsync(() -> lock(requestV2), executor);
     }
 

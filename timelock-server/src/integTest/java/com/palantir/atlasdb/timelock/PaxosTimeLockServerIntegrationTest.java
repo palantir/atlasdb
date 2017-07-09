@@ -430,7 +430,7 @@ public class PaxosTimeLockServerIntegrationTest {
         getLockService(CLIENT_1).currentTimeMillis();
 
         JsonNode metrics = getMetricsOutput();
-        
+
         // time / lock services
         assertContainsTimer(metrics,
                 "com.palantir.atlasdb.timelock.AsyncTimelockService.test.getFreshTimestamp");

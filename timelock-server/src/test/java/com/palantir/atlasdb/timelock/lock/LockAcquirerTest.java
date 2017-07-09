@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -95,7 +96,7 @@ public class LockAcquirerTest {
         lockA.lock(REQUEST_ID, DEADLINE);
 
         List<AsyncResult<Void>> results = IntStream.range(0, 10_000)
-                .mapToObj(i -> waitFor(lockA))
+                .mapToObj(i -> lockA.waitUntilAvailable(UUID.randomUUID(), DEADLINE))
                 .collect(Collectors.toList());
 
         lockA.unlock(REQUEST_ID);
@@ -133,11 +134,22 @@ public class LockAcquirerTest {
     }
 
     @Test
-    public void unlocksOnFailure() {
+    public void unlocksOnAsyncFailure() {
         AsyncResult<Void> lockResult = new AsyncResult<>();
         lockResult.fail(new RuntimeException("foo"));
 
         doReturn(lockResult).when(lockC).lock(any(), anyLong());
+
+        AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB, lockC);
+        assertThat(acquisitions.isFailed()).isTrue();
+
+        assertNotLocked(lockA);
+        assertNotLocked(lockB);
+    }
+
+    @Test
+    public void unlocksOnSynchronousFailure() {
+        doThrow(new RuntimeException("foo")).when(lockC).lock(any(), anyLong());
 
         AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB, lockC);
         assertThat(acquisitions.isFailed()).isTrue();

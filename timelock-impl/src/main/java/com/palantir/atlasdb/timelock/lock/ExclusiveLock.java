@@ -25,6 +25,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
+import com.palantir.logsafe.SafeArg;
 
 public class ExclusiveLock implements AsyncLock {
 
@@ -109,7 +111,13 @@ public class ExclusiveLock implements AsyncLock {
         private final LinkedHashMap<UUID, LockRequest> queue = Maps.newLinkedHashMap();
 
         public void enqueue(LockRequest request) {
-            queue.put(request.requestId, request);
+            LockRequest existingRequest = queue.put(request.requestId, request);
+            if (existingRequest != null) {
+                queue.put(request.requestId, existingRequest);
+                throw new LoggableIllegalStateException(
+                        "Cannot enqueue the same request id twice.",
+                        SafeArg.of("requestId", request.requestId));
+            }
         }
 
         public boolean isEmpty() {

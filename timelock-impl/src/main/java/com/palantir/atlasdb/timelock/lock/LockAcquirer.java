@@ -16,13 +16,13 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.Collection;
 import java.util.UUID;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 
 public class LockAcquirer {
@@ -30,10 +30,16 @@ public class LockAcquirer {
     private static final Logger log = LoggerFactory.getLogger(LockAcquirer.class);
 
     public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, long deadlineMs) {
-        AsyncResult<Void> future = acquireAllLocks(locks, lock -> lock.lock(requestId, deadlineMs));
-        registerCompletionHandlers(future, requestId, locks);
+        try {
+            AsyncResult<Void> future = acquireAllLocks(locks, lock -> lock.lock(requestId, deadlineMs));
+            registerCompletionHandlers(future, requestId, locks);
 
-        return future.map(ignored -> new HeldLocks(locks.get(), requestId));
+            return future.map(ignored -> new HeldLocks(locks.get(), requestId));
+        } catch (Throwable t) {
+            log.error("Error while acquiring locks");
+            unlockAll(requestId, locks);
+            throw Throwables.propagate(t);
+        }
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, long deadlineMs) {
@@ -53,17 +59,17 @@ public class LockAcquirer {
     private void registerCompletionHandlers(AsyncResult<Void> future, UUID requestId, OrderedLocks locks) {
         future.onError(error -> {
             log.warn("Error while acquiring locks", SafeArg.of("requestId", requestId), error);
-            unlockAll(requestId, locks.get());
+            unlockAll(requestId, locks);
         });
         future.onTimeout(() -> {
             log.info("Lock request timed out", SafeArg.of("requestId", requestId));
-            unlockAll(requestId, locks.get());
+            unlockAll(requestId, locks);
         });
     }
 
-    private void unlockAll(UUID requestId, Collection<AsyncLock> locks) {
+    private void unlockAll(UUID requestId, OrderedLocks locks) {
         try {
-            for (AsyncLock lock : locks) {
+            for (AsyncLock lock : locks.get()) {
                 lock.unlock(requestId);
             }
         } catch (Throwable t) {

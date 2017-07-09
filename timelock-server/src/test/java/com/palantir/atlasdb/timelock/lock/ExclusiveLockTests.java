@@ -17,11 +17,10 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 
 import java.util.UUID;
-import java.util.concurrent.Completableresult;
 
 import org.junit.Test;
 
@@ -103,9 +102,10 @@ public class ExclusiveLockTests {
 
         assertThat(lock.getCurrentHolder()).isEqualTo(REQUEST_1);
         assertThat(request2.isComplete()).isFalse();
+
         // request2 should still get the lock when it's available
         unlock(REQUEST_1);
-        assertCompletedSuccessfully(request2);
+        assertThat(request2.isCompletedSuccessfully()).isTrue();
     }
 
     @Test
@@ -199,6 +199,18 @@ public class ExclusiveLockTests {
     public void availableLockIsAvailableIfDeadlineIsAlreadyPast() {
         canceller.setShouldCancelSynchronously(true);
         waitUntilAvailableSynchronously(REQUEST_1);
+    }
+
+    @Test
+    public void enqueueingSameRequestIdTwiceThrowsAndDoesNotAffectState() {
+        lockSynchronously(REQUEST_1);
+        AsyncResult<Void> request2 = lockAsync(REQUEST_2);
+
+        assertThatThrownBy(() -> lockAsync(REQUEST_2)).isInstanceOf(IllegalStateException.class);
+
+        // request 2 should still get the lock when available
+        unlock(REQUEST_1);
+        assertThat(request2.isCompletedSuccessfully()).isTrue();
     }
 
     private AsyncResult<Void> waitUntilAvailableAsync(UUID request) {

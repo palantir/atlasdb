@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -68,7 +69,8 @@ public class AsyncTimelockServiceIntegrationTest {
     @Test
     public void locksAreExclusive() {
         LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).get();
-        Future<LockTokenV2> futureToken = CLUSTER.lockAsync(requestFor(LOCK_A));
+        Future<LockTokenV2> futureToken = CLUSTER.lockAsync(requestFor(LOCK_A))
+                .thenApply(Optional::get);
 
         assertNotYetLocked(futureToken);
 
