@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.FakeDelayedCanceller;
+import com.palantir.atlasdb.timelock.FakeDelayedExecutor;
 
 public class HeldLocksTest {
 
@@ -37,7 +37,7 @@ public class HeldLocksTest {
 
     private static final long DEADLINE = 123L;
 
-    private final DelayedExecutor canceller = new FakeDelayedCanceller();
+    private final DelayedExecutor canceller = new FakeDelayedExecutor();
     private final ExclusiveLock lockA = spy(new ExclusiveLock(canceller));
     private final ExclusiveLock lockB = spy(new ExclusiveLock(canceller));
 

@@ -24,7 +24,7 @@ import java.util.UUID;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.timelock.FakeDelayedCanceller;
+import com.palantir.atlasdb.timelock.FakeDelayedExecutor;
 
 public class ExclusiveLockTests {
 
@@ -34,7 +34,7 @@ public class ExclusiveLockTests {
 
     private static final long DEADLINE = 123L;
 
-    private final FakeDelayedCanceller canceller = new FakeDelayedCanceller();
+    private final FakeDelayedExecutor canceller = new FakeDelayedExecutor();
     private final ExclusiveLock lock = new ExclusiveLock(canceller);
 
     @Test
@@ -191,13 +191,13 @@ public class ExclusiveLockTests {
 
     @Test
     public void availableLockIsAcquiredEvenIfDeadlineIsAlreadyPast() {
-        canceller.setShouldCancelSynchronously(true);
+        canceller.setShouldRunSynchronously(true);
         lockSynchronously(REQUEST_1);
     }
 
     @Test
     public void availableLockIsAvailableIfDeadlineIsAlreadyPast() {
-        canceller.setShouldCancelSynchronously(true);
+        canceller.setShouldRunSynchronously(true);
         waitUntilAvailableSynchronously(REQUEST_1);
     }
 

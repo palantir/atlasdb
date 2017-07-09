@@ -37,7 +37,7 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.FakeDelayedCanceller;
+import com.palantir.atlasdb.timelock.FakeDelayedExecutor;
 
 public class LockAcquirerTest {
 
@@ -46,7 +46,7 @@ public class LockAcquirerTest {
 
     private static final long DEADLINE = 123L;
 
-    private final FakeDelayedCanceller canceller = new FakeDelayedCanceller();
+    private final FakeDelayedExecutor canceller = new FakeDelayedExecutor();
 
     private final ExclusiveLock lockA = spy(new ExclusiveLock(canceller));
     private final ExclusiveLock lockB = spy(new ExclusiveLock(canceller));

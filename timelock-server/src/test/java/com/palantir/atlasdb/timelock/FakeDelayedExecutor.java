@@ -17,29 +17,22 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.Map;
-import java.util.concurrent.ScheduledExecutorService;
 
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.lock.DelayedExecutor;
-import com.palantir.common.time.Clock;
 
-public class FakeDelayedCanceller extends DelayedExecutor {
+public class FakeDelayedExecutor extends DelayedExecutor {
 
     private Map<Long, Runnable> tasksByDeadline = Maps.newHashMap();
-    private volatile boolean shouldCancelSynchronously = false;
+    private volatile boolean shouldRunSynchronously = false;
 
-    public FakeDelayedCanceller() {
+    public FakeDelayedExecutor() {
         super(null, null);
-    }
-
-    protected FakeDelayedCanceller(ScheduledExecutorService executor,
-            Clock clock) {
-        super(executor, clock);
     }
 
     @Override
     public void runAt(Runnable task, long deadlineMs) {
-        if (shouldCancelSynchronously) {
+        if (shouldRunSynchronously) {
             task.run();
         } else {
             tasksByDeadline.put(deadlineMs, task);
@@ -54,7 +47,7 @@ public class FakeDelayedCanceller extends DelayedExecutor {
         }
     }
 
-    public void setShouldCancelSynchronously(boolean shouldCancelSynchronously) {
-        this.shouldCancelSynchronously = shouldCancelSynchronously;
+    public void setShouldRunSynchronously(boolean shouldRunSynchronously) {
+        this.shouldRunSynchronously = shouldRunSynchronously;
     }
 }
