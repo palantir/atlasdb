@@ -158,7 +158,7 @@ public class ExclusiveLockTests {
     }
 
     @Test
-    public void lockRequestIsCancelledAfterDeadline() {
+    public void lockRequestIsTimedOutAfterDeadline() {
         lockSynchronously(REQUEST_1);
         AsyncResult<Void> request2 = lockAsync(REQUEST_2);
 
@@ -168,7 +168,7 @@ public class ExclusiveLockTests {
     }
 
     @Test
-    public void waitRequestIsCancelledAfterDeadline() {
+    public void waitRequestIsTimedOutAfterDeadline() {
         lockSynchronously(REQUEST_1);
         AsyncResult<Void> request2 = waitUntilAvailableAsync(REQUEST_1);
 

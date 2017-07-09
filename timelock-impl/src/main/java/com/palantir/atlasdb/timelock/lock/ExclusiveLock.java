@@ -31,7 +31,7 @@ import com.palantir.logsafe.SafeArg;
 public class ExclusiveLock implements AsyncLock {
 
     @GuardedBy("this")
-    private final Queue queue = new Queue();
+    private final LockRequestQueue queue = new LockRequestQueue();
     @GuardedBy("this")
     private UUID currentHolder = null;
 
@@ -106,7 +106,7 @@ public class ExclusiveLock implements AsyncLock {
     }
 
     @NotThreadSafe
-    private static class Queue {
+    private static class LockRequestQueue {
 
         private final LinkedHashMap<UUID, LockRequest> queue = Maps.newLinkedHashMap();
 
