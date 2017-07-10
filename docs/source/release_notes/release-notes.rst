@@ -104,7 +104,7 @@ develop
            This should fix the issue where we were unable to sweep cells with a high number of mutations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
 
-    *    - |changed|
+    *    - |improved|
          - Default configs which tune sweep runs were lowered, to ensure that sweep works in any situation. For more information, please check the :ref:`sweep docs<sweep>`.
            Please delete any config overrides regarding sweep and use the default values, to ensure a sane run of sweep.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
