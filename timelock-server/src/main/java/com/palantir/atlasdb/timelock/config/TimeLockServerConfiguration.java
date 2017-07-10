@@ -50,7 +50,7 @@ public class TimeLockServerConfiguration extends Configuration {
         checkClientNames(clients);
         if (Boolean.TRUE.equals(useClientRequestLimit)) {
             Preconditions.checkState(computeNumberOfAvailableThreads() > 0,
-                    "Configuration enables clientRequestLimit but specifies non-positive number at available threads.");
+                    "Configuration enables clientRequestLimit but specifies non-positive number of available threads.");
         }
 
         this.algorithm = MoreObjects.firstNonNull(algorithm, PaxosConfiguration.DEFAULT);
@@ -61,7 +61,7 @@ public class TimeLockServerConfiguration extends Configuration {
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
 
         if (clients.isEmpty()) {
-            log.warn("TimeLockServer initialised with an empty list at 'clients'. "
+            log.warn("TimeLockServer initialised with an empty list of 'clients'. "
                     + "When adding clients, you will need to amend the config and restart TimeLock.");
         }
     }
@@ -69,7 +69,7 @@ public class TimeLockServerConfiguration extends Configuration {
     private void checkClientNames(Set<String> clientNames) {
         clientNames.forEach(client -> Preconditions.checkState(
                 client.matches(CLIENT_NAME_REGEX),
-                String.format("Client names must consist at alphanumeric characters, underscores or dashes only; "
+                String.format("Client names must consist of alphanumeric characters, underscores or dashes only; "
                         + "'%s' does not.", client)));
         Preconditions.checkState(!clientNames.contains(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
                 String.format("The namespace '%s' is reserved for the leader election service. Please use a different"
@@ -120,9 +120,9 @@ public class TimeLockServerConfiguration extends Configuration {
         int maxServerThreads = serverFactory.getMaxThreads();
 
         Preconditions.checkNotNull(serverFactory.getApplicationConnectors(),
-                "applicationConnectors at TimeLockServerConfiguration must not be null.");
+                "applicationConnectors of TimeLockServerConfiguration must not be null.");
         Preconditions.checkState(serverFactory.getApplicationConnectors().get(0) instanceof HttpConnectorFactory,
-                "applicationConnectors at TimeLockServerConfiguration must have a HttpConnectorFactory instance.");
+                "applicationConnectors of TimeLockServerConfiguration must have a HttpConnectorFactory instance.");
         HttpConnectorFactory connectorFactory = (HttpConnectorFactory) serverFactory.getApplicationConnectors().get(0);
         int selectorThreads = connectorFactory.getSelectorThreads();
         int acceptorThreads = connectorFactory.getAcceptorThreads();

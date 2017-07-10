@@ -27,7 +27,7 @@ public interface TimeLockServer {
 
     /**
      * Called when the Timelock Server is shut down after a successful start, whether normally or because
-     * at an exception. In the event the server fails to start, onStartupFailure() will be called, not this method.
+     * of an exception. In the event the server fails to start, onStartupFailure() will be called, not this method.
      */
     default void onStop() {
     }

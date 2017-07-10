@@ -35,9 +35,9 @@ public abstract class TimeLimiterConfiguration {
     public abstract boolean enableTimeLimiting();
 
     /**
-     * Returns a value indicating the margin at error we leave before interrupting a long running request,
+     * Returns a value indicating the margin of error we leave before interrupting a long running request,
      * since we wish to perform this interruption and return a BlockingTimeoutException _before_ Jetty closes the
-     * stream. This margin is specified as a ratio at the smallest idle timeout - hence it must be in (0, 1).
+     * stream. This margin is specified as a ratio of the smallest idle timeout - hence it must be in (0, 1).
      */
     @Value.Default
     @Value.Parameter

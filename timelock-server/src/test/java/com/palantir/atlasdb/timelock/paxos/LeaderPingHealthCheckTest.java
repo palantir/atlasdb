@@ -29,7 +29,7 @@ public class LeaderPingHealthCheckTest {
     private static final String MULTIPLE_LEADERS_MESSAGE = "There are multiple leaders in the Paxos cluster.";
     private static final String EXACTLY_ONE_LEADER_MESSAGE = "There is exactly one leader in the Paxos cluster.";
     private static final String NO_LEADER_MESSAGE = "There are no leaders in the Paxos cluster";
-    private static final String QUORUM_NODES_DOWN_MESSAGE = "Less than a quorum at nodes responded to a ping request.";
+    private static final String QUORUM_NODES_DOWN_MESSAGE = "Less than a quorum of nodes responded to a ping request.";
 
     @Test
     public void shouldBeUnhealthyIfAllNodesPingedSuccessfully() throws Exception {

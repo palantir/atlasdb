@@ -44,7 +44,7 @@ public class LeaderPingHealthCheck extends HealthCheck {
 
         int nonExceptionResponses = leaders.size() - getCountPingResults(PingResult.EXCEPTION, pingResults);
         if (nonExceptionResponses < getQuorumSize()) {
-            return Result.unhealthy("Less than a quorum at nodes responded to a ping request. "
+            return Result.unhealthy("Less than a quorum of nodes responded to a ping request. "
                     + "We received a response from %s nodes after pinging %s nodes",
                     nonExceptionResponses, leaders.size());
         }
