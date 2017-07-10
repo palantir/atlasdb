@@ -29,4 +29,3 @@ You must specify exactly one of ``-a``, ``-n``, and ``-t``. If you are sweeping 
 Additionally, see the list of :ref:`tunable sweep parameters <sweep_tunable_parameters>` if the defaults are not working well for your AtlasDB instance.
 
 Be aware that manual sweeping will ignore all conditions that factor into determining whether background sweepers should run, and that the background sweeper will also be affected by system property changes.
-

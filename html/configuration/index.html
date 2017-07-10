@@ -202,7 +202,7 @@ If you are using an embedded timestamp and lock service, see the <a class="refer
 If you are using the <a class="reference internal" href="../services/timelock_service/index.html#external-timelock-service"><span class="std std-ref">external Timelock service</span></a>, then see the <a class="reference internal" href="external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock client configuration</span></a>.</p>
 <p>For a full list of the configurations available at the <code class="docutils literal"><span class="pre">atlasdb</span></code> root level, see
 <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java">AtlasDbConfig.java</a>.</p>
-<p>A second root configuration block, denoted <code class="docutils literal"><span class="pre">atlasdb-runtime</span></code>, can be specified for live-reloadable configs.
+<p>A second root configuration block can be specified for live-reloadable configs.
 Parameters related to <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">Sweep</span></a> can be specified there and will be reloaded in each sweep run.
 For a full list of the configurations available at this block, see
 <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java">AtlasDbRuntimeConfig.java</a>.</p>

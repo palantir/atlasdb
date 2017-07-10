@@ -197,12 +197,17 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Proxies created via <code class="docutils literal"><span class="pre">AtlasDbHttpClients</span></code> now retry lock requests if the server lose leadership while the request is blocking.
+In the past, this scenario would cause 500 errors that were not retried by the client.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1782">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>AtlasDB now generates Maven POM files for shadowed jars correctly.
 Previously, we would regenerate the XML for shadow dependencies by creating a node with corresponding groupId, artifactId, scope and version tags <em>only</em>, which is incorrect because it loses information about, for example, specific or transitive exclusions.
 We now respect these additional tags.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2092">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">Improved performance with a single leader block.
 If a single leader is configured, it will no longer go via HTTPS/Jetty to request
 timestamps and locks from itself. Aside from a minor perf improvement, this should also
@@ -214,9 +219,17 @@ service, as they may also be vulnerable to this failure mode.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2091">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug that caused hidden tables to be wiped when they were read from console.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2106">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">sweep docs</span></a>, in particular, the <a class="reference internal" href="../cluster_management/sweep/background-sweep.html#background-sweep"><span class="std std-ref">background sweep docs</span></a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2104">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>Default configs regarding sweep runs were lowered, to ensure that sweep works in any situation. For more information, please check the <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">sweep docs</span></a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2104">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>

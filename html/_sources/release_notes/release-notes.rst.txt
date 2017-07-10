@@ -45,6 +45,11 @@ develop
          - Change
 
     *    - |fixed|
+         - Proxies created via ``AtlasDbHttpClients`` now retry lock requests if the server lose leadership while the request is blocking.
+           In the past, this scenario would cause 500 errors that were not retried by the client.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1782>`__)
+
+    *    - |fixed|
          - AtlasDB now generates Maven POM files for shadowed jars correctly.
            Previously, we would regenerate the XML for shadow dependencies by creating a node with corresponding groupId, artifactId, scope and version tags *only*, which is incorrect because it loses information about, for example, specific or transitive exclusions.
            We now respect these additional tags.
@@ -66,6 +71,13 @@ develop
          - Fixed a bug that caused hidden tables to be wiped when they were read from console.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2106>`__)
 
+    *    - |new|
+         - Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the :ref:`sweep docs<sweep>`, in particular, the :ref:`background sweep docs<background-sweep>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
+
+    *    - |changed|
+         - Default configs regarding sweep runs were lowered, to ensure that sweep works in any situation. For more information, please check the :ref:`sweep docs<sweep>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
