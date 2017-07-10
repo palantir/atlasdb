@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -128,7 +129,7 @@ public class LegacyTimelockServiceTest {
 
         when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
 
-        assertEquals(LOCK_TOKEN_V2, timelock.lock(LockRequestV2.of(ImmutableSet.of(LOCK_A, LOCK_B), TIMEOUT)));
+        assertEquals(Optional.of(LOCK_TOKEN_V2), timelock.lock(LockRequestV2.of(ImmutableSet.of(LOCK_A, LOCK_B), TIMEOUT)));
         verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
     }
 
