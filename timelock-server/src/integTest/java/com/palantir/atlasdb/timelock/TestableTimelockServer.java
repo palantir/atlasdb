@@ -27,13 +27,11 @@ import com.palantir.timestamp.TimestampService;
 
 public class TestableTimelockServer {
 
-    private final String baseUri;
     private final TimeLockServerHolder serverHolder;
     private final String defaultClient;
     private final TestProxies proxies;
 
     public TestableTimelockServer(String baseUri, String defaultClient, TimeLockServerHolder serverHolder) {
-        this.baseUri = baseUri;
         this.defaultClient = defaultClient;
         this.serverHolder = serverHolder;
         this.proxies = new TestProxies(baseUri, ImmutableList.of());
