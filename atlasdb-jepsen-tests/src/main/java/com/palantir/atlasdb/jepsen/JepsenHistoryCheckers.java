@@ -28,6 +28,7 @@ import com.palantir.atlasdb.jepsen.lock.RefreshCorrectnessChecker;
 import com.palantir.atlasdb.jepsen.timestamp.MonotonicChecker;
 import com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker;
 import com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker;
+import com.palantir.atlasdb.jepsen.timestamp.range.DisjointnessChecker;
 
 
 public final class JepsenHistoryCheckers {
@@ -53,6 +54,10 @@ public final class JepsenHistoryCheckers {
 
     public static JepsenHistoryChecker createWithLockCheckers() {
         return createWithCheckers(LOCK_CHECKERS);
+    }
+
+    public static JepsenHistoryChecker createWithNoopCheckers() {
+        return createWithCheckers(ImmutableList.of(DisjointnessChecker::new));
     }
 
     @VisibleForTesting

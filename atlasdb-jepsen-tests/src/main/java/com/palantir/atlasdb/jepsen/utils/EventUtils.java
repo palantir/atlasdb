@@ -18,7 +18,10 @@ package com.palantir.atlasdb.jepsen.utils;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.base.Throwables;
 import com.palantir.atlasdb.jepsen.JepsenConstants;
+import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 
@@ -55,5 +58,13 @@ public final class EventUtils {
             }
         }
         return convertedEvent;
+    }
+
+    public static String serializeValue(Object value) {
+        try {
+            return Event.OBJECT_MAPPER.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            throw Throwables.propagate(e);
+        }
     }
 }
