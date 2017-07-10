@@ -4,6 +4,8 @@ apply from: "../gradle/shared.gradle"
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
+sourceCompatibility = 1.6
+
 repositories {
     mavenCentral()
 }
