@@ -52,7 +52,7 @@ develop
     *    - Type
          - Change
 
-    *    - |new|
+    *    - |new| |improved|
          - Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the :ref:`sweep docs<sweep>`, in particular, the :ref:`background sweep docs<background-sweep>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
 
