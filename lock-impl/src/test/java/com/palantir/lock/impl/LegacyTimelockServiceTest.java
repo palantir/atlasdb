@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +43,7 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LegacyTimelockService.LockRefreshTokenV2Adapter;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
@@ -125,11 +127,24 @@ public class LegacyTimelockServiceTest {
 
     @Test
     public void lockDelegatesToLockService() throws InterruptedException {
-        LockRequest legacyRequest = LockRequest.builder(buildLockMap(LockMode.WRITE)).build();
+        LockRequest legacyRequest = LockRequest.builder(buildLockMap(LockMode.WRITE))
+                .blockForAtMost(SimpleTimeDuration.of(TIMEOUT, TimeUnit.MILLISECONDS))
+                .build();
 
         when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
 
         assertEquals(Optional.of(LOCK_TOKEN_V2), timelock.lock(LockRequestV2.of(ImmutableSet.of(LOCK_A, LOCK_B), TIMEOUT)));
+        verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
+    }
+
+    @Test
+    public void lockRequestWithMaxAcquireTimeoutMapsToBlockIndefinitely() throws InterruptedException {
+        LockRequest legacyRequest = LockRequest.builder(buildLockMap(LockMode.WRITE))
+                .build();
+
+        when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
+
+        assertEquals(Optional.of(LOCK_TOKEN_V2), timelock.lock(LockRequestV2.of(ImmutableSet.of(LOCK_A, LOCK_B), Long.MAX_VALUE)));
         verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
     }
 

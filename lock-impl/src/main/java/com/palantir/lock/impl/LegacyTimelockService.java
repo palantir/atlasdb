@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -36,6 +37,7 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
@@ -121,7 +123,11 @@ public class LegacyTimelockService implements TimelockService {
 
     private LockRequest toLegacyLockRequest(LockRequestV2 request) {
        SortedMap<LockDescriptor, LockMode> locks = buildLockMap(request.getLockDescriptors(), LockMode.WRITE);
-       return LockRequest.builder(locks).build();
+       LockRequest.Builder builder =  LockRequest.builder(locks);
+       if (request.getAcquireTimeoutMs() < Long.MAX_VALUE) {
+           builder.blockForAtMost(SimpleTimeDuration.of(request.getAcquireTimeoutMs(), TimeUnit.MILLISECONDS));
+       }
+       return builder.build();
     }
 
     private LockRequest toLegacyWaitForLocksRequest(Set<LockDescriptor> lockDescriptors) {
