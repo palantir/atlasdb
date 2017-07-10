@@ -75,10 +75,10 @@ public class AsyncLockService {
         }, 0, LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2, TimeUnit.MILLISECONDS);
     }
 
-    public AsyncResult<LockTokenV2> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, long deadlineMs) {
+    public AsyncResult<LockTokenV2> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, Deadline deadline) {
         return heldLocks.getExistingOrAcquire(
                 requestId,
-                () -> acquireLocks(requestId, lockDescriptors, deadlineMs));
+                () -> acquireLocks(requestId, lockDescriptors, deadline));
     }
 
     public AsyncResult<LockTokenV2> lockImmutableTimestamp(UUID requestId, long timestamp) {
@@ -87,23 +87,24 @@ public class AsyncLockService {
                 () -> acquireImmutableTimestampLock(requestId, timestamp));
     }
 
-    public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, long deadlineMs) {
+    public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, Deadline deadline) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
-        return lockAcquirer.waitForLocks(requestId, orderedLocks, deadlineMs);
+        return lockAcquirer.waitForLocks(requestId, orderedLocks, deadline);
     }
 
     public Optional<Long> getImmutableTimestamp() {
         return immutableTsTracker.getImmutableTimestamp();
     }
 
-    private AsyncResult<HeldLocks> acquireLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, long deadlineMs) {
+    private AsyncResult<HeldLocks> acquireLocks(UUID requestId, Set<LockDescriptor> lockDescriptors,
+            Deadline deadline) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
-        return lockAcquirer.acquireLocks(requestId, orderedLocks, deadlineMs);
+        return lockAcquirer.acquireLocks(requestId, orderedLocks, deadline);
     }
 
     private AsyncResult<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
         AsyncLock immutableTsLock = immutableTsTracker.getLockFor(timestamp);
-        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), Long.MAX_VALUE);
+        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), Deadline.expired());
     }
 
     public boolean unlock(LockTokenV2 token) {

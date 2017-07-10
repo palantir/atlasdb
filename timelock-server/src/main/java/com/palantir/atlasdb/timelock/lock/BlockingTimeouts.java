@@ -83,7 +83,7 @@ public final class BlockingTimeouts {
 
     private static long logAndGetDefault() {
         log.warn("Couldn't figure out the idle timeout from configuration. Will assume this to be the"
-                + " default of {} ms", DEFAULT_IDLE_TIMEOUT);
+                + " default at {} ms", DEFAULT_IDLE_TIMEOUT);
         return DEFAULT_IDLE_TIMEOUT;
     }
 

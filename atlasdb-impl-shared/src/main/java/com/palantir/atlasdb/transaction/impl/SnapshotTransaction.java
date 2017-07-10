@@ -147,6 +147,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private static final Logger perfLogger = LoggerFactory.getLogger("dualschema.perf");
     private static final Logger constraintLogger = LoggerFactory.getLogger("dualschema.constraints");
 
+    // TODO(nziebart): Make this timeout configurable. Back-compat would mandate infinite blocking time.
     private static final long LOCK_ACQUISITION_TIMEOUT_MS = 60_000L;
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;

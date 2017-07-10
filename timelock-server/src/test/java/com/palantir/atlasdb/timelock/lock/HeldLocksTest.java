@@ -35,7 +35,7 @@ public class HeldLocksTest {
 
     private static final UUID REQUEST_ID = UUID.randomUUID();
 
-    private static final long DEADLINE = 123L;
+    private static final Deadline DEADLINE = Deadline.at(123L);
 
     private final DelayedExecutor canceller = new FakeDelayedExecutor();
     private final ExclusiveLock lockA = spy(new ExclusiveLock(canceller));

@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.common.time.Clock;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockTokenV2;
@@ -45,12 +46,13 @@ public class AsyncLockServiceEteTest {
     private static final String LOCK_C = "c";
     private static final String LOCK_D = "d";
 
-    private static final long DEADLINE = System.currentTimeMillis() + 30_000L;
+    private static final Clock CLOCK = System::currentTimeMillis;
 
+    private static final Deadline DEADLINE = Deadline.fromTimeoutMillis(30_000, CLOCK);
 
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(() -> new ExclusiveLock(
-                    new DelayedExecutor(Executors.newSingleThreadScheduledExecutor(), System::currentTimeMillis))),
+                    new DelayedExecutor(Executors.newSingleThreadScheduledExecutor(), CLOCK))),
             new ImmutableTimestampTracker(),
             new LockAcquirer(),
             new HeldLocksCollection(),
@@ -124,8 +126,8 @@ public class AsyncLockServiceEteTest {
     public void requestsAreIdempotentWithRespectToTimeout() {
         lockSynchronously(REQUEST_1, LOCK_A);
 
-        long deadline = System.currentTimeMillis() + 1000L;
-        long muchLaterDeadline = deadline + 100_000L;
+        Deadline deadline = Deadline.fromTimeoutMillis(1000L, System::currentTimeMillis);
+        Deadline muchLaterDeadline = Deadline.fromTimeoutMillis(100_000L, System::currentTimeMillis);
         AsyncResult<LockTokenV2> result = service.lock(REQUEST_2, descriptors(LOCK_A), deadline);
         AsyncResult<LockTokenV2> resul2 = service.lock(REQUEST_2, descriptors(LOCK_A), muchLaterDeadline);
 
@@ -209,7 +211,7 @@ public class AsyncLockServiceEteTest {
     public void lockRequestTimesOutWhenDeadlinePasses() {
         lockSynchronously(REQUEST_1, LOCK_A);
 
-        long deadline = System.currentTimeMillis() + 500L;
+        Deadline deadline = Deadline.fromTimeoutMillis(500L, CLOCK);
         AsyncResult<LockTokenV2> result = service.lock(REQUEST_2, descriptors(LOCK_A), deadline);
         assertThat(result.isTimedOut()).isFalse();
 
@@ -222,7 +224,7 @@ public class AsyncLockServiceEteTest {
     public void waitForLocksRequestTimesOutWhenDeadlinePasses() {
         lockSynchronously(REQUEST_1, LOCK_A);
 
-        long deadline = System.currentTimeMillis() + 500L;
+        Deadline deadline = Deadline.fromTimeoutMillis(500L, CLOCK);
         AsyncResult<Void> result = service.waitForLocks(REQUEST_2, descriptors(LOCK_A), deadline);
         assertThat(result.isTimedOut()).isFalse();
 
@@ -235,7 +237,7 @@ public class AsyncLockServiceEteTest {
     public void lockRequestTimesOutIfDeadlineIsAlreadyPast() {
         lockSynchronously(REQUEST_1, LOCK_A);
 
-        long deadline = System.currentTimeMillis() + 500L;
+        Deadline deadline = Deadline.fromTimeoutMillis(500L, CLOCK);
         AsyncResult<LockTokenV2> result = service.lock(REQUEST_2, descriptors(LOCK_A), deadline);
 
         Uninterruptibles.sleepUninterruptibly(1000L, TimeUnit.MILLISECONDS);
@@ -247,7 +249,7 @@ public class AsyncLockServiceEteTest {
     public void timedOutRequestDoesNotHoldLocks() {
         LockTokenV2 lockBToken = lockSynchronously(REQUEST_1, LOCK_B);
 
-        long deadline = System.currentTimeMillis() + 500L;
+        Deadline deadline = Deadline.fromTimeoutMillis(500L, CLOCK);
         service.lock(REQUEST_2, descriptors(LOCK_A, LOCK_B), deadline);
 
         waitForDeadline(deadline);
@@ -257,9 +259,9 @@ public class AsyncLockServiceEteTest {
         assertNotLocked(LOCK_B);
     }
 
-    private void waitForDeadline(long deadline) {
+    private void waitForDeadline(Deadline deadline) {
         long buffer = 250L;
-        while (System.currentTimeMillis() < deadline + buffer) {
+        while (System.currentTimeMillis() < deadline.getTimeMillis() + buffer) {
             Uninterruptibles.sleepUninterruptibly(buffer, TimeUnit.MILLISECONDS);
         }
     }

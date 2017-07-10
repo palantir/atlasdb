@@ -51,7 +51,7 @@ public class AsyncLockServiceTest {
     private static final String LOCK_B = "b";
     public static final long REAPER_PERIOD_MS = LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2;
 
-    private static final long DEADLINE = 123L;
+    private static final Deadline DEADLINE = Deadline.at(123L);
 
     private final LockAcquirer acquirer = mock(LockAcquirer.class);
     private final LockCollection locks = mock(LockCollection.class);
@@ -65,7 +65,7 @@ public class AsyncLockServiceTest {
 
     @Before
     public void before() {
-        when(acquirer.acquireLocks(any(), any(), anyLong())).thenReturn(new AsyncResult<>());
+        when(acquirer.acquireLocks(any(), any(), any())).thenReturn(new AsyncResult<>());
         when(locks.getAll(any())).thenReturn(OrderedLocks.fromSingleLock(newLock()));
         when(immutableTimestampTracker.getImmutableTimestamp()).thenReturn(Optional.empty());
         when(immutableTimestampTracker.getLockFor(anyLong())).thenReturn(newLock());
@@ -99,7 +99,7 @@ public class AsyncLockServiceTest {
         lockService.lock(REQUEST_ID, descriptors, DEADLINE);
         lockService.lock(REQUEST_ID, descriptors, DEADLINE);
 
-        verify(acquirer, times(1)).acquireLocks(any(), any(), anyLong());
+        verify(acquirer, times(1)).acquireLocks(any(), any(), any());
         verifyNoMoreInteractions(acquirer);
     }
 
@@ -112,7 +112,7 @@ public class AsyncLockServiceTest {
 
         lockService.lockImmutableTimestamp(requestId, timestamp);
 
-        verify(acquirer).acquireLocks(requestId, orderedLocks(immutableTsLock), Long.MAX_VALUE);
+        verify(acquirer).acquireLocks(requestId, orderedLocks(immutableTsLock), Deadline.expired());
     }
 
     @Test
@@ -137,7 +137,7 @@ public class AsyncLockServiceTest {
     public void propagatesTimeoutExceptionIfRequestTimesOut() {
         AsyncResult<HeldLocks> timedOutResult = new AsyncResult<>();
         timedOutResult.timeout();
-        when(acquirer.acquireLocks(any(), any(), anyLong())).thenReturn(timedOutResult);
+        when(acquirer.acquireLocks(any(), any(), any())).thenReturn(timedOutResult);
 
         AsyncResult<?> result = lockService.lock(REQUEST_ID, descriptors(LOCK_A), DEADLINE);
 

@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.lock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -44,7 +43,7 @@ public class LockAcquirerTest {
     private static final UUID REQUEST_ID = UUID.randomUUID();
     private static final UUID OTHER_REQUEST_ID = UUID.randomUUID();
 
-    private static final long DEADLINE = 123L;
+    private static final Deadline DEADLINE = Deadline.at(123L);
 
     private final FakeDelayedExecutor canceller = new FakeDelayedExecutor();
 
@@ -112,7 +111,7 @@ public class LockAcquirerTest {
         RuntimeException error = new RuntimeException("foo");
         lockResult.fail(error);
 
-        doReturn(lockResult).when(lockA).lock(any(), anyLong());
+        doReturn(lockResult).when(lockA).lock(any(), any());
         AsyncResult<HeldLocks> acquisitions = acquire(lockA);
 
         assertThat(acquisitions.getError()).isEqualTo(error);
@@ -124,7 +123,7 @@ public class LockAcquirerTest {
         RuntimeException error = new RuntimeException("foo");
         lockResult.fail(error);
 
-        doReturn(lockResult).when(lockB).lock(any(), anyLong());
+        doReturn(lockResult).when(lockB).lock(any(), any());
 
         lockA.lock(OTHER_REQUEST_ID, DEADLINE);
         AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB);
@@ -138,7 +137,7 @@ public class LockAcquirerTest {
         AsyncResult<Void> lockResult = new AsyncResult<>();
         lockResult.fail(new RuntimeException("foo"));
 
-        doReturn(lockResult).when(lockC).lock(any(), anyLong());
+        doReturn(lockResult).when(lockC).lock(any(), any());
 
         AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB, lockC);
         assertThat(acquisitions.isFailed()).isTrue();
@@ -149,7 +148,7 @@ public class LockAcquirerTest {
 
     @Test
     public void unlocksOnSynchronousFailure() {
-        doThrow(new RuntimeException("foo")).when(lockC).lock(any(), anyLong());
+        doThrow(new RuntimeException("foo")).when(lockC).lock(any(), any());
 
         AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB, lockC);
         assertThat(acquisitions.isFailed()).isTrue();
@@ -179,10 +178,10 @@ public class LockAcquirerTest {
         acquire(lockB);
         AsyncResult<?> result = acquire(lockA, lockB, lockC);
 
-        canceller.tick(DEADLINE + 1L);
+        canceller.tick(DEADLINE.getTimeMillis() + 1L);
 
         assertThat(result.isTimedOut()).isTrue();
-        verify(lockC, never()).lock(any(), anyLong());
+        verify(lockC, never()).lock(any(), any());
     }
 
     private AsyncResult<Void> waitFor(AsyncLock... locks) {

@@ -32,7 +32,7 @@ public class ExclusiveLockTests {
     private static final UUID REQUEST_2 = UUID.randomUUID();
     private static final UUID REQUEST_3 = UUID.randomUUID();
 
-    private static final long DEADLINE = 123L;
+    private static final Deadline DEADLINE = Deadline.at(123L);
 
     private final FakeDelayedExecutor canceller = new FakeDelayedExecutor();
     private final ExclusiveLock lock = new ExclusiveLock(canceller);
@@ -162,7 +162,7 @@ public class ExclusiveLockTests {
         lockSynchronously(REQUEST_1);
         AsyncResult<Void> request2 = lockAsync(REQUEST_2);
 
-        canceller.tick(DEADLINE + 1);
+        canceller.tick(DEADLINE.getTimeMillis() + 1);
 
         assertThat(request2.isTimedOut()).isTrue();
     }
@@ -172,7 +172,7 @@ public class ExclusiveLockTests {
         lockSynchronously(REQUEST_1);
         AsyncResult<Void> request2 = waitUntilAvailableAsync(REQUEST_1);
 
-        canceller.tick(DEADLINE + 1);
+        canceller.tick(DEADLINE.getTimeMillis() + 1);
 
         assertThat(request2.isTimedOut()).isTrue();
     }
@@ -182,7 +182,7 @@ public class ExclusiveLockTests {
         lockSynchronously(REQUEST_1);
         AsyncResult<Void> request2 = lockAsync(REQUEST_2);
 
-        canceller.tick(DEADLINE + 1);
+        canceller.tick(DEADLINE.getTimeMillis() + 1);
         unlock(REQUEST_1);
 
         assertThat(lock.getCurrentHolder()).isNull();

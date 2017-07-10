@@ -31,8 +31,8 @@ public class DelayedExecutor {
         this.clock = clock;
     }
 
-    public void runAt(Runnable task, long deadlineMs) {
-        long delay = Math.max(0L, deadlineMs - clock.getTimeMillis());
+    public void runAt(Runnable task, Deadline deadline) {
+        long delay = Math.max(0L, deadline.getMillisRemaining(clock));
         executor.schedule(
                 task,
                 delay,

@@ -16,14 +16,30 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.UUID;
+import org.immutables.value.Value;
 
-public interface AsyncLock {
+import com.palantir.common.time.Clock;
 
-    AsyncResult<Void> lock(UUID requestId, Deadline deadline);
+@Value.Immutable
+public interface Deadline {
 
-    AsyncResult<Void> waitUntilAvailable(UUID requestId, Deadline deadline);
+    @Value.Parameter
+    long getTimeMillis();
 
-    void unlock(UUID requestId);
+    default long getMillisRemaining(Clock clock) {
+        return getTimeMillis() - clock.getTimeMillis();
+    }
+
+    static Deadline at(long timeMillis) {
+        return ImmutableDeadline.of(timeMillis);
+    }
+
+    static Deadline fromTimeoutMillis(long timeoutMillis, Clock clock) {
+        return at(clock.getTimeMillis() + timeoutMillis);
+    }
+
+    static Deadline expired() {
+        return at(Long.MIN_VALUE);
+    }
 
 }

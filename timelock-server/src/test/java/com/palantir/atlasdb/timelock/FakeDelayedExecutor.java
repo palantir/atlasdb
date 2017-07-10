@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.timelock.lock.Deadline;
 import com.palantir.atlasdb.timelock.lock.DelayedExecutor;
 
 public class FakeDelayedExecutor extends DelayedExecutor {
@@ -31,11 +32,11 @@ public class FakeDelayedExecutor extends DelayedExecutor {
     }
 
     @Override
-    public void runAt(Runnable task, long deadlineMs) {
+    public void runAt(Runnable task, Deadline deadline) {
         if (shouldRunSynchronously) {
             task.run();
         } else {
-            tasksByDeadline.put(deadlineMs, task);
+            tasksByDeadline.put(deadline.getTimeMillis(), task);
         }
     }
 

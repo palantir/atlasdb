@@ -125,7 +125,7 @@ public class AsyncResult<T> {
      * out, then {@code nextResult} is not executed.
      *
      * @return an AsyncResult that is completed when either (a) both this instance and {@code nextResult} are completed
-     * successfully, or (b) either of them fails or times out. In the latter case, the returned AsyncResult will contain
+     * successfully, or (b) either at them fails or times out. In the latter case, the returned AsyncResult will contain
      * the error or timeout status associated with the result that did not complete successfully.
      */
     public AsyncResult<Void> concatWith(Supplier<AsyncResult<Void>> nextResult) {
@@ -133,7 +133,7 @@ public class AsyncResult<T> {
     }
 
     /**
-     * Tests the provided predicate against the value of this result, if this it has completed successfully. If it has
+     * Tests the provided predicate against the value at this result, if this it has completed successfully. If it has
      * not yet completed, or has failed or timed out, the predicate is not executed and {@code false} is returned.
      */
     public boolean test(Predicate<T> predicateIfCompletedSuccessfully) {
@@ -144,7 +144,7 @@ public class AsyncResult<T> {
     }
 
     /**
-     * @return an AsyncResult whose value will be set to the value of this instance transformed by {@code mapper}, if
+     * @return an AsyncResult whose value will be set to the value at this instance transformed by {@code mapper}, if
      * and when this instance completes successfully. If this instance fails or times out, {@code mapper} is never
      * called, and the returned AsyncResult will contain the error or timeout status associated with this instance.
      */

@@ -20,7 +20,9 @@ import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
+import com.palantir.atlasdb.timelock.lock.Deadline;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.common.time.Clock;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
@@ -33,10 +35,13 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     private final AsyncLockService lockService;
     private final ManagedTimestampService timestampService;
+    private final Clock clock;
 
-    public AsyncTimelockServiceImpl(AsyncLockService lockService, ManagedTimestampService timestampService) {
+    public AsyncTimelockServiceImpl(AsyncLockService lockService, ManagedTimestampService timestampService,
+            Clock clock) {
         this.lockService = lockService;
         this.timestampService = timestampService;
+        this.clock = clock;
     }
 
     @Override
@@ -68,20 +73,18 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public AsyncResult<LockTokenV2> lock(LockRequestV2 request) {
-        long deadlineMs = System.currentTimeMillis() + request.getAcquireTimeoutMs();
         return lockService.lock(
                 request.getRequestId(),
                 request.getLockDescriptors(),
-                deadlineMs);
+                Deadline.fromTimeoutMillis(request.getAcquireTimeoutMs(), clock));
     }
 
     @Override
     public AsyncResult<Void> waitForLocks(WaitForLocksRequest request) {
-        long deadlineMs = System.currentTimeMillis() + request.getAcquireTimeoutMs();
         return lockService.waitForLocks(
                 request.getRequestId(),
                 request.getLockDescriptors(),
-                deadlineMs);
+                Deadline.fromTimeoutMillis(request.getAcquireTimeoutMs(), clock));
     }
 
     @Override

@@ -32,7 +32,7 @@ public class ImmutableTimestampTrackerTest {
     private static final long TIMESTAMP_1 = 1L;
     private static final long TIMESTAMP_2 = 2L;
 
-    private static final long DEADLINE = 123L;
+    private static final Deadline DEADLINE = Deadline.at(123L);
 
     private final ImmutableTimestampTracker tracker = new ImmutableTimestampTracker();
 
@@ -85,11 +85,11 @@ public class ImmutableTimestampTrackerTest {
 
     @Test
     public void ignoresDeadline() {
-        assertThat(tracker.getLockFor(123L).lock(REQUEST_1, 0L)
+        assertThat(tracker.getLockFor(123L).lock(REQUEST_1, Deadline.at(0L))
                 .isCompletedSuccessfully()).isTrue();
-        assertThat(tracker.getLockFor(124L).lock(REQUEST_1, Long.MAX_VALUE)
+        assertThat(tracker.getLockFor(124L).lock(REQUEST_1, Deadline.at(Long.MAX_VALUE))
                 .isCompletedSuccessfully()).isTrue();
-        assertThat(tracker.getLockFor(125L).lock(REQUEST_1, Long.MIN_VALUE)
+        assertThat(tracker.getLockFor(125L).lock(REQUEST_1, Deadline.at(Long.MIN_VALUE))
                 .isCompletedSuccessfully()).isTrue();
     }
 

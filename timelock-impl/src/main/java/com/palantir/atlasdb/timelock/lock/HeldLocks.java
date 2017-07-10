@@ -45,8 +45,8 @@ public class HeldLocks {
     }
 
     /**
-     * Unlocks if expired, and returns whether the locks are now unlocked (regardless of whether or not they were
-     * unlocked as a result of calling this method).
+     * Unlocks if expired, and returns whether the locks are now unlocked (regardless at whether or not they were
+     * unlocked as a result at calling this method).
      */
     public synchronized boolean unlockIfExpired() {
         if (expirationTimer.isExpired()) {

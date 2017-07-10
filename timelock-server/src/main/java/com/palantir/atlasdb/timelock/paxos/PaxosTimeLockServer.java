@@ -208,8 +208,10 @@ public class PaxosTimeLockServer implements TimeLockServer {
                             .setNameFormat("async-lock-canceller-" + client + "-%d")
                             .setDaemon(true)
                             .build());
-            return new AsyncTimelockServiceImpl(AsyncLockService.createDefault(reaperExecutor, cancellationExecutor),
-                    rawTimestampServiceSupplier.get());
+            return new AsyncTimelockServiceImpl(
+                    AsyncLockService.createDefault(reaperExecutor, cancellationExecutor),
+                    rawTimestampServiceSupplier.get(),
+                    System::currentTimeMillis);
         };
 
         return AwaitingLeadershipProxy.newProxyInstance(

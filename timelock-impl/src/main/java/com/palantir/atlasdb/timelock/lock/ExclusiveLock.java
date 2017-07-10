@@ -42,13 +42,13 @@ public class ExclusiveLock implements AsyncLock {
     }
 
     @Override
-    public synchronized AsyncResult<Void> lock(UUID requestId, long deadlineMs) {
-        return submit(new LockRequest(requestId, false), deadlineMs);
+    public synchronized AsyncResult<Void> lock(UUID requestId, Deadline deadline) {
+        return submit(new LockRequest(requestId, false), deadline);
     }
 
     @Override
-    public synchronized AsyncResult<Void> waitUntilAvailable(UUID requestId, long deadlineMs) {
-        return submit(new LockRequest(requestId, true), deadlineMs);
+    public synchronized AsyncResult<Void> waitUntilAvailable(UUID requestId, Deadline deadline) {
+        return submit(new LockRequest(requestId, true), deadline);
     }
 
     @Override
@@ -65,7 +65,7 @@ public class ExclusiveLock implements AsyncLock {
     }
 
     @GuardedBy("this")
-    private AsyncResult<Void> submit(LockRequest request, long deadline) {
+    private AsyncResult<Void> submit(LockRequest request, Deadline deadline) {
         queue.enqueue(request);
         processQueue();
 

@@ -29,9 +29,9 @@ public class LockAcquirer {
 
     private static final Logger log = LoggerFactory.getLogger(LockAcquirer.class);
 
-    public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, long deadlineMs) {
+    public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, Deadline deadline) {
         try {
-            AsyncResult<Void> future = acquireAllLocks(locks, lock -> lock.lock(requestId, deadlineMs));
+            AsyncResult<Void> future = acquireAllLocks(locks, lock -> lock.lock(requestId, deadline));
             registerCompletionHandlers(future, requestId, locks);
 
             return future.map(ignored -> new HeldLocks(locks.get(), requestId));
@@ -42,8 +42,8 @@ public class LockAcquirer {
         }
     }
 
-    public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, long deadlineMs) {
-        return acquireAllLocks(locks, lock -> lock.waitUntilAvailable(requestId, deadlineMs));
+    public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, Deadline deadline) {
+        return acquireAllLocks(locks, lock -> lock.waitUntilAvailable(requestId, deadline));
     }
 
     private AsyncResult<Void> acquireAllLocks(
