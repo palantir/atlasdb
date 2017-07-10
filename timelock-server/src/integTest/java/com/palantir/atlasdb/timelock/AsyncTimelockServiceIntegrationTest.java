@@ -54,6 +54,9 @@ public class AsyncTimelockServiceIntegrationTest {
     private static final LockDescriptor LOCK_A = StringLockDescriptor.of("a");
     private static final LockDescriptor LOCK_B = StringLockDescriptor.of("b");
 
+    private static final long SHORT_TIMEOUT = 500L;
+    public static final long TIMEOUT = 10_000L;
+
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     @Test
@@ -108,7 +111,7 @@ public class AsyncTimelockServiceIntegrationTest {
     public void canWaitForLocks() {
         LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A, LOCK_B)).get();
 
-        Future<?> future = CLUSTER.waitForLocksAsync(waitRequestFor(LOCK_A, LOCK_B));
+        Future<Boolean> future = CLUSTER.waitForLocksAsync(waitRequestFor(LOCK_A, LOCK_B));
         assertNotDone(future);
 
         CLUSTER.unlock(token);
@@ -124,12 +127,38 @@ public class AsyncTimelockServiceIntegrationTest {
         assertThat(ts2).isGreaterThan(ts1);
     }
 
+    @Test
+    public void lockRequestCanTimeOut() {
+        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).get();
+        Optional<LockTokenV2> token2 = CLUSTER.lock(requestFor(SHORT_TIMEOUT, LOCK_A));
+
+        assertThat(token2).isNotPresent();
+        CLUSTER.unlock(token);
+    }
+
+    @Test
+    public void waitForLocksRequestCanTimeOut() {
+        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).get();
+        boolean wasSuccessful = CLUSTER.waitForLocks(waitRequestFor(SHORT_TIMEOUT, LOCK_A));
+
+        assertThat(wasSuccessful).isFalse();
+        CLUSTER.unlock(token);
+    }
+
     private LockRequestV2 requestFor(LockDescriptor... locks) {
-        return LockRequestV2.of(ImmutableSet.copyOf(locks), 10_000L);
+        return LockRequestV2.of(ImmutableSet.copyOf(locks), TIMEOUT);
+    }
+
+    private LockRequestV2 requestFor(long timeoutMs, LockDescriptor... locks) {
+        return LockRequestV2.of(ImmutableSet.copyOf(locks), timeoutMs);
     }
 
     private WaitForLocksRequest waitRequestFor(LockDescriptor... locks) {
-        return WaitForLocksRequest.of(ImmutableSet.copyOf(locks), 10_000L);
+        return WaitForLocksRequest.of(ImmutableSet.copyOf(locks), TIMEOUT);
+    }
+
+    private WaitForLocksRequest waitRequestFor(long timeoutMs, LockDescriptor... locks) {
+        return WaitForLocksRequest.of(ImmutableSet.copyOf(locks), timeoutMs);
     }
 
     private void assertNotYetLocked(Future<LockTokenV2> futureToken) {

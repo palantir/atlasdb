@@ -174,12 +174,12 @@ public class TestableTimelockCluster {
         return refreshLockLeases(ImmutableSet.of(token)).contains(token);
     }
 
-    public void waitForLocks(WaitForLocksRequest request) {
-        timelockService().waitForLocks(request);
+    public boolean waitForLocks(WaitForLocksRequest request) {
+        return timelockService().waitForLocks(request);
     }
 
-    public CompletableFuture<Void> waitForLocksAsync(WaitForLocksRequest request) {
-        return CompletableFuture.runAsync(() -> waitForLocks(request), executor);
+    public CompletableFuture<Boolean> waitForLocksAsync(WaitForLocksRequest request) {
+        return CompletableFuture.supplyAsync(() -> waitForLocks(request), executor);
     }
 
     public TimestampService timestampService() {

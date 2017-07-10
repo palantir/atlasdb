@@ -78,7 +78,7 @@ public class AsyncResult<T> {
 
     /** Returns whether this result has failed. Use {@link #getError} to retrieve the associated exception. */
     public boolean isFailed() {
-        return future.isCompletedExceptionally();
+        return future.isCompletedExceptionally() && !isTimedOut();
     }
 
     /** Returns whether this result has completed successfully. */
@@ -135,12 +135,11 @@ public class AsyncResult<T> {
      * out, then {@code nextResult} is not executed.
      *
      * @return an AsyncResult that is completed when either (a) both this instance and {@code nextResult} are completed
-     * successfully, or (b) either of them fails or times out. In the former case, the returned AsyncResult will contain
-     * the value associated with {@code nextResult}. In the latter case, the returned AsyncResult will contain the error
+     * successfully, or (b) either of them fails or times out. In the latter case, the returned AsyncResult will contain the error
      * or timeout status associated with the result that did not complete successfully.
      */
-    public AsyncResult<T> concatWith(Supplier<AsyncResult<T>> nextResult) {
-        return new AsyncResult<T>(future.thenCompose(ignored -> nextResult.get().future));
+    public AsyncResult<Void> concatWith(Supplier<AsyncResult<Void>> nextResult) {
+        return new AsyncResult<>(future.thenCompose(ignored -> nextResult.get().future));
     }
 
     /**
@@ -186,7 +185,7 @@ public class AsyncResult<T> {
     }
 
     private static boolean isTimeout(Throwable ex) {
-        return ex.getCause() instanceof TimeoutException;
+        return ex instanceof TimeoutException || ex.getCause() instanceof TimeoutException;
     }
 
     static class TimeoutException extends RuntimeException {

@@ -26,6 +26,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
@@ -73,14 +74,14 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock")
     public void lock(@Suspended final AsyncResponse response, LockRequestV2 request) {
-        AsyncResult<LockTokenV2> future = timelock.lock(request);
-        future.onComplete(() -> {
-            if (future.isFailed()) {
-                response.resume(future.getError());
-            } else if (future.isTimedOut()) {
-                response.resume(Optional.empty());
+        AsyncResult<LockTokenV2> result = timelock.lock(request);
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.resume(result.getError());
+            } else if (result.isTimedOut()) {
+                response.resume(Response.noContent().build());
             } else {
-                response.resume(Optional.of(future.get()));
+                response.resume(Optional.of(result.get()));
             }
         });
     }
@@ -88,12 +89,12 @@ public class AsyncTimelockResource {
     @POST
     @Path("await-locks")
     public void waitForLocks(@Suspended final AsyncResponse response, WaitForLocksRequest request) {
-        AsyncResult<Void> future = timelock.waitForLocks(request);
-        future.onComplete(() -> {
-            if (future.isFailed()) {
+        AsyncResult<Void> result = timelock.waitForLocks(request);
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.resume(result.getError());
+            } else if (result.isTimedOut()) {
                 response.resume(false);
-            } else if (future.isTimedOut()) {
-                response.resume(Optional.empty());
             } else {
                 response.resume(true);
             }
