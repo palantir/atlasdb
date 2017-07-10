@@ -185,54 +185,6 @@
 </div>
 <div class="section" id="develop">
 <h2>develop<a class="headerlink" href="#develop" title="Permalink to this headline">¶</a></h2>
-<table border="1" class="colwidths-given docutils">
-<colgroup>
-<col width="11%" />
-<col width="89%" />
-</colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Type</th>
-<th class="head">Change</th>
-</tr>
-</thead>
-<tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Proxies created via <code class="docutils literal"><span class="pre">AtlasDbHttpClients</span></code> now retry lock requests if the server lose leadership while the request is blocking.
-In the past, this scenario would cause 500 errors that were not retried by the client.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1782">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>AtlasDB now generates Maven POM files for shadowed jars correctly.
-Previously, we would regenerate the XML for shadow dependencies by creating a node with corresponding groupId, artifactId, scope and version tags <em>only</em>, which is incorrect because it loses information about, for example, specific or transitive exclusions.
-We now respect these additional tags.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2092">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td><p class="first">Improved performance with a single leader block.
-If a single leader is configured, it will no longer go via HTTPS/Jetty to request
-timestamps and locks from itself. Aside from a minor perf improvement, this should also
-fix a potential livelock/deadlock when the leader is under heavy load, where previously
-the Jetty threadpool could become full of requests awaiting timestamps, preventing any
-timestamp requests from being serviced, and requiring a server reboot to resolve.</p>
-<p class="last">We recommend HA clusters under heavy load switch to using a standalone timestamp
-service, as they may also be vulnerable to this failure mode.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2091">Pull Request</a>)</p>
-</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed a bug that caused hidden tables to be wiped when they were read from console.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2106">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">sweep docs</span></a>, in particular, the <a class="reference internal" href="../cluster_management/sweep/background-sweep.html#background-sweep"><span class="std std-ref">background sweep docs</span></a>.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2104">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td>Default configs regarding sweep runs were lowered, to ensure that sweep works in any situation. For more information, please check the <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">sweep docs</span></a>.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2104">Pull Request</a>)</td>
-</tr>
-</tbody>
-</table>
 </div>
 <div class="section" id="id1">
 <h2>0.46.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
@@ -248,7 +200,11 @@ service, as they may also be vulnerable to this failure mode.
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">sweep docs</span></a>, in particular, the <a class="reference internal" href="../cluster_management/sweep/background-sweep.html#background-sweep"><span class="std std-ref">background sweep docs</span></a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2104">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">Added support for live-reloading sweep configurations.
 <code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> methods now accept a Supplier of <code class="docutils literal"><span class="pre">AtlasDbRuntimeConfig</span></code> in addition to an <code class="docutils literal"><span class="pre">AtlasDbConfig</span></code>.
 If needed, the helper method <code class="docutils literal"><span class="pre">defaultRuntimeConfig()</span></code> can be used to create a runtime config with the default values.
@@ -288,26 +244,35 @@ The following options now <strong>may not</strong> be specified in the install c
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1976">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a bug that caused AtlasDB internal tables (e.g. the Transactions table or the Punch table) to be <strong>wiped when read from the AtlasDB Console</strong>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2106">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>The Atomix algorithm implementation for the TimeLock server and the corresponding configurations have been removed.
 The default algorithm for <code class="docutils literal"><span class="pre">TimeLockServer</span></code> has been changed to Paxos.
 This should not affect users as Atomix should not have been used due to known bugs in the implementation.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2082">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>The previously deprecated RocksDBKVS has been removed.
 Developers that relied on RocksDB for testing should move to H2 on JdbcKvs.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1966">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">Sweep now dynamically adjusts the number of (cell, ts) pairs across runs:</p>
 <ul class="simple">
 <li>On a failure run, sweep halves the number of pairs to read and to delete on subsequent runs.</li>
-<li>On a success run, sweep slowly increases the number of pairs to read and to delete on subsequent runs, up to a configurable maximum.</li>
+<li>On a success run, sweep slowly increases the number of (cell, ts) pairs to read and to delete on subsequent runs, up to a configurable maximum.</li>
 </ul>
 <p class="last">This should fix the issue where we were unable to sweep cells with a high number of mutations.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2060">Pull Request</a>)</p>
 </td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Default configs which tune sweep runs were lowered, to ensure that sweep works in any situation. For more information, please check the <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">sweep docs</span></a>.
+Please delete any config overrides regarding sweep and use the default values, to ensure a sane run of sweep.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2104">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now instruments embedded timestamp and lock services, even if no leader block is present in the config, to expose aggregate response time and service call metrics.
@@ -321,15 +286,46 @@ This should be used in place of the deprecated sweep CLIs.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2040">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Improved performance of timestamp and lock requests on clusters with a leader block and a single node.
+If a single leader is configured, timestamp and lock requests will no longer use HTTPS/Jetty.
+In addition to the minor perf improvement, this fixes an issue causing livelock/deadlock when the leader is under heavy load.
+We recommend HA clusters under heavy load switch to using a standalone timestamp service, as they may also be vulnerable to this failure mode.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2091">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The dropwizard independent implementation of the TimeLock server has been separated into a new project, <code class="docutils literal"><span class="pre">timelock-impl</span></code>.
 This should not affect users directly, unless they depended on classes from within the TimeLock server.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2081">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>JDBC KVS now batches cells in put/delete operations via the config parameter <code class="docutils literal"><span class="pre">batchSizeForMutations</span></code>.
 This will prevent the driver from throwing due to many parameters in the resulting SQL select query. Also,
 the batch size for getRows is now controlled by a config parameter <code class="docutils literal"><span class="pre">rowBatchSize</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2093">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB clients now retry lock requests if the server loses leadership while the request is blocking.
+In the past, this scenario would cause the server to return 500 responses that were not retried by the client.
+Now the server returns 503 responses, which triggers the correct retry logic.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2098">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB now generates Maven POM files for shadowed jars correctly.
+Previously, we would regenerate the XML for shadow dependencies by creating a node with corresponding groupId, artifactId, scope and version tags <em>only</em>, which is incorrect because it loses information about, for example, specific or transitive exclusions.
+We now respect these additional tags.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2092">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a bug where a timelock server instance could get stuck in an infinite loop if cutoff from the other nodes and failed to achieve a quorum.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1983">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Improved the way rows and named columns are outputted in AtlasConsole to be more intuitive and easier to use. Note that this may break existing AtlasConsole scripts.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2067">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Added backwards compatibility for the changes introduced in <a class="reference external" href="https://github.com/palantir/atlasdb/pull/2067">#2067</a>, in particular, for passing row values into AtlasConsole functions.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2080">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -431,10 +427,6 @@ It also now logs the locking mode for each lock.
 <td>Reduced the logging level of some messages relating to check-and-set operations in <code class="docutils literal"><span class="pre">CassandraTimestampBoundStore</span></code> to reduce noise in the logs.
 These were designed to help debugging the <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesException</span></code> issues but we no longer require them to log all the time.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2048">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Improved the way rows and named columns are outputted in AtlasConsole to be more intuitive and easier to use. Note that this may break existing AtlasConsole scripts.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2067">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
