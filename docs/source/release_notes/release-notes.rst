@@ -121,15 +121,13 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2040>`__)
 
     *    - |improved|
-         - Improved performance with a single leader block.
-           If a single leader is configured, it will no longer go via HTTPS/Jetty to request timestamps and locks from itself.
-           Aside from a minor perf improvement, this should also fix a potential livelock/deadlock when the leader is under heavy load,
-           where previously the Jetty threadpool could become full of requests awaiting timestamps, preventing any timestamp requests from being serviced, and requiring a server reboot to resolve.
-
+         - Improved performance of timestamp and lock requests on clusters with a leader block and a single node.
+           If a single leader is configured, timestamp and lock requests will no longer use HTTPS/Jetty.
+           In addition to the minor perf improvement, this fixes an issue causing livelock/deadlock when the leader is under heavy load.
            We recommend HA clusters under heavy load switch to using a standalone timestamp service, as they may also be vulnerable to this failure mode.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2091>`__)
 
-    *    - |improved|
+    *    - |improved| |devbreak|
          - The dropwizard independent implementation of the TimeLock server has been separated into a new project, ``timelock-impl``.
            This should not affect users directly, unless they depended on classes from within the TimeLock server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2081>`__)
@@ -141,8 +139,9 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2093>`__)
 
     *    - |fixed|
-         - AtlasDB clients now retry lock requests if the server lose leadership while the request is blocking.
-           In the past, this scenario would cause 500 errors that were not retried by the client.
+         - AtlasDB clients now retry lock requests if the server loses leadership while the request is blocking.
+           In the past, this scenario would cause the server to return 500 responses that were not retried by the client.
+           Now the server returns 503 responses, which triggers the correct retry logic.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2098>`__)
 
     *    - |fixed|
