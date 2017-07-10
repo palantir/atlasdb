@@ -78,7 +78,7 @@ public class ExclusiveLock implements AsyncLock {
 
     @GuardedBy("this")
     private synchronized void cancel(UUID requestId) {
-        queue.timeoutAndRemove(requestId);
+        queue.timeoutAndRemoveIfStillQueued(requestId);
     }
 
     @GuardedBy("this")
@@ -128,13 +128,11 @@ public class ExclusiveLock implements AsyncLock {
             return queue.remove(queue.keySet().iterator().next());
         }
 
-        public void timeoutAndRemove(UUID requestId) {
+        public void timeoutAndRemoveIfStillQueued(UUID requestId) {
             LockRequest request = queue.remove(requestId);
             if (request != null) {
                 request.result.timeout();
             }
         }
-
     }
-
 }

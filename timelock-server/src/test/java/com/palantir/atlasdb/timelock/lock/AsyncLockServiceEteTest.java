@@ -121,6 +121,20 @@ public class AsyncLockServiceEteTest {
     }
 
     @Test
+    public void requestsAreIdempotentWithRespectToTimeout() {
+        lockSynchronously(REQUEST_1, LOCK_A);
+
+        long deadline = System.currentTimeMillis() + 1000L;
+        long muchLaterDeadline = deadline + 100_000L;
+        AsyncResult<LockTokenV2> result = service.lock(REQUEST_2, descriptors(LOCK_A), deadline);
+        AsyncResult<LockTokenV2> resul2 = service.lock(REQUEST_2, descriptors(LOCK_A), muchLaterDeadline);
+
+        waitForDeadline(deadline);
+
+        assertThat(resul2.isTimedOut()).isTrue();
+    }
+
+    @Test
     public void locksCanBeRefreshed() {
         LockTokenV2 token = lockSynchronously(REQUEST_1, LOCK_A);
 
