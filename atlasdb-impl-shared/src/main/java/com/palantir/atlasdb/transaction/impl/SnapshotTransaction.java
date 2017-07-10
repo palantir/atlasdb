@@ -1585,7 +1585,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected LockTokenV2 acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
 
-        // TODO(nziebart): make this timeout configurable / think about desired behavior here
         Optional<LockTokenV2> token = timelockService.lock(LockRequestV2.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
         Preconditions.checkState(token.isPresent(), "Timed out while acquiring commit locks");
         return token.get();
@@ -1651,7 +1650,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        // TODO(nziebart): make this timeout configurable / think about desired behavior here
         boolean wasSuccessful = timelockService.waitForLocks(WaitForLocksRequest.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
         Preconditions.checkState(wasSuccessful, "Timed out while waiting for commits to complete");
     }
