@@ -15,9 +15,9 @@
 (deftest sync-lock-test-partition
   (is (:valid? (:results (jepsen/run! (lock/sync-lock-test (nemesis/partition-random-halves)))))))
 
-(deftest timestamp-test-crash
-  (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test timelock/crash-nemesis))))))
-
-(deftest timestamp-test-partition
-  (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test (nemesis/partition-random-halves)))))))
+;(deftest timestamp-test-crash
+;  (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test timelock/crash-nemesis))))))
+;
+;(deftest timestamp-test-partition
+;  (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test (nemesis/partition-random-halves)))))))
 
