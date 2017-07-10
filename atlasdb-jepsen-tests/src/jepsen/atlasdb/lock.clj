@@ -94,34 +94,6 @@
             (do (transform-store! token-store op lock-name result-value client-name)
                 (assoc-ok-value op result-value (:query-params result)))))))
 
-    ;(invoke!
-    ;  [this test op]
-    ;  "Run an operation on our client"
-    ;  (timeout (* 30 1000)
-    ;    (assoc op :type :fail :error :timeout)
-    ;    (try
-    ;      (let [lock-name (:value op)
-    ;            token-store-key (str client-name lock-name)
-    ;            current-store-version (version-bump! token-store)]
-    ;        (if ((complement nil?) current-store-version)
-    ;          (case (:f op)
-    ;            :lock
-    ;            (let [response (.lock lock-client client-name lock-name)]
-    ;              (do (replace-token! token-store token-store-key response current-store-version)
-    ;                (assoc-ok-value op response [client-name lock-name])))
-    ;            :unlock
-    ;            (let [token (@token-store token-store-key)
-    ;                  response (.unlockSingle lock-client token)]
-    ;              (do (replace-token! token-store token-store-key nil current-store-version)
-    ;                (assoc-ok-value op response token)))
-    ;            :refresh
-    ;            (let [token (@token-store token-store-key)
-    ;                  response (.refreshSingle lock-client token)]
-    ;              (do (replace-token! token-store token-store-key token current-store-version)
-    ;                (assoc-ok-value op response token))))))
-    ;      (catch Exception e
-    ;        (assoc op :type :fail :error (.toString e))))))
-
     (teardown! [_ test])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
