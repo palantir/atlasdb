@@ -80,6 +80,16 @@ public class HeldLocksCollectionTest {
     }
 
     @Test
+    public void removesTimedOutRequests() {
+        mockTimedOutRequest();
+        assertThat(heldLocksCollection.heldLocksById.size()).isEqualTo(1);
+
+        heldLocksCollection.removeExpired();
+
+        assertThat(heldLocksCollection.heldLocksById.size()).isEqualTo(0);
+    }
+
+    @Test
     public void refreshReturnsSubsetOfUnlockedLocks() {
         LockTokenV2 unlockableRequest = mockRefreshableRequest();
         LockTokenV2 nonUnlockableRequest = mockNonRefreshableRequest();
@@ -147,6 +157,16 @@ public class HeldLocksCollectionTest {
         failedLocks.fail(new RuntimeException());
 
         heldLocksCollection.getExistingOrAcquire(request.getRequestId(), () -> failedLocks);
+
+        return request;
+    }
+
+    private LockTokenV2 mockTimedOutRequest() {
+        LockTokenV2 request = LockTokenV2.of(UUID.randomUUID());
+        AsyncResult timedOutResult = new AsyncResult();
+        timedOutResult.timeout();
+
+        heldLocksCollection.getExistingOrAcquire(request.getRequestId(), () -> timedOutResult);
 
         return request;
     }

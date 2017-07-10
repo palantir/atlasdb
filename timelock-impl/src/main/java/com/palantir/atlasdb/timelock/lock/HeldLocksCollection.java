@@ -58,10 +58,16 @@ public class HeldLocksCollection {
         Iterator<AsyncResult<HeldLocks>> iterator = heldLocksById.values().iterator();
         while (iterator.hasNext()) {
             AsyncResult<HeldLocks> lockResult = iterator.next();
-            if (lockResult.isFailed() || lockResult.test(HeldLocks::unlockIfExpired)) {
+            if (shouldRemove(lockResult)) {
                 iterator.remove();
             }
         }
+    }
+
+    private boolean shouldRemove(AsyncResult<HeldLocks> lockResult) {
+        return lockResult.isFailed()
+                || lockResult.isTimedOut()
+                || lockResult.test(HeldLocks::unlockIfExpired);
     }
 
     private Set<LockTokenV2> filter(Set<LockTokenV2> tokens, Predicate<HeldLocks> predicate) {
