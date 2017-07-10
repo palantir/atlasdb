@@ -108,6 +108,7 @@ public class ExclusiveLock implements AsyncLock {
     @NotThreadSafe
     private static class LockRequestQueue {
 
+        @SuppressWarnings("checkstyle:illegaltype")
         private final LinkedHashMap<UUID, LockRequest> queue = Maps.newLinkedHashMap();
 
         public void enqueue(LockRequest request) {

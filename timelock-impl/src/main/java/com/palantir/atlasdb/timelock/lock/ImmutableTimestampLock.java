@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import javax.ws.rs.NotSupportedException;
 

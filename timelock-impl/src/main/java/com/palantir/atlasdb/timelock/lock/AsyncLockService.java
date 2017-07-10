@@ -39,7 +39,8 @@ public class AsyncLockService {
     private final HeldLocksCollection heldLocks;
     private final ImmutableTimestampTracker immutableTsTracker;
 
-    public static AsyncLockService createDefault(ScheduledExecutorService reaperExecutor, ScheduledExecutorService cancellationExecutor) {
+    public static AsyncLockService createDefault(ScheduledExecutorService reaperExecutor,
+            ScheduledExecutorService cancellationExecutor) {
         DelayedExecutor canceller = new DelayedExecutor(cancellationExecutor, System::currentTimeMillis);
         return new AsyncLockService(
                 new LockCollection(() -> new ExclusiveLock(canceller)),

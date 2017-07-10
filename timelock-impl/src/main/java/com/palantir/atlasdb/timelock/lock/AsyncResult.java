@@ -125,8 +125,8 @@ public class AsyncResult<T> {
      * out, then {@code nextResult} is not executed.
      *
      * @return an AsyncResult that is completed when either (a) both this instance and {@code nextResult} are completed
-     * successfully, or (b) either of them fails or times out. In the latter case, the returned AsyncResult will contain the error
-     * or timeout status associated with the result that did not complete successfully.
+     * successfully, or (b) either of them fails or times out. In the latter case, the returned AsyncResult will contain
+     * the error or timeout status associated with the result that did not complete successfully.
      */
     public AsyncResult<Void> concatWith(Supplier<AsyncResult<Void>> nextResult) {
         return new AsyncResult<>(future.thenCompose(ignored -> nextResult.get().future));
@@ -171,7 +171,7 @@ public class AsyncResult<T> {
     }
 
     public void onComplete(Runnable completionHandler) {
-        future.whenComplete((a, b) -> completionHandler.run());
+        future.whenComplete((result, error) -> completionHandler.run());
     }
 
     private static boolean isTimeout(Throwable ex) {
