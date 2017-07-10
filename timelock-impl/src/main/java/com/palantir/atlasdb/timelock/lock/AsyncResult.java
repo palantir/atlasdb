@@ -97,12 +97,7 @@ public class AsyncResult<T> {
             return false;
         }
 
-        try {
-            future.join();
-            return false;
-        } catch (Throwable e) {
-            return isTimeout(e);
-        }
+        return isTimeout(getExceptionInternal());
     }
 
     /**
@@ -122,12 +117,7 @@ public class AsyncResult<T> {
      **/
     public Throwable getError() {
         Preconditions.checkState(isFailed());
-        try {
-            future.join();
-            throw new IllegalStateException("This result is not failed.");
-        } catch (CompletionException e) {
-            return e.getCause();
-        }
+        return getExceptionInternal();
     }
 
     /**
@@ -186,6 +176,15 @@ public class AsyncResult<T> {
 
     private static boolean isTimeout(Throwable ex) {
         return ex instanceof TimeoutException || ex.getCause() instanceof TimeoutException;
+    }
+
+    private Throwable getExceptionInternal() {
+        try {
+            future.join();
+            throw new IllegalStateException("This result is not failed.");
+        } catch (CompletionException e) {
+            return e.getCause();
+        }
     }
 
     static class TimeoutException extends RuntimeException {
