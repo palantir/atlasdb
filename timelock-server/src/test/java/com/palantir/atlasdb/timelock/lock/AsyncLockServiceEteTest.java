@@ -124,16 +124,16 @@ public class AsyncLockServiceEteTest {
 
     @Test
     public void requestsAreIdempotentWithRespectToTimeout() {
-        lockSynchronously(REQUEST_1, LOCK_A);
-
         Deadline deadline = Deadline.fromTimeoutMillis(1000L, System::currentTimeMillis);
         Deadline muchLaterDeadline = Deadline.fromTimeoutMillis(100_000L, System::currentTimeMillis);
-        AsyncResult<LockTokenV2> result = service.lock(REQUEST_2, descriptors(LOCK_A), deadline);
-        AsyncResult<LockTokenV2> resul2 = service.lock(REQUEST_2, descriptors(LOCK_A), muchLaterDeadline);
+
+        lockSynchronously(REQUEST_1, LOCK_A);
+        service.lock(REQUEST_2, descriptors(LOCK_A), deadline);
+        AsyncResult<LockTokenV2> duplicate = service.lock(REQUEST_2, descriptors(LOCK_A), muchLaterDeadline);
 
         waitForDeadline(deadline);
 
-        assertThat(resul2.isTimedOut()).isTrue();
+        assertThat(duplicate.isTimedOut()).isTrue();
     }
 
     @Test
@@ -209,9 +209,9 @@ public class AsyncLockServiceEteTest {
 
     @Test
     public void lockRequestTimesOutWhenDeadlinePasses() {
-        lockSynchronously(REQUEST_1, LOCK_A);
-
         Deadline deadline = Deadline.fromTimeoutMillis(500L, CLOCK);
+
+        lockSynchronously(REQUEST_1, LOCK_A);
         AsyncResult<LockTokenV2> result = service.lock(REQUEST_2, descriptors(LOCK_A), deadline);
         assertThat(result.isTimedOut()).isFalse();
 
@@ -222,9 +222,9 @@ public class AsyncLockServiceEteTest {
 
     @Test
     public void waitForLocksRequestTimesOutWhenDeadlinePasses() {
-        lockSynchronously(REQUEST_1, LOCK_A);
-
         Deadline deadline = Deadline.fromTimeoutMillis(500L, CLOCK);
+
+        lockSynchronously(REQUEST_1, LOCK_A);
         AsyncResult<Void> result = service.waitForLocks(REQUEST_2, descriptors(LOCK_A), deadline);
         assertThat(result.isTimedOut()).isFalse();
 
@@ -235,21 +235,19 @@ public class AsyncLockServiceEteTest {
 
     @Test
     public void lockRequestTimesOutIfDeadlineIsAlreadyPast() {
+        Deadline deadline = Deadline.fromTimeoutMillis(-1L, CLOCK);
+
         lockSynchronously(REQUEST_1, LOCK_A);
-
-        Deadline deadline = Deadline.fromTimeoutMillis(500L, CLOCK);
         AsyncResult<LockTokenV2> result = service.lock(REQUEST_2, descriptors(LOCK_A), deadline);
-
-        Uninterruptibles.sleepUninterruptibly(1000L, TimeUnit.MILLISECONDS);
 
         assertThat(result.isTimedOut()).isTrue();
     }
 
     @Test
     public void timedOutRequestDoesNotHoldLocks() {
-        LockTokenV2 lockBToken = lockSynchronously(REQUEST_1, LOCK_B);
-
         Deadline deadline = Deadline.fromTimeoutMillis(500L, CLOCK);
+
+        LockTokenV2 lockBToken = lockSynchronously(REQUEST_1, LOCK_B);
         service.lock(REQUEST_2, descriptors(LOCK_A, LOCK_B), deadline);
 
         waitForDeadline(deadline);

@@ -133,7 +133,7 @@ public class AsyncResult<T> {
     }
 
     /**
-     * Tests the provided predicate against the value of this result, if this it has completed successfully. If it has
+     * Tests the provided predicate against the value of this result, if it has completed successfully. If it has
      * not yet completed, or has failed or timed out, the predicate is not executed and {@code false} is returned.
      */
     public boolean test(Predicate<T> predicateIfCompletedSuccessfully) {
