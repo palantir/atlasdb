@@ -33,7 +33,7 @@ If you are using the :ref:`external Timelock service <external-timelock-service>
 For a full list of the configurations available at the ``atlasdb`` root level, see
 `AtlasDbConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java>`__.
 
-A second root configuration block, denoted ``atlasdb-runtime``, can be specified for live-reloadable configs.
+A second root configuration block can be specified for live-reloadable configs.
 Parameters related to :ref:`Sweep <sweep>` can be specified there and will be reloaded in each sweep run.
 Parameters concerning batching of timestamp requests may also be configured; see :ref:`Timestamp Client <timestamp-client-config>` for more details.
 For a full list of the configurations available at this block, see

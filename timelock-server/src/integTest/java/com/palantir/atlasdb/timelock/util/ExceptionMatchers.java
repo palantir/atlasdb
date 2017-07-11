@@ -30,5 +30,4 @@ public final class ExceptionMatchers {
         assertThat(throwable.getClass().getName())
                 .contains("RetryableException");
     }
-
 }

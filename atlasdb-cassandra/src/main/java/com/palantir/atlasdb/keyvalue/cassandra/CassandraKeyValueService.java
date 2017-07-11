@@ -1381,22 +1381,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        Optional<Integer> timestampsGetterBatchSize = configManager.getConfig().timestampsGetterBatchSize();
-        if (timestampsGetterBatchSize.isPresent()) {
-            return getTimestampsInBatchesWithPageCreator(
-                    tableRef,
-                    rangeRequest,
-                    timestampsGetterBatchSize.get(),
-                    timestamp,
-                    deleteConsistency);
-        } else {
-            return getRangeWithPageCreator(
-                    tableRef,
-                    rangeRequest,
-                    timestamp,
-                    deleteConsistency,
-                    TimestampExtractor::new);
-        }
+        Integer timestampsGetterBatchSize = configManager.getConfig().timestampsGetterBatchSize();
+        return getTimestampsInBatchesWithPageCreator(
+                tableRef,
+                rangeRequest,
+                timestampsGetterBatchSize,
+                timestamp,
+                deleteConsistency);
     }
 
     @Override

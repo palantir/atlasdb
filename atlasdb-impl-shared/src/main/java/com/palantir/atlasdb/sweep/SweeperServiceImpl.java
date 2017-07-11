@@ -22,6 +22,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
@@ -29,10 +30,6 @@ import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.remoting2.servers.jersey.WebPreconditions;
 
 public final class SweeperServiceImpl implements SweeperService {
-    private static final int DEFAULT_SWEEP_READ_LIMIT = 1_000_000;
-    private static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 100;
-    private static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 1000;
-
     private SpecificTableSweeper specificTableSweeper;
 
     public SweeperServiceImpl(SpecificTableSweeper specificTableSweeper) {
@@ -76,10 +73,13 @@ public final class SweeperServiceImpl implements SweeperService {
 
         ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(
-                        maxCellTsPairsToExamine == null ? DEFAULT_SWEEP_READ_LIMIT : maxCellTsPairsToExamine)
+                        maxCellTsPairsToExamine == null
+                                ? AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT : maxCellTsPairsToExamine)
                 .candidateBatchSize(
-                        candidateBatchSize == null ? DEFAULT_SWEEP_CANDIDATE_BATCH_HINT : candidateBatchSize)
-                .deleteBatchSize(deleteBatchSize == null ? DEFAULT_SWEEP_DELETE_BATCH_HINT : deleteBatchSize)
+                        candidateBatchSize == null
+                                ? AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT : candidateBatchSize)
+                .deleteBatchSize(deleteBatchSize == null
+                        ? AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT : deleteBatchSize)
                 .build();
 
         runSweepWithoutSavingResults(tableRef, sweepProgress, Optional.of(sweepBatchConfig));
