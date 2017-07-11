@@ -1851,13 +1851,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         final Map<Cell, byte[]> newMetadata = Maps.newHashMap();
         final Collection<CfDef> updatedCfs = Lists.newArrayList();
         for (Entry<Cell, byte[]> entry : metadataRequestedForUpdate.entrySet()) {
-            Value val = persistedMetadata.get(entry.getKey());
-            if (val == null || !Arrays.equals(val.getContents(), entry.getValue())) {
+            if (newMetadataFound(persistedMetadata.get(entry.getKey()), entry.getValue())) {
                 newMetadata.put(entry.getKey(), entry.getValue());
-                updatedCfs.add(getCfForTable(
-                        tableReferenceFromBytes(entry.getKey().getRowName()),
-                        entry.getValue()));
             }
+            updatedCfs.add(getCfForTable(
+                    tableReferenceFromBytes(entry.getKey().getRowName()),
+                    entry.getValue()));
         }
 
         if (newMetadata.isEmpty()) {
@@ -1869,6 +1868,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    private boolean newMetadataFound(Value existingMetadata, byte[] requestMetadata) {
+        return existingMetadata == null || !Arrays.equals(existingMetadata.getContents(), requestMetadata);
     }
 
     private void putMetadataAndMaybeAlterTables(
