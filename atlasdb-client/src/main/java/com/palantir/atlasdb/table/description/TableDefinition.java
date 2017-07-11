@@ -62,14 +62,29 @@ public class TableDefinition extends AbstractDefinition {
         state = State.DEFINING_CONSTRAINTS;
     }
 
+    /**
+     * Indicates that the name of the table being defined is safe for logging.
+     */
     public void tableNameIsSafeLoggable() {
         Preconditions.checkState(state == State.NONE, "Specifying a table name is safe should be done outside of the"
                 + " subscopes of TableDefinition.");
         tableNameLoggable = true;
     }
 
+    /**
+     * If specified, this indicates that the names of all row components and named columns should be marked as safe by
+     * default. Individual row components or named columns may still be marked as unsafe by explicitly creating them
+     * as unsafe (i.e. by constructing them with rowNameLoggable or columnNameLoggable as false, respectively).
+     * Note that specifying this by itself does NOT make the table name safe for logging.
+     */
+    public void namedComponentsSafeByDefault() {
+        Preconditions.checkState(state == State.NONE, "Specifying a table name is safe should be done outside of the"
+                + " subscopes of TableDefinition.");
+        defaultNamedComponentLogSafety = true;
+    }
+
     public void column(String columnName, String shortName, Class<?> protoOrPersistable) {
-        column(columnName, shortName, protoOrPersistable, false);
+        column(columnName, shortName, protoOrPersistable, defaultNamedComponentLogSafety);
     }
 
     public void column(String columnName, String shortName, Class<?> protoOrPersistable, boolean columnNameLoggable) {
@@ -94,7 +109,7 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     public void column(String columnName, String shortName, ValueType valueType) {
-        column(columnName, shortName, valueType, false);
+        column(columnName, shortName, valueType, defaultNamedComponentLogSafety);
     }
 
     public void column(String columnName, String shortName, ValueType valueType, boolean columnNameLoggable) {
@@ -141,7 +156,7 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     public void rowComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
-        rowComponent(componentName, valueType, valueByteOrder, false);
+        rowComponent(componentName, valueType, valueByteOrder, defaultNamedComponentLogSafety);
     }
 
     public void rowComponent(
@@ -277,6 +292,8 @@ public class TableDefinition extends AbstractDefinition {
     private Set<String> fixedColumnLongNames = Sets.newHashSet();
     private boolean noColumns = false;
     private boolean tableNameLoggable = false;
+
+    private boolean defaultNamedComponentLogSafety = false;
 
     public TableMetadata toTableMetadata() {
         Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
