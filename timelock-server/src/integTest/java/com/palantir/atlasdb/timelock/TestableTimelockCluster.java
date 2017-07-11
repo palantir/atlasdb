@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -38,9 +37,11 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.testing.ResourceHelpers;
@@ -154,11 +155,11 @@ public class TestableTimelockCluster {
         return lockService().unlock(token);
     }
 
-    public Optional<LockTokenV2> lock(LockRequestV2 requestV2) {
+    public LockResponseV2 lock(LockRequestV2 requestV2) {
         return timelockService().lock(requestV2);
     }
 
-    public CompletableFuture<Optional<LockTokenV2>> lockAsync(LockRequestV2 requestV2) {
+    public CompletableFuture<LockResponseV2> lockAsync(LockRequestV2 requestV2) {
         return CompletableFuture.supplyAsync(() -> lock(requestV2), executor);
     }
 
@@ -174,11 +175,11 @@ public class TestableTimelockCluster {
         return refreshLockLeases(ImmutableSet.of(token)).contains(token);
     }
 
-    public boolean waitForLocks(WaitForLocksRequest request) {
+    public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
         return timelockService().waitForLocks(request);
     }
 
-    public CompletableFuture<Boolean> waitForLocksAsync(WaitForLocksRequest request) {
+    public CompletableFuture<WaitForLocksResponse> waitForLocksAsync(WaitForLocksRequest request) {
         return CompletableFuture.supplyAsync(() -> waitForLocks(request), executor);
     }
 

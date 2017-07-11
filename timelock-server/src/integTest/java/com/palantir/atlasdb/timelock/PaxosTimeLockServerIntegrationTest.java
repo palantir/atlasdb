@@ -272,7 +272,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void asyncLockServiceShouldAllowUsToTakeOutLocks() throws InterruptedException {
         TimelockService timelockService = getTimelockService(CLIENT_1);
 
-        LockTokenV2 token = timelockService.lock(LOCK_REQUEST_V2).get();
+        LockTokenV2 token = timelockService.lock(LOCK_REQUEST_V2).getToken();
 
         assertThat(timelockService.unlock(ImmutableSet.of(token))).contains(token);
     }
@@ -282,8 +282,8 @@ public class PaxosTimeLockServerIntegrationTest {
         TimelockService lockService1 = getTimelockService(CLIENT_1);
         TimelockService lockService2 = getTimelockService(CLIENT_2);
 
-        LockTokenV2 token1 = lockService1.lock(LOCK_REQUEST_V2).get();
-        LockTokenV2 token2 = lockService2.lock(LOCK_REQUEST_V2).get();
+        LockTokenV2 token1 = lockService1.lock(LOCK_REQUEST_V2).getToken();
+        LockTokenV2 token2 = lockService2.lock(LOCK_REQUEST_V2).getToken();
 
         lockService1.unlock(ImmutableSet.of(token1));
         lockService2.unlock(ImmutableSet.of(token2));
@@ -294,7 +294,7 @@ public class PaxosTimeLockServerIntegrationTest {
         TimelockService lockService1 = getTimelockService(CLIENT_1);
         TimelockService lockService2 = getTimelockService(CLIENT_2);
 
-        LockTokenV2 token = lockService1.lock(LOCK_REQUEST_V2).get();
+        LockTokenV2 token = lockService1.lock(LOCK_REQUEST_V2).getToken();
 
         assertThat(lockService1.refreshLockLeases(ImmutableSet.of(token))).isNotEmpty();
         assertThat(lockService2.refreshLockLeases(ImmutableSet.of(token))).isEmpty();

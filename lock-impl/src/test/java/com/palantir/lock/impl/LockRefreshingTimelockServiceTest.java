@@ -23,7 +23,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -37,6 +36,7 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -68,7 +68,7 @@ public class LockRefreshingTimelockServiceTest {
     @Test
     public void registersLocks() {
         LockRequestV2 request = LockRequestV2.of(LOCKS, TIMEOUT);
-        when(delegate.lock(request)).thenReturn(Optional.of(TOKEN_1));
+        when(delegate.lock(request)).thenReturn(LockResponseV2.successful(TOKEN_1));
 
         timelock.lock(request);
 

@@ -17,7 +17,6 @@
 package com.palantir.lock.impl;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -41,9 +40,11 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
@@ -106,19 +107,24 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public Optional<LockTokenV2> lock(LockRequestV2 request) {
+    public LockResponseV2 lock(LockRequestV2 request) {
         LockRequest legacyRequest = toLegacyLockRequest(request);
 
         LockRefreshToken legacyToken = lockAnonymous(legacyRequest);
-        return Optional.ofNullable(legacyToken).map(LockRefreshTokenV2Adapter::new);
+        if (legacyToken == null) {
+            return LockResponseV2.timedOut();
+        } else {
+            return LockResponseV2.successful(new LockRefreshTokenV2Adapter(legacyToken));
+        }
     }
 
     @Override
-    public boolean waitForLocks(WaitForLocksRequest request) {
+    public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
         LockRequest legacyRequest = toLegacyWaitForLocksRequest(request.getLockDescriptors());
 
+        // this blocks indefinitely, and can only fail if the connection fails (and throws an exception)
         lockAnonymous(legacyRequest);
-        return true;
+        return WaitForLocksResponse.successful();
     }
 
     private LockRequest toLegacyLockRequest(LockRequestV2 request) {
