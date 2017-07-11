@@ -1,3 +1,5 @@
+.. _tables-and-indices:
+
 ==================
 Tables and Indices
 ==================
@@ -213,6 +215,24 @@ as descriptive as is useful. If this method is not called, the value
 will be derived by converting the table's AtlasDB name from snake\_case
 to CamelCase.
 
+.. code:: java
+
+    public void tableNameIsSafeLoggable();
+
+If called, this indicates that the table name is safe for logging.
+Table names are considered unsafe by default.
+
+.. code:: java
+
+    public void namedComponentsSafeByDefault();
+
+If called, then row components and named columns that are subsequently
+defined for this table will be assumed to be safe for logging unless
+specifically indicated as unsafe. By default, row components and named
+columns are assumed unsafe unless specifically indicated as safe.
+
+Note that the ambit of this method does not extend to the table name itself.
+
 Index-specific Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -269,6 +289,14 @@ range results are iterated in ascending order. If you need to access
 rows in reverse order, then adding the ``ValueByteOrder.DESCENDING``
 argument will store them in descending order instead.
 
+.. code:: java
+
+   public void rowComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, boolean rowNameLoggable);
+
+You may also identify a row component as being explicitly safe or unsafe
+for logging. (If this is not specified it defaults to unsafe, or safe if
+``namedComponentsSafeByDefault()`` was specified for this table.)
+
 .. _tables-and-indices-partitioners:
 
 Partitioners
@@ -324,6 +352,7 @@ type referenced by each column is specified by a single command.
 
     public void column(String columnName, String shortName, ValueType valueType)
     public void column(String columnName, String shortName, Class<?> protoOrPersistable, Compression compression = Compression.NONE)
+    public void column(String columnName, String shortName, Class<?> protoOrPersistable, Compression compression, boolean columnNameLoggable)
 
 The column name is the name of the column that will be used in the
 generated java code and table metadata. The short name is a one or two
@@ -336,8 +365,14 @@ space using the method you specify. Columns can not be overloaded with
 multiple types - each ``column()`` call must contain unique column names
 and short names.
 
-If instead you don't need the a row to have multiple columns and all
-table information can be encapsulted in the row components, then the
+Also, you may explicitly identify the name of this column to be safe or
+unsafe for logging. We don't currently support having different safety
+levels for the column name and the short name.
+(If this is not specified it defaults to unsafe, or safe if
+``namedComponentsSafeByDefault()`` was specified for this table.)
+
+If instead you don't need a row to have multiple columns and all
+table information can be encapsulated in the row components, then the
 section can instead be specified with ``noColumns()``, which defines the
 table to contain a single column "exists" with short name "e" and value
 type VAR\_LONG (always zero).
