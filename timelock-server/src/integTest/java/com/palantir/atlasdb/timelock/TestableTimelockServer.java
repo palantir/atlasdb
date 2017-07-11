@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.timelock;
 
-import java.util.Optional;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.v2.LockRequestV2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -54,7 +52,7 @@ public class TestableTimelockServer {
         return timestampService().getFreshTimestamp();
     }
 
-    public Optional<LockTokenV2> lock(LockRequestV2 lockRequest) throws InterruptedException {
+    public LockResponseV2 lock(LockRequestV2 lockRequest) throws InterruptedException {
         return timelockService().lock(lockRequest);
     }
 

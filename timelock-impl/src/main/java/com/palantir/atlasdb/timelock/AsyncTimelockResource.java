@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import java.util.Optional;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
@@ -26,14 +25,15 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
 @Path("/timelock")
@@ -79,9 +79,9 @@ public class AsyncTimelockResource {
             if (result.isFailed()) {
                 response.resume(result.getError());
             } else if (result.isTimedOut()) {
-                response.resume(Response.noContent().build());
+                response.resume(LockResponseV2.timedOut());
             } else {
-                response.resume(Optional.of(result.get()));
+                response.resume(LockResponseV2.successful(result.get()));
             }
         });
     }
@@ -94,9 +94,9 @@ public class AsyncTimelockResource {
             if (result.isFailed()) {
                 response.resume(result.getError());
             } else if (result.isTimedOut()) {
-                response.resume(false);
+                response.resume(WaitForLocksResponse.timedOut());
             } else {
-                response.resume(true);
+                response.resume(WaitForLocksResponse.successful());
             }
         });
     }

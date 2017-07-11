@@ -52,7 +52,8 @@ public class AsyncResult<T> {
      */
     public void complete(T value) {
         Preconditions.checkState(
-                future.complete(value));
+                future.complete(value),
+                "This result is already completed");
     }
 
     /**
@@ -63,7 +64,8 @@ public class AsyncResult<T> {
      */
     public void fail(Throwable error) {
         Preconditions.checkState(
-                future.completeExceptionally(error));
+                future.completeExceptionally(error),
+                "This result is already completed");
     }
 
     /**
@@ -73,7 +75,8 @@ public class AsyncResult<T> {
      */
     public void timeout() {
         Preconditions.checkState(
-                future.completeExceptionally(new TimeoutException()));
+                future.completeExceptionally(new TimeoutException()),
+                "This result is already completed");
     }
 
     /** Returns whether this result has failed. Use {@link #getError} to retrieve the associated exception. */

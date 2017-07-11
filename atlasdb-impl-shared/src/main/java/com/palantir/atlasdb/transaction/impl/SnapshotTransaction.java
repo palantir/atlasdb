@@ -121,9 +121,11 @@ import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -1586,9 +1588,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected LockTokenV2 acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
 
-        Optional<LockTokenV2> token = timelockService.lock(LockRequestV2.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
-        Preconditions.checkState(token.isPresent(), "Timed out while acquiring commit locks");
-        return token.get();
+        LockResponseV2 lockResponse = timelockService.lock(LockRequestV2.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
+        Preconditions.checkState(lockResponse.wasSuccessful(), "Timed out while acquiring commit locks");
+        return lockResponse.getToken();
     }
 
     protected Set<LockDescriptor> getLocksForWrites() {
@@ -1651,8 +1653,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        boolean wasSuccessful = timelockService.waitForLocks(WaitForLocksRequest.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
-        Preconditions.checkState(wasSuccessful, "Timed out while waiting for commits to complete");
+        WaitForLocksResponse response = timelockService.waitForLocks(WaitForLocksRequest.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
+        Preconditions.checkState(response.wasSuccessful(), "Timed out while waiting for commits to complete");
     }
 
     ///////////////////////////////////////////////////////////////////////////
