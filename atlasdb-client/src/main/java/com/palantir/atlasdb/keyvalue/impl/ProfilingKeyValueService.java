@@ -50,6 +50,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -471,6 +472,18 @@ public final class ProfilingKeyValueService implements KeyValueService {
                             cellBatchHint,
                             stopwatch.elapsed(TimeUnit.MILLISECONDS));
                 });
+    }
+
+
+    @Override
+    public void rehydrateLoggingArgSupplier() {
+        maybeLog(delegate::rehydrateLoggingArgSupplier,
+                logTime("rehydrateLoggingArgSupplier"));
+    }
+
+    @Override
+    public KeyValueServiceArgSupplier getLoggingArgSupplier() {
+        return delegate.getLoggingArgSupplier();
     }
 
     private static <T> long byteSize(Map<Cell, T> values) {
