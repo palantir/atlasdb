@@ -44,6 +44,7 @@ develop
     *    - Type
          - Change
 
+
     *    - |improved|
          - AtlasDB now supports batching of timestamp requests on the client-side; see :ref:`Timestamp Client Options <timestamp-client-config>` for details.
            On internal benchmarks, the AtlasDB team has obtained an almost 2x improvement in timestamp throughput and latency under modest load (32 threads), and an over 10x improvement under heavy load (8,192 threads).
@@ -54,6 +55,11 @@ develop
     *    - |devbreak|
          - The ``RateLimitingTimestampService`` in ``timestamp-impl`` has been renamed to ``RequestBatchingTimestampService``, to better reflect what the service does and avoid confusion with the ``ThreadPooledLockService`` (which performs resource-limiting).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2083>`__)
+
+    *    - |fixed|
+         - ``TransactionManager.close()`` now closes the lock service (provided it is closeable), and also shuts down the Background Sweeper.
+           Previously, the lock service's background threads as well as background sweeper would continue to run (potentially indefinitely) even after a transaction manager was closed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2102>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
