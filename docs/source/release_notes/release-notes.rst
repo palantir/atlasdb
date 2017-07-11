@@ -102,7 +102,7 @@ develop
             | :strike:`sweepDeleteBatchHint`    | **deleteBatchHint**       |
             +-----------------------------------+---------------------------+
 
-           Specifying any of the above install options will result in **AtlasDB failing to start**.
+           Specifying any of the above install options will result in **AtlasDB failing to start**. Check the full configuration docs `here <http://palantir.github.io/atlasdb/html/configuration/index.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
 
     *    - |fixed|
@@ -135,14 +135,15 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
 
     *    - |new|
-         - AtlasDB now instruments embedded timestamp and lock services, even if no leader block is present in the config, to expose aggregate response time and service call metrics.
+         - AtlasDB now instruments embedded timestamp and lock services when no leader block is present in the config, to expose aggregate response time and service call metrics.
            Note that this may cause a minor performance hit.
-           If that is a concern, the instrumentation can be turned off by setting the tritium system properties ``instrument.com.palantir.timestamp.TimestampService`` and ``instrument.com.palantir.lock.RemoteLockService`` to false.
+           If that is a concern, the instrumentation can be turned off by setting the tritium system properties ``instrument.com.palantir.timestamp.TimestampService`` and
+           ``instrument.com.palantir.lock.RemoteLockService`` to false and restarting the service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2073>`__)
 
     *    - |new|
          - AtlasDB now adds endpoints for sweeping a specific table, with options for startRow and batch config parameters.
-           This should be used in place of the deprecated sweep CLIs.
+           This should be used in place of the deprecated sweep CLIs. Check the endpoints documentation `here <http://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-endpoints.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2040>`__)
 
     *    - |improved|
@@ -179,7 +180,7 @@ develop
          - Fixed a bug where a timelock server instance could get stuck in an infinite loop if cutoff from the other nodes and failed to achieve a quorum.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1983>`__)
 
-    *    - |improved|
+    *    - |improved| |userbreak|
          - Improved the way rows and named columns are outputted in AtlasConsole to be more intuitive and easier to use. Note that this may break existing AtlasConsole scripts.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2067>`__)
 
