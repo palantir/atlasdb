@@ -80,4 +80,3 @@ Example Configuration
 
     atlasdb-runtime:
       sweep:
-        enabled: false
