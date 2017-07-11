@@ -258,7 +258,7 @@ The following options now <strong>may not</strong> be specified in the install c
 </tbody>
 </table>
 </div></blockquote>
-<p class="last">Specifying any of the above install options will result in <strong>AtlasDB failing to start</strong>.
+<p class="last">Specifying any of the above install options will result in <strong>AtlasDB failing to start</strong>. Check the full configuration docs <a class="reference external" href="http://palantir.github.io/atlasdb/html/configuration/index.html">here</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1976">Pull Request</a>)</p>
 </td>
 </tr>
@@ -293,14 +293,15 @@ Please delete any config overrides regarding sweep and use the default values, t
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2104">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>AtlasDB now instruments embedded timestamp and lock services, even if no leader block is present in the config, to expose aggregate response time and service call metrics.
+<td>AtlasDB now instruments embedded timestamp and lock services when no leader block is present in the config, to expose aggregate response time and service call metrics.
 Note that this may cause a minor performance hit.
-If that is a concern, the instrumentation can be turned off by setting the tritium system properties <code class="docutils literal"><span class="pre">instrument.com.palantir.timestamp.TimestampService</span></code> and <code class="docutils literal"><span class="pre">instrument.com.palantir.lock.RemoteLockService</span></code> to false.
+If that is a concern, the instrumentation can be turned off by setting the tritium system properties <code class="docutils literal"><span class="pre">instrument.com.palantir.timestamp.TimestampService</span></code> and
+<code class="docutils literal"><span class="pre">instrument.com.palantir.lock.RemoteLockService</span></code> to false and restarting the service.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2073">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now adds endpoints for sweeping a specific table, with options for startRow and batch config parameters.
-This should be used in place of the deprecated sweep CLIs.
+This should be used in place of the deprecated sweep CLIs. Check the endpoints documentation <a class="reference external" href="http://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-endpoints.html">here</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2040">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
