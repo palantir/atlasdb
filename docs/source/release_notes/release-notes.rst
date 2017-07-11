@@ -50,9 +50,13 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2102>`__)
 
     *    - |fixed|
+         - ``common-executors`` now uses Java 6 when compiling from source and generates classes targeting Java 6. Java 6 support was removed in AtlasDB ``0.41.0``
+           and blocks certain internal products from upgrading to versions thereafter.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2122>`__)
+
+    *    - |fixed|
          - Fixed an issue that could cause AtlasConsole to print unnecessary amounts of input when commands were run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2130>`__)
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
