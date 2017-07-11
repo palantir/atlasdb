@@ -414,7 +414,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         + "this may indicate overly-large batching on a higher level.\n{}",
                         UnsafeArg.of("table", tableRef.getQualifiedName()),
                         SafeArg.of("rowCount", rowCount),
-                        UnsafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
+                        SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
             }
             return ImmutableMap.copyOf(result);
         } catch (Exception e) {
@@ -559,7 +559,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         SafeArg.of("host", host),
                         UnsafeArg.of("table", tableRef),
                         SafeArg.of("rows", columnCells.size()),
-                        UnsafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
+                        SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
             }
             for (final List<Cell> partition : Lists.partition(ImmutableList.copyOf(columnCells), fetchBatchCount)) {
                 Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(host,
