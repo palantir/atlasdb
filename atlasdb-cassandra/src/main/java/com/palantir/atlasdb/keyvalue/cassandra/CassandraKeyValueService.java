@@ -2124,7 +2124,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             alterGcAndTombstone(
                     keyspace,
                     tableRef,
-                    CassandraConstants.GC_GRACE_SECONDS,
+                    config.gcGraceSeconds(),
                     CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
         }
     }
