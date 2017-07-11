@@ -176,8 +176,12 @@ public class NameComponentDescription {
 
     @Override
     public String toString() {
-        return "NameComponentDescription [componentName=" + componentName
-                + ", order=" + order + ", type=" + type + "]";
+        return "NameComponentDescription[" +
+                "componentName=" + componentName +
+                ", type=" + type +
+                ", order=" + order +
+                ", nameLoggable=" + nameLoggable +
+                ']';
     }
 
     @Override

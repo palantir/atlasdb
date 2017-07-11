@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.priority.SweepPriority;
@@ -96,7 +97,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 () -> true, // sweepEnabled
                 () -> 10L, // sweepPauseMillis
                 persistentLockManager,
-                specificTableSweeper);
+                specificTableSweeper,
+                KeyValueServiceArgSupplier.ALL_UNSAFE);
     }
 
     @Test
