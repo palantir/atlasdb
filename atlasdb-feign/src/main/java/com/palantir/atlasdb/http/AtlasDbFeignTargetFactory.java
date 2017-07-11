@@ -42,7 +42,8 @@ public final class AtlasDbFeignTargetFactory {
             .registerModule(new Jdk8Module());
     private static final Contract contract = new JAXRSContract();
     private static final Encoder encoder = new JacksonEncoder(mapper);
-    private static final Decoder decoder = new TextDelegateDecoder(new OptionalAwareDecoder(new JacksonDecoder(mapper)));
+    private static final Decoder decoder = new TextDelegateDecoder(
+            new OptionalAwareDecoder(new JacksonDecoder(mapper)));
     private static final ErrorDecoder errorDecoder = new AtlasDbErrorDecoder();
 
     private AtlasDbFeignTargetFactory() {
