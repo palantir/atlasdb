@@ -37,6 +37,19 @@ develop
 
 .. replace this with the release date
 
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - ``TransactionManager.close()`` now closes the lock service (provided it is closeable), and also shuts down the Background Sweeper.
+           Previously, the lock service's background threads as well as background sweeper would continue to run (potentially indefinitely) even after a transaction manager was closed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2102>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
