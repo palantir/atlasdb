@@ -325,6 +325,7 @@ public final class TransactionManagers {
                 persistentLockManager,
                 specificTableSweeper);
 
+        transactionManager.registerClosingCallback(backgroundSweeper::shutdown);
         backgroundSweeper.runInBackground();
     }
 

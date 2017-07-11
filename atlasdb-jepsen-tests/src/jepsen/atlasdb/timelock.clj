@@ -42,7 +42,7 @@
     (log-files [_ test node]
       ["/timelock-server/var/log/timelock-server-startup.log"])))
 
-(defn mostly-small-nonempty-subset-at-most-two
+(defn mostly-small-nonempty-subset
   "Returns a subset of the given collection, with a logarithmically decreasing
   probability of selecting more elements. Always selects at least one element.
       (->> #(mostly-small-nonempty-subset [1 2 3 4 5])
@@ -65,7 +65,7 @@
 (def crash-nemesis
   "A nemesis that crashes a random subset of nodes."
   (nemesis/node-start-stopper
-    mostly-small-nonempty-subset-at-most-two
+    mostly-small-nonempty-subset
     (fn start [test node] (c/su
                             (c/exec :killall :-9 :java))
       ; the following line would also wipe the paxos directory, but we wanted a less aggressive nemesis

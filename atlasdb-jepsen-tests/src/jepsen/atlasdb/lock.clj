@@ -9,7 +9,8 @@
             [jepsen.util :refer [timeout]]
             [knossos.history :as history])
   (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
-  (:import com.palantir.atlasdb.http.LockClient))
+  (:import com.palantir.atlasdb.http.JepsenLockClient)
+  (:import com.palantir.atlasdb.http.SynchronousLockClient))
 
 (def lock-names ["alpha" "bravo" "charlie" "delta"])
 (def version-name "version")
@@ -56,15 +57,16 @@
    The object defines how you create a lock client, and how to request locks from it. The first call to this
    function will return an invalid object: you should call 'setup' on the returned object to get a valid one.
   "
-  [lock-service, client-name, token-store]
+  [lock-client, client-name, token-store, client-supplier]
   (reify client/Client
     (setup!
       [this test node]
       "Factory that returns an object implementing client/Client"
       (create-client
-        (LockClient/create '("n1" "n2" "n3" "n4" "n5"))
+        (apply client-supplier [])
         (name node)
-        (create-token-store)))
+        (create-token-store)
+        client-supplier))
 
     (invoke!
       [this test op]
@@ -78,17 +80,17 @@
             (if ((complement nil?) current-store-version)
               (case (:f op)
                 :lock
-                (let [response (LockClient/lock lock-service client-name lock-name)]
+                (let [response (.lock lock-client client-name lock-name)]
                   (do (replace-token! token-store token-store-key response current-store-version)
                     (assoc-ok-value op response [client-name lock-name])))
                 :unlock
                 (let [token (@token-store token-store-key)
-                      response (LockClient/unlock lock-service token)]
+                      response (.unlockSingle lock-client token)]
                   (do (replace-token! token-store token-store-key nil current-store-version)
                     (assoc-ok-value op response token)))
                 :refresh
                 (let [token (@token-store token-store-key)
-                      response (LockClient/refresh lock-service token)]
+                      response (.refreshSingle lock-client token)]
                   (do (replace-token! token-store token-store-key token current-store-version)
                     (assoc-ok-value op response token))))))
           (catch Exception e
@@ -123,9 +125,9 @@
 ;; Defining the Jepsen test
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn lock-test
-  [nem]
+  [nem lock-client-supplier]
   (assoc tests/noop-test
-    :client (create-client nil nil nil)
+    :client (create-client nil nil nil lock-client-supplier)
     :nemesis nem
     :generator (->> generator
                  (gen/stagger 0.05)
@@ -137,3 +139,7 @@
                  (gen/time-limit 360))
     :db (timelock/create-db)
     :checker checker))
+
+(defn sync-lock-test
+  [nem]
+    (lock-test nem (fn [] (SynchronousLockClient/create '("n1" "n2" "n3" "n4" "n5")))))
