@@ -94,6 +94,7 @@ public class AtlasConsoleMain {
         }
         else {
             String setupScript = "-e//Starting AtlasConsole...please wait.\n" +
+                    ":set verbosity QUIET\n" +
                     ":set interpreterMode\n" +
                     ":set show-last-result false\n" +
                     getJavaCallbackString();
