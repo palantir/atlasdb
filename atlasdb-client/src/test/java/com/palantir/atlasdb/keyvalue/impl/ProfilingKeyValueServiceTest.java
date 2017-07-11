@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -93,6 +94,7 @@ public class ProfilingKeyValueServiceTest {
     @Before
     public void before() throws Exception {
         delegate = mock(KeyValueService.class);
+        when(delegate.getLoggingArgSupplier()).thenReturn(KeyValueServiceArgSupplier.ALL_UNSAFE);
         kvs = ProfilingKeyValueService.create(delegate, 1000);
     }
 

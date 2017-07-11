@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -266,5 +267,15 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         return delegate().getClusterAvailabilityStatus();
+    }
+
+    @Override
+    public void rehydrateLoggingArgSupplier() {
+        delegate().rehydrateLoggingArgSupplier();
+    }
+
+    @Override
+    public KeyValueServiceArgSupplier getLoggingArgSupplier() {
+        return delegate().getLoggingArgSupplier();
     }
 }

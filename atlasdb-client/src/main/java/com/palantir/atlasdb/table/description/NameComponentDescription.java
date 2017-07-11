@@ -55,9 +55,16 @@ public class NameComponentDescription {
     }
 
     public NameComponentDescription(String componentName,
-                                    ValueType type,
-                                    ValueByteOrder order) {
-        this(componentName, type, order, new UniformRowNamePartitioner(type), null);
+            ValueType type,
+            ValueByteOrder order) {
+        this(componentName, type, order, false);
+    }
+
+    public NameComponentDescription(String componentName,
+            ValueType type,
+            ValueByteOrder order,
+            boolean nameLoggable) {
+        this(componentName, type, order, new UniformRowNamePartitioner(type), null, nameLoggable);
     }
 
     public NameComponentDescription(String componentName,
@@ -169,8 +176,12 @@ public class NameComponentDescription {
 
     @Override
     public String toString() {
-        return "NameComponentDescription [componentName=" + componentName
-                + ", order=" + order + ", type=" + type + "]";
+        return "NameComponentDescription[" +
+                "componentName=" + componentName +
+                ", type=" + type +
+                ", order=" + order +
+                ", nameLoggable=" + nameLoggable +
+                ']';
     }
 
     @Override

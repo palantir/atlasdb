@@ -694,6 +694,7 @@ public interface KeyValueService extends AutoCloseable {
 
     /**
      * Provides a supplier that is able to determine whether constructs are safe for logging.
+     * This method should return quickly (at least amortised), as it may be called multiple times.
      */
     default KeyValueServiceArgSupplier getLoggingArgSupplier() {
         return KeyValueServiceArgSupplier.ALL_UNSAFE;

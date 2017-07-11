@@ -62,7 +62,8 @@ public class SweeperTestSetup {
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis
                 Mockito.mock(PersistentLockManager.class),
-                specificTableSweeper);
+                specificTableSweeper,
+                KeyValueServiceArgSupplier.ALL_UNSAFE);
 
         when(kvs.getLoggingArgSupplier()).thenReturn(KeyValueServiceArgSupplier.ALL_UNSAFE);
     }

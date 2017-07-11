@@ -325,7 +325,8 @@ public final class TransactionManagers {
                 () -> getAtlasDbRuntimeConfig(runtimeConfigSupplier).sweep().enabled(),
                 () -> getAtlasDbRuntimeConfig(runtimeConfigSupplier).sweep().pauseMillis(),
                 persistentLockManager,
-                specificTableSweeper);
+                specificTableSweeper,
+                kvs.getLoggingArgSupplier());
 
         backgroundSweeper.runInBackground();
     }

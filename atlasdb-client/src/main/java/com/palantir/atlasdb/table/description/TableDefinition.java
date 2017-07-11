@@ -62,22 +62,63 @@ public class TableDefinition extends AbstractDefinition {
         state = State.DEFINING_CONSTRAINTS;
     }
 
-    public void column(String columnName, String shortName, Class<?> protoOrPersistable) {
-        column(columnName, shortName, protoOrPersistable, Compression.NONE);
+    /**
+     * Indicates that the name of the table being defined is safe for logging.
+     */
+    public void tableNameIsSafeLoggable() {
+        Preconditions.checkState(state == State.NONE, "Specifying a table name is safe should be done outside of the"
+                + " subscopes of TableDefinition.");
+        tableNameLoggable = true;
     }
 
-    public void column(String columnName, String shortName, Class<?> protoOrPersistable, Compression compression) {
+    /**
+     * If specified, this indicates that the names of all row components and named columns should be marked as safe by
+     * default. Individual row components or named columns may still be marked as unsafe by explicitly creating them
+     * as unsafe (i.e. by constructing them with rowNameLoggable or columnNameLoggable as false, respectively).
+     * Note that specifying this by itself does NOT make the table name safe for logging.
+     */
+    public void namedComponentsSafeByDefault() {
+        Preconditions.checkState(state == State.NONE, "Specifying a table name is safe should be done outside of the"
+                + " subscopes of TableDefinition.");
+        defaultNamedComponentLogSafety = true;
+    }
+
+    public void column(String columnName, String shortName, Class<?> protoOrPersistable) {
+        column(columnName, shortName, protoOrPersistable, defaultNamedComponentLogSafety);
+    }
+
+    public void column(String columnName, String shortName, Class<?> protoOrPersistable, boolean columnNameLoggable) {
+        column(columnName, shortName, protoOrPersistable, Compression.NONE, columnNameLoggable);
+    }
+
+    public void column(
+            String columnName,
+            String shortName,
+            Class<?> protoOrPersistable,
+            Compression compression,
+            boolean columnNameLoggable) {
         Preconditions.checkState(state == State.DEFINING_COLUMNS);
         Preconditions.checkState(!noColumns);
         checkUniqueColumnNames(columnName, shortName);
-        fixedColumns.add(new NamedColumnDescription(shortName, columnName, getColumnValueDescription(protoOrPersistable, compression)));
+        fixedColumns.add(
+                new NamedColumnDescription(
+                        shortName,
+                        columnName,
+                        getColumnValueDescription(protoOrPersistable, compression),
+                        columnNameLoggable));
     }
 
     public void column(String columnName, String shortName, ValueType valueType) {
+        column(columnName, shortName, valueType, defaultNamedComponentLogSafety);
+    }
+
+    public void column(String columnName, String shortName, ValueType valueType, boolean columnNameLoggable) {
         Preconditions.checkState(state == State.DEFINING_COLUMNS);
         Preconditions.checkState(!noColumns);
         checkUniqueColumnNames(columnName, shortName);
-        fixedColumns.add(new NamedColumnDescription(shortName, columnName, ColumnValueDescription.forType(valueType)));
+        fixedColumns.add(
+                new NamedColumnDescription(
+                        shortName, columnName, ColumnValueDescription.forType(valueType), columnNameLoggable));
     }
 
     public void noColumns() {
@@ -115,8 +156,13 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     public void rowComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
+        rowComponent(componentName, valueType, valueByteOrder, defaultNamedComponentLogSafety);
+    }
+
+    public void rowComponent(
+            String componentName, ValueType valueType, ValueByteOrder valueByteOrder, boolean rowNameLoggable) {
         Preconditions.checkState(state == State.DEFINING_ROW_NAME);
-        rowNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder));
+        rowNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder, rowNameLoggable));
     }
 
     /**
@@ -245,6 +291,9 @@ public class TableDefinition extends AbstractDefinition {
     private Set<String> fixedColumnShortNames = Sets.newHashSet();
     private Set<String> fixedColumnLongNames = Sets.newHashSet();
     private boolean noColumns = false;
+    private boolean tableNameLoggable = false;
+
+    private boolean defaultNamedComponentLogSafety = false;
 
     public TableMetadata toTableMetadata() {
         Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
@@ -268,7 +317,8 @@ public class TableDefinition extends AbstractDefinition {
                 negativeLookups,
                 sweepStrategy,
                 expirationStrategy,
-                appendHeavyAndReadLight);
+                appendHeavyAndReadLight,
+                tableNameLoggable);
     }
 
     private ColumnMetadataDescription getColumnMetadataDescription() {
