@@ -147,7 +147,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 .collect(Collectors.toList()));
 
         assertTrue("After serialization and deserialization to database, Cf metadata did not match.",
-                ColumnFamilyDefinitions.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata), clusterSideCf));
+                ColumnFamilyDefinitions.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata,
+                        CassandraConstants.DEFAULT_GC_GRACE_SECONDS), clusterSideCf));
     }
 
     @SuppressFBWarnings("SLF4J_FORMAT_SHOULD_BE_CONST")

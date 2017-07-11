@@ -96,7 +96,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      */
     @Value.Default
     public int gcGraceSeconds() {
-        return CassandraConstants.GC_GRACE_SECONDS;
+        return CassandraConstants.DEFAULT_GC_GRACE_SECONDS;
     }
 
     public abstract String keyspace();

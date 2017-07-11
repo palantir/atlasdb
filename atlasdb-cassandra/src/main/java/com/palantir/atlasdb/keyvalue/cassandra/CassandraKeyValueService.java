@@ -259,7 +259,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 TableReference tableRef = tableReferenceFromCfDef(clusterSideCf);
                 if (metadataForTables.containsKey(tableRef)) {
                     byte[] clusterSideMetadata = metadataForTables.get(tableRef);
-                    CfDef clientSideCf = getCfForTable(tableRef, clusterSideMetadata);
+                    CfDef clientSideCf = getCfForTable(tableRef, clusterSideMetadata, configManager.getConfig().gcGraceSeconds());
                     if (!ColumnFamilyDefinitions.isMatchingCf(clientSideCf, clusterSideCf)) {
                         // mismatch; we have changed how we generate schema since we last persisted
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
@@ -1323,8 +1323,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    protected CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata) {
-        return ColumnFamilyDefinitions.getCfDef(configManager.getConfig().keyspace(), tableRef, rawMetadata);
+    protected CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata, int gcGraceSeconds) {
+        return ColumnFamilyDefinitions.getCfDef(configManager.getConfig().keyspace(), tableRef, gcGraceSeconds, rawMetadata);
     }
 
     // TODO(unknown): after cassandra change: handle multiRanges
@@ -1647,6 +1647,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
                             configManager.getConfig().keyspace(),
                             tableEntry.getKey(),
+                            configManager.getConfig().gcGraceSeconds(),
                             tableEntry.getValue()));
                 } catch (UnavailableException e) {
                     throw new PalantirRuntimeException(
@@ -1856,7 +1857,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             }
             updatedCfs.add(getCfForTable(
                     tableReferenceFromBytes(entry.getKey().getRowName()),
-                    entry.getValue()));
+                    entry.getValue(),
+                    configManager.getConfig().gcGraceSeconds()));
         }
 
         if (newMetadata.isEmpty()) {
