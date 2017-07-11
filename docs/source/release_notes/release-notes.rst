@@ -40,10 +40,10 @@ develop
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
-0.46.0
+0.47.0
 ======
 
-29 June 2017
+11 July 2017
 
 .. list-table::
     :widths: 5 40
@@ -161,6 +161,14 @@ develop
     *    - |fixed|
          - Added backwards compatibility for the changes introduced in `#2067 <https://github.com/palantir/atlasdb/pull/2067>`__, in particular, for passing row values into AtlasConsole functions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2080>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.46.0
+======
+
+This version was skipped due to issues on release. No artifacts with this version were ever published.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
