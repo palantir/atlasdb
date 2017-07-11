@@ -17,6 +17,8 @@ package com.palantir.atlasdb.config;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -28,11 +30,11 @@ public class AtlasDbConfigsTest {
     private static String previousKeyPathProperty;
 
     @BeforeClass
-    public static void setUpClass() {
+    public static void setUpClass() throws URISyntaxException {
         previousKeyPathProperty = System.getProperty(KeyPair.KEY_PATH_PROPERTY);
         System.setProperty(
                 KeyPair.KEY_PATH_PROPERTY,
-                AtlasDbConfigsTest.class.getResource("/test.key").getPath());
+                Paths.get(AtlasDbConfigsTest.class.getResource("/test.key").toURI()).toString());
     }
 
     @AfterClass

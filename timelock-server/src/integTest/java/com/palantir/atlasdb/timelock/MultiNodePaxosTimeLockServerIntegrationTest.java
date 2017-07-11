@@ -17,6 +17,10 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -25,6 +29,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
@@ -34,6 +39,8 @@ import com.palantir.lock.StringLockDescriptor;
 
 public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
+    private static final String CLIENT_2 = "test2";
+    private static final String CLIENT_3 = "test3";
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "http://localhost",
@@ -50,6 +57,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             .doNotBlock()
             .build();
 
+    private static final LockRequest BLOCKING_LOCK_REQUEST = LockRequest.builder(
+            ImmutableSortedMap.of(
+                    StringLockDescriptor.of("foo"),
+                    LockMode.WRITE))
+            .build();
+
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
@@ -61,6 +74,30 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Before
     public void bringAllNodesOnline() {
         CLUSTER.waitUntillAllSeversAreOnlineAndLeaderIsElected();
+    }
+
+    @Test
+    public void blockedLockRequestThrows503OnLeaderElection() throws InterruptedException {
+        LockRefreshToken lock = CLUSTER.lock(CLIENT_1, BLOCKING_LOCK_REQUEST);
+        assertThat(lock).isNotNull();
+
+        TestableTimelockServer leader = CLUSTER.currentLeader();
+
+        CompletableFuture<LockRefreshToken> lockRefreshTokenCompletableFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                return leader.lock(CLIENT_2, BLOCKING_LOCK_REQUEST);
+            } catch (InterruptedException e) {
+                return null;
+            }
+        });
+        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+        CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
+        // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
+        assertThatThrownBy(() -> leader.lock(CLIENT_3, BLOCKING_LOCK_REQUEST))
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+
+        assertThat(catchThrowable(lockRefreshTokenCompletableFuture::get).getCause())
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
@@ -139,7 +176,4 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             token = CLUSTER.lock(LOCK_CLIENT, LOCK_REQUEST);
         }
     }
-
-
-
 }
