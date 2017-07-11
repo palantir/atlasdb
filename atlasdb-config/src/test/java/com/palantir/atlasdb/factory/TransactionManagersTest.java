@@ -305,6 +305,7 @@ public class TransactionManagersTest {
         createLockAndTimestampServicesForConfig(config, runtimeConfig).time().getFreshTimestamp();
 
         availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_TIMESTAMP_PATH)));
+    }
 
     @Test
     public void runsClosingCallbackOnShutdown() throws Exception {
