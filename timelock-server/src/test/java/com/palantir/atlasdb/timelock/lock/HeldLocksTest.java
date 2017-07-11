@@ -29,17 +29,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.FakeDelayedExecutor;
 
 public class HeldLocksTest {
 
     private static final UUID REQUEST_ID = UUID.randomUUID();
 
-    private static final Deadline DEADLINE = Deadline.at(123L);
-
-    private final DelayedExecutor canceller = new FakeDelayedExecutor();
-    private final ExclusiveLock lockA = spy(new ExclusiveLock(canceller));
-    private final ExclusiveLock lockB = spy(new ExclusiveLock(canceller));
+    private final ExclusiveLock lockA = spy(new ExclusiveLock());
+    private final ExclusiveLock lockB = spy(new ExclusiveLock());
 
     private final LeaseExpirationTimer timer = mock(LeaseExpirationTimer.class);
 
@@ -48,8 +44,8 @@ public class HeldLocksTest {
     @Before
     public void before() {
         when(timer.isExpired()).thenReturn(false);
-        lockA.lock(REQUEST_ID, DEADLINE);
-        lockB.lock(REQUEST_ID, DEADLINE);
+        lockA.lock(REQUEST_ID);
+        lockB.lock(REQUEST_ID);
         heldLocks = new HeldLocks(ImmutableList.of(lockA, lockB), REQUEST_ID, timer);
     }
 

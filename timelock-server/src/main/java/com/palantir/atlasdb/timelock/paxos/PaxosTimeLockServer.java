@@ -210,8 +210,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
                             .build());
             return new AsyncTimelockServiceImpl(
                     AsyncLockService.createDefault(reaperExecutor, cancellationExecutor),
-                    rawTimestampServiceSupplier.get(),
-                    System::currentTimeMillis);
+                    rawTimestampServiceSupplier.get());
         };
 
         return AwaitingLeadershipProxy.newProxyInstance(

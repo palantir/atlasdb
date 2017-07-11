@@ -32,8 +32,6 @@ public class ImmutableTimestampTrackerTest {
     private static final long TIMESTAMP_1 = 1L;
     private static final long TIMESTAMP_2 = 2L;
 
-    private static final Deadline DEADLINE = Deadline.at(123L);
-
     private final ImmutableTimestampTracker tracker = new ImmutableTimestampTracker();
 
     @Test
@@ -51,7 +49,7 @@ public class ImmutableTimestampTrackerTest {
     @Test
     public void unRegistersTimestampWhenUnlocked() {
         AsyncLock lock1 = tracker.getLockFor(TIMESTAMP_1);
-        lock1.lock(REQUEST_1, DEADLINE);
+        lock1.lock(REQUEST_1);
         lock1.unlock(REQUEST_1);
 
         assertThat(tracker.getImmutableTimestamp()).isEqualTo(Optional.empty());
@@ -60,9 +58,9 @@ public class ImmutableTimestampTrackerTest {
     @Test
     public void tracksTimestampsInOrder() {
         AsyncLock lock2 = tracker.getLockFor(TIMESTAMP_2);
-        lock2.lock(REQUEST_1, DEADLINE);
+        lock2.lock(REQUEST_1);
         AsyncLock lock1 = tracker.getLockFor(TIMESTAMP_1);
-        lock1.lock(REQUEST_2, DEADLINE);
+        lock1.lock(REQUEST_2);
 
         assertThat(tracker.getImmutableTimestamp().get()).isEqualTo(TIMESTAMP_1);
 
@@ -83,18 +81,8 @@ public class ImmutableTimestampTrackerTest {
         assertThatThrownBy(() -> unlock(TIMESTAMP_1, REQUEST_1)).isInstanceOf(IllegalStateException.class);
     }
 
-    @Test
-    public void ignoresDeadline() {
-        assertThat(tracker.getLockFor(123L).lock(REQUEST_1, Deadline.at(0L))
-                .isCompletedSuccessfully()).isTrue();
-        assertThat(tracker.getLockFor(124L).lock(REQUEST_1, Deadline.at(Long.MAX_VALUE))
-                .isCompletedSuccessfully()).isTrue();
-        assertThat(tracker.getLockFor(125L).lock(REQUEST_1, Deadline.at(Long.MIN_VALUE))
-                .isCompletedSuccessfully()).isTrue();
-    }
-
     private AsyncResult<Void> lock(long timestamp, UUID requestId) {
-        return tracker.getLockFor(timestamp).lock(requestId, DEADLINE);
+        return tracker.getLockFor(timestamp).lock(requestId);
     }
 
     private void unlock(long timestamp, UUID requestId) {

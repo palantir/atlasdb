@@ -29,29 +29,30 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 import org.mockito.InOrder;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.FakeDelayedExecutor;
 
 public class LockAcquirerTest {
 
     private static final UUID REQUEST_ID = UUID.randomUUID();
     private static final UUID OTHER_REQUEST_ID = UUID.randomUUID();
 
-    private static final Deadline DEADLINE = Deadline.at(123L);
+    private static final TimeLimit TIMEOUT = TimeLimit.of(123L);
 
-    private final FakeDelayedExecutor canceller = new FakeDelayedExecutor();
+    private final DeterministicScheduler executor = new DeterministicScheduler();
 
-    private final ExclusiveLock lockA = spy(new ExclusiveLock(canceller));
-    private final ExclusiveLock lockB = spy(new ExclusiveLock(canceller));
-    private final ExclusiveLock lockC = spy(new ExclusiveLock(canceller));
+    private final ExclusiveLock lockA = spy(new ExclusiveLock());
+    private final ExclusiveLock lockB = spy(new ExclusiveLock());
+    private final ExclusiveLock lockC = spy(new ExclusiveLock());
 
-    private final LockAcquirer lockAcquirer = new LockAcquirer();
+    private final LockAcquirer lockAcquirer = new LockAcquirer(executor);
 
     @Test
     public void acquiresLocksInOrder() {
@@ -59,16 +60,16 @@ public class LockAcquirerTest {
 
         acquire(lockA, lockB, lockC);
 
-        inOrder.verify(lockA).lock(REQUEST_ID, DEADLINE);
-        inOrder.verify(lockB).lock(REQUEST_ID, DEADLINE);
-        inOrder.verify(lockC).lock(REQUEST_ID, DEADLINE);
+        inOrder.verify(lockA).lock(REQUEST_ID);
+        inOrder.verify(lockB).lock(REQUEST_ID);
+        inOrder.verify(lockC).lock(REQUEST_ID);
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void queuesAcquisitionsForHeldLocks() {
-        lockA.lock(OTHER_REQUEST_ID, DEADLINE);
-        lockB.lock(OTHER_REQUEST_ID, DEADLINE);
+        lockA.lock(OTHER_REQUEST_ID);
+        lockB.lock(OTHER_REQUEST_ID);
 
         AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB);
 
@@ -82,7 +83,7 @@ public class LockAcquirerTest {
     @Test(timeout = 10_000)
     public void doesNotStackOverflowIfLocksAreAcquiredSynchronously() {
         List<AsyncLock> locks = IntStream.range(0, 10_000)
-                .mapToObj(i -> new ExclusiveLock(canceller))
+                .mapToObj(i -> new ExclusiveLock())
                 .collect(Collectors.toList());
 
         AsyncResult<HeldLocks> acquisitions = acquire(locks);
@@ -92,10 +93,10 @@ public class LockAcquirerTest {
 
     @Test(timeout = 10_000)
     public void doesNotStackOverflowIfManyRequestsWaitOnALock() {
-        lockA.lock(REQUEST_ID, DEADLINE);
+        lockA.lock(REQUEST_ID);
 
         List<AsyncResult<Void>> results = IntStream.range(0, 10_000)
-                .mapToObj(i -> lockA.waitUntilAvailable(UUID.randomUUID(), DEADLINE))
+                .mapToObj(i -> lockA.waitUntilAvailable(UUID.randomUUID()))
                 .collect(Collectors.toList());
 
         lockA.unlock(REQUEST_ID);
@@ -111,7 +112,7 @@ public class LockAcquirerTest {
         RuntimeException error = new RuntimeException("foo");
         lockResult.fail(error);
 
-        doReturn(lockResult).when(lockA).lock(any(), any());
+        doReturn(lockResult).when(lockA).lock(any());
         AsyncResult<HeldLocks> acquisitions = acquire(lockA);
 
         assertThat(acquisitions.getError()).isEqualTo(error);
@@ -123,9 +124,9 @@ public class LockAcquirerTest {
         RuntimeException error = new RuntimeException("foo");
         lockResult.fail(error);
 
-        doReturn(lockResult).when(lockB).lock(any(), any());
+        doReturn(lockResult).when(lockB).lock(any());
 
-        lockA.lock(OTHER_REQUEST_ID, DEADLINE);
+        lockA.lock(OTHER_REQUEST_ID);
         AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB);
         lockA.unlock(OTHER_REQUEST_ID);
 
@@ -137,7 +138,7 @@ public class LockAcquirerTest {
         AsyncResult<Void> lockResult = new AsyncResult<>();
         lockResult.fail(new RuntimeException("foo"));
 
-        doReturn(lockResult).when(lockC).lock(any(), any());
+        doReturn(lockResult).when(lockC).lock(any());
 
         AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB, lockC);
         assertThat(acquisitions.isFailed()).isTrue();
@@ -148,7 +149,7 @@ public class LockAcquirerTest {
 
     @Test
     public void unlocksOnSynchronousFailure() {
-        doThrow(new RuntimeException("foo")).when(lockC).lock(any(), any());
+        doThrow(new RuntimeException("foo")).when(lockC).lock(any());
 
         AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB, lockC);
         assertThat(acquisitions.isFailed()).isTrue();
@@ -169,24 +170,48 @@ public class LockAcquirerTest {
     public void waitForLocksDoesNotAcquireLocks() {
         waitFor(lockA);
 
-        verify(lockA).waitUntilAvailable(REQUEST_ID, DEADLINE);
+        verify(lockA).waitUntilAvailable(REQUEST_ID);
         verifyNoMoreInteractions(lockA);
     }
 
     @Test
-    public void stopsAcquiringIfALockRequestTimesOut() {
+    public void timesOutRequestAfterSpecifiedTime() {
         acquire(lockB);
         AsyncResult<?> result = acquire(lockA, lockB, lockC);
 
-        canceller.tick(DEADLINE.getTimeMillis() + 1L);
+        executor.tick(TIMEOUT.getTimeMillis() + 1L, TimeUnit.MILLISECONDS);
 
+        verify(lockB).timeout(REQUEST_ID);
         assertThat(result.isTimedOut()).isTrue();
-        verify(lockC, never()).lock(any(), any());
+    }
+
+    @Test
+    public void stopsAcquiringAndUnlocksAfterTimeout() {
+        acquire(lockB);
+        AsyncResult<?> result = acquire(lockA, lockB, lockC);
+
+        executor.tick(TIMEOUT.getTimeMillis() + 1L, TimeUnit.MILLISECONDS);
+
+        verify(lockC, never()).lock(any());
+        assertNotLocked(lockA);
+        assertNotLocked(lockB);
+        assertNotLocked(lockC);
+    }
+
+    @Test
+    public void doesNotTimeOutBeforeSpecifiedTime() {
+        acquire(lockB);
+        AsyncResult<?> result = acquire(lockA, lockB, lockC);
+
+        executor.tick(TIMEOUT.getTimeMillis() - 1L, TimeUnit.MILLISECONDS);
+
+        verify(lockB, never()).timeout(REQUEST_ID);
+        assertThat(result.isTimedOut()).isFalse();
     }
 
     private AsyncResult<Void> waitFor(AsyncLock... locks) {
         return lockAcquirer.waitForLocks(REQUEST_ID, OrderedLocks.fromOrderedList(ImmutableList.copyOf(locks)),
-                DEADLINE);
+                TIMEOUT);
     }
 
     private AsyncResult<HeldLocks> acquire(AsyncLock... locks) {
@@ -194,11 +219,11 @@ public class LockAcquirerTest {
     }
 
     private AsyncResult<HeldLocks> acquire(List<AsyncLock> locks) {
-        return lockAcquirer.acquireLocks(REQUEST_ID, OrderedLocks.fromOrderedList(locks), DEADLINE);
+        return lockAcquirer.acquireLocks(REQUEST_ID, OrderedLocks.fromOrderedList(locks), TIMEOUT);
     }
 
     private void assertNotLocked(ExclusiveLock lock) {
-        assertThat(lock.lock(UUID.randomUUID(), DEADLINE).isCompletedSuccessfully()).isTrue();
+        assertThat(lock.lock(UUID.randomUUID()).isCompletedSuccessfully()).isTrue();
     }
 
 }

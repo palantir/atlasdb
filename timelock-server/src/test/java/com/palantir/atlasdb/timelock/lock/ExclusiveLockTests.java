@@ -24,18 +24,13 @@ import java.util.UUID;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.timelock.FakeDelayedExecutor;
-
 public class ExclusiveLockTests {
 
     private static final UUID REQUEST_1 = UUID.randomUUID();
     private static final UUID REQUEST_2 = UUID.randomUUID();
     private static final UUID REQUEST_3 = UUID.randomUUID();
 
-    private static final Deadline DEADLINE = Deadline.at(123L);
-
-    private final FakeDelayedExecutor canceller = new FakeDelayedExecutor();
-    private final ExclusiveLock lock = new ExclusiveLock(canceller);
+    private final ExclusiveLock lock = new ExclusiveLock();
 
     @Test
     public void canLockAndUnlock() {
@@ -110,13 +105,13 @@ public class ExclusiveLockTests {
 
     @Test
     public void lockIsAcquiredSynchronouslyIfAvailable() {
-        AsyncResult<Void> result = lock.lock(REQUEST_1, DEADLINE);
+        AsyncResult<Void> result = lock.lock(REQUEST_1);
         assertTrue(result.isComplete());
     }
 
     @Test
     public void waitUntilAvailableCompletesSynchronouslyIfAvailable() {
-        AsyncResult<Void> result = lock.waitUntilAvailable(REQUEST_1, DEADLINE);
+        AsyncResult<Void> result = lock.waitUntilAvailable(REQUEST_1);
         assertTrue(result.isComplete());
     }
 
@@ -149,7 +144,7 @@ public class ExclusiveLockTests {
     public void multipleWaitUntilAvailableRequestsAllCompleteWhenLockIsFree() {
         lockSynchronously(REQUEST_1);
         AsyncResult<Void> request2 = waitUntilAvailableAsync(REQUEST_2);
-        AsyncResult<Void> request3 = lock.waitUntilAvailable(REQUEST_3, DEADLINE);
+        AsyncResult<Void> request3 = lock.waitUntilAvailable(REQUEST_3);
 
         unlock(REQUEST_1);
 
@@ -158,11 +153,11 @@ public class ExclusiveLockTests {
     }
 
     @Test
-    public void lockRequestIsTimedOutAfterDeadline() {
+    public void resultIsTimedOutWhenTimeOutIsCalled() {
         lockSynchronously(REQUEST_1);
         AsyncResult<Void> request2 = lockAsync(REQUEST_2);
 
-        canceller.tick(DEADLINE.getTimeMillis() + 1);
+        lock.timeout(REQUEST_2);
 
         assertThat(request2.isTimedOut()).isTrue();
     }
@@ -172,7 +167,7 @@ public class ExclusiveLockTests {
         lockSynchronously(REQUEST_1);
         AsyncResult<Void> request2 = waitUntilAvailableAsync(REQUEST_1);
 
-        canceller.tick(DEADLINE.getTimeMillis() + 1);
+        lock.timeout(REQUEST_1);
 
         assertThat(request2.isTimedOut()).isTrue();
     }
@@ -182,7 +177,7 @@ public class ExclusiveLockTests {
         lockSynchronously(REQUEST_1);
         AsyncResult<Void> request2 = lockAsync(REQUEST_2);
 
-        canceller.tick(DEADLINE.getTimeMillis() + 1);
+        lock.timeout(REQUEST_2);
         unlock(REQUEST_1);
 
         assertThat(lock.getCurrentHolder()).isNull();
@@ -190,15 +185,25 @@ public class ExclusiveLockTests {
     }
 
     @Test
-    public void availableLockIsAcquiredEvenIfDeadlineIsAlreadyPast() {
-        canceller.setShouldRunSynchronously(true);
+    public void timeoutDoesNothingIfLockIsAlreadyAcquired() {
         lockSynchronously(REQUEST_1);
+
+        lock.timeout(REQUEST_1);
+
+        // lock should still be locked, and able to be unlocked
+        AsyncResult<Void> request2 = lockAsync(REQUEST_2);
+        assertThat(request2.isComplete()).isFalse();
+        unlock(REQUEST_1);
+        assertThat(request2.isCompletedSuccessfully()).isTrue();
     }
 
     @Test
-    public void availableLockIsAvailableIfDeadlineIsAlreadyPast() {
-        canceller.setShouldRunSynchronously(true);
+    public void timeoutDoesNothingIfLockWasAlreadyAvailable() {
         waitUntilAvailableSynchronously(REQUEST_1);
+
+        lock.timeout(REQUEST_1);
+
+        waitUntilAvailableSynchronously(REQUEST_2);
     }
 
     @Test
@@ -214,7 +219,7 @@ public class ExclusiveLockTests {
     }
 
     private AsyncResult<Void> waitUntilAvailableAsync(UUID request) {
-        return lock.waitUntilAvailable(request, DEADLINE);
+        return lock.waitUntilAvailable(request);
     }
 
     private void waitUntilAvailableSynchronously(UUID requestId) {
@@ -222,11 +227,11 @@ public class ExclusiveLockTests {
     }
 
     private void lockSynchronously(UUID requestId) {
-        lock.lock(requestId, DEADLINE).get();
+        lock.lock(requestId).get();
     }
 
     private AsyncResult<Void> lockAsync(UUID requestId) {
-        return lock.lock(requestId, DEADLINE);
+        return lock.lock(requestId);
     }
 
     private void unlock(UUID requestId) {

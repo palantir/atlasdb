@@ -20,9 +20,8 @@ import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
-import com.palantir.atlasdb.timelock.lock.Deadline;
+import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
-import com.palantir.common.time.Clock;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
@@ -35,13 +34,10 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     private final AsyncLockService lockService;
     private final ManagedTimestampService timestampService;
-    private final Clock clock;
 
-    public AsyncTimelockServiceImpl(AsyncLockService lockService, ManagedTimestampService timestampService,
-            Clock clock) {
+    public AsyncTimelockServiceImpl(AsyncLockService lockService, ManagedTimestampService timestampService) {
         this.lockService = lockService;
         this.timestampService = timestampService;
-        this.clock = clock;
     }
 
     @Override
@@ -76,7 +72,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         return lockService.lock(
                 request.getRequestId(),
                 request.getLockDescriptors(),
-                Deadline.fromTimeoutMillis(request.getAcquireTimeoutMs(), clock));
+                TimeLimit.of(request.getAcquireTimeoutMs()));
     }
 
     @Override
@@ -84,7 +80,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         return lockService.waitForLocks(
                 request.getRequestId(),
                 request.getLockDescriptors(),
-                Deadline.fromTimeoutMillis(request.getAcquireTimeoutMs(), clock));
+                TimeLimit.of(request.getAcquireTimeoutMs()));
     }
 
     @Override

@@ -20,10 +20,12 @@ import java.util.UUID;
 
 public interface AsyncLock {
 
-    AsyncResult<Void> lock(UUID requestId, Deadline deadline);
+    AsyncResult<Void> lock(UUID requestId);
 
-    AsyncResult<Void> waitUntilAvailable(UUID requestId, Deadline deadline);
+    AsyncResult<Void> waitUntilAvailable(UUID requestId);
 
     void unlock(UUID requestId);
+
+    void timeout(UUID requestId);
 
 }

@@ -39,13 +39,13 @@ public class AsyncLockService {
     private final HeldLocksCollection heldLocks;
     private final ImmutableTimestampTracker immutableTsTracker;
 
-    public static AsyncLockService createDefault(ScheduledExecutorService reaperExecutor,
-            ScheduledExecutorService cancellationExecutor) {
-        DelayedExecutor canceller = new DelayedExecutor(cancellationExecutor, System::currentTimeMillis);
+    public static AsyncLockService createDefault(
+            ScheduledExecutorService reaperExecutor,
+            ScheduledExecutorService timeoutExecutor) {
         return new AsyncLockService(
-                new LockCollection(() -> new ExclusiveLock(canceller)),
+                new LockCollection(() -> new ExclusiveLock()),
                 new ImmutableTimestampTracker(),
-                new LockAcquirer(),
+                new LockAcquirer(timeoutExecutor),
                 new HeldLocksCollection(),
                 reaperExecutor);
     }
@@ -75,10 +75,10 @@ public class AsyncLockService {
         }, 0, LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2, TimeUnit.MILLISECONDS);
     }
 
-    public AsyncResult<LockTokenV2> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, Deadline deadline) {
+    public AsyncResult<LockTokenV2> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
         return heldLocks.getExistingOrAcquire(
                 requestId,
-                () -> acquireLocks(requestId, lockDescriptors, deadline));
+                () -> acquireLocks(requestId, lockDescriptors, timeout));
     }
 
     public AsyncResult<LockTokenV2> lockImmutableTimestamp(UUID requestId, long timestamp) {
@@ -87,9 +87,9 @@ public class AsyncLockService {
                 () -> acquireImmutableTimestampLock(requestId, timestamp));
     }
 
-    public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, Deadline deadline) {
+    public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
-        return lockAcquirer.waitForLocks(requestId, orderedLocks, deadline);
+        return lockAcquirer.waitForLocks(requestId, orderedLocks, timeout);
     }
 
     public Optional<Long> getImmutableTimestamp() {
@@ -97,14 +97,14 @@ public class AsyncLockService {
     }
 
     private AsyncResult<HeldLocks> acquireLocks(UUID requestId, Set<LockDescriptor> lockDescriptors,
-            Deadline deadline) {
+            TimeLimit timeout) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
-        return lockAcquirer.acquireLocks(requestId, orderedLocks, deadline);
+        return lockAcquirer.acquireLocks(requestId, orderedLocks, timeout);
     }
 
     private AsyncResult<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
         AsyncLock immutableTsLock = immutableTsTracker.getLockFor(timestamp);
-        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), Deadline.expired());
+        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), TimeLimit.zero());
     }
 
     public boolean unlock(LockTokenV2 token) {

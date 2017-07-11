@@ -31,18 +31,23 @@ public class ImmutableTimestampLock implements AsyncLock {
     }
 
     @Override
-    public AsyncResult<Void> lock(UUID requestId, Deadline deadline) {
+    public AsyncResult<Void> lock(UUID requestId) {
         tracker.lock(timestamp, requestId);
         return AsyncResult.completedResult();
     }
 
     @Override
-    public AsyncResult<Void> waitUntilAvailable(UUID requestId, Deadline deadline) {
+    public AsyncResult<Void> waitUntilAvailable(UUID requestId) {
         throw new NotSupportedException();
     }
 
     @Override
     public void unlock(UUID requestId) {
         tracker.unlock(timestamp, requestId);
+    }
+
+    @Override
+    public void timeout(UUID requestId) {
+        throw new NotSupportedException();
     }
 }

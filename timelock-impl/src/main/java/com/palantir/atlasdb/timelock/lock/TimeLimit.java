@@ -18,28 +18,18 @@ package com.palantir.atlasdb.timelock.lock;
 
 import org.immutables.value.Value;
 
-import com.palantir.common.time.Clock;
-
 @Value.Immutable
-public interface Deadline {
+public interface TimeLimit {
 
     @Value.Parameter
     long getTimeMillis();
 
-    default long getMillisRemaining(Clock clock) {
-        return getTimeMillis() - clock.getTimeMillis();
+    static TimeLimit of(long timeMillis) {
+        return ImmutableTimeLimit.of(timeMillis);
     }
 
-    static Deadline at(long timeMillis) {
-        return ImmutableDeadline.of(timeMillis);
-    }
-
-    static Deadline fromTimeoutMillis(long timeoutMillis, Clock clock) {
-        return at(clock.getTimeMillis() + timeoutMillis);
-    }
-
-    static Deadline expired() {
-        return at(Long.MIN_VALUE);
+    static TimeLimit zero() {
+        return of(0L);
     }
 
 }

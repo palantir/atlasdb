@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,7 +34,7 @@ import com.palantir.lock.StringLockDescriptor;
 public class LockCollectionTest {
 
     private final LockCollection lockCollection = new LockCollection(
-            () -> new ExclusiveLock(mock(DelayedExecutor.class)));
+            () -> new ExclusiveLock());
 
     @Test
     public void createsLocksOnDemand() {

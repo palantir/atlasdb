@@ -39,7 +39,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.FakeDelayedExecutor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 
@@ -51,15 +50,13 @@ public class AsyncLockServiceTest {
     private static final String LOCK_B = "b";
     public static final long REAPER_PERIOD_MS = LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2;
 
-    private static final Deadline DEADLINE = Deadline.at(123L);
+    private static final TimeLimit DEADLINE = TimeLimit.of(123L);
 
     private final LockAcquirer acquirer = mock(LockAcquirer.class);
     private final LockCollection locks = mock(LockCollection.class);
     private final HeldLocksCollection heldLocks = spy(new HeldLocksCollection());
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
-    private final DelayedExecutor canceller = new FakeDelayedExecutor();
-
     private final AsyncLockService lockService = new AsyncLockService(
             locks, immutableTimestampTracker, acquirer, heldLocks, reaperExecutor);
 
@@ -112,7 +109,7 @@ public class AsyncLockServiceTest {
 
         lockService.lockImmutableTimestamp(requestId, timestamp);
 
-        verify(acquirer).acquireLocks(requestId, orderedLocks(immutableTsLock), Deadline.expired());
+        verify(acquirer).acquireLocks(requestId, orderedLocks(immutableTsLock), TimeLimit.zero());
     }
 
     @Test
@@ -145,7 +142,7 @@ public class AsyncLockServiceTest {
     }
 
     private ExclusiveLock newLock() {
-        return new ExclusiveLock(canceller);
+        return new ExclusiveLock();
     }
 
     private Set<LockDescriptor> descriptors(String... lockNames) {

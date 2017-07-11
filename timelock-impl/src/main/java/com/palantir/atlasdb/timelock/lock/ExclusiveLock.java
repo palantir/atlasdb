@@ -35,20 +35,14 @@ public class ExclusiveLock implements AsyncLock {
     @GuardedBy("this")
     private UUID currentHolder = null;
 
-    private final DelayedExecutor canceller;
-
-    public ExclusiveLock(DelayedExecutor canceller) {
-        this.canceller = canceller;
+    @Override
+    public synchronized AsyncResult<Void> lock(UUID requestId) {
+        return submit(new LockRequest(requestId, false));
     }
 
     @Override
-    public synchronized AsyncResult<Void> lock(UUID requestId, Deadline deadline) {
-        return submit(new LockRequest(requestId, false), deadline);
-    }
-
-    @Override
-    public synchronized AsyncResult<Void> waitUntilAvailable(UUID requestId, Deadline deadline) {
-        return submit(new LockRequest(requestId, true), deadline);
+    public synchronized AsyncResult<Void> waitUntilAvailable(UUID requestId) {
+        return submit(new LockRequest(requestId, true));
     }
 
     @Override
@@ -59,26 +53,22 @@ public class ExclusiveLock implements AsyncLock {
         }
     }
 
+    @Override
+    public synchronized void timeout(UUID requestId) {
+        queue.timeoutAndRemoveIfStillQueued(requestId);
+    }
+
     @VisibleForTesting
     synchronized UUID getCurrentHolder() {
         return currentHolder;
     }
 
     @GuardedBy("this")
-    private AsyncResult<Void> submit(LockRequest request, Deadline deadline) {
+    private AsyncResult<Void> submit(LockRequest request) {
         queue.enqueue(request);
         processQueue();
 
-        AsyncResult<Void> result = request.result;
-        if (!result.isComplete()) {
-            canceller.runAt(() -> cancel(request.requestId), deadline);
-        }
-        return result;
-    }
-
-    @GuardedBy("this")
-    private synchronized void cancel(UUID requestId) {
-        queue.timeoutAndRemoveIfStillQueued(requestId);
+        return request.result;
     }
 
     @GuardedBy("this")
