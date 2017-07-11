@@ -20,7 +20,6 @@ package com.palantir.atlasdb.timelock.lock;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -30,17 +29,15 @@ import com.palantir.lock.LockDescriptor;
 
 public class LockCollection {
 
-    private final Supplier<ExclusiveLock> lockFactory;
     private final LoadingCache<LockDescriptor, ExclusiveLock> locksById;
 
-    public LockCollection(Supplier<ExclusiveLock> lockFactory) {
-        this.lockFactory = lockFactory;
+    public LockCollection() {
         locksById = CacheBuilder.newBuilder()
                 .weakValues()
                 .build(new CacheLoader<LockDescriptor, ExclusiveLock>() {
                     @Override
-                    public ExclusiveLock load(LockDescriptor key) throws Exception {
-                        return lockFactory.get();
+                    public ExclusiveLock load(LockDescriptor descriptor) throws Exception {
+                        return new ExclusiveLock(descriptor);
                     }
                 });
     }

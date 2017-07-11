@@ -26,7 +26,11 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
+import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
@@ -40,6 +44,8 @@ import com.palantir.timestamp.TimestampRange;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class AsyncTimelockResource {
+
+    private static final Logger log = LoggerFactory.getLogger(AsyncTimelockResource.class);
 
     private final AsyncTimelockService timelock;
 
@@ -75,6 +81,7 @@ public class AsyncTimelockResource {
     @Path("lock")
     public void lock(@Suspended final AsyncResponse response, LockRequestV2 request) {
         AsyncResult<LockTokenV2> result = timelock.lock(request);
+        LockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
                 response.resume(result.getError());
@@ -90,6 +97,7 @@ public class AsyncTimelockResource {
     @Path("await-locks")
     public void waitForLocks(@Suspended final AsyncResponse response, WaitForLocksRequest request) {
         AsyncResult<Void> result = timelock.waitForLocks(request);
+        LockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
                 response.resume(result.getError());

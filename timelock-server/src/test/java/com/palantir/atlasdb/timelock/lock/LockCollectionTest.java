@@ -33,8 +33,7 @@ import com.palantir.lock.StringLockDescriptor;
 
 public class LockCollectionTest {
 
-    private final LockCollection lockCollection = new LockCollection(
-            () -> new ExclusiveLock());
+    private final LockCollection lockCollection = new LockCollection();
 
     @Test
     public void createsLocksOnDemand() {

@@ -29,13 +29,17 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
 
 public class HeldLocksTest {
 
     private static final UUID REQUEST_ID = UUID.randomUUID();
 
-    private final ExclusiveLock lockA = spy(new ExclusiveLock());
-    private final ExclusiveLock lockB = spy(new ExclusiveLock());
+    private static final LockDescriptor LOCK_DESCRIPTOR = StringLockDescriptor.of("foo");
+
+    private final ExclusiveLock lockA = spy(new ExclusiveLock(LOCK_DESCRIPTOR));
+    private final ExclusiveLock lockB = spy(new ExclusiveLock(LOCK_DESCRIPTOR));
 
     private final LeaseExpirationTimer timer = mock(LeaseExpirationTimer.class);
 

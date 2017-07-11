@@ -54,7 +54,7 @@ public class AsyncLockServiceEteTest {
     private static final TimeLimit LONG_TIMEOUT = TimeLimit.of(100_000L);
 
     private final AsyncLockService service = new AsyncLockService(
-            new LockCollection(() -> new ExclusiveLock()),
+            new LockCollection(),
             new ImmutableTimestampTracker(),
             new LockAcquirer(Executors.newSingleThreadScheduledExecutor()),
             new HeldLocksCollection(),
