@@ -168,7 +168,7 @@ develop
          - Fixed a bug where a timelock server instance could get stuck in an infinite loop if cutoff from the other nodes and failed to achieve a quorum.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1983>`__)
 
-    *    - |improved|
+    *    - |improved| |userbreak|
          - Improved the way rows and named columns are outputted in AtlasConsole to be more intuitive and easier to use. Note that this may break existing AtlasConsole scripts.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2067>`__)
 
