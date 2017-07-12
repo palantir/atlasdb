@@ -82,7 +82,7 @@ public class LockTokenConvertingTimelockServiceTest {
     @Test
     public void convertsBigIntegersCorrectly() {
         int iterations = 100_000;
-        int bitLength = 128;
+        int bitLength = 64;
         Random random = new Random(0);
         for (int i = 0; i < iterations; i++) {
             BigInteger randomBigInteger = new BigInteger(bitLength, random);
@@ -94,7 +94,7 @@ public class LockTokenConvertingTimelockServiceTest {
     @Test
     public void convertsNegativeBigIntegersCorrectly() {
         int iterations = 100_000;
-        int bitLength = 128;
+        int bitLength = 64;
         Random random = new Random(1);
         for (int i = 0; i < iterations; i++) {
             BigInteger randomBigInteger = new BigInteger(bitLength, random).multiply(new BigInteger("-1"));
@@ -108,7 +108,7 @@ public class LockTokenConvertingTimelockServiceTest {
         LockTokenV2 serializable = LockTokenConvertingTimelockService.makeSerializable(initialToken);
         LockTokenV2 reconverted = LockTokenConvertingTimelockService.castToAdapter(serializable);
 
-        assertThat(reconverted.getRequestId()).isEqualTo(initialToken.getRequestId());
+        assertThat(reconverted).isEqualTo(initialToken);
         assertThat(serializable.getRequestId()).isEqualTo(initialToken.getRequestId());
     }
 
