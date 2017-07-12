@@ -128,12 +128,10 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     private LockRequest toLegacyLockRequest(LockRequestV2 request) {
-       SortedMap<LockDescriptor, LockMode> locks = buildLockMap(request.getLockDescriptors(), LockMode.WRITE);
-       LockRequest.Builder builder =  LockRequest.builder(locks);
-       if (request.getAcquireTimeoutMs() < Long.MAX_VALUE) {
-           builder.blockForAtMost(SimpleTimeDuration.of(request.getAcquireTimeoutMs(), TimeUnit.MILLISECONDS));
-       }
-       return builder.build();
+        SortedMap<LockDescriptor, LockMode> locks = buildLockMap(request.getLockDescriptors(), LockMode.WRITE);
+        return LockRequest.builder(locks)
+                .blockForAtMost(SimpleTimeDuration.of(request.getAcquireTimeoutMs(), TimeUnit.MILLISECONDS))
+                .build();
     }
 
     private LockRequest toLegacyWaitForLocksRequest(Set<LockDescriptor> lockDescriptors) {
