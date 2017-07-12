@@ -1588,7 +1588,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected LockTokenV2 acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
 
-        LockResponseV2 lockResponse = timelockService.lock(LockRequestV2.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
+        LockResponseV2 lockResponse = timelockService.lock(
+                LockRequestV2.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
         Preconditions.checkState(lockResponse.wasSuccessful(), "Timed out while acquiring commit locks");
         return lockResponse.getToken();
     }
@@ -1653,8 +1654,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        WaitForLocksResponse response = timelockService.waitForLocks(WaitForLocksRequest.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
-        Preconditions.checkState(response.wasSuccessful(), "Timed out while waiting for commits to complete");
+        WaitForLocksResponse response = timelockService.waitForLocks(
+                WaitForLocksRequest.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
+        Preconditions.checkState(response.wasSuccessful(),
+                "Timed out while waiting for commits to complete");
     }
 
     ///////////////////////////////////////////////////////////////////////////
