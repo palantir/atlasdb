@@ -54,4 +54,27 @@ public class LockTokenConvertingTimelockServiceTest {
         LockTokenV2 serializableToken = LockTokenConvertingTimelockService.makeSerializable(tokenV2);
         assertThat(serializableToken.getRequestId()).isEqualTo(new UUID(0L, 0L));
     }
+
+    @Test
+    public void makeSerializableWorksWithNumbersBeyondSixtyFourBits() {
+        BigInteger bigInteger = new BigInteger("2")
+                .pow(64)
+                .add(BigInteger.ONE); // This returns (1 << 65) + 1
+        LockTokenV2 tokenV2 = new LegacyTimelockService.LockRefreshTokenV2Adapter(
+                new LockRefreshToken(bigInteger, Long.MIN_VALUE));
+        LockTokenV2 serializableToken = LockTokenConvertingTimelockService.makeSerializable(tokenV2);
+        assertThat(serializableToken.getRequestId()).isEqualTo(new UUID(1L, 1L));
+    }
+
+    @Test
+    public void identifiersPreservedOnRepeatedConversions() {
+        LockTokenV2 tokenV2 = LockTokenV2.of(TEST_UUID);
+        int iterations = 10;
+        for (int i = 0; i < iterations; i++) {
+            tokenV2 = LockTokenConvertingTimelockService.castToAdapter(tokenV2);
+            assertThat(tokenV2.getRequestId()).isEqualTo(TEST_UUID);
+            tokenV2 = LockTokenConvertingTimelockService.makeSerializable(tokenV2);
+            assertThat(tokenV2.getRequestId()).isEqualTo(TEST_UUID);
+        }
+    }
 }
