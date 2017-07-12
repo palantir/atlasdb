@@ -18,7 +18,12 @@ package com.palantir.lock.v2;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 @Value.Immutable
+@JsonSerialize(as=ImmutableWaitForLocksResponse.class)
+@JsonDeserialize(as=ImmutableWaitForLocksResponse.class)
 public interface WaitForLocksResponse {
 
     @Value.Parameter

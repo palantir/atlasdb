@@ -20,21 +20,24 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as=ImmutableLockResponseV2.class)
-@JsonDeserialize(as=ImmutableLockResponseV2.class)
+@JsonSerialize(as = ImmutableLockResponseV2.class)
+@JsonDeserialize(as = ImmutableLockResponseV2.class)
 public interface LockResponseV2 {
 
     @Value.Parameter
     Optional<LockTokenV2> getTokenOrEmpty();
 
+    @JsonIgnore
     default boolean wasSuccessful() {
         return getTokenOrEmpty().isPresent();
     }
 
+    @JsonIgnore
     default LockTokenV2 getToken() {
         if (!wasSuccessful()) {
             throw new IllegalStateException("This lock response was not succesful");
