@@ -17,9 +17,10 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
+import com.palantir.atlasdb.timelock.lock.AsyncResult;
+import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -29,7 +30,6 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 
 // TODO(nziebart): implement Closeable
-// TODO(nziebart): allow a timeout for blocking requests
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     private final AsyncLockService lockService;
@@ -55,7 +55,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         long timestamp = timestampService.getFreshTimestamp();
 
         // this will always return synchronously
-        LockTokenV2 token = lockService.lockImmutableTimestamp(request.getRequestId(), timestamp).join();
+        LockTokenV2 token = lockService.lockImmutableTimestamp(request.getRequestId(), timestamp).get();
         long immutableTs = lockService.getImmutableTimestamp().orElse(timestamp);
 
         return LockImmutableTimestampResponse.of(immutableTs, token);
@@ -68,13 +68,19 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public CompletableFuture<LockTokenV2> lock(LockRequestV2 request) {
-        return lockService.lock(request.getRequestId(), request.getLockDescriptors());
+    public AsyncResult<LockTokenV2> lock(LockRequestV2 request) {
+        return lockService.lock(
+                request.getRequestId(),
+                request.getLockDescriptors(),
+                TimeLimit.of(request.getAcquireTimeoutMs()));
     }
 
     @Override
-    public CompletableFuture<Void> waitForLocks(WaitForLocksRequest request) {
-        return lockService.waitForLocks(request.getRequestId(), request.getLockDescriptors());
+    public AsyncResult<Void> waitForLocks(WaitForLocksRequest request) {
+        return lockService.waitForLocks(
+                request.getRequestId(),
+                request.getLockDescriptors(),
+                TimeLimit.of(request.getAcquireTimeoutMs()));
     }
 
     @Override

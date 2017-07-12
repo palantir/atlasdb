@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import javax.ws.rs.NotSupportedException;
 
@@ -32,18 +31,23 @@ public class ImmutableTimestampLock implements AsyncLock {
     }
 
     @Override
-    public CompletableFuture<Void> lock(UUID requestId) {
+    public AsyncResult<Void> lock(UUID requestId) {
         tracker.lock(timestamp, requestId);
-        return CompletableFuture.completedFuture(null);
+        return AsyncResult.completedResult();
     }
 
     @Override
-    public CompletableFuture<Void> waitUntilAvailable(UUID requestId) {
+    public AsyncResult<Void> waitUntilAvailable(UUID requestId) {
         throw new NotSupportedException();
     }
 
     @Override
     public void unlock(UUID requestId) {
         tracker.unlock(timestamp, requestId);
+    }
+
+    @Override
+    public void timeout(UUID requestId) {
+        throw new NotSupportedException();
     }
 }

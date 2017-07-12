@@ -24,9 +24,11 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
 // TODO(nziebart): probably should make it more obvious that this class should always be used;
@@ -75,15 +77,17 @@ public class LockRefreshingTimelockService implements TimelockService {
     }
 
     @Override
-    public LockTokenV2 lock(LockRequestV2 request) {
-        LockTokenV2 response = delegate.lock(request);
-        lockRefresher.registerLock(response);
+    public LockResponseV2 lock(LockRequestV2 request) {
+        LockResponseV2 response = delegate.lock(request);
+        if (response.wasSuccessful()) {
+            lockRefresher.registerLock(response.getToken());
+        }
         return response;
     }
 
     @Override
-    public void waitForLocks(WaitForLocksRequest request) {
-        delegate.waitForLocks(request);
+    public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
+        return delegate.waitForLocks(request);
     }
 
     @Override

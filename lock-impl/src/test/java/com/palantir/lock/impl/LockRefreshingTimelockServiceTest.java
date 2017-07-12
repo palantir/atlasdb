@@ -36,6 +36,7 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -53,6 +54,8 @@ public class LockRefreshingTimelockServiceTest {
     private final TimelockService delegate = mock(TimelockService.class);
     private final TimelockService timelock = new LockRefreshingTimelockService(delegate, refresher);
 
+    private static final long TIMEOUT = 10_000;
+
 
     @Test
     public void registersImmutableTimestampLock() {
@@ -64,8 +67,8 @@ public class LockRefreshingTimelockServiceTest {
 
     @Test
     public void registersLocks() {
-        LockRequestV2 request = LockRequestV2.of(LOCKS);
-        when(delegate.lock(request)).thenReturn(TOKEN_1);
+        LockRequestV2 request = LockRequestV2.of(LOCKS, TIMEOUT);
+        when(delegate.lock(request)).thenReturn(LockResponseV2.successful(TOKEN_1));
 
         timelock.lock(request);
 
@@ -92,7 +95,7 @@ public class LockRefreshingTimelockServiceTest {
 
     @Test
     public void waitForLocksDelegates() {
-        WaitForLocksRequest request = WaitForLocksRequest.of(LOCKS);
+        WaitForLocksRequest request = WaitForLocksRequest.of(LOCKS, TIMEOUT);
         timelock.waitForLocks(request);
 
         verify(delegate).waitForLocks(request);

@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -26,13 +25,15 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
+import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
 @Path("/timelock")
@@ -73,12 +74,14 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock")
     public void lock(@Suspended final AsyncResponse response, LockRequestV2 request) {
-        CompletableFuture<LockTokenV2> future = timelock.lock(request);
-        future.whenComplete((token, error) -> {
-            if (error != null) {
-                response.resume(error);
+        AsyncResult<LockTokenV2> result = timelock.lock(request);
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.resume(result.getError());
+            } else if (result.isTimedOut()) {
+                response.resume(LockResponseV2.timedOut());
             } else {
-                response.resume(token);
+                response.resume(LockResponseV2.successful(result.get()));
             }
         });
     }
@@ -86,12 +89,14 @@ public class AsyncTimelockResource {
     @POST
     @Path("await-locks")
     public void waitForLocks(@Suspended final AsyncResponse response, WaitForLocksRequest request) {
-        CompletableFuture<Void> future = timelock.waitForLocks(request);
-        future.whenComplete((result, error) -> {
-            if (error != null) {
-                response.resume(error);
+        AsyncResult<Void> result = timelock.waitForLocks(request);
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.resume(result.getError());
+            } else if (result.isTimedOut()) {
+                response.resume(WaitForLocksResponse.timedOut());
             } else {
-                response.resume(Response.noContent().build());
+                response.resume(WaitForLocksResponse.successful());
             }
         });
     }
