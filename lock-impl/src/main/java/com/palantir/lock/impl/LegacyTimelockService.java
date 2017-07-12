@@ -216,8 +216,8 @@ public class LegacyTimelockService implements TimelockService {
 
         private static UUID getRequestId(LockRefreshToken token) {
             Preconditions.checkArgument(token.getTokenId().bitLength() <= TWO_LONGS_IN_BITS,
-                    "Tried to convert a refresh token with token ID more than %s bytes. Please configure your remote"
-                            + " lock service to use not more than %s bytes for compatibility with the timelock"
+                    "Tried to convert a refresh token with token ID more than %s bits. Please configure your remote"
+                            + " lock service to use not more than %s bits for compatibility with the timelock"
                             + " service adapter.", TWO_LONGS_IN_BITS, TWO_LONGS_IN_BITS);
             long msb = token.getTokenId().shiftRight(64).longValue();
             long lsb = token.getTokenId().longValue();
