@@ -69,6 +69,13 @@ public class AsyncResult<T> {
     }
 
     /**
+     * Marks this result as failed, if it has not already completed.
+     */
+    public void failIfNotCompleted(Throwable error) {
+        future.completeExceptionally(error);
+    }
+
+    /**
      * Marks this result as timed out, causing {@link #isTimedOut()} to return true.
      *
      * @throws {@link IllegalStateException} if this result is already completed.

@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -33,6 +34,7 @@ import org.junit.Test;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.common.time.Clock;
+import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockTokenV2;
@@ -53,12 +55,14 @@ public class AsyncLockServiceEteTest {
     private static final TimeLimit SHORT_TIMEOUT = TimeLimit.of(500L);
     private static final TimeLimit LONG_TIMEOUT = TimeLimit.of(100_000L);
 
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(() -> new ExclusiveLock()),
             new ImmutableTimestampTracker(),
             new LockAcquirer(Executors.newSingleThreadScheduledExecutor()),
             new HeldLocksCollection(),
-            Executors.newSingleThreadScheduledExecutor());
+            executor);
 
     @Test
     public void canLockAndUnlock() {
@@ -238,6 +242,24 @@ public class AsyncLockServiceEteTest {
         assertNotLocked(LOCK_A);
         service.unlock(lockBToken);
         assertNotLocked(LOCK_B);
+    }
+
+    @Test
+    public void outstandingRequestsReceiveNotCurrentLeaderExceptionOnClose() {
+        lockSynchronously(REQUEST_1, LOCK_A);
+        AsyncResult<LockTokenV2> request2 = lock(REQUEST_2, LOCK_A);
+
+        service.close();
+
+        assertThat(request2.isFailed()).isTrue();
+        assertThat(request2.getError()).isInstanceOf(NotCurrentLeaderException.class);
+    }
+
+    @Test
+    public void reaperIsShutDownOnClose() {
+        service.close();
+
+        assertThat(executor.isShutdown()).isTrue();
     }
 
     private void waitForTimeout(TimeLimit timeout) {

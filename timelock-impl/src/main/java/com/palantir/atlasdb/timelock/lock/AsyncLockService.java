@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
+import java.io.Closeable;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -29,7 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockTokenV2;
 
-public class AsyncLockService {
+public class AsyncLockService implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncLockService.class);
 
@@ -123,4 +124,13 @@ public class AsyncLockService {
         return heldLocks.refresh(tokens);
     }
 
+    /**
+     * Shuts down the lock service, and fails any outstanding requests with a {@link
+     * com.palantir.leader.NotCurrentLeaderException}.
+     */
+    @Override
+    public void close() {
+        reaperExecutor.shutdown();
+        heldLocks.failAllOutstandingRequestsWithNotCurrentLeaderException();
+    }
 }
