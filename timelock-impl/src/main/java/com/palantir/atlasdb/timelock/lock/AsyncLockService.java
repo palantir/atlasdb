@@ -44,7 +44,7 @@ public class AsyncLockService implements Closeable {
             ScheduledExecutorService reaperExecutor,
             ScheduledExecutorService timeoutExecutor) {
         return new AsyncLockService(
-                new LockCollection(() -> new ExclusiveLock()),
+                new LockCollection(),
                 new ImmutableTimestampTracker(),
                 new LockAcquirer(timeoutExecutor),
                 new HeldLocksCollection(),

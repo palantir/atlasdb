@@ -46,6 +46,8 @@ public class AsyncLockServiceTest {
 
     private static final UUID REQUEST_ID = UUID.randomUUID();
 
+    private static final LockDescriptor LOCK_DESCRIPTOR = StringLockDescriptor.of("foo");
+
     private static final String LOCK_A = "a";
     private static final String LOCK_B = "b";
     public static final long REAPER_PERIOD_MS = LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2;
@@ -142,7 +144,7 @@ public class AsyncLockServiceTest {
     }
 
     private ExclusiveLock newLock() {
-        return new ExclusiveLock();
+        return new ExclusiveLock(LOCK_DESCRIPTOR);
     }
 
     private Set<LockDescriptor> descriptors(String... lockNames) {

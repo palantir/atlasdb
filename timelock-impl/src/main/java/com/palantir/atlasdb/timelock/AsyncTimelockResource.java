@@ -27,6 +27,7 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
+import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
@@ -75,6 +76,7 @@ public class AsyncTimelockResource {
     @Path("lock")
     public void lock(@Suspended final AsyncResponse response, LockRequestV2 request) {
         AsyncResult<LockTokenV2> result = timelock.lock(request);
+        LockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
                 response.resume(result.getError());
@@ -90,6 +92,7 @@ public class AsyncTimelockResource {
     @Path("await-locks")
     public void waitForLocks(@Suspended final AsyncResponse response, WaitForLocksRequest request) {
         AsyncResult<Void> result = timelock.waitForLocks(request);
+        LockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
                 response.resume(result.getError());

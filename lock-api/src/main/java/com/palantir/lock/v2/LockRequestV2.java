@@ -16,6 +16,7 @@
 
 package com.palantir.lock.v2;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,8 +40,23 @@ public interface LockRequestV2 {
     @Value.Parameter
     long getAcquireTimeoutMs();
 
+    @Value.Parameter
+    Optional<String> getClientDescription();
+
     static LockRequestV2 of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
-        return ImmutableLockRequestV2.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs);
+        return ImmutableLockRequestV2.of(
+                UUID.randomUUID(),
+                lockDescriptors,
+                acquireTimeoutMs,
+                Optional.of("Thread: " + Thread.currentThread().getName()));
+    }
+
+    static LockRequestV2 of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
+        return ImmutableLockRequestV2.of(
+                UUID.randomUUID(),
+                lockDescriptors,
+                acquireTimeoutMs,
+                Optional.of(clientDescription));
     }
 
 }
