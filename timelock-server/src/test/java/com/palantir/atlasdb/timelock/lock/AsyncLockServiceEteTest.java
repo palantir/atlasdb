@@ -58,7 +58,7 @@ public class AsyncLockServiceEteTest {
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     private final AsyncLockService service = new AsyncLockService(
-            new LockCollection(() -> new ExclusiveLock()),
+            new LockCollection(),
             new ImmutableTimestampTracker(),
             new LockAcquirer(Executors.newSingleThreadScheduledExecutor()),
             new HeldLocksCollection(),
