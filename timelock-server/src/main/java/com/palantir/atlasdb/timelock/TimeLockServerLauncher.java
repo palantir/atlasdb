@@ -21,15 +21,11 @@ import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
 
 import com.codahale.metrics.MetricRegistry;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.v2.LockRequestV2;
 import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
 
@@ -39,10 +35,6 @@ import io.dropwizard.setup.Environment;
 
 public class TimeLockServerLauncher extends Application<TimeLockServerConfiguration> {
     public static void main(String[] args) throws Exception {
-        ObjectMapper m = new ObjectMapper();
-        System.out.println(m.writeValueAsString(LockRequestV2.of(
-                ImmutableSet.of(StringLockDescriptor.of("lock")), 60000L
-        )));
         new TimeLockServerLauncher().run(args);
     }
 

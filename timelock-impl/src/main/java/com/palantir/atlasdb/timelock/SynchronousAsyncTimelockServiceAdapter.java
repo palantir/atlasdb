@@ -86,7 +86,7 @@ public class SynchronousAsyncTimelockServiceAdapter implements AsyncTimelockServ
         if (lockResponse.wasSuccessful()) {
             result.complete(lockResponse.getToken());
         } else {
-            // Not entirely sure what the best action is here, actually
+            // TODO (jkong): Decide if this is the right action in this case
             result.timeout();
         }
         return result;
