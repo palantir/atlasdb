@@ -44,8 +44,8 @@ public class TimeLockResource {
     }
 
     @Path("/timelock")
-    public AsyncTimelockResource getTimelockService(@PathParam("client") String client) {
-        return getTimeLockServicesForClient(client).getTimelockService();
+    public Object getTimelockService(@PathParam("client") String client) {
+        return getTimeLockServicesForClient(client).getTimelockService().getPresentService();
     }
 
     @Path("/timestamp-management")
