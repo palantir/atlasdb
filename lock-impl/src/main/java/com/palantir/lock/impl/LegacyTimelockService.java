@@ -23,7 +23,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
@@ -194,13 +193,12 @@ public class LegacyTimelockService implements TimelockService {
         return locks;
     }
 
-    @VisibleForTesting
-    static class LockRefreshTokenV2Adapter implements LockTokenV2 {
+    public static class LockRefreshTokenV2Adapter implements LockTokenV2 {
 
         private final LockRefreshToken token;
         private final UUID requestId;
 
-        LockRefreshTokenV2Adapter(LockRefreshToken token) {
+        public LockRefreshTokenV2Adapter(LockRefreshToken token) {
             this.token = token;
             this.requestId = getRequestId(token);
         }

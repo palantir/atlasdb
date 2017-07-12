@@ -60,6 +60,7 @@ public class PaxosTimeLockServerTest {
                     .localServer(LOCAL_ADDRESS_STRING)
                     .build(),
             TEST_CLIENTS,
+            null,
             false,
             null);
 
