@@ -202,6 +202,8 @@ public final class TransactionManagers {
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             String userAgent) {
+        checkInstallConfig(config);
+
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
 
@@ -282,6 +284,17 @@ public final class TransactionManagers {
                 persistentLockManager);
 
         return transactionManager;
+    }
+
+    private static void checkInstallConfig(AtlasDbConfig config) {
+        if (config.getSweepBatchSize() != null
+                || config.getSweepCellBatchSize() != null
+                || config.getSweepReadLimit() != null
+                || config.getSweepCandidateBatchHint() != null
+                || config.getSweepDeleteBatchHint() != null) {
+            log.error("Your configuration specifies sweep parameters on the install config. They will be ignored."
+                    + " Please use the runtime config to specify them.");
+        }
     }
 
     private static void initializeSweepEndpointAndBackgroundProcess(
