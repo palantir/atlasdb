@@ -20,6 +20,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -35,12 +36,15 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
@@ -103,23 +107,31 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public LockRefreshTokenV2Adapter lock(LockRequestV2 request) {
+    public LockResponseV2 lock(LockRequestV2 request) {
         LockRequest legacyRequest = toLegacyLockRequest(request);
 
         LockRefreshToken legacyToken = lockAnonymous(legacyRequest);
-        return new LockRefreshTokenV2Adapter(legacyToken);
+        if (legacyToken == null) {
+            return LockResponseV2.timedOut();
+        } else {
+            return LockResponseV2.successful(new LockRefreshTokenV2Adapter(legacyToken));
+        }
     }
 
     @Override
-    public void waitForLocks(WaitForLocksRequest request) {
+    public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
         LockRequest legacyRequest = toLegacyWaitForLocksRequest(request.getLockDescriptors());
 
+        // this blocks indefinitely, and can only fail if the connection fails (and throws an exception)
         lockAnonymous(legacyRequest);
+        return WaitForLocksResponse.successful();
     }
 
     private LockRequest toLegacyLockRequest(LockRequestV2 request) {
-       SortedMap<LockDescriptor, LockMode> locks = buildLockMap(request.getLockDescriptors(), LockMode.WRITE);
-       return LockRequest.builder(locks).build();
+        SortedMap<LockDescriptor, LockMode> locks = buildLockMap(request.getLockDescriptors(), LockMode.WRITE);
+        return LockRequest.builder(locks)
+                .blockForAtMost(SimpleTimeDuration.of(request.getAcquireTimeoutMs(), TimeUnit.MILLISECONDS))
+                .build();
     }
 
     private LockRequest toLegacyWaitForLocksRequest(Set<LockDescriptor> lockDescriptors) {

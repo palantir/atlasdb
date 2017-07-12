@@ -18,12 +18,9 @@ package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 import org.junit.Test;
 
@@ -45,8 +42,8 @@ public class ExclusiveLockTests {
     public void lockIsExclusive() {
         lockSynchronously(REQUEST_1);
 
-        CompletableFuture<Void> future = lockAsync(REQUEST_2);
-        assertNotCompleted(future);
+        AsyncResult<Void> result = lockAsync(REQUEST_2);
+        assertThat(result.isComplete()).isFalse();
     }
 
     @Test
@@ -60,117 +57,180 @@ public class ExclusiveLockTests {
     @Test
     public void queuedRequestObtainsLockAfterBeingUnlocked() {
         lockSynchronously(REQUEST_1);
-        CompletableFuture<Void> future = lockAsync(REQUEST_2);
+        AsyncResult<Void> result = lockAsync(REQUEST_2);
 
         unlock(REQUEST_1);
 
-        assertCompletedSuccessfully(future);
+        assertThat(result.isCompletedSuccessfully()).isTrue();
     }
 
     @Test
     public void multipleQueuedRequestsCanObtainLock() {
         lockSynchronously(REQUEST_1);
-        CompletableFuture<Void> future2 = lockAsync(REQUEST_2);
-        CompletableFuture<Void> future3 = lockAsync(REQUEST_3);
+        AsyncResult<Void> result2 = lockAsync(REQUEST_2);
+        AsyncResult<Void> result3 = lockAsync(REQUEST_3);
 
         unlock(REQUEST_1);
 
-        assertCompletedSuccessfully(future2);
-        assertNotCompleted(future3);
+        assertThat(result2.isCompletedSuccessfully()).isTrue();
+        assertThat(result3.isComplete()).isFalse();
 
         unlock(REQUEST_2);
 
-        assertCompletedSuccessfully(future3);
+        assertThat(result3.isCompletedSuccessfully()).isTrue();
     }
 
     @Test
-    public void unlockByNonHolderThrowsWithoutAffectingState() {
+    public void unlockByNonHolderNoOps() {
         lockSynchronously(REQUEST_1);
 
-        assertThatThrownBy(() -> unlock(UUID.randomUUID()))
-                .isInstanceOf(IllegalStateException.class);
+        unlock(UUID.randomUUID());
         assertThat(lock.getCurrentHolder()).isEqualTo(REQUEST_1);
     }
 
     @Test
-    public void unlockByWaiterThrowsWithoutAffectingState() {
+    public void unlockByWaiterNoOps() {
         lockSynchronously(REQUEST_1);
 
-        CompletableFuture<Void> request2 = lockAsync(REQUEST_2);
-        assertThatThrownBy(() -> unlock(REQUEST_2))
-                .isInstanceOf(IllegalStateException.class);
+        AsyncResult<Void> request2 = lockAsync(REQUEST_2);
+        unlock(REQUEST_2);
 
         assertThat(lock.getCurrentHolder()).isEqualTo(REQUEST_1);
-        assertNotCompleted(request2);
+        assertThat(request2.isComplete()).isFalse();
 
         // request2 should still get the lock when it's available
         unlock(REQUEST_1);
-        assertCompletedSuccessfully(request2);
+        assertThat(request2.isCompletedSuccessfully()).isTrue();
     }
 
     @Test
     public void lockIsAcquiredSynchronouslyIfAvailable() {
-        Future<Void> future = lock.lock(REQUEST_1);
-        assertTrue(future.isDone());
+        AsyncResult<Void> result = lock.lock(REQUEST_1);
+        assertTrue(result.isComplete());
     }
 
     @Test
     public void waitUntilAvailableCompletesSynchronouslyIfAvailable() {
-        Future<Void> future = lock.waitUntilAvailable(REQUEST_1);
-        assertTrue(future.isDone());
+        AsyncResult<Void> result = lock.waitUntilAvailable(REQUEST_1);
+        assertTrue(result.isComplete());
     }
 
     @Test
     public void waitUntilAvailableWantsUntilLockIsFree() {
         lockSynchronously(REQUEST_1);
-        CompletableFuture<Void> future = lock.waitUntilAvailable(REQUEST_2);
+        AsyncResult<Void> result = waitUntilAvailableAsync(REQUEST_2);
 
-        assertNotCompleted(future);
+        assertThat(result.isComplete()).isFalse();
 
         unlock(REQUEST_1);
 
-        assertCompletedSuccessfully(future);
+        assertThat(result.isCompletedSuccessfully()).isTrue();
     }
 
     @Test
     public void waitUntilAvailableDoesNotBlockLockRequests() {
         lockSynchronously(REQUEST_1);
-        lock.waitUntilAvailable(REQUEST_2);
-        CompletableFuture<Void> lockRequest = lock.lock(REQUEST_3);
+        waitUntilAvailableAsync(REQUEST_2);
+        AsyncResult<Void> lockRequest = lockAsync(REQUEST_3);
 
-        assertNotCompleted(lockRequest);
+        assertThat(lockRequest.isComplete()).isFalse();
 
         unlock(REQUEST_1);
 
-        assertCompletedSuccessfully(lockRequest);
+        assertThat(lockRequest.isCompletedSuccessfully()).isTrue();
     }
 
     @Test
     public void multipleWaitUntilAvailableRequestsAllCompleteWhenLockIsFree() {
         lockSynchronously(REQUEST_1);
-        CompletableFuture<Void> request2 = lock.waitUntilAvailable(REQUEST_2);
-        CompletableFuture<Void> request3 = lock.waitUntilAvailable(REQUEST_3);
+        AsyncResult<Void> request2 = waitUntilAvailableAsync(REQUEST_2);
+        AsyncResult<Void> request3 = lock.waitUntilAvailable(REQUEST_3);
 
         unlock(REQUEST_1);
 
-        assertCompletedSuccessfully(request2);
-        assertCompletedSuccessfully(request3);
+        assertThat(request2.isCompletedSuccessfully()).isTrue();
+        assertThat(request3.isCompletedSuccessfully()).isTrue();
     }
 
-    private void assertCompletedSuccessfully(CompletableFuture<Void> lockRequest) {
-        assertTrue(lockRequest.isDone());
-        lockRequest.join();
+    @Test
+    public void resultIsTimedOutWhenTimeOutIsCalled() {
+        lockSynchronously(REQUEST_1);
+        AsyncResult<Void> request2 = lockAsync(REQUEST_2);
+
+        lock.timeout(REQUEST_2);
+
+        assertThat(request2.isTimedOut()).isTrue();
     }
 
-    private void assertNotCompleted(CompletableFuture<Void> lockRequest) {
-        assertFalse(lockRequest.isDone());
+    @Test
+    public void waitRequestIsTimedOutAfterDeadline() {
+        lockSynchronously(REQUEST_1);
+        AsyncResult<Void> request2 = waitUntilAvailableAsync(REQUEST_1);
+
+        lock.timeout(REQUEST_1);
+
+        assertThat(request2.isTimedOut()).isTrue();
+    }
+
+    @Test
+    public void timedOutLockRequestDoesNotGetTheLock() {
+        lockSynchronously(REQUEST_1);
+        AsyncResult<Void> request2 = lockAsync(REQUEST_2);
+
+        lock.timeout(REQUEST_2);
+        unlock(REQUEST_1);
+
+        assertThat(lock.getCurrentHolder()).isNull();
+        lockSynchronously(REQUEST_1);
+    }
+
+    @Test
+    public void timeoutDoesNothingIfLockIsAlreadyAcquired() {
+        lockSynchronously(REQUEST_1);
+
+        lock.timeout(REQUEST_1);
+
+        // lock should still be locked, and able to be unlocked
+        AsyncResult<Void> request2 = lockAsync(REQUEST_2);
+        assertThat(request2.isComplete()).isFalse();
+        unlock(REQUEST_1);
+        assertThat(request2.isCompletedSuccessfully()).isTrue();
+    }
+
+    @Test
+    public void timeoutDoesNothingIfLockWasAlreadyAvailable() {
+        waitUntilAvailableSynchronously(REQUEST_1);
+
+        lock.timeout(REQUEST_1);
+
+        waitUntilAvailableSynchronously(REQUEST_2);
+    }
+
+    @Test
+    public void enqueueingSameRequestIdTwiceThrowsAndDoesNotAffectState() {
+        lockSynchronously(REQUEST_1);
+        AsyncResult<Void> request2 = lockAsync(REQUEST_2);
+
+        assertThatThrownBy(() -> lockAsync(REQUEST_2)).isInstanceOf(IllegalStateException.class);
+
+        // request 2 should still get the lock when available
+        unlock(REQUEST_1);
+        assertThat(request2.isCompletedSuccessfully()).isTrue();
+    }
+
+    private AsyncResult<Void> waitUntilAvailableAsync(UUID request) {
+        return lock.waitUntilAvailable(request);
+    }
+
+    private void waitUntilAvailableSynchronously(UUID requestId) {
+        waitUntilAvailableAsync(requestId).get();
     }
 
     private void lockSynchronously(UUID requestId) {
-        assertCompletedSuccessfully(lock.lock(requestId));
+        lock.lock(requestId).get();
     }
 
-    private CompletableFuture<Void> lockAsync(UUID requestId) {
+    private AsyncResult<Void> lockAsync(UUID requestId) {
         return lock.lock(requestId);
     }
 

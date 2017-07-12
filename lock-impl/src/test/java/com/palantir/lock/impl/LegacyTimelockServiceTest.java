@@ -25,6 +25,7 @@ import java.math.BigInteger;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -41,11 +42,13 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LegacyTimelockService.LockRefreshTokenV2Adapter;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -66,6 +69,8 @@ public class LegacyTimelockServiceTest {
 
     private final TimestampService timestampService = mock(TimestampService.class);
     private final RemoteLockService lockService = mock(RemoteLockService.class);
+
+    private static final long TIMEOUT = 10_000;
 
     private final TimelockService timelock = new LegacyTimelockService(timestampService, lockService, LOCK_CLIENT);
 
@@ -122,11 +127,13 @@ public class LegacyTimelockServiceTest {
 
     @Test
     public void lockDelegatesToLockService() throws InterruptedException {
-        LockRequest legacyRequest = LockRequest.builder(buildLockMap(LockMode.WRITE)).build();
+        LockRequest legacyRequest = LockRequest.builder(buildLockMap(LockMode.WRITE))
+                .blockForAtMost(SimpleTimeDuration.of(TIMEOUT, TimeUnit.MILLISECONDS))
+                .build();
 
         when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
 
-        assertEquals(LOCK_TOKEN_V2, timelock.lock(LockRequestV2.of(ImmutableSet.of(LOCK_A, LOCK_B))));
+        assertEquals(LockResponseV2.successful(LOCK_TOKEN_V2), timelock.lock(LockRequestV2.of(ImmutableSet.of(LOCK_A, LOCK_B), TIMEOUT)));
         verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
     }
 
@@ -136,7 +143,7 @@ public class LegacyTimelockServiceTest {
 
         when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
 
-        timelock.waitForLocks(WaitForLocksRequest.of(ImmutableSet.of(LOCK_A, LOCK_B)));
+        timelock.waitForLocks(WaitForLocksRequest.of(ImmutableSet.of(LOCK_A, LOCK_B), TIMEOUT));
         verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
     }
 
