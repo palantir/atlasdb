@@ -262,7 +262,6 @@ class Table {
             }
         }
         else {
-            Map<String, Set> colFields = columnFields()
             data = entryList.collect { entry ->
                 def result = [row: listify(entry['row'])]
                 Map cols = entry['cols'] as Map
@@ -270,12 +269,6 @@ class Table {
                 cols.each { key, value ->
                     if(!colNames.contains(key)) {
                         throw new IllegalArgumentException("Column ${key} does not exist")
-                    }
-                    Set<String> diff = []
-                    diff.addAll((value as Map).keySet())
-                    diff.removeAll(colFields[key] as Set<String>)
-                    if (!diff.isEmpty()) {
-                        throw new IllegalArgumentException("The following fields do not exist: " + diff)
                     }
                     result.put(key, value)
                 }
@@ -330,14 +323,5 @@ class Table {
         } else {
             return [obj]
         }
-    }
-
-    private Map<String, Set> columnFields() {
-        return this.getDescription()['columns'].inject([:]) { map, col ->
-            (map as Map)[col['long_name']] = col['value']['type']['fields'].collect { field ->
-                return field['name']
-            }.toSet()
-            return map
-        } as Map
     }
 }
