@@ -42,22 +42,32 @@ public final class LockLog {
 
     private static void registerRequest(RequestInfo requestInfo, AsyncResult<?> result) {
         if (result.isComplete()) {
+            requestComplete(requestInfo, result, 0L);
             return;
         }
 
         long start = System.currentTimeMillis();
         result.onComplete(() -> {
-            long duration = System.currentTimeMillis() - start;
-            if (duration < SLOW_LOCK_THRESHOLD_MILLIS) {
-                return;
-            }
-
-            if (result.isCompletedSuccessfully()) {
-                events.successfulSlowAcquisition(requestInfo, duration);
-            } else if (result.isTimedOut()) {
-                events.timedOutSlowAcquisition(requestInfo, duration);
-            }
+            long durationMillis = System.currentTimeMillis() - start;
+            requestComplete(requestInfo, result, durationMillis);
         });
+    }
+
+    private static void requestComplete(
+            RequestInfo requestInfo,
+            AsyncResult<?> result,
+            long durationMillis) {
+        events.requestComplete(durationMillis);
+
+        if (durationMillis < SLOW_LOCK_THRESHOLD_MILLIS) {
+            return;
+        }
+
+        if (result.isCompletedSuccessfully()) {
+            events.successfulSlowAcquisition(requestInfo, durationMillis);
+        } else if (result.isTimedOut()) {
+            events.timedOutSlowAcquisition(requestInfo, durationMillis);
+        }
     }
 
     public static void lockExpired(UUID requestId, Collection<LockDescriptor> lockDescriptors) {
