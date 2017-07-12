@@ -19,10 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -30,9 +29,9 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
