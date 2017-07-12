@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import org.junit.Test;
 
@@ -82,7 +81,7 @@ public class ImmutableTimestampTrackerTest {
         assertThatThrownBy(() -> unlock(TIMESTAMP_1, REQUEST_1)).isInstanceOf(IllegalStateException.class);
     }
 
-    private CompletableFuture<Void> lock(long timestamp, UUID requestId) {
+    private AsyncResult<Void> lock(long timestamp, UUID requestId) {
         return tracker.getLockFor(timestamp).lock(requestId);
     }
 

@@ -203,7 +203,13 @@ public class PaxosTimeLockServer implements TimeLockServer {
                             .setNameFormat("async-lock-reaper-" + client + "-%d")
                             .setDaemon(true)
                             .build());
-            return new AsyncTimelockServiceImpl(AsyncLockService.createDefault(reaperExecutor),
+            ScheduledExecutorService timeoutExecutor = Executors.newSingleThreadScheduledExecutor(
+                    new ThreadFactoryBuilder()
+                            .setNameFormat("async-lock-timeouts-" + client + "-%d")
+                            .setDaemon(true)
+                            .build());
+            return new AsyncTimelockServiceImpl(
+                    AsyncLockService.createDefault(reaperExecutor, timeoutExecutor),
                     rawTimestampServiceSupplier.get());
         };
 

@@ -16,52 +16,114 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.Collection;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 
 public class LockAcquirer {
 
     private static final Logger log = LoggerFactory.getLogger(LockAcquirer.class);
 
-    public CompletableFuture<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks) {
-        CompletableFuture<Void> future = acquireAllLocks(locks, lock -> lock.lock(requestId));
-        registerErrorHandler(future, requestId, locks);
+    private final ScheduledExecutorService timeoutExecutor;
 
-        return future.thenApply(ignored -> new HeldLocks(locks.get(), requestId));
+    public LockAcquirer(ScheduledExecutorService timeoutExecutor) {
+        this.timeoutExecutor = timeoutExecutor;
     }
 
-    public CompletableFuture<Void> waitForLocks(UUID requestId, OrderedLocks locks) {
-        return acquireAllLocks(locks, lock -> lock.waitUntilAvailable(requestId));
+    public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
+        return new Acquisition(requestId, locks, timeout, lock -> lock.lock(requestId)).execute()
+                .map(ignored -> new HeldLocks(locks.get(), requestId));
+
     }
 
-    private CompletableFuture<Void> acquireAllLocks(
-            OrderedLocks locks,
-            Function<AsyncLock, CompletableFuture<Void>> lockFunction) {
-        CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-        for (AsyncLock lock : locks.get()) {
-            future = future.thenCompose(ignored -> lockFunction.apply(lock));
+    public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
+        return new Acquisition(requestId, locks, timeout, lock -> lock.waitUntilAvailable(requestId))
+                .execute();
+    }
+
+    private class Acquisition {
+        private final UUID requestId;
+        private final OrderedLocks locks;
+        private final TimeLimit timeout;
+        private final Function<AsyncLock, AsyncResult<Void>> lockFunction;
+
+        private AsyncResult<Void> result;
+
+        Acquisition(
+                UUID requestId,
+                OrderedLocks locks,
+                TimeLimit timeout,
+                Function<AsyncLock, AsyncResult<Void>> lockFunction) {
+            this.requestId = requestId;
+            this.locks = locks;
+            this.timeout = timeout;
+            this.lockFunction = lockFunction;
         }
-        return future;
-    }
 
-    private void registerErrorHandler(CompletableFuture<Void> future, UUID requestId, OrderedLocks locks) {
-        future.exceptionally(error -> {
-            log.warn("Error while acquiring locks", SafeArg.of("requestId", requestId), error);
-            unlockAll(requestId, locks.get());
-            return null;
-        });
-    }
+        public AsyncResult<Void> execute() {
+            acquireLocks();
+            registerCompletionHandlers();
+            scheduleTimeout();
 
-    private void unlockAll(UUID requestId, Collection<AsyncLock> locks) {
-        for (AsyncLock lock : locks) {
-            lock.unlock(requestId);
+            return result;
+        }
+
+        private void acquireLocks() {
+            try {
+                AsyncResult<Void> lockResult = AsyncResult.completedResult();
+                for (AsyncLock lock : locks.get()) {
+                    lockResult = lockResult.concatWith(() -> lockFunction.apply(lock));
+                }
+                this.result = lockResult;
+            } catch (Throwable t) {
+                log.error("Error while acquiring locks");
+                unlockAll();
+                throw Throwables.propagate(t);
+            }
+        }
+
+        private void registerCompletionHandlers() {
+            result.onError(error -> {
+                log.warn("Error while acquiring locks", SafeArg.of("requestId", requestId), error);
+                unlockAll();
+            });
+            result.onTimeout(() -> {
+                log.info("Lock request timed out", SafeArg.of("requestId", requestId));
+                unlockAll();
+            });
+        }
+
+        private void unlockAll() {
+            try {
+                for (AsyncLock lock : locks.get()) {
+                    lock.unlock(requestId);
+                }
+            } catch (Throwable t) {
+                log.error("Error while unlocking locks", SafeArg.of("requestId", requestId), t);
+            }
+        }
+
+        private void scheduleTimeout() {
+            if (result.isComplete()) {
+                return;
+            }
+
+            timeoutExecutor.schedule(() -> {
+                timeoutAll();
+            }, timeout.getTimeMillis(), TimeUnit.MILLISECONDS);
+        }
+
+        private void timeoutAll() {
+            for (AsyncLock lock : locks.get()) {
+                lock.timeout(requestId);
+            }
         }
     }
 

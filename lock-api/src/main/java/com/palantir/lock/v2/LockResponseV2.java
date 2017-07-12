@@ -16,31 +16,41 @@
 
 package com.palantir.lock.v2;
 
-import java.util.Set;
-import java.util.UUID;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLockRequestV2.class)
-@JsonDeserialize(as = ImmutableLockRequestV2.class)
-public interface LockRequestV2 {
+@JsonSerialize(as = ImmutableLockResponseV2.class)
+@JsonDeserialize(as = ImmutableLockResponseV2.class)
+public interface LockResponseV2 {
 
     @Value.Parameter
-    UUID getRequestId();
+    Optional<LockTokenV2> getTokenOrEmpty();
 
-    @Value.Parameter
-    Set<LockDescriptor> getLockDescriptors();
+    @JsonIgnore
+    default boolean wasSuccessful() {
+        return getTokenOrEmpty().isPresent();
+    }
 
-    @Value.Parameter
-    long getAcquireTimeoutMs();
+    @JsonIgnore
+    default LockTokenV2 getToken() {
+        if (!wasSuccessful()) {
+            throw new IllegalStateException("This lock response was not succesful");
+        }
+        return getTokenOrEmpty().get();
+    }
 
-    static LockRequestV2 of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
-        return ImmutableLockRequestV2.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs);
+    static LockResponseV2 successful(LockTokenV2 token) {
+        return ImmutableLockResponseV2.of(Optional.of(token));
+    }
+
+    static LockResponseV2 timedOut() {
+        return ImmutableLockResponseV2.of(Optional.empty());
     }
 
 }

@@ -22,6 +22,7 @@ import java.util.Optional;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import feign.Client;
 import feign.Contract;
@@ -37,10 +38,12 @@ import feign.jaxrs.JAXRSContract;
 public final class AtlasDbFeignTargetFactory {
     private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options();
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = new ObjectMapper()
+            .registerModule(new Jdk8Module());
     private static final Contract contract = new JAXRSContract();
     private static final Encoder encoder = new JacksonEncoder(mapper);
-    private static final Decoder decoder = new TextDelegateDecoder(new JacksonDecoder(mapper));
+    private static final Decoder decoder = new TextDelegateDecoder(
+            new OptionalAwareDecoder(new JacksonDecoder(mapper)));
     private static final ErrorDecoder errorDecoder = new AtlasDbErrorDecoder();
 
     private AtlasDbFeignTargetFactory() {

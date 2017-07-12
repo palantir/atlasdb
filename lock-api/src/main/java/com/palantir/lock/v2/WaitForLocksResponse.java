@@ -16,31 +16,25 @@
 
 package com.palantir.lock.v2;
 
-import java.util.Set;
-import java.util.UUID;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLockRequestV2.class)
-@JsonDeserialize(as = ImmutableLockRequestV2.class)
-public interface LockRequestV2 {
+@JsonSerialize(as = ImmutableWaitForLocksResponse.class)
+@JsonDeserialize(as = ImmutableWaitForLocksResponse.class)
+public interface WaitForLocksResponse {
 
     @Value.Parameter
-    UUID getRequestId();
+    boolean wasSuccessful();
 
-    @Value.Parameter
-    Set<LockDescriptor> getLockDescriptors();
+    static WaitForLocksResponse successful() {
+        return ImmutableWaitForLocksResponse.of(true);
+    }
 
-    @Value.Parameter
-    long getAcquireTimeoutMs();
-
-    static LockRequestV2 of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
-        return ImmutableLockRequestV2.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs);
+    static WaitForLocksResponse timedOut() {
+        return ImmutableWaitForLocksResponse.of(false);
     }
 
 }
