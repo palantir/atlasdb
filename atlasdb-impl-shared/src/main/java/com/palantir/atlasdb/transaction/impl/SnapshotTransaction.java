@@ -121,9 +121,11 @@ import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -146,6 +148,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private static final Logger log = LoggerFactory.getLogger(SnapshotTransaction.class);
     private static final Logger perfLogger = LoggerFactory.getLogger("dualschema.perf");
     private static final Logger constraintLogger = LoggerFactory.getLogger("dualschema.constraints");
+
+    // TODO(nziebart): Make this timeout configurable. Back-compat would mandate infinite blocking time.
+    private static final long LOCK_ACQUISITION_TIMEOUT_MS = 60_000L;
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
 
@@ -1582,7 +1587,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     protected LockTokenV2 acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
-        return timelockService.lock(LockRequestV2.of(lockDescriptors));
+
+        LockResponseV2 lockResponse = timelockService.lock(
+                LockRequestV2.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
+        Preconditions.checkState(lockResponse.wasSuccessful(), "Timed out while acquiring commit locks");
+        return lockResponse.getToken();
     }
 
     protected Set<LockDescriptor> getLocksForWrites() {
@@ -1645,7 +1654,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        timelockService.waitForLocks(WaitForLocksRequest.of(lockDescriptors));
+        WaitForLocksResponse response = timelockService.waitForLocks(
+                WaitForLocksRequest.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
+        Preconditions.checkState(response.wasSuccessful(),
+                "Timed out while waiting for commits to complete");
     }
 
     ///////////////////////////////////////////////////////////////////////////

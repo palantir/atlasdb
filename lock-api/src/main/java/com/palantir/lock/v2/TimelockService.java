@@ -50,11 +50,11 @@ public interface TimelockService {
 
     @POST
     @Path("lock")
-    LockTokenV2 lock(LockRequestV2 request);
+    LockResponseV2 lock(LockRequestV2 request);
 
     @POST
     @Path("await-locks")
-    void waitForLocks(WaitForLocksRequest request);
+    WaitForLocksResponse waitForLocks(WaitForLocksRequest request);
 
     @POST
     @Path("refresh-locks")
