@@ -454,13 +454,13 @@ public final class TransactionManagers {
             String userAgent) {
         RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class, userAgent)
                 .apply(timelockServerListConfig);
-        TimestampService timeService = new ServiceCreator<>(TimestampService.class, userAgent)
+        TimelockService timelockService = new ServiceCreator<>(TimelockService.class, userAgent)
                 .apply(timelockServerListConfig);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .timestamp(timeService)
-                .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
+                .timestamp(new TimelockTimestampServiceAdapter(timelockService))
+                .timelock(timelockService)
                 .build();
     }
 
