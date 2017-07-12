@@ -45,6 +45,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Instead of failing to startup, log an error if old sweep configs are specified in the AtlasDbConfig block.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2134>`__)
+
+    *    - |fixed|
          - ``TransactionManager.close()`` now closes the lock service (provided it is closeable), and also shuts down the Background Sweeper.
            Previously, the lock service's background threads as well as background sweeper would continue to run (potentially indefinitely) even after a transaction manager was closed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2102>`__)
