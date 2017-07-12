@@ -39,6 +39,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 
 public class MultiNodePaxosTimeLockServerIntegrationTest {
@@ -77,7 +78,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void blockedLockRequestThrows503OnLeaderElection() throws InterruptedException {
+    public void blockedLockRequestThrows503OnLeaderElectionForRemoteLock() throws InterruptedException {
         LockRefreshToken lock = CLUSTER.remoteLock(CLIENT_1, BLOCKING_LOCK_REQUEST);
         assertThat(lock).isNotNull();
 
@@ -90,13 +91,32 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 return null;
             }
         });
-        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+        Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
         // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
         assertThatThrownBy(() -> leader.remoteLock(CLIENT_3, BLOCKING_LOCK_REQUEST))
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
 
         assertThat(catchThrowable(lockRefreshTokenCompletableFuture::get).getCause())
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+    }
+
+    @Test
+    public void blockedLockRequestThrows503OnLeaderElectionForAsyncLock() throws InterruptedException {
+        CLUSTER.lock(LockRequestV2.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
+
+        TestableTimelockServer leader = CLUSTER.currentLeader();
+
+        CompletableFuture<LockResponseV2> token2 = CompletableFuture.supplyAsync(
+                () -> leader.lock(LockRequestV2.of(LOCKS, 60_000)));
+
+        Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+        CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
+        // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
+        assertThatThrownBy(() -> leader.lock(LockRequestV2.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+
+        assertThat(catchThrowable(token2::get).getCause())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
