@@ -56,7 +56,7 @@ public class TestableTimelockServer {
         return lockService().lock(client, lockRequest);
     }
 
-    public LockResponseV2 lock(LockRequestV2 lockRequest) throws InterruptedException {
+    public LockResponseV2 lock(LockRequestV2 lockRequest) {
         return timelockService().lock(lockRequest);
     }
 
