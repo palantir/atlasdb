@@ -56,7 +56,6 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
-import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -241,19 +240,21 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private TimeLockServices createLegacyTimeLockServices(
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             RemoteLockService lockService) {
+        ManagedTimestampService timestampService = AwaitingLeadershipProxy.newProxyInstance(
+                ManagedTimestampService.class,
+                rawTimestampServiceSupplier,
+                leaderElectionService);
         TimelockService timelockService = new LockTokenConvertingTimelockService(
-                new LegacyTimelockService(rawTimestampServiceSupplier.get(),
+                new LegacyTimelockService(
+                        timestampService,
                         lockService,
                         LockClient.of("legacy")));
 
         return TimeLockServices.create(
-                new TimelockTimestampServiceAdapter(timelockService),
+                timestampService,
                 lockService,
                 AsyncOrLegacyTimelockService.createFromLegacyTimelock(timelockService),
-                AwaitingLeadershipProxy.newProxyInstance(
-                        ManagedTimestampService.class,
-                        rawTimestampServiceSupplier,
-                        leaderElectionService));
+                timestampService);
     }
 
     private RemoteLockService createLockService(long slowLogTriggerMillis) {
