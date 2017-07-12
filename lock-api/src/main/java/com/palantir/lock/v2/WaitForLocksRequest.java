@@ -47,8 +47,10 @@ public interface WaitForLocksRequest {
         return ImmutableWaitForLocksRequest.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.empty());
     }
 
-    static WaitForLocksRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
-        return ImmutableWaitForLocksRequest.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.of(clientDescription));
+    static WaitForLocksRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs,
+            String clientDescription) {
+        return ImmutableWaitForLocksRequest.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs,
+                Optional.of(clientDescription));
     }
 
 }
