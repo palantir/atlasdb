@@ -37,6 +37,12 @@ develop
 
 .. replace this with the release date
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.48.0
+======
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -45,7 +51,8 @@ develop
          - Change
 
     *    - |fixed|
-         - Instead of failing to startup, log an error if old sweep configs are specified in the AtlasDbConfig block.
+         - If sweep configs are specified in the AtlasDbConfig block, they will be ignored, but AtlasDB will no longer fail to start.
+           This effectively fixes the user break change of version ``0.47.0``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2134>`__)
 
     *    - |fixed|
@@ -55,7 +62,7 @@ develop
 
     *    - |fixed|
          - ``common-executors`` now uses Java 6 when compiling from source and generates classes targeting Java 6. Java 6 support was removed in AtlasDB ``0.41.0``
-           and blocks certain internal products from upgrading to versions thereafter.
+           and blocks certain internal products from upgrading to subsequent versions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2122>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
