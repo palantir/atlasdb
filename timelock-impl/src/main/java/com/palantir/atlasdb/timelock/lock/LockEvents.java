@@ -45,14 +45,14 @@ public class LockEvents {
     private final Meter lockExpiredMeter;
 
     public LockEvents(MetricRegistry metrics) {
-        requestTimer = metrics.timer("lock.lock-request");
+        requestTimer = metrics.timer("lock.blocking-time");
         successfulSlowAcquisitionMeter = metrics.meter("lock.successful-slow-acquisition");
         timedOutSlowAcquisitionMeter = metrics.meter("lock.timeout-slow-acquisition");
         lockExpiredMeter = metrics.meter("lock.expired");
     }
 
-    public void requestComplete(long durationMillis) {
-        requestTimer.update(durationMillis, TimeUnit.MILLISECONDS);
+    public void requestComplete(long blockingTimeMillis) {
+        requestTimer.update(blockingTimeMillis, TimeUnit.MILLISECONDS);
     }
 
     public void lockExpired(UUID requestId, Collection<LockDescriptor> lockDescriptors) {

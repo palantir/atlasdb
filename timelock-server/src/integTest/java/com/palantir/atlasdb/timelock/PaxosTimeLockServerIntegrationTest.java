@@ -449,7 +449,7 @@ public class PaxosTimeLockServerIntegrationTest {
         assertContainsTimer(metrics, "com.palantir.paxos.PaxosProposer.test.propose");
 
         // async lock
-        assertContainsTimer(metrics, "lock.lock-request");
+        assertContainsTimer(metrics, "lock.blocking-time");
     }
 
     private static void assertContainsTimer(JsonNode metrics, String name) {
