@@ -29,6 +29,7 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -52,7 +53,8 @@ public class SynchronousAsyncTimelockServiceAdapter implements AsyncTimelockServ
             ManagedTimestampService managedTimestampService,
             RemoteLockService remoteLockService) {
         return new SynchronousAsyncTimelockServiceAdapter(
-                new LegacyTimelockService(managedTimestampService, remoteLockService, LEGACY_LOCK_CLIENT),
+                new LockTokenConvertingTimelockService(
+                        new LegacyTimelockService(managedTimestampService, remoteLockService, LEGACY_LOCK_CLIENT)),
                 managedTimestampService);
     }
 
@@ -80,7 +82,13 @@ public class SynchronousAsyncTimelockServiceAdapter implements AsyncTimelockServ
     @Override
     public AsyncResult<LockTokenV2> lock(LockRequestV2 request) {
         AsyncResult<LockTokenV2> result = new AsyncResult<>();
-        result.complete(timelockService.lock(request).getToken());
+        LockResponseV2 lockResponse = timelockService.lock(request);
+        if (lockResponse.wasSuccessful()) {
+            result.complete(lockResponse.getToken());
+        } else {
+            // Not entirely sure what the best action is here, actually
+            result.timeout();
+        }
         return result;
     }
 
