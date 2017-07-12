@@ -21,11 +21,12 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
+import java.util.Optional;
+
 import org.junit.Test;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.remoting.ssl.SslConfiguration;
+import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 public class AtlasDbConfigTest {
     private static final KeyValueServiceConfig KVS_CONFIG = mock(KeyValueServiceConfig.class);
@@ -43,7 +44,7 @@ public class AtlasDbConfigTest {
             .build();
     private static final Optional<SslConfiguration> SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
     private static final Optional<SslConfiguration> OTHER_SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
-    private static final Optional<SslConfiguration> NO_SSL_CONFIG = Optional.absent();
+    private static final Optional<SslConfiguration> NO_SSL_CONFIG = Optional.empty();
 
     @Test
     public void configWithNoLeaderOrLockIsValid() {

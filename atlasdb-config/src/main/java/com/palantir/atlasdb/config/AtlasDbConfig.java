@@ -15,12 +15,15 @@
  */
 package com.palantir.atlasdb.config;
 
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -139,7 +142,10 @@ public abstract class AtlasDbConfig {
      * have been overwritten or deleted. This differs from scrubbing
      * because it is an untargeted cleaning process that scans all data
      * looking for cells to delete.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#enableSweep} to make this value
+     * live-reloadable.
      */
+    @Deprecated
     @Value.Default
     public boolean enableSweep() {
         return AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
@@ -148,7 +154,10 @@ public abstract class AtlasDbConfig {
     /**
      * The number of milliseconds to wait between each batch of cells
      * processed by the background sweeper.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#getSweepPauseMillis} to make this value
+     * live-reloadable.
      */
+    @Deprecated
     @Value.Default
     public long getSweepPauseMillis() {
         return AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS;
@@ -164,21 +173,64 @@ public abstract class AtlasDbConfig {
     }
 
     /**
-     * The number of rows to process per batch by the background
-     * sweeper.
+     * The target number of (cell, timestamp) pairs to examine in a single run of the background sweeper.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#getSweepReadLimit} to make this value
+     * live-reloadable.
+     */
+    @Deprecated
+    @Nullable
+    public abstract Integer getSweepReadLimit();
+
+    /**
+     * The target number of candidate (cell, timestamp) pairs to load per batch while sweeping.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#getSweepCandidateBatchHint} to make this value
+     * live-reloadable.
+     */
+    @Deprecated
+    @Nullable
+    public abstract Integer getSweepCandidateBatchHint();
+
+    /**
+     * The target number of (cell, timestamp) pairs to delete at once while sweeping.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#getSweepDeleteBatchHint} to make this value
+     * live-reloadable.
+     */
+    @Deprecated
+    @Nullable
+    public abstract Integer getSweepDeleteBatchHint();
+
+    /**
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#getSweepReadLimit()},
+     * {@link AtlasDbRuntimeConfig#sweep#getSweepCandidateBatchHint()} and
+     * {@link AtlasDbRuntimeConfig#sweep#getSweepDeleteBatchHint()}.
+     */
+    @Deprecated
+    @Nullable
+    public abstract Integer getSweepBatchSize();
+
+    /**
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#getSweepReadLimit()},
+     * {@link AtlasDbRuntimeConfig#sweep#getSweepCandidateBatchHint()} and
+     * {@link AtlasDbRuntimeConfig#sweep#getSweepDeleteBatchHint()}.
+     */
+    @Deprecated
+    @Nullable
+    public abstract Integer getSweepCellBatchSize();
+
+    /**
+     * The time threshold for ProfilingKeyValueService to log a KVS operation for being slow.
      */
     @Value.Default
-    public int getSweepBatchSize() {
-        return AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE;
+    public long getKvsSlowLogThresholdMillis() {
+        return 1000;
     }
 
     /**
-     * The maximum number of cells to process per batch by the background
-     * sweeper.
+     * The default lock expiration time for requests to the lock service.
      */
     @Value.Default
-    public int getSweepCellBatchSize() {
-        return AtlasDbConstants.DEFAULT_SWEEP_CELL_BATCH_SIZE;
+    public int getDefaultLockTimeoutSeconds() {
+        return AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS;
     }
 
     @Value.Check
@@ -197,6 +249,14 @@ public abstract class AtlasDbConfig {
 
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
                 "Lock and timestamp server blocks must either both be present or both be absent.");
+
+        Preconditions.checkState(getSweepBatchSize() == null
+                        && getSweepCellBatchSize() == null
+                        && getSweepReadLimit() == null
+                        && getSweepCandidateBatchHint() == null
+                        && getSweepDeleteBatchHint() == null,
+                "Your configuration specifies sweep parameters on the install config."
+                        + " Please use the runtime config to specify them.");
     }
 
     private boolean areTimeAndLockConfigsAbsent() {
@@ -207,9 +267,9 @@ public abstract class AtlasDbConfig {
     public AtlasDbConfig toOfflineConfig() {
         return ImmutableAtlasDbConfig.builder()
                 .from(this)
-                .leader(Optional.absent())
-                .lock(Optional.absent())
-                .timestamp(Optional.absent())
+                .leader(Optional.empty())
+                .lock(Optional.empty())
+                .timestamp(Optional.empty())
                 .build();
     }
 }

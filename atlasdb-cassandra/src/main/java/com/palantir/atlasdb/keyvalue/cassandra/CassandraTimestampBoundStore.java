@@ -125,7 +125,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             }
         });
 
-        DebugLogger.logger.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
+        DebugLogger.logger.debug("[GET] Setting cached timestamp limit to {}.", currentLimit);
         currentLimit = upperLimit;
         return currentLimit;
     }
@@ -179,7 +179,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             DebugLogger.logger.error("Thread dump: {}", ThreadDumps.programmaticThreadDump());
             throw err;
         } else {
-            DebugLogger.logger.info("[CAS] Setting cached limit to {}.", newVal);
+            DebugLogger.logger.debug("[CAS] Setting cached limit to {}.", newVal);
             currentLimit = newVal;
         }
     }

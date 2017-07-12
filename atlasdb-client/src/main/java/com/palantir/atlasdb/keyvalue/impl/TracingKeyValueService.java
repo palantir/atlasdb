@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,6 +26,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -43,7 +46,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
- * Wraps a {@link KeyValueService}'s methods with {@link com.palantir.remoting1.tracing.Tracer}
+ * Wraps a {@link KeyValueService}'s methods with {@link com.palantir.remoting2.tracing.Tracer}
  * instrumentation.
  */
 public final class TracingKeyValueService extends ForwardingObject implements KeyValueService {
@@ -251,6 +254,16 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         try (CloseableTrace trace = startLocalTrace("getRangeOfTimestamps({}, ts {})",
                 tableRef, timestamp)) {
             return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+        }
+    }
+
+    @Override
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
+            CandidateCellForSweepingRequest request) {
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTrace trace = startLocalTrace("getCandidateCellsForSweeping({}, ts {})",
+                tableRef, request.sweepTimestamp())) {
+            return delegate().getCandidateCellsForSweeping(tableRef, request);
         }
     }
 

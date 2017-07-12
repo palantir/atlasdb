@@ -15,11 +15,13 @@
  */
 package com.palantir.lock;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Set;
 
 import com.google.common.collect.ForwardingObject;
 
-public abstract class ForwardingRemoteLockService extends ForwardingObject implements RemoteLockService {
+public abstract class ForwardingRemoteLockService extends ForwardingObject implements CloseableRemoteLockService {
 
     @Override
     protected abstract RemoteLockService delegate();
@@ -59,5 +61,12 @@ public abstract class ForwardingRemoteLockService extends ForwardingObject imple
     @Override
     public void logCurrentState() {
         delegate().logCurrentState();
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (delegate() instanceof Closeable) {
+            ((Closeable) delegate()).close();
+        }
     }
 }

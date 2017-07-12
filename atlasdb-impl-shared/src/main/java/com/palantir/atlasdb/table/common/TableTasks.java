@@ -177,7 +177,9 @@ public final class TableTasks {
                             int threadCount,
                             @Output DiffStats stats,
                             final DiffVisitor visitor) throws InterruptedException {
-        diffExternal(txManager, exec, plusTable, minusTable, batchSize, threadCount, stats,
+        DiffStrategy diffStrategy = txManager.runTaskWithRetry(t ->
+                getDiffStrategy(t, plusTable, minusTable, batchSize));
+        diffExternal(diffStrategy, exec, plusTable, minusTable, batchSize, threadCount, stats,
                 (request, range, strategy) -> txManager.runTaskWithRetry(t ->
                                 diffInternal(t, plusTable, minusTable, request, range, strategy, visitor)));
     }
@@ -200,7 +202,7 @@ public final class TableTasks {
         diff(txManager, exec, plusTable, minusTable, batchSize, threadCount, stats, visitor);
     }
 
-    private static void diffExternal(final TransactionManager txManager,
+    private static void diffExternal(final DiffStrategy strategy,
                                      ExecutorService exec,
                                      final TableReference plusTable,
                                      final TableReference minusTable,
@@ -208,7 +210,6 @@ public final class TableTasks {
                                      int threadCount,
                                      final DiffStats stats,
                                      final DiffTask task) throws InterruptedException {
-        final DiffStrategy strategy = getDiffStrategy(txManager, plusTable, minusTable, batchSize);
         BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
         for (final MutableRange range : getRanges(threadCount, batchSize)) {
             pool.submitTask(new Runnable() {
@@ -254,16 +255,13 @@ public final class TableTasks {
         pool.waitForSubmittedTasks();
     }
 
-    private static DiffStrategy getDiffStrategy(TransactionManager txManager,
-                                                final TableReference plusTable,
-                                                final TableReference minusTable,
-                                                final int batchSize) {
-        final DiffStrategy strategy = txManager.runTaskWithRetry(tx -> {
-            long minusSize = estimateSize(tx, minusTable, batchSize, Functions.identity());
-            long plusSize = estimateSize(tx, plusTable, batchSize, Functions.identity());
-            return minusSize > 4 * plusSize ? DiffStrategy.ROWS : DiffStrategy.RANGE;
-        });
-        return strategy;
+    private static DiffStrategy getDiffStrategy(Transaction tx,
+                                                TableReference plusTable,
+                                                TableReference minusTable,
+                                                int batchSize) {
+        long minusSize = estimateSize(tx, minusTable, batchSize, Functions.identity());
+        long plusSize = estimateSize(tx, plusTable, batchSize, Functions.identity());
+        return minusSize > 4 * plusSize ? DiffStrategy.ROWS : DiffStrategy.RANGE;
     }
 
     private static PartialDiffStats diffInternal(final Transaction tx,

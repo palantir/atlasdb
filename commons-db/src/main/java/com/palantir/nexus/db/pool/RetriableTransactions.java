@@ -19,6 +19,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -27,7 +28,6 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -80,7 +80,7 @@ public final class RetriableTransactions {
         }
 
         public static <T> TransactionResult<T> success(T resultValue) {
-            return new TransactionResult<T>(TransactionStatus.SUCCESSFUL, resultValue, Optional.<Throwable>absent());
+            return new TransactionResult<T>(TransactionStatus.SUCCESSFUL, resultValue, Optional.<Throwable>empty());
         }
 
         public static <T> TransactionResult<T> failure(Throwable error) {

@@ -367,6 +367,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection) {
+        checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
             return ImmutableMap.of();
         }
@@ -389,6 +390,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                                 Iterable<byte[]> rows,
                                                                 ColumnRangeSelection columnRangeSelection,
                                                                 int batchHint) {
+        checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
@@ -959,6 +961,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
+        if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
+            Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
+            // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
+            // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
+            // this case is hit when reading a hidden table from console
+            for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
+                results.put(e.getKey(), transformer.apply(e.getValue()));
+            }
+            return;
+        }
+
         Map<Cell, Value> remainingResultsToPostfilter = rawResults;
         while (!remainingResultsToPostfilter.isEmpty()) {
             remainingResultsToPostfilter = getWithPostFilteringInternal(
@@ -1190,10 +1203,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             checkConstraints();
             commitWrites(transactionService);
-            long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
-            perfLogger.debug("Committed transaction {} in {}ms",
-                    getStartTimestamp(),
-                    transactionMillis);
+            if (perfLogger.isDebugEnabled()) {
+                long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
+                perfLogger.debug("Committed transaction {} in {}ms",
+                        getStartTimestamp(),
+                        transactionMillis);
+            }
             success = true;
         } finally {
             // Once we are in state committing, we need to try/finally to set the state to a terminal state.
@@ -1477,7 +1492,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         for (Map.Entry<Cell, Long> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             long theirStartTimestamp = e.getValue();
-            AssertUtils.assertAndLog(theirStartTimestamp != getStartTimestamp(),
+            AssertUtils.assertAndLog(log, theirStartTimestamp != getStartTimestamp(),
                     "Timestamp reuse is bad:%d", getStartTimestamp());
 
             Long theirCommitTimestamp = commitTimestamps.get(theirStartTimestamp);
@@ -1489,7 +1504,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 continue;
             }
 
-            AssertUtils.assertAndLog(theirCommitTimestamp != getStartTimestamp(),
+            AssertUtils.assertAndLog(log, theirCommitTimestamp != getStartTimestamp(),
                     "Timestamp reuse is bad:%d", getStartTimestamp());
             if (theirStartTimestamp > getStartTimestamp()) {
                 dominatingWrites.add(Cells.createConflictWithMetadata(
@@ -1768,7 +1783,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
             } else {
-                AssertUtils.assertAndLog(false, "BUG: Someone tried to roll back our transaction but"
+                AssertUtils.assertAndLog(log, false, "BUG: Someone tried to roll back our transaction but"
                         + " our locks were still valid; this is not allowed."
                         + " Held external locks: " + externalLocksTokens
                         + "; held commit locks: " + commitLocksToken);
@@ -1827,7 +1842,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 }
             }
         } else {
-            AssertUtils.assertAndLog(false, "Expected state: " + expectedState + "; actual state: " + actualState);
+            AssertUtils.assertAndLog(log, false, "Expected state: " + expectedState + "; actual state: " + actualState);
         }
         return cellToTableName;
     }
@@ -1843,7 +1858,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 tableRefToCells.putAll(table, cells);
             }
         } else {
-            AssertUtils.assertAndLog(false, "Expected state: " + expectedState + "; actual state: " + actualState);
+            AssertUtils.assertAndLog(log, false, "Expected state: " + expectedState + "; actual state: " + actualState);
         }
         return tableRefToCells;
     }

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,7 +30,6 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.net.HostAndPort;
@@ -40,12 +40,14 @@ import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.remoting2.tracing.Tracers;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
-    private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
+
+    private static final long MAX_NO_QUORUM_RETRIES = 10;
 
     public static <U> U newProxyInstance(Class<U> interfaceClass,
                                          Supplier<U> delegateSupplier,
@@ -121,7 +123,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 clearDelegate();
             } else {
                 leadershipTokenRef.set(leadershipToken);
-                leaderLog.info("Gained leadership for {}", leadershipToken);
+                log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
             }
         } catch (InterruptedException e) {
             log.warn("attempt to gain leadership interrupted", e);
@@ -153,12 +155,18 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
 
         Object delegate = delegateRef.get();
-        StillLeadingStatus leading;
-        do {
+        StillLeadingStatus leading = null;
+        for (int i = 0; i < MAX_NO_QUORUM_RETRIES; i++) {
+            // TODO(nziebart): check if leadershipTokenRef has been nulled out between iterations?
             leading = leaderElectionService.isStillLeading(leadershipToken);
-        } while (leading == StillLeadingStatus.NO_QUORUM);
+            if (leading != StillLeadingStatus.NO_QUORUM) {
+                break;
+            }
+        }
 
-        if (leading == StillLeadingStatus.NOT_LEADING) {
+        // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
+        // and should assume we're not the leader
+        if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
             markAsNotLeading(leadershipToken, null /* cause */);
         }
 
@@ -170,12 +178,21 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         try {
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
-            if (e.getCause() instanceof ServiceNotAvailableException
-                    || e.getCause() instanceof NotCurrentLeaderException) {
+            if (e.getTargetException() instanceof ServiceNotAvailableException
+                    || e.getTargetException() instanceof NotCurrentLeaderException) {
                 markAsNotLeading(leadershipToken, e.getCause());
             }
-            throw e.getCause();
+            // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts in case of a leader election.
+            if (e.getTargetException() instanceof InterruptedException && !isStillCurrentToken(leadershipToken)) {
+                throw notCurrentLeaderException("received an interrupt due to leader election.",
+                        e.getTargetException());
+            }
+            throw e.getTargetException();
         }
+    }
+
+    private boolean isStillCurrentToken(LeadershipToken leadershipToken) {
+        return leadershipTokenRef.get() == leadershipToken;
     }
 
     private NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
@@ -193,7 +210,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
-        leaderLog.warn("Lost leadership", cause);
+        log.warn("Lost leadership", cause);
         if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
             try {
                 clearDelegate();

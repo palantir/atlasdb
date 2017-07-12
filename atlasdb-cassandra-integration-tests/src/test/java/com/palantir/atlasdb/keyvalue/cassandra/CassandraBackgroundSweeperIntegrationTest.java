@@ -20,7 +20,6 @@ import java.util.Arrays;
 import org.junit.ClassRule;
 import org.junit.runners.Parameterized;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -46,7 +45,7 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = useColumnBatchSize
                 ? ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
-                    .withTimestampsGetterBatchSize(Optional.of(10))
+                    .withTimestampsGetterBatchSize(10)
                 : CassandraContainer.KVS_CONFIG;
         return CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),

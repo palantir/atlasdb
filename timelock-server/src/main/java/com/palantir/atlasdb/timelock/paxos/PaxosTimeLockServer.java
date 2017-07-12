@@ -18,7 +18,9 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -28,7 +30,6 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -51,15 +52,18 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.impl.ThreadPooledLockService;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
-import com.palantir.remoting.ssl.SslSocketFactories;
+import com.palantir.paxos.PaxosProposerImpl;
+import com.palantir.remoting2.config.ssl.SslSocketFactories;
 import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.TimestampBoundStore;
 
 import io.dropwizard.setup.Environment;
 
@@ -68,7 +72,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private final Environment environment;
 
     private Set<String> remoteServers;
-    private Optional<SSLSocketFactory> optionalSecurity = Optional.absent();
+    private Optional<SSLSocketFactory> optionalSecurity = Optional.empty();
     private LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
     private Semaphore sharedThreadPool = new Semaphore(-1);
@@ -85,13 +89,19 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
         timeLockServerConfiguration = configuration;
-        if (timeLockServerConfiguration.useClientRequestLimit()) {
-            environment.jersey().register(new TooManyRequestsExceptionMapper());
-        }
+        registerExceptionMappers();
 
         registerLeaderElectionService(configuration);
 
         registerHealthCheck(configuration);
+    }
+
+    private void registerExceptionMappers() {
+        if (timeLockServerConfiguration.useClientRequestLimit()) {
+            environment.jersey().register(new TooManyRequestsExceptionMapper());
+        }
+        environment.jersey().register(new BlockingTimeoutExceptionMapper());
+        environment.jersey().register(new NotCurrentLeaderExceptionMapper());
     }
 
     private void registerPaxosResource() {
@@ -106,27 +116,27 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         Set<String> paxosSubresourceUris = PaxosTimeLockUriUtils.getLeaderPaxosUris(remoteServers);
 
-        Leaders.LocalPaxosServices localPaxosServices = Leaders.createLocalServices(
+        Leaders.LocalPaxosServices localPaxosServices = Leaders.createInstrumentedLocalServices(
                 leaderConfig,
                 ImmutableRemotePaxosServerSpec.builder()
                         .remoteLeaderUris(remoteServers)
                         .remoteAcceptorUris(paxosSubresourceUris)
                         .remoteLearnerUris(paxosSubresourceUris)
-                        .build());
+                        .build(),
+                "leader-election-service");
         leaderElectionService = localPaxosServices.leaderElectionService();
 
-        environment.jersey().register(leaderElectionService);
+        environment.jersey().register(localPaxosServices.pingableLeader());
         environment.jersey().register(new LeadershipResource(
                 localPaxosServices.ourAcceptor(),
                 localPaxosServices.ourLearner()));
-        environment.jersey().register(new NotCurrentLeaderExceptionMapper());
-        environment.jersey().register(new BlockingTimeoutExceptionMapper());
     }
 
     private void registerHealthCheck(TimeLockServerConfiguration configuration) {
         Set<PingableLeader> pingableLeaders = Leaders.generatePingables(
                 getAllServerPaths(configuration),
-                ServiceCreator.createSslSocketFactory(paxosConfiguration.sslConfiguration())).keySet();
+                ServiceCreator.createSslSocketFactory(paxosConfiguration.sslConfiguration()),
+                "leader-ping-healthcheck").keySet();
         environment.healthChecks().register("leader-ping", new LeaderPingHealthCheck(pingableLeaders));
     }
 
@@ -155,7 +165,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     private static Optional<SSLSocketFactory> constructOptionalSslSocketFactory(
             PaxosConfiguration configuration) {
-        return configuration.sslConfiguration().transform(SslSocketFactories::createSslSocketFactory);
+        return configuration.sslConfiguration().map(SslSocketFactories::createSslSocketFactory);
     }
 
     @Override
@@ -164,16 +174,24 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 ManagedTimestampService.class,
                 createPaxosBackedTimestampService(client),
                 client);
-        LockService lockService = instrument(
-                LockService.class,
+        RemoteLockService lockService = instrument(
+                RemoteLockService.class,
                 createLockService(slowLogTriggerMillis),
                 client);
 
         return TimeLockServices.create(timestampService, lockService, timestampService);
     }
 
-    private LockService createLockService(long slowLogTriggerMillis) {
-        LockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(slowLogTriggerMillis);
+    private RemoteLockService createLockService(long slowLogTriggerMillis) {
+        return AwaitingLeadershipProxy.newProxyInstance(
+                RemoteLockService.class,
+                () -> createThreadPoolingLockService(slowLogTriggerMillis),
+                leaderElectionService);
+    }
+
+    private CloseableRemoteLockService createThreadPoolingLockService(long slowLogTriggerMillis) {
+        CloseableRemoteLockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(
+                slowLogTriggerMillis);
 
         if (!timeLockServerConfiguration.useClientRequestLimit()) {
             return lockServiceNotUsingThreadPooling;
@@ -194,7 +212,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
         return new ThreadPooledLockService(lockServiceNotUsingThreadPooling, localThreadPoolSize, sharedThreadPool);
     }
 
-    private LockService createTimeLimitedLockService(long slowLogTriggerMillis) {
+    private CloseableRemoteLockService createTimeLimitedLockService(long slowLogTriggerMillis) {
         LockServerOptions lockServerOptions = new LockServerOptions() {
             @Override
             public long slowLogTriggerMillis() {
@@ -202,7 +220,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
             }
         };
 
-        LockService rawLockService = LockServiceImpl.create(lockServerOptions);
+        LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions);
 
         if (timeLockServerConfiguration.timeLimiterConfiguration().enableTimeLimiting()) {
             return BlockingTimeLimitedLockService.create(
@@ -217,7 +235,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private ManagedTimestampService createPaxosBackedTimestampService(String client) {
-        paxosResource.addClient(client);
+        paxosResource.addInstrumentedClient(client);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-" + client + "-%d")
@@ -229,21 +247,26 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 paxosResource.getPaxosAcceptor(client),
                 namespacedUris,
                 optionalSecurity,
-                PaxosAcceptor.class);
+                PaxosAcceptor.class,
+                "timestamp-bound-store." + client);
 
         PaxosLearner ourLearner = paxosResource.getPaxosLearner(client);
         List<PaxosLearner> learners = Leaders.createProxyAndLocalList(
                 ourLearner,
                 namespacedUris,
                 optionalSecurity,
-                PaxosLearner.class);
+                PaxosLearner.class,
+                "timestamp-bound-store." + client);
 
-        PaxosProposer proposer = Leaders.createPaxosProposer(
-                ourLearner,
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners),
-                getQuorumSize(acceptors),
-                executor);
+        PaxosProposer proposer = instrument(PaxosProposer.class,
+                PaxosProposerImpl.newProposer(
+                        ourLearner,
+                        ImmutableList.copyOf(acceptors),
+                        ImmutableList.copyOf(learners),
+                        getQuorumSize(acceptors),
+                        UUID.randomUUID(),
+                        executor),
+                client);
 
         PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
 
@@ -258,13 +281,15 @@ public class PaxosTimeLockServer implements TimeLockServer {
             String client,
             List<PaxosAcceptor> acceptors,
             List<PaxosLearner> learners) {
-        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(
+        TimestampBoundStore boundStore = instrument(TimestampBoundStore.class,
                 new PaxosTimestampBoundStore(
                         proposer,
                         paxosResource.getPaxosLearner(client),
                         ImmutableList.copyOf(acceptors),
                         ImmutableList.copyOf(learners),
-                        paxosConfiguration.maximumWaitBeforeProposalMs()));
+                        paxosConfiguration.maximumWaitBeforeProposalMs()),
+                client);
+        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(boundStore);
         return new DelegatingManagedTimestampService(persistentTimestampService, persistentTimestampService);
     }
 

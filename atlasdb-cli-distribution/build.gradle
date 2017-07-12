@@ -1,4 +1,4 @@
-apply plugin: 'com.palantir.java-distribution'
+apply plugin: 'com.palantir.sls-java-service-distribution'
 
 apply from: "../gradle/publish-dists.gradle"
 apply from: "../gradle/shared.gradle"
@@ -12,7 +12,6 @@ dependencies {
 
   // Unsupported KVSs (included for migration purposes)
   runtime project(':atlasdb-jdbc')
-  runtime project(':atlasdb-rocksdb')
 }
 
 distribution {

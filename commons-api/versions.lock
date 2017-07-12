@@ -38,8 +38,16 @@
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-executors"
+            ]
+        },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
@@ -103,8 +111,16 @@
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-executors"
+            ]
+        },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
+            "locked": "3.1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]

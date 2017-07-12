@@ -20,9 +20,9 @@ import javax.annotation.Nullable;
 import org.slf4j.helpers.MessageFormatter;
 
 import com.google.common.collect.ObjectArrays;
-import com.palantir.remoting1.tracing.OpenSpan;
-import com.palantir.remoting1.tracing.SpanType;
-import com.palantir.remoting1.tracing.Tracer;
+import com.palantir.remoting2.tracing.OpenSpan;
+import com.palantir.remoting2.tracing.SpanType;
+import com.palantir.remoting2.tracing.Tracer;
 
 public final class CloseableTrace implements AutoCloseable {
 

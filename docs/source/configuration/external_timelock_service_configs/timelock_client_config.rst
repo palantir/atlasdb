@@ -44,7 +44,7 @@ Optional parameters:
 
     *    - serversList::sslConfiguration
          - The SSL configuration of the service. This should follow the
-           `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__
+           `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting2/config/ssl/SslConfiguration.java>`__
            library. This should also be in alignment with the protocol used when configuring the servers.
 
 .. _timelock-config-examples:

@@ -53,17 +53,21 @@ import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractBackgroundSweeperIntegrationTest {
 
-    private static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
+    protected static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
 
-    private KeyValueService kvs;
+    protected KeyValueService kvs;
     protected LockAwareTransactionManager txManager;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
     private BackgroundSweeperImpl backgroundSweeper;
-    private int batchSize = 8;
-    private int cellBatchSize = 15;
-    private TransactionService txService;
+    private SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
+            .deleteBatchSize(8)
+            .candidateBatchSize(15)
+            .maxCellTsPairsToExamine(1000)
+            .build();
+    protected TransactionService txService;
+    protected SpecificTableSweeper specificTableSweeper;
 
     @Before
     public void setup() {
@@ -78,17 +82,21 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
-        backgroundSweeper = BackgroundSweeperImpl.create(
+        SweepMetrics sweepMetrics = new SweepMetrics();
+        specificTableSweeper = SpecificTableSweeper.create(
                 txManager,
                 kvs,
                 sweepRunner,
-                () -> true, // sweepEnabled
-                () -> 10L, // sweepPauseMillis
-                () -> batchSize,
-                () -> cellBatchSize,
+                () -> sweepBatchConfig,
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
-                persistentLockManager);
+                sweepMetrics);
+
+        backgroundSweeper = BackgroundSweeperImpl.create(
+                () -> true, // sweepEnabled
+                () -> 10L, // sweepPauseMillis
+                persistentLockManager,
+                specificTableSweeper);
     }
 
     @Test
@@ -105,7 +113,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         sweepTimestamp.set(150);
         try (SweepLocks sweepLocks = backgroundSweeper.createSweepLocks()) {
             for (int i = 0; i < 50; ++i) {
-                backgroundSweeper.grabLocksAndRun(sweepLocks);
+                backgroundSweeper.checkConfigAndRunSweep(sweepLocks);
             }
         }
         verifyTableSwept(TABLE_1, 75, true);
@@ -118,7 +126,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
     protected abstract KeyValueService getKeyValueService();
 
-    private void verifyTableSwept(TableReference tableRef, int expectedCells, boolean conservative) {
+    protected void verifyTableSwept(TableReference tableRef, int expectedCells, boolean conservative) {
         try (ClosableIterator<RowResult<Set<Long>>> iter =
                 kvs.getRangeOfTimestamps(tableRef, RangeRequest.all(), Long.MAX_VALUE)) {
             int numCells = 0;
@@ -132,7 +140,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         }
     }
 
-    private void createTable(TableReference tableReference, SweepStrategy sweepStrategy) {
+    protected void createTable(TableReference tableReference, SweepStrategy sweepStrategy) {
         kvs.createTable(tableReference,
                 new TableDefinition() {
                     {
@@ -147,7 +155,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         );
     }
 
-    private void putManyCells(TableReference tableRef, long startTs, long commitTs) {
+    protected void putManyCells(TableReference tableRef, long startTs, long commitTs) {
         Map<Cell, byte[]> cells = Maps.newHashMap();
         for (int i = 0; i < 50; ++i) {
             cells.put(Cell.create(Ints.toByteArray(i), "c".getBytes()),

@@ -8,41 +8,42 @@ Overview
 This matrix details the current state of available Key Value Services supported by the AtlasDB development staff.
 
 .. list-table::
-    :widths: 5 5 5 5
+    :widths: 5 5 5 5 80
     :header-rows: 1
 
     *    - Key Value Service
          - State
          - KVS Versions Supported
          - Recommended Versions
+         - Errata
 
     *    - :ref:`Cassandra KVS <cassandra-configuration>`
          - Supported
-         - Cassandra 2.0+
-         - Cassandra 2.2.8
+         - 2.0+
+         - 2.2.8
+         - 
 
     *    - :ref:`DB KVS (Postgres) <postgres-configuration>`
          - Supported
-         - Postgres 8+
+         - 9.2+
          - 9.3.4
+         - Amazon RDS explicitly supported, other HA postgres variants not currently supported
 
     *    - :ref:`DB KVS (Oracle) <oracle-configuration>`
          - Beta Support
-         - ?
-         - ?
+         - 11g+
+         - 12c
+         - Amazon RDS explicitly supported, RAC not currently supported
 
     *    - CQL KVS
          - Unsupported
+         -
          -
          -
 
     *    - JDBC KVS
          - Unsupported
          -
-         -
-
-    *    - RocksDB KVS
-         - Unsupported
          -
          -
 
@@ -82,14 +83,8 @@ JDBC KVS
 JDBC KVS existed prior to DB KVS and was the primary means for deploying applications on Postgres.
 JDBC KVS has been deprecated in favor of DB KVS.
 
-.. _rocksdb-kvs:
-
-RocksDB KVS
------------
-
-Java RocksDB is not well supported, and we have seen major corruption under normal usage, internal ticket QA-95061.
-
 Deleted
 =======
 
 ClusterKeyValueService.java - Intended to be run on top of a MySQL/Cluster
+RocksDbKVS - Removed in 0.44

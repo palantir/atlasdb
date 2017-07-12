@@ -12,6 +12,7 @@ message TableMetadata {
     optional SweepStrategy sweepStrategy = 9;
     optional int32 explicitCompressionBlockSizeKiloBytes = 10;
     optional bool appendHeavyAndReadLight = 11;
+    optional bool nameLoggable = 12 [default = false];
 }
 
 message NameMetadataDescription {
@@ -25,6 +26,7 @@ message NameComponentDescription {
     required ValueByteOrder order = 3;
     optional bool hasUniformPartitioner = 4;
     repeated string explicitPartitions = 5;
+    optional bool nameLoggable = 6 [default = false];
 }
 
 message ColumnMetadataDescription {
@@ -41,6 +43,7 @@ message NamedColumnDescription {
     required string shortName = 1;
     required string longName = 2;
     required ColumnValueDescription value = 3;
+    optional bool nameLoggable = 4 [default = false];
 }
 
 message ColumnValueDescription {

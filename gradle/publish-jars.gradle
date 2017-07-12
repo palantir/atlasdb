@@ -1,3 +1,5 @@
+import java.util.stream.Collectors;
+
 apply plugin: 'java'
 apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'com.jfrog.bintray'
@@ -19,7 +21,14 @@ task testJar(type: Jar) {
 publishing {
     publications {
         artifactory(MavenPublication) {
-            from components.hasProperty('shadow') ? components.shadow : components.java
+            from components.java
+
+            // This interfaces between Shadow and Nebula
+            def hasShadowConfiguration = project.configurations.findByName('shadow') != null
+            if (hasShadowConfiguration) {
+                replaceShadedDependencies(it)
+            }
+
             artifact(sourceJar) {
                 classifier 'sources'
             }
@@ -35,6 +44,75 @@ publishing {
                 license.appendNode('url', 'http://opensource.org/licenses/BSD-3-Clause')
             }
         }
+    }
+}
+
+private void replaceShadedDependencies(MavenPublication mavenPublication) {
+    mavenPublication.pom.withXml {
+        def shadowDependencies = getShadowDependencies(project)
+
+        def newDependencyRoot = new Node(null, 'dependencies')
+        def existingDependencies = asNode().getByName('dependencies')[0]
+        existingDependencies.children().forEach { dependency ->
+            if (hasMatchingDependency(
+                    shadowDependencies,
+                    getGroupIdFromNode(dependency),
+                    getArtifactIdFromNode(dependency))) {
+                newDependencyRoot.append(dependency)
+            }
+            shadowDependencies.remove(new Tuple(getGroupIdFromNode(dependency), getArtifactIdFromNode(dependency)))
+        }
+
+        addNodesForShadowDependenciesNotInCompileConfiguration(
+                newDependencyRoot,
+                shadowDependencies,
+                dependencyRecommendations)
+
+        asNode().getByName('dependencies')[0].replaceNode(newDependencyRoot)
+    }
+}
+
+private static Set<Tuple> getShadowDependencies(Project project) {
+    def rawDependencySet = project.configurations.getByName('shadow').allDependencies
+    return rawDependencySet.stream()
+                           .map({dep -> new Tuple(dep.getGroup(), dep.getName())})
+                           .collect(Collectors.toSet())
+}
+
+// Returns true if and only if there exists some dependency in the provided list of dependencies.
+private static boolean hasMatchingDependency(Set<Tuple> dependencies, String groupId, String artifactId) {
+    return dependencies.contains(new Tuple(groupId, artifactId));
+}
+
+// We assume that there is only one groupId tag, which has exactly one element in it.
+private static String getGroupIdFromNode(Node dependency) {
+    return getOnlyValue(dependency.groupId)
+}
+
+// We assume that there is only one artifactId tag, which has exactly one element in it.
+private static String getArtifactIdFromNode(Node dependency) {
+    return getOnlyValue(dependency.artifactId)
+}
+
+private static String getOnlyValue(List<Node> nodeList) {
+    if (nodeList.size() != 1 || nodeList[0].children().size() != 1) {
+        throw new IllegalArgumentException("getOnlyValue() called on a node list which didn't have an only value");
+    }
+    return nodeList[0].children()[0]
+}
+
+private static void addNodesForShadowDependenciesNotInCompileConfiguration(
+        Node dependencyRoot,
+        Set<Tuple> remainingDeps,
+        recommender) {
+    remainingDeps.forEach { dependencyTuple ->
+        Node newDependency = dependencyRoot.appendNode('dependency')
+        newDependency.appendNode('groupId', dependencyTuple[0])
+        newDependency.appendNode('artifactId', dependencyTuple[1])
+        newDependency.appendNode('scope', 'runtime')
+
+        def version = recommender.getRecommendedVersion(dependency.getGroup(), dependency.getName())
+        newDependency.appendNode('version', version)
     }
 }
 
@@ -81,5 +159,5 @@ artifactoryPublish.onlyIf {
 artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
 
 ext {
-    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
+    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta|-rc)?(\d+)?/
 }

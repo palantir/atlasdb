@@ -25,11 +25,20 @@ public class NamedColumnDescription {
     final String shortName;
     final String longName;
     final ColumnValueDescription value;
+    final boolean nameLoggable;
 
     public NamedColumnDescription(String shortName, String longName, ColumnValueDescription value) {
+        this(shortName, longName, value, false);
+    }
+
+    public NamedColumnDescription(String shortName,
+                                  String longName,
+                                  ColumnValueDescription value,
+                                  boolean nameLoggable) {
         this.shortName = shortName;
         this.longName = longName;
         this.value = value;
+        this.nameLoggable = nameLoggable;
     }
 
     public String getShortName() {
@@ -44,22 +53,31 @@ public class NamedColumnDescription {
         return value;
     }
 
+    public boolean isNameLoggable() {
+        return nameLoggable;
+    }
+
     public TableMetadataPersistence.NamedColumnDescription.Builder persistToProto() {
         Builder builder = TableMetadataPersistence.NamedColumnDescription.newBuilder();
         builder.setShortName(shortName);
         builder.setLongName(longName);
         builder.setValue(value.persistToProto());
+        builder.setNameLoggable(nameLoggable);
         return builder;
     }
 
     public static NamedColumnDescription hydrateFromProto(TableMetadataPersistence.NamedColumnDescription message) {
-        return new NamedColumnDescription(message.getShortName(), message.getLongName(), ColumnValueDescription.hydrateFromProto(message.getValue()));
+        return new NamedColumnDescription(
+                message.getShortName(),
+                message.getLongName(),
+                ColumnValueDescription.hydrateFromProto(message.getValue()),
+                message.hasNameLoggable() && message.getNameLoggable());
     }
 
     @Override
     public String toString() {
         return "NamedColumnDescription [shortName=" + shortName + ", longName=" + longName
-                + ", value=" + value + "]";
+                + ", value=" + value + ", nameLoggable=" + nameLoggable + "]";
     }
 
     @Override
@@ -70,6 +88,7 @@ public class NamedColumnDescription {
         result = prime * result + (shortName == null ? 0 : shortName.hashCode());
         result = prime * result + (longName == null ? 0 : longName.hashCode());
         result = prime * result + (value == null ? 0 : value.hashCode());
+        result = prime * result + (nameLoggable ? 0 : 1);
         return result;
     }
 
@@ -101,6 +120,9 @@ public class NamedColumnDescription {
                 return false;
             }
         } else if (!value.equals(other.getValue())) {
+            return false;
+        }
+        if (nameLoggable != other.nameLoggable) {
             return false;
         }
         return true;

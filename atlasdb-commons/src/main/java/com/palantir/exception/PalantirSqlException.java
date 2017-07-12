@@ -16,8 +16,8 @@
 package com.palantir.exception;
 
 import java.sql.SQLException;
+import java.util.Optional;
 
-import com.google.common.base.Optional;
 import com.palantir.common.exception.PalantirRuntimeException;
 
 /**
@@ -72,7 +72,7 @@ public class PalantirSqlException extends PalantirRuntimeException {
     }
 
     public static PalantirSqlException create(SQLException e) {
-        String msg = Optional.fromNullable(e.getMessage()).or(e.getClass().getName() + "with null message");
+        String msg = Optional.ofNullable(e.getMessage()).orElse(e.getClass().getName() + "with null message");
         return new PalantirSqlException(msg, e);
     }
 

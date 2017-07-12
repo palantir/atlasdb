@@ -15,20 +15,34 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import org.immutables.value.Value;
+import java.util.Optional;
 
-import com.google.common.base.Optional;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class SweepResults {
 
-    public abstract Optional<byte[]> getPreviousStartRow();
+    @Value.Default
+    public Optional<byte[]> getPreviousStartRow() {
+        return Optional.empty();
+    }
 
-    public abstract Optional<byte[]> getNextStartRow();
+    @Value.Default
+    public Optional<byte[]> getNextStartRow() {
+        return Optional.empty();
+    }
 
-    public abstract long getCellsExamined();
+    /**
+     * The approximate number of (cell, timestamp) pairs examined.
+     * TODO: we should rename this method to something like getCellTsPairsExamined()
+     */
+    public abstract long getCellTsPairsExamined();
 
-    public abstract long getCellsDeleted();
+    /**
+     * The number of (cell, timestamp) pairs deleted.
+     * TODO: we should rename this method to something like getCellTsPairsDeleted() or staleValuesDeleted()
+     */
+    public abstract long getStaleValuesDeleted();
 
     public abstract long getSweptTimestamp();
 
@@ -36,11 +50,11 @@ public abstract class SweepResults {
         return ImmutableSweepResults.builder();
     }
 
-    public static SweepResults createEmptySweepResult(long sweptTimestamp) {
+    public static SweepResults createEmptySweepResult() {
         return builder()
-                .cellsExamined(0)
-                .cellsDeleted(0)
-                .sweptTimestamp(sweptTimestamp)
+                .cellTsPairsExamined(0)
+                .staleValuesDeleted(0)
+                .sweptTimestamp(0)
                 .build();
     }
 

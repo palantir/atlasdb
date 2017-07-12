@@ -15,18 +15,18 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.remoting.ssl.SslConfiguration;
-import com.palantir.remoting.ssl.SslSocketFactories;
+import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.remoting2.config.ssl.SslSocketFactories;
 
 public class ServiceCreator<T> implements Function<ServerListConfig, T> {
     private final Class<T> serviceClass;
@@ -47,7 +47,7 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
      * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link SSLSocketFactory}.
      */
     public static Optional<SSLSocketFactory> createSslSocketFactory(Optional<SslConfiguration> sslConfiguration) {
-        return sslConfiguration.transform(config -> SslSocketFactories.createSslSocketFactory(config));
+        return sslConfiguration.map(config -> SslSocketFactories.createSslSocketFactory(config));
     }
 
     public static <T> T createService(
@@ -61,4 +61,10 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
                 MetricRegistry.name(serviceClass, userAgent));
     }
 
+    public static <T> T createInstrumentedService(T service, Class<T> serviceClass, String userAgent) {
+        return AtlasDbMetrics.instrument(
+                serviceClass,
+                service,
+                MetricRegistry.name(serviceClass, userAgent));
+    }
 }

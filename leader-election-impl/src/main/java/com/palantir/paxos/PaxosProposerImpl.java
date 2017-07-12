@@ -41,17 +41,39 @@ import com.google.common.collect.ImmutableList;
 public class PaxosProposerImpl implements PaxosProposer {
     private static final Logger log = LoggerFactory.getLogger(PaxosProposerImpl.class);
 
-    public static PaxosProposer newProposer(PaxosLearner localLearner,
-                                            List<PaxosAcceptor> allAcceptors,
-                                            List<PaxosLearner> allLearners,
-                                            int quorumSize,
-                                            ExecutorService executor) {
+    /**
+     * @deprecated use {@link #newProposer(PaxosLearner, List, List, int, UUID, ExecutorService)}
+     */
+    @Deprecated
+    public static PaxosProposer newProposer(
+            PaxosLearner localLearner,
+            List<PaxosAcceptor> allAcceptors,
+            List<PaxosLearner> allLearners,
+            int quorumSize,
+            ExecutorService executor) {
+        return newProposer(
+                localLearner,
+                allAcceptors,
+                allLearners,
+                quorumSize,
+                UUID.randomUUID(),
+                executor
+        );
+    }
+
+    public static PaxosProposer newProposer(
+            PaxosLearner localLearner,
+            List<PaxosAcceptor> allAcceptors,
+            List<PaxosLearner> allLearners,
+            int quorumSize,
+            UUID leaderUUID,
+            ExecutorService executor) {
         return new PaxosProposerImpl(
                 localLearner,
                 allAcceptors,
                 allLearners,
                 quorumSize,
-                UUID.randomUUID().toString(),
+                leaderUUID.toString(),
                 executor);
     }
 

@@ -1,11 +1,12 @@
-FROM frolvlad/alpine-oraclejdk8:slim
-
-RUN apk update && apk add libstdc++ bash wget
+FROM openjdk:8u131-jre
 
 ENV DOCKERIZE_VERSION v0.2.0
 
 RUN wget --no-check-certificate http://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
-    && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+    && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && apt-get update \
+    && apt-get install -y procps \
+    && sed -i 's/assistive_technologies=org.GNOME.Accessibility.AtkWrapper//' /etc/java-8-openjdk/accessibility.properties
 
 EXPOSE 3828
 

@@ -51,10 +51,10 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
     private final Lock lock = new ReentrantLock(false);
     private final Condition condition = lock.newCondition();
 
-    @GuardedBy(value="lock") private V returnValue;
-    @GuardedBy(value="lock") private Throwable executionException;
-    @GuardedBy(value="lock") private volatile CancellationException cancellationException;
-    @GuardedBy(value="lock") private volatile State state = State.WAITING_TO_RUN;
+    @GuardedBy(value = "lock") private V returnValue;
+    @GuardedBy(value = "lock") private Throwable executionException;
+    @GuardedBy(value = "lock") private volatile CancellationException cancellationException;
+    @GuardedBy(value = "lock") private volatile State state = State.WAITING_TO_RUN;
 
     private final FutureTask<?> futureTask = new FutureTask<Void>(new Runnable() {
         @Override
@@ -100,6 +100,7 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
         return futureTask.cancel(mayInterruptIfRunning);
     }
 
+    @SuppressWarnings("GuardedByChecker")
     protected void noteFinished() {
         state = State.COMPLETED;
         condition.signalAll();
@@ -143,6 +144,7 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
         }
     }
 
+    @SuppressWarnings("GuardedByChecker")
     private V getReturnValue() throws ExecutionException, CancellationException {
         if (cancellationException != null) {
             throw Throwables.chain(new CancellationException("This task was canceled before it ever ran."), cancellationException);
@@ -157,11 +159,13 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
      * @return true if and only if the task was canceled before it ever executed
      */
     @Override
+    @SuppressWarnings("GuardedByChecker")
     public final boolean isCancelled() {
         return cancellationException != null;
     }
 
     @Override
+    @SuppressWarnings("GuardedByChecker")
     public final boolean isDone() {
         return state == State.COMPLETED;
     }

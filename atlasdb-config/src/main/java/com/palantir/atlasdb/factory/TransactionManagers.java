@@ -15,10 +15,14 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.ServiceLoader;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.net.ssl.SSLSocketFactory;
+import javax.ws.rs.ClientErrorException;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -26,20 +30,25 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
@@ -55,12 +64,17 @@ import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
-import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
+import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.CellsSweeper;
+import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
 import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
+import com.palantir.atlasdb.sweep.SpecificTableSweeper;
+import com.palantir.atlasdb.sweep.SweepBatchConfig;
+import com.palantir.atlasdb.sweep.SweepMetrics;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -74,19 +88,30 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public final class TransactionManagers {
+
+    private static final int LOGGING_INTERVAL = 60;
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
-    private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
+
+    @VisibleForTesting static Consumer<Runnable> runAsync = task -> {
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
+    };
 
     private TransactionManagers() {
         // Utility class
@@ -102,68 +127,76 @@ public final class TransactionManagers {
 
     /**
      * Create a {@link SerializableTransactionManager} backed by an
-     * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}.  This should be used for testing
+     * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}. This should be used for testing
      * purposes only.
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
-        return create(ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build(),
+        AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
+        return create(config,
+                java.util.Optional::empty,
                 schemas,
                 x -> { },
                 false);
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, {@link Schema},
+     * Create a {@link SerializableTransactionManager} with provided configurations, {@link Schema},
      * and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Schema schema,
             Environment env,
             boolean allowHiddenTableAccess) {
-        return create(config, ImmutableSet.of(schema), env, allowHiddenTableAccess);
+        return create(config, runtimeConfigSupplier, ImmutableSet.of(schema), env, allowHiddenTableAccess);
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
+     * Create a {@link SerializableTransactionManager} with provided configurations, a set of
      * {@link Schema}s, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
-        log.info("Called TransactionManagers.create on thread {}. This should only happen once.",
-                Thread.currentThread().getName());
-        return create(config, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
+        log.info("Called TransactionManagers.create. This should only happen once.",
+                UnsafeArg.of("thread name", Thread.currentThread().getName()));
+        return create(config, runtimeConfigSupplier, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
+     * Create a {@link SerializableTransactionManager} with provided configurations, a set of
      * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess) {
-        return create(config, schemas, env, lockServerOptions, allowHiddenTableAccess, UserAgents.DEFAULT_USER_AGENT);
+        return create(config, runtimeConfigSupplier, schemas, env, lockServerOptions, allowHiddenTableAccess,
+                UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             Class<?> callingClass) {
-        return create(config, schemas, env, lockServerOptions, allowHiddenTableAccess,
+        return create(config, runtimeConfigSupplier, schemas, env, lockServerOptions, allowHiddenTableAccess,
                 UserAgents.fromClass(callingClass));
     }
 
     private static SerializableTransactionManager create(
             AtlasDbConfig config,
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
@@ -173,6 +206,8 @@ public final class TransactionManagers {
 
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
+        LockRequest.setDefaultLockTimeout(
+                SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
                 env,
@@ -182,7 +217,7 @@ public final class TransactionManagers {
                 userAgent);
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
-        kvs = ProfilingKeyValueService.create(kvs);
+        kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
         kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
         kvs = TracingKeyValueService.create(kvs);
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs,
@@ -236,6 +271,27 @@ public final class TransactionManagers {
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
                 config.getSweepPersistentLockWaitMillis());
+        initializeSweepEndpointAndBackgroundProcess(runtimeConfigSupplier,
+                env,
+                kvs,
+                transactionService,
+                sweepStrategyManager,
+                follower,
+                transactionManager,
+                persistentLockManager);
+
+        return transactionManager;
+    }
+
+    private static void initializeSweepEndpointAndBackgroundProcess(
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
+            Environment env,
+            KeyValueService kvs,
+            TransactionService transactionService,
+            SweepStrategyManager sweepStrategyManager,
+            CleanupFollower follower,
+            SerializableTransactionManager transactionManager,
+            PersistentLockManager persistentLockManager) {
         CellsSweeper cellsSweeper = new CellsSweeper(
                 transactionManager,
                 kvs,
@@ -248,20 +304,61 @@ public final class TransactionManagers {
                 transactionService,
                 sweepStrategyManager,
                 cellsSweeper);
-        BackgroundSweeper backgroundSweeper = BackgroundSweeperImpl.create(
+        BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
+        Supplier<SweepBatchConfig> sweepBatchConfig =
+                Suppliers.ofInstance(getSweepBatchConfig(getAtlasDbRuntimeConfig(runtimeConfigSupplier).sweep()));
+        SweepMetrics sweepMetrics = new SweepMetrics();
+
+        SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
+                env,
+                kvs,
+                transactionManager,
+                sweepRunner,
+                sweepPerfLogger,
+                sweepBatchConfig,
+                sweepMetrics);
+
+        BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
+                () -> getAtlasDbRuntimeConfig(runtimeConfigSupplier).sweep().enabled(),
+                () -> getAtlasDbRuntimeConfig(runtimeConfigSupplier).sweep().pauseMillis(),
+                persistentLockManager,
+                specificTableSweeper);
+
+        transactionManager.registerClosingCallback(backgroundSweeper::shutdown);
+        backgroundSweeper.runInBackground();
+    }
+
+    private static SpecificTableSweeper initializeSweepEndpoint(
+            Environment env,
+            KeyValueService kvs,
+            SerializableTransactionManager transactionManager,
+            SweepTaskRunner sweepRunner,
+            BackgroundSweeperPerformanceLogger sweepPerfLogger,
+            Supplier<SweepBatchConfig> sweepBatchConfig,
+            SweepMetrics sweepMetrics) {
+        SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 transactionManager,
                 kvs,
                 sweepRunner,
-                Suppliers.ofInstance(config.enableSweep()),
-                Suppliers.ofInstance(config.getSweepPauseMillis()),
-                Suppliers.ofInstance(config.getSweepBatchSize()),
-                Suppliers.ofInstance(config.getSweepCellBatchSize()),
+                sweepBatchConfig,
                 SweepTableFactory.of(),
-                new NoOpBackgroundSweeperPerformanceLogger(),
-                persistentLockManager);
-        backgroundSweeper.runInBackground();
+                sweepPerfLogger,
+                sweepMetrics);
+        env.register(new SweeperServiceImpl(specificTableSweeper));
+        return specificTableSweeper;
+    }
 
-        return transactionManager;
+    private static AtlasDbRuntimeConfig getAtlasDbRuntimeConfig(
+            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier) {
+        return runtimeConfigSupplier.get().orElse(AtlasDbRuntimeConfig.defaultRuntimeConfig());
+    }
+
+    private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig) {
+        return ImmutableSweepBatchConfig.builder()
+                .maxCellTsPairsToExamine(sweepConfig.readLimit())
+                .candidateBatchSize(sweepConfig.candidateBatchHint())
+                .deleteBatchSize(sweepConfig.deleteBatchHint())
+                .build();
     }
 
     private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
@@ -337,7 +434,7 @@ public final class TransactionManagers {
             TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
             return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
         } else {
-            return createRawEmbeddedServices(env, lock, time);
+            return createRawEmbeddedServices(env, lock, time, userAgent);
         }
     }
 
@@ -368,26 +465,82 @@ public final class TransactionManagers {
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
             String userAgent) {
-        LeaderElectionService leader = Leaders.create(env, leaderConfig, userAgent);
+        // Create local services, that may or may not end up being registered in an environment.
+        LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(env, leaderConfig, userAgent);
+        LeaderElectionService leader = localPaxosServices.leaderElectionService();
+        RemoteLockService localLock = AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader);
+        TimestampService localTime = AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader);
+        env.register(localLock);
+        env.register(localTime);
 
-        env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
-        env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));
-
+        // Create remote services, that may end up calling our own local services.
         Optional<SSLSocketFactory> sslSocketFactory = ServiceCreator.createSslSocketFactory(
                 leaderConfig.sslConfiguration());
+        RemoteLockService remoteLock = ServiceCreator.createService(
+                sslSocketFactory,
+                leaderConfig.leaders(),
+                RemoteLockService.class,
+                userAgent);
+        TimestampService remoteTime = ServiceCreator.createService(
+                sslSocketFactory,
+                leaderConfig.leaders(),
+                TimestampService.class,
+                userAgent);
 
-        return ImmutableLockAndTimestampServices.builder()
-                .lock(ServiceCreator.createService(
-                        sslSocketFactory,
-                        leaderConfig.leaders(),
-                        RemoteLockService.class,
-                        userAgent))
-                .time(ServiceCreator.createService(
-                        sslSocketFactory,
-                        leaderConfig.leaders(),
-                        TimestampService.class,
-                        userAgent))
-                .build();
+        if (leaderConfig.leaders().size() == 1) {
+            // Attempting to connect to ourself while processing a request can lead to deadlock if incoming request
+            // volume is high, as all Jetty threads end up waiting for the timestamp server, and no threads remain to
+            // actually handle the timestamp server requests. If we are the only single leader, we can avoid the
+            // deadlock entirely; so use PingableLeader's getUUID() to detect this situation and eliminate the redundant
+            // call.
+
+            PingableLeader localPingableLeader = localPaxosServices.pingableLeader();
+            String localServerId = localPingableLeader.getUUID();
+            PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
+                    sslSocketFactory,
+                    Iterables.getOnlyElement(leaderConfig.leaders()),
+                    PingableLeader.class,
+                    userAgent);
+
+            // Determine asynchronously whether the remote services are talking to our local services.
+            CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();
+            runAsync.accept(() -> {
+                int logAfter = LOGGING_INTERVAL;
+                while (true) {
+                    try {
+                        String remoteServerId = remotePingableLeader.getUUID();
+                        useLocalServicesFuture.complete(localServerId.equals(remoteServerId));
+                        return;
+                    } catch (ClientErrorException e) {
+                        useLocalServicesFuture.complete(false);
+                        return;
+                    } catch (Throwable e) {
+                        if (--logAfter == 0) {
+                            log.warn("Failed to read remote timestamp server ID", e);
+                            logAfter = LOGGING_INTERVAL;
+                        }
+                    }
+                    Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+                }
+            });
+
+            // Create dynamic service proxies, that switch to talking directly to our local services if it turns out our
+            // remote services are pointed at them anyway.
+            RemoteLockService dynamicLockService = LocalOrRemoteProxy.newProxyInstance(
+                    RemoteLockService.class, localLock, remoteLock, useLocalServicesFuture);
+            TimestampService dynamicTimeService = LocalOrRemoteProxy.newProxyInstance(
+                    TimestampService.class, localTime, remoteTime, useLocalServicesFuture);
+            return ImmutableLockAndTimestampServices.builder()
+                    .lock(dynamicLockService)
+                    .time(dynamicTimeService)
+                    .build();
+
+        } else {
+            return ImmutableLockAndTimestampServices.builder()
+                    .lock(remoteLock)
+                    .time(remoteTime)
+                    .build();
+        }
     }
 
     private static LockAndTimestampServices createRawRemoteServices(AtlasDbConfig config, String userAgent) {
@@ -405,9 +558,14 @@ public final class TransactionManagers {
     private static LockAndTimestampServices createRawEmbeddedServices(
             Environment env,
             Supplier<RemoteLockService> lock,
-            Supplier<TimestampService> time) {
-        RemoteLockService lockService = lock.get();
-        TimestampService timeService = time.get();
+            Supplier<TimestampService> time,
+            String userAgent) {
+        RemoteLockService lockService = ServiceCreator.createInstrumentedService(lock.get(),
+                RemoteLockService.class,
+                userAgent);
+        TimestampService timeService = ServiceCreator.createInstrumentedService(time.get(),
+                TimestampService.class,
+                userAgent);
 
         env.register(lockService);
         env.register(timeService);

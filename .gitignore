@@ -25,6 +25,7 @@ docs/build/
 bin/
 userdict.txt
 .apt_generated/
+generated/
 generated_src/
 generated_testSrc/
 .factorypath
@@ -37,9 +38,6 @@ atlasdb-cli/var/data/
 *~
 # opendiff et al
 *.orig
-
-# Rocksdb data
-var/data/rocksdb
 
 # Memory tracker nohup
 nohup.out

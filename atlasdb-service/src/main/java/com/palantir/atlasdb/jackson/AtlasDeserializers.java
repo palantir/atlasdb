@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Bytes;
@@ -78,15 +79,23 @@ public final class AtlasDeserializers {
         Preconditions.checkArgument(!mustBeFull || size == components.size(),
                 "Received %s values for a row with %s components.", size, components.size());
         byte[][] bytes = new byte[size][];
+        Iterator<JsonNode> rowValues = getComponentNodes(node, components);
         for (int i = 0; i < size; i++) {
-            JsonNode value = node.get(i);
             NameComponentDescription component = components.get(i);
-            bytes[i] = component.getType().convertFromJson(value.toString());
+            bytes[i] = component.getType().convertFromJson(rowValues.next().toString());
             if (component.isReverseOrder()) {
                 EncodingUtils.flipAllBitsInPlace(bytes[i]);
             }
         }
         return Bytes.concat(bytes);
+    }
+
+    private static Iterator<JsonNode> getComponentNodes(JsonNode node, List<NameComponentDescription> components) {
+        if (node.isArray()) {
+            return node.elements();
+        } else {
+            return Iterators.transform(components.iterator(), c -> node.get(c.getComponentName()));
+        }
     }
 
     public static Iterable<byte[]> deserializeRows(final NameMetadataDescription description,

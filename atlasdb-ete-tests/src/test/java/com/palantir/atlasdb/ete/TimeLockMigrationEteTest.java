@@ -18,6 +18,7 @@ package com.palantir.atlasdb.ete;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.io.File;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -28,10 +29,10 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.base.Optional;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
@@ -40,6 +41,9 @@ import com.palantir.timestamp.TimestampService;
 // We don't use EteSetup because we need much finer-grained control of the orchestration here, compared to the other
 // ETE tests where the general idea is "set up all the containers, and fire".
 public class TimeLockMigrationEteTest {
+    private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
+    private static final Gradle DOCKER_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
+
     // Docker Engine daemon only has limited access to the filesystem, if the user is using Docker-Machine
     // Thus ensure the temporary folder is a subdirectory of the user's home directory
     private static final TemporaryFolder TEMPORARY_FOLDER
@@ -58,7 +62,9 @@ public class TimeLockMigrationEteTest {
     private static final String TEST_CLIENT = "test";
 
     @ClassRule
-    public static final RuleChain RULE_CHAIN = RuleChain.outerRule(TEMPORARY_FOLDER)
+    public static final RuleChain RULE_CHAIN = RuleChain.outerRule(GRADLE_PREPARE_TASK)
+            .around(DOCKER_TASK)
+            .around(TEMPORARY_FOLDER)
             .around(CLIENT_ORCHESTRATION_RULE);
 
     @Rule
@@ -122,9 +128,10 @@ public class TimeLockMigrationEteTest {
 
         // as() is not compatible with assertThatThrownBy - see
         // http://joel-costigliola.github.io/assertj/core/api/org/assertj/core/api/Assertions.html
-        softAssertions.assertThat(catchThrowable(timestampClient::getFreshTimestamp))
-                .as("no longer exposes an embedded timestamp service")
-                .hasMessageContaining("404");
+        softAssertions.assertThat(
+                ((AtlasDbRemoteException) catchThrowable(timestampClient::getFreshTimestamp)).getStatus())
+                .isEqualTo(404)
+                .as("no longer exposes an embedded timestamp service");
     }
 
     private void assertCanNeitherReadNorWrite() {
@@ -172,11 +179,11 @@ public class TimeLockMigrationEteTest {
 
     private static <T> T createEteClientFor(Class<T> clazz) {
         String uri = String.format("http://%s:%s", ETE_CONTAINER, ETE_PORT);
-        return AtlasDbHttpClients.createProxy(Optional.absent(), uri, clazz);
+        return AtlasDbHttpClients.createProxy(Optional.empty(), uri, clazz);
     }
 
     private static TimestampService createTimeLockTimestampClient() {
         String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
-        return AtlasDbHttpClients.createProxy(Optional.absent(), uri, TimestampService.class);
+        return AtlasDbHttpClients.createProxy(Optional.empty(), uri, TimestampService.class);
     }
 }

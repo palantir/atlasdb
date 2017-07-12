@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.factory;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.isA;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,7 +33,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -41,16 +49,28 @@ import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
+import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.leader.PingableLeader;
+import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRequest;
+import com.palantir.lock.SimpleTimeDuration;
+import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TransactionManagersTest {
@@ -59,6 +79,8 @@ public class TransactionManagersTest {
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final long EMBEDDED_BOUND = 3;
 
+    private static final String LEADER_UUID_PATH = "/leader/uuid";
+    private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));
     private static final String TIMESTAMP_PATH = "/timestamp/fresh-timestamp";
     private static final MappingBuilder TIMESTAMP_MAPPING = post(urlEqualTo(TIMESTAMP_PATH));
     private static final String LOCK_PATH = "/lock/current-time-millis";
@@ -81,6 +103,7 @@ public class TransactionManagersTest {
     private AtlasDbConfig config;
     private TransactionManagers.Environment environment;
     private TimestampStoreInvalidator invalidator;
+    private Consumer<Runnable> originalAsyncMethod;
 
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -90,16 +113,25 @@ public class TransactionManagersTest {
 
     @Before
     public void setup() {
+        // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
+        originalAsyncMethod = TransactionManagers.runAsync;
+        TransactionManagers.runAsync = task -> {
+            Awaitility.await().atMost(2, TimeUnit.SECONDS).until(task);
+        };
+
+        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(200).withBody(
+                ("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
         availableServer.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("1")));
         availableServer.stubFor(LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("2")));
         availableServer.stubFor(TIMELOCK_TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("3")));
         availableServer.stubFor(TIMELOCK_LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("4")));
 
         config = mock(AtlasDbConfig.class);
-        when(config.leader()).thenReturn(Optional.absent());
-        when(config.timestamp()).thenReturn(Optional.absent());
-        when(config.lock()).thenReturn(Optional.absent());
-        when(config.timelock()).thenReturn(Optional.absent());
+        when(config.leader()).thenReturn(Optional.empty());
+        when(config.timestamp()).thenReturn(Optional.empty());
+        when(config.lock()).thenReturn(Optional.empty());
+        when(config.timelock()).thenReturn(Optional.empty());
+        when(config.keyValueService()).thenReturn(new InMemoryAtlasDbConfig());
 
         environment = mock(TransactionManagers.Environment.class);
 
@@ -111,6 +143,11 @@ public class TransactionManagersTest {
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
                 .build();
+    }
+
+    @After
+    public void restoreAsyncExecution() {
+        TransactionManagers.runAsync = originalAsyncMethod;
     }
 
     @Test
@@ -141,6 +178,107 @@ public class TransactionManagersTest {
         verifyUserAgentOnRawTimestampAndLockRequests();
     }
 
+    @Test
+    public void remoteCallsStillMadeIfPingableLeader404s() throws IOException, InterruptedException {
+        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(404)));
+        when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
+                .localServer(getUriForPort(availablePort))
+                .addLeaders(getUriForPort(availablePort))
+                .acceptorLogDir(temporaryFolder.newFolder())
+                .learnerLogDir(temporaryFolder.newFolder())
+                .quorumSize(1)
+                .build()));
+
+        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
+                TransactionManagers.createLockAndTimestampServices(
+                        config,
+                        environment,
+                        LockServiceImpl::create,
+                        InMemoryTimestampService::new,
+                        invalidator,
+                        USER_AGENT);
+        availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
+
+        lockAndTimestampServices.time().getFreshTimestamp();
+        lockAndTimestampServices.lock().currentTimeMillis();
+
+        availableServer.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+        availableServer.verify(postRequestedFor(urlMatching(LOCK_PATH))
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+    }
+
+    @Test
+    public void remoteCallsElidedIfTalkingToLocalServer() throws IOException, InterruptedException {
+        doAnswer(invocation -> {
+            // Configure our server to reply with the same server ID as the registered PingableLeader.
+            PingableLeader localPingableLeader = invocation.getArgumentAt(0, PingableLeader.class);
+            availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
+                    .withStatus(200)
+                    .withBody(("\"" + localPingableLeader.getUUID().toString() + "\"").getBytes())));
+            return null;
+        }).when(environment).register(isA(PingableLeader.class));
+        when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
+                .localServer(getUriForPort(availablePort))
+                .addLeaders(getUriForPort(availablePort))
+                .acceptorLogDir(temporaryFolder.newFolder())
+                .learnerLogDir(temporaryFolder.newFolder())
+                .quorumSize(1)
+                .build()));
+
+        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
+                TransactionManagers.createLockAndTimestampServices(
+                        config,
+                        environment,
+                        LockServiceImpl::create,
+                        InMemoryTimestampService::new,
+                        invalidator,
+                        USER_AGENT);
+        availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
+
+        lockAndTimestampServices.time().getFreshTimestamp();
+        lockAndTimestampServices.lock().currentTimeMillis();
+
+        availableServer.verify(0, postRequestedFor(urlMatching(TIMESTAMP_PATH))
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+        availableServer.verify(0, postRequestedFor(urlMatching(LOCK_PATH))
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+    }
+
+    @Test
+    public void setsGlobalDefaultLockTimeout() {
+        TimeDuration expectedTimeout = SimpleTimeDuration.of(47, TimeUnit.SECONDS);
+        AtlasDbConfig realConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .defaultLockTimeoutSeconds((int) expectedTimeout.getTime())
+                .build();
+        TransactionManagers.create(realConfig, Optional::empty,
+                ImmutableSet.of(), environment, false);
+
+        assertEquals(expectedTimeout, LockRequest.getDefaultLockTimeout());
+
+        LockRequest lockRequest = LockRequest
+                .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"),
+                        LockMode.WRITE)).build();
+        assertEquals(expectedTimeout, lockRequest.getLockTimeout());
+    }
+
+    @Test
+    public void runsClosingCallbackOnShutdown() throws Exception {
+        AtlasDbConfig realConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .defaultLockTimeoutSeconds(120)
+                .build();
+
+        Runnable callback = mock(Runnable.class);
+
+        SerializableTransactionManager manager = TransactionManagers.create(
+                realConfig, Optional::empty, ImmutableSet.of(), environment, false);
+        manager.registerClosingCallback(callback);
+        manager.close();
+        verify(callback, times(1)).run();
+    }
+
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
         verifyUserAgentOnTimestampAndLockRequests(TIMESTAMP_PATH, LOCK_PATH);
     }
@@ -148,7 +286,7 @@ public class TransactionManagersTest {
     private void verifyUserAgentOnTimelockTimestampAndLockRequests() {
         availableServer.stubFor(TIMELOCK_PING_MAPPING.willReturn(aResponse()
                 .withStatus(200)
-                .withBody("pong")
+                .withBody(TimestampManagementService.PING_RESPONSE)
                 .withHeader("Content-Type", "text/plain")));
         availableServer.stubFor(TIMELOCK_FF_MAPPING.willReturn(aResponse()
                 .withStatus(204)));

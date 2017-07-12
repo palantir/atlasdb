@@ -16,16 +16,16 @@
 package com.palantir.atlasdb.timelock.config;
 
 import java.io.File;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockServer;
-import com.palantir.remoting.ssl.SslConfiguration;
+import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 import io.dropwizard.setup.Environment;
 
@@ -33,6 +33,8 @@ import io.dropwizard.setup.Environment;
 @JsonDeserialize(as = ImmutablePaxosConfiguration.class)
 @Value.Immutable
 public abstract class PaxosConfiguration implements TimeLockAlgorithmConfiguration {
+    public static final PaxosConfiguration DEFAULT = ImmutablePaxosConfiguration.builder().build();
+
     @Value.Default
     public File paxosDataDir() {
         return new File("var/data/paxos");

@@ -30,12 +30,14 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 
 import com.palantir.atlasdb.performance.BenchmarkParam;
+import com.palantir.atlasdb.performance.MinimalReportFormatForTest;
 import com.palantir.atlasdb.performance.PerformanceResults;
 import com.palantir.atlasdb.performance.backend.DatabasesContainer;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
@@ -80,6 +82,9 @@ public class AtlasDbPerfCli {
                     + "Leave blank to only write results to the console.")
     private String outputFile;
 
+    @Option(name = {"--test-run"}, description = "Run a single iteration of the benchmarks for testing purposes.")
+    private boolean testRun;
+
     public static void main(String[] args) throws Exception {
         AtlasDbPerfCli cli = SingleCommand.singleCommand(AtlasDbPerfCli.class).parse(args);
 
@@ -119,9 +124,7 @@ public class AtlasDbPerfCli {
     private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
-                .warmupIterations(1)
                 .measurementIterations(1)
-                .mode(Mode.SampleTime)
                 .timeUnit(TimeUnit.MICROSECONDS)
                 .shouldFailOnError(true)
                 .param(BenchmarkParam.URI.getKey(),
@@ -129,16 +132,35 @@ public class AtlasDbPerfCli {
                                 .map(DockerizedDatabaseUri::toString)
                                 .collect(Collectors.toList())
                                 .toArray(new String[uris.size()]));
+
         if (cli.tests == null) {
             getAllBenchmarks().forEach(b -> optBuilder.include(".*" + b));
         } else {
             cli.tests.forEach(b -> optBuilder.include(".*" + b));
         }
 
+        if (!cli.testRun) {
+            runCli(cli, optBuilder);
+        } else {
+            runCliInTestMode(optBuilder);
+        }
+    }
+
+    private static void runCli(AtlasDbPerfCli cli, ChainedOptionsBuilder optBuilder) throws Exception {
+        optBuilder.warmupIterations(1)
+                .mode(Mode.SampleTime);
+
         Collection<RunResult> results = new Runner(optBuilder.build()).run();
+
         if (cli.outputFile != null) {
             new PerformanceResults(results).writeToFile(new File(cli.outputFile));
         }
+    }
+
+    private static void runCliInTestMode(ChainedOptionsBuilder optBuilder) throws RunnerException {
+        optBuilder.warmupIterations(0)
+                .mode(Mode.SingleShotTime);
+        new Runner(optBuilder.build(), MinimalReportFormatForTest.get()).run();
     }
 
     private static DatabasesContainer startupDatabase(Set<String> backends) {

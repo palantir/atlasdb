@@ -18,12 +18,15 @@ package com.palantir.atlasdb.sweep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.SafeArg;
 
 // TODO move to persistentlock package?
 public class PersistentLockManager {
@@ -31,6 +34,11 @@ public class PersistentLockManager {
 
     private final PersistentLockService persistentLockService;
     private final long persistentLockRetryWaitMillis;
+
+    private static final String ACQUIRE_FAILURE_METRIC_NAME = "unableToAcquirePersistentLock";
+
+    private final MetricsManager metricsManager;
+    private final Meter lockFailureMeter;
 
     @VisibleForTesting
     PersistentLockId lockId;
@@ -40,7 +48,8 @@ public class PersistentLockManager {
     public PersistentLockManager(PersistentLockService persistentLockService, long persistentLockRetryWaitMillis) {
         this.persistentLockService = persistentLockService;
         this.persistentLockRetryWaitMillis = persistentLockRetryWaitMillis;
-
+        this.metricsManager = new MetricsManager();
+        this.lockFailureMeter = metricsManager.registerMeter(this.getClass(), null, ACQUIRE_FAILURE_METRIC_NAME);
         this.lockId = null;
     }
 
@@ -65,9 +74,10 @@ public class PersistentLockManager {
         while (true) {
             try {
                 lockId = persistentLockService.acquireBackupLock("Sweep");
-                log.info("Successfully acquired persistent lock for sweep: {}", lockId);
+                log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lock id", lockId));
                 return;
             } catch (CheckAndSetException e) {
+                lockFailureMeter.mark();
                 log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
                 waitForRetry();
             }
@@ -86,7 +96,8 @@ public class PersistentLockManager {
             lockId = null;
         } catch (CheckAndSetException e) {
             log.error("Failed to release persistent lock {}. "
-                    + "Either the lock was already released, or communications with the database failed.", lockId, e);
+                    + "Either the lock was already released, or communications with the database failed.",
+                    SafeArg.of("lock id", lockId), e);
         }
     }
 

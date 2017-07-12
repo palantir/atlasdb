@@ -19,7 +19,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.remoting2.tracing.Tracers;
 
 public class MemoryTransactionTest extends AbstractTransactionTest {
     @Override

@@ -20,9 +20,9 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -32,6 +32,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -185,20 +187,20 @@ public final class TableSplittingKeyValueService implements KeyValueService {
 
     public KeyValueService getDelegate(TableReference tableRef) {
         return tableDelegateFor(tableRef)
-                .or(namespaceDelegateFor(tableRef))
-                .or(delegates.get(0));
+                .orElse(namespaceDelegateFor(tableRef)
+                        .orElse(delegates.get(0)));
     }
 
     private Optional<KeyValueService> tableDelegateFor(TableReference tableRef) {
-        return Optional.fromNullable(delegateByTable.get(tableRef));
+        return Optional.ofNullable(delegateByTable.get(tableRef));
     }
 
     private Optional<KeyValueService> namespaceDelegateFor(TableReference tableRef) {
         if (!tableRef.isFullyQualifiedName()) {
-            return Optional.absent();
+            return Optional.empty();
         }
         KeyValueService delegate = delegateByNamespace.get(tableRef.getNamespace());
-        return Optional.fromNullable(delegate);
+        return Optional.ofNullable(delegate);
     }
 
     @Override
@@ -245,6 +247,12 @@ public final class TableSplittingKeyValueService implements KeyValueService {
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
         return getDelegate(tableRef).getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+    }
+
+    @Override
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
+            CandidateCellForSweepingRequest request) {
+        return getDelegate(tableRef).getCandidateCellsForSweeping(tableRef, request);
     }
 
     @Override

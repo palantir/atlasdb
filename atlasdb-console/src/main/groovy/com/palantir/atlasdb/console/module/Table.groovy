@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.console.module
 
+import com.google.common.collect.Iterables
 import com.palantir.atlasdb.api.TransactionToken
 import com.palantir.atlasdb.console.AtlasConsoleJoins
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
@@ -57,6 +58,44 @@ class Table {
         getDescription()['columns'].collect {it['long_name']}
     }
 
+    List rowComponents() {
+        getDescription()['row'].collect() {it['name']}
+    }
+    /**
+     * Get data from atlas by specifying the row of data to return
+     * @param row  A single row to get, where the row is a List of components
+     * @param cols Optional List of columns to get, where each column is a
+     *             String representing the column name. Defaults to all columns if unspecified.
+     * @param token Optional TransactionToken representing current transaction.
+     *              Defaults to TransactionToken.autoCommit() if unspecified.
+     * @return Returns a Map object.
+     *         For named columns:
+     *         [
+     *             "row": {componentName1: component1, componentName2: component2, ...},
+     *             "cols": {columnName1: {value1}, columnName2: {value2}, ...}
+     *         ]
+     *
+     *         For dynamic columns:
+     *         [
+     *             "row": {componentName1: component1, componentName2: component2, ...},
+     *             "cols": [
+     *             [
+     *                 "col": [{component1}, ...],
+     *                 "val": {value},
+     *             ],
+     *             ...
+     *         ]
+     */
+    Map getRow(row, cols=null, TransactionToken token = service.getTransactionToken()) {
+        def query = baseQuery()
+        query['rows'] = [row]
+        if (cols != null) {
+            cols = listify(cols).collect { listify(it) }
+            query['cols'] = cols
+        }
+        def result = service.getRows(query, token)['data'] as List
+        return Iterables.getOnlyElement(result) as Map
+    }
 
     /**
      * Get data from atlas by specifying the rows of data to return
@@ -68,15 +107,13 @@ class Table {
      * @return Returns a List of Map objects.
      *         For named colums:
      *         [
-     *             "row": [{component1}, {component2}, ...],
-     *             {column1Name}: {value},
-     *             {column2Name}: {value},
-     *             ...
+     *             "row": {componentName1: component1, componentName2: component2, ...},
+     *             "cols": {columnName1: {value1}, columnName2: {value2}, ...}
      *         ]
      *
      *         For dynamic columns:
      *         [
-     *             "row": [{component1}, {component2}, ...],
+     *             "row": {componentName1: component1, componentName2: component2, ...},
      *             "cols": [
      *             [
      *                 "col": [{component1}, ...],
@@ -87,10 +124,10 @@ class Table {
      */
     List getRows(rows, cols=null, TransactionToken token = service.getTransactionToken()) {
         def query = baseQuery()
-        rows = listify(rows).collect { listify(it) }
+        rows = listify(rows).collect { listifyUnlessMap(it) }
         query['rows'] = rows
         if (cols != null) {
-            cols = listify(cols).collect { listify(it) }
+            cols = listify(cols).collect { listifyUnlessMap(it) }
             query['cols'] = cols
         }
         return service.getRows(query, token)['data'] as List
@@ -114,12 +151,12 @@ class Table {
      * @param cells List of Cell objects.
      *        For named columns:
      *        [
-     *            "row": [{component1}, ...],
+     *            "row": {componentName1: component1, componentName2: component2, ...},
      *            "col": "columnName"
      *        ]
      *        For dynamic columns:
      *        [
-     *            "row": [{component1}, ...],
+     *            "row": {componentName1: component1, componentName2: component2, ...},
      *            "col": [{component1}, ...]
      *        ]
      * @param token Optional TransactionToken representing current transaction.
@@ -127,12 +164,12 @@ class Table {
      * @return List of Objects.
      *         For named columns:
      *         [
-     *             "row": [{component1}, ...],
+     *             "row": {componentName1: component1, componentName2: component2, ...},
      *             {columnName}: {value}
      *         ]
      *         For dynamic columns:
      *         [
-     *             "row": [{component1}, ...],
+     *             "row": {componentName1: component1, componentName2: component2, ...},
      *             "col": [{component1}, ...],
      *             "val": {value}
      *         ]
@@ -156,12 +193,12 @@ class Table {
      * @return A Range iterable with a next() method that returns objects of the following form:
      *         For named columns:
      *         [
-     *             "row": [{component1}, ...],
-     *             {columnName}: {value}
+     *             "row": {componentName1: component1, componentName2: component2, ...},
+     *             "cols": {columnName1: {value1}, columnName2: {value2}, ...}
      *         ]
      *         For dynamic columns:
      *         [
-     *             "row": [{component1}, ...],
+     *             "row": {componentName1: component1, componentName2: component2, ...},
      *             "cols": [
      *             [
      *                 "col": [{component1}, ...],
@@ -273,7 +310,7 @@ class Table {
         list.collect { elem ->
             def map = [:]
             for (String key in keys) {
-                map.put(key, listify(elem.getAt(key)))
+                map.put(key, listifyUnlessMap(elem.getAt(key)))
             }
             return map
         }
@@ -285,6 +322,14 @@ class Table {
 
     private List listify(obj) {
         (obj instanceof List ? obj : [obj]) as List
+    }
+
+    private Object listifyUnlessMap(obj) {
+        if (obj instanceof Map || obj instanceof List) {
+            return obj
+        } else {
+            return [obj]
+        }
     }
 
     private Map<String, Set> columnFields() {

@@ -42,7 +42,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting1.tracing.Tracers;
+import com.palantir.remoting2.tracing.Tracers;
 
 public class KeyValueServiceValidator {
     private final TransactionManager validationFromTransactionManager;

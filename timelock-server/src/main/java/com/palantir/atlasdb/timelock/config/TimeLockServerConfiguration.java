@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock.config;
 import java.util.Set;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
@@ -29,6 +31,8 @@ import io.dropwizard.jetty.HttpConnectorFactory;
 import io.dropwizard.server.DefaultServerFactory;
 
 public class TimeLockServerConfiguration extends Configuration {
+    private static final Logger log = LoggerFactory.getLogger(TimeLockServerConfiguration.class);
+
     public static final String CLIENT_NAME_REGEX = "[a-zA-Z0-9_-]+";
 
     private final TimeLockAlgorithmConfiguration algorithm;
@@ -43,19 +47,23 @@ public class TimeLockServerConfiguration extends Configuration {
             @JsonProperty(value = "clients", required = true) Set<String> clients,
             @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit,
             @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration) {
-        Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
         checkClientNames(clients);
         if (Boolean.TRUE.equals(useClientRequestLimit)) {
             Preconditions.checkState(computeNumberOfAvailableThreads() > 0,
                     "Configuration enables clientRequestLimit but specifies non-positive number of available threads.");
         }
 
-        this.algorithm = MoreObjects.firstNonNull(algorithm, AtomixConfiguration.DEFAULT);
+        this.algorithm = MoreObjects.firstNonNull(algorithm, PaxosConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
         this.timeLimiterConfiguration =
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
+
+        if (clients.isEmpty()) {
+            log.warn("TimeLockServer initialised with an empty list of 'clients'. "
+                    + "When adding clients, you will need to amend the config and restart TimeLock.");
+        }
     }
 
     private void checkClientNames(Set<String> clientNames) {

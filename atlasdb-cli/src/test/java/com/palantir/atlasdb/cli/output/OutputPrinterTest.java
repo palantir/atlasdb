@@ -29,20 +29,27 @@ public class OutputPrinterTest {
     public void testInfoPrintingWorksWithSingleReplacement() {
         String systemOut = StandardStreamUtilities.wrapSystemOut(
                 () -> print.info("Test this gets {}", "replaced"));
-        assertThat(systemOut).isEqualTo("Test this gets replaced ");
+        assertThat(systemOut).contains("Test this gets replaced ");
+    }
+
+    @Test
+    public void testWarnPrintingWorksWithSingleReplacement() {
+        String systemOut = StandardStreamUtilities.wrapSystemErr(
+                () -> print.warn("Test this gets {}", "replaced"));
+        assertThat(systemOut).contains("Test this gets replaced ");
     }
 
     @Test
     public void testInfoPrintingWorksWithMultipleReplacement() {
         String systemOut = StandardStreamUtilities.wrapSystemOut(
                 () -> print.info("Replace {} of {} {}.", "all", "these", "fields"));
-        assertThat(systemOut).isEqualTo("Replace all of these fields. ");
+        assertThat(systemOut).contains("Replace all of these fields. ");
     }
 
     @Test
     public void testErrorPrintingWorksWithMultipleReplacement() {
         String systemErr = StandardStreamUtilities.wrapSystemErr(
                 () -> print.error("Replace {} of {} {}.", "all", "these", "fields"));
-        assertThat(systemErr).isEqualTo("Replace all of these fields. ");
+        assertThat(systemErr).contains("Replace all of these fields. ");
     }
 }

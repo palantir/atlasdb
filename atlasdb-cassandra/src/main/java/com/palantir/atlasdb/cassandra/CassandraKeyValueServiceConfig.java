@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cassandra;
 
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
+import java.util.Optional;
 import java.util.Set;
 
 import org.immutables.value.Value;
@@ -26,10 +27,9 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.remoting.ssl.SslConfiguration;
+import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
@@ -185,7 +185,10 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return false;
     }
 
-    public abstract Optional<Integer> timestampsGetterBatchSize();
+    @Value.Default
+    public Integer timestampsGetterBatchSize() {
+        return 1_000;
+    }
 
     public abstract Optional<CassandraJmxCompactionConfig> jmx();
 
@@ -197,7 +200,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @JsonIgnore
     @Value.Derived
     public boolean usingSsl() {
-        return ssl().or(sslConfiguration().isPresent());
+        return ssl().orElse(sslConfiguration().isPresent());
     }
 
     @Value.Check

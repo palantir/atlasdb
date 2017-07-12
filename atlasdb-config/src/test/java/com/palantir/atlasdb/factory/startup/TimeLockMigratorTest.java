@@ -40,6 +40,7 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TimeLockMigratorTest {
@@ -65,7 +66,7 @@ public class TimeLockMigratorTest {
         when(invalidator.backupAndInvalidate()).thenReturn(BACKUP_TIMESTAMP);
         wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse()
                 .withStatus(200)
-                .withBody("pong")
+                .withBody(TimestampManagementService.PING_RESPONSE)
                 .withHeader("Content-Type", "text/plain")));
 
         String serverUri = String.format("http://%s:%s",

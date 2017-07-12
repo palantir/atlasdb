@@ -15,12 +15,14 @@
  */
 package com.palantir.atlasdb;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
@@ -33,6 +35,7 @@ import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
@@ -60,6 +63,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         bootstrap.setMetricRegistry(MetricRegistries.createWithHdrHistogramReservoirs());
         enableEnvironmentVariablesInConfig(bootstrap);
         bootstrap.addBundle(new AtlasDbBundle<>());
+        bootstrap.getObjectMapper().registerModule(new Jdk8Module());
     }
 
     @Override
@@ -67,6 +71,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         TransactionManager transactionManager = createTransactionManager(config, environment);
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
+        environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
     }
 
     private TransactionManager createTransactionManager(AtlasDbEteConfiguration config, Environment environment)
@@ -76,6 +81,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             try {
                 return TransactionManagers.create(
                         config.getAtlasDbConfig(),
+                        Optional::empty,
                         ETE_SCHEMAS,
                         environment.jersey()::register,
                         DONT_SHOW_HIDDEN_TABLES);

@@ -21,12 +21,12 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.Test;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.palantir.remoting.ssl.SslConfiguration;
+import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 public class TimeLockClientConfigTest {
     private static final String CLIENT = "testClient";
@@ -60,10 +60,10 @@ public class TimeLockClientConfigTest {
     @Test
     public void preservesAbsenceOfSslOnConversionToNamespacedServerListIfAbsent() {
         ImmutableServerListConfig serversListWithoutSsl = ImmutableServerListConfig.copyOf(SERVERS_LIST)
-                .withSslConfiguration(Optional.absent());
+                .withSslConfiguration(Optional.empty());
         TimeLockClientConfig config = ImmutableTimeLockClientConfig.copyOf(CLIENT_CONFIG)
                 .withServersList(serversListWithoutSsl);
-        assertThat(config.toNamespacedServerList().sslConfiguration(), equalTo(Optional.absent()));
+        assertThat(config.toNamespacedServerList().sslConfiguration(), equalTo(Optional.empty()));
     }
 
     private static TimeLockClientConfig getTimelockConfigForServers(List<String> servers) {

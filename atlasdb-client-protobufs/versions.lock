@@ -6,6 +6,9 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "2.6.0",
             "requested": "2.6.0"
+        },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1"
         }
     },
     "runtime": {
@@ -15,6 +18,9 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "2.6.0",
             "requested": "2.6.0"
+        },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.1"
         }
     }
 }

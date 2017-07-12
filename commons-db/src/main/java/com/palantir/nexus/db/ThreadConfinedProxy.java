@@ -25,6 +25,8 @@ import java.util.concurrent.Callable;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.reflect.AbstractInvocationHandler;
@@ -39,6 +41,7 @@ import com.palantir.util.AssertUtils;
  *  Connection from multiple threads, provided we never expose the Connection outside of the proxy.
  */
 public class ThreadConfinedProxy extends AbstractInvocationHandler implements DelegatingInvocationHandler {
+    private static final Logger log = LoggerFactory.getLogger(ThreadConfinedProxy.class);
 
     public enum Strictness {
         ASSERT_AND_LOG, VALIDATE
@@ -164,7 +167,7 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
     private void fail(String message) {
         switch (strictness) {
             case ASSERT_AND_LOG:
-                AssertUtils.assertAndLog(false, message);
+                AssertUtils.assertAndLog(log, false, message);
                 break;
             case VALIDATE:
                 Validate.isTrue(false, message);
@@ -178,7 +181,7 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
         threadName = newThread.getName();
     }
 
-    private void checkThreadChange(Thread oldThread, Thread newThread) {
+    private synchronized void checkThreadChange(Thread oldThread, Thread newThread) {
         if (oldThread.getId() != threadId) {
             String message = String.format(
                     "Thread confinement violation: tried to change threads from thread %s (ID %s) to thread %s (ID %s), but we expected thread %s (ID %s)",

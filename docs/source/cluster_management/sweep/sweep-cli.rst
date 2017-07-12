@@ -3,6 +3,9 @@
 AtlasDB Sweep CLI
 =================
 
+.. warning::
+  This is now deprecated in favor of :ref:`Sweep Endpoints <atlasdb-sweep-endpoints>`.
+
 .. note::
   For instructions on how to run an AtlasDB CLI, see :ref:`Command Line Utilities <clis>`.
   If you are using a recent version of AtlasDB, it may be easier to run the command via the
@@ -26,4 +29,3 @@ You must specify exactly one of ``-a``, ``-n``, and ``-t``. If you are sweeping 
 Additionally, see the list of :ref:`tunable sweep parameters <sweep_tunable_parameters>` if the defaults are not working well for your AtlasDB instance.
 
 Be aware that manual sweeping will ignore all conditions that factor into determining whether background sweepers should run, and that the background sweeper will also be affected by system property changes.
-

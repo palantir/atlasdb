@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.client;
 
+import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +55,7 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
                 } finally {
                     long elapsed = System.currentTimeMillis() - startTime;
 
-                    if (elapsed > LockRequest.DEFAULT_LOCK_TIMEOUT.toMillis() / 2) {
+                    if (elapsed > LockRequest.getDefaultLockTimeout().toMillis() / 2) {
                         log.error("Refreshing locks took {} milliseconds"
                                 + " for tokens: {}", elapsed,  ret.toRefresh);
                     } else if (elapsed > ret.refreshFrequencyMillis) {
@@ -130,5 +131,11 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
     public void dispose() {
         exec.shutdown();
         isClosed = true;
+    }
+
+    @Override
+    public void close() throws IOException {
+        super.close();
+        dispose();
     }
 }
