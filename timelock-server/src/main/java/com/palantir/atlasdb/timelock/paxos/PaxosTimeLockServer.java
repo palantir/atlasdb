@@ -46,6 +46,7 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
+import com.palantir.atlasdb.timelock.SynchronousAsyncTimelockServiceAdapter;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
@@ -194,23 +195,38 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private AsyncTimelockService createAsyncTimelockService(String client) {
+        return AwaitingLeadershipProxy.newProxyInstance(
+                AsyncTimelockService.class,
+                getRawAsyncTimelockServiceSupplier(client),
+                leaderElectionService);
+    }
+
+    private Supplier<AsyncTimelockService> getRawAsyncTimelockServiceSupplier(String client) {
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier = createRawPaxosBackedTimestampServiceSupplier(
                 client);
 
-        Supplier<AsyncTimelockService> rawAsyncTimelockServiceSupplier = () -> {
-            ScheduledExecutorService reaperExecutor = Executors.newSingleThreadScheduledExecutor(
-                    new ThreadFactoryBuilder()
-                            .setNameFormat("async-lock-reaper-" + client + "-%d")
-                            .setDaemon(true)
-                            .build());
-            return new AsyncTimelockServiceImpl(AsyncLockService.createDefault(reaperExecutor),
-                    rawTimestampServiceSupplier.get());
-        };
+        return timeLockServerConfiguration.useAsyncLockService() ?
+                () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier) :
+                () -> createLegacyBackedAsyncTimelockService(rawTimestampServiceSupplier);
+    }
 
-        return AwaitingLeadershipProxy.newProxyInstance(
-                AsyncTimelockService.class,
-                rawAsyncTimelockServiceSupplier,
-                leaderElectionService);
+    private AsyncTimelockService createRawAsyncTimelockService(
+            String client,
+            Supplier<ManagedTimestampService> timestampServiceSupplier) {
+        ScheduledExecutorService reaperExecutor = Executors.newSingleThreadScheduledExecutor(
+                new ThreadFactoryBuilder()
+                        .setNameFormat("async-lock-reaper-" + client + "-%d")
+                        .setDaemon(true)
+                        .build());
+        return new AsyncTimelockServiceImpl(AsyncLockService.createDefault(reaperExecutor),
+                timestampServiceSupplier.get());
+    }
+
+    private AsyncTimelockService createLegacyBackedAsyncTimelockService(
+            Supplier<ManagedTimestampService> timestampServiceSupplier) {
+        return SynchronousAsyncTimelockServiceAdapter.createLegacyBackedService(
+                timestampServiceSupplier.get(),
+                LockServiceImpl.create());
     }
 
     private RemoteLockService createLockService(long slowLogTriggerMillis) {
