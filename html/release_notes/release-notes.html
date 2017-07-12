@@ -201,6 +201,11 @@
 Previously, the lock service’s background threads as well as background sweeper would continue to run (potentially indefinitely) even after a transaction manager was closed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2102">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">common-executors</span></code> now uses Java 6 when compiling from source and generates classes targeting Java 6. Java 6 support was removed in AtlasDB <code class="docutils literal"><span class="pre">0.41.0</span></code>
+and blocks certain internal products from upgrading to versions thereafter.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2122">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
