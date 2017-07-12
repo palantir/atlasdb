@@ -24,13 +24,18 @@ import java.util.UUID;
 
 import org.junit.Test;
 
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
+
 public class ExclusiveLockTests {
 
     private static final UUID REQUEST_1 = UUID.randomUUID();
     private static final UUID REQUEST_2 = UUID.randomUUID();
     private static final UUID REQUEST_3 = UUID.randomUUID();
 
-    private final ExclusiveLock lock = new ExclusiveLock();
+    private static final LockDescriptor LOCK_DESCRIPTOR = StringLockDescriptor.of("foo");
+
+    private final ExclusiveLock lock = new ExclusiveLock(LOCK_DESCRIPTOR);
 
     @Test
     public void canLockAndUnlock() {

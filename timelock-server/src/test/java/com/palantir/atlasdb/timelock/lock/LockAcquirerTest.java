@@ -38,19 +38,23 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
 
 public class LockAcquirerTest {
 
     private static final UUID REQUEST_ID = UUID.randomUUID();
     private static final UUID OTHER_REQUEST_ID = UUID.randomUUID();
 
+    private static final LockDescriptor LOCK_DESCRIPTOR = StringLockDescriptor.of("foo");
+
     private static final TimeLimit TIMEOUT = TimeLimit.of(123L);
 
     private final DeterministicScheduler executor = new DeterministicScheduler();
 
-    private final ExclusiveLock lockA = spy(new ExclusiveLock());
-    private final ExclusiveLock lockB = spy(new ExclusiveLock());
-    private final ExclusiveLock lockC = spy(new ExclusiveLock());
+    private final ExclusiveLock lockA = spy(new ExclusiveLock(LOCK_DESCRIPTOR));
+    private final ExclusiveLock lockB = spy(new ExclusiveLock(LOCK_DESCRIPTOR));
+    private final ExclusiveLock lockC = spy(new ExclusiveLock(LOCK_DESCRIPTOR));
 
     private final LockAcquirer lockAcquirer = new LockAcquirer(executor);
 
@@ -83,7 +87,7 @@ public class LockAcquirerTest {
     @Test(timeout = 10_000)
     public void doesNotStackOverflowIfLocksAreAcquiredSynchronously() {
         List<AsyncLock> locks = IntStream.range(0, 10_000)
-                .mapToObj(i -> new ExclusiveLock())
+                .mapToObj(i -> new ExclusiveLock(LOCK_DESCRIPTOR))
                 .collect(Collectors.toList());
 
         AsyncResult<HeldLocks> acquisitions = acquire(locks);

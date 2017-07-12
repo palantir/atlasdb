@@ -20,6 +20,9 @@ import java.util.UUID;
 
 import javax.ws.rs.NotSupportedException;
 
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
+
 public class ImmutableTimestampLock implements AsyncLock {
 
     private final long timestamp;
@@ -49,5 +52,10 @@ public class ImmutableTimestampLock implements AsyncLock {
     @Override
     public void timeout(UUID requestId) {
         throw new NotSupportedException();
+    }
+
+    @Override
+    public LockDescriptor getDescriptor() {
+        return StringLockDescriptor.of("ImmutableTimestamp:" + timestamp);
     }
 }

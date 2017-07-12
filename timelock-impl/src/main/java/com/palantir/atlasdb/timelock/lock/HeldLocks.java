@@ -18,10 +18,12 @@ package com.palantir.atlasdb.timelock.lock;
 
 import java.util.Collection;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.GuardedBy;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockTokenV2;
 
 public class HeldLocks {
@@ -50,7 +52,9 @@ public class HeldLocks {
      */
     public synchronized boolean unlockIfExpired() {
         if (expirationTimer.isExpired()) {
-            unlock();
+            if (unlock()) {
+                LockLog.lockExpired(token.getRequestId(), getLockDescriptors());
+            }
         }
         return isUnlocked;
     }
@@ -88,6 +92,12 @@ public class HeldLocks {
     @VisibleForTesting
     Collection<AsyncLock> getLocks() {
         return acquiredLocks;
+    }
+
+    private Collection<LockDescriptor> getLockDescriptors() {
+        return acquiredLocks.stream()
+                .map(AsyncLock::getDescriptor)
+                .collect(Collectors.toList());
     }
 
 }

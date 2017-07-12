@@ -26,14 +26,21 @@ import javax.annotation.concurrent.NotThreadSafe;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.SafeArg;
 
 public class ExclusiveLock implements AsyncLock {
+
+    private final LockDescriptor descriptor;
 
     @GuardedBy("this")
     private final LockRequestQueue queue = new LockRequestQueue();
     @GuardedBy("this")
     private UUID currentHolder = null;
+
+    public ExclusiveLock(LockDescriptor descriptor) {
+        this.descriptor = descriptor;
+    }
 
     @Override
     public synchronized AsyncResult<Void> lock(UUID requestId) {
@@ -56,6 +63,11 @@ public class ExclusiveLock implements AsyncLock {
     @Override
     public synchronized void timeout(UUID requestId) {
         queue.timeoutAndRemoveIfStillQueued(requestId);
+    }
+
+    @Override
+    public LockDescriptor getDescriptor() {
+        return descriptor;
     }
 
     @VisibleForTesting

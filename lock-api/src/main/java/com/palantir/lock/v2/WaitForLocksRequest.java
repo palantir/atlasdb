@@ -16,6 +16,7 @@
 
 package com.palantir.lock.v2;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,8 +40,17 @@ public interface WaitForLocksRequest {
     @Value.Parameter
     long getAcquireTimeoutMs();
 
+    @Value.Parameter
+    Optional<String> getClientDescription();
+
     static WaitForLocksRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
-        return ImmutableWaitForLocksRequest.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs);
+        return ImmutableWaitForLocksRequest.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.empty());
+    }
+
+    static WaitForLocksRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs,
+            String clientDescription) {
+        return ImmutableWaitForLocksRequest.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs,
+                Optional.of(clientDescription));
     }
 
 }
