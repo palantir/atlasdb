@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigInteger;
+import java.util.Random;
 import java.util.UUID;
 
 import org.junit.Test;
@@ -77,4 +78,38 @@ public class LockTokenConvertingTimelockServiceTest {
             assertThat(tokenV2.getRequestId()).isEqualTo(TEST_UUID);
         }
     }
+
+    @Test
+    public void convertsBigIntegersCorrectly() {
+        int iterations = 100_000;
+        int bitLength = 128;
+        Random random = new Random(0);
+        for (int i = 0; i < iterations; i++) {
+            BigInteger randomBigInteger = new BigInteger(bitLength, random);
+            LockRefreshToken lockRefreshToken = new LockRefreshToken(randomBigInteger, Long.MIN_VALUE);
+            assertConversionFromAndToLegacyPreservesId(lockRefreshToken);
+        }
+    }
+
+    @Test
+    public void convertsNegativeBigIntegersCorrectly() {
+        int iterations = 100_000;
+        int bitLength = 128;
+        Random random = new Random(1);
+        for (int i = 0; i < iterations; i++) {
+            BigInteger randomBigInteger = new BigInteger(bitLength, random).multiply(new BigInteger("-1"));
+            LockRefreshToken lockRefreshToken = new LockRefreshToken(randomBigInteger, Long.MIN_VALUE);
+            assertConversionFromAndToLegacyPreservesId(lockRefreshToken);
+        }
+    }
+
+    private void assertConversionFromAndToLegacyPreservesId(LockRefreshToken lockRefreshToken) {
+        LockTokenV2 initialToken = new LegacyTimelockService.LockRefreshTokenV2Adapter(lockRefreshToken);
+        LockTokenV2 serializable = LockTokenConvertingTimelockService.makeSerializable(initialToken);
+        LockTokenV2 reconverted = LockTokenConvertingTimelockService.castToAdapter(serializable);
+
+        assertThat(reconverted.getRequestId()).isEqualTo(initialToken.getRequestId());
+        assertThat(serializable.getRequestId()).isEqualTo(initialToken.getRequestId());
+    }
+
 }

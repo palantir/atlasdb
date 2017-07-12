@@ -195,6 +195,8 @@ public class LegacyTimelockService implements TimelockService {
 
     public static class LockRefreshTokenV2Adapter implements LockTokenV2 {
 
+        private static final int TWO_LONGS_IN_BITS = 2 * 8 * 8;
+
         private final LockRefreshToken token;
         private final UUID requestId;
 
@@ -213,6 +215,10 @@ public class LegacyTimelockService implements TimelockService {
         }
 
         private static UUID getRequestId(LockRefreshToken token) {
+            Preconditions.checkArgument(token.getTokenId().bitLength() <= TWO_LONGS_IN_BITS,
+                    "Tried to convert a refresh token with token ID more than %s bytes. Please configure your remote"
+                            + " lock service to use not more than %s bytes for compatibility with the timelock"
+                            + " service adapter.", TWO_LONGS_IN_BITS, TWO_LONGS_IN_BITS);
             long msb = token.getTokenId().shiftRight(64).longValue();
             long lsb = token.getTokenId().longValue();
             return new UUID(msb, lsb);

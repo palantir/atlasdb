@@ -91,7 +91,7 @@ public class LockTokenConvertingTimelockService implements TimelockService {
                     .tokenOrEmpty(makeSerializable(delegateResponse.getToken()))
                     .build();
         }
-        return ImmutableLockResponseV2.copyOf(delegateResponse);
+        return delegateResponse;
     }
 
     @Override
