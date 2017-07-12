@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -26,8 +25,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.junit.Test;
@@ -57,7 +56,7 @@ public class AsyncLockServiceEteTest {
     private static final TimeLimit LONG_TIMEOUT = TimeLimit.of(100_000L);
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-    
+
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(() -> new ExclusiveLock()),
             new ImmutableTimestampTracker(),
@@ -244,21 +243,22 @@ public class AsyncLockServiceEteTest {
         service.unlock(lockBToken);
         assertNotLocked(LOCK_B);
     }
-    
+
     @Test
     public void outstandingRequestsReceiveNotCurrentLeaderExceptionOnClose() {
         lockSynchronously(REQUEST_1, LOCK_A);
-        CompletableFuture<LockTokenV2> request2 = lock(REQUEST_2, LOCK_A);
-        
+        AsyncResult<LockTokenV2> request2 = lock(REQUEST_2, LOCK_A);
+
         service.close();
-        
-        assertThatThrownBy(() -> request2.get()).hasCauseInstanceOf(NotCurrentLeaderException.class);
+
+        assertThat(request2.isFailed()).isTrue();
+        assertThat(request2.getError()).isInstanceOf(NotCurrentLeaderException.class);
     }
-    
+
     @Test
     public void reaperIsShutDownOnClose() {
         service.close();
-        
+
         assertThat(executor.isShutdown()).isTrue();
     }
 

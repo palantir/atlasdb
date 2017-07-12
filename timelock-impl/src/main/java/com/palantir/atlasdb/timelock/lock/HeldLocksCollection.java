@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.lock;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -64,10 +63,10 @@ public class HeldLocksCollection {
             }
         }
     }
-    
+
     public void failAllOutstandingRequestsWithNotCurrentLeaderException() {
         NotCurrentLeaderException ex = new NotCurrentLeaderException("This lock service has been closed");
-        heldLocksById.values().forEach(future -> future.completeExceptionally(ex));
+        heldLocksById.values().forEach(result -> result.failIfNotCompleted(ex));
     }
 
     private boolean shouldRemove(AsyncResult<HeldLocks> lockResult) {
@@ -87,10 +86,6 @@ public class HeldLocksCollection {
         }
 
         return filtered;
-    }
-
-    private boolean isFailed(CompletableFuture<?> future) {
-        return future.isCancelled() || future.isCompletedExceptionally();
     }
 
 }
