@@ -27,10 +27,14 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 
 public final class LockLog {
 
-    private static final long SLOW_LOCK_THRESHOLD_MILLIS = 2_000;
+    private static volatile long slowLockThresholdMillis = 10_000;
     private static final LockEvents events = new LockEvents(AtlasDbMetrics.getMetricRegistry());
 
     private LockLog() { }
+
+    public static void setSlowLockThresholdMillis(long thresholdMillis) {
+        slowLockThresholdMillis = thresholdMillis;
+    }
 
     public static void registerRequest(LockRequestV2 request, AsyncResult<?> result) {
         registerRequest(RequestInfo.of(request), result);
@@ -59,7 +63,7 @@ public final class LockLog {
             long blockingTimeMillis) {
         events.requestComplete(blockingTimeMillis);
 
-        if (blockingTimeMillis < SLOW_LOCK_THRESHOLD_MILLIS) {
+        if (blockingTimeMillis < slowLockThresholdMillis) {
             return;
         }
 

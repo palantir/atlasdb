@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.google.common.collect.Iterables;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequestV2;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -58,7 +59,7 @@ public class LockEvents {
     public void lockExpired(UUID requestId, Collection<LockDescriptor> lockDescriptors) {
         log.warn("Lock expired",
                 SafeArg.of("requestId", requestId),
-                UnsafeArg.of("lockDescriptors", lockDescriptors));
+                UnsafeArg.of("firstTenLockDescriptors", firstTen(lockDescriptors)));
         lockExpiredMeter.mark();
     }
 
@@ -66,7 +67,7 @@ public class LockEvents {
         log.warn("Locks took a long time to acquire",
                 SafeArg.of("requestId", request.id()),
                 SafeArg.of("acquisitionTimeMillis", acquisitionTimeMillis),
-                UnsafeArg.of("lockDescriptors", request.lockDescriptors()),
+                UnsafeArg.of("firstTenLockDescriptors", firstTen(request.lockDescriptors())),
                 UnsafeArg.of("clientDescription", request.clientDescription()));
         successfulSlowAcquisitionMeter.mark();
     }
@@ -75,9 +76,13 @@ public class LockEvents {
         log.warn("Request timed out before obtaining locks",
                 SafeArg.of("requestId", request.id()),
                 SafeArg.of("acquisitionTimeMillis", acquisitionTimeMillis),
-                UnsafeArg.of("lockDescriptors", request.lockDescriptors()),
+                UnsafeArg.of("firstTenLockDescriptors", firstTen(request.lockDescriptors())),
                 UnsafeArg.of("clientDescription", request.clientDescription()));
         timedOutSlowAcquisitionMeter.mark();
+    }
+
+    private Iterable<LockDescriptor> firstTen(Collection<LockDescriptor> lockDescriptors) {
+        return Iterables.limit(lockDescriptors, 10);
     }
 
 
