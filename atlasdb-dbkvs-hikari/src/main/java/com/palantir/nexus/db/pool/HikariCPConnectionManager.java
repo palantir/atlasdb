@@ -30,6 +30,7 @@ import javax.management.ObjectName;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,18 +85,34 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
     @Override
     public Connection getConnection() throws SQLException {
-        long start = System.currentTimeMillis();
-        try {
-            return getConnectionInternal();
-        } finally {
-            long now = System.currentTimeMillis();
-            long elapsed = now - start;
-            if (elapsed > 1000) {
-                log.warn("Waited {}ms for connection", elapsed);
-                logPoolStats();
-            } else {
-                log.debug("Waited {}ms for connection", elapsed);
+        while (true) {
+            long start = System.currentTimeMillis();
+            Pair<HikariDataSource, Connection> ret;
+            try {
+                ret = getConnectionInternal();
+            } finally {
+                long now = System.currentTimeMillis();
+                long elapsed = now - start;
+                if (elapsed > 1000) {
+                    log.warn("Waited {}ms for connection", elapsed);
+                    logPoolStats();
+                } else {
+                    log.debug("Waited {}ms for connection", elapsed);
+                }
             }
+
+            HikariDataSource dataSourcePool = ret.getLeft();
+            Connection conn = ret.getRight();
+
+            try {
+                testConnection(conn);
+            } catch (SQLException e) {
+                log.error("Dropping connection which failed validation", e);
+                dataSourcePool.evictConnection(conn);
+                continue;
+            }
+
+            return conn;
         }
     }
 
@@ -122,7 +139,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         }
     }
 
-    private Connection getConnectionInternal() throws SQLException {
+    private Pair<HikariDataSource, Connection> getConnectionInternal() throws SQLException {
         while (true) {
             // Volatile read state to see if we can get through here without
             // locking.
@@ -146,7 +163,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
                 case NORMAL:
                     // Normal state, we try to get a connection.
-                    return stateLocal.dataSourcePool.getConnection();
+                    return Pair.of(stateLocal.dataSourcePool, stateLocal.dataSourcePool.getConnection());
 
                 case CLOSED:
                     throw new SQLException("Hikari connection pool already closed!", stateLocal.closeTrace);
