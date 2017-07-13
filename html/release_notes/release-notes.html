@@ -185,6 +185,9 @@
 </div>
 <div class="section" id="develop">
 <h2>develop<a class="headerlink" href="#develop" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="id1">
+<h2>0.48.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -196,8 +199,20 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>AtlasDB now supports batching of timestamp requests on the client-side; see <a class="reference internal" href="../configuration/timestamp_client.html#timestamp-client-config"><span class="std std-ref">Timestamp Client Options</span></a> for details.
+On internal benchmarks, the AtlasDB team has obtained an almost 2x improvement in timestamp throughput and latency under modest load (32 threads), and an over 10x improvement under heavy load (8,192 threads).
+There may be a very small increase in latency under extremely light load (e.g. 2-4 threads).
+Note that this is not enabled by default.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2083">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The <code class="docutils literal"><span class="pre">RateLimitingTimestampService</span></code> in <code class="docutils literal"><span class="pre">timestamp-impl</span></code> has been renamed to <code class="docutils literal"><span class="pre">RequestBatchingTimestampService</span></code>, to better reflect what the service does and avoid confusion with the <code class="docutils literal"><span class="pre">ThreadPooledLockService</span></code> (which performs resource-limiting).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2083">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Instead of failing to startup, log an error if old sweep configs are specified in the AtlasDbConfig block.
+<td>If sweep configs are specified in the AtlasDbConfig block, they will be ignored, but AtlasDB will no longer fail to start.
+This effectively fixes the user break change of version <code class="docutils literal"><span class="pre">0.47.0</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2134">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
@@ -207,14 +222,14 @@ Previously, the lock service’s background threads as well as background sweepe
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">common-executors</span></code> now uses Java 6 when compiling from source and generates classes targeting Java 6. Java 6 support was removed in AtlasDB <code class="docutils literal"><span class="pre">0.41.0</span></code>
-and blocks certain internal products from upgrading to versions thereafter.
+and blocks certain internal products from upgrading to subsequent versions.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2122">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="id1">
-<h2>0.47.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id2">
+<h2>0.47.0<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
 <p>11 July 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -358,12 +373,12 @@ We now respect these additional tags.
 </tbody>
 </table>
 </div>
-<div class="section" id="id2">
-<h2>0.46.0<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id3">
+<h2>0.46.0<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
 <p>This version was skipped due to issues on release. No artifacts with this version were ever published.</p>
 </div>
-<div class="section" id="id3">
-<h2>0.45.0<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id4">
+<h2>0.45.0<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
 <p>19 June 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -463,8 +478,8 @@ These were designed to help debugging the <code class="docutils literal"><span c
 </tbody>
 </table>
 </div>
-<div class="section" id="id4">
-<h2>0.44.0<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id5">
+<h2>0.44.0<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
 <p>8 June 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -537,8 +552,8 @@ Users that previously attempted to set a compression block size that was not a p
 </tbody>
 </table>
 </div>
-<div class="section" id="id5">
-<h2>0.43.0<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id6">
+<h2>0.43.0<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
 <p>25 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -606,8 +621,8 @@ Previously, a <code class="docutils literal"><span class="pre">NotCurrentLeaderE
 </tbody>
 </table>
 </div>
-<div class="section" id="id6">
-<h2>0.42.2<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id7">
+<h2>0.42.2<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
 <p>25 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -628,8 +643,8 @@ Previously, a <code class="docutils literal"><span class="pre">NotCurrentLeaderE
 </tbody>
 </table>
 </div>
-<div class="section" id="id7">
-<h2>0.42.1<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id8">
+<h2>0.42.1<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h2>
 <p>24 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -650,8 +665,8 @@ This was added to address a very specific race condition leading to an infinite 
 </tbody>
 </table>
 </div>
-<div class="section" id="id8">
-<h2>0.42.0<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id9">
+<h2>0.42.0<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h2>
 <p>23 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -695,8 +710,8 @@ There is no issue with having tables with different values for <code class="docu
 </tbody>
 </table>
 </div>
-<div class="section" id="id9">
-<h2>0.41.0<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id10">
+<h2>0.41.0<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h2>
 <p>17 May 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -760,8 +775,8 @@ This will be useful for debugging <a class="reference external" href="https://gi
 </tbody>
 </table>
 </div>
-<div class="section" id="id10">
-<h2>0.40.1<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id11">
+<h2>0.40.1<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h2>
 <p>4 May 2017</p>
 <p>This release contains (almost) exclusively baseline-related changes.</p>
 <table border="1" class="colwidths-given docutils">
@@ -810,8 +825,8 @@ If this is a concern, please contact the AtlasDB team.
 </tbody>
 </table>
 </div>
-<div class="section" id="id11">
-<h2>0.40.0<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id12">
+<h2>0.40.0<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h2>
 <p>28 Apr 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
