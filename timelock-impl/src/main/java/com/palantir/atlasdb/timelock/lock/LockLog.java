@@ -27,7 +27,8 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 
 public final class LockLog {
 
-    private static final long SLOW_LOCK_THRESHOLD_MILLIS = 2_000;
+    // TODO(nziebart): make this configurable
+    private static final long SLOW_LOCK_THRESHOLD_MILLIS = 5_000;
     private static final LockEvents events = new LockEvents(AtlasDbMetrics.getMetricRegistry());
 
     private LockLog() { }
