@@ -26,6 +26,7 @@ import com.palantir.atlasdb.console.AtlasConsoleModule
 import com.palantir.atlasdb.console.AtlasConsoleService
 import com.palantir.atlasdb.console.AtlasConsoleServiceImpl
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
+import com.palantir.atlasdb.console.exceptions.InvalidTableException
 import com.palantir.atlasdb.factory.TransactionManagers
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl
 import com.palantir.atlasdb.impl.TableMetadataCache
@@ -246,6 +247,9 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     public Table table(String name) {
+        if (!atlasConsoleServiceWrapper.tables().contains("name")) {
+            throw new InvalidTableException("Table '" + name + "' does not exist")
+        }
         new Table(name, atlasConsoleServiceWrapper, mutationsEnabled)
     }
 
