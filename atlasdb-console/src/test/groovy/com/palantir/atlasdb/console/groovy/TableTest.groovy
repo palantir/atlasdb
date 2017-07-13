@@ -41,7 +41,7 @@ class TableTest {
     @Before
     void setup() {
         service = mock(AtlasConsoleServiceWrapper)
-        table = new Table(TABLE_NAME, service)
+        table = new Table(TABLE_NAME, service, true)
     }
 
     @Test
