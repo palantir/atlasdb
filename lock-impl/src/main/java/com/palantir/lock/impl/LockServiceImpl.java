@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
@@ -177,7 +178,7 @@ public final class LockServiceImpl
     private final TimeDuration maxNormalLockAge;
     private final int randomBitCount;
     private final Runnable callOnClose;
-    private volatile boolean isShutDown = false;
+    private final AtomicBoolean isShutDown = new AtomicBoolean(false);
     private final String lockStateLoggerDir;
 
     private final LockClientIndices clientIndices = new LockClientIndices();
@@ -346,7 +347,7 @@ public final class LockServiceImpl
                     request, request.getCreatingThreadName());
         }
         Map<ClientAwareReadWriteLock, LockMode> locks = Maps.newLinkedHashMap();
-        if (isShutDown) {
+        if (isShutDown.get()) {
             throw new ServiceNotAvailableException("This lock server is shut down.");
         }
         try {
@@ -943,7 +944,7 @@ public final class LockServiceImpl
             // If interrupt signal happens right after try {} catch (InterruptedException),
             // the interrupt state MIGHT be swallowed in catch (Throwable t) {}; so threads will
             // miss the shutdown signal.
-            if (isShutDown) {
+            if (isShutDown.get()) {
                 break;
             }
             try {
@@ -958,7 +959,7 @@ public final class LockServiceImpl
                         Thread.sleep(sleepTimeMs);
                     }
                 } catch (InterruptedException e) {
-                    if (isShutDown) {
+                    if (isShutDown.get()) {
                         break;
                     } else {
                         log.warn("The lock server reaper thread should not be " +
@@ -1061,10 +1062,11 @@ public final class LockServiceImpl
 
     @Override
     public void close() {
-        isShutDown = true;
-        executor.shutdownNow();
-        wakeIndefiniteBlockers();
-        callOnClose.run();
+        if (isShutDown.compareAndSet(false, true)) {
+            executor.shutdownNow();
+            wakeIndefiniteBlockers();
+            callOnClose.run();
+        }
     }
 
     private void wakeIndefiniteBlockers() {

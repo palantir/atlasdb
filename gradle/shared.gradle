@@ -90,6 +90,8 @@ tasks.withType(Test) {
         reports.junitXml.destination = new File(System.env.CIRCLE_TEST_REPORTS, it.getName())
     }
 
+    enableAssertions = true
+
     testLogging {
         showExceptions true
         exceptionFormat "full"
