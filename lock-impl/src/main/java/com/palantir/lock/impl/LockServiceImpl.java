@@ -1061,10 +1061,12 @@ public final class LockServiceImpl
 
     @Override
     public void close() {
+        if (!isShutDown) {
+            executor.shutdownNow();
+            wakeIndefiniteBlockers();
+            callOnClose.run();
+        }
         isShutDown = true;
-        executor.shutdownNow();
-        wakeIndefiniteBlockers();
-        callOnClose.run();
     }
 
     private void wakeIndefiniteBlockers() {
