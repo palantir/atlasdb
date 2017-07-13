@@ -10,12 +10,17 @@ import java.util.Set;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 
 /**
  * Dynamic (live-reloaded) portions of TimeLock's configuration.
  */
+@JsonDeserialize(as = ImmutableTimeLockRuntimeConfiguration.class)
+@JsonSerialize(as = ImmutableTimeLockRuntimeConfiguration.class)
+@Value.Immutable
 public abstract class TimeLockRuntimeConfiguration {
     private static final String CLIENT_NAME_REGEX = "[a-zA-Z0-9_-]+";
 
