@@ -62,6 +62,11 @@ public class TimeLockServerHolder extends ExternalResource {
         return timelockPort;
     }
 
+    public String getTimelockUri() {
+        // TODO(nziebart): hack
+        return "http://localhost:" + timelockPort;
+    }
+
     public synchronized void kill() {
         after();
     }

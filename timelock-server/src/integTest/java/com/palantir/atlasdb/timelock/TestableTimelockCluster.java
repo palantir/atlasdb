@@ -42,6 +42,7 @@ import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.testing.ResourceHelpers;
@@ -145,6 +146,10 @@ public class TestableTimelockCluster {
 
     public long getFreshTimestamp() {
         return timestampService().getFreshTimestamp();
+    }
+
+    public TimestampRange getFreshTimestamps(int number) {
+        return timestampService().getFreshTimestamps(number);
     }
 
     public LockRefreshToken remoteLock(String client, LockRequest lockRequest) throws InterruptedException {

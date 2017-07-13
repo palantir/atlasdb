@@ -22,6 +22,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
@@ -56,7 +57,7 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("fresh-timestamps")
-    public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+    public TimestampRange getFreshTimestamps(@QueryParam("number") int numTimestampsRequested) {
         return timelock.getFreshTimestamps(numTimestampsRequested);
     }
 
