@@ -3,22 +3,22 @@ algorithm:
   paxosDataDir: <TEMP_DATA_DIR>
 
 cluster:
-  localServer: localhost:9080
+  localServer: localhost:9090
   servers:
-    - localhost:9080
+    - localhost:9090
 
 clients:
   - test
 
 useClientRequestLimit: true
-useAsyncLockService: true
+useAsyncLockService: false
 
 server:
   applicationConnectors:
     - type: http
-      port: 9080
+      port: 9090
       selectorThreads: 8
       acceptorThreads: 4
   adminConnectors:
     - type: http
-      port: 7080
+      port: 7090

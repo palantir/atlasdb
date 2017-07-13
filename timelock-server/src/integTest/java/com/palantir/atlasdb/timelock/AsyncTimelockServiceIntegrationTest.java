@@ -130,11 +130,6 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void lockRequestCanTimeOut() {
-        if (cluster == CLUSTER_WITH_SYNC_ADAPTER) {
-            // legacy API does not support timeouts on this endpoint
-            return;
-        }
-
         LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
         LockResponseV2 token2 = cluster.lock(requestFor(SHORT_TIMEOUT, LOCK_A));
 
@@ -144,6 +139,11 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void waitForLocksRequestCanTimeOut() {
+        if (cluster == CLUSTER_WITH_SYNC_ADAPTER) {
+            // legacy API does not support timeouts on this endpoint
+            return;
+        }
+
         LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
         WaitForLocksResponse response = cluster.waitForLocks(waitRequestFor(SHORT_TIMEOUT, LOCK_A));
 

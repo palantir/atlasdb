@@ -33,7 +33,7 @@ public abstract class AbstractAsyncTimelockServiceIntegrationTest {
     protected static final TestableTimelockCluster CLUSTER_WITH_SYNC_ADAPTER = new TestableTimelockCluster(
             "http://localhost",
             CLIENT,
-            "paxosSingleServer.yml");
+            "paxosSingleServerWithSyncLockAdapter.yml");
     protected static final TestableTimelockCluster CLUSTER_WITH_ASYNC = new TestableTimelockCluster(
             "http://localhost",
             CLIENT,
