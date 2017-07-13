@@ -16,8 +16,6 @@ import com.palantir.remoting2.config.service.ServiceConfiguration;
 @JsonSerialize(as = ImmutableClusterConfiguration.class)
 @Value.Immutable
 public interface ClusterConfiguration {
-    // in remoting3 this class is officially public API
-    // TODO: do we want to live reload this? probably not? how do we make a timelock cluster bigger?
     ServiceConfiguration cluster();
 
     @JsonProperty("local-server")
