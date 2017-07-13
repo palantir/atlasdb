@@ -30,7 +30,6 @@ import javax.management.ObjectName;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,9 +86,11 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     public Connection getConnection() throws SQLException {
         while (true) {
             long start = System.currentTimeMillis();
-            Pair<HikariDataSource, Connection> ret;
+            HikariDataSource dataSourcePool;
+            Connection conn;
             try {
-                ret = getConnectionInternal();
+                dataSourcePool = getDataSourcePool();
+                conn = dataSourcePool.getConnection();
             } finally {
                 long now = System.currentTimeMillis();
                 long elapsed = now - start;
@@ -100,9 +101,6 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                     log.debug("Waited {}ms for connection", elapsed);
                 }
             }
-
-            HikariDataSource dataSourcePool = ret.getLeft();
-            Connection conn = ret.getRight();
 
             try {
                 testConnection(conn);
@@ -139,7 +137,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         }
     }
 
-    private Pair<HikariDataSource, Connection> getConnectionInternal() throws SQLException {
+    private HikariDataSource getDataSourcePool() throws SQLException {
         while (true) {
             // Volatile read state to see if we can get through here without
             // locking.
@@ -151,8 +149,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                     synchronized (this) {
                         if (state == stateLocal) {
                             // The state hasn't changed on us, we can perform
-                            // the initialization and start
-                            // getConnectionInternal() over again.
+                            // the initialization and start over again.
                             state = normalState();
                         } else {
                             // Someone else changed the state on us, just start
@@ -162,8 +159,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                     break;
 
                 case NORMAL:
-                    // Normal state, we try to get a connection.
-                    return Pair.of(stateLocal.dataSourcePool, stateLocal.dataSourcePool.getConnection());
+                    // Normal state, good to go
+                    return stateLocal.dataSourcePool;
 
                 case CLOSED:
                     throw new SQLException("Hikari connection pool already closed!", stateLocal.closeTrace);
