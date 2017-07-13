@@ -30,7 +30,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.Iterables;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -100,7 +100,7 @@ public class LockEvents {
         @Value.Parameter
         Set<LockDescriptor> lockDescriptors();
 
-        static RequestInfo of(LockRequestV2 request) {
+        static RequestInfo of(LockRequest request) {
             return ImmutableRequestInfo.of(
                     request.getRequestId(),
                     request.getClientDescription().orElse(EMPTY_DESCRIPTION),

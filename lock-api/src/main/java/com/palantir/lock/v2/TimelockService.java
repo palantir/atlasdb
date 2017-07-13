@@ -50,7 +50,7 @@ public interface TimelockService {
 
     @POST
     @Path("lock")
-    LockResponseV2 lock(LockRequestV2 request);
+    LockResponse lock(LockRequest request);
 
     @POST
     @Path("await-locks")
@@ -58,11 +58,11 @@ public interface TimelockService {
 
     @POST
     @Path("refresh-locks")
-    Set<LockTokenV2> refreshLockLeases(Set<LockTokenV2> tokens);
+    Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 
     @POST
     @Path("unlock")
-    Set<LockTokenV2> unlock(Set<LockTokenV2> tokens);
+    Set<LockToken> unlock(Set<LockToken> tokens);
 
     @POST
     @Path("current-time-millis")

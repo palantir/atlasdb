@@ -27,10 +27,10 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockResponseV2.class)
 @JsonDeserialize(as = ImmutableLockResponseV2.class)
-public interface LockResponseV2 {
+public interface LockResponse {
 
     @Value.Parameter
-    Optional<LockTokenV2> getTokenOrEmpty();
+    Optional<LockToken> getTokenOrEmpty();
 
     @JsonIgnore
     default boolean wasSuccessful() {
@@ -38,18 +38,18 @@ public interface LockResponseV2 {
     }
 
     @JsonIgnore
-    default LockTokenV2 getToken() {
+    default LockToken getToken() {
         if (!wasSuccessful()) {
             throw new IllegalStateException("This lock response was not succesful");
         }
         return getTokenOrEmpty().get();
     }
 
-    static LockResponseV2 successful(LockTokenV2 token) {
+    static LockResponse successful(LockToken token) {
         return ImmutableLockResponseV2.of(Optional.of(token));
     }
 
-    static LockResponseV2 timedOut() {
+    static LockResponse timedOut() {
         return ImmutableLockResponseV2.of(Optional.empty());
     }
 

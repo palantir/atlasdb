@@ -29,7 +29,7 @@ import com.palantir.lock.LockDescriptor;
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockRequestV2.class)
 @JsonDeserialize(as = ImmutableLockRequestV2.class)
-public interface LockRequestV2 {
+public interface LockRequest {
 
     @Value.Parameter
     UUID getRequestId();
@@ -43,7 +43,7 @@ public interface LockRequestV2 {
     @Value.Parameter
     Optional<String> getClientDescription();
 
-    static LockRequestV2 of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
+    static LockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
         return ImmutableLockRequestV2.of(
                 UUID.randomUUID(),
                 lockDescriptors,
@@ -51,7 +51,7 @@ public interface LockRequestV2 {
                 Optional.of("Thread: " + Thread.currentThread().getName()));
     }
 
-    static LockRequestV2 of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
+    static LockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
         return ImmutableLockRequestV2.of(
                 UUID.randomUUID(),
                 lockDescriptors,

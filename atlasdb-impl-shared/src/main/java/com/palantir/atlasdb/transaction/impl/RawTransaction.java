@@ -15,13 +15,13 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 
 public class RawTransaction extends ForwardingTransaction {
     private final SnapshotTransaction delegate;
-    private final LockTokenV2 lock;
+    private final LockToken lock;
 
-    public RawTransaction(SnapshotTransaction delegate, LockTokenV2 lock) {
+    public RawTransaction(SnapshotTransaction delegate, LockToken lock) {
         this.delegate = delegate;
         this.lock = lock;
     }
@@ -31,7 +31,7 @@ public class RawTransaction extends ForwardingTransaction {
         return delegate;
     }
 
-    LockTokenV2 getImmutableTsLock() {
+    LockToken getImmutableTsLock() {
         return lock;
     }
 }

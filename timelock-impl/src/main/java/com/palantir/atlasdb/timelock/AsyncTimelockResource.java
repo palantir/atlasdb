@@ -31,9 +31,9 @@ import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequestV2;
-import com.palantir.lock.v2.LockResponseV2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
@@ -75,16 +75,16 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("lock")
-    public void lock(@Suspended final AsyncResponse response, LockRequestV2 request) {
-        AsyncResult<LockTokenV2> result = timelock.lock(request);
+    public void lock(@Suspended final AsyncResponse response, LockRequest request) {
+        AsyncResult<LockToken> result = timelock.lock(request);
         LockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
                 response.resume(result.getError());
             } else if (result.isTimedOut()) {
-                response.resume(LockResponseV2.timedOut());
+                response.resume(LockResponse.timedOut());
             } else {
-                response.resume(LockResponseV2.successful(result.get()));
+                response.resume(LockResponse.successful(result.get()));
             }
         });
     }
@@ -107,13 +107,13 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("refresh-locks")
-    public Set<LockTokenV2> refreshLockLeases(Set<LockTokenV2> tokens) {
+    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         return timelock.refreshLockLeases(tokens);
     }
 
     @POST
     @Path("unlock")
-    public Set<LockTokenV2> unlock(Set<LockTokenV2> tokens) {
+    public Set<LockToken> unlock(Set<LockToken> tokens) {
         return timelock.unlock(tokens);
     }
 

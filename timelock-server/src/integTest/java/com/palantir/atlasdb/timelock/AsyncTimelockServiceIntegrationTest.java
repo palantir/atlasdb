@@ -34,9 +34,9 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequestV2;
-import com.palantir.lock.v2.LockResponseV2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
@@ -55,7 +55,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void canLockRefreshAndUnlock() {
-        LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
+        LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
         boolean wasRefreshed = cluster.refreshLockLease(token);
         boolean wasUnlocked = cluster.unlock(token);
 
@@ -65,9 +65,9 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void locksAreExclusive() {
-        LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
+        LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
         Future<LockTokenV2> futureToken = cluster.lockAsync(requestFor(LOCK_A))
-                .thenApply(LockResponseV2::getToken);
+                .thenApply(LockResponse::getToken);
 
         assertNotYetLocked(futureToken);
 
@@ -103,7 +103,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void canWaitForLocks() {
-        LockTokenV2 token = cluster.lock(requestFor(LOCK_A, LOCK_B)).getToken();
+        LockToken token = cluster.lock(requestFor(LOCK_A, LOCK_B)).getToken();
 
         CompletableFuture<WaitForLocksResponse> future = cluster.waitForLocksAsync(waitRequestFor(LOCK_A, LOCK_B));
         assertNotDone(future);
@@ -139,8 +139,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void lockRequestCanTimeOut() {
-        LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
-        LockResponseV2 token2 = cluster.lock(requestFor(SHORT_TIMEOUT, LOCK_A));
+        LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
+        LockResponse token2 = cluster.lock(requestFor(SHORT_TIMEOUT, LOCK_A));
 
         assertThat(token2.wasSuccessful()).isFalse();
         cluster.unlock(token);
@@ -153,7 +153,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
             return;
         }
 
-        LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
+        LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
         WaitForLocksResponse response = cluster.waitForLocks(waitRequestFor(SHORT_TIMEOUT, LOCK_A));
 
         assertThat(response.wasSuccessful()).isFalse();
@@ -173,9 +173,9 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
             return;
         }
 
-        LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
+        LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
 
-        LockRequestV2 request = requestFor(LOCK_A);
+        LockRequest request = requestFor(LOCK_A);
         CompletableFuture<LockResponseV2> response = cluster.lockAsync(request);
         CompletableFuture<LockResponseV2> duplicateResponse = cluster.lockAsync(request);
 
@@ -193,7 +193,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
             return;
         }
 
-        LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
+        LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
 
         WaitForLocksRequest request = waitRequestFor(LOCK_A);
         CompletableFuture<WaitForLocksResponse> response = cluster.waitForLocksAsync(request);
@@ -204,12 +204,12 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         assertThat(response.join()).isEqualTo(duplicateLockResponse.join());
     }
 
-    private LockRequestV2 requestFor(LockDescriptor... locks) {
-        return LockRequestV2.of(ImmutableSet.copyOf(locks), TIMEOUT);
+    private LockRequest requestFor(LockDescriptor... locks) {
+        return LockRequest.of(ImmutableSet.copyOf(locks), TIMEOUT);
     }
 
-    private LockRequestV2 requestFor(long timeoutMs, LockDescriptor... locks) {
-        return LockRequestV2.of(ImmutableSet.copyOf(locks), timeoutMs);
+    private LockRequest requestFor(long timeoutMs, LockDescriptor... locks) {
+        return LockRequest.of(ImmutableSet.copyOf(locks), timeoutMs);
     }
 
     private WaitForLocksRequest waitRequestFor(LockDescriptor... locks) {
@@ -220,15 +220,15 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         return WaitForLocksRequest.of(ImmutableSet.copyOf(locks), timeoutMs);
     }
 
-    private void assertNotYetLocked(Future<LockTokenV2> futureToken) {
+    private void assertNotYetLocked(Future<LockToken> futureToken) {
         assertNotDone(futureToken);
     }
 
-    private void assertLockedAndUnlock(Future<LockTokenV2> futureToken) {
+    private void assertLockedAndUnlock(Future<LockToken> futureToken) {
         cluster.unlock(assertLocked(futureToken));
     }
 
-    private LockTokenV2 assertLocked(Future<LockTokenV2> futureToken) {
+    private LockToken assertLocked(Future<LockToken> futureToken) {
         return assertDone(futureToken);
     }
 

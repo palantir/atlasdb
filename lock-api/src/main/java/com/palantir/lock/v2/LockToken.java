@@ -24,15 +24,15 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLockTokenV2.class)
-@JsonDeserialize(as = ImmutableLockTokenV2.class)
-public interface LockTokenV2 {
+@JsonSerialize(as = ImmutableLockToken.class)
+@JsonDeserialize(as = ImmutableLockToken.class)
+public interface LockToken {
 
     @Value.Parameter
     UUID getRequestId();
 
-    static LockTokenV2 of(UUID requestId) {
-        return ImmutableLockTokenV2.of(requestId);
+    static LockToken of(UUID requestId) {
+        return ImmutableLockToken.of(requestId);
     }
 
 }

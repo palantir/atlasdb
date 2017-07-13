@@ -30,14 +30,13 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequestV2;
-import com.palantir.lock.v2.LockResponseV2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -74,7 +73,8 @@ public class LegacyTimelockService implements TimelockService {
     public LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request) {
         long immutableLockTs = timestampService.getFreshTimestamp();
         LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
-        LockRequest lockRequest = LockRequest.builder(ImmutableSortedMap.of(lockDesc, LockMode.READ))
+        com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
+                ImmutableSortedMap.of(lockDesc, LockMode.READ))
                 .withLockedInVersionId(immutableLockTs).build();
         LockRefreshToken lock;
 
@@ -103,40 +103,38 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public LockResponseV2 lock(LockRequestV2 request) {
-        LockRequest legacyRequest = toLegacyLockRequest(request);
-
-        LockRefreshToken legacyToken = lockAnonymous(legacyRequest);
+    public LockResponse lock(LockRequest request) {
+        LockRefreshToken legacyToken = lockAnonymous(toLegacyLockRequest(request));
         if (legacyToken == null) {
-            return LockResponseV2.timedOut();
+            return LockResponse.timedOut();
         } else {
-            return LockResponseV2.successful(LockTokenConverter.toTokenV2(legacyToken));
+            return LockResponse.successful(LockTokenConverter.toTokenV2(legacyToken));
         }
     }
 
     @Override
     public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        LockRequest legacyRequest = toLegacyWaitForLocksRequest(request.getLockDescriptors());
+        com.palantir.lock.LockRequest legacyRequest = toLegacyWaitForLocksRequest(request.getLockDescriptors());
 
         // this blocks indefinitely, and can only fail if the connection fails (and throws an exception)
         lockAnonymous(legacyRequest);
         return WaitForLocksResponse.successful();
     }
 
-    private LockRequest toLegacyLockRequest(LockRequestV2 request) {
+    private com.palantir.lock.LockRequest toLegacyLockRequest(LockRequest request) {
         SortedMap<LockDescriptor, LockMode> locks = buildLockMap(request.getLockDescriptors(), LockMode.WRITE);
-        return LockRequest.builder(locks)
+        return com.palantir.lock.LockRequest.builder(locks)
                 .blockForAtMost(SimpleTimeDuration.of(request.getAcquireTimeoutMs(), TimeUnit.MILLISECONDS))
                 .build();
     }
 
-    private LockRequest toLegacyWaitForLocksRequest(Set<LockDescriptor> lockDescriptors) {
+    private com.palantir.lock.LockRequest toLegacyWaitForLocksRequest(Set<LockDescriptor> lockDescriptors) {
         SortedMap<LockDescriptor, LockMode> locks = buildLockMap(lockDescriptors, LockMode.READ);
-        return LockRequest.builder(locks).lockAndRelease().build();
+        return com.palantir.lock.LockRequest.builder(locks).lockAndRelease().build();
     }
 
     @Override
-    public Set<LockTokenV2> refreshLockLeases(Set<LockTokenV2> tokens) {
+    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         Set<LockRefreshToken> refreshTokens = tokens.stream()
                 .map(LockTokenConverter::toLegacyToken)
                 .collect(Collectors.toSet());
@@ -146,9 +144,9 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public Set<LockTokenV2> unlock(Set<LockTokenV2> tokens) {
-        Set<LockTokenV2> unlocked = Sets.newHashSet();
-        for (LockTokenV2 tokenV2 : tokens) {
+    public Set<LockToken> unlock(Set<LockToken> tokens) {
+        Set<LockToken> unlocked = Sets.newHashSet();
+        for (LockToken tokenV2 : tokens) {
             LockRefreshToken legacyToken = LockTokenConverter.toLegacyToken(tokenV2);
             if (lockService.unlock(legacyToken)) {
                 unlocked.add(tokenV2);
@@ -167,7 +165,7 @@ public class LegacyTimelockService implements TimelockService {
         return minLocked == null ? ts : minLocked;
     }
 
-    private LockRefreshToken lockAnonymous(LockRequest lockRequest) {
+    private LockRefreshToken lockAnonymous(com.palantir.lock.LockRequest lockRequest) {
         try {
             return lockService.lock(LockClient.ANONYMOUS.getClientId(), lockRequest);
         } catch (InterruptedException ex) {
