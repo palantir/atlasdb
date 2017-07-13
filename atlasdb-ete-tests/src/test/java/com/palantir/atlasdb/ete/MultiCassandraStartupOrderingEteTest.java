@@ -61,7 +61,7 @@ public class MultiCassandraStartupOrderingEteTest {
         runOnCassandraNodes(MultiCassandraTestSuite::killCassandraContainer);
         startTheAtlasClient();
 
-        if (aQuorumIsAlive()) {
+        if (quorumIsAlive()) {
             addATodo();
         } else {
             assertThatThrownBy(this::addATodo)
@@ -74,7 +74,7 @@ public class MultiCassandraStartupOrderingEteTest {
         addATodo();
     }
 
-    private boolean aQuorumIsAlive() {
+    private boolean quorumIsAlive() {
         return cassandraNodesToStartOrStop.size() < 2;
     }
 

@@ -18,11 +18,15 @@ package com.palantir.atlasdb.factory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class KvsBackoff {
+public final class KvsBackoff {
     private static final Logger log = LoggerFactory.getLogger(KvsBackoff.class);
 
     private static final double GOLDEN_RATIO = (Math.sqrt(5) + 1.0) / 2.0;
     private static final int QUICK_MAX_BACKOFF_SECONDS = 1000;
+
+    private KvsBackoff() {
+        // utility
+    }
 
     public static void pauseForBackOff(int failureCount) {
         long timeoutInSeconds = Math.min(QUICK_MAX_BACKOFF_SECONDS, Math.round(Math.pow(GOLDEN_RATIO, failureCount)));
