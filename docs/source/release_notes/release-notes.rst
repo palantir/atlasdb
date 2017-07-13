@@ -80,7 +80,8 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2122>`__)
 
     *    - |fixed|
-         - ``LockServiceImpl.close()`` is now idempotent. Previously, calling the referred method more than once could fail an assertion and throw an exception. This has been fixed.
+         - ``LockServiceImpl.close()`` is now idempotent.
+           Previously, calling the referred method more than once could fail an assertion and throw an exception.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2144>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
