@@ -162,6 +162,14 @@ develop
          - Added backwards compatibility for the changes introduced in `#2067 <https://github.com/palantir/atlasdb/pull/2067>`__, in particular, for passing row values into AtlasConsole functions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2080>`__)
 
+    *    - |improved|
+         - DbKVS now parallelizes createTables(), dropTables(), truncateTables() DDL operations
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1788>`__)
+
+    *    - |new|
+         - DbKVS now has a timeout for DDL operations
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1788>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
