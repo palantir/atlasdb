@@ -29,6 +29,9 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
@@ -80,6 +83,8 @@ import com.palantir.timestamp.TimestampBoundStore;
 import io.dropwizard.setup.Environment;
 
 public class PaxosTimeLockServer implements TimeLockServer {
+    private static final Logger log = LoggerFactory.getLogger(PaxosTimeLockServer.class);
+
     private final PaxosConfiguration paxosConfiguration;
     private final Environment environment;
 
@@ -216,6 +221,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private AsyncTimelockService createAsyncTimelockService(
             String client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier) {
+        log.info("Creating async timelock service.");
         return AwaitingLeadershipProxy.newProxyInstance(
                 AsyncTimelockService.class,
                 () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
@@ -243,6 +249,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     private TimeLockServices createLegacyTimeLockServices(
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             RemoteLockService lockService) {
+        log.info("Creating non-async timelock service.");
         ManagedTimestampService timestampService = AwaitingLeadershipProxy.newProxyInstance(
                 ManagedTimestampService.class,
                 rawTimestampServiceSupplier,
