@@ -50,6 +50,18 @@ develop
     *    - Type
          - Change
 
+
+    *    - |improved|
+         - AtlasDB now supports batching of timestamp requests on the client-side; see :ref:`Timestamp Client Options <timestamp-client-config>` for details.
+           On internal benchmarks, the AtlasDB team has obtained an almost 2x improvement in timestamp throughput and latency under modest load (32 threads), and an over 10x improvement under heavy load (8,192 threads).
+           There may be a very small increase in latency under extremely light load (e.g. 2-4 threads).
+           Note that this is not enabled by default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2083>`__)
+
+    *    - |devbreak|
+         - The ``RateLimitingTimestampService`` in ``timestamp-impl`` has been renamed to ``RequestBatchingTimestampService``, to better reflect what the service does and avoid confusion with the ``ThreadPooledLockService`` (which performs resource-limiting).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2083>`__)
+
     *    - |fixed|
          - If sweep configs are specified in the AtlasDbConfig block, they will be ignored, but AtlasDB will no longer fail to start.
            This effectively fixes the user break change of version ``0.47.0``.
