@@ -3,9 +3,9 @@ algorithm:
   paxosDataDir: <TEMP_DATA_DIR>
 
 cluster:
-  localServer: localhost:9050
+  localServer: localhost:9010
   servers:
-    - localhost:9050
+    - localhost:9010
 
 clients:
   - test
@@ -22,9 +22,9 @@ server:
   maxThreads: 100
   applicationConnectors:
     - type: http
-      port: 9050
+      port: 9010
       selectorThreads: 8
       acceptorThreads: 4
   adminConnectors:
     - type: http
-      port: 7050
+      port: 7010
