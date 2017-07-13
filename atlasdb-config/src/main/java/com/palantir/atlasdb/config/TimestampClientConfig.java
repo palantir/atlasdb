@@ -21,27 +21,18 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
-@JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
-@Value.Immutable
-public abstract class AtlasDbRuntimeConfig {
-
+@JsonSerialize(as = ImmutableTimestampClientConfig.class)
+@JsonDeserialize(as = ImmutableTimestampClientConfig.class)
+@Value.Immutable(singleton = true)
+public abstract class TimestampClientConfig {
+    @Value.Parameter
     @Value.Default
-    public SweepConfig sweep() {
-        return SweepConfig.defaultSweepConfig();
+    public boolean enableTimestampBatching() {
+        return false;
     }
 
-    /**
-     * Returns a configuration for this timestamp client.
-     */
-    @Value.Default
-    public TimestampClientConfig timestampClient() {
-        return ImmutableTimestampClientConfig.builder().build();
-    }
-
-    public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {
-        return ImmutableAtlasDbRuntimeConfig.builder()
-                .sweep(SweepConfig.defaultSweepConfig())
-                .build();
-    }
+    // TODO (jkong): Make timestamp wait intervals configurable.
+    // This should ONLY be done once the timestamp client supports nanosecond precision;
+    // millisecond precision isn't too useful (realistically it's very unlikely you want to set this beyond
+    // 2 ms or so).
 }

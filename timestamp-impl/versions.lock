@@ -5,7 +5,8 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
@@ -25,6 +26,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:tracing"
             ]
@@ -61,7 +63,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -79,7 +82,10 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-commons": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timestamp-client"
+            ]
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true,
@@ -88,6 +94,12 @@
             ]
         },
         "com.palantir.atlasdb:timestamp-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timestamp-client"
+            ]
+        },
+        "com.palantir.atlasdb:timestamp-client": {
             "project": true
         },
         "com.palantir.remoting2:jackson-support": {
@@ -104,7 +116,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
@@ -141,7 +154,8 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
@@ -161,6 +175,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:tracing"
             ]
@@ -197,7 +212,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -215,7 +231,10 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-commons": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timestamp-client"
+            ]
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true,
@@ -224,6 +243,12 @@
             ]
         },
         "com.palantir.atlasdb:timestamp-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timestamp-client"
+            ]
+        },
+        "com.palantir.atlasdb:timestamp-client": {
             "project": true
         },
         "com.palantir.remoting2:jackson-support": {
@@ -240,7 +265,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "io.dropwizard.metrics:metrics-core": {

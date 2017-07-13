@@ -25,6 +25,7 @@
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-util"
             ]
@@ -58,6 +59,7 @@
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting2:error-handling",
@@ -166,6 +168,7 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.tritium:tritium-api",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -250,7 +253,8 @@
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:lock-impl"
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "com.palantir.atlasdb:atlasdb-config": {
@@ -331,7 +335,14 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:timestamp-client"
+            ]
+        },
+        "com.palantir.atlasdb:timestamp-client": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -406,7 +417,8 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -1024,6 +1036,7 @@
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-util"
             ]
@@ -1057,6 +1070,7 @@
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting2:error-handling",
@@ -1174,6 +1188,7 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.tritium:tritium-api",
                 "com.palantir.tritium:tritium-core",
@@ -1274,6 +1289,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -1368,6 +1384,14 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:timestamp-client",
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:timestamp-client": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -1456,6 +1480,7 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
