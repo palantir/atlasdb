@@ -37,6 +37,7 @@ import com.palantir.atlasdb.todo.TodoResource;
 
 @RunWith(Parameterized.class)
 public class MultiCassandraStartupOrderingEteTest {
+
     private final List<String> cassandraNodesToStartOrStop;
 
     public MultiCassandraStartupOrderingEteTest(List<String> cassandraNodesToStartorStop) {
@@ -74,7 +75,7 @@ public class MultiCassandraStartupOrderingEteTest {
     }
 
     private boolean aQuorumIsAlive() {
-        return cassandraNodesToStartOrStop.size() > 1;
+        return cassandraNodesToStartOrStop.size() < 2;
     }
 
     private void stopTheAtlasClient() throws IOException, InterruptedException {

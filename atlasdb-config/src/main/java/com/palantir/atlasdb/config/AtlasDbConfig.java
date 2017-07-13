@@ -249,14 +249,6 @@ public abstract class AtlasDbConfig {
 
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
                 "Lock and timestamp server blocks must either both be present or both be absent.");
-
-        Preconditions.checkState(getSweepBatchSize() == null
-                        && getSweepCellBatchSize() == null
-                        && getSweepReadLimit() == null
-                        && getSweepCandidateBatchHint() == null
-                        && getSweepDeleteBatchHint() == null,
-                "Your configuration specifies sweep parameters on the install config."
-                        + " Please use the runtime config to specify them.");
     }
 
     private boolean areTimeAndLockConfigsAbsent() {
