@@ -41,6 +41,7 @@ import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.timestamp.TimestampRange;
 
 public class AsyncTimelockServiceIntegrationTest {
     private static final String CLIENT = "test";
@@ -124,10 +125,18 @@ public class AsyncTimelockServiceIntegrationTest {
 
     @Test
     public void canGetTimestamps() {
-        long ts1 = CLUSTER.getFreshTimestamp();
+        long ts1 = CLUSTER.timelockService().getFreshTimestamp();
         long ts2 = CLUSTER.getFreshTimestamp();
 
         assertThat(ts2).isGreaterThan(ts1);
+    }
+
+    @Test
+    public void canGetBatchTimestamps() {
+        TimestampRange range1 = CLUSTER.getFreshTimestamps(5);
+        TimestampRange range2 = CLUSTER.timelockService().getFreshTimestamps(5);
+
+        assertThat(range1.getUpperBound()).isLessThan(range2.getLowerBound());
     }
 
     @Test

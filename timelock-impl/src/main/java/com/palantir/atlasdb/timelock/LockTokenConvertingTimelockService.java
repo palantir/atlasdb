@@ -22,8 +22,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.QueryParam;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +62,7 @@ public class LockTokenConvertingTimelockService implements TimelockService {
     }
 
     @Override
-    public TimestampRange getFreshTimestamps(@QueryParam("number") int numTimestampsRequested) {
+    public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         return delegate.getFreshTimestamps(numTimestampsRequested);
     }
 
