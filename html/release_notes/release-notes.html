@@ -199,31 +199,40 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>If sweep configs are specified in the AtlasDbConfig block, they will be ignored, but AtlasDB will no longer fail to start.
+This effectively fixes the Sweep-related user break change of version <code class="docutils literal"><span class="pre">0.47.0</span></code>.
+Note that users of products that upgraded from <code class="docutils literal"><span class="pre">0.45.0</span></code> to <code class="docutils literal"><span class="pre">0.48.0</span></code> will need to move configuration overrides from the regular <code class="docutils literal"><span class="pre">atlasdb</span></code> config to the <code class="docutils literal"><span class="pre">atlasdb-runtime</span></code> config for them to continue taking effect.
+Please reference the Sweep <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">configuration docs</span></a> for more details.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2134">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now supports batching of timestamp requests on the client-side; see <a class="reference internal" href="../configuration/timestamp_client.html#timestamp-client-config"><span class="std std-ref">Timestamp Client Options</span></a> for details.
 On internal benchmarks, the AtlasDB team has obtained an almost 2x improvement in timestamp throughput and latency under modest load (32 threads), and an over 10x improvement under heavy load (8,192 threads).
 There may be a very small increase in latency under extremely light load (e.g. 2-4 threads).
 Note that this is not enabled by default.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2083">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The <code class="docutils literal"><span class="pre">RateLimitingTimestampService</span></code> in <code class="docutils literal"><span class="pre">timestamp-impl</span></code> has been renamed to <code class="docutils literal"><span class="pre">RequestBatchingTimestampService</span></code>, to better reflect what the service does and avoid confusion with the <code class="docutils literal"><span class="pre">ThreadPooledLockService</span></code> (which performs resource-limiting).
+Products that do not use this class directly are not affected.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2083">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>If sweep configs are specified in the AtlasDbConfig block, they will be ignored, but AtlasDB will no longer fail to start.
-This effectively fixes the user break change of version <code class="docutils literal"><span class="pre">0.47.0</span></code>.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2134">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><code class="docutils literal"><span class="pre">TransactionManager.close()</span></code> now closes the lock service (provided it is closeable), and also shuts down the Background Sweeper.
 Previously, the lock service’s background threads as well as background sweeper would continue to run (potentially indefinitely) even after a transaction manager was closed.
+Note that services that relied on the lock service being available even after a transaction manager was shut down may no longer behave properly, and should ensure that the transaction manager is not shut down while the lock service is still needed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2102">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td><code class="docutils literal"><span class="pre">common-executors</span></code> now uses Java 6 when compiling from source and generates classes targeting Java 6. Java 6 support was removed in AtlasDB <code class="docutils literal"><span class="pre">0.41.0</span></code>
-and blocks certain internal products from upgrading to subsequent versions.
+<td><code class="docutils literal"><span class="pre">commons-executors</span></code> now uses Java 6 when compiling from source and generates classes targeting Java 6.
+Java 6 support was removed in AtlasDB <code class="docutils literal"><span class="pre">0.41.0</span></code> and blocks certain internal products from upgrading to subsequent versions.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2122">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">LockServiceImpl.close()</span></code> is now idempotent.
+Previously, calling the referred method more than once could fail an assertion and throw an exception.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2144">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
