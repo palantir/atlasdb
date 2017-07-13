@@ -28,31 +28,31 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 
 public class LockTokenConvertingTimelockServiceTest {
     private static final UUID TEST_UUID = new UUID(12345, 67890);
 
     @Test
     public void castToAdapterPreservesRequestId() {
-        LockTokenV2 tokenV2 = LockTokenV2.of(TEST_UUID);
-        LockTokenV2 legacyVersion = LockTokenConvertingTimelockService.castToAdapter(tokenV2);
+        LockToken tokenV2 = LockToken.of(TEST_UUID);
+        LockToken legacyVersion = LockTokenConvertingTimelockService.castToAdapter(tokenV2);
         assertThat(legacyVersion.getRequestId()).isEqualTo(tokenV2.getRequestId());
     }
 
     @Test
     public void makeSerializableMakesLockTokensSerializable() throws JsonProcessingException {
-        LockTokenV2 tokenV2 = new LegacyTimelockService.LockRefreshTokenV2Adapter(
+        LockToken tokenV2 = new LegacyTimelockService.LockRefreshTokenV2Adapter(
                 new LockRefreshToken(BigInteger.ZERO, Long.MIN_VALUE));
-        LockTokenV2 serializableToken = LockTokenConvertingTimelockService.makeSerializable(tokenV2);
+        LockToken serializableToken = LockTokenConvertingTimelockService.makeSerializable(tokenV2);
         new ObjectMapper().writeValueAsString(serializableToken);
     }
 
     @Test
     public void makeSerializablePreservesTokenId() {
-        LockTokenV2 tokenV2 = new LegacyTimelockService.LockRefreshTokenV2Adapter(
+        LockToken tokenV2 = new LegacyTimelockService.LockRefreshTokenV2Adapter(
                 new LockRefreshToken(BigInteger.ZERO, Long.MIN_VALUE));
-        LockTokenV2 serializableToken = LockTokenConvertingTimelockService.makeSerializable(tokenV2);
+        LockToken serializableToken = LockTokenConvertingTimelockService.makeSerializable(tokenV2);
         assertThat(serializableToken.getRequestId()).isEqualTo(new UUID(0L, 0L));
     }
 
@@ -61,15 +61,15 @@ public class LockTokenConvertingTimelockServiceTest {
         BigInteger bigInteger = new BigInteger("2")
                 .pow(64)
                 .add(BigInteger.ONE); // This returns (1 << 65) + 1
-        LockTokenV2 tokenV2 = new LegacyTimelockService.LockRefreshTokenV2Adapter(
+        LockToken tokenV2 = new LegacyTimelockService.LockRefreshTokenV2Adapter(
                 new LockRefreshToken(bigInteger, Long.MIN_VALUE));
-        LockTokenV2 serializableToken = LockTokenConvertingTimelockService.makeSerializable(tokenV2);
+        LockToken serializableToken = LockTokenConvertingTimelockService.makeSerializable(tokenV2);
         assertThat(serializableToken.getRequestId()).isEqualTo(new UUID(1L, 1L));
     }
 
     @Test
     public void identifiersPreservedOnRepeatedConversions() {
-        LockTokenV2 tokenV2 = LockTokenV2.of(TEST_UUID);
+        LockToken tokenV2 = LockToken.of(TEST_UUID);
         int iterations = 10;
         for (int i = 0; i < iterations; i++) {
             tokenV2 = LockTokenConvertingTimelockService.castToAdapter(tokenV2);
@@ -104,9 +104,9 @@ public class LockTokenConvertingTimelockServiceTest {
     }
 
     private void assertConversionFromAndToLegacyPreservesId(LockRefreshToken lockRefreshToken) {
-        LockTokenV2 initialToken = new LegacyTimelockService.LockRefreshTokenV2Adapter(lockRefreshToken);
-        LockTokenV2 serializable = LockTokenConvertingTimelockService.makeSerializable(initialToken);
-        LockTokenV2 reconverted = LockTokenConvertingTimelockService.castToAdapter(serializable);
+        LockToken initialToken = new LegacyTimelockService.LockRefreshTokenV2Adapter(lockRefreshToken);
+        LockToken serializable = LockTokenConvertingTimelockService.makeSerializable(initialToken);
+        LockToken reconverted = LockTokenConvertingTimelockService.castToAdapter(serializable);
 
         assertThat(reconverted).isEqualTo(initialToken);
         assertThat(serializable.getRequestId()).isEqualTo(initialToken.getRequestId());

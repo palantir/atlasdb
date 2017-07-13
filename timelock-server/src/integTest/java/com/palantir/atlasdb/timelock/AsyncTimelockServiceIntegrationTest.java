@@ -36,9 +36,9 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequestV2;
-import com.palantir.lock.v2.LockResponseV2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 
@@ -63,7 +63,7 @@ public class AsyncTimelockServiceIntegrationTest {
 
     @Test
     public void canLockRefreshAndUnlock() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).getToken();
+        LockToken token = CLUSTER.lock(requestFor(LOCK_A)).getToken();
         boolean wasRefreshed = CLUSTER.refreshLockLease(token);
         boolean wasUnlocked = CLUSTER.unlock(token);
 
@@ -73,9 +73,9 @@ public class AsyncTimelockServiceIntegrationTest {
 
     @Test
     public void locksAreExclusive() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).getToken();
-        Future<LockTokenV2> futureToken = CLUSTER.lockAsync(requestFor(LOCK_A))
-                .thenApply(LockResponseV2::getToken);
+        LockToken token = CLUSTER.lock(requestFor(LOCK_A)).getToken();
+        Future<LockToken> futureToken = CLUSTER.lockAsync(requestFor(LOCK_A))
+                .thenApply(LockResponse::getToken);
 
         assertNotYetLocked(futureToken);
 
@@ -111,7 +111,7 @@ public class AsyncTimelockServiceIntegrationTest {
 
     @Test
     public void canWaitForLocks() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A, LOCK_B)).getToken();
+        LockToken token = CLUSTER.lock(requestFor(LOCK_A, LOCK_B)).getToken();
 
         CompletableFuture<WaitForLocksResponse> future = CLUSTER.waitForLocksAsync(waitRequestFor(LOCK_A, LOCK_B));
         assertNotDone(future);
@@ -132,8 +132,8 @@ public class AsyncTimelockServiceIntegrationTest {
 
     @Test
     public void lockRequestCanTimeOut() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).getToken();
-        LockResponseV2 token2 = CLUSTER.lock(requestFor(SHORT_TIMEOUT, LOCK_A));
+        LockToken token = CLUSTER.lock(requestFor(LOCK_A)).getToken();
+        LockResponse token2 = CLUSTER.lock(requestFor(SHORT_TIMEOUT, LOCK_A));
 
         assertThat(token2.wasSuccessful()).isFalse();
         CLUSTER.unlock(token);
@@ -141,19 +141,19 @@ public class AsyncTimelockServiceIntegrationTest {
 
     @Test
     public void waitForLocksRequestCanTimeOut() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).getToken();
+        LockToken token = CLUSTER.lock(requestFor(LOCK_A)).getToken();
         WaitForLocksResponse response = CLUSTER.waitForLocks(waitRequestFor(SHORT_TIMEOUT, LOCK_A));
 
         assertThat(response.wasSuccessful()).isFalse();
         CLUSTER.unlock(token);
     }
 
-    private LockRequestV2 requestFor(LockDescriptor... locks) {
-        return LockRequestV2.of(ImmutableSet.copyOf(locks), TIMEOUT);
+    private LockRequest requestFor(LockDescriptor... locks) {
+        return LockRequest.of(ImmutableSet.copyOf(locks), TIMEOUT);
     }
 
-    private LockRequestV2 requestFor(long timeoutMs, LockDescriptor... locks) {
-        return LockRequestV2.of(ImmutableSet.copyOf(locks), timeoutMs);
+    private LockRequest requestFor(long timeoutMs, LockDescriptor... locks) {
+        return LockRequest.of(ImmutableSet.copyOf(locks), timeoutMs);
     }
 
     private WaitForLocksRequest waitRequestFor(LockDescriptor... locks) {
@@ -164,15 +164,15 @@ public class AsyncTimelockServiceIntegrationTest {
         return WaitForLocksRequest.of(ImmutableSet.copyOf(locks), timeoutMs);
     }
 
-    private void assertNotYetLocked(Future<LockTokenV2> futureToken) {
+    private void assertNotYetLocked(Future<LockToken> futureToken) {
         assertNotDone(futureToken);
     }
 
-    private void assertLockedAndUnlock(Future<LockTokenV2> futureToken) {
+    private void assertLockedAndUnlock(Future<LockToken> futureToken) {
         CLUSTER.unlock(assertLocked(futureToken));
     }
 
-    private LockTokenV2 assertLocked(Future<LockTokenV2> futureToken) {
+    private LockToken assertLocked(Future<LockToken> futureToken) {
         return assertDone(futureToken);
     }
 

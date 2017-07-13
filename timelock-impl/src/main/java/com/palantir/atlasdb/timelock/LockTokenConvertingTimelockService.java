@@ -33,12 +33,12 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
 import com.palantir.lock.v2.ImmutableLockResponseV2;
-import com.palantir.lock.v2.ImmutableLockTokenV2;
+import com.palantir.lock.v2.ImmutableLockToken;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequestV2;
-import com.palantir.lock.v2.LockResponseV2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -83,8 +83,8 @@ public class LockTokenConvertingTimelockService implements TimelockService {
     }
 
     @Override
-    public LockResponseV2 lock(LockRequestV2 request) {
-        LockResponseV2 delegateResponse = delegate.lock(request);
+    public LockResponse lock(LockRequest request) {
+        LockResponse delegateResponse = delegate.lock(request);
         if (delegateResponse.wasSuccessful()) {
             return ImmutableLockResponseV2.builder()
                     .from(delegateResponse)
@@ -100,12 +100,12 @@ public class LockTokenConvertingTimelockService implements TimelockService {
     }
 
     @Override
-    public Set<LockTokenV2> refreshLockLeases(Set<LockTokenV2> tokens) {
+    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         return makeAllSerializable(delegate.refreshLockLeases(castAllToAdapters(tokens)));
     }
 
     @Override
-    public Set<LockTokenV2> unlock(Set<LockTokenV2> tokens) {
+    public Set<LockToken> unlock(Set<LockToken> tokens) {
         return makeAllSerializable(delegate.unlock(castAllToAdapters(tokens)));
     }
 
@@ -114,25 +114,25 @@ public class LockTokenConvertingTimelockService implements TimelockService {
         return delegate.currentTimeMillis();
     }
 
-    private static Set<LockTokenV2> makeAllSerializable(Set<LockTokenV2> tokens) {
+    private static Set<LockToken> makeAllSerializable(Set<LockToken> tokens) {
         return tokens.stream()
                 .map(LockTokenConvertingTimelockService::makeSerializable)
                 .collect(Collectors.toSet());
     }
 
     @VisibleForTesting
-    static LockTokenV2 makeSerializable(LockTokenV2 token) {
-        return ImmutableLockTokenV2.copyOf(token);
+    static LockToken makeSerializable(LockToken token) {
+        return ImmutableLockToken.copyOf(token);
     }
 
-    private static Set<LockTokenV2> castAllToAdapters(Set<LockTokenV2> tokens) {
+    private static Set<LockToken> castAllToAdapters(Set<LockToken> tokens) {
         return tokens.stream()
                 .map(LockTokenConvertingTimelockService::castToAdapter)
                 .collect(Collectors.toSet());
     }
 
     @VisibleForTesting
-    static LockTokenV2 castToAdapter(LockTokenV2 token) {
+    static LockToken castToAdapter(LockToken token) {
         LockRefreshToken legacyToken = new LockRefreshToken(
                 calculateLegacyTokenId(token.getRequestId()), Long.MIN_VALUE);
         return new LegacyTimelockService.LockRefreshTokenV2Adapter(legacyToken);

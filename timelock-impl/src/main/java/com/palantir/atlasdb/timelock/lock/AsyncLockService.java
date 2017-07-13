@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 
 public class AsyncLockService implements Closeable {
 
@@ -76,13 +76,13 @@ public class AsyncLockService implements Closeable {
         }, 0, LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2, TimeUnit.MILLISECONDS);
     }
 
-    public AsyncResult<LockTokenV2> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
+    public AsyncResult<LockToken> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
         return heldLocks.getExistingOrAcquire(
                 requestId,
                 () -> acquireLocks(requestId, lockDescriptors, timeout));
     }
 
-    public AsyncResult<LockTokenV2> lockImmutableTimestamp(UUID requestId, long timestamp) {
+    public AsyncResult<LockToken> lockImmutableTimestamp(UUID requestId, long timestamp) {
         return heldLocks.getExistingOrAcquire(
                 requestId,
                 () -> acquireImmutableTimestampLock(requestId, timestamp));
@@ -108,19 +108,19 @@ public class AsyncLockService implements Closeable {
         return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), TimeLimit.zero());
     }
 
-    public boolean unlock(LockTokenV2 token) {
+    public boolean unlock(LockToken token) {
         return unlock(ImmutableSet.of(token)).contains(token);
     }
 
-    public Set<LockTokenV2> unlock(Set<LockTokenV2> tokens) {
+    public Set<LockToken> unlock(Set<LockToken> tokens) {
         return heldLocks.unlock(tokens);
     }
 
-    public boolean refresh(LockTokenV2 token) {
+    public boolean refresh(LockToken token) {
         return refresh(ImmutableSet.of(token)).contains(token);
     }
 
-    public Set<LockTokenV2> refresh(Set<LockTokenV2> tokens) {
+    public Set<LockToken> refresh(Set<LockToken> tokens) {
         return heldLocks.refresh(tokens);
     }
 

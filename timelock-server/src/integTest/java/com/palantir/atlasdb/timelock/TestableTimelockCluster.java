@@ -34,11 +34,10 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
-import com.palantir.lock.v2.LockRequestV2;
-import com.palantir.lock.v2.LockResponseV2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -147,7 +146,7 @@ public class TestableTimelockCluster {
         return timestampService().getFreshTimestamp();
     }
 
-    public LockRefreshToken remoteLock(String client, LockRequest lockRequest) throws InterruptedException {
+    public LockRefreshToken remoteLock(String client, com.palantir.lock.LockRequest lockRequest) throws InterruptedException {
         return lockService().lock(client, lockRequest);
     }
 
@@ -155,23 +154,23 @@ public class TestableTimelockCluster {
         return lockService().unlock(token);
     }
 
-    public LockResponseV2 lock(LockRequestV2 requestV2) {
+    public LockResponse lock(LockRequest requestV2) {
         return timelockService().lock(requestV2);
     }
 
-    public CompletableFuture<LockResponseV2> lockAsync(LockRequestV2 requestV2) {
+    public CompletableFuture<LockResponse> lockAsync(LockRequest requestV2) {
         return CompletableFuture.supplyAsync(() -> lock(requestV2), executor);
     }
 
-    public boolean unlock(LockTokenV2 token) {
+    public boolean unlock(LockToken token) {
         return timelockService().unlock(ImmutableSet.of(token)).contains(token);
     }
 
-    public Set<LockTokenV2> refreshLockLeases(Set<LockTokenV2> tokens) {
+    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         return timelockService().refreshLockLeases(tokens);
     }
 
-    public boolean refreshLockLease(LockTokenV2 token) {
+    public boolean refreshLockLease(LockToken token) {
         return refreshLockLeases(ImmutableSet.of(token)).contains(token);
     }
 
