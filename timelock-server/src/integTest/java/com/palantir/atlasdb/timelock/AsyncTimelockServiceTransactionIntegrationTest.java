@@ -109,7 +109,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
     }
 
     @Test
-    public void canUseExclusiveAdvisoryLocks() throws ExecutionException, InterruptedException {
+    public void canCommitWritesWithExclusiveAdvisoryLocks() throws ExecutionException, InterruptedException {
         AtomicBoolean isExecuting = new AtomicBoolean(false);
 
         List<Future<?>> tasks = IntStream.range(0, 5).mapToObj(i -> executor.submit((Callable<Void>) () ->

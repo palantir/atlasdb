@@ -9,11 +9,17 @@ cluster:
 
 clients:
   - test
+  - test2
+  - test3
+  - learner
+  - acceptor
 
 useClientRequestLimit: true
 useAsyncLockService: true
 
 server:
+  minThreads: 1
+  maxThreads: 100
   applicationConnectors:
     - type: http
       port: 9080

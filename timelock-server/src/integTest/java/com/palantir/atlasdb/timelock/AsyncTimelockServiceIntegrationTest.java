@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
@@ -114,10 +116,17 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void canGetTimestamps() {
-        long ts1 = cluster.getFreshTimestamp();
-        long ts2 = cluster.timelockService().getFreshTimestamp();
+        List<Long> timestamps = ImmutableList.of(
+                cluster.getFreshTimestamp(),
+                cluster.timelockService().getFreshTimestamp(),
+                cluster.getFreshTimestamp(),
+                cluster.timelockService().getFreshTimestamp());
 
-        assertThat(ts2).isGreaterThan(ts1);
+        long lastTs = -1;
+        for (long ts : timestamps) {
+            assertThat(ts).isGreaterThan(lastTs);
+            lastTs = ts;
+        }
     }
 
     @Test
