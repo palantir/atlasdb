@@ -55,6 +55,7 @@ import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
+import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
@@ -187,6 +188,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 RemoteLockService.class,
                 createLockService(slowLogTriggerMillis),
                 client);
+
+        LockLog.setSlowLockThresholdMillis(slowLogTriggerMillis);
 
         if (timeLockServerConfiguration.useAsyncLockService()) {
             return createTimeLockServicesWithAsync(client, rawTimestampServiceSupplier, lockService);
