@@ -1,0 +1,30 @@
+algorithm:
+  type: paxos
+  paxosDataDir: <TEMP_DATA_DIR>
+
+cluster:
+  localServer: localhost:9080
+  servers:
+    - localhost:9080
+
+clients:
+  - test
+  - test2
+  - test3
+  - learner
+  - acceptor
+
+useClientRequestLimit: true
+useAsyncLockService: true
+
+server:
+  minThreads: 1
+  maxThreads: 100
+  applicationConnectors:
+    - type: http
+      port: 9080
+      selectorThreads: 8
+      acceptorThreads: 4
+  adminConnectors:
+    - type: http
+      port: 7080

@@ -21,15 +21,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
@@ -43,30 +39,23 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
-public class AsyncTimelockServiceIntegrationTest {
-    private static final String CLIENT = "test";
-
-    private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
-            "http://localhost",
-            CLIENT,
-            "paxosSingleServer.yml");
-
-    @ClassRule
-    public static final RuleChain ruleChain = CLUSTER.getRuleChain();
+public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {
 
     private static final LockDescriptor LOCK_A = StringLockDescriptor.of("a");
     private static final LockDescriptor LOCK_B = StringLockDescriptor.of("b");
 
     private static final long SHORT_TIMEOUT = 500L;
-    public static final long TIMEOUT = 10_000L;
+    private static final long TIMEOUT = 10_000L;
 
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    public AsyncTimelockServiceIntegrationTest(TestableTimelockCluster cluster) {
+        super(cluster);
+    }
 
     @Test
     public void canLockRefreshAndUnlock() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).getToken();
-        boolean wasRefreshed = CLUSTER.refreshLockLease(token);
-        boolean wasUnlocked = CLUSTER.unlock(token);
+        LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
+        boolean wasRefreshed = cluster.refreshLockLease(token);
+        boolean wasUnlocked = cluster.unlock(token);
 
         assertTrue(wasRefreshed);
         assertTrue(wasUnlocked);
@@ -74,50 +63,50 @@ public class AsyncTimelockServiceIntegrationTest {
 
     @Test
     public void locksAreExclusive() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).getToken();
-        Future<LockTokenV2> futureToken = CLUSTER.lockAsync(requestFor(LOCK_A))
+        LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
+        Future<LockTokenV2> futureToken = cluster.lockAsync(requestFor(LOCK_A))
                 .thenApply(LockResponseV2::getToken);
 
         assertNotYetLocked(futureToken);
 
-        CLUSTER.unlock(token);
+        cluster.unlock(token);
 
         assertLockedAndUnlock(futureToken);
     }
 
     @Test
     public void canLockImmutableTimestamp() {
-        LockImmutableTimestampResponse response1 = CLUSTER.timelockService()
+        LockImmutableTimestampResponse response1 = cluster.timelockService()
                 .lockImmutableTimestamp(LockImmutableTimestampRequest.create());
-        LockImmutableTimestampResponse response2 = CLUSTER.timelockService()
+        LockImmutableTimestampResponse response2 = cluster.timelockService()
                 .lockImmutableTimestamp(LockImmutableTimestampRequest.create());
 
-        long immutableTs = CLUSTER.timelockService().getImmutableTimestamp();
+        long immutableTs = cluster.timelockService().getImmutableTimestamp();
         assertThat(immutableTs).isEqualTo(response1.getImmutableTimestamp());
 
-        CLUSTER.unlock(response1.getLock());
+        cluster.unlock(response1.getLock());
 
         assertThat(immutableTs).isEqualTo(response2.getImmutableTimestamp());
 
-        CLUSTER.unlock(response2.getLock());
+        cluster.unlock(response2.getLock());
     }
 
     @Test
     public void immutableTimestampIsGreaterThanFreshTimestampWhenNotLocked() {
-        long freshTs = CLUSTER.getFreshTimestamp();
-        long immutableTs = CLUSTER.timelockService().getImmutableTimestamp();
+        long freshTs = cluster.getFreshTimestamp();
+        long immutableTs = cluster.timelockService().getImmutableTimestamp();
 
         assertThat(immutableTs).isGreaterThan(freshTs);
     }
 
     @Test
     public void canWaitForLocks() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A, LOCK_B)).getToken();
+        LockTokenV2 token = cluster.lock(requestFor(LOCK_A, LOCK_B)).getToken();
 
-        CompletableFuture<WaitForLocksResponse> future = CLUSTER.waitForLocksAsync(waitRequestFor(LOCK_A, LOCK_B));
+        CompletableFuture<WaitForLocksResponse> future = cluster.waitForLocksAsync(waitRequestFor(LOCK_A, LOCK_B));
         assertNotDone(future);
 
-        CLUSTER.unlock(token);
+        cluster.unlock(token);
 
         assertDone(future);
         assertThat(future.join().wasSuccessful()).isTrue();
@@ -125,36 +114,47 @@ public class AsyncTimelockServiceIntegrationTest {
 
     @Test
     public void canGetTimestamps() {
-        long ts1 = CLUSTER.timelockService().getFreshTimestamp();
-        long ts2 = CLUSTER.getFreshTimestamp();
+        long ts1 = cluster.getFreshTimestamp();
+        long ts2 = cluster.timelockService().getFreshTimestamp();
 
         assertThat(ts2).isGreaterThan(ts1);
     }
 
     @Test
     public void canGetBatchTimestamps() {
-        TimestampRange range1 = CLUSTER.getFreshTimestamps(5);
-        TimestampRange range2 = CLUSTER.timelockService().getFreshTimestamps(5);
+        TimestampRange range1 = cluster.getFreshTimestamps(5);
+        TimestampRange range2 = cluster.timelockService().getFreshTimestamps(5);
 
         assertThat(range1.getUpperBound()).isLessThan(range2.getLowerBound());
     }
 
     @Test
     public void lockRequestCanTimeOut() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).getToken();
-        LockResponseV2 token2 = CLUSTER.lock(requestFor(SHORT_TIMEOUT, LOCK_A));
+        if (cluster == CLUSTER_WITH_SYNC_ADAPTER) {
+            // legacy API does not support timeouts on this endpoint
+            return;
+        }
+
+        LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
+        LockResponseV2 token2 = cluster.lock(requestFor(SHORT_TIMEOUT, LOCK_A));
 
         assertThat(token2.wasSuccessful()).isFalse();
-        CLUSTER.unlock(token);
+        cluster.unlock(token);
     }
 
     @Test
     public void waitForLocksRequestCanTimeOut() {
-        LockTokenV2 token = CLUSTER.lock(requestFor(LOCK_A)).getToken();
-        WaitForLocksResponse response = CLUSTER.waitForLocks(waitRequestFor(SHORT_TIMEOUT, LOCK_A));
+        LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
+        WaitForLocksResponse response = cluster.waitForLocks(waitRequestFor(SHORT_TIMEOUT, LOCK_A));
 
         assertThat(response.wasSuccessful()).isFalse();
-        CLUSTER.unlock(token);
+        cluster.unlock(token);
+    }
+
+    @Test
+    public void canGetCurrentTimeMillis() {
+        assertThat(cluster.lockService().currentTimeMillis()).isGreaterThan(0L);
+        assertThat(cluster.timelockService().currentTimeMillis()).isGreaterThan(0L);
     }
 
     private LockRequestV2 requestFor(LockDescriptor... locks) {
@@ -178,7 +178,7 @@ public class AsyncTimelockServiceIntegrationTest {
     }
 
     private void assertLockedAndUnlock(Future<LockTokenV2> futureToken) {
-        CLUSTER.unlock(assertLocked(futureToken));
+        cluster.unlock(assertLocked(futureToken));
     }
 
     private LockTokenV2 assertLocked(Future<LockTokenV2> futureToken) {
