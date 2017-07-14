@@ -124,7 +124,6 @@ public final class TransactionManagers {
 
     /**
      * Accepts a single {@link Schema}.
-     *
      * @see TransactionManagers#createInMemory(Set)
      */
     public static SerializableTransactionManager createInMemory(Schema schema) {
@@ -141,8 +140,7 @@ public final class TransactionManagers {
         return create(config,
                 java.util.Optional::empty,
                 schemas,
-                x -> {
-                },
+                x -> { },
                 false);
     }
 
@@ -356,11 +354,6 @@ public final class TransactionManagers {
                 sweepMetrics);
         env.register(new SweeperServiceImpl(specificTableSweeper));
         return specificTableSweeper;
-    }
-
-    private static AtlasDbRuntimeConfig getAtlasDbRuntimeConfig(
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier) {
-        return runtimeConfigSupplier.get().orElse(AtlasDbRuntimeConfig.defaultRuntimeConfig());
     }
 
     private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig) {
