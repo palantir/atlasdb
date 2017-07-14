@@ -60,6 +60,8 @@ public class AtlasDbConstants {
     public static final long TRANSACTION_TS = 0L;
     public static final long MAX_TS = Long.MAX_VALUE;
 
+    public static final long DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS = 120_000;
+
 
     public static final Set<TableReference> hiddenTables = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,

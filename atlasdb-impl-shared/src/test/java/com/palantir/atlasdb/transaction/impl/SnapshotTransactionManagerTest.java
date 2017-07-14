@@ -28,6 +28,7 @@ import java.io.IOException;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.lock.CloseableRemoteLockService;
@@ -51,7 +52,8 @@ public class SnapshotTransactionManagerTest {
             null,
             null,
             cleaner,
-            false);
+            false,
+            () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
 
     @Test
     public void closesKeyValueServiceOnClose() {
@@ -83,7 +85,8 @@ public class SnapshotTransactionManagerTest {
                 null,
                 null,
                 cleaner,
-                false);
+                false,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
         newTransactionManager.close(); // should not throw
     }
 
