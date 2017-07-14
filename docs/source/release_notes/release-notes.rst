@@ -37,6 +37,17 @@ develop
 
 .. replace this with the release date
 
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed an issue that could cause AtlasConsole to print unnecessary amounts of input when commands were run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2130>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
