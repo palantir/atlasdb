@@ -746,8 +746,7 @@ public class CassandraClientPool {
                         tokenRangesToHost.get(set2));
             }
 
-            CassandraVerifier.logErrorOrThrow(ex.getMessage(),
-                    config.safetyDisabled() || config.ignoreInconsistentRingChecks());
+            CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.ignoreInconsistentRingChecks());
         }
     }
 
