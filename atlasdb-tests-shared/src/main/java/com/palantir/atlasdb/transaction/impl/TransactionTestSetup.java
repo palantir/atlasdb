@@ -68,7 +68,6 @@ public abstract class TransactionTestSetup {
         });
         lockClient = LockClient.of("test_client");
 
-
         keyValueService = getKeyValueService();
         keyValueService.createTables(ImmutableMap.of(
                 TEST_TABLE,
