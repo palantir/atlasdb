@@ -9,8 +9,10 @@ import com.palantir.remoting2.config.service.ServiceConfiguration;
 import com.palantir.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
+import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockInstallConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockRuntimeConfiguration;
+import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
@@ -47,9 +49,13 @@ public class TimeLockConfigMigrator {
                 .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
                 .build();
 
+        // TODO
+        TimeLockDeprecatedConfiguration deprecated = ImmutableTimeLockDeprecatedConfiguration.builder().build();
+
         return ImmutableCombinedTimeLockServerConfiguration.builder()
                 .install(install)
                 .runtime(runtime)
+                .deprecated(deprecated)
                 .build();
     }
 }
