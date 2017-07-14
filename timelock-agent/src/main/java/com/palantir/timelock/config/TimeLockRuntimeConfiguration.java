@@ -24,9 +24,9 @@ import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 public abstract class TimeLockRuntimeConfiguration {
     private static final String CLIENT_NAME_REGEX = "[a-zA-Z0-9_-]+";
 
-    abstract Optional<TimeLockAlgorithmRuntimeConfiguration> algorithm();
+    public abstract Optional<TimeLockAlgorithmRuntimeConfiguration> algorithm();
 
-    abstract Set<String> clients();
+    public abstract Set<String> clients();
 
     /**
      * Log at INFO if a lock request receives a response after given duration in milliseconds.
@@ -34,12 +34,12 @@ public abstract class TimeLockRuntimeConfiguration {
      */
     @JsonProperty("slow-lock-log-trigger-in-ms")
     @Value.Default
-    long slowLockLogTriggerMillis() {
+    public long slowLockLogTriggerMillis() {
         return 10000;
     }
 
     @Value.Check
-    void check() {
+    public void check() {
         clients().forEach(client -> Preconditions.checkState(
                 client.matches(CLIENT_NAME_REGEX),
                 "Client names must consist of alphanumeric characters, underscores, or dashes. Illegal name: %s",
