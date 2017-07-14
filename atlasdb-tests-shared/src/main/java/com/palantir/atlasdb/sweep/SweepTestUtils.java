@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 import com.google.common.base.Supplier;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -70,7 +71,8 @@ public final class SweepTestUtils {
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
         LockAwareTransactionManager txManager = new SerializableTransactionManager(kvs, tsService, lockClient,
-                lockService, txService, constraints, cdm, ssm, cleaner, false);
+                lockService, txService, constraints, cdm, ssm, cleaner, false,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
         setupTables(kvs);
         return txManager;
     }

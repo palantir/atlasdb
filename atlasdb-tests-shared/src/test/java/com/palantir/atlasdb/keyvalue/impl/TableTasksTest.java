@@ -78,7 +78,8 @@ public class TableTasksTest {
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(
-                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
+                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
         txManager = transactionManager;
     }
 

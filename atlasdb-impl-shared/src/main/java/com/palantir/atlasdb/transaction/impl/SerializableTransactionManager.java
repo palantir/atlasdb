@@ -40,7 +40,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner) {
+            Cleaner cleaner,
+            Supplier<Long> lockAcquireTimeoutMs) {
         this(keyValueService,
                 timestampService,
                 lockClient,
@@ -50,7 +51,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                false);
+                false,
+                lockAcquireTimeoutMs);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
@@ -62,7 +64,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            boolean allowHiddenTableAccess) {
+            boolean allowHiddenTableAccess,
+            Supplier<Long> lockAcquireTimeoutMs) {
         this(
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
@@ -72,7 +75,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                allowHiddenTableAccess);
+                allowHiddenTableAccess,
+                lockAcquireTimeoutMs);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
@@ -83,7 +87,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            boolean allowHiddenTableAccess) {
+            boolean allowHiddenTableAccess,
+            Supplier<Long> lockAcquireTimeoutMs) {
         super(
                 keyValueService,
                 timelockService,
@@ -93,7 +98,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                allowHiddenTableAccess);
+                allowHiddenTableAccess,
+                lockAcquireTimeoutMs);
     }
 
     @Override
@@ -116,7 +122,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
-                timestampValidationReadCache);
+                timestampValidationReadCache,
+                lockAcquireTimeoutMs.get());
     }
 
 }

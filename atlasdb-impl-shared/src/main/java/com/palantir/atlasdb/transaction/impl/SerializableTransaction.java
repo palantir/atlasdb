@@ -111,7 +111,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    Long transactionTimeoutMillis,
                                    TransactionReadSentinelBehavior readSentinelBehavior,
                                    boolean allowHiddenTableAccess,
-                                   TimestampCache timestampCache) {
+                                   TimestampCache timestampCache,
+                                   long lockAcquireTimeoutMs) {
         super(keyValueService,
               timelockService,
               transactionService,
@@ -126,7 +127,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               transactionTimeoutMillis,
               readSentinelBehavior,
               allowHiddenTableAccess,
-              timestampCache);
+              timestampCache,
+              lockAcquireTimeoutMs);
     }
 
     @Override
@@ -721,7 +723,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionReadTimeoutMillis,
                 getReadSentinelBehavior(),
                 allowHiddenTableAccess,
-                timestampValidationReadCache) {
+                timestampValidationReadCache,
+                lockAcquireTimeoutMs) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,
