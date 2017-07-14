@@ -410,7 +410,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void testRangeAfterTimestmap() {
+    public void testRangeAfterTimestamp() {
         putDirect("row1", "col2", "", 5);
         putDirect("row2", "col2", "", 0);
         RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
@@ -462,7 +462,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void testRangeAfterTimestmapReverse() {
+    public void testRangeAfterTimestampReverse() {
         if (!supportsReverse()) {
             return;
         }
