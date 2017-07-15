@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.Map;
+import java.util.function.Supplier;
 
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
@@ -27,9 +28,13 @@ import com.palantir.timestamp.TimestampService;
 
 @Path("/{client: [a-zA-Z0-9_-]+}")
 public class TimeLockResource {
-    private final Map<String, TimeLockServices> clientToServices;
+    private final Supplier<Map<String, TimeLockServices>> clientToServices;
 
     public TimeLockResource(Map<String, TimeLockServices> clientToServices) {
+        this.clientToServices = () -> clientToServices;
+    }
+
+    public TimeLockResource(Supplier<Map<String, TimeLockServices>> clientToServices) {
         this.clientToServices = clientToServices;
     }
 
@@ -49,7 +54,7 @@ public class TimeLockResource {
     }
 
     private TimeLockServices getTimeLockServicesForClient(String client) {
-        TimeLockServices services = clientToServices.get(client);
+        TimeLockServices services = clientToServices.get().get(client);
         if (services == null) {
             throw new NotFoundException("Client doesn't exist");
         }

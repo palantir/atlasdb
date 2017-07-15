@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.timelock.TimeLockAgent;
+import com.palantir.timelock.paxos.PaxosAgent;
 
 import io.reactivex.Observable;
 
@@ -45,6 +46,6 @@ public interface PaxosInstallConfiguration extends TimeLockAlgorithmInstallConfi
             Observable<TimeLockRuntimeConfiguration> runtime,
             TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
-        return null; //TODO // return new PaxosAgent(install, runtime, deprecated, registrar);
+        return new PaxosAgent(install, runtime, deprecated, registrar);
     }
 }
