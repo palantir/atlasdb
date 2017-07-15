@@ -16,6 +16,24 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableTimeLockDeprecatedConfiguration.class)
 @JsonSerialize(as = ImmutableTimeLockDeprecatedConfiguration.class)
 @Value.Immutable
-public interface TimeLockDeprecatedConfiguration {
+public abstract class TimeLockDeprecatedConfiguration {
+    @Value.Default
+    public boolean useClientRequestLimit() {
+        return false;
+    }
 
+    @Value.Default
+    public int availableThreads() {
+        return 1024;
+    }
+
+    @Value.Default
+    public boolean useLockTimeLimiter() {
+        return false;
+    }
+
+    @Value.Default
+    public long blockingTimeoutInMs() {
+        return Long.MAX_VALUE;
+    }
 }

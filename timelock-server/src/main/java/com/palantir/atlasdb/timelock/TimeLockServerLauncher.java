@@ -51,13 +51,8 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         environment.getObjectMapper().registerModule(new Jdk8Module());
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
 
-        CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration);
-        Consumer<Object> registrar = new Consumer<Object>() {
-            @Override
-            public void accept(Object component) {
-                environment.jersey().register(component);
-            }
-        };
+        CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration, environment);
+        Consumer<Object> registrar = component -> environment.jersey().register(component);
         TimeLockAgent agent = combined.install().algorithm().createTimeLockAgent(
                 combined.install(),
                 Observable.just(combined.runtime()), // this won't actually live reload
