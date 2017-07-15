@@ -14,6 +14,11 @@ repositories {
 }
 
 libsDirName = file('build/artifacts')
+
+configurations {
+    compile.exclude module:'safe-logging'
+}
+
 dependencies {
     testCompile group: 'com.google.guava', name: 'guava'
 }
