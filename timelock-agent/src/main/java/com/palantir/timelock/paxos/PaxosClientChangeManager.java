@@ -46,25 +46,20 @@ public class PaxosClientChangeManager {
 
     public void beginWatching() {
         paxosClients.subscribe(newClientSet -> {
-            Set<String> existingClients = paxosResource.clientSet();
+            Set<String> existingClients = ImmutableSet.copyOf(paxosResource.clientSet());
             ImmutableMap.Builder<String, TimeLockServices> builder = ImmutableMap.builder();
 
-            // Need copy, otherwise the computation for Retained below is wrong (Sets.difference returns a view)
             Set<String> clientsToAdd = ImmutableSet.copyOf(Sets.difference(newClientSet, existingClients));
-            for (String client : clientsToAdd) {
+
+            clientsToAdd.forEach(client -> {
                 paxosResource.addInstrumentedClient(client);
-                builder.put(client, timeLockServicesCreator.apply(client));
-            }
+                builder.put(client, timeLockServicesCreator.apply(client));});
 
             Set<String> clientsToRemove = Sets.difference(existingClients, newClientSet);
-            for (String client : clientsToRemove) {
-                paxosResource.removeClient(client);
-            }
+            clientsToRemove.forEach(paxosResource::removeClient);
 
             Set<String> clientsRetained = Sets.difference(existingClients, clientsToAdd);
-            for (String client : clientsRetained) {
-                builder.put(client, clientToServices.get(client));
-            }
+            clientsRetained.forEach(client -> builder.put(client, clientToServices.get(client)));
 
             clientToServices = builder.build();
         });

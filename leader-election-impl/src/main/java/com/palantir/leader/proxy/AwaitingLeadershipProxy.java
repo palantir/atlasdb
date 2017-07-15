@@ -105,11 +105,14 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
             // We are now the leader, we should create a delegate so we can service calls
             T delegate = null;
+            long failedDelegateCreationAttempts = 0;
             while (delegate == null) {
                 try {
                     delegate = delegateSupplier.get();
                 } catch (Throwable t) {
                     log.error("problem creating delegate", t);
+                    // Backoff before trying again
+                    Thread.sleep(Math.max(10_000L, (long) (1_000L * Math.pow(1.5, failedDelegateCreationAttempts))));
                     if (isClosed) {
                         return;
                     }
