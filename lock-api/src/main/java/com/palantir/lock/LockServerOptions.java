@@ -70,7 +70,10 @@ import com.google.common.base.Objects;
      * Returns the maximum amount of time that may be passed to
      * {@link LockRequest.Builder#blockForAtMost(TimeDuration)}. The default
      * value is 60 seconds.
+     *
+     * @deprecated this value is no longer used or respected.
      */
+    @Deprecated
     public TimeDuration getMaxAllowedBlockingDuration() {
         return SimpleTimeDuration.of(60, TimeUnit.SECONDS);
     }
