@@ -17,16 +17,12 @@
 package com.palantir.timelock.paxos;
 
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
@@ -36,9 +32,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
 import com.palantir.timelock.Observables;
-import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
@@ -68,7 +62,7 @@ public class PaxosLeadershipCreator {
     }
 
     public void registerLeaderElectionService() {
-        Set<String> remoteServers = getRemoteServerPaths();
+        Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
 
         LeaderConfig leaderConfig = getLeaderConfig();
 
@@ -102,9 +96,10 @@ public class PaxosLeadershipCreator {
         PaxosRuntimeConfiguration paxosRuntimeConfiguration = Observables.blockingMostRecent(runtime).get().orElse(
                 ImmutablePaxosRuntimeConfiguration.builder().build());
         return ImmutableLeaderConfig.builder()
-                .sslConfiguration(getSslConfigurationOptional())
-                .leaders(addProtocols(getClusterAddresses()))
-                .localServer(addProtocol(getClusterConfiguration().localServer()))
+                .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
+                .leaders(PaxosRemotingUtils.addProtocols(install, PaxosRemotingUtils.getClusterAddresses(install)))
+                .localServer(PaxosRemotingUtils.addProtocol(install,
+                        PaxosRemotingUtils.getClusterConfiguration(install).localServer()))
                 .acceptorLogDir(Paths.get(paxosInstall.dataDirectory().toString(),
                         PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE,
                         PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toFile())
@@ -112,45 +107,9 @@ public class PaxosLeadershipCreator {
                         PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE,
                         PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toFile())
                 .pingRateMs(paxosRuntimeConfiguration.pingRateMs())
-                .quorumSize(getQuorumSize(getClusterAddresses()))
+                .quorumSize(PaxosRemotingUtils.getQuorumSize(PaxosRemotingUtils.getClusterAddresses(install)))
                 .leaderPingResponseWaitMs(paxosRuntimeConfiguration.pingRateMs())
                 .randomWaitBeforeProposingLeadershipMs(paxosRuntimeConfiguration.pingRateMs())
                 .build();
-    }
-
-    private static <T> int getQuorumSize(Collection<T> elements) {
-        return elements.size() / 2 + 1;
-    }
-
-    private ImmutableSet<String> getClusterAddresses() {
-        return ImmutableSet.copyOf(getClusterConfiguration().cluster().uris());
-    }
-
-    private Set<String> getRemoteServerAddresses() {
-        return Sets.difference(getClusterAddresses(),
-                ImmutableSet.of(install.cluster().localServer()));
-    }
-
-    private ClusterConfiguration getClusterConfiguration() {
-        return install.cluster();
-    }
-
-    private Optional<SslConfiguration> getSslConfigurationOptional() {
-        return install.cluster().cluster().security();
-    }
-
-    private Set<String> getRemoteServerPaths() {
-        return addProtocols(getRemoteServerAddresses());
-    }
-
-    private String addProtocol(String address) {
-        String protocolPrefix = getSslConfigurationOptional().isPresent() ? "https://" : "http://";
-        return protocolPrefix + address;
-    }
-
-    private Set<String> addProtocols(Set<String> addresses) {
-        return addresses.stream()
-                .map(this::addProtocol)
-                .collect(Collectors.toSet());
     }
 }

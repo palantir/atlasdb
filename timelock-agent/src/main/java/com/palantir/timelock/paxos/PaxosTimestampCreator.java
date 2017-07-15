@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -95,7 +94,7 @@ public class PaxosTimestampCreator {
                         ourLearner,
                         ImmutableList.copyOf(acceptors),
                         ImmutableList.copyOf(learners),
-                        getQuorumSize(acceptors),
+                        PaxosRemotingUtils.getQuorumSize(acceptors),
                         UUID.randomUUID(),
                         executor),
                 client);
@@ -125,9 +124,5 @@ public class PaxosTimestampCreator {
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {
         return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass, client));
-    }
-
-    private static <T> int getQuorumSize(Collection<T> elements) {
-        return elements.size() / 2 + 1;
     }
 }
