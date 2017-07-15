@@ -25,7 +25,6 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
@@ -62,7 +61,7 @@ public class LockRefreshingLockServiceTest {
     public void testSimpleRefresh() throws InterruptedException {
         Builder builder = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE));
         builder.timeoutAfter(SimpleTimeDuration.of(5, TimeUnit.SECONDS));
-        LockResponse lock = server.lockWithFullLockResponse(LockClient.ANONYMOUS, builder.build());
+        LockResponse lock = server.lockWithFullLockResponse("", builder.build());
         Thread.sleep(10000);
         Set<HeldLocksToken> refreshTokens = server.refreshTokens(ImmutableList.of(lock.getToken()));
         Assert.assertEquals(1, refreshTokens.size());

@@ -27,7 +27,6 @@ import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.ForwardingLockService;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
@@ -82,7 +81,7 @@ public class LockRefreshingLockService extends ForwardingLockService {
     }
 
     @Override
-    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
+    public LockResponse lockWithFullLockResponse(String client, LockRequest request) throws InterruptedException {
         LockResponse lock = super.lockWithFullLockResponse(client, request);
         if (lock.getToken() != null) {
             toRefresh.add(lock.getToken().getLockRefreshToken());

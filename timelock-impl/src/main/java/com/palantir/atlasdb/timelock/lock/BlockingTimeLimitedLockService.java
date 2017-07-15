@@ -103,7 +103,7 @@ public class BlockingTimeLimitedLockService implements LockService, Closeable {
     }
 
     @Override
-    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
+    public LockResponse lockWithFullLockResponse(String client, LockRequest request) throws InterruptedException {
         return null;
     }
 

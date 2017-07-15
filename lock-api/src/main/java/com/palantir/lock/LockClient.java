@@ -46,7 +46,7 @@ import com.google.common.base.Strings;
      */
     public static final LockClient ANONYMOUS = new LockClient("");
 
-    private static final String INTERNAL_LOCK_GRANT_CLIENT_ID = "(internal lock grant client)";
+    public static final String INTERNAL_LOCK_GRANT_CLIENT_ID = "(internal lock grant client)";
 
     /**
      * This should only be used by the lock service.

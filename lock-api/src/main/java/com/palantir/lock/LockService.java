@@ -49,10 +49,10 @@ import com.palantir.logsafe.Safe;
     @CancelableServerCall
     @NonIdempotent
     @POST
-    @Path("lock/1")
+    @Path("lock/1/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    LockResponse lockWithFullLockResponse(@Safe @PathParam("client") LockClient client, LockRequest request) throws InterruptedException;
+    LockResponse lockWithFullLockResponse(@Safe @PathParam("client") String client, LockRequest request) throws InterruptedException;
 
     /**
      * Unlocks a lock, given a provided lock token.
@@ -202,10 +202,10 @@ import com.palantir.logsafe.Safe;
      * @throws IllegalArgumentException if {@code grant} is invalid
      */
     @POST
-    @Path("lock/10")
+    @Path("lock/10/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @NonIdempotent HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant);
+    @NonIdempotent HeldLocksToken useGrant(@Safe @PathParam("client") LockClient client, HeldLocksGrant grant);
 
     /**
      * Grants the specified client ownership of the locks represented by the
@@ -215,11 +215,11 @@ import com.palantir.logsafe.Safe;
      * @throws IllegalArgumentException if {@code grantId} is invalid
      */
     @POST
-    @Path("lock/11")
+    @Path("lock/11/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
 
-    @NonIdempotent HeldLocksToken useGrant(LockClient client, BigInteger grantId);
+    @NonIdempotent HeldLocksToken useGrant(@Safe @PathParam("client") LockClient client, BigInteger grantId);
 
     /**
      * This method is the same as <code>getMinLockedInVersionId(LockClient.ANONYMOUS)</code>.

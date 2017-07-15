@@ -18,6 +18,7 @@ package com.palantir.lock.impl;
 import static com.palantir.lock.BlockingMode.BLOCK_UNTIL_TIMEOUT;
 import static com.palantir.lock.BlockingMode.DO_NOT_BLOCK;
 import static com.palantir.lock.LockClient.INTERNAL_LOCK_GRANT_CLIENT;
+import static com.palantir.lock.LockClient.INTERNAL_LOCK_GRANT_CLIENT_ID;
 import static com.palantir.lock.LockGroupBehavior.LOCK_ALL_OR_NONE;
 import static com.palantir.lock.LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE;
 
@@ -319,21 +320,21 @@ public final class LockServiceImpl
     public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
         Preconditions.checkArgument(request.getLockGroupBehavior() == LockGroupBehavior.LOCK_ALL_OR_NONE,
                 "lock() only supports LockGroupBehavior.LOCK_ALL_OR_NONE. Consider using lockAndGetHeldLocks().");
-        LockResponse result = lockWithFullLockResponse(LockClient.of(client), request);
+        LockResponse result = lockWithFullLockResponse(client, request);
         return result.success() ? result.getLockRefreshToken() : null;
     }
 
     @Override
     public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
-        LockResponse result = lockWithFullLockResponse(LockClient.of(client), request);
+        LockResponse result = lockWithFullLockResponse(client, request);
         return result.getToken();
     }
 
     @Override
     // We're concerned about sanitizing logs at the info level and above. This method just logs at debug and info.
-    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
+    public LockResponse lockWithFullLockResponse(String client, LockRequest request) throws InterruptedException {
         Preconditions.checkNotNull(client);
-        Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT);
+        Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT_ID);
         Preconditions.checkArgument(request.getLockTimeout().compareTo(maxAllowedLockTimeout) <= 0,
                 "Requested lock timeout (%s) is greater than maximum allowed lock timeout (%s)",
                 request.getLockTimeout(), maxAllowedLockTimeout);
@@ -355,22 +356,22 @@ public final class LockServiceImpl
             if (indefinitelyBlocking) {
                 indefinitelyBlockingThreads.add(Thread.currentThread());
             }
-            outstandingLockRequestMultimap.put(client, request);
+            outstandingLockRequestMultimap.put(LockClient.of(client), request);
             Map<LockDescriptor, LockClient> failedLocks = Maps.newHashMap();
             @Nullable Long deadline = (request.getBlockingDuration() == null) ? null
                 : System.nanoTime() + request.getBlockingDuration().toNanos();
             if (request.getBlockingMode() == BLOCK_UNTIL_TIMEOUT) {
                 if (request.getLockGroupBehavior() == LOCK_AS_MANY_AS_POSSIBLE) {
-                    tryLocks(client, request, DO_NOT_BLOCK, null, LOCK_AS_MANY_AS_POSSIBLE, locks,
+                    tryLocks(LockClient.of(client), request, DO_NOT_BLOCK, null, LOCK_AS_MANY_AS_POSSIBLE, locks,
                             failedLocks);
                 }
             }
-            tryLocks(client, request, request.getBlockingMode(), deadline,
+            tryLocks(LockClient.of(client), request, request.getBlockingMode(), deadline,
                     request.getLockGroupBehavior(), locks, failedLocks);
 
             if (request.getBlockingMode() == BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE) {
                 if (log.isTraceEnabled()) {
-                    logNullResponse(client, request, null);
+                    logNullResponse(LockClient.of(client), request, null);
                 }
                 if (requestLogger.isDebugEnabled()) {
                     requestLogger.debug("Timed out requesting {} for requesting thread {} after {} ms",
@@ -384,7 +385,7 @@ public final class LockServiceImpl
             if (locks.isEmpty() || ((request.getLockGroupBehavior() == LOCK_ALL_OR_NONE)
                     && (locks.size() < request.getLockDescriptors().size()))) {
                 if (log.isTraceEnabled()) {
-                    logNullResponse(client, request, null);
+                    logNullResponse(LockClient.of(client), request, null);
                 }
                 if (requestLogger.isDebugEnabled()) {
                     requestLogger.debug("Failed to acquire all locks for {} for requesting thread {} after {} ms",
@@ -403,13 +404,13 @@ public final class LockServiceImpl
                 lockDescriptorMap.put(entry.getKey().getDescriptor(), entry.getValue());
             }
             if (request.getVersionId() != null) {
-                versionIdMap.put(client, request.getVersionId());
+                versionIdMap.put(LockClient.of(client), request.getVersionId());
             }
-            HeldLocksToken token = createHeldLocksToken(client, LockCollections.of(lockDescriptorMap.build()), LockCollections.of(locks),
+            HeldLocksToken token = createHeldLocksToken(LockClient.of(client), LockCollections.of(lockDescriptorMap.build()), LockCollections.of(locks),
                     request.getLockTimeout(), request.getVersionId(), request.getCreatingThreadName());
             locks.clear();
             if (log.isTraceEnabled()) {
-                logNullResponse(client, request, token);
+                logNullResponse(LockClient.of(client), request, token);
             }
             if (Thread.interrupted()) {
                 throw new InterruptedException("Interrupted while locking.");
@@ -426,7 +427,7 @@ public final class LockServiceImpl
             indefinitelyBlockingThreads.remove(Thread.currentThread());
             try {
                 for (Entry<ClientAwareReadWriteLock, LockMode> entry : locks.entrySet()) {
-                    entry.getKey().get(client, entry.getValue()).unlock();
+                    entry.getKey().get(LockClient.of(client), entry.getValue()).unlock();
                 }
             } catch (Throwable e) { // (authorized)
                 log.error("Internal lock server error: state has been corrupted!!",

@@ -31,7 +31,6 @@ import com.palantir.lock.logger.LockServiceStateLoggerTest;
 @SuiteClasses(value = {
         ClientAwareLockTest.class,
         LockServiceStateLoggerTest.class,
-        LockServiceIntegrationTest.class,
         LockRefreshingLockServiceTest.class
 }) @RunWith(value = Suite.class) public final class AllLockTests {
     /* Empty; the annotations above take care of everything. */
