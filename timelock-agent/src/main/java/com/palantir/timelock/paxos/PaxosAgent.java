@@ -16,15 +16,10 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -32,10 +27,8 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.RemoteLockService;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
 import com.palantir.remoting2.config.ssl.SslSocketFactories;
 import com.palantir.timelock.TimeLockAgent;
-import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
@@ -73,7 +66,7 @@ public class PaxosAgent extends TimeLockAgent {
         this.leadershipAgent = new PaxosLeadershipCreator(install, runtime, registrar);
         this.lockCreator = new LockCreator(runtime, deprecated);
         this.timestampCreator = new PaxosTimestampCreator(paxosResource,
-                getRemoteServerPaths(),
+                PaxosRemotingUtils.getRemoteServerPaths(install),
                 install.cluster().cluster().security().map(SslSocketFactories::createSslSocketFactory),
                 runtime.map(x -> x.algorithm().orElse(ImmutablePaxosRuntimeConfiguration.builder().build())));
     }
@@ -125,37 +118,5 @@ public class PaxosAgent extends TimeLockAgent {
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {
         return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass, client));
-    }
-
-    private ImmutableSet<String> getClusterAddresses() {
-        return ImmutableSet.copyOf(getClusterConfiguration().cluster().uris());
-    }
-
-    private Set<String> getRemoteServerAddresses() {
-        return Sets.difference(getClusterAddresses(),
-                ImmutableSet.of(install.cluster().localServer()));
-    }
-
-    private ClusterConfiguration getClusterConfiguration() {
-        return install.cluster();
-    }
-
-    private Optional<SslConfiguration> getSslConfigurationOptional() {
-        return install.cluster().cluster().security();
-    }
-
-    private Set<String> getRemoteServerPaths() {
-        return addProtocols(getRemoteServerAddresses());
-    }
-
-    private String addProtocol(String address) {
-        String protocolPrefix = getSslConfigurationOptional().isPresent() ? "https://" : "http://";
-        return protocolPrefix + address;
-    }
-
-    private Set<String> addProtocols(Set<String> addresses) {
-        return addresses.stream()
-                .map(this::addProtocol)
-                .collect(Collectors.toSet());
     }
 }
