@@ -175,7 +175,6 @@ public final class LockServiceImpl
     private final long slowLogTriggerMillis;
     private final TimeDuration maxAllowedLockTimeout;
     private final TimeDuration maxAllowedClockDrift;
-    private final TimeDuration maxAllowedBlockingDuration;
     private final TimeDuration maxNormalLockAge;
     private final Runnable callOnClose;
     private volatile boolean isShutDown = false;
@@ -257,7 +256,6 @@ public final class LockServiceImpl
         isStandaloneServer = options.isStandaloneServer();
         maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
         maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
-        maxAllowedBlockingDuration = SimpleTimeDuration.of(options.getMaxAllowedBlockingDuration());
         maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         lockStateLoggerDir = options.getLockStateLoggerDir();
 
@@ -336,10 +334,7 @@ public final class LockServiceImpl
         Preconditions.checkArgument(request.getLockTimeout().compareTo(maxAllowedLockTimeout) <= 0,
                 "Requested lock timeout (%s) is greater than maximum allowed lock timeout (%s)",
                 request.getLockTimeout(), maxAllowedLockTimeout);
-        Preconditions.checkArgument((request.getBlockingMode() != BLOCK_UNTIL_TIMEOUT)
-                || (request.getBlockingDuration().compareTo(maxAllowedBlockingDuration) <= 0),
-                "Requested blocking duration (%s) is greater than maximum allowed blocking duration (%s)",
-                request.getBlockingDuration(), maxAllowedBlockingDuration);
+
         long startTime = System.currentTimeMillis();
         if (requestLogger.isDebugEnabled()) {
             requestLogger.debug("LockServiceImpl processing lock request {} for requesting thread {}",
@@ -999,9 +994,6 @@ public final class LockServiceImpl
             @Override public TimeDuration getMaxAllowedClockDrift() {
                 return maxAllowedClockDrift;
             }
-            @Override public TimeDuration getMaxAllowedBlockingDuration() {
-                return maxAllowedBlockingDuration;
-            }
             @Override public int getRandomBitCount() {
                 return RANDOM_BIT_COUNT;
             }
@@ -1043,8 +1035,6 @@ public final class LockServiceImpl
         logString.append("isStandaloneServer = ").append(isStandaloneServer).append("\n");
         logString.append("maxAllowedLockTimeout = ").append(maxAllowedLockTimeout).append("\n");
         logString.append("maxAllowedClockDrift = ").append(maxAllowedClockDrift).append("\n");
-        logString.append("maxAllowedBlockingDuration = ").append(maxAllowedBlockingDuration).append("\n");
-
         logString.append("descriptorToLockMap.size = ").append(descriptorToLockMap.size()).append("\n");
         logString.append("outstandingLockRequestMultimap.size = ").append(descriptorToLockMap.size()).append("\n");
         logString.append("heldLocksTokenMap.size = ").append(heldLocksTokenMap.size()).append("\n");
