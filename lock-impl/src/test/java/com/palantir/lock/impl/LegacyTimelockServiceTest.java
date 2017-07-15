@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigInteger;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
@@ -44,13 +44,11 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.impl.LegacyTimelockService.LockRefreshTokenV2Adapter;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequestV2;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockTokenV2;
-import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
@@ -61,8 +59,8 @@ public class LegacyTimelockServiceTest {
 
     private static final long FRESH_TIMESTAMP = 5L;
 
-    private static final LockRefreshTokenV2Adapter LOCK_TOKEN_V2 = randomLockToken();
-    private static final LockRefreshToken LOCK_REFRESH_TOKEN = LOCK_TOKEN_V2.getToken();
+    private static final LockTokenV2 LOCK_TOKEN_V2 = randomLockToken();
+    private static final LockRefreshToken LOCK_REFRESH_TOKEN = toLegacyToken(LOCK_TOKEN_V2);
 
     private static final LockDescriptor LOCK_A = StringLockDescriptor.of("a");
     private static final LockDescriptor LOCK_B = StringLockDescriptor.of("b");
@@ -72,7 +70,7 @@ public class LegacyTimelockServiceTest {
 
     private static final long TIMEOUT = 10_000;
 
-    private final TimelockService timelock = new LegacyTimelockService(timestampService, lockService, LOCK_CLIENT);
+    private final LegacyTimelockService timelock = new LegacyTimelockService(timestampService, lockService, LOCK_CLIENT);
 
     @Before
     public void before() {
@@ -101,7 +99,7 @@ public class LegacyTimelockServiceTest {
         mockMinLockedInVersionIdResponse(immutableTs);
 
         LockImmutableTimestampResponse expectedResponse = LockImmutableTimestampResponse.of(immutableTs,
-                new LockRefreshTokenV2Adapter(expectedToken));
+                toTokenV2(expectedToken));
         assertEquals(expectedResponse, timelock.lockImmutableTimestamp(LockImmutableTimestampRequest.create()));
     }
 
@@ -164,19 +162,18 @@ public class LegacyTimelockServiceTest {
 
     @Test
     public void unlockReturnsSubsetThatWereUnlocked() {
-        LockRefreshTokenV2Adapter tokenA = randomLockToken();
-        LockRefreshTokenV2Adapter tokenB = randomLockToken();
+        LockTokenV2 tokenA = randomLockToken();
+        LockTokenV2 tokenB = randomLockToken();
 
-        when(lockService.unlock(tokenA.getToken())).thenReturn(true);
-        when(lockService.unlock(tokenB.getToken())).thenReturn(false);
+        when(lockService.unlock(toLegacyToken(tokenA))).thenReturn(true);
+        when(lockService.unlock(toLegacyToken(tokenB))).thenReturn(false);
 
         Set<LockTokenV2> expected = ImmutableSet.of(tokenA);
         assertEquals(expected, timelock.unlock(ImmutableSet.of(tokenA, tokenB)));
     }
 
-    private static LockRefreshTokenV2Adapter randomLockToken() {
-        LockRefreshToken token = new LockRefreshToken(BigInteger.valueOf(ThreadLocalRandom.current().nextLong()), 123L);
-        return new LockRefreshTokenV2Adapter(token);
+    private static LockTokenV2 randomLockToken() {
+        return LockTokenV2.of(UUID.randomUUID());
     }
 
     @Test
@@ -206,6 +203,14 @@ public class LegacyTimelockServiceTest {
         lockMap.put(LOCK_B, mode);
 
         return lockMap;
+    }
+
+    private static LockRefreshToken toLegacyToken(LockTokenV2 token) {
+        return LockTokenConverter.toLegacyToken(token);
+    }
+
+    private static LockTokenV2 toTokenV2(LockRefreshToken token) {
+        return LockTokenConverter.toTokenV2(token);
     }
 
 }

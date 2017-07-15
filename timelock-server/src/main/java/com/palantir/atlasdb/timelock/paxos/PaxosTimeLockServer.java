@@ -49,7 +49,6 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
-import com.palantir.atlasdb.timelock.LockTokenConvertingTimelockService;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
@@ -254,11 +253,10 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 ManagedTimestampService.class,
                 rawTimestampServiceSupplier,
                 leaderElectionService);
-        TimelockService timelockService = new LockTokenConvertingTimelockService(
-                new LegacyTimelockService(
+        TimelockService timelockService = new LegacyTimelockService(
                         timestampService,
                         lockService,
-                        LockClient.of("legacy")));
+                        LockClient.of("legacy"));
 
         return TimeLockServices.create(
                 timestampService,

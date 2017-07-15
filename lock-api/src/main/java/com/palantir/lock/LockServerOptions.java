@@ -86,7 +86,10 @@ import com.google.common.base.Objects;
     /**
      * Returns the number of bits used to create random lock token IDs. The
      * default value is 64 bits.
+     *
+     * @deprecated this value is no longer used or respected
      */
+    @Deprecated
     public int getRandomBitCount() {
         return Long.SIZE;
     }
