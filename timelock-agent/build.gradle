@@ -12,4 +12,6 @@ dependencies {
     compile group: 'io.reactivex.rxjava2', name: 'rxjava'
 
     processor group: 'org.immutables', name: 'value'
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
 }
