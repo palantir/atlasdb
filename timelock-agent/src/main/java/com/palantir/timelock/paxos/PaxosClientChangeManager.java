@@ -46,11 +46,12 @@ public class PaxosClientChangeManager {
 
     public void beginWatching() {
         paxosClients.subscribe(newClientSet -> {
+            // Must be a copy, otherwise clients just added will also be considered retained.
+            // (It is possible to take a copy of clientsToAdd as well, but I think this reads easier.)
             Set<String> existingClients = ImmutableSet.copyOf(paxosResource.clientSet());
             ImmutableMap.Builder<String, TimeLockServices> builder = ImmutableMap.builder();
 
-            Set<String> clientsToAdd = ImmutableSet.copyOf(Sets.difference(newClientSet, existingClients));
-
+            Set<String> clientsToAdd = Sets.difference(newClientSet, existingClients);
             clientsToAdd.forEach(client -> {
                 paxosResource.addInstrumentedClient(client);
                 builder.put(client, timeLockServicesCreator.apply(client));});
