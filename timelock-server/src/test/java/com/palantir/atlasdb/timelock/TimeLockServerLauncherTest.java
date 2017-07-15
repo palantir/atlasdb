@@ -86,7 +86,7 @@ public class TimeLockServerLauncherTest {
     }
 
     @Test
-    public void verifyOnStartupIsCalledExactlyOnceOnSuccessfulStartup() {
+    public void verifyOnStartupIsCalledExactlyOnceOnSuccessfulStartup() throws Exception {
         server.run(getConfiguration(), environment);
         verify(timeLockServer, times(1)).onStartup(any());
     }

@@ -22,6 +22,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
+import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
@@ -77,8 +78,16 @@ public class PaxosAgent extends TimeLockAgent {
         registerPaxosExceptionMappers();
         leadershipAgent.registerLeaderElectionService();
 
-        // Finally, register the endpoints associated with the clients.
-        super.createAndRegisterResources();
+        // Begin watching live reload
+        PaxosClientChangeManager changeManager = new PaxosClientChangeManager(
+                runtime.map(TimeLockRuntimeConfiguration::clients), paxosResource,
+                this::createInvalidatingTimeLockServices);
+
+        changeManager.beginWatching();
+
+        // Register the endpoints associated with the clients.
+        registrar.accept(new TimeLockResource(changeManager::getTimeLockServicesMap));
+
     }
 
     // No runtime configuration at the moment.

@@ -43,15 +43,7 @@ public class TimeLockConfigMigrator {
                         .build())
                 .build();
 
-        TimeLockRuntimeConfiguration runtime = ImmutableTimeLockRuntimeConfiguration.builder()
-                .algorithm(ImmutablePaxosRuntimeConfiguration.builder()
-                        .leaderPingResponseWaitMs(paxos.leaderPingResponseWaitMs())
-                        .maximumWaitBeforeProposalMs(paxos.maximumWaitBeforeProposalMs())
-                        .pingRateMs(paxos.pingRateMs())
-                        .build())
-                .clients(config.clients())
-                .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
-                .build();
+        TimeLockRuntimeConfiguration runtime = createRuntimeConfiguration(config);
 
         TimeLockDeprecatedConfiguration deprecated = createDeprecatedConfiguration(config, environment);
 
@@ -59,6 +51,19 @@ public class TimeLockConfigMigrator {
                 .install(install)
                 .runtime(runtime)
                 .deprecated(deprecated)
+                .build();
+    }
+
+    public static TimeLockRuntimeConfiguration createRuntimeConfiguration(TimeLockServerConfiguration config) {
+        PaxosConfiguration paxos = (PaxosConfiguration) config.algorithm();
+        return ImmutableTimeLockRuntimeConfiguration.builder()
+                .algorithm(ImmutablePaxosRuntimeConfiguration.builder()
+                        .leaderPingResponseWaitMs(paxos.leaderPingResponseWaitMs())
+                        .maximumWaitBeforeProposalMs(paxos.maximumWaitBeforeProposalMs())
+                        .pingRateMs(paxos.pingRateMs())
+                        .build())
+                .clients(config.clients())
+                .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
                 .build();
     }
 
