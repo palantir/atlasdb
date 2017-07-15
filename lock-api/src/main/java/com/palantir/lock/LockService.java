@@ -19,11 +19,18 @@ import java.math.BigInteger;
 import java.util.Set;
 
 import javax.annotation.Nullable;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
 import com.google.common.annotations.Beta;
 import com.marathon.util.spring.CancelableServerCall;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
+import com.palantir.logsafe.Safe;
 
 /**
  * Defines the service which handles locking operations.
@@ -41,7 +48,11 @@ import com.palantir.common.annotation.NonIdempotent;
      */
     @CancelableServerCall
     @NonIdempotent
-    LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException;
+    @POST
+    @Path("lock/1")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    LockResponse lockWithFullLockResponse(@Safe @PathParam("client") LockClient client, LockRequest request) throws InterruptedException;
 
     /**
      * Unlocks a lock, given a provided lock token.
@@ -50,8 +61,16 @@ import com.palantir.common.annotation.NonIdempotent;
      * @see #unlockSimple(SimpleHeldLocksToken)
      */
     @Deprecated
+    @POST
+    @Path("lock/2")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent boolean unlock(HeldLocksToken token);
 
+    @POST
+    @Path("lock/3")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent boolean unlockSimple(SimpleHeldLocksToken token);
 
     /**
@@ -87,6 +106,11 @@ import com.palantir.common.annotation.NonIdempotent;
      *         {@code token} are read locks (instead of write locks), or if
      *         {@code token} is held by an anonymous lock client
      */
+
+    @POST
+    @Path("lock/4")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent boolean unlockAndFreeze(HeldLocksToken token);
 
     /**
@@ -96,6 +120,11 @@ import com.palantir.common.annotation.NonIdempotent;
      * @return the set of valid tokens held by the given client
      * @throws IllegalArgumentException if {@code client} is anonymous.
      */
+    @POST
+    @Path("lock/5")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+
     @Idempotent Set<HeldLocksToken> getTokens(LockClient client);
 
     /**
@@ -106,6 +135,11 @@ import com.palantir.common.annotation.NonIdempotent;
      * @return the subset of tokens which are still valid after being refreshed
      */
     @Deprecated
+    @POST
+    @Path("lock/6")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+
     @Idempotent Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens);
 
     /**
@@ -114,6 +148,11 @@ import com.palantir.common.annotation.NonIdempotent;
      * @return the new {@link HeldLocksGrant} token if refreshed successfully,
      *         or {@code null} if the grant could not be refreshed.
      */
+    @POST
+    @Path("lock/7")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+
     @Idempotent
     @Nullable HeldLocksGrant refreshGrant(HeldLocksGrant grant);
 
@@ -123,6 +162,11 @@ import com.palantir.common.annotation.NonIdempotent;
      * @return the new {@link HeldLocksGrant} token if refreshed successfully,
      *         or {@code null} if the grant could not be refreshed.
      */
+    @POST
+    @Path("lock/8")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+
     @Idempotent
     @Nullable HeldLocksGrant refreshGrant(BigInteger grantId);
 
@@ -143,6 +187,11 @@ import com.palantir.common.annotation.NonIdempotent;
      * @throws IllegalMonitorStateException if the token cannot be converted to
      *         a lock grant because of reentrancy
      */
+    @POST
+    @Path("lock/9")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+
     @NonIdempotent HeldLocksGrant convertToGrant(HeldLocksToken token);
 
     /**
@@ -152,6 +201,10 @@ import com.palantir.common.annotation.NonIdempotent;
      *
      * @throws IllegalArgumentException if {@code grant} is invalid
      */
+    @POST
+    @Path("lock/10")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant);
 
     /**
@@ -161,12 +214,22 @@ import com.palantir.common.annotation.NonIdempotent;
      *
      * @throws IllegalArgumentException if {@code grantId} is invalid
      */
+    @POST
+    @Path("lock/11")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+
     @NonIdempotent HeldLocksToken useGrant(LockClient client, BigInteger grantId);
 
     /**
      * This method is the same as <code>getMinLockedInVersionId(LockClient.ANONYMOUS)</code>.
      * @deprecated use {@link #getMinLockedInVersionId(LockClient)} instead
      */
+    @POST
+    @Path("lock/12")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+
     @Deprecated
     @Idempotent
     @Nullable Long getMinLockedInVersionId();
@@ -176,15 +239,32 @@ import com.palantir.common.annotation.NonIdempotent;
      * (by everyone), or {@code null} if none of these active locks specified a
      * version ID in their {@link LockRequest}s.
      */
+    @POST
+    @Path("lock/13")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     Long getMinLockedInVersionId(LockClient client);
 
     /** Returns the options used to configure the lock server. */
+    @POST
+    @Path("lock/14")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent LockServerOptions getLockServerOptions();
 
     /** Returns the current time in milliseconds on the server. */
+    @POST
+    @Path("lock/15")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+
     @Override
     @Idempotent long currentTimeMillis();
 
+    @POST
+    @Path("lock/16")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Override
     @Idempotent void logCurrentState();
 

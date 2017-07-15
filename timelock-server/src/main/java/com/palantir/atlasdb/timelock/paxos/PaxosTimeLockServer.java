@@ -52,9 +52,8 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
-import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.impl.ThreadPooledLockService;
 import com.palantir.paxos.PaxosAcceptor;
@@ -174,23 +173,23 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 ManagedTimestampService.class,
                 createPaxosBackedTimestampService(client),
                 client);
-        RemoteLockService lockService = instrument(
-                RemoteLockService.class,
+        LockService lockService = instrument(
+                LockService.class,
                 createLockService(slowLogTriggerMillis),
                 client);
 
         return TimeLockServices.create(timestampService, lockService, timestampService);
     }
 
-    private RemoteLockService createLockService(long slowLogTriggerMillis) {
+    private LockService createLockService(long slowLogTriggerMillis) {
         return AwaitingLeadershipProxy.newProxyInstance(
-                RemoteLockService.class,
+                LockService.class,
                 () -> createThreadPoolingLockService(slowLogTriggerMillis),
                 leaderElectionService);
     }
 
-    private CloseableRemoteLockService createThreadPoolingLockService(long slowLogTriggerMillis) {
-        CloseableRemoteLockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(
+    private LockService createThreadPoolingLockService(long slowLogTriggerMillis) {
+        LockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(
                 slowLogTriggerMillis);
 
         if (!timeLockServerConfiguration.useClientRequestLimit()) {
@@ -212,7 +211,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
         return new ThreadPooledLockService(lockServiceNotUsingThreadPooling, localThreadPoolSize, sharedThreadPool);
     }
 
-    private CloseableRemoteLockService createTimeLimitedLockService(long slowLogTriggerMillis) {
+    private LockService createTimeLimitedLockService(long slowLogTriggerMillis) {
         LockServerOptions lockServerOptions = new LockServerOptions() {
             @Override
             public long slowLogTriggerMillis() {

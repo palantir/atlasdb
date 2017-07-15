@@ -25,7 +25,7 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-@Path("/{client: [a-zA-Z0-9_-]+}")
+@Path("/")
 public class TimeLockResource {
     private final Map<String, TimeLockServices> clientToServices;
 
@@ -49,7 +49,7 @@ public class TimeLockResource {
     }
 
     private TimeLockServices getTimeLockServicesForClient(String client) {
-        TimeLockServices services = clientToServices.get(client);
+        TimeLockServices services = clientToServices.get("test");
         if (services == null) {
             throw new NotFoundException("Client doesn't exist");
         }

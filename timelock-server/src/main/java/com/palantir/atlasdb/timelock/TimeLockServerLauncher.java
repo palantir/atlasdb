@@ -63,5 +63,4 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));
     }
-
 }

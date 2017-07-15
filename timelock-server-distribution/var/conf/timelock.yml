@@ -1,6 +1,5 @@
 clients:
   - test
-  - test2
 
 cluster:
   localServer: localhost:8421
