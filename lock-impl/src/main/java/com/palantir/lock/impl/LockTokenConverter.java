@@ -25,9 +25,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.v2.LockTokenV2;
 
 class LockTokenConverter {
-
-    static final BigInteger LARGEST_VALUE_CONVERTIBLE_TO_UUID = BigInteger.valueOf(2).pow(127);
-
+    
     private LockTokenConverter() { }
 
     static LockRefreshToken toLegacyToken(LockTokenV2 tokenV2) {
