@@ -152,7 +152,6 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:timestamp-api"
             ]
         },
@@ -409,7 +408,6 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:timestamp-api"
             ]
         },

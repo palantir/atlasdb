@@ -19,10 +19,7 @@
             "project": true
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:commons-executors"
-            ]
+            "locked": "0.1.1"
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.2"
@@ -61,10 +58,7 @@
             "project": true
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:commons-executors"
-            ]
+            "locked": "0.1.1"
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.2"

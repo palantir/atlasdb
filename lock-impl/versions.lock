@@ -111,7 +111,6 @@
             "locked": "0.1.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:lock-api"
             ]
         },
@@ -261,7 +260,6 @@
             "locked": "0.1.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:lock-api"
             ]
         },

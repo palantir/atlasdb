@@ -226,7 +226,6 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
-                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
@@ -656,7 +655,6 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
-                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"

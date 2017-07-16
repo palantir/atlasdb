@@ -144,7 +144,6 @@
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-db",
-                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-proxy"
             ]
         },
@@ -364,7 +363,6 @@
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-db",
-                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-proxy"
             ]
         },

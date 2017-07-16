@@ -4,7 +4,7 @@
             "locked": "2.0.3"
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1"
+            "project": true
         }
     },
     "runtime": {
@@ -12,7 +12,7 @@
             "locked": "2.0.3"
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1"
+            "project": true
         }
     }
 }

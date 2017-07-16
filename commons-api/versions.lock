@@ -42,8 +42,7 @@
             "locked": "0.1.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-annotations",
-                "com.palantir.atlasdb:commons-executors"
+                "com.palantir.atlasdb:commons-annotations"
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
@@ -115,8 +114,7 @@
             "locked": "0.1.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-annotations",
-                "com.palantir.atlasdb:commons-executors"
+                "com.palantir.atlasdb:commons-annotations"
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
