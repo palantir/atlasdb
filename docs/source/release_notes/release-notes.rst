@@ -48,6 +48,10 @@ develop
          - Fixed an issue that could cause AtlasConsole to print unnecessary amounts of input when commands were run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2130>`__)
 
+    *    - |fixed|
+         - ``commons-executors`` now excludes the ``safe-logging`` Java8 jar to support Java 6 clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2160>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======

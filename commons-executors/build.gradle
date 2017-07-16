@@ -16,6 +16,7 @@ repositories {
 libsDirName = file('build/artifacts')
 
 configurations {
+    //Excluding as this breaks java 6 clients that validate that no java 8 jars are on their classpath.
     compile.exclude module:'safe-logging'
 }
 
