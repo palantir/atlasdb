@@ -52,6 +52,10 @@ develop
          - ``commons-executors`` now excludes the ``safe-logging`` Java8 jar to support Java 6 clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2160>`__)
 
+    *    - |new|
+         - TransactionManagers exposes a method in which it is possible to specify the user agent to be used.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2162>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
