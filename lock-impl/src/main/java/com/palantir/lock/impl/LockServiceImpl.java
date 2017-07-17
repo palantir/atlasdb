@@ -120,7 +120,9 @@ public final class LockServiceImpl
     private static final String UNLOCK_AND_FREEZE_FROM_ANONYMOUS_CLIENT = "Received .unlockAndFreeze()"
             + " call for anonymous client with token {}";
     private static final String UNLOCK_AND_FREEZE = "Received .unlockAndFreeze() call for read locks: {}";
-
+    // LegacyTimelockServiceAdapter relies on token ids being convertible to UUIDs; thus this should
+    // never be > 127
+    public static final int RANDOM_BIT_COUNT = 127;
 
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
@@ -175,7 +177,6 @@ public final class LockServiceImpl
     private final TimeDuration maxAllowedClockDrift;
     private final TimeDuration maxAllowedBlockingDuration;
     private final TimeDuration maxNormalLockAge;
-    private final int randomBitCount;
     private final Runnable callOnClose;
     private volatile boolean isShutDown = false;
     private final String lockStateLoggerDir;
@@ -258,7 +259,6 @@ public final class LockServiceImpl
         maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
         maxAllowedBlockingDuration = SimpleTimeDuration.of(options.getMaxAllowedBlockingDuration());
         maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
-        randomBitCount = options.getRandomBitCount();
         lockStateLoggerDir = options.getLockStateLoggerDir();
 
         slowLogTriggerMillis = options.slowLogTriggerMillis();
@@ -277,7 +277,7 @@ public final class LockServiceImpl
             LockCollection<? extends ClientAwareReadWriteLock> heldLocksMap, TimeDuration lockTimeout,
             @Nullable Long versionId, String requestThread) {
         while (true) {
-            BigInteger tokenId = new BigInteger(randomBitCount, randomPool.getSecureRandom());
+            BigInteger tokenId = new BigInteger(RANDOM_BIT_COUNT, randomPool.getSecureRandom());
             long expirationDateMs = currentTimeMillis() + lockTimeout.toMillis();
             HeldLocksToken token = new HeldLocksToken(tokenId, client, currentTimeMillis(),
                     expirationDateMs, lockDescriptorMap, lockTimeout, versionId, requestThread);
@@ -289,9 +289,9 @@ public final class LockServiceImpl
                 }
                 return token;
             }
-            log.error("Lock ID collision! The RANDOM_BIT_COUNT constant must be increased. "
+            log.error("Lock ID collision! "
                     + "Count of held tokens = {}"
-                    + "; random bit count = {}", heldLocksTokenMap.size(), randomBitCount);
+                    + "; random bit count = {}", heldLocksTokenMap.size(), RANDOM_BIT_COUNT);
         }
     }
 
@@ -299,7 +299,7 @@ public final class LockServiceImpl
             LockCollection<? extends ClientAwareReadWriteLock> heldLocksMap, TimeDuration lockTimeout,
             @Nullable Long versionId) {
         while (true) {
-            BigInteger grantId = new BigInteger(randomBitCount, randomPool.getSecureRandom());
+            BigInteger grantId = new BigInteger(RANDOM_BIT_COUNT, randomPool.getSecureRandom());
             long expirationDateMs = currentTimeMillis() + lockTimeout.toMillis();
             HeldLocksGrant grant = new HeldLocksGrant(grantId, System.currentTimeMillis(),
                     expirationDateMs, lockDescriptorMap, lockTimeout, versionId);
@@ -308,9 +308,9 @@ public final class LockServiceImpl
                 lockGrantReaperQueue.add(grant);
                 return grant;
             }
-            log.error("Lock ID collision! The RANDOM_BIT_COUNT constant must be increased. "
+            log.error("Lock ID collision! "
                     + "Count of held grants = {}"
-                    + "; random bit count = {}", heldLocksGrantMap.size(), randomBitCount);
+                    + "; random bit count = {}", heldLocksGrantMap.size(), RANDOM_BIT_COUNT);
         }
     }
 
@@ -1003,7 +1003,7 @@ public final class LockServiceImpl
                 return maxAllowedBlockingDuration;
             }
             @Override public int getRandomBitCount() {
-                return randomBitCount;
+                return RANDOM_BIT_COUNT;
             }
         };
         if (log.isTraceEnabled()) {
@@ -1044,7 +1044,6 @@ public final class LockServiceImpl
         logString.append("maxAllowedLockTimeout = ").append(maxAllowedLockTimeout).append("\n");
         logString.append("maxAllowedClockDrift = ").append(maxAllowedClockDrift).append("\n");
         logString.append("maxAllowedBlockingDuration = ").append(maxAllowedBlockingDuration).append("\n");
-        logString.append("randomBitCount = ").append(randomBitCount).append("\n");
 
         logString.append("descriptorToLockMap.size = ").append(descriptorToLockMap.size()).append("\n");
         logString.append("outstandingLockRequestMultimap.size = ").append(descriptorToLockMap.size()).append("\n");
