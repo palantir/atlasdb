@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.sweep;
 
-import static org.mockito.Mockito.when;
-
 import java.util.Optional;
 
 import org.junit.Before;
@@ -27,7 +25,6 @@ import org.mockito.stubbing.Answer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.KeyValueServiceLoggingArgSupplier;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
@@ -63,8 +60,6 @@ public class SweeperTestSetup {
                 () -> 0L, // pauseMillis
                 Mockito.mock(PersistentLockManager.class),
                 specificTableSweeper);
-
-        when(kvs.getLoggingArgSupplier()).thenReturn(KeyValueServiceLoggingArgSupplier.ALL_UNSAFE);
     }
 
     protected SpecificTableSweeper getSpecificTableSweeperService() {

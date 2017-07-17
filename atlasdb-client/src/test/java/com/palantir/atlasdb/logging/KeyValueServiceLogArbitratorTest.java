@@ -25,7 +25,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public class KeyValueServiceLogArbitratorTest {
     private static final KeyValueServiceLogArbitrator ALL_UNSAFE = KeyValueServiceLogArbitrator.ALL_UNSAFE;
 
-    private static final String ARG_NAME = "argName";
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.bar");
 
     private static final String ROW_NAME = "row";
