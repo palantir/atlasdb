@@ -21,14 +21,15 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Supplier;
 
-class ImmutableTimestampProgressMonitorRunner implements Runnable {
+final class ImmutableTimestampProgressMonitorRunner implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(ImmutableTimestampProgressMonitorRunner.class);
 
     private final Supplier<Long> supplier;
     private final Runnable runIfFailed;
     private Long lastLockedVersionId;
 
-    private ImmutableTimestampProgressMonitorRunner(Supplier<Long> supplier, Long lastLockedVersionId, Runnable runIfFailed){
+    private ImmutableTimestampProgressMonitorRunner(Supplier<Long> supplier,
+                                                    Long lastLockedVersionId, Runnable runIfFailed) {
         this.supplier = supplier;
         this.lastLockedVersionId = lastLockedVersionId;
         this.runIfFailed = runIfFailed;

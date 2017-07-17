@@ -27,16 +27,16 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Supplier;
 import com.palantir.lock.LockClient;
 
-class ImmutableTimestampSupplierProgressMonitor implements Supplier<Long> {
+final class ImmutableTimestampSupplierProgressMonitor implements Supplier<Long> {
     private static final Logger log = LoggerFactory.getLogger(ImmutableTimestampSupplierProgressMonitor.class);
 
     private static final long TIME_TO_WARN = 1L;
     private static final long TIME_TO_ERROR = 24L;
     private static final TimeUnit TIME_UNIT = TimeUnit.HOURS;
-    private static final String LONG_RUNNING_TRANSACTION_ERROR_MESSAGE = "Immutable timestamp has not been updated for [{}] hour(s) for LockClient [{}]."
-            + " This indicates to a very long running transaction.";
+    private static final String LONG_RUNNING_TRANSACTION_ERROR_MESSAGE = "Immutable timestamp has not been updated for"
+            + " [{}] hour(s) for LockClient [{}]. This indicates to a very long running transaction.";
 
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);;
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final Supplier<Long> supplier;
 
     private ImmutableTimestampSupplierProgressMonitor(Supplier<Long> supplier) {
@@ -45,8 +45,10 @@ class ImmutableTimestampSupplierProgressMonitor implements Supplier<Long> {
 
     static Supplier<Long> createWithDefaultMonitoring(Supplier<Long> supplier, LockClient lockClient) {
         ImmutableTimestampSupplierProgressMonitor monitor = new ImmutableTimestampSupplierProgressMonitor(supplier);
-        monitor.addMonitoring(TIME_TO_WARN, () -> log.warn(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_WARN, lockClient.getClientId()));
-        monitor.addMonitoring(TIME_TO_ERROR, () -> log.error(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_ERROR, lockClient.getClientId()));
+        monitor.addMonitoring(TIME_TO_WARN,
+                () -> log.warn(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_WARN, lockClient.getClientId()));
+        monitor.addMonitoring(TIME_TO_ERROR,
+                () -> log.error(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_ERROR, lockClient.getClientId()));
         return monitor;
     }
 
