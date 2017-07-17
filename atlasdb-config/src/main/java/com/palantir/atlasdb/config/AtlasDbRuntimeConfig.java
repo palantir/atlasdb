@@ -31,6 +31,14 @@ public abstract class AtlasDbRuntimeConfig {
         return SweepConfig.defaultSweepConfig();
     }
 
+    /**
+     * Returns a configuration for this timestamp client.
+     */
+    @Value.Default
+    public TimestampClientConfig timestampClient() {
+        return ImmutableTimestampClientConfig.builder().build();
+    }
+
     public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {
         return ImmutableAtlasDbRuntimeConfig.builder()
                 .sweep(SweepConfig.defaultSweepConfig())

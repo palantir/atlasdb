@@ -45,6 +45,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -54,10 +56,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
+import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
@@ -71,6 +75,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TransactionManagersTest {
@@ -88,6 +93,8 @@ public class TransactionManagersTest {
 
     private static final String TIMELOCK_TIMESTAMP_PATH = "/" + CLIENT + TIMESTAMP_PATH;
     private static final MappingBuilder TIMELOCK_TIMESTAMP_MAPPING = post(urlEqualTo(TIMELOCK_TIMESTAMP_PATH));
+    private static final String TIMELOCK_TIMESTAMPS_PATH = "/" + CLIENT + "/timestamp/fresh-timestamps?number=1";
+    private static final MappingBuilder TIMELOCK_ONE_TIMESTAMP_MAPPING = post(urlEqualTo(TIMELOCK_TIMESTAMPS_PATH));
     private static final String TIMELOCK_LOCK_PATH = "/" + CLIENT + LOCK_PATH;
     private static final MappingBuilder TIMELOCK_LOCK_MAPPING = post(urlEqualTo(TIMELOCK_LOCK_PATH));
     private static final String TIMELOCK_PING_PATH =  "/" + CLIENT + "/timestamp-management/ping";
@@ -101,6 +108,7 @@ public class TransactionManagersTest {
     private ServerListConfig rawRemoteServerConfig;
 
     private AtlasDbConfig config;
+    private AtlasDbRuntimeConfig runtimeConfig;
     private TransactionManagers.Environment environment;
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
@@ -112,7 +120,7 @@ public class TransactionManagersTest {
     public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     @Before
-    public void setup() {
+    public void setup() throws JsonProcessingException {
         // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
         originalAsyncMethod = TransactionManagers.runAsync;
         TransactionManagers.runAsync = task -> {
@@ -123,8 +131,19 @@ public class TransactionManagersTest {
                 ("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
         availableServer.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("1")));
         availableServer.stubFor(LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("2")));
+
         availableServer.stubFor(TIMELOCK_TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("3")));
+        availableServer.stubFor(TIMELOCK_ONE_TIMESTAMP_MAPPING.willReturn(aResponse()
+                .withStatus(200)
+                .withBody(new ObjectMapper().writeValueAsString(TimestampRange.createInclusiveRange(88, 88)))));
         availableServer.stubFor(TIMELOCK_LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("4")));
+
+        availableServer.stubFor(TIMELOCK_PING_MAPPING.willReturn(aResponse()
+                .withStatus(200)
+                .withBody(TimestampManagementService.PING_RESPONSE)
+                .withHeader("Content-Type", "text/plain")));
+        availableServer.stubFor(TIMELOCK_FF_MAPPING.willReturn(aResponse()
+                .withStatus(204)));
 
         config = mock(AtlasDbConfig.class);
         when(config.leader()).thenReturn(Optional.empty());
@@ -132,6 +151,9 @@ public class TransactionManagersTest {
         when(config.lock()).thenReturn(Optional.empty());
         when(config.timelock()).thenReturn(Optional.empty());
         when(config.keyValueService()).thenReturn(new InMemoryAtlasDbConfig());
+
+        runtimeConfig = mock(AtlasDbRuntimeConfig.class);
+        when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
 
         environment = mock(TransactionManagers.Environment.class);
 
@@ -192,6 +214,7 @@ public class TransactionManagersTest {
         TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
                 TransactionManagers.createLockAndTimestampServices(
                         config,
+                        () -> runtimeConfig.timestampClient(),
                         environment,
                         LockServiceImpl::create,
                         InMemoryTimestampService::new,
@@ -229,6 +252,7 @@ public class TransactionManagersTest {
         TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
                 TransactionManagers.createLockAndTimestampServices(
                         config,
+                        () -> runtimeConfig.timestampClient(),
                         environment,
                         LockServiceImpl::create,
                         InMemoryTimestampService::new,
@@ -264,6 +288,26 @@ public class TransactionManagersTest {
     }
 
     @Test
+    public void batchesRequestsIfBatchingEnabled() throws InterruptedException {
+        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
+        when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
+
+        createLockAndTimestampServicesForConfig(config, runtimeConfig).time().getFreshTimestamp();
+
+        availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_TIMESTAMPS_PATH)));
+    }
+
+    @Test
+    public void doesNotBatchRequestsIfBatchingNotEnabled() {
+        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
+        when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
+
+        createLockAndTimestampServicesForConfig(config, runtimeConfig).time().getFreshTimestamp();
+
+        availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_TIMESTAMP_PATH)));
+    }
+
+    @Test
     public void runsClosingCallbackOnShutdown() throws Exception {
         AtlasDbConfig realConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
@@ -284,13 +328,6 @@ public class TransactionManagersTest {
     }
 
     private void verifyUserAgentOnTimelockTimestampAndLockRequests() {
-        availableServer.stubFor(TIMELOCK_PING_MAPPING.willReturn(aResponse()
-                .withStatus(200)
-                .withBody(TimestampManagementService.PING_RESPONSE)
-                .withHeader("Content-Type", "text/plain")));
-        availableServer.stubFor(TIMELOCK_FF_MAPPING.willReturn(aResponse()
-                .withStatus(204)));
-
         verifyUserAgentOnTimestampAndLockRequests(TIMELOCK_TIMESTAMP_PATH, TIMELOCK_LOCK_PATH);
         verify(invalidator, times(1)).backupAndInvalidate();
         availableServer.verify(getRequestedFor(urlEqualTo(TIMELOCK_PING_PATH))
@@ -301,13 +338,7 @@ public class TransactionManagersTest {
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
         TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                TransactionManagers.createLockAndTimestampServices(
-                        config,
-                        environment,
-                        LockServiceImpl::create,
-                        InMemoryTimestampService::new,
-                        invalidator,
-                        USER_AGENT);
+                createLockAndTimestampServicesForConfig(config, runtimeConfig);
         lockAndTimestampServices.time().getFreshTimestamp();
         lockAndTimestampServices.lock().currentTimeMillis();
 
@@ -328,5 +359,17 @@ public class TransactionManagersTest {
                         .addAllServers(servers)
                         .build())
                 .build();
+    }
+
+    private TransactionManagers.LockAndTimestampServices createLockAndTimestampServicesForConfig(
+            AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
+        return TransactionManagers.createLockAndTimestampServices(
+                atlasDbConfig,
+                atlasDbRuntimeConfig::timestampClient,
+                environment,
+                LockServiceImpl::create,
+                InMemoryTimestampService::new,
+                invalidator,
+                USER_AGENT);
     }
 }

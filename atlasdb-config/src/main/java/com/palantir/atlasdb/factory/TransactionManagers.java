@@ -42,12 +42,15 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.factory.timestamp.DynamicDecoratedTimestampService;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -87,6 +90,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -194,7 +198,7 @@ public final class TransactionManagers {
                 UserAgents.fromClass(callingClass));
     }
 
-    private static SerializableTransactionManager create(
+    public static SerializableTransactionManager create(
             AtlasDbConfig config,
             java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Set<Schema> schemas,
@@ -213,6 +217,10 @@ public final class TransactionManagers {
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
+                JavaSuppliers.compose(runtimeConfig ->
+                                runtimeConfig.map(AtlasDbRuntimeConfig::timestampClient)
+                                        .orElse(ImmutableTimestampClientConfig.of()),
+                        runtimeConfigSupplier),
                 env,
                 () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService,
@@ -398,21 +406,23 @@ public final class TransactionManagers {
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
-        return createLockAndTimestampServices(
-                config,
-                env,
-                lock,
-                time,
-                () -> {
-                    log.warn("Note: Automatic migration isn't performed by the CLI tools.");
-                    return AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
-                },
-                UserAgents.DEFAULT_USER_AGENT);
+        LockAndTimestampServices lockAndTimestampServices =
+                createRawServices(config,
+                        env,
+                        lock,
+                        time,
+                        () -> {
+                            log.warn("Note: Automatic migration isn't performed by the CLI tools.");
+                            return AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
+                        },
+                        UserAgents.DEFAULT_USER_AGENT);
+        return withRefreshingLockService(lockAndTimestampServices);
     }
 
     @VisibleForTesting
     static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
+            java.util.function.Supplier<TimestampClientConfig> runtimeConfigSupplier,
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
@@ -420,7 +430,9 @@ public final class TransactionManagers {
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawServices(config, env, lock, time, invalidator, userAgent);
-        return withRefreshingLockService(lockAndTimestampServices);
+        return withRateLimitedTimestampService(
+                runtimeConfigSupplier,
+                withRefreshingLockService(lockAndTimestampServices));
     }
 
     private static LockAndTimestampServices withRefreshingLockService(
@@ -428,6 +440,17 @@ public final class TransactionManagers {
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
                 .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))
+                .build();
+    }
+
+    private static LockAndTimestampServices withRateLimitedTimestampService(
+            java.util.function.Supplier<TimestampClientConfig> timestampClientConfigSupplier,
+            LockAndTimestampServices lockAndTimestampServices) {
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .time(DynamicDecoratedTimestampService.createWithRateLimiting(
+                        lockAndTimestampServices.time(),
+                        timestampClientConfigSupplier))
                 .build();
     }
 

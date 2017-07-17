@@ -37,6 +37,10 @@ develop
 
 .. replace this with the release date
 
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
     *    - Type
          - Change
 
@@ -44,6 +48,17 @@ develop
          - Fixed the broken put() command in AtlasConsole. You should now be able to insert and update data using Console.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2140>`__)
 
+    *    - |fixed|
+         - Fixed an issue that could cause AtlasConsole to print unnecessary amounts of input when commands were run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2130>`__)
+
+    *    - |fixed|
+         - ``commons-executors`` now excludes the ``safe-logging`` Java8 jar to support Java 6 clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2160>`__)
+
+    *    - |new|
+         - TransactionManagers exposes a method in which it is possible to specify the user agent to be used.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2162>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -60,18 +75,38 @@ develop
 
     *    - |fixed|
          - If sweep configs are specified in the AtlasDbConfig block, they will be ignored, but AtlasDB will no longer fail to start.
-           This effectively fixes the user break change of version ``0.47.0``.
+           This effectively fixes the Sweep-related user break change of version ``0.47.0``.
+           Note that users of products that upgraded from ``0.45.0`` to ``0.48.0`` will need to move configuration overrides from the regular ``atlasdb`` config to the ``atlasdb-runtime`` config for them to continue taking effect.
+           Please reference the Sweep :ref:`configuration docs <sweep_tunable_parameters>` for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2134>`__)
 
-    *    - |fixed|
+    *    - |new|
+         - AtlasDB now supports batching of timestamp requests on the client-side; see :ref:`Timestamp Client Options <timestamp-client-config>` for details.
+           On internal benchmarks, the AtlasDB team has obtained an almost 2x improvement in timestamp throughput and latency under modest load (32 threads), and an over 10x improvement under heavy load (8,192 threads).
+           There may be a very small increase in latency under extremely light load (e.g. 2-4 threads).
+           Note that this is not enabled by default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2083>`__)
+
+    *    - |devbreak|
+         - The ``RateLimitingTimestampService`` in ``timestamp-impl`` has been renamed to ``RequestBatchingTimestampService``, to better reflect what the service does and avoid confusion with the ``ThreadPooledLockService`` (which performs resource-limiting).
+           Products that do not use this class directly are not affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2083>`__)
+
+    *    - |fixed| |devbreak|
          - ``TransactionManager.close()`` now closes the lock service (provided it is closeable), and also shuts down the Background Sweeper.
            Previously, the lock service's background threads as well as background sweeper would continue to run (potentially indefinitely) even after a transaction manager was closed.
+           Note that services that relied on the lock service being available even after a transaction manager was shut down may no longer behave properly, and should ensure that the transaction manager is not shut down while the lock service is still needed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2102>`__)
 
     *    - |fixed|
-         - ``common-executors`` now uses Java 6 when compiling from source and generates classes targeting Java 6. Java 6 support was removed in AtlasDB ``0.41.0``
-           and blocks certain internal products from upgrading to subsequent versions.
+         - ``commons-executors`` now uses Java 6 when compiling from source and generates classes targeting Java 6.
+           Java 6 support was removed in AtlasDB ``0.41.0`` and blocks certain internal products from upgrading to subsequent versions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2122>`__)
+
+    *    - |fixed|
+         - ``LockServiceImpl.close()`` is now idempotent.
+           Previously, calling the referred method more than once could fail an assertion and throw an exception.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2144>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

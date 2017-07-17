@@ -53,7 +53,7 @@ Note that some of these parameters are just used as a hint. Sweep dynamically mo
    :header: "AtlasDB Runtime Config", "Endpoint Option", "Default", "Description"
    :widths: 20, 20, 40, 200
 
-   ``enabled``, "Only specified in config", "1,000", "Target number of (cell, timestamp) pairs to examine in a single run."
+   ``enabled``, "Only specified in config", "true", "Whether the background sweeper should run."
    ``readLimit``, ``maxCellTsPairsToExamine``, "1,000", "Target number of (cell, timestamp) pairs to examine in a single run."
    ``candidateBatchHint``, ``candidateBatchSize``, "1", "Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
    ``deleteBatchHint``, ``deleteBatchSize``, "1,000", "Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance."
