@@ -20,6 +20,7 @@ import java.io.Closeable;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -27,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockTokenV2;
 
@@ -39,6 +41,7 @@ public class AsyncLockService implements Closeable {
     private final ScheduledExecutorService reaperExecutor;
     private final HeldLocksCollection heldLocks;
     private final ImmutableTimestampTracker immutableTsTracker;
+    private final ConcurrentMap<UUID, AsyncResult<Void>> waitRequests = Maps.newConcurrentMap();
 
     public static AsyncLockService createDefault(
             ScheduledExecutorService reaperExecutor,
@@ -89,8 +92,14 @@ public class AsyncLockService implements Closeable {
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
-        OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
-        return lockAcquirer.waitForLocks(requestId, orderedLocks, timeout);
+        AsyncResult<Void> result = waitRequests.computeIfAbsent(requestId, ignored -> {
+            OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
+            return lockAcquirer.waitForLocks(requestId, orderedLocks, timeout);
+        });
+        result.onComplete(() -> {
+            waitRequests.remove(requestId);
+        });
+        return result;
     }
 
     public Optional<Long> getImmutableTimestamp() {

@@ -65,6 +65,7 @@ public class AsyncLockServiceTest {
     @Before
     public void before() {
         when(acquirer.acquireLocks(any(), any(), any())).thenReturn(new AsyncResult<>());
+        when(acquirer.waitForLocks(any(), any(), any())).thenReturn(new AsyncResult<>());
         when(locks.getAll(any())).thenReturn(OrderedLocks.fromSingleLock(newLock()));
         when(immutableTimestampTracker.getImmutableTimestamp()).thenReturn(Optional.empty());
         when(immutableTimestampTracker.getLockFor(anyLong())).thenReturn(newLock());
