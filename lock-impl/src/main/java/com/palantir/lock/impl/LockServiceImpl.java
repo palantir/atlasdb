@@ -122,7 +122,7 @@ public final class LockServiceImpl
     private static final String UNLOCK_AND_FREEZE = "Received .unlockAndFreeze() call for read locks: {}";
     // LegacyTimelockServiceAdapter relies on token ids being convertible to UUIDs; thus this should
     // never be > 127
-    public static final int RANDOM_BIT_COUNT = Long.SIZE;
+    public static final int RANDOM_BIT_COUNT = 127;
 
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;

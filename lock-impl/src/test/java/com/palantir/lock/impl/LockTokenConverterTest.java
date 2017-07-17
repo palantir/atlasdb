@@ -47,7 +47,7 @@ public class LockTokenConverterTest {
         int iterations = 100_000;
         int bitLength = LockServiceImpl.RANDOM_BIT_COUNT;
         for (int i = 0; i < iterations; i++) {
-            BigInteger randomBigInteger = new BigInteger(bitLength, RANDOM).multiply(new BigInteger("-1"));
+            BigInteger randomBigInteger = new BigInteger(bitLength, RANDOM).negate();
             LockRefreshToken lockRefreshToken = new LockRefreshToken(randomBigInteger, Long.MIN_VALUE);
             assertConversionFromAndToLegacyPreservesId(lockRefreshToken);
         }
@@ -55,7 +55,7 @@ public class LockTokenConverterTest {
 
     @Test
     public void throwsIfBigIntegerHasMoreThan127Bits() {
-        BigInteger bigInt = BigInteger.valueOf(2).pow(128);
+        BigInteger bigInt = BigInteger.valueOf(2).pow(127);
 
         LockRefreshToken token = new LockRefreshToken(bigInt, 0L);
 
