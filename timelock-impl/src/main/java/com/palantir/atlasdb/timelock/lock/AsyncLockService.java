@@ -20,7 +20,6 @@ import java.io.Closeable;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -28,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockTokenV2;
 
@@ -40,8 +38,8 @@ public class AsyncLockService implements Closeable {
     private final LockAcquirer lockAcquirer;
     private final ScheduledExecutorService reaperExecutor;
     private final HeldLocksCollection heldLocks;
+    private final AwaitedLocksCollection awaitedLocks;
     private final ImmutableTimestampTracker immutableTsTracker;
-    private final ConcurrentMap<UUID, AsyncResult<Void>> waitRequests = Maps.newConcurrentMap();
 
     public static AsyncLockService createDefault(
             ScheduledExecutorService reaperExecutor,
@@ -51,6 +49,7 @@ public class AsyncLockService implements Closeable {
                 new ImmutableTimestampTracker(),
                 new LockAcquirer(timeoutExecutor),
                 new HeldLocksCollection(),
+                new AwaitedLocksCollection(),
                 reaperExecutor);
     }
 
@@ -59,11 +58,13 @@ public class AsyncLockService implements Closeable {
             ImmutableTimestampTracker immutableTimestampTracker,
             LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
+            AwaitedLocksCollection awaitedLocks,
             ScheduledExecutorService reaperExecutor) {
         this.locks = locks;
         this.immutableTsTracker = immutableTimestampTracker;
         this.lockAcquirer = acquirer;
         this.heldLocks = heldLocks;
+        this.awaitedLocks = awaitedLocks;
         this.reaperExecutor = reaperExecutor;
 
         scheduleExpiredLockReaper();
@@ -92,14 +93,9 @@ public class AsyncLockService implements Closeable {
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
-        AsyncResult<Void> result = waitRequests.computeIfAbsent(requestId, ignored -> {
-            OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
-            return lockAcquirer.waitForLocks(requestId, orderedLocks, timeout);
-        });
-        result.onComplete(() -> {
-            waitRequests.remove(requestId);
-        });
-        return result;
+        return awaitedLocks.getExistingOrAwait(
+                requestId,
+                () -> awaitLocks(requestId, lockDescriptors, timeout));
     }
 
     public Optional<Long> getImmutableTimestamp() {
@@ -110,6 +106,12 @@ public class AsyncLockService implements Closeable {
             TimeLimit timeout) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
         return lockAcquirer.acquireLocks(requestId, orderedLocks, timeout);
+    }
+
+    private AsyncResult<Void> awaitLocks(UUID requestId, Set<LockDescriptor> lockDescriptors,
+            TimeLimit timeout) {
+        OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
+        return lockAcquirer.waitForLocks(requestId, orderedLocks, timeout);
     }
 
     private AsyncResult<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
