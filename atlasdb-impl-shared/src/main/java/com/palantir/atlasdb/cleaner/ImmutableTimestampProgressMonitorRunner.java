@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.cleaner;
 
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,27 +28,25 @@ final class ImmutableTimestampProgressMonitorRunner implements Runnable {
 
     private final Supplier<Long> supplier;
     private final Runnable runIfFailed;
-    private Long lastLockedVersionId;
+    private Optional<Long> lastLockedVersionId = Optional.empty();
 
-    private ImmutableTimestampProgressMonitorRunner(Supplier<Long> supplier,
-                                                    Long lastLockedVersionId, Runnable runIfFailed) {
+    private ImmutableTimestampProgressMonitorRunner(Supplier<Long> supplier, Runnable runIfFailed) {
         this.supplier = supplier;
-        this.lastLockedVersionId = lastLockedVersionId;
         this.runIfFailed = runIfFailed;
     }
 
     static ImmutableTimestampProgressMonitorRunner of(Supplier<Long> supplier, Runnable runIfFailed) {
-        return new ImmutableTimestampProgressMonitorRunner(supplier, supplier.get(), runIfFailed);
+        return new ImmutableTimestampProgressMonitorRunner(supplier, runIfFailed);
     }
 
     @Override
     public synchronized void run() {
         try {
             Long newLockedVersionId = supplier.get();
-            if (lastLockedVersionId.equals(newLockedVersionId)) {
+            if (lastLockedVersionId.isPresent() && lastLockedVersionId.get().equals(newLockedVersionId)) {
                 runIfFailed.run();
             }
-            lastLockedVersionId = newLockedVersionId;
+            lastLockedVersionId = Optional.ofNullable(newLockedVersionId);
         } catch (Exception e) {
             log.error("Checking immutable timestamp failed", e);
         }
