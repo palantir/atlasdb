@@ -59,9 +59,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.logging.KeyValueServiceLoggingArgSupplier;
-import com.palantir.atlasdb.logging.KeyValueServiceLoggingArgSupplierImpl;
-import com.palantir.atlasdb.logging.SafeLoggableDataUtils;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
@@ -80,7 +78,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             + " while doing a write to {}. Attempting to batch anyways.";
 
     protected ExecutorService executor;
-    protected volatile KeyValueServiceLoggingArgSupplier loggingArgs = KeyValueServiceLoggingArgSupplier.ALL_UNSAFE;
 
     protected final TracingPrefsConfig tracingPrefs;
     private final ScheduledExecutorService scheduledExecutor;
@@ -266,7 +263,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                                 log.warn(longerMessage,
                                         SafeArg.of("approximatePutSize", sizingFunction.apply(firstEntry)),
                                         SafeArg.of("maximumPutSize", maximumBytesPerPartition),
-                                        loggingArgs.tableRef("table",
+                                        LoggingArgs.tableRef("table",
                                                 TableReference.createFromFullyQualifiedName(tableName)));
                             }
                         }
@@ -369,17 +366,5 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                                                                           columnRangeSelection,
                                                                           cellBatchHint,
                                                                           timestamp);
-    }
-
-    @Override
-    public void rehydrateLoggingArgSupplier() {
-        loggingArgs = new KeyValueServiceLoggingArgSupplierImpl(
-                SafeLoggableDataUtils.fromTableMetadata(getMetadataForTables()));
-    }
-
-    @Override
-    public KeyValueServiceLoggingArgSupplier getLoggingArgSupplier() {
-        // The object is immutable and volatile, so it's fine for us to allow others to look at it.
-        return loggingArgs;
     }
 }

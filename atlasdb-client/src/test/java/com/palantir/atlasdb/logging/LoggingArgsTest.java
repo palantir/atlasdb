@@ -18,18 +18,18 @@ package com.palantir.atlasdb.logging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class KeyValueServiceLoggingArgSupplierImplTest {
+public class LoggingArgsTest {
     private static final String ARG_NAME = "argName";
     private static final TableReference SAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.safe");
     private static final TableReference UNSAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.bar");
@@ -39,11 +39,10 @@ public class KeyValueServiceLoggingArgSupplierImplTest {
     private static final String SAFE_COLUMN_NAME = "safecolumn";
     private static final String UNSAFE_COLUMN_NAME = "column";
 
-    private final KeyValueServiceLogArbitrator arbitrator = mock(KeyValueServiceLogArbitrator.class);
-    private final KeyValueServiceLoggingArgSupplier supplier = new KeyValueServiceLoggingArgSupplierImpl(arbitrator);
+    private static final KeyValueServiceLogArbitrator arbitrator = Mockito.mock(KeyValueServiceLogArbitrator.class);
 
-    @Before
-    public void setUpMocks() {
+    @BeforeClass
+    public static void setUpMocks() {
         when(arbitrator.isTableReferenceSafe(any())).thenAnswer(invocation -> {
             TableReference tableReference = (TableReference) invocation.getArguments()[0];
             return tableReference.getQualifiedName().contains("safe");
@@ -58,72 +57,74 @@ public class KeyValueServiceLoggingArgSupplierImplTest {
             String columnName = (String) invocation.getArguments()[1];
             return columnName.contains("safe");
         });
+
+        LoggingArgs.setLogArbitrator(arbitrator);
     }
 
     @Test
     public void propagatesNameAndTableReferenceIfSafe() {
-        Arg<TableReference> tableReferenceArg = supplier.tableRef(ARG_NAME, SAFE_TABLE_REFERENCE);
+        Arg<TableReference> tableReferenceArg = LoggingArgs.tableRef(ARG_NAME, SAFE_TABLE_REFERENCE);
         assertThat(tableReferenceArg.getName()).isEqualTo(ARG_NAME);
         assertThat(tableReferenceArg.getValue()).isEqualTo(SAFE_TABLE_REFERENCE);
     }
 
     @Test
     public void propagatesNameAndRowComponentNameIfSafe() {
-        Arg<String> rowNameArg = supplier.rowComponent(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_ROW_NAME);
+        Arg<String> rowNameArg = LoggingArgs.rowComponent(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_ROW_NAME);
         assertThat(rowNameArg.getName()).isEqualTo(ARG_NAME);
         assertThat(rowNameArg.getValue()).isEqualTo(SAFE_ROW_NAME);
     }
 
     @Test
     public void propagatesNameAndColumnNameIfSafe() {
-        Arg<String> columnNameArg = supplier.columnName(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME);
+        Arg<String> columnNameArg = LoggingArgs.columnName(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME);
         assertThat(columnNameArg.getName()).isEqualTo(ARG_NAME);
         assertThat(columnNameArg.getValue()).isEqualTo(SAFE_COLUMN_NAME);
     }
 
     @Test
     public void canReturnBothSafeAndUnsafeTableReferences() {
-        assertThat(supplier.tableRef(ARG_NAME, SAFE_TABLE_REFERENCE)).isInstanceOf(SafeArg.class);
-        assertThat(supplier.tableRef(ARG_NAME, UNSAFE_TABLE_REFERENCE)).isInstanceOf(UnsafeArg.class);
+        assertThat(LoggingArgs.tableRef(ARG_NAME, SAFE_TABLE_REFERENCE)).isInstanceOf(SafeArg.class);
+        assertThat(LoggingArgs.tableRef(ARG_NAME, UNSAFE_TABLE_REFERENCE)).isInstanceOf(UnsafeArg.class);
     }
 
     @Test
     public void canReturnBothSafeAndUnsafeRowComponentNames() {
-        assertThat(supplier.rowComponent(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_ROW_NAME))
+        assertThat(LoggingArgs.rowComponent(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_ROW_NAME))
                 .isInstanceOf(SafeArg.class);
-        assertThat(supplier.rowComponent(ARG_NAME, UNSAFE_TABLE_REFERENCE, UNSAFE_ROW_NAME))
+        assertThat(LoggingArgs.rowComponent(ARG_NAME, UNSAFE_TABLE_REFERENCE, UNSAFE_ROW_NAME))
                 .isInstanceOf(UnsafeArg.class);
     }
 
     @Test
     public void canReturnBothSafeAndUnsafeColumnNames() {
-        assertThat(supplier.columnName(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME))
+        assertThat(LoggingArgs.columnName(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME))
                 .isInstanceOf(SafeArg.class);
-        assertThat(supplier.columnName(ARG_NAME, UNSAFE_TABLE_REFERENCE, UNSAFE_COLUMN_NAME))
+        assertThat(LoggingArgs.columnName(ARG_NAME, UNSAFE_TABLE_REFERENCE, UNSAFE_COLUMN_NAME))
                 .isInstanceOf(UnsafeArg.class);
     }
 
     @Test
     public void canReturnSafeRowComponentEvenIfTableReferenceIsUnsafe() {
-        assertThat(supplier.rowComponent(ARG_NAME, UNSAFE_TABLE_REFERENCE, SAFE_ROW_NAME))
+        assertThat(LoggingArgs.rowComponent(ARG_NAME, UNSAFE_TABLE_REFERENCE, SAFE_ROW_NAME))
                 .isInstanceOf(SafeArg.class);
     }
 
     @Test
     public void canReturnUnsafeRowComponentEvenIfTableReferenceIsSafe() {
-        assertThat(supplier.rowComponent(ARG_NAME, SAFE_TABLE_REFERENCE, UNSAFE_ROW_NAME))
+        assertThat(LoggingArgs.rowComponent(ARG_NAME, SAFE_TABLE_REFERENCE, UNSAFE_ROW_NAME))
                 .isInstanceOf(UnsafeArg.class);
     }
 
     @Test
     public void canReturnSafeColumnNameEvenIfTableReferenceIsUnsafe() {
-        assertThat(supplier.columnName(ARG_NAME, UNSAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME))
+        assertThat(LoggingArgs.columnName(ARG_NAME, UNSAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME))
                 .isInstanceOf(SafeArg.class);
     }
 
     @Test
     public void canReturnUnsafeColumnNameEvenIfTableReferenceIsSafe() {
-        assertThat(supplier.columnName(ARG_NAME, SAFE_TABLE_REFERENCE, UNSAFE_COLUMN_NAME))
+        assertThat(LoggingArgs.columnName(ARG_NAME, SAFE_TABLE_REFERENCE, UNSAFE_COLUMN_NAME))
                 .isInstanceOf(UnsafeArg.class);
     }
 }

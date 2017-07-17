@@ -16,38 +16,52 @@
 
 package com.palantir.atlasdb.logging;
 
+import java.util.Map;
+
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class KeyValueServiceLoggingArgSupplierImpl implements KeyValueServiceLoggingArgSupplier {
-    private final KeyValueServiceLogArbitrator logArbitrator;
+/**
+ * Includes utilities for generating logging args that may be safe or unsafe, depending on table metadata.
+ *
+ * Always returns unsafe, until hydrated.
+ */
+public final class LoggingArgs {
+    private static volatile KeyValueServiceLogArbitrator logArbitrator = KeyValueServiceLogArbitrator.ALL_UNSAFE;
 
-    public KeyValueServiceLoggingArgSupplierImpl(KeyValueServiceLogArbitrator logArbitrator) {
-        this.logArbitrator = logArbitrator;
+    private LoggingArgs() {
+        // no
     }
 
-    @Override
-    public Arg<TableReference> tableRef(String argName, TableReference tableReference) {
+    public static synchronized void hydrate(Map<TableReference, byte[]> tableRefToMetadata) {
+        logArbitrator = SafeLoggableDataUtils.fromTableMetadata(tableRefToMetadata);
+    }
+
+    @VisibleForTesting
+    static synchronized void setLogArbitrator(KeyValueServiceLogArbitrator arbitrator) {
+        logArbitrator = arbitrator;
+    }
+
+    public static Arg<TableReference> tableRef(String argName, TableReference tableReference) {
         return getArg(argName, tableReference, logArbitrator.isTableReferenceSafe(tableReference));
     }
 
-    @Override
-    public Arg<String> rowComponent(String argName, TableReference tableReference, String rowComponentName) {
+    public static Arg<String> rowComponent(String argName, TableReference tableReference, String rowComponentName) {
         return getArg(argName,
                 rowComponentName,
                 logArbitrator.isRowComponentNameSafe(tableReference, rowComponentName));
     }
 
-    @Override
-    public Arg<String> columnName(String argName, TableReference tableReference, String columnName) {
+    public static Arg<String> columnName(String argName, TableReference tableReference, String columnName) {
         return getArg(argName,
                 columnName,
                 logArbitrator.isColumnNameSafe(tableReference, columnName));
     }
 
-    private <T> Arg<T> getArg(String name, T value, boolean safe) {
+    private static <T> Arg<T> getArg(String name, T value, boolean safe) {
         return safe ? SafeArg.of(name, value) : UnsafeArg.of(name, value);
     }
 }
