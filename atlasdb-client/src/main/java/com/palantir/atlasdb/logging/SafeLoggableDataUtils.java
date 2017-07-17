@@ -31,10 +31,10 @@ public final class SafeLoggableDataUtils {
         // utility
     }
 
-    public static SafeLoggableData fromTableMetadata(Map<TableReference, byte[]> tableMetadataMap) {
+    public static SafeLoggableData fromTableMetadata(Map<TableReference, byte[]> tableRefToMetadata) {
         ImmutableSafeLoggableData.Builder builder = ImmutableSafeLoggableData.builder();
 
-        tableMetadataMap.forEach(
+        tableRefToMetadata.forEach(
                 (ref, metadataBytes) -> {
                     TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataBytes);
                     addLoggableNamesToBuilder(builder, ref, tableMetadata);

@@ -29,7 +29,7 @@ import org.mockito.Mockito;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
+import com.palantir.atlasdb.logging.KeyValueServiceLoggingArgSupplier;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockServiceClientTest;
 import com.palantir.remoting2.clients.UserAgents;
@@ -61,7 +61,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
                 UserAgents.fromClass(KvsBackedPersistentLockServiceClientTest.class, "test", "unknown"),
                 dropwizardClientRule.baseUri().toString());
 
-        when(kvs.getLoggingArgSupplier()).thenReturn(KeyValueServiceArgSupplier.ALL_UNSAFE);
+        when(kvs.getLoggingArgSupplier()).thenReturn(KeyValueServiceLoggingArgSupplier.ALL_UNSAFE);
     }
 
     @Test

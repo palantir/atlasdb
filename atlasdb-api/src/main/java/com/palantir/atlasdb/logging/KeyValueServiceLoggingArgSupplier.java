@@ -20,28 +20,28 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.UnsafeArg;
 
-public interface KeyValueServiceArgSupplier {
-    KeyValueServiceArgSupplier ALL_UNSAFE = new KeyValueServiceArgSupplier() {
+public interface KeyValueServiceLoggingArgSupplier {
+    KeyValueServiceLoggingArgSupplier ALL_UNSAFE = new KeyValueServiceLoggingArgSupplier() {
         @Override
-        public Arg<TableReference> getTableReferenceArg(String argName, TableReference tableReference) {
+        public Arg<TableReference> tableRef(String argName, TableReference tableReference) {
             return UnsafeArg.of(argName, tableReference);
         }
 
         @Override
-        public Arg<String> getRowComponentNameArg(String argName, TableReference tableReference,
+        public Arg<String> rowComponent(String argName, TableReference tableReference,
                 String rowComponentName) {
             return UnsafeArg.of(argName, rowComponentName);
         }
 
         @Override
-        public Arg<String> getColumnNameArg(String argName, TableReference tableReference, String columnName) {
+        public Arg<String> columnName(String argName, TableReference tableReference, String columnName) {
             return UnsafeArg.of(argName, columnName);
         }
     };
 
-    Arg<TableReference> getTableReferenceArg(String argName, TableReference tableReference);
+    Arg<TableReference> tableRef(String argName, TableReference tableReference);
 
-    Arg<String> getRowComponentNameArg(String argName, TableReference tableReference, String rowComponentName);
+    Arg<String> rowComponent(String argName, TableReference tableReference, String rowComponentName);
 
-    Arg<String> getColumnNameArg(String argName, TableReference tableReference, String columnName);
+    Arg<String> columnName(String argName, TableReference tableReference, String columnName);
 }

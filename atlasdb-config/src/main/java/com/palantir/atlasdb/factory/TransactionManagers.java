@@ -241,6 +241,7 @@ public final class TransactionManagers {
             Schemas.createTablesAndIndexes(schema, kvs);
         }
         // Prime the key value service with logging information.
+        // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
         kvs.rehydrateLoggingArgSupplier();
 
         CleanupFollower follower = CleanupFollower.create(schemas);

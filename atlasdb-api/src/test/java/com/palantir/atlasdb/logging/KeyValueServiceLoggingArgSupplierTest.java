@@ -24,8 +24,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class KeyValueServiceArgSupplierTest {
-    private static final KeyValueServiceArgSupplier ALL_UNSAFE = KeyValueServiceArgSupplier.ALL_UNSAFE;
+public class KeyValueServiceLoggingArgSupplierTest {
+    private static final KeyValueServiceLoggingArgSupplier ALL_UNSAFE = KeyValueServiceLoggingArgSupplier.ALL_UNSAFE;
 
     private static final String ARG_NAME = "argName";
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.bar");
@@ -35,40 +35,40 @@ public class KeyValueServiceArgSupplierTest {
 
     @Test
     public void allUnsafeSupplierReturnsUnsafeTableReferences() {
-        Arg<TableReference> tableReferenceArg = ALL_UNSAFE.getTableReferenceArg(ARG_NAME, TABLE_REFERENCE);
+        Arg<TableReference> tableReferenceArg = ALL_UNSAFE.tableRef(ARG_NAME, TABLE_REFERENCE);
         assertThat(tableReferenceArg).isInstanceOf(UnsafeArg.class);
     }
 
     @Test
     public void allUnsafeSupplierReturnsUnsafeRowComponents() {
-        Arg<String> rowNameArg = ALL_UNSAFE.getRowComponentNameArg(ARG_NAME, TABLE_REFERENCE, ROW_NAME);
+        Arg<String> rowNameArg = ALL_UNSAFE.rowComponent(ARG_NAME, TABLE_REFERENCE, ROW_NAME);
         assertThat(rowNameArg).isInstanceOf(UnsafeArg.class);
     }
 
     @Test
     public void allUnsafeSupplierReturnsUnsafeColumnNames() {
-        Arg<String> columnNameArg = ALL_UNSAFE.getColumnNameArg(ARG_NAME, TABLE_REFERENCE, COLUMN_NAME);
+        Arg<String> columnNameArg = ALL_UNSAFE.columnName(ARG_NAME, TABLE_REFERENCE, COLUMN_NAME);
         assertThat(columnNameArg).isInstanceOf(UnsafeArg.class);
     }
 
 
     @Test
     public void propagatesNameAndTableReferenceIfUnsafe() {
-        Arg<TableReference> tableReferenceArg = ALL_UNSAFE.getTableReferenceArg(ARG_NAME, TABLE_REFERENCE);
+        Arg<TableReference> tableReferenceArg = ALL_UNSAFE.tableRef(ARG_NAME, TABLE_REFERENCE);
         assertThat(tableReferenceArg.getName()).isEqualTo(ARG_NAME);
         assertThat(tableReferenceArg.getValue()).isEqualTo(TABLE_REFERENCE);
     }
 
     @Test
     public void propagatesNameAndRowComponentNameIfUnsafe() {
-        Arg<String> rowNameArg = ALL_UNSAFE.getRowComponentNameArg(ARG_NAME, TABLE_REFERENCE, ROW_NAME);
+        Arg<String> rowNameArg = ALL_UNSAFE.rowComponent(ARG_NAME, TABLE_REFERENCE, ROW_NAME);
         assertThat(rowNameArg.getName()).isEqualTo(ARG_NAME);
         assertThat(rowNameArg.getValue()).isEqualTo(ROW_NAME);
     }
 
     @Test
     public void propagatesNameAndColumnNameIfUnsafe() {
-        Arg<String> columnNameArg = ALL_UNSAFE.getColumnNameArg(ARG_NAME, TABLE_REFERENCE, COLUMN_NAME);
+        Arg<String> columnNameArg = ALL_UNSAFE.columnName(ARG_NAME, TABLE_REFERENCE, COLUMN_NAME);
         assertThat(columnNameArg.getName()).isEqualTo(ARG_NAME);
         assertThat(columnNameArg.getValue()).isEqualTo(COLUMN_NAME);
     }

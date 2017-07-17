@@ -31,6 +31,10 @@ public abstract class SafeLoggableData implements KeyValueServiceLogArbitrator {
 
     public abstract Map<TableReference, Set<String>> permittedColumnNames();
 
+    public static SafeLoggableData fromTableMetadata(Map<TableReference, byte[]> tableRefToMetadata) {
+        return SafeLoggableDataUtils.fromTableMetadata(tableRefToMetadata);
+    }
+
     @Override
     public boolean isTableReferenceSafe(TableReference tableReference) {
         return permittedTableReferences().contains(tableReference);

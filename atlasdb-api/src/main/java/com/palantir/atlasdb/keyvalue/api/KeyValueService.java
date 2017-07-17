@@ -29,7 +29,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.logging.KeyValueServiceArgSupplier;
+import com.palantir.atlasdb.logging.KeyValueServiceLoggingArgSupplier;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
@@ -695,7 +695,7 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * Provides a supplier that is able to determine whether constructs are safe for logging.
      */
-    default KeyValueServiceArgSupplier getLoggingArgSupplier() {
-        return KeyValueServiceArgSupplier.ALL_UNSAFE;
+    default KeyValueServiceLoggingArgSupplier getLoggingArgSupplier() {
+        return KeyValueServiceLoggingArgSupplier.ALL_UNSAFE;
     }
 }
