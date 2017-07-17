@@ -69,6 +69,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
+import com.palantir.common.base.RequestLimitedExecutorService;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
 import com.palantir.lock.LockRefreshToken;
@@ -190,7 +191,22 @@ public class SerializableTransaction extends SnapshotTransaction {
     @Idempotent
     public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(final TableReference tableRef,
                                                              Iterable<RangeRequest> rangeRequests) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> ret = super.getRanges(tableRef, rangeRequests);
+        return getRanges(tableRef, rangeRequests, super.getRanges(tableRef, rangeRequests));
+    }
+
+    @Override
+    @Idempotent
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            RequestLimitedExecutorService executor) {
+        return getRanges(tableRef, rangeRequests, super.getRanges(tableRef, rangeRequests, executor));
+    }
+
+    private Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            Iterable<BatchingVisitable<RowResult<byte[]>>> ret) {
         Iterable<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> zip = IterableUtils.zip(rangeRequests, ret);
         return Iterables.transform(zip, pair -> wrapRange(tableRef, pair.lhSide, pair.rhSide));
     }
