@@ -31,6 +31,7 @@ public class ImmutableTimestampProgressMonitorRunnerTest {
         Runnable mockRunnableIfFailed = mock(Runnable.class);
         Runnable runnable = ImmutableTimestampProgressMonitorRunner.of(() -> 0L, mockRunnableIfFailed);
         runnable.run();
+        runnable.run();
         verify(mockRunnableIfFailed, times(1)).run();
     }
 
@@ -40,6 +41,7 @@ public class ImmutableTimestampProgressMonitorRunnerTest {
         Supplier mockedSupplier = mock(Supplier.class);
         when(mockedSupplier.get()).thenReturn(0L).thenReturn(1L);
         Runnable runnable = ImmutableTimestampProgressMonitorRunner.of(mockedSupplier, mockRunnableIfFailed);
+        runnable.run();
         runnable.run();
         verify(mockRunnableIfFailed, times(0)).run();
     }
