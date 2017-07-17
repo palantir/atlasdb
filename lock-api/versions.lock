@@ -45,10 +45,7 @@
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
+            "locked": "0.1.1"
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.2",
@@ -123,10 +120,7 @@
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
+            "locked": "0.1.1"
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.2",

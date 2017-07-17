@@ -44,13 +44,6 @@
         "com.palantir.atlasdb:leader-election-api-protobufs": {
             "project": true
         },
-        "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:leader-election-api-protobufs"
-            ]
-        },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.2",
             "transitive": [
@@ -125,13 +118,6 @@
         },
         "com.palantir.atlasdb:leader-election-api-protobufs": {
             "project": true
-        },
-        "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:leader-election-api-protobufs"
-            ]
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.2",

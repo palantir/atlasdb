@@ -110,7 +110,6 @@
         "com.palantir.safe-logging:safe-logging": {
             "locked": "0.1.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:lock-api"
             ]
         },
@@ -259,7 +258,6 @@
         "com.palantir.safe-logging:safe-logging": {
             "locked": "0.1.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:lock-api"
             ]
         },

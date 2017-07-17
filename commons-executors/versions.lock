@@ -2,17 +2,11 @@
     "compileClasspath": {
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3"
-        },
-        "com.palantir.safe-logging:safe-logging": {
-            "project": true
         }
     },
     "runtime": {
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3"
-        },
-        "com.palantir.safe-logging:safe-logging": {
-            "project": true
         }
     }
 }
