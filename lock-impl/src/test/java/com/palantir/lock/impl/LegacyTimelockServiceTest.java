@@ -48,7 +48,6 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
@@ -59,7 +58,7 @@ public class LegacyTimelockServiceTest {
 
     private static final long FRESH_TIMESTAMP = 5L;
 
-    private static final LockTokenV2 LOCK_TOKEN_V2 = randomLockToken();
+    private static final LockToken LOCK_TOKEN_V2 = randomLockToken();
     private static final LockRefreshToken LOCK_REFRESH_TOKEN = toLegacyToken(LOCK_TOKEN_V2);
 
     private static final LockDescriptor LOCK_A = StringLockDescriptor.of("a");
@@ -163,8 +162,8 @@ public class LegacyTimelockServiceTest {
 
     @Test
     public void unlockReturnsSubsetThatWereUnlocked() {
-        LockTokenV2 tokenA = randomLockToken();
-        LockTokenV2 tokenB = randomLockToken();
+        LockToken tokenA = randomLockToken();
+        LockToken tokenB = randomLockToken();
 
         when(lockService.unlock(toLegacyToken(tokenA))).thenReturn(true);
         when(lockService.unlock(toLegacyToken(tokenB))).thenReturn(false);
@@ -173,8 +172,8 @@ public class LegacyTimelockServiceTest {
         assertEquals(expected, timelock.unlock(ImmutableSet.of(tokenA, tokenB)));
     }
 
-    private static LockTokenV2 randomLockToken() {
-        return LockTokenV2.of(UUID.randomUUID());
+    private static LockToken randomLockToken() {
+        return LockToken.of(UUID.randomUUID());
     }
 
     @Test
@@ -206,11 +205,11 @@ public class LegacyTimelockServiceTest {
         return lockMap;
     }
 
-    private static LockRefreshToken toLegacyToken(LockTokenV2 token) {
+    private static LockRefreshToken toLegacyToken(LockToken token) {
         return LockTokenConverter.toLegacyToken(token);
     }
 
-    private static LockTokenV2 toTokenV2(LockRefreshToken token) {
+    private static LockToken toTokenV2(LockRefreshToken token) {
         return LockTokenConverter.toTokenV2(token);
     }
 
