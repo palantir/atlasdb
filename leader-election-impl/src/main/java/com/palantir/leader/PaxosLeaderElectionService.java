@@ -186,18 +186,24 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             Future<Boolean> pingFuture = pingCompletionService.poll(
                     leaderPingResponseWaitMs,
                     TimeUnit.MILLISECONDS);
-            if (pingFuture == null) {
-                eventRecorder.recordLeaderPingReturnedFalse();
-                return false;
-            }
+            return getAndRecordLeaderPingResult(pingFuture);
+        } catch (InterruptedException ex) {
+            return false;
+        }
+    }
 
+    private boolean getAndRecordLeaderPingResult(@Nullable Future<Boolean> pingFuture) throws InterruptedException {
+        if (pingFuture == null) {
+            eventRecorder.recordLeaderPingTimeout();
+            return false;
+        }
+
+        try {
             boolean isLeader = pingFuture.get();
             if (!isLeader) {
                 eventRecorder.recordLeaderPingReturnedFalse();
             }
             return isLeader;
-        } catch (InterruptedException e) {
-            return false;
         } catch (ExecutionException e) {
             eventRecorder.recordLeaderPingFailure(e.getCause());
             return false;

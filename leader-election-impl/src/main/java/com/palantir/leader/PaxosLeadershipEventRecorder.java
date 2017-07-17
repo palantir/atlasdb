@@ -57,6 +57,11 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     }
 
     @Override
+    public void recordLeaderPingReturnedFalse() {
+        events.leaderPingReturnedFalse();
+    }
+
+    @Override
     public void recordProposalFailure(PaxosRoundFailureException e) {
         events.proposalFailure(e);
     }

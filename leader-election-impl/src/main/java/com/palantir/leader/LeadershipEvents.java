@@ -50,6 +50,7 @@ class LeadershipEvents {
         proposalFailure = metrics.meter("leadership.proposed.failure");
         leaderPingFailure = metrics.meter("leadership.ping-leader.failure");
         leaderPingTimeout = metrics.meter("leadership.ping-leader.timeout");
+        leaderPingReturnedFalse = metrics.meter("leadership.ping-leader.returned-false");
     }
 
     public void proposedLeadershipFor(long round) {
@@ -85,7 +86,7 @@ class LeadershipEvents {
 
     public void leaderPingReturnedFalse() {
         leaderLog.info("We contacted the suspected leader, but it reported that it was no longer leading");
-        leaderPingTimeout.mark();
+        leaderPingReturnedFalse.mark();
     }
 
     public void proposalFailure(PaxosRoundFailureException e) {
