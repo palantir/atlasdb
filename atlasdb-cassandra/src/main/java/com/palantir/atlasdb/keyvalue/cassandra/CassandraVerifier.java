@@ -130,7 +130,7 @@ public final class CassandraVerifier {
     }
 
     static void validatePartitioner(String partitioner, CassandraKeyValueServiceConfig config) {
-        if (!(config.ignorePartitionerChecks())) {
+        if (!config.ignorePartitionerChecks()) {
             Verify.verify(
                     CassandraConstants.ALLOWED_PARTITIONERS.contains(partitioner),
                     "Invalid partitioner. Allowed: %s, but partitioner is: %s. "

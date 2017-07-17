@@ -51,7 +51,8 @@ develop
 
     *    - |userbreak|
          - Remove Cassandra config option 'safetyDisabled';
-           users should instead move to various 'ignoreMoreSpecificCheck' config options; for instance, 'ignoreBadNodeTopologyChecks'
+           users should instead move to a more specific config for their situation, which are:
+	   ignoreNodeTopologyChecks, ignoreInconsistentRingChecks, ignoreDatacenterConfigurationChecks, ignorePartitionerChecks
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2024>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
