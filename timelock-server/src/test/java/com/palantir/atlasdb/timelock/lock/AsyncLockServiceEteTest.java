@@ -62,6 +62,7 @@ public class AsyncLockServiceEteTest {
             new ImmutableTimestampTracker(),
             new LockAcquirer(Executors.newSingleThreadScheduledExecutor()),
             new HeldLocksCollection(),
+            new AwaitedLocksCollection(),
             executor);
 
     @Test

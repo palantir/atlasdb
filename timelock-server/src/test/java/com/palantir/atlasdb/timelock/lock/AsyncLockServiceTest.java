@@ -57,10 +57,11 @@ public class AsyncLockServiceTest {
     private final LockAcquirer acquirer = mock(LockAcquirer.class);
     private final LockCollection locks = mock(LockCollection.class);
     private final HeldLocksCollection heldLocks = spy(new HeldLocksCollection());
+    private final AwaitedLocksCollection awaitedLocks = spy(new AwaitedLocksCollection());
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
     private final AsyncLockService lockService = new AsyncLockService(
-            locks, immutableTimestampTracker, acquirer, heldLocks, reaperExecutor);
+            locks, immutableTimestampTracker, acquirer, heldLocks, awaitedLocks, reaperExecutor);
 
     @Before
     public void before() {
@@ -100,6 +101,16 @@ public class AsyncLockServiceTest {
         lockService.lock(REQUEST_ID, descriptors, DEADLINE);
 
         verify(acquirer, times(1)).acquireLocks(any(), any(), any());
+        verifyNoMoreInteractions(acquirer);
+    }
+
+    @Test
+    public void doesNotWaitForDuplicateRequests() {
+        Set<LockDescriptor> descriptors = descriptors(LOCK_A);
+        lockService.waitForLocks(REQUEST_ID, descriptors, DEADLINE);
+        lockService.waitForLocks(REQUEST_ID, descriptors, DEADLINE);
+
+        verify(acquirer, times(1)).waitForLocks(any(), any(), any());
         verifyNoMoreInteractions(acquirer);
     }
 
