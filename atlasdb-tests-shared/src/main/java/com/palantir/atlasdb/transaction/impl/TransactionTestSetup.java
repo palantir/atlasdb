@@ -18,9 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Map;
 
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -48,51 +46,35 @@ public abstract class TransactionTestSetup {
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName(
             "ns.atlasdb_transactions_test_table");
 
-    protected static LockClient lockClient = null;
-    protected static LockServiceImpl lockService = null;
+    protected LockClient lockClient;
+    protected LockServiceImpl lockService;
 
-    protected static KeyValueService keyValueService;
+    protected KeyValueService keyValueService;
     protected TimestampService timestampService;
     protected TransactionService transactionService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
     protected TransactionManager txMgr;
 
-    @BeforeClass
-    public static void setupLockClient() {
-        if (lockClient == null) {
-            lockClient = LockClient.of("fake lock client");
-        }
-    }
-
-    @BeforeClass
-    public static void setupLockService() {
-        if (lockService == null) {
-            lockService = LockServiceImpl.create(new LockServerOptions() {
-                protected static final long serialVersionUID = 1L;
-
-                @Override
-                public boolean isStandaloneServer() {
-                    return false;
-                }
-
-            });
-        }
-    }
-
     @Before
     public void setUp() throws Exception {
-        if (keyValueService == null) {
-            keyValueService = getKeyValueService();
+        lockService = LockServiceImpl.create(new LockServerOptions() {
+            protected static final long serialVersionUID = 1L;
 
-            keyValueService.createTables(ImmutableMap.of(
-                    TEST_TABLE,
-                    AtlasDbConstants.GENERIC_TABLE_METADATA,
-                    TransactionConstants.TRANSACTION_TABLE,
-                    TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
-            keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
-        }
+            @Override
+            public boolean isStandaloneServer() {
+                return false;
+            }
+        });
+        lockClient = LockClient.of("test_client");
 
+        keyValueService = getKeyValueService();
+        keyValueService.createTables(ImmutableMap.of(
+                TEST_TABLE,
+                AtlasDbConstants.GENERIC_TABLE_METADATA,
+                TransactionConstants.TRANSACTION_TABLE,
+                TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
+        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
         timestampService = new InMemoryTimestampService();
 
         transactionService = TransactionServices.createTransactionService(keyValueService);
@@ -103,23 +85,8 @@ public abstract class TransactionTestSetup {
 
     @After
     public void tearDown() {
-        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
-    }
-
-    @AfterClass
-    public static void tearDownKvs() {
-        if (keyValueService != null) {
-            keyValueService.close();
-            keyValueService = null;
-        }
-    }
-
-    @AfterClass
-    public static void tearDownClass() {
-        if (lockService != null) {
-            lockService.close();
-            lockService = null;
-        }
+        lockService.close();
+        keyValueService.close();
     }
 
     protected TransactionManager getManager() {

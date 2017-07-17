@@ -16,21 +16,18 @@
 package com.palantir.atlasdb.transaction.impl;
 
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import org.junit.After;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
@@ -40,17 +37,6 @@ import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.timestamp.TimestampService;
 
 public class TransactionManagerTest extends TransactionTestSetup {
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
-
-    @Override
-    @After
-    public void tearDown() {
-        // these tests close the txMgr, so we need to also close the keyValueService
-        // and null it out so that it gets recreated for the next test
-        keyValueService.close();
-        keyValueService = null;
-    }
 
     @Test
     public void shouldSuccessfullyCloseTransactionManagerMultipleTimes() throws Exception {
@@ -61,46 +47,36 @@ public class TransactionManagerTest extends TransactionTestSetup {
     @Test
     public void shouldNotRunTaskWithRetryWithClosedTransactionManager() throws Exception {
         txMgr.close();
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("Operations cannot be performed on closed TransactionManager");
 
-        txMgr.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction txn) throws RuntimeException {
-                put(txn, "row1", "col1", "v1");
-                return null;
-            }
-        });
+        assertThatThrownBy(() -> txMgr.runTaskWithRetry((TransactionTask<Void, RuntimeException>) txn -> {
+            put(txn, "row1", "col1", "v1");
+            return null;
+        }))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Operations cannot be performed on closed TransactionManager.");
     }
 
     @Test
     public void shouldNotRunTaskThrowOnConflictWithClosedTransactionManager() throws Exception {
         txMgr.close();
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("Operations cannot be performed on closed TransactionManager");
-
-        txMgr.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction txn) throws RuntimeException {
-                put(txn, "row1", "col1", "v1");
-                return null;
-            }
-        });
+        assertThatThrownBy(() -> txMgr.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) txn -> {
+            put(txn, "row1", "col1", "v1");
+            return null;
+        }))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Operations cannot be performed on closed TransactionManager.");
     }
 
     @Test
     public void shouldNotRunTaskReadOnlyWithClosedTransactionManager() throws Exception {
         txMgr.close();
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("Operations cannot be performed on closed TransactionManager");
 
-        txMgr.runTaskReadOnly(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction txn) throws RuntimeException {
-                put(txn, "row1", "col1", "v1");
-                return null;
-            }
-        });
+        assertThatThrownBy(() -> txMgr.runTaskReadOnly((TransactionTask<Void, RuntimeException>) txn -> {
+            put(txn, "row1", "col1", "v1");
+            return null;
+        }))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Operations cannot be performed on closed TransactionManager.");
     }
 
     @Test
