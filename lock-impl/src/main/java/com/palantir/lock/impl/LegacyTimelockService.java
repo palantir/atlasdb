@@ -16,14 +16,11 @@
 
 package com.palantir.lock.impl;
 
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -90,7 +87,7 @@ public class LegacyTimelockService implements TimelockService {
         try {
             return LockImmutableTimestampResponse.of(
                     getImmutableTimestampInternal(immutableLockTs),
-                    new LockRefreshTokenV2Adapter(lock));
+                    LockTokenConverter.toTokenV2(lock));
         } catch (Throwable e) {
             if (lock != null) {
                 lockService.unlock(lock);
@@ -113,7 +110,7 @@ public class LegacyTimelockService implements TimelockService {
         if (legacyToken == null) {
             return LockResponseV2.timedOut();
         } else {
-            return LockResponseV2.successful(new LockRefreshTokenV2Adapter(legacyToken));
+            return LockResponseV2.successful(LockTokenConverter.toTokenV2(legacyToken));
         }
     }
 
@@ -141,10 +138,10 @@ public class LegacyTimelockService implements TimelockService {
     @Override
     public Set<LockTokenV2> refreshLockLeases(Set<LockTokenV2> tokens) {
         Set<LockRefreshToken> refreshTokens = tokens.stream()
-                .map(this::getRefreshToken)
+                .map(LockTokenConverter::toLegacyToken)
                 .collect(Collectors.toSet());
         return lockService.refreshLockRefreshTokens(refreshTokens).stream()
-                .map(LockRefreshTokenV2Adapter::new)
+                .map(LockTokenConverter::toTokenV2)
                 .collect(Collectors.toSet());
     }
 
@@ -152,19 +149,12 @@ public class LegacyTimelockService implements TimelockService {
     public Set<LockTokenV2> unlock(Set<LockTokenV2> tokens) {
         Set<LockTokenV2> unlocked = Sets.newHashSet();
         for (LockTokenV2 tokenV2 : tokens) {
-            if (lockService.unlock(getRefreshToken(tokenV2))) {
+            LockRefreshToken legacyToken = LockTokenConverter.toLegacyToken(tokenV2);
+            if (lockService.unlock(legacyToken)) {
                 unlocked.add(tokenV2);
             }
         }
         return unlocked;
-    }
-
-    private LockRefreshToken getRefreshToken(LockTokenV2 tokenV2) {
-        Preconditions.checkArgument(
-                (tokenV2 instanceof LockRefreshTokenV2Adapter),
-                "The LockTokenV2 instance passed to LegacyTimelockService was of an unexpected type. "
-                        + "LegacyTimelockService only supports operations on the tokens it returns.");
-        return ((LockRefreshTokenV2Adapter) tokenV2).getToken();
     }
 
     @Override
@@ -193,47 +183,4 @@ public class LegacyTimelockService implements TimelockService {
         return locks;
     }
 
-    public static class LockRefreshTokenV2Adapter implements LockTokenV2 {
-
-        private final LockRefreshToken token;
-        private final UUID requestId;
-
-        public LockRefreshTokenV2Adapter(LockRefreshToken token) {
-            this.token = token;
-            this.requestId = getRequestId(token);
-        }
-
-        @Override
-        public UUID getRequestId() {
-            return requestId;
-        }
-
-        public LockRefreshToken getToken() {
-            return token;
-        }
-
-        private static UUID getRequestId(LockRefreshToken token) {
-            long msb = token.getTokenId().shiftRight(64).longValue();
-            long lsb = token.getTokenId().longValue();
-            return new UUID(msb, lsb);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            LockRefreshTokenV2Adapter that = (LockRefreshTokenV2Adapter) o;
-            return Objects.equals(token, that.token) &&
-                    Objects.equals(requestId, that.requestId);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(token, requestId);
-        }
-    }
 }
