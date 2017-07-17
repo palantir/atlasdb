@@ -57,8 +57,8 @@ public class ProfilingKeyValueServiceTest {
     private KeyValueService delegate;
     private KeyValueService kvs;
 
-    private static final Answer<Void> waitASecond = any -> {
-        Thread.sleep(1001);
+    private static final Answer<Void> waitASecondAndAHalf = any -> {
+        Thread.sleep(1500);
         return (Void) null;
     };
 
@@ -105,7 +105,7 @@ public class ProfilingKeyValueServiceTest {
     public void dropTableSlowLogPresentOnInfoLevel() {
         Appender mockAppender = setLogLevelAndGetAppender(Level.INFO);
 
-        doAnswer(waitASecond).when(delegate).dropTable(any());
+        doAnswer(waitASecondAndAHalf).when(delegate).dropTable(any());
         kvs.dropTable(TABLE_REF);
 
         verify(mockAppender).doAppend(slowLogMatcher.get());
@@ -124,7 +124,7 @@ public class ProfilingKeyValueServiceTest {
     public void dropTableTraceLogPresentOnTraceLevelEvenIfQueryIsSlow() {
         Appender mockAppender = setLogLevelAndGetAppender(Level.TRACE);
 
-        doAnswer(waitASecond).when(delegate).dropTable(any());
+        doAnswer(waitASecondAndAHalf).when(delegate).dropTable(any());
         kvs.dropTable(TABLE_REF);
 
         verify(mockAppender).doAppend(traceLogMatcher.get());
@@ -144,7 +144,7 @@ public class ProfilingKeyValueServiceTest {
     public void getAllTableNamesSlowLogPresentOnInfoLevel() {
         Appender mockAppender = setLogLevelAndGetAppender(Level.INFO);
 
-        doAnswer(waitASecond).when(delegate).getAllTableNames();
+        doAnswer(waitASecondAndAHalf).when(delegate).getAllTableNames();
         kvs.getAllTableNames();
 
         verify(mockAppender).doAppend(slowLogMatcher.get());
@@ -163,7 +163,7 @@ public class ProfilingKeyValueServiceTest {
     public void getAllTableNamesTraceLogPresentOnTraceLevelEvenIfQueryIsSlow() {
         Appender mockAppender = setLogLevelAndGetAppender(Level.TRACE);
 
-        doAnswer(waitASecond).when(delegate).getAllTableNames();
+        doAnswer(waitASecondAndAHalf).when(delegate).getAllTableNames();
         kvs.getAllTableNames();
 
         verify(mockAppender).doAppend(traceLogMatcher.get());
@@ -181,8 +181,8 @@ public class ProfilingKeyValueServiceTest {
 
     private static Map<Cell, Long> timestampByCell = ImmutableMap.of();
     private static Map<Cell, Value> result = ImmutableMap.of();
-    private static Answer<Map<Cell, Value>> waitASecondAndReturn = any -> {
-        Thread.sleep(1001);
+    private static Answer<Map<Cell, Value>> waitASecondAndAHalfAndReturn = any -> {
+        Thread.sleep(1500);
         return result;
     };
 
@@ -190,7 +190,7 @@ public class ProfilingKeyValueServiceTest {
     public void getSlowLogPresentOnInfoLevel() {
         Appender mockAppender = setLogLevelAndGetAppender(Level.INFO);
 
-        doAnswer(waitASecondAndReturn).when(delegate).get(TABLE_REF, timestampByCell);
+        doAnswer(waitASecondAndAHalfAndReturn).when(delegate).get(TABLE_REF, timestampByCell);
         kvs.get(TABLE_REF, timestampByCell);
 
         verify(mockAppender, times(2)).doAppend(slowLogMatcher.get());
@@ -209,7 +209,7 @@ public class ProfilingKeyValueServiceTest {
     public void getTraceLogPresentOnTraceLevelEvenIfQueryIsSlow() {
         Appender mockAppender = setLogLevelAndGetAppender(Level.TRACE);
 
-        doAnswer(waitASecondAndReturn).when(delegate).get(TABLE_REF, timestampByCell);
+        doAnswer(waitASecondAndAHalfAndReturn).when(delegate).get(TABLE_REF, timestampByCell);
         kvs.get(TABLE_REF, timestampByCell);
 
         verify(mockAppender, times(2)).doAppend(traceLogMatcher.get());

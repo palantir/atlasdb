@@ -124,10 +124,10 @@ class Table {
      */
     List getRows(rows, cols=null, TransactionToken token = service.getTransactionToken()) {
         def query = baseQuery()
-        rows = listify(rows).collect { listify(it) }
+        rows = listify(rows).collect { listifyUnlessMap(it) }
         query['rows'] = rows
         if (cols != null) {
-            cols = listify(cols).collect { listify(it) }
+            cols = listify(cols).collect { listifyUnlessMap(it) }
             query['cols'] = cols
         }
         return service.getRows(query, token)['data'] as List
@@ -310,7 +310,7 @@ class Table {
         list.collect { elem ->
             def map = [:]
             for (String key in keys) {
-                map.put(key, listify(elem.getAt(key)))
+                map.put(key, listifyUnlessMap(elem.getAt(key)))
             }
             return map
         }
@@ -322,6 +322,14 @@ class Table {
 
     private List listify(obj) {
         (obj instanceof List ? obj : [obj]) as List
+    }
+
+    private Object listifyUnlessMap(obj) {
+        if (obj instanceof Map || obj instanceof List) {
+            return obj
+        } else {
+            return [obj]
+        }
     }
 
     private Map<String, Set> columnFields() {

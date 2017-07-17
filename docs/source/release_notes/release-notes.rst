@@ -45,55 +45,88 @@ develop
          - Change
 
     *    - |fixed|
-         - AtlasDB now generates Maven POM files for shadowed jars correctly.
-           Previously, we would regenerate the XML for shadow dependencies by creating a node with corresponding groupId, artifactId, scope and version tags *only*, which is incorrect because it loses information about, for example, specific or transitive exclusions.
-           We now respect these additional tags.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2092>`__)
-
-    *    - |improved|
-         - Improved performance with a single leader block.
-           If a single leader is configured, it will no longer go via HTTPS/Jetty to request
-           timestamps and locks from itself. Aside from a minor perf improvement, this should also
-           fix a potential livelock/deadlock when the leader is under heavy load, where previously
-           the Jetty threadpool could become full of requests awaiting timestamps, preventing any
-           timestamp requests from being serviced, and requiring a server reboot to resolve.
-
-           We recommend HA clusters under heavy load switch to using a standalone timestamp
-           service, as they may also be vulnerable to this failure mode.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2091>`__)
+         - Fixed an issue that could cause AtlasConsole to print unnecessary amounts of input when commands were run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2130>`__)
 
     *    - |fixed|
-         - Fixed a bug that caused hidden tables to be wiped when they were read from console.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2106>`__)
+         - ``commons-executors`` now excludes the ``safe-logging`` Java8 jar to support Java 6 clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2160>`__)
+
+    *    - |new|
+         - TransactionManagers exposes a method in which it is possible to specify the user agent to be used.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2162>`__)
 
     *    - |improved|
          - The lock service state logger now has a reduced memory footprint.
            It also now logs the locking mode for each lock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1891>`__)
 
-    *    - |new|
-         - Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the :ref:`sweep docs<sweep>`, in particular, the :ref:`background sweep docs<background-sweep>`.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
-
-    *    - |changed|
-         - Default configs regarding sweep runs were lowered, to ensure that sweep works in any situation. For more information, please check the :ref:`sweep docs<sweep>`.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
-0.46.0
+0.48.0
 ======
-
-29 June 2017
 
 .. list-table::
     :widths: 5 40
     :header-rows: 1
 
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - If sweep configs are specified in the AtlasDbConfig block, they will be ignored, but AtlasDB will no longer fail to start.
+           This effectively fixes the Sweep-related user break change of version ``0.47.0``.
+           Note that users of products that upgraded from ``0.45.0`` to ``0.48.0`` will need to move configuration overrides from the regular ``atlasdb`` config to the ``atlasdb-runtime`` config for them to continue taking effect.
+           Please reference the Sweep :ref:`configuration docs <sweep_tunable_parameters>` for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2134>`__)
+
+    *    - |new|
+         - AtlasDB now supports batching of timestamp requests on the client-side; see :ref:`Timestamp Client Options <timestamp-client-config>` for details.
+           On internal benchmarks, the AtlasDB team has obtained an almost 2x improvement in timestamp throughput and latency under modest load (32 threads), and an over 10x improvement under heavy load (8,192 threads).
+           There may be a very small increase in latency under extremely light load (e.g. 2-4 threads).
+           Note that this is not enabled by default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2083>`__)
+
+    *    - |devbreak|
+         - The ``RateLimitingTimestampService`` in ``timestamp-impl`` has been renamed to ``RequestBatchingTimestampService``, to better reflect what the service does and avoid confusion with the ``ThreadPooledLockService`` (which performs resource-limiting).
+           Products that do not use this class directly are not affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2083>`__)
+
+    *    - |fixed| |devbreak|
+         - ``TransactionManager.close()`` now closes the lock service (provided it is closeable), and also shuts down the Background Sweeper.
+           Previously, the lock service's background threads as well as background sweeper would continue to run (potentially indefinitely) even after a transaction manager was closed.
+           Note that services that relied on the lock service being available even after a transaction manager was shut down may no longer behave properly, and should ensure that the transaction manager is not shut down while the lock service is still needed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2102>`__)
+
+    *    - |fixed|
+         - ``commons-executors`` now uses Java 6 when compiling from source and generates classes targeting Java 6.
+           Java 6 support was removed in AtlasDB ``0.41.0`` and blocks certain internal products from upgrading to subsequent versions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2122>`__)
+
+    *    - |fixed|
+         - ``LockServiceImpl.close()`` is now idempotent.
+           Previously, calling the referred method more than once could fail an assertion and throw an exception.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2144>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.47.0
+======
+
+11 July 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
 
     *    - Type
          - Change
+
+    *    - |new| |improved|
+         - Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the :ref:`sweep docs<sweep>`, in particular, the :ref:`background sweep docs<background-sweep>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
 
     *    - |userbreak| |devbreak| |improved|
          - Added support for live-reloading sweep configurations.
@@ -116,8 +149,12 @@ develop
             | :strike:`sweepDeleteBatchHint`    | **deleteBatchHint**       |
             +-----------------------------------+---------------------------+
 
-           Specifying any of the above install options will result in **AtlasDB failing to start**.
+           Specifying any of the above install options will result in **AtlasDB failing to start**. Check the full configuration docs `here <http://palantir.github.io/atlasdb/html/configuration/index.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1976>`__)
+
+    *    - |fixed|
+         - Fixed a bug that caused AtlasDB internal tables (e.g. the Transactions table or the Punch table) to be **wiped when read from the AtlasDB Console**.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2106>`__)
 
     *    - |userbreak|
          - The Atomix algorithm implementation for the TimeLock server and the corresponding configurations have been removed.
@@ -134,23 +171,36 @@ develop
          - Sweep now dynamically adjusts the number of (cell, ts) pairs across runs:
 
            - On a failure run, sweep halves the number of pairs to read and to delete on subsequent runs.
-           - On a success run, sweep slowly increases the number of pairs to read and to delete on subsequent runs, up to a configurable maximum.
+           - On a success run, sweep slowly increases the number of (cell, ts) pairs to read and to delete on subsequent runs, up to a configurable maximum.
 
            This should fix the issue where we were unable to sweep cells with a high number of mutations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2060>`__)
 
+    *    - |improved|
+         - Default configs which tune sweep runs were lowered, to ensure that sweep works in any situation. For more information, please check the :ref:`sweep docs<sweep>`.
+           Please delete any config overrides regarding sweep and use the default values, to ensure a sane run of sweep.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
+
     *    - |new|
-         - AtlasDB now instruments embedded timestamp and lock services, even if no leader block is present in the config, to expose aggregate response time and service call metrics.
+         - AtlasDB now instruments embedded timestamp and lock services when no leader block is present in the config, to expose aggregate response time and service call metrics.
            Note that this may cause a minor performance hit.
-           If that is a concern, the instrumentation can be turned off by setting the tritium system properties ``instrument.com.palantir.timestamp.TimestampService`` and ``instrument.com.palantir.lock.RemoteLockService`` to false.
+           If that is a concern, the instrumentation can be turned off by setting the tritium system properties ``instrument.com.palantir.timestamp.TimestampService`` and
+           ``instrument.com.palantir.lock.RemoteLockService`` to false and restarting the service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2073>`__)
 
     *    - |new|
          - AtlasDB now adds endpoints for sweeping a specific table, with options for startRow and batch config parameters.
-           This should be used in place of the deprecated sweep CLIs.
+           This should be used in place of the deprecated sweep CLIs. Check the endpoints documentation `here <http://palantir.github.io/atlasdb/html/cluster_management/sweep/sweep-endpoints.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2040>`__)
 
     *    - |improved|
+         - Improved performance of timestamp and lock requests on clusters with a leader block and a single node.
+           If a single leader is configured, timestamp and lock requests will no longer use HTTPS/Jetty.
+           In addition to the minor perf improvement, this fixes an issue causing livelock/deadlock when the leader is under heavy load.
+           We recommend HA clusters under heavy load switch to using a standalone timestamp service, as they may also be vulnerable to this failure mode.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2091>`__)
+
+    *    - |improved| |devbreak|
          - The dropwizard independent implementation of the TimeLock server has been separated into a new project, ``timelock-impl``.
            This should not affect users directly, unless they depended on classes from within the TimeLock server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2081>`__)
@@ -161,6 +211,37 @@ develop
            the batch size for getRows is now controlled by a config parameter ``rowBatchSize``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2093>`__)
 
+    *    - |fixed|
+         - AtlasDB clients now retry lock requests if the server loses leadership while the request is blocking.
+           In the past, this scenario would cause the server to return 500 responses that were not retried by the client.
+           Now the server returns 503 responses, which triggers the correct retry logic.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2098>`__)
+
+    *    - |fixed|
+         - AtlasDB now generates Maven POM files for shadowed jars correctly.
+           Previously, we would regenerate the XML for shadow dependencies by creating a node with corresponding groupId, artifactId, scope and version tags *only*, which is incorrect because it loses information about, for example, specific or transitive exclusions.
+           We now respect these additional tags.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2092>`__)
+
+    *    - |fixed|
+         - Fixed a bug where a timelock server instance could get stuck in an infinite loop if cutoff from the other nodes and failed to achieve a quorum.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1983>`__)
+
+    *    - |improved| |userbreak|
+         - Improved the way rows and named columns are outputted in AtlasConsole to be more intuitive and easier to use. Note that this may break existing AtlasConsole scripts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2067>`__)
+
+    *    - |fixed|
+         - Added backwards compatibility for the changes introduced in `#2067 <https://github.com/palantir/atlasdb/pull/2067>`__, in particular, for passing row values into AtlasConsole functions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2080>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.46.0
+======
+
+This version was skipped due to issues on release. No artifacts with this version were ever published.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -255,10 +336,6 @@ develop
          - Reduced the logging level of some messages relating to check-and-set operations in ``CassandraTimestampBoundStore`` to reduce noise in the logs.
            These were designed to help debugging the ``MultipleRunningTimestampServicesException`` issues but we no longer require them to log all the time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2048>`__)
-
-    *    - |improved|
-         - Improved the way rows and named columns are outputted in AtlasConsole to be more intuitive and easier to use. Note that this may break existing AtlasConsole scripts.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2067>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

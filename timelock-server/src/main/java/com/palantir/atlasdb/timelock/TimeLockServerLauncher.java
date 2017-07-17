@@ -17,9 +17,6 @@ package com.palantir.atlasdb.timelock;
 
 import java.util.Map;
 
-import org.eclipse.jetty.util.component.AbstractLifeCycle;
-import org.eclipse.jetty.util.component.LifeCycle;
-
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
@@ -49,20 +46,8 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
         TimeLockServer serverImpl = configuration.algorithm().createServerImpl(environment);
-        try {
-            serverImpl.onStartup(configuration);
-            registerResources(configuration, environment, serverImpl);
-        } catch (Exception e) {
-            serverImpl.onStartupFailure();
-            throw e;
-        }
-
-        environment.lifecycle().addLifeCycleListener(new AbstractLifeCycle.AbstractLifeCycleListener() {
-            @Override
-            public void lifeCycleStopped(LifeCycle event) {
-                serverImpl.onStop();
-            }
-        });
+        serverImpl.onStartup(configuration);
+        registerResources(configuration, environment, serverImpl);
     }
 
     private static void registerResources(

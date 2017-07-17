@@ -18,9 +18,6 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3"
         },
-        "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1"
-        },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
             "requested": "2.0.1"
@@ -44,9 +41,6 @@
         },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3"
-        },
-        "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1"
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
