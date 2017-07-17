@@ -208,8 +208,8 @@ public final class TransactionManagers {
             boolean allowHiddenTableAccess,
             String userAgent) {
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
-        java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier = () -> optionalRuntimeConfigSupplier.get().orElse(
-                defaultRuntime);
+        java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
+                () -> optionalRuntimeConfigSupplier.get().orElse(defaultRuntime);
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
