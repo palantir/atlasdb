@@ -198,7 +198,7 @@ public final class TransactionManagers {
                 UserAgents.fromClass(callingClass));
     }
 
-    private static SerializableTransactionManager create(
+    public static SerializableTransactionManager create(
             AtlasDbConfig config,
             java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
             Set<Schema> schemas,
