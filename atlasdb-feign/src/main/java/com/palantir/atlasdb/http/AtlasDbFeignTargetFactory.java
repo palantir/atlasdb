@@ -36,9 +36,7 @@ import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 
 public final class AtlasDbFeignTargetFactory {
-    private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options(
-            10 * 1000,
-            120 * 1000);
+    private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options();
 
     private static final ObjectMapper mapper = new ObjectMapper()
             .registerModule(new Jdk8Module());
