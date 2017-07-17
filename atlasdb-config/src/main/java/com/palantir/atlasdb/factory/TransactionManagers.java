@@ -208,7 +208,7 @@ public final class TransactionManagers {
             boolean allowHiddenTableAccess,
             String userAgent) {
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
-        java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig = () -> optionalRuntimeConfigSupplier.get().orElse(
+        java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier = () -> optionalRuntimeConfigSupplier.get().orElse(
                 defaultRuntime);
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
@@ -275,12 +275,12 @@ public final class TransactionManagers {
                 sweepStrategyManager,
                 cleaner,
                 allowHiddenTableAccess,
-                () -> runtimeConfig.get().transaction().getLockAcquireTimeoutMillis());
+                () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis());
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
                 config.getSweepPersistentLockWaitMillis());
-        initializeSweepEndpointAndBackgroundProcess(runtimeConfig,
+        initializeSweepEndpointAndBackgroundProcess(runtimeConfigSupplier,
                 env,
                 kvs,
                 transactionService,
