@@ -277,7 +277,7 @@ Releasing the lock of a running process would invalidate the consistency guarant
 <ol class="arabic simple" start="2">
 <li>Curl the <code class="docutils literal"><span class="pre">release</span></code> endpoint. Note that the required formatting is slightly different (keys and values must be surrounded with <code class="docutils literal"><span class="pre">&quot;</span></code>).</li>
 </ol>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ curl -X POST --header <span class="s1">&#39;content-type: application/json&#39;</span> <span class="s1">&#39;&lt;product-base-url&gt;/persistent-lock/release&#39;</span> -d <span class="s1">&#39;&quot;427eb02a-f017-40cd-8d08-0a163315029a&quot;&#39;</span>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ curl -X POST --header <span class="s1">&#39;content-type: application/json&#39;</span> <span class="s1">&#39;&lt;product-base-url&gt;/persistent-lock/release-backup-lock&#39;</span> -d <span class="s1">&#39;&quot;427eb02a-f017-40cd-8d08-0a163315029a&quot;&#39;</span>
 </pre></div>
 </div>
 </div>
