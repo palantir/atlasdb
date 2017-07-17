@@ -47,6 +47,16 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     }
 
     @Override
+    public void recordLeaderPingFailure(Throwable error) {
+        events.leaderPingFailure(error);
+    }
+
+    @Override
+    public void recordLeaderPingTimeout() {
+        events.leaderPingTimeout();
+    }
+
+    @Override
     public void recordProposalFailure(PaxosRoundFailureException e) {
         events.proposalFailure(e);
     }

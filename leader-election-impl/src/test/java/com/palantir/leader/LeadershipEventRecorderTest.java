@@ -158,6 +158,15 @@ public class LeadershipEventRecorderTest {
     }
 
     @Test
+    public void recordsUnableToPingLeader() {
+        Throwable error = new RuntimeException("foo");
+        recorder.recordUnableToPingLeader(error);
+
+        verify(events).leaderPingFailure(error);
+    }
+
+
+    @Test
     public void ignoresNullRounds() {
         recorder.recordRound(null);
         recorder.recordNotLeading(null);
