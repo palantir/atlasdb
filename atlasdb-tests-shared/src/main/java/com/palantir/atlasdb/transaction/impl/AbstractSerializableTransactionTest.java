@@ -76,8 +76,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
                 SweepStrategyManagers.createDefault(keyValueService),
-                NoOpCleaner.INSTANCE,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
+                NoOpCleaner.INSTANCE);
     }
 
     @Override

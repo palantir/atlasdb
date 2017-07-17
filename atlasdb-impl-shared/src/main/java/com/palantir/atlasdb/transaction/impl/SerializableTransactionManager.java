@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Optional;
 
 import com.google.common.base.Supplier;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -40,8 +41,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner,
-            Supplier<Long> lockAcquireTimeoutMs) {
+            Cleaner cleaner) {
         this(keyValueService,
                 timestampService,
                 lockClient,
@@ -51,8 +51,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                false,
-                lockAcquireTimeoutMs);
+                false);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
@@ -64,8 +63,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            boolean allowHiddenTableAccess,
-            Supplier<Long> lockAcquireTimeoutMs) {
+            boolean allowHiddenTableAccess) {
         this(
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
@@ -75,8 +73,29 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
+                allowHiddenTableAccess);
+    }
+
+    public SerializableTransactionManager(KeyValueService keyValueService,
+            TimelockService timelockService,
+            RemoteLockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            boolean allowHiddenTableAccess) {
+        this(
+                keyValueService,
+                timelockService,
+                lockService,
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
                 allowHiddenTableAccess,
-                lockAcquireTimeoutMs);
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,

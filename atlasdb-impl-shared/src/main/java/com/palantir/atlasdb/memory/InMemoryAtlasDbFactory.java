@@ -143,8 +143,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
-                cleaner,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
+                cleaner);
         cleaner.start(ret);
         return ret;
     }
