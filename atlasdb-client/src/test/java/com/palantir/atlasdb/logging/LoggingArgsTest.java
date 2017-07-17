@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -59,6 +60,11 @@ public class LoggingArgsTest {
         });
 
         LoggingArgs.setLogArbitrator(arbitrator);
+    }
+
+    @AfterClass
+    public static void tearDownClass() {
+        LoggingArgs.setLogArbitrator(KeyValueServiceLogArbitrator.ALL_UNSAFE);
     }
 
     @Test

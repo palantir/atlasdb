@@ -236,7 +236,7 @@ public class SpecificTableSweeper {
             Stopwatch watch = Stopwatch.createStarted();
             kvs.compactInternally(tableRef);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.debug("Finished performing compactInternally.",
+            log.debug("Finished performing compactInternally on {} in {} ms.",
                     LoggingArgs.tableRef("tableRef", tableRef),
                     SafeArg.of("elapsedMillis", elapsedMillis));
             sweepPerfLogger.logInternalCompaction(
