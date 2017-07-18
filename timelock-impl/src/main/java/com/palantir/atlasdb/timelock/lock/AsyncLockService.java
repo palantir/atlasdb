@@ -38,6 +38,7 @@ public class AsyncLockService implements Closeable {
     private final LockAcquirer lockAcquirer;
     private final ScheduledExecutorService reaperExecutor;
     private final HeldLocksCollection heldLocks;
+    private final AwaitedLocksCollection awaitedLocks;
     private final ImmutableTimestampTracker immutableTsTracker;
 
     public static AsyncLockService createDefault(
@@ -48,6 +49,7 @@ public class AsyncLockService implements Closeable {
                 new ImmutableTimestampTracker(),
                 new LockAcquirer(timeoutExecutor),
                 new HeldLocksCollection(),
+                new AwaitedLocksCollection(),
                 reaperExecutor);
     }
 
@@ -56,11 +58,13 @@ public class AsyncLockService implements Closeable {
             ImmutableTimestampTracker immutableTimestampTracker,
             LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
+            AwaitedLocksCollection awaitedLocks,
             ScheduledExecutorService reaperExecutor) {
         this.locks = locks;
         this.immutableTsTracker = immutableTimestampTracker;
         this.lockAcquirer = acquirer;
         this.heldLocks = heldLocks;
+        this.awaitedLocks = awaitedLocks;
         this.reaperExecutor = reaperExecutor;
 
         scheduleExpiredLockReaper();
@@ -89,8 +93,9 @@ public class AsyncLockService implements Closeable {
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
-        OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
-        return lockAcquirer.waitForLocks(requestId, orderedLocks, timeout);
+        return awaitedLocks.getExistingOrAwait(
+                requestId,
+                () -> awaitLocks(requestId, lockDescriptors, timeout));
     }
 
     public Optional<Long> getImmutableTimestamp() {
@@ -101,6 +106,12 @@ public class AsyncLockService implements Closeable {
             TimeLimit timeout) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
         return lockAcquirer.acquireLocks(requestId, orderedLocks, timeout);
+    }
+
+    private AsyncResult<Void> awaitLocks(UUID requestId, Set<LockDescriptor> lockDescriptors,
+            TimeLimit timeout) {
+        OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
+        return lockAcquirer.waitForLocks(requestId, orderedLocks, timeout);
     }
 
     private AsyncResult<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
