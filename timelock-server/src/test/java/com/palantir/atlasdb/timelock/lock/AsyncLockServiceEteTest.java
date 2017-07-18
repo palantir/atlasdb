@@ -62,6 +62,7 @@ public class AsyncLockServiceEteTest {
             new ImmutableTimestampTracker(),
             new LockAcquirer(Executors.newSingleThreadScheduledExecutor()),
             new HeldLocksCollection(),
+            new AwaitedLocksCollection(),
             executor);
 
     @Test
@@ -137,6 +138,21 @@ public class AsyncLockServiceEteTest {
         waitForTimeout(SHORT_TIMEOUT);
 
         assertThat(duplicate.isTimedOut()).isTrue();
+    }
+
+    @Test
+    public void waitForLocksRequestsAreIdempotent() {
+        LockTokenV2 token = lockSynchronously(REQUEST_1, LOCK_A);
+
+        AsyncResult<Void> request = service.waitForLocks(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
+        AsyncResult<Void> duplicate = service.waitForLocks(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
+
+        assertThat(request).isEqualTo(duplicate);
+
+        service.unlock(token);
+
+        assertThat(request.isCompletedSuccessfully()).isTrue();
+        assertThat(duplicate.isCompletedSuccessfully()).isTrue();
     }
 
     @Test
