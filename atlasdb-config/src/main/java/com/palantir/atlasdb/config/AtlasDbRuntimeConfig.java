@@ -38,7 +38,7 @@ public abstract class AtlasDbRuntimeConfig {
     public TimestampClientConfig timestampClient() {
         return ImmutableTimestampClientConfig.builder().build();
     }
-    
+
     @Value.Default
     public TransactionConfig transaction() {
         return ImmutableTransactionConfig.builder().build();

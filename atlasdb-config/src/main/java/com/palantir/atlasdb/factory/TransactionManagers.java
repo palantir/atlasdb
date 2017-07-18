@@ -42,7 +42,6 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.SweepConfig;
@@ -91,7 +90,6 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -226,10 +224,7 @@ public final class TransactionManagers {
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
-                JavaSuppliers.compose(runtimeConfig ->
-                                runtimeConfig.map(AtlasDbRuntimeConfig::timestampClient)
-                                        .orElse(ImmutableTimestampClientConfig.of()),
-                        runtimeConfigSupplier),
+                () -> runtimeConfigSupplier.get().timestampClient(),
                 env,
                 () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService,
@@ -451,8 +446,8 @@ public final class TransactionManagers {
             LockAndTimestampServices lockAndTimestampServices) {
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .time(DynamicDecoratedTimestampService.createWithRateLimiting(
-                        lockAndTimestampServices.time(),
+                .timestamp(DynamicDecoratedTimestampService.createWithRateLimiting(
+                        lockAndTimestampServices.timestamp(),
                         timestampClientConfigSupplier))
                 .build();
     }
