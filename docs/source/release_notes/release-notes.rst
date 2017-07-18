@@ -46,6 +46,10 @@ develop
 
 
     *    - |fixed|
+         - Fixed the broken put() command in AtlasConsole. You should now be able to insert and update data using Console.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2140>`__)
+
+    *    - |fixed|
          - Fixed an issue that could cause AtlasConsole to print unnecessary amounts of input when commands were run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2130>`__)
 
