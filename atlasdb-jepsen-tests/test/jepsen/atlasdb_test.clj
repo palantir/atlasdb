@@ -20,4 +20,3 @@
 
 (deftest timestamp-test-partition
   (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test (nemesis/partition-random-halves)))))))
-
