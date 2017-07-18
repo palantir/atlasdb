@@ -50,7 +50,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2084>`__)
            
     *    - |devbreak| |improved|
-         - The maximum time that the transaction protocol will block while waiting for locks is now configurable, and defaults to 1 minute. This can be configured via the ``transaction.lockAcquireTimeoutMillis`` option in ``AtlasDbRuntimeConfig``.
+         - The maximum time that a transaction will block while waiting for commit locks is now configurable, and defaults to 1 minute. This can be configured via the ``transaction.lockAcquireTimeoutMillis`` option in ``AtlasDbRuntimeConfig``.
            This differs from the previous behavior, which was to block indefinitely. However, the previous behavior can be effectively restored by configuring a large timeout. If creating a ``SerializableTransactionManager`` directly, use the new constructor which accepts a timeout parameter.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2158>`__)
            
