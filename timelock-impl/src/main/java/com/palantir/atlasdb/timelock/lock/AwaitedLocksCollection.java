@@ -42,7 +42,7 @@ public class AwaitedLocksCollection {
     }
 
     private void registerCompletionHandler(UUID requestId, AsyncResult<Void> result) {
-        result.onComplete(() -> {
+        result.onCompleteAsync(() -> {
             requestsById.remove(requestId);
         });
     }
