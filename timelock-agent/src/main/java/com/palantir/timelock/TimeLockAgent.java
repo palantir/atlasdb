@@ -80,7 +80,4 @@ public abstract class TimeLockAgent {
                         this::createInvalidatingTimeLockServices));
         registrar.accept(new TimeLockResource(clientToServices));
     }
-
-    // copied the below from WC internally
-    // will need this functionality in a utility class somewhere
 }
