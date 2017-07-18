@@ -297,7 +297,7 @@ public class TransactionManagersTest {
         when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
 
-        createLockAndTimestampServicesForConfig(config, runtimeConfig).time().getFreshTimestamp();
+        createLockAndTimestampServicesForConfig(config, runtimeConfig).timestamp().getFreshTimestamp();
 
         availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_TIMESTAMPS_PATH)));
     }
@@ -307,7 +307,7 @@ public class TransactionManagersTest {
         when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
 
-        createLockAndTimestampServicesForConfig(config, runtimeConfig).time().getFreshTimestamp();
+        createLockAndTimestampServicesForConfig(config, runtimeConfig).timelock().getFreshTimestamp();
 
         availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_TIMESTAMP_PATH)));
     }
@@ -345,6 +345,7 @@ public class TransactionManagersTest {
         TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
                 TransactionManagers.createLockAndTimestampServices(
                         config,
+                        () -> ImmutableTimestampClientConfig.of(false),
                         environment,
                         LockServiceImpl::create,
                         InMemoryTimestampService::new,
