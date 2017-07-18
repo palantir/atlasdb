@@ -33,6 +33,8 @@ public class LockCreator {
     private final Observable<TimeLockRuntimeConfiguration> runtime;
     private final TimeLockDeprecatedConfiguration deprecated;
 
+    private static Semaphore sharedThreadPool = new Semaphore(-1);
+
     public LockCreator(Observable<TimeLockRuntimeConfiguration> runtime, TimeLockDeprecatedConfiguration deprecated) {
         this.runtime = runtime;
         this.deprecated = deprecated;
@@ -54,7 +56,6 @@ public class LockCreator {
         int localThreadPoolSize = (availableThreads / numClients) / 2;
         int sharedThreadPoolSize = availableThreads - localThreadPoolSize * numClients;
 
-        Semaphore sharedThreadPool = new Semaphore(-1);
         synchronized (this) {
             if (sharedThreadPool.availablePermits() == -1) {
                 sharedThreadPool.release(sharedThreadPoolSize + 1);

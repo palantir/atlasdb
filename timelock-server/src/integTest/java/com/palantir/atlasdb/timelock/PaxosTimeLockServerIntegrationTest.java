@@ -133,6 +133,7 @@ public class PaxosTimeLockServerIntegrationTest {
                     try {
                         // Returns true only if this node is ready to serve timestamps and locks on all clients.
                         CLIENTS.forEach(client -> getTimestampService(client).getFreshTimestamp());
+                        CLIENTS.forEach(client -> getLockService(client).currentTimeMillis());
                         return leader.ping();
                     } catch (Throwable t) {
                         return false;
@@ -207,7 +208,6 @@ public class PaxosTimeLockServerIntegrationTest {
             try {
                 assertNull(future.get());
             } catch (ExecutionException e) {
-                // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
                 Throwable cause = e.getCause();
                 assertThat(cause.getClass().getName()).contains("RetryableException");
                 assertRemoteExceptionWithStatus(cause.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
