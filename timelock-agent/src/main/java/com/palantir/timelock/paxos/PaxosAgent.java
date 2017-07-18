@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -89,6 +90,7 @@ public class PaxosAgent extends TimeLockAgent {
     private void registerPaxosExceptionMappers() {
         registrar.accept(new BlockingTimeoutExceptionMapper());
         registrar.accept(new NotCurrentLeaderExceptionMapper());
+        registrar.accept(new TooManyRequestsExceptionMapper());
     }
 
     @Override
