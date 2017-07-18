@@ -37,6 +37,14 @@ develop
 
 .. replace this with the release date
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.49.0
+======
+
+18 July 2017
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -45,13 +53,14 @@ develop
          - Change
 
     *    - |improved|
-         - Timelock server now proceses lock requests using async Jetty servlets, rather than blocking request threads. This leads to more stability and higher throughput during periods of heavy lock contention.
-           Timelock server config has a new ``useAsyncLockService`` option that can be used to switch between the new and old lock service implementation. This option defaults to ``true``.    
+         - Timelock server now can process lock requests using async Jetty servlets, rather than blocking request threads. This leads to more stability and higher throughput during periods of heavy lock contention.
+           To enable this behavior, use the ``useAsyncLockService`` option to switch between the new and old lock service implementation. This option defaults to ``true``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2084>`__)
            
     *    - |devbreak| |improved|
          - The maximum time that a transaction will block while waiting for commit locks is now configurable, and defaults to 1 minute. This can be configured via the ``transaction.lockAcquireTimeoutMillis`` option in ``AtlasDbRuntimeConfig``.
-           This differs from the previous behavior, which was to block indefinitely. However, the previous behavior can be effectively restored by configuring a large timeout. If creating a ``SerializableTransactionManager`` directly, use the new constructor which accepts a timeout parameter.
+           This differs from the previous behavior, which was to block indefinitely. However, the previous behavior can be effectively restored by configuring a large timeout.
+           If creating a ``SerializableTransactionManager`` directly, use the new constructor which accepts a timeout parameter.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2158>`__)
            
     *    - |devbreak|
@@ -78,7 +87,7 @@ develop
     *    - |userbreak|
          - Remove Cassandra config option 'safetyDisabled';
            users should instead move to a more specific config for their situation, which are:
-	   ignoreNodeTopologyChecks, ignoreInconsistentRingChecks, ignoreDatacenterConfigurationChecks, ignorePartitionerChecks
+           ignoreNodeTopologyChecks, ignoreInconsistentRingChecks, ignoreDatacenterConfigurationChecks, ignorePartitionerChecks
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2024>`__)
 
     *    - |fixed|
