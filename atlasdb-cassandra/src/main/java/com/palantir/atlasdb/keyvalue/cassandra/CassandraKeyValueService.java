@@ -250,7 +250,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private void upgradeFromOlderInternalSchema() {
         try {
             Map<TableReference, byte[]> metadataForTables = getMetadataForTables();
-            Map<TableReference, byte[]> tablesToUpgrade = Maps.newHashMapWithExpectedSize(metadataForTables.size());
+            final Collection<CfDef> updatedCfs = Lists.newArrayList();
 
             List<CfDef> knownCfs = clientPool.runWithRetry(client ->
                     client.describe_keyspace(configManager.getConfig().keyspace()).getCf_defs());
@@ -263,7 +263,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     if (!ColumnFamilyDefinitions.isMatchingCf(clientSideCf, clusterSideCf)) {
                         // mismatch; we have changed how we generate schema since we last persisted
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
-                        tablesToUpgrade.put(tableRef, clusterSideMetadata);
+                        updatedCfs.add(clientSideCf);
                     }
                 } else if (!hiddenTables.isHidden(tableRef)) {
                     // Possible to get here from a race condition with another service starting up
@@ -277,8 +277,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             }
 
             // we are racing another service to do these same operations here, but they are idempotent / safe
-            if (!tablesToUpgrade.isEmpty()) {
-                putMetadataForTables(tablesToUpgrade);
+            Map<Cell, byte[]> emptyMetadataUpdate = ImmutableMap.of();
+            if (!updatedCfs.isEmpty()) {
+                putMetadataAndMaybeAlterTables(true, emptyMetadataUpdate, updatedCfs);
             }
         } catch (TException e) {
             log.error("Couldn't upgrade from an older internal Cassandra schema."
@@ -1849,52 +1850,50 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Map<Cell, Value> persistedMetadata = get(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 requestForLatestDbSideMetadata);
-        final Map<Cell, byte[]> newMetadata = Maps.newHashMap();
+        final Map<Cell, byte[]> updatedMetadata = Maps.newHashMap();
         final Collection<CfDef> updatedCfs = Lists.newArrayList();
         for (Entry<Cell, byte[]> entry : metadataRequestedForUpdate.entrySet()) {
-            if (newMetadataFound(persistedMetadata.get(entry.getKey()), entry.getValue())) {
-                newMetadata.put(entry.getKey(), entry.getValue());
+            if (updatedMetadataFound(persistedMetadata.get(entry.getKey()), entry.getValue())) {
+                updatedMetadata.put(entry.getKey(), entry.getValue());
+                updatedCfs.add(getCfForTable(
+                        tableReferenceFromBytes(entry.getKey().getRowName()),
+                        entry.getValue(),
+                        configManager.getConfig().gcGraceSeconds()));
             }
-            updatedCfs.add(getCfForTable(
-                    tableReferenceFromBytes(entry.getKey().getRowName()),
-                    entry.getValue(),
-                    configManager.getConfig().gcGraceSeconds()));
         }
 
-        if (newMetadata.isEmpty()) {
-            return;
-        }
-
-        try {
-            putMetadataAndMaybeAlterTables(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs);
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+        if (!updatedMetadata.isEmpty()) {
+            putMetadataAndMaybeAlterTables(possiblyNeedToPerformSettingsChanges, updatedMetadata, updatedCfs);
         }
     }
 
-    private boolean newMetadataFound(Value existingMetadata, byte[] requestMetadata) {
+    private boolean updatedMetadataFound(Value existingMetadata, byte[] requestMetadata) {
         return existingMetadata == null || !Arrays.equals(existingMetadata.getContents(), requestMetadata);
     }
 
     private void putMetadataAndMaybeAlterTables(
             boolean possiblyNeedToPerformSettingsChanges,
             Map<Cell, byte[]> newMetadata,
-            Collection<CfDef> updatedCfs) throws Exception {
-        clientPool.runWithRetry(client -> {
-            if (possiblyNeedToPerformSettingsChanges) {
-                for (CfDef cf : updatedCfs) {
-                    client.system_update_column_family(cf);
-                }
+            Collection<CfDef> updatedCfs) {
+        try {
+            clientPool.runWithRetry(client -> {
+                if (possiblyNeedToPerformSettingsChanges) {
+                    for (CfDef cf : updatedCfs) {
+                        client.system_update_column_family(cf);
+                    }
 
-                CassandraKeyValueServices.waitForSchemaVersions(
-                        client,
-                        "(all tables in a call to putMetadataForTables)",
-                        configManager.getConfig().schemaMutationTimeoutMillis());
-            }
-            // Done with actual schema mutation, push the metadata
-            put(AtlasDbConstants.DEFAULT_METADATA_TABLE, newMetadata, System.currentTimeMillis());
-            return null;
-        });
+                    CassandraKeyValueServices.waitForSchemaVersions(
+                            client,
+                            "(all tables in a call to putMetadataForTables)",
+                            configManager.getConfig().schemaMutationTimeoutMillis());
+                }
+                // Done with actual schema mutation, push the metadata
+                put(AtlasDbConstants.DEFAULT_METADATA_TABLE, newMetadata, System.currentTimeMillis());
+                return null;
+            });
+        } catch (Exception e) {
+            Throwables.throwUncheckedException(e);
+        }
     }
 
     private void putMetadataWithoutChangingSettings(final TableReference tableRef, final byte[] meta) {
