@@ -40,6 +40,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -100,7 +101,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 true,
-                timestampCache) {
+                timestampCache,
+                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, new Function<byte[], byte[]>() {

@@ -66,6 +66,7 @@ import com.palantir.timestamp.TimestampService;
     final AtomicLong recentImmutableTs = new AtomicLong(-1L);
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
+    protected final Supplier<Long> lockAcquireTimeoutMs;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -79,7 +80,8 @@ import com.palantir.timestamp.TimestampService;
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            boolean allowHiddenTableAccess) {
+            boolean allowHiddenTableAccess,
+            Supplier<Long> lockAcquireTimeoutMs) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
@@ -89,6 +91,7 @@ import com.palantir.timestamp.TimestampService;
         this.constraintModeSupplier = constraintModeSupplier;
         this.cleaner = cleaner;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
+        this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
     }
@@ -175,7 +178,8 @@ import com.palantir.timestamp.TimestampService;
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
-                timestampValidationReadCache);
+                timestampValidationReadCache,
+                lockAcquireTimeoutMs.get());
     }
 
     @Override
@@ -197,7 +201,8 @@ import com.palantir.timestamp.TimestampService;
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
-                timestampValidationReadCache);
+                timestampValidationReadCache,
+                lockAcquireTimeoutMs.get());
         return runTaskThrowOnConflict(task, new ReadTransaction(transaction, sweepStrategyManager));
     }
 
@@ -318,4 +323,5 @@ import com.palantir.timestamp.TimestampService;
                 return KeyValueServiceStatus.UNHEALTHY;
         }
     }
+
 }

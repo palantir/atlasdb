@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Optional;
 
 import com.google.common.base.Supplier;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -84,6 +85,29 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             boolean allowHiddenTableAccess) {
+        this(
+                keyValueService,
+                timelockService,
+                lockService,
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
+                allowHiddenTableAccess,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
+    }
+
+    public SerializableTransactionManager(KeyValueService keyValueService,
+            TimelockService timelockService,
+            RemoteLockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            boolean allowHiddenTableAccess,
+            Supplier<Long> lockAcquireTimeoutMs) {
         super(
                 keyValueService,
                 timelockService,
@@ -93,7 +117,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                allowHiddenTableAccess);
+                allowHiddenTableAccess,
+                lockAcquireTimeoutMs);
     }
 
     @Override
@@ -116,7 +141,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
-                timestampValidationReadCache);
+                timestampValidationReadCache,
+                lockAcquireTimeoutMs.get());
     }
 
 }

@@ -20,31 +20,16 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.AtlasDbConstants;
 
-@JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
-@JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
+@JsonDeserialize(as = ImmutableTransactionConfig.class)
+@JsonSerialize(as = ImmutableTransactionConfig.class)
 @Value.Immutable
-public abstract class AtlasDbRuntimeConfig {
+public abstract class TransactionConfig {
 
     @Value.Default
-    public SweepConfig sweep() {
-        return SweepConfig.defaultSweepConfig();
+    public long getLockAcquireTimeoutMillis() {
+        return AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
     }
 
-    /**
-     * Returns a configuration for this timestamp client.
-     */
-    @Value.Default
-    public TimestampClientConfig timestampClient() {
-        return ImmutableTimestampClientConfig.builder().build();
-    }
-    
-    @Value.Default
-    public TransactionConfig transaction() {
-        return ImmutableTransactionConfig.builder().build();
-    }
-
-    public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {
-        return ImmutableAtlasDbRuntimeConfig.builder().build();
-    }
 }
