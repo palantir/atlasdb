@@ -44,6 +44,28 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Timelock server now proceses lock requests using async Jetty servlets, rather than blocking request threads. This leads to more stability and higher throughput during periods of heavy lock contention.
+           Timelock server config has a new ``useAsyncLockService`` option that can be used to switch between the new and old lock service implementation. This option defaults to ``true``.    
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2084>`__)
+           
+    *    - |devbreak| |improved|
+         - The maximum time that a transaction will block while waiting for commit locks is now configurable, and defaults to 1 minute. This can be configured via the ``transaction.lockAcquireTimeoutMillis`` option in ``AtlasDbRuntimeConfig``.
+           This differs from the previous behavior, which was to block indefinitely. However, the previous behavior can be effectively restored by configuring a large timeout. If creating a ``SerializableTransactionManager`` directly, use the new constructor which accepts a timeout parameter.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2158>`__)
+           
+    *    - |devbreak|
+         - ``randomBitCount`` and ``maxAllowedBlockingDuration`` are deprecated and no longer configurable in ``LockServerOptions``. If specified, they will be silently ignored.
+           If your service relies on either of these configuration options, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2161>`__)
+           
+    *    - |userbreak|
+         - This version of the AtlasDB client will **require** a version of Timelock server that exposes the new ``/timelock`` endpoints. 
+           Note that this only applies if running against Timelock server; clients running with embedded leader mode are not affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2135>`__)   
+	   
+    *    - |userbreak|
+         - The timestamp batching functionality introduced in 0.48.0 is temporarily no longer supported when running with Timelock server. We will re-enable support for this in a future release.
 
     *    - |fixed|
          - Fixed the broken put() command in AtlasConsole. You should now be able to insert and update data using Console.
