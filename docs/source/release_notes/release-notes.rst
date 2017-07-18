@@ -49,7 +49,7 @@ develop
            Timelock server config has a new ``useAsyncLockService`` option that can be used to switch between the new and old lock service implementation. This option defaults to ``true``.    
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2084>`__)
            
-    *    - |devbreak|
+    *    - |devbreak| |improved|
          - The maximum time that the transaction protocol will block while waiting for locks is now configurable, and defaults to 1 minute. This can be configured via the ``transaction.lockAcquireTimeoutMillis`` option in ``AtlasDbRuntimeConfig``.
            This differs from the previous behavior, which was to block indefinitely. However, the previous behavior can be effectively restored by configuring a large timeout. If creating a ``SerializableTransactionManager`` directly, use the new constructor which accepts a timeout parameter.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2158>`__)
