@@ -51,7 +51,8 @@ public class TestableTimelockServer {
         return timestampService().getFreshTimestamp();
     }
 
-    public LockRefreshToken remoteLock(String client, com.palantir.lock.LockRequest lockRequest) throws InterruptedException {
+    public LockRefreshToken remoteLock(String client, com.palantir.lock.LockRequest lockRequest)
+            throws InterruptedException {
         return lockService().lock(client, lockRequest);
     }
 

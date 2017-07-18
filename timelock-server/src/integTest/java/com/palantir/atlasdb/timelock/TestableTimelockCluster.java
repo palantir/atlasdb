@@ -151,7 +151,8 @@ public class TestableTimelockCluster {
         return timestampService().getFreshTimestamps(number);
     }
 
-    public LockRefreshToken remoteLock(String client, com.palantir.lock.LockRequest lockRequest) throws InterruptedException {
+    public LockRefreshToken remoteLock(String client, com.palantir.lock.LockRequest lockRequest)
+            throws InterruptedException {
         return lockService().lock(client, lockRequest);
     }
 

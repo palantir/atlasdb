@@ -142,7 +142,7 @@ public class AsyncLockServiceEteTest {
 
     @Test
     public void waitForLocksRequestsAreIdempotent() {
-        LockTokenV2 token = lockSynchronously(REQUEST_1, LOCK_A);
+        LockToken token = lockSynchronously(REQUEST_1, LOCK_A);
 
         AsyncResult<Void> request = service.waitForLocks(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
         AsyncResult<Void> duplicate = service.waitForLocks(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
