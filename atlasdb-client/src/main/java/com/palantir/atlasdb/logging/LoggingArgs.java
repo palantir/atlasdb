@@ -45,6 +45,13 @@ public final class LoggingArgs {
         logArbitrator = arbitrator;
     }
 
+    /**
+     * Returns a safe or unsafe arg corresponding to the supplied table reference, with name "tableRef".
+     */
+    public static Arg<TableReference> tableRef(TableReference tableReference) {
+        return tableRef("tableRef", tableReference);
+    }
+
     public static Arg<TableReference> tableRef(String argName, TableReference tableReference) {
         return getArg(argName, tableReference, logArbitrator.isTableReferenceSafe(tableReference));
     }
