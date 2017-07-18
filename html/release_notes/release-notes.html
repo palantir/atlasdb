@@ -196,6 +196,33 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Timelock server now proceses lock requests using async Jetty servlets, rather than blocking request threads. This leads to more stability and higher throughput during periods of heavy lock contention.
+Timelock server config has a new <code class="docutils literal"><span class="pre">useAsyncLockService</span></code> option that can be used to switch between the new and old lock service implementation. This option defaults to <code class="docutils literal"><span class="pre">true</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2084">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The maximum time that a transaction will block while waiting for commit locks is now configurable, and defaults to 1 minute. This can be configured via the <code class="docutils literal"><span class="pre">transaction.lockAcquireTimeoutMillis</span></code> option in <code class="docutils literal"><span class="pre">AtlasDbRuntimeConfig</span></code>.
+This differs from the previous behavior, which was to block indefinitely. However, the previous behavior can be effectively restored by configuring a large timeout. If creating a <code class="docutils literal"><span class="pre">SerializableTransactionManager</span></code> directly, use the new constructor which accepts a timeout parameter.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2158">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><code class="docutils literal"><span class="pre">randomBitCount</span></code> and <code class="docutils literal"><span class="pre">maxAllowedBlockingDuration</span></code> are deprecated and no longer configurable in <code class="docutils literal"><span class="pre">LockServerOptions</span></code>. If specified, they will be silently ignored.
+If your service relies on either of these configuration options, please contact the AtlasDB team.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2161">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>This version of the AtlasDB client will <strong>require</strong> a version of Timelock server that exposes the new <code class="docutils literal"><span class="pre">/timelock</span></code> endpoints.
+Note that this only applies if running against Timelock server; clients running with embedded leader mode are not affected.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2135">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>The timestamp batching functionality introduced in 0.48.0 is temporarily no longer supported when running with Timelock server. We will re-enable support for this in a future release.</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed the broken put() command in AtlasConsole. You should now be able to insert and update data using Console.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2140">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an issue that could cause AtlasConsole to print unnecessary amounts of input when commands were run.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2130">Pull Request</a>)</td>
