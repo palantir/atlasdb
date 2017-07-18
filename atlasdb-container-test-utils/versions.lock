@@ -283,7 +283,9 @@
         "com.palantir.safe-logging:safe-logging": {
             "locked": "0.1.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -830,7 +832,9 @@
         "com.palantir.safe-logging:safe-logging": {
             "locked": "0.1.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.tritium:tritium-api": {
