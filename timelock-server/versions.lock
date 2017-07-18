@@ -74,6 +74,7 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -92,6 +93,7 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -176,6 +178,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timelock-agent",
                 "com.palantir.atlasdb:timelock-impl",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client",
@@ -201,11 +204,13 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timelock-agent",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -340,8 +345,14 @@
                 "com.palantir.atlasdb:timelock-impl"
             ]
         },
-        "com.palantir.atlasdb:timelock-impl": {
+        "com.palantir.atlasdb:timelock-agent": {
             "project": true
+        },
+        "com.palantir.atlasdb:timelock-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timelock-agent"
+            ]
         },
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
@@ -403,10 +414,17 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
+        "com.palantir.remoting2:service-config": {
+            "locked": "2.3.0",
+            "transitive": [
+                "com.palantir.atlasdb:timelock-agent"
+            ]
+        },
         "com.palantir.remoting2:ssl-config": {
             "locked": "2.3.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.remoting2:service-config"
             ]
         },
         "com.palantir.remoting2:tracing": {
@@ -426,6 +444,12 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api"
+            ]
+        },
+        "com.palantir.tokens:auth-tokens": {
+            "locked": "1.0.0",
+            "transitive": [
+                "com.palantir.remoting2:service-config"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -654,6 +678,13 @@
                 "io.dropwizard:dropwizard-jersey",
                 "io.dropwizard:dropwizard-logging",
                 "io.dropwizard:dropwizard-metrics"
+            ]
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:timelock-agent",
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "javax.annotation:javax.annotation-api": {
@@ -1000,6 +1031,12 @@
                 "com.palantir.tritium:tritium-metrics"
             ]
         },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.reactivex.rxjava2:rxjava"
+            ]
+        },
         "org.slf4j:jcl-over-slf4j": {
             "locked": "1.7.21",
             "transitive": [
@@ -1024,6 +1061,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -1129,6 +1167,7 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -1147,6 +1186,7 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -1231,6 +1271,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timelock-agent",
                 "com.palantir.atlasdb:timelock-impl",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client",
@@ -1256,11 +1297,13 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timelock-agent",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -1395,8 +1438,14 @@
                 "com.palantir.atlasdb:timelock-impl"
             ]
         },
-        "com.palantir.atlasdb:timelock-impl": {
+        "com.palantir.atlasdb:timelock-agent": {
             "project": true
+        },
+        "com.palantir.atlasdb:timelock-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timelock-agent"
+            ]
         },
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
@@ -1458,10 +1507,17 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
+        "com.palantir.remoting2:service-config": {
+            "locked": "2.3.0",
+            "transitive": [
+                "com.palantir.atlasdb:timelock-agent"
+            ]
+        },
         "com.palantir.remoting2:ssl-config": {
             "locked": "2.3.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.remoting2:service-config"
             ]
         },
         "com.palantir.remoting2:tracing": {
@@ -1481,6 +1537,12 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api"
+            ]
+        },
+        "com.palantir.tokens:auth-tokens": {
+            "locked": "1.0.0",
+            "transitive": [
+                "com.palantir.remoting2:service-config"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -1709,6 +1771,13 @@
                 "io.dropwizard:dropwizard-jersey",
                 "io.dropwizard:dropwizard-logging",
                 "io.dropwizard:dropwizard-metrics"
+            ]
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:timelock-agent",
+                "com.palantir.atlasdb:timelock-impl"
             ]
         },
         "javax.annotation:javax.annotation-api": {
@@ -2055,6 +2124,12 @@
                 "com.palantir.tritium:tritium-metrics"
             ]
         },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.reactivex.rxjava2:rxjava"
+            ]
+        },
         "org.slf4j:jcl-over-slf4j": {
             "locked": "1.7.21",
             "transitive": [
@@ -2079,6 +2154,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",

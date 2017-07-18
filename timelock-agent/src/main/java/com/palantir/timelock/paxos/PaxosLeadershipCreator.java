@@ -56,7 +56,7 @@ public class PaxosLeadershipCreator {
         this.install = install;
         Preconditions.checkState(install.algorithm() instanceof PaxosInstallConfiguration,
                 "Cannot create a Paxos leadership agent with a non-Paxos install configuration");
-        this.paxosInstall = ((PaxosInstallConfiguration) install.algorithm());
+        this.paxosInstall = (PaxosInstallConfiguration) install.algorithm();
         this.runtime = runtime.map(config -> config.algorithm().map(algo -> (PaxosRuntimeConfiguration) algo));
         this.registrar = registrar;
     }

@@ -10,5 +10,5 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({@JsonSubTypes.Type(value = PaxosRuntimeConfiguration.class, name = "paxos")})
 public interface TimeLockAlgorithmRuntimeConfiguration {
-    //TODO
+    // TODO(jkong): Is anything actually needed here?
 }

@@ -26,9 +26,9 @@ public interface PaxosInstallConfiguration extends TimeLockAlgorithmInstallConfi
     @JsonProperty("data-directory")
     @Value.Default
     default File dataDirectory() {
-        // TODO: should this value be something like "mnt/timelock/paxos" given we'll be
+        // TODO (jkong): should this value be something like "mnt/timelock/paxos" given we'll be
         // given a persisted volume that will be mounted inside $SERVICE_HOME in k8s/docker
-        // TODO: should we just have a generic "dataDirectory" field at root TimeLockInstallConfiguration
+        // TODO (jkong): should we just have a generic "dataDirectory" field at root TimeLockInstallConfiguration
         // level and delete this entire file?
         return new File("var/data/paxos");
     }
