@@ -52,6 +52,8 @@ import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
+import com.palantir.atlasdb.timelock.clock.ClockSkewMonitor;
 import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
@@ -112,6 +114,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
         registerLeaderElectionService(configuration);
 
         registerHealthCheck(configuration);
+        registerClockMonitor();
+        new Thread(new ClockSkewMonitor(remoteServers, optionalSecurity)).start();
     }
 
     private void registerExceptionMappers() {
@@ -156,6 +160,10 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 ServiceCreator.createSslSocketFactory(paxosConfiguration.sslConfiguration()),
                 "leader-ping-healthcheck").keySet();
         environment.healthChecks().register("leader-ping", new LeaderPingHealthCheck(pingableLeaders));
+    }
+
+    private void registerClockMonitor() {
+        environment.jersey().register(new ClockServiceImpl());
     }
 
     private LeaderConfig getLeaderConfig(TimeLockServerConfiguration configuration) {
