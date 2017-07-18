@@ -184,6 +184,10 @@ public class AsyncResult<T> {
         future.whenComplete((result, error) -> completionHandler.run());
     }
 
+    public void onCompleteAsync(Runnable completionHandler) {
+        future.whenCompleteAsync((result, error) -> completionHandler.run());
+    }
+
     private static boolean isTimeout(Throwable ex) {
         return ex instanceof TimeoutException || ex.getCause() instanceof TimeoutException;
     }

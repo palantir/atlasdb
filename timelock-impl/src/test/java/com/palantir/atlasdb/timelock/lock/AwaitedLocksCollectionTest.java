@@ -24,10 +24,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.junit.Test;
+
+import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
 
 public class AwaitedLocksCollectionTest {
 
@@ -64,7 +69,7 @@ public class AwaitedLocksCollectionTest {
         assertThat(awaitedLocks.requestsById).containsKey(REQUEST_1);
 
         result.complete(null);
-        assertThat(awaitedLocks.requestsById).doesNotContainKey(REQUEST_1);
+        assertRequestsWereRemoved(REQUEST_1);
     }
 
     @Test
@@ -72,7 +77,7 @@ public class AwaitedLocksCollectionTest {
         AsyncResult<Void> result = AsyncResult.completedResult();
         awaitedLocks.getExistingOrAwait(REQUEST_1, () -> result);
 
-        assertThat(awaitedLocks.requestsById).doesNotContainKey(REQUEST_1);
+        assertRequestsWereRemoved(REQUEST_1);
     }
 
     @Test
@@ -83,7 +88,7 @@ public class AwaitedLocksCollectionTest {
             });
         }).isInstanceOf(RuntimeException.class);
 
-        assertThat(awaitedLocks.requestsById).doesNotContainKey(REQUEST_1);
+        assertRequestsWereRemoved(REQUEST_1);
     }
 
     @Test
@@ -96,7 +101,18 @@ public class AwaitedLocksCollectionTest {
         result1.fail(new RuntimeException("test"));
         result2.timeout();
 
-        assertThat(awaitedLocks.requestsById).doesNotContainKeys(REQUEST_1, REQUEST_2);
+        assertRequestsWereRemoved(REQUEST_1, REQUEST_2);
+    }
+
+    private void assertRequestsWereRemoved(UUID... requests) {
+        Awaitility.await()
+                .atMost(Duration.ONE_SECOND)
+                .pollInterval(5, TimeUnit.MILLISECONDS)
+                .until(() -> {
+                    for (UUID requestId : Arrays.asList(requests)) {
+                        assertThat(awaitedLocks.requestsById).doesNotContainKey(requestId);
+                    }
+                });
     }
 
 }

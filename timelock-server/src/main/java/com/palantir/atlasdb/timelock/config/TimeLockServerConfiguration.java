@@ -58,7 +58,7 @@ public class TimeLockServerConfiguration extends Configuration {
         this.algorithm = MoreObjects.firstNonNull(algorithm, PaxosConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
-        this.useAsyncLockService = MoreObjects.firstNonNull(useAsyncLockService, false);
+        this.useAsyncLockService = MoreObjects.firstNonNull(useAsyncLockService, true);
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
         this.timeLimiterConfiguration =
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
