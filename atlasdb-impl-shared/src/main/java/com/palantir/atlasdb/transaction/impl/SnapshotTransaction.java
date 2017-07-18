@@ -1596,11 +1596,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected LockToken acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
 
-        LockResponse lockResponse = timelockService.lock(
-                LockRequest.of(lockDescriptors, lockAcquireTimeoutMs));
+        LockRequest request = LockRequest.of(lockDescriptors, lockAcquireTimeoutMs);
+        LockResponse lockResponse = timelockService.lock(request);
         if (!lockResponse.wasSuccessful()) {
-            log.error("Timed out waiting while acquiring commit locks. Timeout was {} ms. "
+            log.error("Timed out waiting while acquiring commit locks. Request id was {}. Timeout was {} ms. "
                             + "First ten required locks were {}.",
+                    SafeArg.of("requestId", request.getRequestId()),
                     SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMs),
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
@@ -1668,10 +1669,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        WaitForLocksResponse response = timelockService.waitForLocks(
-                WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMs));
+        WaitForLocksRequest request = WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMs);
+        WaitForLocksResponse response = timelockService.waitForLocks(request);
         if (!response.wasSuccessful()) {
             log.error("Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
+                    SafeArg.of("requestId", request.getRequestId()),
                     SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMs),
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
