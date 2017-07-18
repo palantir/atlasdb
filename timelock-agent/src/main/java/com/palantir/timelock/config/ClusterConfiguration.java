@@ -23,7 +23,7 @@ public interface ClusterConfiguration {
 
     @Value.Check
     default void check() {
-        Preconditions.checkArgument(cluster().uris().contains(localServer()),
+        Preconditions.checkState(cluster().uris().contains(localServer()),
                 "The localServer '%s' must be included in the server entries: %s.", localServer(), cluster().uris());
     }
 }
