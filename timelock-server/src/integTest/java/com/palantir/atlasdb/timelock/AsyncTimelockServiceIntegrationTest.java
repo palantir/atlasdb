@@ -66,7 +66,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void locksAreExclusive() {
         LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
-        Future<LockTokenV2> futureToken = cluster.lockAsync(requestFor(LOCK_A))
+        Future<LockToken> futureToken = cluster.lockAsync(requestFor(LOCK_A))
                 .thenApply(LockResponse::getToken);
 
         assertNotYetLocked(futureToken);
