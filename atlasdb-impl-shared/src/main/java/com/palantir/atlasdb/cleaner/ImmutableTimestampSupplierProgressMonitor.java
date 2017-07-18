@@ -16,49 +16,51 @@
 
 package com.palantir.atlasdb.cleaner;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Supplier;
+import com.google.common.collect.Lists;
 import com.palantir.lock.LockClient;
 
 final class ImmutableTimestampSupplierProgressMonitor implements Supplier<Long> {
     private static final Logger log = LoggerFactory.getLogger(ImmutableTimestampSupplierProgressMonitor.class);
 
-    private static final long TIME_TO_WARN = 1L;
-    private static final long TIME_TO_ERROR = 24L;
-    private static final TimeUnit TIME_UNIT = TimeUnit.HOURS;
+    private static final long TIME_TO_WARN_HR = 1L;
+    private static final long TIME_TO_ERROR_HR = 24L;
     private static final String LONG_RUNNING_TRANSACTION_ERROR_MESSAGE = "Immutable timestamp has not been updated for"
             + " [{}] hour(s) for LockClient [{}]. This indicates to a very long running transaction.";
 
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final Supplier<Long> supplier;
 
-    private ImmutableTimestampSupplierProgressMonitor(Supplier<Long> supplier) {
+    private final List<ImmutableTimestampMonitor> monitors;
+
+    private ImmutableTimestampSupplierProgressMonitor(Supplier<Long> supplier,
+                                                      List<ImmutableTimestampMonitor> monitors) {
         this.supplier = supplier;
+        this.monitors = monitors;
     }
 
     static Supplier<Long> createWithDefaultMonitoring(Supplier<Long> supplier, LockClient lockClient) {
-        ImmutableTimestampSupplierProgressMonitor monitor = new ImmutableTimestampSupplierProgressMonitor(supplier);
-        monitor.addMonitoring(TIME_TO_WARN,
-                () -> log.warn(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_WARN, lockClient.getClientId()));
-        monitor.addMonitoring(TIME_TO_ERROR,
-                () -> log.error(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_ERROR, lockClient.getClientId()));
-        return monitor;
-    }
+        List<ImmutableTimestampMonitor> defaultMonitors = Lists.newArrayList();
+        defaultMonitors.add(new ImmutableTimestampMonitor(TimeUnit.HOURS.toMillis(TIME_TO_WARN_HR),
+                () -> log.warn(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_WARN_HR, lockClient.getClientId())));
 
-    private void addMonitoring(long periodInHours, Runnable runIfFailed) {
-        Runnable monitorRunnable = ImmutableTimestampProgressMonitorRunner.of(supplier, runIfFailed);
-        scheduler.scheduleAtFixedRate(monitorRunnable, periodInHours, periodInHours, TIME_UNIT);
+        defaultMonitors.add(new ImmutableTimestampMonitor(TimeUnit.HOURS.toMillis(TIME_TO_ERROR_HR),
+                () -> log.error(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_ERROR_HR, lockClient.getClientId())));
+
+        return new ImmutableTimestampSupplierProgressMonitor(supplier, defaultMonitors);
     }
 
     @Override
     public Long get() {
-        return supplier.get();
+        Long ts = supplier.get();
+        for (ImmutableTimestampMonitor monitor : monitors) {
+            monitor.update(ts);
+        }
+        return ts;
     }
 }

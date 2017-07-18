@@ -19,30 +19,27 @@ package com.palantir.atlasdb.cleaner;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
-import com.google.common.base.Supplier;
-
-public class ImmutableTimestampProgressMonitorRunnerTest {
+public class ImmutableTimestampMonitorTest {
     @Test
-    public void testProgressFailure() throws Exception {
+    public void testProgressFailure() {
         Runnable mockRunnableIfFailed = mock(Runnable.class);
-        Runnable runnable = ImmutableTimestampProgressMonitorRunner.of(() -> 0L, mockRunnableIfFailed);
-        runnable.run();
-        runnable.run();
+        ImmutableTimestampMonitor monitor = new ImmutableTimestampMonitor(0L, mockRunnableIfFailed);
+        monitor.update(100L);
+        monitor.update(100L);
+
         verify(mockRunnableIfFailed, times(1)).run();
     }
 
     @Test
-    public void testProgressOk() throws Exception {
+    public void testProgressOk() {
         Runnable mockRunnableIfFailed = mock(Runnable.class);
-        Supplier mockedSupplier = mock(Supplier.class);
-        when(mockedSupplier.get()).thenReturn(0L).thenReturn(1L);
-        Runnable runnable = ImmutableTimestampProgressMonitorRunner.of(mockedSupplier, mockRunnableIfFailed);
-        runnable.run();
-        runnable.run();
+        ImmutableTimestampMonitor monitor = new ImmutableTimestampMonitor(0L, mockRunnableIfFailed);
+        monitor.update(100L);
+        monitor.update(101L);
+
         verify(mockRunnableIfFailed, times(0)).run();
     }
 }
