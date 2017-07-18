@@ -102,6 +102,7 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -127,6 +128,8 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -1596,9 +1599,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         LockResponse lockResponse = timelockService.lock(
                 LockRequest.of(lockDescriptors, lockAcquireTimeoutMs));
         if (!lockResponse.wasSuccessful()) {
-            log.error("Timed out waiting while acquiring commit locks. Timeout was {} ms. Required locks were {}.",
-                    lockAcquireTimeoutMs, lockDescriptors);
-            throw new TransactionLockTimeoutException("Timed out waiting for commits to complete.");
+            log.error("Timed out waiting while acquiring commit locks. Timeout was {} ms. "
+                            + "First ten required locks were {}.",
+                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMs),
+                    UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
+            throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
         return lockResponse.getToken();
     }
@@ -1666,9 +1671,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         WaitForLocksResponse response = timelockService.waitForLocks(
                 WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMs));
         if (!response.wasSuccessful()) {
-            log.error("Timed out waiting for commits to complete. Timeout was {} ms. Locks were {}.",
-                    lockAcquireTimeoutMs, lockDescriptors);
-            throw new TransactionLockTimeoutException("Timed out waiting for commits to complete.");
+            log.error("Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
+                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMs),
+                    UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
+            throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
         }
     }
 
