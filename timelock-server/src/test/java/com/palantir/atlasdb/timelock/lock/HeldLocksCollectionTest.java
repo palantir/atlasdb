@@ -30,7 +30,7 @@ import java.util.function.Supplier;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 
 public class HeldLocksCollectionTest {
 
@@ -91,22 +91,22 @@ public class HeldLocksCollectionTest {
 
     @Test
     public void refreshReturnsSubsetOfUnlockedLocks() {
-        LockTokenV2 unlockableRequest = mockRefreshableRequest();
-        LockTokenV2 nonUnlockableRequest = mockNonRefreshableRequest();
+        LockToken unlockableRequest = mockRefreshableRequest();
+        LockToken nonUnlockableRequest = mockNonRefreshableRequest();
 
-        Set<LockTokenV2> expected = ImmutableSet.of(unlockableRequest);
-        Set<LockTokenV2> actual = heldLocksCollection.refresh(ImmutableSet.of(unlockableRequest, nonUnlockableRequest));
+        Set<LockToken> expected = ImmutableSet.of(unlockableRequest);
+        Set<LockToken> actual = heldLocksCollection.refresh(ImmutableSet.of(unlockableRequest, nonUnlockableRequest));
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
     public void unlockReturnsSubsetOfUnlockedLocks() {
-        LockTokenV2 refreshableRequest = mockRefreshableRequest();
-        LockTokenV2 nonRefreshableRequest = mockNonRefreshableRequest();
+        LockToken refreshableRequest = mockRefreshableRequest();
+        LockToken nonRefreshableRequest = mockNonRefreshableRequest();
 
-        Set<LockTokenV2> expected = ImmutableSet.of(refreshableRequest);
-        Set<LockTokenV2> actual = heldLocksCollection.unlock(
+        Set<LockToken> expected = ImmutableSet.of(refreshableRequest);
+        Set<LockToken> actual = heldLocksCollection.unlock(
                 ImmutableSet.of(refreshableRequest, nonRefreshableRequest));
 
         assertThat(actual).isEqualTo(expected);
@@ -114,28 +114,28 @@ public class HeldLocksCollectionTest {
 
     @Test
     public void successfulUnlockRemovesHeldLocks() {
-        LockTokenV2 token = mockRefreshableRequest();
+        LockToken token = mockRefreshableRequest();
 
         heldLocksCollection.unlock(ImmutableSet.of(token));
 
         assertThat(heldLocksCollection.heldLocksById.isEmpty()).isTrue();
     }
 
-    private LockTokenV2 mockExpiredRequest() {
+    private LockToken mockExpiredRequest() {
         return mockHeldLocksForNewRequest(
                 heldLocks -> {
                     when(heldLocks.unlockIfExpired()).thenReturn(true);
                 });
     }
 
-    private LockTokenV2 mockNonExpiredRequest() {
+    private LockToken mockNonExpiredRequest() {
         return mockHeldLocksForNewRequest(
                 heldLocks -> {
                     when(heldLocks.unlockIfExpired()).thenReturn(false);
                 });
     }
 
-    private LockTokenV2 mockRefreshableRequest() {
+    private LockToken mockRefreshableRequest() {
         return mockHeldLocksForNewRequest(
                 heldLocks -> {
                     when(heldLocks.unlock()).thenReturn(true);
@@ -143,7 +143,7 @@ public class HeldLocksCollectionTest {
                 });
     }
 
-    private LockTokenV2 mockNonRefreshableRequest() {
+    private LockToken mockNonRefreshableRequest() {
         return mockHeldLocksForNewRequest(
                 heldLocks -> {
                     when(heldLocks.unlock()).thenReturn(false);
@@ -151,8 +151,8 @@ public class HeldLocksCollectionTest {
                 });
     }
 
-    private LockTokenV2 mockFailedRequest() {
-        LockTokenV2 request = LockTokenV2.of(UUID.randomUUID());
+    private LockToken mockFailedRequest() {
+        LockToken request = LockToken.of(UUID.randomUUID());
         AsyncResult failedLocks = new AsyncResult();
         failedLocks.fail(new RuntimeException());
 
@@ -161,8 +161,8 @@ public class HeldLocksCollectionTest {
         return request;
     }
 
-    private LockTokenV2 mockTimedOutRequest() {
-        LockTokenV2 request = LockTokenV2.of(UUID.randomUUID());
+    private LockToken mockTimedOutRequest() {
+        LockToken request = LockToken.of(UUID.randomUUID());
         AsyncResult timedOutResult = new AsyncResult();
         timedOutResult.timeout();
 
@@ -171,8 +171,8 @@ public class HeldLocksCollectionTest {
         return request;
     }
 
-    private LockTokenV2 mockHeldLocksForNewRequest(Consumer<HeldLocks> mockApplier) {
-        LockTokenV2 request = LockTokenV2.of(UUID.randomUUID());
+    private LockToken mockHeldLocksForNewRequest(Consumer<HeldLocks> mockApplier) {
+        LockToken request = LockToken.of(UUID.randomUUID());
         HeldLocks heldLocks = mock(HeldLocks.class);
         mockApplier.accept(heldLocks);
 

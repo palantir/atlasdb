@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
 public class LockRefresher {
@@ -35,7 +35,7 @@ public class LockRefresher {
 
     private final ScheduledExecutorService executor;
     private final TimelockService timelockService;
-    private final Set<LockTokenV2> tokensToRefresh = Sets.newConcurrentHashSet();
+    private final Set<LockToken> tokensToRefresh = Sets.newConcurrentHashSet();
 
     public LockRefresher(ScheduledExecutorService executor, TimelockService timelockService, long refreshIntervalMillis) {
         this.executor = executor;
@@ -50,23 +50,23 @@ public class LockRefresher {
 
     private void refreshLocks() {
         try {
-            Set<LockTokenV2> toRefresh = ImmutableSet.copyOf(tokensToRefresh);
+            Set<LockToken> toRefresh = ImmutableSet.copyOf(tokensToRefresh);
             if (toRefresh.isEmpty()) {
                 return;
             }
 
-            Set<LockTokenV2> refreshed = timelockService.refreshLockLeases(toRefresh);
+            Set<LockToken> refreshed = timelockService.refreshLockLeases(toRefresh);
             tokensToRefresh.removeAll(Sets.difference(toRefresh, refreshed));
         } catch (Throwable error) {
             log.warn("Error while refreshing locks. Trying again on next iteration", error);
         }
     }
 
-    public void registerLock(LockTokenV2 token) {
+    public void registerLock(LockToken token) {
         tokensToRefresh.add(token);
     }
 
-    public void unregisterLocks(Collection<LockTokenV2> tokens) {
+    public void unregisterLocks(Collection<LockToken> tokens) {
         tokensToRefresh.removeAll(tokens);
     }
 }

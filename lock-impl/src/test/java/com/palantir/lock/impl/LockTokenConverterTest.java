@@ -25,7 +25,7 @@ import java.util.Random;
 import org.junit.Test;
 
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 
 public class LockTokenConverterTest {
 
@@ -65,7 +65,7 @@ public class LockTokenConverterTest {
     }
 
     private void assertConversionFromAndToLegacyPreservesId(LockRefreshToken lockRefreshToken) {
-        LockTokenV2 tokenV2 = LockTokenConverter.toTokenV2(lockRefreshToken);
+        LockToken tokenV2 = LockTokenConverter.toTokenV2(lockRefreshToken);
         LockRefreshToken reconverted = LockTokenConverter.toLegacyToken(tokenV2);
 
         assertThat(reconverted).isEqualTo(lockRefreshToken);
