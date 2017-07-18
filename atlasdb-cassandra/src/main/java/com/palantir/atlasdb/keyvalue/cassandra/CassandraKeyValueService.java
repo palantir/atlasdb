@@ -2249,7 +2249,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 UnsafeArg.of("table", tableRef));
                         log.trace("tombstone_threshold_ratio is set to {} for {}.{}",
                                 SafeArg.of("tombstoneThresholdRatio", tombstoneThresholdRatio),
-                                UnsafeArg.of("keyspace", keyspace), SafeArg.of("table", tableRef));
+                                UnsafeArg.of("keyspace", keyspace), UnsafeArg.of("table", tableRef));
                     }
                 }
                 return null;
