@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
@@ -101,6 +102,7 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -126,6 +128,8 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -148,9 +152,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private static final Logger log = LoggerFactory.getLogger(SnapshotTransaction.class);
     private static final Logger perfLogger = LoggerFactory.getLogger("dualschema.perf");
     private static final Logger constraintLogger = LoggerFactory.getLogger("dualschema.constraints");
-
-    // TODO(nziebart): Make this timeout configurable. Back-compat would mandate infinite blocking time.
-    private static final long LOCK_ACQUISITION_TIMEOUT_MS = 60_000L;
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
 
@@ -194,6 +195,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final boolean allowHiddenTableAccess;
     protected final Stopwatch transactionTimer = Stopwatch.createStarted();
     protected final TimestampCache timestampValidationReadCache;
+    protected final long lockAcquireTimeoutMs;
 
     private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
     private final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
@@ -218,7 +220,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                Long transactionTimeoutMillis,
                                TransactionReadSentinelBehavior readSentinelBehavior,
                                boolean allowHiddenTableAccess,
-                               TimestampCache timestampValidationReadCache) {
+                               TimestampCache timestampValidationReadCache,
+                               long lockAcquireTimeoutMs) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -234,9 +237,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.timestampValidationReadCache = timestampValidationReadCache;
+        this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
     }
 
     // TEST ONLY
+    @VisibleForTesting
     SnapshotTransaction(KeyValueService keyValueService,
                         TimelockService timelockService,
                         TransactionService transactionService,
@@ -261,6 +266,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = false;
         this.timestampValidationReadCache = timestampValidationReadCache;
+        this.lockAcquireTimeoutMs = AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
     }
 
     protected SnapshotTransaction(KeyValueService keyValueService,
@@ -270,7 +276,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                   AtlasDbConstraintCheckingMode constraintCheckingMode,
                                   TransactionReadSentinelBehavior readSentinelBehavior,
                                   boolean allowHiddenTableAccess,
-                                  TimestampCache timestampValidationReadCache) {
+                                  TimestampCache timestampValidationReadCache,
+                                  long lockAcquireTimeoutMs) {
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
@@ -286,6 +293,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.timestampValidationReadCache = timestampValidationReadCache;
+        this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
     }
 
     @Override
@@ -1588,9 +1596,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected LockToken acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
 
-        LockResponse lockResponse = timelockService.lock(
-                LockRequest.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
-        Preconditions.checkState(lockResponse.wasSuccessful(), "Timed out while acquiring commit locks");
+        LockRequest request = LockRequest.of(lockDescriptors, lockAcquireTimeoutMs);
+        LockResponse lockResponse = timelockService.lock(request);
+        if (!lockResponse.wasSuccessful()) {
+            log.error("Timed out waiting while acquiring commit locks. Request id was {}. Timeout was {} ms. "
+                            + "First ten required locks were {}.",
+                    SafeArg.of("requestId", request.getRequestId()),
+                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMs),
+                    UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
+            throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
+        }
         return lockResponse.getToken();
     }
 
@@ -1654,10 +1669,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        WaitForLocksResponse response = timelockService.waitForLocks(
-                WaitForLocksRequest.of(lockDescriptors, LOCK_ACQUISITION_TIMEOUT_MS));
-        Preconditions.checkState(response.wasSuccessful(),
-                "Timed out while waiting for commits to complete");
+        WaitForLocksRequest request = WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMs);
+        WaitForLocksResponse response = timelockService.waitForLocks(request);
+        if (!response.wasSuccessful()) {
+            log.error("Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
+                    SafeArg.of("requestId", request.getRequestId()),
+                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMs),
+                    UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
+            throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////

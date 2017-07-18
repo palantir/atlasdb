@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,28 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.transaction.api;
 
 /**
- * This is a generic exception for all failures thrown from a Transaction
- * <p>
- * Check {@link #canTransactionBeRetried()} to see if this Exception can be retried.
- * <p>
- *
- * @author carrino
- *
+ * Indicates that we timed out while trying to obtain necessary locks during a transaction.
  */
-public abstract class TransactionFailedException extends RuntimeException {
-    private static final long serialVersionUID = 1L;
+public class TransactionLockAcquisitionTimeoutException extends TransactionFailedException {
 
-    TransactionFailedException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    TransactionFailedException(String message) {
+    public TransactionLockAcquisitionTimeoutException(String message) {
         super(message);
     }
 
-    public abstract boolean canTransactionBeRetried();
-
+    @Override
+    public boolean canTransactionBeRetried() {
+        return false;
+    }
 }
