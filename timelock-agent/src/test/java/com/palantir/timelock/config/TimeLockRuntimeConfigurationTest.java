@@ -18,8 +18,11 @@ package com.palantir.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 
 public class TimeLockRuntimeConfigurationTest {
@@ -34,24 +37,47 @@ public class TimeLockRuntimeConfigurationTest {
         String client2 = "-_-";
         String client3 = "___---___";
 
-        ImmutableTimeLockRuntimeConfiguration.builder()
-                .addClients(client1, client2, client3)
-                .build();
+        List<String> clients = ImmutableList.of(client1, client2, client3);
+        clients.forEach(this::assertClientNameAcceptable);
     }
 
     @Test
-    public void cannotCreateClientMatchingLeaderElectionNamespace() {
+    public void cannotCreateWithEmptyStringClient() {
+        assertClientNameUnacceptable("");
+    }
+
+    @Test
+    public void cannotCreateWithClientsFailingRegex() {
+        String client1 = "/";
+        String client2 = "123?";
+        String client3 = "/hello";
+
+        List<String> clients = ImmutableList.of(client1, client2, client3);
+        clients.forEach(this::assertClientNameUnacceptable);
+    }
+
+    @Test
+    public void throwsIfAnyClientFailsRegex() {
         assertThatThrownBy(() -> ImmutableTimeLockRuntimeConfiguration.builder()
-                .addClients(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE)
+                .addClients("okay")
+                .addClients("!@#$%^&*()_")
                 .build()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
+    public void cannotCreateClientMatchingLeaderElectionNamespace() {
+        assertClientNameUnacceptable(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE);
+    }
+
+    @Test
     public void canCreateClientsMatchingPaxosNamespaces() {
-        ImmutableTimeLockRuntimeConfiguration.builder()
-                .addClients(PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
-                        PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
-                .build();
+        assertClientNameAcceptable(PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE);
+        assertClientNameAcceptable(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
+    }
+
+    @Test
+    public void cannotCreateClientMatchingInternalNamespace() {
+        assertClientNameUnacceptable(PaxosTimeLockConstants.INTERNAL_NAMESPACE);
     }
 
     @Test
@@ -66,5 +92,18 @@ public class TimeLockRuntimeConfigurationTest {
         assertThatThrownBy(() -> ImmutableTimeLockRuntimeConfiguration.builder()
                 .slowLockLogTriggerMillis(-1L)
                 .build()).isInstanceOf(IllegalStateException.class);
+    }
+
+    public void assertClientNameAcceptable(String client) {
+        ImmutableTimeLockRuntimeConfiguration.builder()
+                .addClients(client)
+                .build(); // this passing means we passed validation
+    }
+
+    public void assertClientNameUnacceptable(String client) {
+        assertThatThrownBy(() -> ImmutableTimeLockRuntimeConfiguration.builder()
+                .addClients(client)
+                .build())
+                .isInstanceOf(IllegalStateException.class);
     }
 }
