@@ -259,7 +259,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 TableReference tableRef = tableReferenceFromCfDef(clusterSideCf);
                 if (metadataForTables.containsKey(tableRef)) {
                     byte[] clusterSideMetadata = metadataForTables.get(tableRef);
-                    CfDef clientSideCf = getCfForTable(tableRef, clusterSideMetadata, configManager.getConfig().gcGraceSeconds());
+                    CfDef clientSideCf = getCfForTable(tableRef, clusterSideMetadata,
+                            configManager.getConfig().gcGraceSeconds());
                     if (!ColumnFamilyDefinitions.isMatchingCf(clientSideCf, clusterSideCf)) {
                         // mismatch; we have changed how we generate schema since we last persisted
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
@@ -280,6 +281,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             Map<Cell, byte[]> emptyMetadataUpdate = ImmutableMap.of();
             if (!updatedCfs.isEmpty()) {
                 putMetadataAndMaybeAlterTables(true, emptyMetadataUpdate, updatedCfs);
+                log.debug("New table-related settings were applied on startup!!");
+            } else {
+                log.debug("No tables are being upgraded on startup. No updated table-related settings found.");
             }
         } catch (TException e) {
             log.error("Couldn't upgrade from an older internal Cassandra schema."
@@ -1325,7 +1329,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     protected CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata, int gcGraceSeconds) {
-        return ColumnFamilyDefinitions.getCfDef(configManager.getConfig().keyspace(), tableRef, gcGraceSeconds, rawMetadata);
+        return ColumnFamilyDefinitions
+                .getCfDef(configManager.getConfig().keyspace(), tableRef, gcGraceSeconds, rawMetadata);
     }
 
     // TODO(unknown): after cassandra change: handle multiRanges
@@ -1589,7 +1594,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             byte[] newMetadata = entry.getValue();
 
             // if no existing table or if existing table's metadata is different
-            if (!Arrays.equals(existingTableMetadata.get(tableReference), newMetadata)) {
+            if (metadataIsDifferent(existingTableMetadata.get(tableReference), newMetadata)) {
                 Set<TableReference> matchingTables = Sets.filter(existingTableMetadata.keySet(), existingTableRef ->
                         existingTableRef.getQualifiedName().equalsIgnoreCase(tableReference.getQualifiedName()));
 
@@ -1868,7 +1873,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private boolean updatedMetadataFound(Value existingMetadata, byte[] requestMetadata) {
-        return existingMetadata == null || !Arrays.equals(existingMetadata.getContents(), requestMetadata);
+        return existingMetadata == null || metadataIsDifferent(existingMetadata.getContents(), requestMetadata);
+    }
+
+    private boolean metadataIsDifferent(byte[] existingMetadata, byte[] requestMetadata) {
+        return !Arrays.equals(existingMetadata, requestMetadata);
     }
 
     private void putMetadataAndMaybeAlterTables(
