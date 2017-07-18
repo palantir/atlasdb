@@ -44,9 +44,16 @@ develop
     *    - Type
          - Change
 
+
     *    - |fixed|
          - Fixed an issue that could cause AtlasConsole to print unnecessary amounts of input when commands were run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2130>`__)
+
+    *    - |userbreak|
+         - Remove Cassandra config option 'safetyDisabled';
+           users should instead move to a more specific config for their situation, which are:
+	   ignoreNodeTopologyChecks, ignoreInconsistentRingChecks, ignoreDatacenterConfigurationChecks, ignorePartitionerChecks
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2024>`__)
 
     *    - |fixed|
          - ``commons-executors`` now excludes the ``safe-logging`` Java8 jar to support Java 6 clients.
