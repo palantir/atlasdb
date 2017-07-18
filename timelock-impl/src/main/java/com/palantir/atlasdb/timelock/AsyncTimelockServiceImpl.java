@@ -25,8 +25,8 @@ import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequestV2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 
@@ -55,7 +55,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         long timestamp = timestampService.getFreshTimestamp();
 
         // this will always return synchronously
-        LockTokenV2 token = lockService.lockImmutableTimestamp(request.getRequestId(), timestamp).get();
+        LockToken token = lockService.lockImmutableTimestamp(request.getRequestId(), timestamp).get();
         long immutableTs = lockService.getImmutableTimestamp().orElse(timestamp);
 
         return LockImmutableTimestampResponse.of(immutableTs, token);
@@ -68,7 +68,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public AsyncResult<LockTokenV2> lock(LockRequestV2 request) {
+    public AsyncResult<LockToken> lock(LockRequest request) {
         return lockService.lock(
                 request.getRequestId(),
                 request.getLockDescriptors(),
@@ -84,12 +84,12 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public Set<LockTokenV2> refreshLockLeases(Set<LockTokenV2> tokens) {
+    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         return lockService.refresh(tokens);
     }
 
     @Override
-    public Set<LockTokenV2> unlock(Set<LockTokenV2> tokens) {
+    public Set<LockToken> unlock(Set<LockToken> tokens) {
         return lockService.unlock(tokens);
     }
 

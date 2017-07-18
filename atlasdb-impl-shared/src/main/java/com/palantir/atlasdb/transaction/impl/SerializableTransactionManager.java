@@ -26,7 +26,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -99,7 +99,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     @Override
     protected SnapshotTransaction createTransaction(long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
-            LockTokenV2 immutableTsLock,
+            LockToken immutableTsLock,
             AdvisoryLockPreCommitCheck advisoryLockCheck) {
         return new SerializableTransaction(
                 keyValueService,

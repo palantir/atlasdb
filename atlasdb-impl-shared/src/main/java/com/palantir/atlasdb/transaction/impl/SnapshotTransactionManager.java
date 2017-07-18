@@ -49,7 +49,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -120,7 +120,7 @@ import com.palantir.timestamp.TimestampService;
         LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
                 LockImmutableTimestampRequest.create());
         try {
-            LockTokenV2 immutableTsLock = immutableTsResponse.getLock();
+            LockToken immutableTsLock = immutableTsResponse.getLock();
             long immutableTs = immutableTsResponse.getImmutableTimestamp();
             recordImmutableTimestamp(immutableTs);
             Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
@@ -158,7 +158,7 @@ import com.palantir.timestamp.TimestampService;
     protected SnapshotTransaction createTransaction(
             long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
-            LockTokenV2 immutableTsLock,
+            LockToken immutableTsLock,
             AdvisoryLockPreCommitCheck advisoryLockCheck) {
         return new SnapshotTransaction(
                 keyValueService,

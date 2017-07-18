@@ -35,18 +35,18 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequestV2;
-import com.palantir.lock.v2.LockResponseV2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 
 public class LockRefreshingTimelockServiceTest {
 
-    private static final LockTokenV2 TOKEN_1 = LockTokenV2.of(UUID.randomUUID());
-    private static final LockTokenV2 TOKEN_2 = LockTokenV2.of(UUID.randomUUID());
-    private static final Set<LockTokenV2> TOKENS = ImmutableSet.of(TOKEN_1, TOKEN_2);
+    private static final LockToken TOKEN_1 = LockToken.of(UUID.randomUUID());
+    private static final LockToken TOKEN_2 = LockToken.of(UUID.randomUUID());
+    private static final Set<LockToken> TOKENS = ImmutableSet.of(TOKEN_1, TOKEN_2);
 
     private static final Set<LockDescriptor> LOCKS = ImmutableSet.of(StringLockDescriptor.of("foo"));
 
@@ -67,8 +67,8 @@ public class LockRefreshingTimelockServiceTest {
 
     @Test
     public void registersLocks() {
-        LockRequestV2 request = LockRequestV2.of(LOCKS, TIMEOUT);
-        when(delegate.lock(request)).thenReturn(LockResponseV2.successful(TOKEN_1));
+        LockRequest request = LockRequest.of(LOCKS, TIMEOUT);
+        when(delegate.lock(request)).thenReturn(LockResponse.successful(TOKEN_1));
 
         timelock.lock(request);
 

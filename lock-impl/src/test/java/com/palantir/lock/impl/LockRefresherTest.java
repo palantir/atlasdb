@@ -31,16 +31,16 @@ import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
 public class LockRefresherTest {
 
     private static final long REFRESH_INTERVAL_MILLIS = 1234L;
 
-    private static final LockTokenV2 TOKEN_1 = LockTokenV2.of(UUID.randomUUID());
-    private static final LockTokenV2 TOKEN_2 = LockTokenV2.of(UUID.randomUUID());
-    private static final Set<LockTokenV2> TOKENS = ImmutableSet.of(TOKEN_1, TOKEN_2);
+    private static final LockToken TOKEN_1 = LockToken.of(UUID.randomUUID());
+    private static final LockToken TOKEN_2 = LockToken.of(UUID.randomUUID());
+    private static final Set<LockToken> TOKENS = ImmutableSet.of(TOKEN_1, TOKEN_2);
 
     private final DeterministicScheduler executor = new DeterministicScheduler();
     private final TimelockService timelock = mock(TimelockService.class);

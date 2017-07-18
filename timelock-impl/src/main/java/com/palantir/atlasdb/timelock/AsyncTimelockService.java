@@ -23,21 +23,21 @@ import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequestV2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 
 public interface AsyncTimelockService extends ManagedTimestampService, Closeable {
 
     long currentTimeMillis();
 
-    Set<LockTokenV2> unlock(Set<LockTokenV2> tokens);
+    Set<LockToken> unlock(Set<LockToken> tokens);
 
-    Set<LockTokenV2> refreshLockLeases(Set<LockTokenV2> tokens);
+    Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 
     AsyncResult<Void> waitForLocks(WaitForLocksRequest request);
 
-    AsyncResult<LockTokenV2> lock(LockRequestV2 request);
+    AsyncResult<LockToken> lock(LockRequest request);
 
     long getImmutableTimestamp();
 

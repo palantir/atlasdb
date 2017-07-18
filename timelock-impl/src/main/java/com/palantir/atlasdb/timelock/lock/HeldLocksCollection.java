@@ -27,14 +27,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 
 public class HeldLocksCollection {
 
     @VisibleForTesting
     final ConcurrentMap<UUID, AsyncResult<HeldLocks>> heldLocksById = Maps.newConcurrentMap();
 
-    public AsyncResult<LockTokenV2> getExistingOrAcquire(
+    public AsyncResult<LockToken> getExistingOrAcquire(
             UUID requestId,
             Supplier<AsyncResult<HeldLocks>> lockAcquirer) {
         AsyncResult<HeldLocks> locksFuture = heldLocksById.computeIfAbsent(
@@ -42,15 +42,15 @@ public class HeldLocksCollection {
         return locksFuture.map(HeldLocks::getToken);
     }
 
-    public Set<LockTokenV2> unlock(Set<LockTokenV2> tokens) {
-        Set<LockTokenV2> unlocked = filter(tokens, HeldLocks::unlock);
-        for (LockTokenV2 token : unlocked) {
+    public Set<LockToken> unlock(Set<LockToken> tokens) {
+        Set<LockToken> unlocked = filter(tokens, HeldLocks::unlock);
+        for (LockToken token : unlocked) {
             heldLocksById.remove(token.getRequestId());
         }
         return unlocked;
     }
 
-    public Set<LockTokenV2> refresh(Set<LockTokenV2> tokens) {
+    public Set<LockToken> refresh(Set<LockToken> tokens) {
         return filter(tokens, HeldLocks::refresh);
     }
 
@@ -75,10 +75,10 @@ public class HeldLocksCollection {
                 || lockResult.test(HeldLocks::unlockIfExpired);
     }
 
-    private Set<LockTokenV2> filter(Set<LockTokenV2> tokens, Predicate<HeldLocks> predicate) {
-        Set<LockTokenV2> filtered = Sets.newHashSetWithExpectedSize(tokens.size());
+    private Set<LockToken> filter(Set<LockToken> tokens, Predicate<HeldLocks> predicate) {
+        Set<LockToken> filtered = Sets.newHashSetWithExpectedSize(tokens.size());
 
-        for (LockTokenV2 token : tokens) {
+        for (LockToken token : tokens) {
             AsyncResult<HeldLocks> lockResult = heldLocksById.get(token.getRequestId());
             if (lockResult != null && lockResult.test(predicate)) {
                 filtered.add(token);

@@ -22,7 +22,7 @@ import java.util.UUID;
 import com.palantir.atlasdb.timelock.lock.LockEvents.RequestInfo;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockRequestV2;
+import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
 
 public final class LockLog {
@@ -36,7 +36,7 @@ public final class LockLog {
         slowLockThresholdMillis = thresholdMillis;
     }
 
-    public static void registerRequest(LockRequestV2 request, AsyncResult<?> result) {
+    public static void registerRequest(LockRequest request, AsyncResult<?> result) {
         registerRequest(RequestInfo.of(request), result);
     }
 

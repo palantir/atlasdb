@@ -23,9 +23,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequestV2;
-import com.palantir.lock.v2.LockResponseV2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -77,8 +77,8 @@ public class LockRefreshingTimelockService implements TimelockService {
     }
 
     @Override
-    public LockResponseV2 lock(LockRequestV2 request) {
-        LockResponseV2 response = delegate.lock(request);
+    public LockResponse lock(LockRequest request) {
+        LockResponse response = delegate.lock(request);
         if (response.wasSuccessful()) {
             lockRefresher.registerLock(response.getToken());
         }
@@ -91,12 +91,12 @@ public class LockRefreshingTimelockService implements TimelockService {
     }
 
     @Override
-    public Set<LockTokenV2> refreshLockLeases(Set<LockTokenV2> tokens) {
+    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         return delegate.refreshLockLeases(tokens);
     }
 
     @Override
-    public Set<LockTokenV2> unlock(Set<LockTokenV2> tokens) {
+    public Set<LockToken> unlock(Set<LockToken> tokens) {
         lockRefresher.unregisterLocks(tokens);
         return delegate.unlock(tokens);
     }
