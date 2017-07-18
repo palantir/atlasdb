@@ -19,7 +19,7 @@ import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
 import io.dropwizard.setup.Environment;
 
-public class TimeLockConfigMigrator {
+public final class TimeLockConfigMigrator {
     private TimeLockConfigMigrator() { /* Utility Class */ }
 
     public static CombinedTimeLockServerConfiguration convert(TimeLockServerConfiguration config,
