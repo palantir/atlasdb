@@ -166,6 +166,44 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         assertThat(cluster.timelockService().currentTimeMillis()).isGreaterThan(0L);
     }
 
+    @Test
+    public void lockRequestsAreIdempotent() {
+        if (cluster == CLUSTER_WITH_SYNC_ADAPTER) {
+            // legacy API does not support idempotence
+            return;
+        }
+
+        LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
+
+        LockRequestV2 request = requestFor(LOCK_A);
+        CompletableFuture<LockResponseV2> response = cluster.lockAsync(request);
+        CompletableFuture<LockResponseV2> duplicateResponse = cluster.lockAsync(request);
+
+        cluster.unlock(token);
+
+        assertThat(response.join()).isEqualTo(duplicateResponse.join());
+
+        cluster.unlock(response.join().getToken());
+    }
+
+    @Test
+    public void waitForLockRequestsAreIdempotent() {
+        if (cluster == CLUSTER_WITH_SYNC_ADAPTER) {
+            // legacy API does not support idempotence
+            return;
+        }
+
+        LockTokenV2 token = cluster.lock(requestFor(LOCK_A)).getToken();
+
+        WaitForLocksRequest request = waitRequestFor(LOCK_A);
+        CompletableFuture<WaitForLocksResponse> response = cluster.waitForLocksAsync(request);
+        CompletableFuture<WaitForLocksResponse> duplicateLockResponse = cluster.waitForLocksAsync(request);
+
+        cluster.unlock(token);
+
+        assertThat(response.join()).isEqualTo(duplicateLockResponse.join());
+    }
+
     private LockRequestV2 requestFor(LockDescriptor... locks) {
         return LockRequestV2.of(ImmutableSet.copyOf(locks), TIMEOUT);
     }
