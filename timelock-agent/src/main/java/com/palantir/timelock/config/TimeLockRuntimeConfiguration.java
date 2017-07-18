@@ -40,6 +40,8 @@ public abstract class TimeLockRuntimeConfiguration {
 
     @Value.Check
     public void check() {
+        Preconditions.checkState(slowLockLogTriggerMillis() >= 0,
+                "Slow lock log trigger threshold must be nonnegative, but found %s", slowLockLogTriggerMillis());
         clients().forEach(client -> Preconditions.checkState(
                 client.matches(CLIENT_NAME_REGEX),
                 "Client names must consist of alphanumeric characters, underscores, or dashes. Illegal name: %s",
