@@ -47,6 +47,7 @@ public final class Observables {
         };
     }
 
+    @SuppressWarnings("CheckReturnValue") // We won't need to unsubscribe, for our use case.
     private static <T> void subscribe(Observable<T> observable, io.reactivex.functions.Consumer<? super T> onNext) {
         observable.subscribe(onNext);
     }
