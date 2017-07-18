@@ -176,8 +176,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
 
         LockRequest request = requestFor(LOCK_A);
-        CompletableFuture<LockResponseV2> response = cluster.lockAsync(request);
-        CompletableFuture<LockResponseV2> duplicateResponse = cluster.lockAsync(request);
+        CompletableFuture<LockResponse> response = cluster.lockAsync(request);
+        CompletableFuture<LockResponse> duplicateResponse = cluster.lockAsync(request);
 
         cluster.unlock(token);
 
@@ -197,11 +197,11 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
         WaitForLocksRequest request = waitRequestFor(LOCK_A);
         CompletableFuture<WaitForLocksResponse> response = cluster.waitForLocksAsync(request);
-        CompletableFuture<WaitForLocksResponse> duplicateLockResponse = cluster.waitForLocksAsync(request);
+        CompletableFuture<WaitForLocksResponse> duplicateResponse = cluster.waitForLocksAsync(request);
 
         cluster.unlock(token);
 
-        assertThat(response.join()).isEqualTo(duplicateLockResponse.join());
+        assertThat(response.join()).isEqualTo(duplicateResponse.join());
     }
 
     private LockRequest requestFor(LockDescriptor... locks) {
