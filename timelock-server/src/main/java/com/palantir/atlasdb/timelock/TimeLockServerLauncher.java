@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.function.Consumer;
+import java.util.Map;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
