@@ -71,7 +71,7 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.util.Pair;
 
@@ -105,7 +105,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    ConflictDetectionManager conflictDetectionManager,
                                    SweepStrategyManager sweepStrategyManager,
                                    long immutableTimestamp,
-                                   Optional<LockTokenV2> immutableTsLock,
+                                   Optional<LockToken> immutableTsLock,
                                    AdvisoryLockPreCommitCheck advisoryLockCheck,
                                    AtlasDbConstraintCheckingMode constraintCheckingMode,
                                    Long transactionTimeoutMillis,

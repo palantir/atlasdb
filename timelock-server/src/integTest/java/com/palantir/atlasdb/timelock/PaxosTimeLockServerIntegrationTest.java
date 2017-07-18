@@ -60,12 +60,11 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.v2.LockRequestV2;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -110,7 +109,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
             new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
 
-    private static final LockRequest REQUEST_LOCK_WITH_LONG_TIMEOUT = LockRequest
+    private static final com.palantir.lock.LockRequest REQUEST_LOCK_WITH_LONG_TIMEOUT = com.palantir.lock.LockRequest
             .builder(ImmutableSortedMap.of(StringLockDescriptor.of("lock"), LockMode.WRITE))
             .timeoutAfter(SimpleTimeDuration.of(20, TimeUnit.SECONDS))
             .blockForAtMost(SimpleTimeDuration.of(4, TimeUnit.SECONDS))
@@ -222,7 +221,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void lockServiceShouldAllowUsToTakeOutLocks() throws InterruptedException {
         RemoteLockService lockService = getLockService(CLIENT_1);
 
-        LockRefreshToken token = lockService.lock(LOCK_CLIENT_NAME, LockRequest.builder(LOCK_MAP)
+        LockRefreshToken token = lockService.lock(LOCK_CLIENT_NAME, com.palantir.lock.LockRequest.builder(LOCK_MAP)
                 .doNotBlock()
                 .build());
 
@@ -236,10 +235,10 @@ public class PaxosTimeLockServerIntegrationTest {
         RemoteLockService lockService1 = getLockService(CLIENT_1);
         RemoteLockService lockService2 = getLockService(CLIENT_2);
 
-        LockRefreshToken token1 = lockService1.lock(LOCK_CLIENT_NAME, LockRequest.builder(LOCK_MAP)
+        LockRefreshToken token1 = lockService1.lock(LOCK_CLIENT_NAME, com.palantir.lock.LockRequest.builder(LOCK_MAP)
                 .doNotBlock()
                 .build());
-        LockRefreshToken token2 = lockService2.lock(LOCK_CLIENT_NAME, LockRequest.builder(LOCK_MAP)
+        LockRefreshToken token2 = lockService2.lock(LOCK_CLIENT_NAME, com.palantir.lock.LockRequest.builder(LOCK_MAP)
                 .doNotBlock()
                 .build());
 
@@ -255,7 +254,7 @@ public class PaxosTimeLockServerIntegrationTest {
         RemoteLockService lockService1 = getLockService(CLIENT_1);
         RemoteLockService lockService2 = getLockService(CLIENT_2);
 
-        LockRefreshToken token = lockService1.lock(LOCK_CLIENT_NAME, LockRequest.builder(LOCK_MAP)
+        LockRefreshToken token = lockService1.lock(LOCK_CLIENT_NAME, com.palantir.lock.LockRequest.builder(LOCK_MAP)
                 .doNotBlock()
                 .build());
 
@@ -270,7 +269,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void asyncLockServiceShouldAllowUsToTakeOutLocks() throws InterruptedException {
         TimelockService timelockService = getTimelockService(CLIENT_1);
 
-        LockTokenV2 token = timelockService.lock(newLockV2Request(LOCK_1)).getToken();
+        LockToken token = timelockService.lock(newLockV2Request(LOCK_1)).getToken();
 
         assertThat(timelockService.unlock(ImmutableSet.of(token))).contains(token);
     }
@@ -280,8 +279,8 @@ public class PaxosTimeLockServerIntegrationTest {
         TimelockService lockService1 = getTimelockService(CLIENT_1);
         TimelockService lockService2 = getTimelockService(CLIENT_2);
 
-        LockTokenV2 token1 = lockService1.lock(newLockV2Request(LOCK_1)).getToken();
-        LockTokenV2 token2 = lockService2.lock(newLockV2Request(LOCK_1)).getToken();
+        LockToken token1 = lockService1.lock(newLockV2Request(LOCK_1)).getToken();
+        LockToken token2 = lockService2.lock(newLockV2Request(LOCK_1)).getToken();
 
         lockService1.unlock(ImmutableSet.of(token1));
         lockService2.unlock(ImmutableSet.of(token2));
@@ -292,7 +291,7 @@ public class PaxosTimeLockServerIntegrationTest {
         TimelockService lockService1 = getTimelockService(CLIENT_1);
         TimelockService lockService2 = getTimelockService(CLIENT_2);
 
-        LockTokenV2 token = lockService1.lock(newLockV2Request(LOCK_1)).getToken();
+        LockToken token = lockService1.lock(newLockV2Request(LOCK_1)).getToken();
 
         assertThat(lockService1.refreshLockLeases(ImmutableSet.of(token))).isNotEmpty();
         assertThat(lockService2.refreshLockLeases(ImmutableSet.of(token))).isEmpty();
@@ -519,7 +518,7 @@ public class PaxosTimeLockServerIntegrationTest {
         assertThat(remoteException.getStatus()).isEqualTo(expectedStatus);
     }
 
-    private LockRequestV2 newLockV2Request(LockDescriptor lock) {
-        return LockRequestV2.of(ImmutableSet.of(lock), 10_000L);
+    private LockRequest newLockV2Request(LockDescriptor lock) {
+        return LockRequest.of(ImmutableSet.of(lock), 10_000L);
     }
 }

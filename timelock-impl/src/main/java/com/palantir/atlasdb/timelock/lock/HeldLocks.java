@@ -24,12 +24,12 @@ import javax.annotation.concurrent.GuardedBy;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 
 public class HeldLocks {
 
     private final Collection<AsyncLock> acquiredLocks;
-    private final LockTokenV2 token;
+    private final LockToken token;
     private final LeaseExpirationTimer expirationTimer;
 
     @GuardedBy("this")
@@ -42,7 +42,7 @@ public class HeldLocks {
     @VisibleForTesting
     HeldLocks(Collection<AsyncLock> acquiredLocks, UUID requestId, LeaseExpirationTimer expirationTimer) {
         this.acquiredLocks = acquiredLocks;
-        this.token = LockTokenV2.of(requestId);
+        this.token = LockToken.of(requestId);
         this.expirationTimer = expirationTimer;
     }
 
@@ -81,7 +81,7 @@ public class HeldLocks {
         return true;
     }
 
-    public LockTokenV2 getToken() {
+    public LockToken getToken() {
         return token;
     }
 

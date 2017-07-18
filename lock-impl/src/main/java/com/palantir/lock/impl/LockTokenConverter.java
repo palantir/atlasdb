@@ -22,18 +22,18 @@ import java.util.UUID;
 
 import com.google.common.base.Preconditions;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.v2.LockTokenV2;
+import com.palantir.lock.v2.LockToken;
 
 class LockTokenConverter {
     
     private LockTokenConverter() { }
 
-    static LockRefreshToken toLegacyToken(LockTokenV2 tokenV2) {
+    static LockRefreshToken toLegacyToken(LockToken tokenV2) {
         return new LockRefreshToken(toBigInteger(tokenV2.getRequestId()), Long.MIN_VALUE);
     }
 
-    static LockTokenV2 toTokenV2(LockRefreshToken legacyToken) {
-        return LockTokenV2.of(toUuid(legacyToken.getTokenId()));
+    static LockToken toTokenV2(LockRefreshToken legacyToken) {
+        return LockToken.of(toUuid(legacyToken.getTokenId()));
     }
 
     private static BigInteger toBigInteger(UUID uuid) {

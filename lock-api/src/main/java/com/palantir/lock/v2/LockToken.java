@@ -16,41 +16,23 @@
 
 package com.palantir.lock.v2;
 
-import java.util.Optional;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLockResponseV2.class)
-@JsonDeserialize(as = ImmutableLockResponseV2.class)
-public interface LockResponseV2 {
+@JsonSerialize(as = ImmutableLockToken.class)
+@JsonDeserialize(as = ImmutableLockToken.class)
+public interface LockToken {
 
     @Value.Parameter
-    Optional<LockTokenV2> getTokenOrEmpty();
+    UUID getRequestId();
 
-    @JsonIgnore
-    default boolean wasSuccessful() {
-        return getTokenOrEmpty().isPresent();
-    }
-
-    @JsonIgnore
-    default LockTokenV2 getToken() {
-        if (!wasSuccessful()) {
-            throw new IllegalStateException("This lock response was not succesful");
-        }
-        return getTokenOrEmpty().get();
-    }
-
-    static LockResponseV2 successful(LockTokenV2 token) {
-        return ImmutableLockResponseV2.of(Optional.of(token));
-    }
-
-    static LockResponseV2 timedOut() {
-        return ImmutableLockResponseV2.of(Optional.empty());
+    static LockToken of(UUID requestId) {
+        return ImmutableLockToken.of(requestId);
     }
 
 }
