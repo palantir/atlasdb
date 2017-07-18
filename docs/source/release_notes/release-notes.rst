@@ -63,6 +63,9 @@ develop
          - This version of the AtlasDB client will **require** a version of Timelock server that exposes the new ``/timelock`` endpoints. 
            Note that this only applies if running against Timelock server; clients running with embedded leader mode are not affected.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2135>`__)   
+	   
+    *    - |userbreak|
+         - The timestamp batching functionality introduced in 0.48.0 is temporarily no longer supported when running with Timelock server. We will re-enable support for this in a future release.
 
     *    - |fixed|
          - Fixed an issue that could cause AtlasConsole to print unnecessary amounts of input when commands were run.
