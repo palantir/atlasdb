@@ -15,17 +15,24 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.Set;
 import java.util.function.Consumer;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.palantir.atlasdb.factory.Leaders;
+import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
+import com.palantir.atlasdb.timelock.paxos.LeaderPingHealthCheck;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.leader.PingableLeader;
 import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
+import com.palantir.timelock.config.TimeLockInstallConfiguration;
+import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
@@ -60,5 +67,15 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
                 combined.deprecated(),
                 registrar);
         agent.createAndRegisterResources();
+
+        createLeaderPingHealthCheck(environment, combined.install());
+    }
+
+    private void createLeaderPingHealthCheck(Environment environment, TimeLockInstallConfiguration install) {
+        Set<PingableLeader> leaders = Leaders.generatePingables(
+                PaxosRemotingUtils.addProtocols(install, PaxosRemotingUtils.getClusterAddresses(install)),
+                ServiceCreator.createSslSocketFactory(PaxosRemotingUtils.getSslConfigurationOptional(install)),
+                "leader-ping-healthcheck").keySet();
+        environment.healthChecks().register("leader-ping", new LeaderPingHealthCheck(leaders));
     }
 }
