@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
+import java.util.Optional;
 import java.util.Set;
 
 import org.immutables.value.Value;
@@ -103,6 +104,11 @@ public class TimeLockServerConfiguration extends Configuration {
 
     public boolean useClientRequestLimit() {
         return useClientRequestLimit;
+    }
+
+    @Value.Default
+    public Optional<Boolean> enableClockSkewMonitorExperiment() {
+        return Optional.of(Boolean.TRUE);
     }
 
     public TimeLimiterConfiguration timeLimiterConfiguration() {
