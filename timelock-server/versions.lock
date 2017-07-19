@@ -357,6 +357,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -1418,6 +1419,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },

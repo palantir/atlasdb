@@ -297,6 +297,7 @@
         "com.palantir.atlasdb:timestamp-client": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -871,6 +872,7 @@
         "com.palantir.atlasdb:timestamp-client": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
