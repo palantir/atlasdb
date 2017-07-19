@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -26,6 +27,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -100,10 +102,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS));
+        return createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), logger);
     }
 
-    private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config) {
+    private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger logger) {
         return CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
                 CassandraContainer.LEADER_CONFIG,
@@ -137,26 +139,27 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testGcGraceSecondsUpgradeIsApplied() throws TException {
-        CassandraKeyValueService kvs = createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS));
+        Logger testLogger = mock(Logger.class);
+        CassandraKeyValueService kvs = createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), testLogger);
         //first startup same as initial - no upgrade
-        verify(logger, times(1))
-                .debug(startsWith("No tables are being upgraded on startup. No updated table-related settings found."));
+        verify(testLogger, times(1))
+                .info(startsWith("No tables are being upgraded on startup. No updated table-related settings found."));
         kvs.createTable(testTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertThatGcGraceSecondsIs(kvs, FOUR_DAYS_IN_SECONDS);
         kvs.close();
 
-        CassandraKeyValueService kvs2 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS));
+        CassandraKeyValueService kvs2 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), testLogger);
         assertThatGcGraceSecondsIs(kvs2, ONE_HOUR_IN_SECONDS);
-        kvs.close();
+        kvs2.close();
         //startup with different GC grace seconds - should upgrade
-        verify(logger, times(1))
-                .debug(startsWith("New table-related settings were applied on startup!!"));
+        verify(testLogger, times(1))
+                .info(startsWith("New table-related settings were applied on startup!!"));
 
-        CassandraKeyValueService kvs3 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS));
+        CassandraKeyValueService kvs3 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), testLogger);
         assertThatGcGraceSecondsIs(kvs3, ONE_HOUR_IN_SECONDS);
         //startup with same gc grace seconds as previous one - no upgrade
-        verify(logger, times(2))
-                .debug(startsWith("No tables are being upgraded on startup. No updated table-related settings found."));
+        verify(testLogger, times(2))
+                .info(startsWith("No tables are being upgraded on startup. No updated table-related settings found."));
         kvs3.close();
     }
 
@@ -166,7 +169,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));
-        assertThat(clusterSideCf.gc_grace_seconds == gcGraceSeconds, is(true));
+        assertThat(clusterSideCf.gc_grace_seconds, equalTo(gcGraceSeconds));
     }
 
     @Test

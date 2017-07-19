@@ -245,7 +245,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private void upgradeFromOlderInternalSchema() {
         try {
             Map<TableReference, byte[]> metadataForTables = getMetadataForTables();
-            final Collection<CfDef> updatedCfs = Lists.newArrayList();
+            final Collection<CfDef> updatedCfs = Lists.newArrayListWithExpectedSize(metadataForTables.size());
 
             List<CfDef> knownCfs = clientPool.runWithRetry(client ->
                     client.describe_keyspace(configManager.getConfig().keyspace()).getCf_defs());
@@ -277,9 +277,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             Map<Cell, byte[]> emptyMetadataUpdate = ImmutableMap.of();
             if (!updatedCfs.isEmpty()) {
                 putMetadataAndMaybeAlterTables(true, emptyMetadataUpdate, updatedCfs);
-                log.debug("New table-related settings were applied on startup!!");
+                log.info("New table-related settings were applied on startup!!");
             } else {
-                log.debug("No tables are being upgraded on startup. No updated table-related settings found.");
+                log.info("No tables are being upgraded on startup. No updated table-related settings found.");
             }
         } catch (TException e) {
             log.error("Couldn't upgrade from an older internal Cassandra schema."

@@ -47,7 +47,7 @@ develop
     *    - |improved|
          - ``gc_grace_seconds`` will now be automatically updated for services running against CassandraKVS on startup.
             We reduced ``gc_grace_seconds`` from four days to one hour in ``0.42.0`` but that is enforced for new tables and not the existing ones.
-            Updating ``gc_grace_seconds`` can be an expensive operation and products should expect the service to block for a while on startup.
+            Updating ``gc_grace_seconds`` can be an expensive operation and users should expect the service to block for a while on startup.
             However, this shouldn't be a concern unless the count of tables is in the order of 100s. If you think this will be an issue,
             please configure the ``gcGraceSeconds`` parameter in Cassandra keyValueService config to 4 days (``4 * 24 * 60 * 60``) which was the previous default.
             (`Pull Request <https://github.com/palantir/atlasdb/pull/2129>`__)
