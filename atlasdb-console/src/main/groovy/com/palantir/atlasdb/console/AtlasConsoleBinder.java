@@ -99,6 +99,7 @@ public final class AtlasConsoleBinder {
             System.out.println("\nTopics with help messages:\n"); // (authorized)
             System.out.println(help.keySet().toString()); // (authorized)
             System.out.println("\nCall help(\'topic\') to view information on a specific topic.\n"); // (authorized)
+            System.out.println("If you'd like to enable database mutations (not recommended), re-run console with the 'mutations_enabled' flag\n"); // (authorized)
             return null;
         }
 

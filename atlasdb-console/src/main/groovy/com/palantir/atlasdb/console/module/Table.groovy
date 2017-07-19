@@ -19,6 +19,8 @@ import com.google.common.collect.Iterables
 import com.palantir.atlasdb.api.TransactionToken
 import com.palantir.atlasdb.console.AtlasConsoleJoins
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
+import com.palantir.atlasdb.console.exceptions.IllegalConsoleCommandException
+import com.palantir.atlasdb.console.exceptions.InvalidTableException
 import groovy.transform.CompileStatic
 
 @CompileStatic
@@ -26,12 +28,14 @@ class Table {
     String name
     def desc = null
     AtlasConsoleServiceWrapper service
+    boolean mutationsEnabled
 
     private static int DEFAULT_JOIN_BATCH_SIZE = 10000;
 
-    Table(String name, AtlasConsoleServiceWrapper service) {
+    Table(String name, AtlasConsoleServiceWrapper service, boolean mutationsEnabled) {
         this.name = name
         this.service = service
+        this.mutationsEnabled = mutationsEnabled
     }
 
     def describe() {
@@ -249,6 +253,10 @@ class Table {
 
 
     void put(entries, TransactionToken token = service.getTransactionToken()) {
+        if (!mutationsEnabled) {
+            throw new IllegalConsoleCommandException("Database mutation is disabled. Cannot execute put(). " +
+                                                     "See help() for information on enabling mutations.")
+        }
         def query = [table:name as Object]
         List data = []
         List entryList = convertToListIfNotAlreadyList(entries)
@@ -280,6 +288,10 @@ class Table {
     }
 
     void delete(cells, TransactionToken token = service.getTransactionToken()) {
+        if (!mutationsEnabled) {
+            throw new IllegalConsoleCommandException("Database mutation is disabled. Cannot execute delete(). " +
+                                                     "See help() for information on enabling mutations.")
+        }
         def data = []
         convertToListIfNotAlreadyList(cells).each {
             def currentRowId = convertToListIfMapConvertValuesToList(it['row'])
