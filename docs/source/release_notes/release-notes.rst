@@ -37,6 +37,19 @@ develop
 
 .. replace this with the release date
 
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - ``RequestBatchingTimestampService`` now works for AtlasDB clients using TimeLock Server once again.
+           Previously in 0.49.0, clients using TimeLock Server and request batching would still request timestamps one at a time from the timelock server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/TODO>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
