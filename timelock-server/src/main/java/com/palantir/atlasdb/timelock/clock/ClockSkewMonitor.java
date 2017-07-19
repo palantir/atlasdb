@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.ExceptionRetryBehaviour;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.logsafe.SafeArg;
 
@@ -83,7 +84,7 @@ public final class ClockSkewMonitor implements Runnable {
                     runInternal();
                 }
             } catch (InterruptedException e) {
-                logger.warn("The clockSkewMonitor thread was interrupted. Please restart the service to restart"
+                logger.info("The clockSkewMonitor thread was interrupted. Please restart the service to restart"
                         + " the clock");
             }
         }
@@ -140,12 +141,12 @@ public final class ClockSkewMonitor implements Runnable {
             metricRegistry.counter(String.format("clock-skew-%s-below-counter", server)).inc();
         }
 
-        if (maxSkew > remoteSkew) {
+        if (remoteSkew > maxSkew) {
             logger.info("Remote clock pace greater than expected",
                     SafeArg.of("remoteSkew", remoteSkew), SafeArg.of("maxSkew", maxSkew));
 
             metricRegistry.histogram(String.format("clock-skew-%s-above-histogram", server))
-                    .update(maxSkew - remoteSkew);
+                    .update(remoteSkew - maxSkew);
             metricRegistry.counter(String.format("clock-skew-%s-above-counter", server)).inc();
         }
 
