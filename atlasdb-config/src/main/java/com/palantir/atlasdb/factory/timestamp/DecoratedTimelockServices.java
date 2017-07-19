@@ -20,9 +20,11 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.DynamicDecoratingProxy;
-import com.palantir.atlasdb.transaction.impl.TimestampBatchingTimelockService;
+import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
+import com.palantir.atlasdb.transaction.impl.TimestampDecoratingTimelockService;
 import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.RequestBatchingTimestampService;
 
 public final class DecoratedTimelockServices {
     private DecoratedTimelockServices() {
@@ -32,7 +34,9 @@ public final class DecoratedTimelockServices {
     public static TimelockService createTimelockServiceWithTimestampBatching(
             TimelockService timelockService, Supplier<TimestampClientConfig> configSupplier) {
         return DynamicDecoratingProxy.newProxyInstance(
-                new TimestampBatchingTimelockService(timelockService),
+                new TimestampDecoratingTimelockService(timelockService,
+                        new RequestBatchingTimestampService(
+                                new TimelockTimestampServiceAdapter(timelockService))),
                 timelockService,
                 JavaSuppliers.compose(TimestampClientConfig::enableTimestampBatching, configSupplier),
                 TimelockService.class);

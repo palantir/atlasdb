@@ -26,27 +26,26 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.timestamp.RequestBatchingTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
-public class TimestampBatchingTimelockService implements TimelockService {
+public class TimestampDecoratingTimelockService implements TimelockService {
     private final TimelockService delegate;
-    private final TimestampService batchingService;
+    private final TimestampService decoratedTimestamps;
 
-    public TimestampBatchingTimelockService(TimelockService delegate) {
+    public TimestampDecoratingTimelockService(TimelockService delegate, TimestampService decoratedTimestamps) {
         this.delegate = delegate;
-        this.batchingService = new RequestBatchingTimestampService(new TimelockTimestampServiceAdapter(delegate));
+        this.decoratedTimestamps = decoratedTimestamps;
     }
 
     @Override
     public long getFreshTimestamp() {
-        return batchingService.getFreshTimestamp();
+        return decoratedTimestamps.getFreshTimestamp();
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return batchingService.getFreshTimestamps(numTimestampsRequested);
+        return decoratedTimestamps.getFreshTimestamps(numTimestampsRequested);
     }
 
     @Override
