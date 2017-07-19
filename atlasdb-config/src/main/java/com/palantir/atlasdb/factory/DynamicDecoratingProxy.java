@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 
 import com.google.common.reflect.AbstractInvocationHandler;
 
-public class DynamicDecoratingProxy<T> extends AbstractInvocationHandler {
+public final class DynamicDecoratingProxy<T> extends AbstractInvocationHandler {
     private final T decoratedService;
     private final T defaultService;
     private final Supplier<Boolean> shouldDecorate;
