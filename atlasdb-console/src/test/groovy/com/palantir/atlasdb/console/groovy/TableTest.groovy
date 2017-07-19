@@ -1,6 +1,7 @@
 package com.palantir.atlasdb.console.groovy
 
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
+import com.palantir.atlasdb.console.exceptions.IllegalConsoleCommandException
 import com.palantir.atlasdb.console.module.Range
 import com.palantir.atlasdb.console.module.Table
 import org.junit.Assert
@@ -10,9 +11,11 @@ import static groovy.test.GroovyAssert.shouldFail
 
 import org.gmock.WithGMock
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 import com.palantir.atlasdb.api.TransactionToken
+import org.junit.rules.ExpectedException
 
 @WithGMock
 class TableTest {
@@ -37,6 +40,9 @@ class TableTest {
         (tableQuery3): serviceQuery3,
         (tableQuery4): serviceQuery4
     ]
+
+    @Rule
+    public ExpectedException exceptions = ExpectedException.none();
 
     @Before
     void setup() {
@@ -267,5 +273,23 @@ class TableTest {
             assertEquals(null, table.put([secondInput], token))
             assertEquals(null, table.put([firstInput, secondInput], token))
         }
+    }
+
+    @Test
+    void testPutFailsWhenMutationsDisabled() {
+        AtlasConsoleServiceWrapper tmpService = mock(AtlasConsoleServiceWrapper)
+        Table tmpTable = new Table(TABLE_NAME, tmpService, false)
+        def token = mock(TransactionToken)
+        exceptions.expect(IllegalConsoleCommandException.class)
+        tmpTable.put([row: 1, col: 'a', val: 11], token)
+    }
+
+    @Test
+    void testDeleteFailsWhenMutationsDisabled() {
+        AtlasConsoleServiceWrapper tmpService = mock(AtlasConsoleServiceWrapper)
+        Table tmpTable = new Table(TABLE_NAME, tmpService, false)
+        def token = mock(TransactionToken)
+        exceptions.expect(IllegalConsoleCommandException.class)
+        tmpTable.delete([row: 1, cols: 'a'], token)
     }
 }
