@@ -49,6 +49,17 @@ develop
            are now disabled. To enable them, run AtlasConsole with the ``--mutations_enabled`` flag
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2155>`__)
 
+    *    - |fixed|
+         - Fixed an issue that could cause AtlasConsole to print unnecessary amounts of input when commands were run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2130>`__)
+
+    *    - |fixed|
+         - ``commons-executors`` now excludes the ``safe-logging`` Java8 jar to support Java 6 clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2160>`__)
+
+    *    - |new|
+         - TransactionManagers exposes a method in which it is possible to specify the user agent to be used.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2162>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
