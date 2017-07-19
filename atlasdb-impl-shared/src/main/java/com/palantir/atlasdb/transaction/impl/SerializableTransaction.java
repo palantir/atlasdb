@@ -16,11 +16,11 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentMap;
@@ -71,9 +71,8 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.util.Pair;
 
 /**
@@ -99,35 +98,37 @@ public class SerializableTransaction extends SnapshotTransaction {
     final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
 
     public SerializableTransaction(KeyValueService keyValueService,
-                                   RemoteLockService lockService,
-                                   TimestampService timestampService,
+                                   TimelockService timelockService,
                                    TransactionService transactionService,
                                    Cleaner cleaner,
                                    Supplier<Long> startTimeStamp,
                                    ConflictDetectionManager conflictDetectionManager,
                                    SweepStrategyManager sweepStrategyManager,
                                    long immutableTimestamp,
-                                   Iterable<LockRefreshToken> tokensValidForCommit,
+                                   Optional<LockToken> immutableTsLock,
+                                   AdvisoryLockPreCommitCheck advisoryLockCheck,
                                    AtlasDbConstraintCheckingMode constraintCheckingMode,
                                    Long transactionTimeoutMillis,
                                    TransactionReadSentinelBehavior readSentinelBehavior,
                                    boolean allowHiddenTableAccess,
-                                   TimestampCache timestampCache) {
+                                   TimestampCache timestampCache,
+                                   long lockAcquireTimeoutMs) {
         super(keyValueService,
-              lockService,
-              timestampService,
+              timelockService,
               transactionService,
               cleaner,
               startTimeStamp,
               conflictDetectionManager,
               sweepStrategyManager,
               immutableTimestamp,
-              tokensValidForCommit,
+              immutableTsLock,
+              advisoryLockCheck,
               constraintCheckingMode,
               transactionTimeoutMillis,
               readSentinelBehavior,
               allowHiddenTableAccess,
-              timestampCache);
+              timestampCache,
+              lockAcquireTimeoutMs);
     }
 
     @Override
@@ -709,20 +710,21 @@ public class SerializableTransaction extends SnapshotTransaction {
     private Transaction getReadOnlyTransaction(final long commitTs) {
         return new SnapshotTransaction(
                 keyValueService,
-                lockService,
-                timestampService,
+                timelockService,
                 defaultTransactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(commitTs + 1),
                 ConflictDetectionManagers.createWithNoConflictDetection(),
                 sweepStrategyManager,
                 immutableTimestamp,
-                Collections.emptyList(),
+                Optional.empty(),
+                AdvisoryLockPreCommitCheck.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 transactionReadTimeoutMillis,
                 getReadSentinelBehavior(),
                 allowHiddenTableAccess,
-                timestampValidationReadCache) {
+                timestampValidationReadCache,
+                lockAcquireTimeoutMs) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

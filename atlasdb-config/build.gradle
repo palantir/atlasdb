@@ -14,6 +14,7 @@ dependencies {
     compile group: 'javax.validation', name: 'validation-api'
     compile group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
+    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'

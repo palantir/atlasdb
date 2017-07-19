@@ -94,7 +94,7 @@ class Table {
         def query = baseQuery()
         query['rows'] = [row]
         if (cols != null) {
-            cols = listify(cols).collect { listify(it) }
+            cols = convertToListIfNotAlreadyList(cols).collect { convertToListIfNotAlreadyList(it) }
             query['cols'] = cols
         }
         def result = service.getRows(query, token)['data'] as List
@@ -128,10 +128,10 @@ class Table {
      */
     List getRows(rows, cols=null, TransactionToken token = service.getTransactionToken()) {
         def query = baseQuery()
-        rows = listify(rows).collect { listifyUnlessMap(it) }
+        rows = convertToListIfNotAlreadyList(rows).collect { convertToListUnlessMap(it) }
         query['rows'] = rows
         if (cols != null) {
-            cols = listify(cols).collect { listifyUnlessMap(it) }
+            cols = convertToListIfNotAlreadyList(cols).collect { convertToListUnlessMap(it) }
             query['cols'] = cols
         }
         return service.getRows(query, token)['data'] as List
@@ -180,7 +180,7 @@ class Table {
      */
     List getCells(cells, TransactionToken token = service.getTransactionToken()) {
         def query = baseQuery()
-        def data = toListOfMaps(listify(cells), ['row', 'col'])
+        def data = toListOfMaps(convertToListIfNotAlreadyList(cells), ['row', 'col'])
         query['data'] = data
         return service.getCells(query, token)['data'] as List
     }
@@ -214,7 +214,7 @@ class Table {
         rangeInfo = (rangeInfo == null ? [:] : rangeInfo)
         def query = [table:name as Object]
         rangeInfo.each { key, value ->
-            query.put(key as String, listify(value))
+            query.put(key as String, convertToListIfNotAlreadyList(value))
         }
         return new Range(service, service.getRange(query, token) as Map, token)
     }
@@ -259,31 +259,24 @@ class Table {
         }
         def query = [table:name as Object]
         List data = []
-        List entryList = listify(entries)
+        List entryList = convertToListIfNotAlreadyList(entries)
         if (isDynamic()) {
             data = entryList.collect { elem ->
                 def map = [:]
-                map.put('row', listify(elem['row']))
-                map.put('col', listify(elem['col']))
+                map.put('row', convertToListIfMapConvertValuesToList(elem['row']))
+                map.put('col', convertToListIfNotAlreadyList(elem['col']))
                 map.put('val', elem['val'])
                 return map
             }
         }
         else {
-            Map<String, Set> colFields = columnFields()
             data = entryList.collect { entry ->
-                def result = [row: listify(entry['row'])]
+                def result = [row: convertToListIfMapConvertValuesToList(entry['row'])]
                 Map cols = entry['cols'] as Map
                 Set colNames = this.columnNames().toSet()
                 cols.each { key, value ->
                     if(!colNames.contains(key)) {
                         throw new IllegalArgumentException("Column ${key} does not exist")
-                    }
-                    Set<String> diff = []
-                    diff.addAll((value as Map).keySet())
-                    diff.removeAll(colFields[key] as Set<String>)
-                    if (!diff.isEmpty()) {
-                        throw new IllegalArgumentException("The following fields do not exist: " + diff)
                     }
                     result.put(key, value)
                 }
@@ -300,14 +293,14 @@ class Table {
                                                      "See help() for information on enabling mutations.")
         }
         def data = []
-        listify(cells).each {
-            def currentRowId = listify(it['row'])
-            def currentColIds = listify(it['cols'])
+        convertToListIfNotAlreadyList(cells).each {
+            def currentRowId = convertToListIfMapConvertValuesToList(it['row'])
+            def currentColIds = convertToListIfNotAlreadyList(it['cols'])
             //service.delete expects one entry per row/col pair,
             //we allow multiple cols per row to be consistent with put so we need to convert here
             Map baseDataEntry = [row: currentRowId]
             currentColIds.each {
-                def currentCol = isDynamic() ? listify(it) : it
+                def currentCol = isDynamic() ? convertToListIfNotAlreadyList(it) : it
                 def baseDataEntryClone = baseDataEntry.clone()
                 baseDataEntryClone['col'] = currentCol
                 data.add(baseDataEntryClone)
@@ -322,7 +315,7 @@ class Table {
         list.collect { elem ->
             def map = [:]
             for (String key in keys) {
-                map.put(key, listifyUnlessMap(elem.getAt(key)))
+                map.put(key, convertToListUnlessMap(elem.getAt(key)))
             }
             return map
         }
@@ -332,24 +325,29 @@ class Table {
         return ['table': name]
     }
 
-    private List listify(obj) {
-        (obj instanceof List ? obj : [obj]) as List
+    private List convertToListIfNotAlreadyList(obj) {
+        if (obj instanceof List) {
+            return obj as List
+        } else {
+            return [obj] as List
+        }
     }
 
-    private Object listifyUnlessMap(obj) {
+    private List convertToListIfMapConvertValuesToList(obj) {
+        if (obj instanceof List) {
+            return obj as List
+        } else if (obj instanceof Map) {
+            return obj.values() as List
+        } else {
+            return [obj] as List
+        }
+    }
+
+    private Object convertToListUnlessMap(obj) {
         if (obj instanceof Map || obj instanceof List) {
             return obj
         } else {
             return [obj]
         }
-    }
-
-    private Map<String, Set> columnFields() {
-        return this.getDescription()['columns'].inject([:]) { map, col ->
-            (map as Map)[col['long_name']] = col['value']['type']['fields'].collect { field ->
-                return field['name']
-            }.toSet()
-            return map
-        } as Map
     }
 }

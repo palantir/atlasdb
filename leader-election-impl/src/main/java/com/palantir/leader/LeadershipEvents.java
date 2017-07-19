@@ -25,6 +25,9 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
 
+import net.jcip.annotations.ThreadSafe;
+
+@ThreadSafe
 class LeadershipEvents {
 
     private static final String LEADER_LOG_NAME = "leadership";
@@ -35,6 +38,9 @@ class LeadershipEvents {
     private final Meter noQuorum;
     private final Meter proposedLeadership;
     private final Meter proposalFailure;
+    private final Meter leaderPingFailure;
+    private final Meter leaderPingTimeout;
+    private final Meter leaderPingReturnedFalse;
 
     public LeadershipEvents(MetricRegistry metrics) {
         gainedLeadership = metrics.meter("leadership.gained");
@@ -42,6 +48,9 @@ class LeadershipEvents {
         noQuorum = metrics.meter("leadership.no-quorum");
         proposedLeadership = metrics.meter("leadership.proposed");
         proposalFailure = metrics.meter("leadership.proposed.failure");
+        leaderPingFailure = metrics.meter("leadership.ping-leader.failure");
+        leaderPingTimeout = metrics.meter("leadership.ping-leader.timeout");
+        leaderPingReturnedFalse = metrics.meter("leadership.ping-leader.returned-false");
     }
 
     public void proposedLeadershipFor(long round) {
@@ -65,13 +74,26 @@ class LeadershipEvents {
         noQuorum.mark();
     }
 
+    public void leaderPingFailure(Throwable error) {
+        leaderLog.warn("Failed to ping the current leader", error);
+        leaderPingFailure.mark();
+    }
+
+    public void leaderPingTimeout() {
+        leaderLog.warn("Timed out while attempting to ping the current leader");
+        leaderPingTimeout.mark();
+    }
+
+    public void leaderPingReturnedFalse() {
+        leaderLog.info("We contacted the suspected leader, but it reported that it was no longer leading");
+        leaderPingReturnedFalse.mark();
+    }
+
     public void proposalFailure(PaxosRoundFailureException e) {
         leaderLog.warn("Leadership was not gained.\n"
                 + "We should recover automatically. If this recurs often, try to \n"
                 + "  (1) ensure that most other nodes are reachable over the network, and \n"
-                + "  (2) increase the randomWaitBeforeProposingLeadershipMs timeout in your configuration.\n"
-                + "See the debug-level leaderLog for more details.");
-        leaderLog.debug("Specifically, leadership was not gained because of the following exception", e);
+                + "  (2) increase the randomWaitBeforeProposingLeadershipMs timeout in your configuration.", e);
         proposalFailure.mark();
     }
 }

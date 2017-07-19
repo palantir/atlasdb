@@ -239,7 +239,6 @@ class TableTest {
         def secondInput = [row: [2], cols: [a: [value: 1], b: [value: 2]]]
         def secondOutput = [row: [2], a: [value: 1], b: [value: 2]]
         def thirdInput = [row: 3, cols: [a: [value: 1], c: [value: 2]]]
-        def fourthInput = [row: 4, cols: [a: [value: 1, fake_field: 0]]]
         service.put(queryize([firstOutput]), token).once()
         service.put(queryize([firstOutput, secondOutput]), token).once()
         play {
@@ -249,10 +248,6 @@ class TableTest {
                 table.put([firstInput, secondInput, thirdInput], token)
             }
             assertEquals("Column c does not exist", message.message)
-            message = shouldFail(IllegalArgumentException) {
-                table.put(fourthInput, token)
-            }
-            assertEquals("The following fields do not exist: [fake_field]", message.message)
         }
     }
 

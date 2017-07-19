@@ -14,7 +14,9 @@ clients:
   - learner
   - acceptor
 
+useAsyncLockService: true
 useClientRequestLimit: true
+useAsyncLockService: true
 
 server:
   minThreads: 1

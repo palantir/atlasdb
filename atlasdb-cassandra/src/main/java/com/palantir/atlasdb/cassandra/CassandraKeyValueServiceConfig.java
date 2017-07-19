@@ -130,7 +130,22 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     @Value.Default
-    public boolean safetyDisabled() {
+    public boolean ignoreNodeTopologyChecks() {
+        return false;
+    }
+
+    @Value.Default
+    public boolean ignoreInconsistentRingChecks() {
+        return false;
+    }
+
+    @Value.Default
+    public boolean ignoreDatacenterConfigurationChecks() {
+        return false;
+    }
+
+    @Value.Default
+    public boolean ignorePartitionerChecks() {
         return false;
     }
 

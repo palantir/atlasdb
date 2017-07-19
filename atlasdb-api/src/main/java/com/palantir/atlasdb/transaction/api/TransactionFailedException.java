@@ -20,8 +20,6 @@ package com.palantir.atlasdb.transaction.api;
  * <p>
  * Check {@link #canTransactionBeRetried()} to see if this Exception can be retried.
  * <p>
- * This method has no public constructors so {@link TransactionCommitFailedException}
- * is the only subclass that cannot be retried.
  *
  * @author carrino
  *
