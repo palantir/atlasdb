@@ -107,7 +107,7 @@ public class TimeLockServerConfiguration extends Configuration {
 
     @Value.Default
     public Optional<Boolean> enableClockSkewMonitorExperiment() {
-        return Optional.of(Boolean.TRUE);
+        return Optional.of(Boolean.FALSE);
     }
 
     public TimeLimiterConfiguration timeLimiterConfiguration() {
