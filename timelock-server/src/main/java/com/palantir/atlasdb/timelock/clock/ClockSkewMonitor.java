@@ -21,31 +21,53 @@ import static java.lang.Thread.sleep;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.logsafe.SafeArg;
 
-public class ClockSkewMonitor implements Runnable {
+/**
+ * ClockSkewMonitor keeps track of the system time of the other nodes in the cluster, and compares it to the local
+ * clock. It's purpose is to monitor if the other nodes' clock progress at the same pace as the local clock.
+ */
+public final class ClockSkewMonitor implements Runnable {
 
-    private static long sleepTimeMillis = 1_000;
-    private static long millisToNanos = 1_000_000;
-    private static long maxRequestTimeNanos = 10_000_000;
-    private static long maxInterRequestTimeNanos = 10 * sleepTimeMillis * millisToNanos;
+    private static final long sleepTimeMillis = 1_000; // 1 s
+    private static final long millisToNanos = 1_000_000; // 10^6
+    private static final long maxTimeSincePreviousRequestNanos = 10 * sleepTimeMillis * millisToNanos; // 10 s
+    private static final long maxRequestTimeNanos = 10_000_000; // 10 ms
 
-    private Logger logger = LoggerFactory.getLogger(ClockSkewMonitor.class);
-    private Map<String, ClockService> monitors;
-    private Map<String, RequestTime> previousRequests;
+    private static final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
 
-    public ClockSkewMonitor(Set<String> remoteServers, Optional<SSLSocketFactory> optionalSecurity) {
-        monitors = Maps.toMap(remoteServers,
+    private final Logger logger = LoggerFactory.getLogger(ClockSkewMonitor.class);
+    private final Map<String, ClockService> monitors;
+    private final Map<String, RequestTime> previousRequests;
+    private final Supplier<Boolean> shouldRunClockSkewMonitor;
+
+    public static ClockSkewMonitor create(Set<String> remoteServers, Optional<SSLSocketFactory> optionalSecurity,
+            Supplier<Boolean> shouldRunClockSkewMonitor) {
+        Map<String, ClockService> monitors = Maps.toMap(remoteServers,
                 (remoteServer) -> AtlasDbHttpClients.createProxy(optionalSecurity, remoteServer, ClockService.class));
-        previousRequests = Maps.toMap(remoteServers, (remoteServer) -> null);
+        Map<String, RequestTime> previousRequests = Maps.toMap(remoteServers, (remoteServer) -> null);
+
+        return new ClockSkewMonitor(monitors, previousRequests, shouldRunClockSkewMonitor);
+    }
+
+    private ClockSkewMonitor(
+            Map<String, ClockService> monitors,
+            Map<String, RequestTime> previousRequests,
+            Supplier<Boolean> shouldRunClockSkewMonitor) {
+        this.monitors = monitors;
+        this.previousRequests = previousRequests;
+        this.shouldRunClockSkewMonitor = shouldRunClockSkewMonitor;
     }
 
     @Override
@@ -53,23 +75,28 @@ public class ClockSkewMonitor implements Runnable {
         while (true) {
             try {
                 sleep(sleepTimeMillis);
+                if (shouldRunClockSkewMonitor.get()) {
+                    runInternal();
+                }
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.warn("The clockSkewMonitor thread was interrupted. Please restart the service to restart"
+                        + " the clock");
             }
+        }
+    }
 
-            for (Map.Entry<String, ClockService> entry : monitors.entrySet()) {
-                String server = entry.getKey();
-                ClockService monitor = entry.getValue();
+    private void runInternal() {
+        for (Map.Entry<String, ClockService> entry : monitors.entrySet()) {
+            String server = entry.getKey();
+            ClockService monitor = entry.getValue();
 
-                long localTimeAtStart = System.nanoTime();
-                long remoteSystemTime = monitor.getSystemTimeInNanos();
-                long localTimeAtEnd = System.nanoTime();
+            long localTimeAtStart = System.nanoTime();
+            long remoteSystemTime = monitor.getSystemTimeInNanos();
+            long localTimeAtEnd = System.nanoTime();
 
-                RequestTime previousRequest = previousRequests.get(server);
-                RequestTime newRequest = new RequestTime(localTimeAtStart, localTimeAtEnd, remoteSystemTime);
-                compareClockSkew(server, newRequest, previousRequest);
-
-            }
+            RequestTime previousRequest = previousRequests.get(server);
+            RequestTime newRequest = new RequestTime(localTimeAtStart, localTimeAtEnd, remoteSystemTime);
+            compareClockSkew(server, newRequest, previousRequest);
         }
     }
 
@@ -83,7 +110,7 @@ public class ClockSkewMonitor implements Runnable {
         long minSkew = newRequest.localTimeAtStart - previousRequest.localTimeAtEnd;
         long remoteSkew = newRequest.remoteSystemTime - previousRequest.remoteSystemTime;
 
-        if (minSkew > maxInterRequestTimeNanos) {
+        if (minSkew > maxTimeSincePreviousRequestNanos) {
             logger.debug("It's been a long time since we last queried the server."
                             + " Ignoring the skew, since it's not representative.",
                     SafeArg.of("remoteSkew", remoteSkew));
@@ -101,17 +128,31 @@ public class ClockSkewMonitor implements Runnable {
         }
 
         if (remoteSkew < minSkew) {
-            logger.debug("Remote clock skew smaller than allowed",
+            logger.info("Remote clock pace lower than expected",
                     SafeArg.of("remoteSkew", remoteSkew), SafeArg.of("minSkew", minSkew));
+
+            metricRegistry.histogram(String.format("clock-skew-%s-below-histogram", server))
+                    .update(minSkew - remoteSkew);
+            metricRegistry.counter(String.format("clock-skew-%s-below-counter", server)).inc();
         }
 
         if (maxSkew > remoteSkew) {
-            logger.debug("Remote clock skew greater than allowed",
+            logger.info("Remote clock pace greater than expected",
                     SafeArg.of("remoteSkew", remoteSkew), SafeArg.of("maxSkew", maxSkew));
+
+            metricRegistry.histogram(String.format("clock-skew-%s-above-histogram", server))
+                    .update(maxSkew - remoteSkew);
+            metricRegistry.counter(String.format("clock-skew-%s-above-counter", server)).inc();
         }
 
         previousRequests.put(server, newRequest);
-        // add to remoteSkew to some metric, along with minSkew and maxSkew.
+
+        metricRegistry.histogram(String.format("clock-pace-%s-local-min", server))
+                .update(minSkew);
+        metricRegistry.histogram(String.format("clock-pace-%s-local-max", server))
+                .update(maxSkew);
+        metricRegistry.histogram(String.format("clock-pace-%s-remote", server))
+                .update(remoteSkew);
     }
 
     private class RequestTime {
