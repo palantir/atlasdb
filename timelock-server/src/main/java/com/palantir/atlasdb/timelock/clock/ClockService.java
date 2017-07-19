@@ -25,6 +25,6 @@ import javax.ws.rs.core.MediaType;
 public interface ClockService {
     @GET
     @Path("system-time-nanos")
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     long getSystemTimeInNanos();
 }
