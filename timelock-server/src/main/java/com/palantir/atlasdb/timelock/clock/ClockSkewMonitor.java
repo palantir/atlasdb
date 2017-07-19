@@ -56,7 +56,11 @@ public final class ClockSkewMonitor implements Runnable {
             Supplier<Boolean> shouldRunClockSkewMonitor) {
         Map<String, ClockService> monitors = Maps.toMap(remoteServers,
                 (remoteServer) -> AtlasDbHttpClients.createProxy(optionalSecurity, remoteServer, ClockService.class));
-        Map<String, RequestTime> previousRequests = Maps.asMap(remoteServers, (remoteServer) -> null);
+
+        Map<String, RequestTime> previousRequests = Maps.newHashMap();
+        for (String server : remoteServers) {
+            previousRequests.put(server, null);
+        }
 
         return new ClockSkewMonitor(monitors, previousRequests, shouldRunClockSkewMonitor);
     }
