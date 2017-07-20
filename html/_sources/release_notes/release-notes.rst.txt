@@ -44,6 +44,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - ``RequestBatchingTimestampService`` now works for AtlasDB clients using TimeLock Server once again.
+           Previously in 0.49.0, clients using TimeLock Server and request batching would still request timestamps one at a time from the timelock server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/TODO>`__)
+
     *    - |improved|
          - By default, AtlasConsole database mutation commands (namely ``put()`` and ``delete()``)
            are now disabled. To enable them, run AtlasConsole with the ``--mutations_enabled`` flag
