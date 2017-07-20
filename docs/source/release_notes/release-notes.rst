@@ -53,13 +53,66 @@ develop
             (`Pull Request <https://github.com/palantir/atlasdb/pull/2129>`__)
 
     *    - |fixed|
+         - ``RequestBatchingTimestampService`` now works for AtlasDB clients using TimeLock Server once again.
+           Previously in 0.49.0, clients using TimeLock Server and request batching would still request timestamps one at a time from the timelock server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/TODO>`__)
+
+    *    - |improved|
+         - By default, AtlasConsole database mutation commands (namely ``put()`` and ``delete()``)
+           are now disabled. To enable them, run AtlasConsole with the ``--mutations_enabled`` flag
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2155>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.49.0
+=======
+
+18 July 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Timelock server now can process lock requests using async Jetty servlets, rather than blocking request threads. This leads to more stability and higher throughput during periods of heavy lock contention.
+           To enable this behavior, use the ``useAsyncLockService`` option to switch between the new and old lock service implementation. This option defaults to ``true``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2084>`__)
+           
+    *    - |devbreak| |improved|
+         - The maximum time that a transaction will block while waiting for commit locks is now configurable, and defaults to 1 minute. This can be configured via the ``transaction.lockAcquireTimeoutMillis`` option in ``AtlasDbRuntimeConfig``.
+           This differs from the previous behavior, which was to block indefinitely. However, the previous behavior can be effectively restored by configuring a large timeout.
+           If creating a ``SerializableTransactionManager`` directly, use the new constructor which accepts a timeout parameter.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2158>`__)
+           
+    *    - |devbreak|
+         - ``randomBitCount`` and ``maxAllowedBlockingDuration`` are deprecated and no longer configurable in ``LockServerOptions``. If specified, they will be silently ignored.
+           If your service relies on either of these configuration options, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2161>`__)
+           
+    *    - |userbreak|
+         - This version of the AtlasDB client will **require** a version of Timelock server that exposes the new ``/timelock`` endpoints. 
+           Note that this only applies if running against Timelock server; clients running with embedded leader mode are not affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2135>`__)   
+	   
+    *    - |userbreak|
+         - The timestamp batching functionality introduced in 0.48.0 is temporarily no longer supported when running with Timelock server. We will re-enable support for this in a future release.
+
+    *    - |fixed|
+         - Fixed the broken put() command in AtlasConsole. You should now be able to insert and update data using Console.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2140>`__)
+
+    *    - |fixed|
          - Fixed an issue that could cause AtlasConsole to print unnecessary amounts of input when commands were run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2130>`__)
 
     *    - |userbreak|
          - Remove Cassandra config option 'safetyDisabled';
            users should instead move to a more specific config for their situation, which are:
-	   ignoreNodeTopologyChecks, ignoreInconsistentRingChecks, ignoreDatacenterConfigurationChecks, ignorePartitionerChecks
+           ignoreNodeTopologyChecks, ignoreInconsistentRingChecks, ignoreDatacenterConfigurationChecks, ignorePartitionerChecks
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2024>`__)
 
     *    - |fixed|
@@ -72,9 +125,9 @@ develop
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.48.0
-======
+=======
+v0.48.0
+=======
 
 .. list-table::
     :widths: 5 40
@@ -120,9 +173,9 @@ develop
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.47.0
-======
+=======
+v0.47.0
+=======
 
 11 July 2017
 
@@ -246,17 +299,17 @@ develop
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.46.0
-======
+=======
+v0.46.0
+=======
 
 This version was skipped due to issues on release. No artifacts with this version were ever published.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.45.0
-======
+=======
+v0.45.0
+=======
 
 19 June 2017
 
@@ -353,9 +406,9 @@ This version was skipped due to issues on release. No artifacts with this versio
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.44.0
-======
+=======
+v0.44.0
+=======
 
 8 June 2017
 
@@ -426,9 +479,9 @@ This version was skipped due to issues on release. No artifacts with this versio
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.43.0
-======
+=======
+v0.43.0
+=======
 
 25 May 2017
 
@@ -494,9 +547,9 @@ This version was skipped due to issues on release. No artifacts with this versio
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
-======
-0.42.2
-======
+=======
+v0.42.2
+=======
 
 25 May 2017
 
@@ -515,9 +568,9 @@ This version was skipped due to issues on release. No artifacts with this versio
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
-======
-0.42.1
-======
+=======
+v0.42.1
+=======
 
 24 May 2017
 
@@ -536,9 +589,9 @@ This version was skipped due to issues on release. No artifacts with this versio
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
-======
-0.42.0
-======
+=======
+v0.42.0
+=======
 
 23 May 2017
 
@@ -579,9 +632,9 @@ This version was skipped due to issues on release. No artifacts with this versio
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.41.0
-======
+=======
+v0.41.0
+=======
 
 17 May 2017
 
@@ -643,9 +696,9 @@ This version was skipped due to issues on release. No artifacts with this versio
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
-======
-0.40.1
-======
+=======
+v0.40.1
+=======
 
 4 May 2017
 
@@ -690,9 +743,9 @@ This release contains (almost) exclusively baseline-related changes.
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 
-======
-0.40.0
-======
+=======
+v0.40.0
+=======
 
 28 Apr 2017
 

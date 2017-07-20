@@ -26,6 +26,7 @@ import com.palantir.atlasdb.console.AtlasConsoleModule
 import com.palantir.atlasdb.console.AtlasConsoleService
 import com.palantir.atlasdb.console.AtlasConsoleServiceImpl
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
+import com.palantir.atlasdb.console.exceptions.InvalidTableException
 import com.palantir.atlasdb.factory.TransactionManagers
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl
 import com.palantir.atlasdb.impl.TableMetadataCache
@@ -43,7 +44,7 @@ import java.util.function.Supplier
  */
 @CompileStatic
 class AtlasCoreModule implements AtlasConsoleModule {
-    private static final Map help = [
+    private static final Map helpWithoutMutations = [
             'tables': '''\
                          Use tables() to view a list of all tables in AtlasDB accessible
                          by AtlasConsole. Does not include legacy tables. Ex: tables()
@@ -142,6 +143,15 @@ class AtlasCoreModule implements AtlasConsoleModule {
                          <ROW-VALUE> here can be either a list of row component values (e.g. [0,1,2])
                          or a map including the row component names (e.g. [obj_id:0, foo_id:1, bar_id:2])
                          '''.stripIndent(),
+
+            'connect': '''\
+                          Connect to an atlas server using settings from a dropwizard yaml
+                          file. Ex:
+
+                          connect(<PATH-TO-YAML-CONFIG>)
+                          '''.stripIndent(),
+    ]
+    private static final Map mutationsHelp = [
             'put': '''\
                          Insert or update one or more rows in a table.
 
@@ -158,20 +168,16 @@ class AtlasCoreModule implements AtlasConsoleModule {
                          <TABLE>.delete([row: <ROW-VALUE>, cols: [<COL-NAME>, <COL-NAME>]])
                           '''.stripIndent(),
 
-            'connect': '''\
-                          Connect to an atlas server using settings from a dropwizard yaml
-                          file. Ex:
-
-                          connect(<PATH-TO-YAML-CONFIG>)
-                          '''.stripIndent(),
     ]
     private static final int COLUMN_PADDING = 5
 
     private AtlasConsoleServiceWrapper atlasConsoleServiceWrapper
 
-    private Map bindings;
+    private Map bindings
+    private static boolean mutationsEnabled
 
-    public AtlasCoreModule(AtlasConsoleServiceWrapper atlasConsoleServiceWrapper) {
+    public AtlasCoreModule(AtlasConsoleServiceWrapper atlasConsoleServiceWrapper, boolean mutationsEnabled) {
+        this.mutationsEnabled = mutationsEnabled
         this.atlasConsoleServiceWrapper = atlasConsoleServiceWrapper
         this.bindings = [
                 'table': this.&table,
@@ -189,20 +195,25 @@ class AtlasCoreModule implements AtlasConsoleModule {
 
     @Override
     Map<String, String> getHelp() {
-        return help;
+        if (!mutationsEnabled) {
+            return helpWithoutMutations
+        } else {
+            return helpWithoutMutations + mutationsHelp
+        }
+        return helpWithoutMutations
     }
 
     @Override
     Map<String, Closure> getBindings() {
-        return bindings;
+        return bindings
     }
 
     public connect(String yamlFilePath) {
-        setupConnection(AtlasDbConfigs.load(new File(yamlFilePath)));
+        setupConnection(AtlasDbConfigs.load(new File(yamlFilePath)))
     }
 
     public connectInline(String fileContents) {
-        setupConnection(AtlasDbConfigs.loadFromString(fileContents, null));
+        setupConnection(AtlasDbConfigs.loadFromString(fileContents, null))
     }
 
     private setupConnection(AtlasDbConfig config) {
@@ -211,7 +222,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
                 new Supplier<Optional<AtlasDbRuntimeConfig>>() {
                     @Override
                     Optional<AtlasDbRuntimeConfig> get() {
-                        return Optional.empty();
+                        return Optional.empty()
                     }
                 },
                 ImmutableSet.<Schema>of(),
@@ -236,7 +247,10 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     public Table table(String name) {
-        new Table(name, atlasConsoleServiceWrapper)
+        if (!atlasConsoleServiceWrapper.tables().contains("name")) {
+            throw new InvalidTableException("Table '" + name + "' does not exist")
+        }
+        new Table(name, atlasConsoleServiceWrapper, mutationsEnabled)
     }
 
     public startTransaction() {

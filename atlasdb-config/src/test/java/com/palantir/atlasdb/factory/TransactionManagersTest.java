@@ -91,12 +91,14 @@ public class TransactionManagersTest {
     private static final String LOCK_PATH = "/lock/current-time-millis";
     private static final MappingBuilder LOCK_MAPPING = post(urlEqualTo(LOCK_PATH));
 
-    private static final String TIMELOCK_TIMESTAMP_PATH = "/" + CLIENT + TIMESTAMP_PATH;
+    private static final String TIMELOCK_TIMESTAMP_PATH = "/" + CLIENT + "/timelock/fresh-timestamp";
     private static final MappingBuilder TIMELOCK_TIMESTAMP_MAPPING = post(urlEqualTo(TIMELOCK_TIMESTAMP_PATH));
-    private static final String TIMELOCK_TIMESTAMPS_PATH = "/" + CLIENT + "/timestamp/fresh-timestamps?number=1";
+    private static final String TIMELOCK_TIMESTAMPS_PATH = "/" + CLIENT + "/timelock/fresh-timestamps?number=1";
     private static final MappingBuilder TIMELOCK_ONE_TIMESTAMP_MAPPING = post(urlEqualTo(TIMELOCK_TIMESTAMPS_PATH));
-    private static final String TIMELOCK_LOCK_PATH = "/" + CLIENT + LOCK_PATH;
+    private static final String TIMELOCK_LOCK_PATH = "/" + CLIENT + "/timelock/current-time-millis";
     private static final MappingBuilder TIMELOCK_LOCK_MAPPING = post(urlEqualTo(TIMELOCK_LOCK_PATH));
+
+
     private static final String TIMELOCK_PING_PATH =  "/" + CLIENT + "/timestamp-management/ping";
     private static final MappingBuilder TIMELOCK_PING_MAPPING = get(urlEqualTo(TIMELOCK_PING_PATH));
     private static final String TIMELOCK_FF_PATH
@@ -176,6 +178,9 @@ public class TransactionManagersTest {
     public void userAgentsPresentOnRequestsToTimelockServer() {
         when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
 
+        availableServer.stubFor(post(urlMatching("/")).willReturn(aResponse().withStatus(200).withBody("3")));
+        availableServer.stubFor(TIMELOCK_LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("4")));
+
         verifyUserAgentOnTimelockTimestampAndLockRequests();
     }
 
@@ -222,7 +227,7 @@ public class TransactionManagersTest {
                         USER_AGENT);
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
-        lockAndTimestampServices.time().getFreshTimestamp();
+        lockAndTimestampServices.timelock().getFreshTimestamp();
         lockAndTimestampServices.lock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
@@ -260,7 +265,7 @@ public class TransactionManagersTest {
                         USER_AGENT);
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
-        lockAndTimestampServices.time().getFreshTimestamp();
+        lockAndTimestampServices.timelock().getFreshTimestamp();
         lockAndTimestampServices.lock().currentTimeMillis();
 
         availableServer.verify(0, postRequestedFor(urlMatching(TIMESTAMP_PATH))
@@ -292,7 +297,7 @@ public class TransactionManagersTest {
         when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
 
-        createLockAndTimestampServicesForConfig(config, runtimeConfig).time().getFreshTimestamp();
+        createLockAndTimestampServicesForConfig(config, runtimeConfig).timestamp().getFreshTimestamp();
 
         availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_TIMESTAMPS_PATH)));
     }
@@ -302,7 +307,7 @@ public class TransactionManagersTest {
         when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
 
-        createLockAndTimestampServicesForConfig(config, runtimeConfig).time().getFreshTimestamp();
+        createLockAndTimestampServicesForConfig(config, runtimeConfig).timelock().getFreshTimestamp();
 
         availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_TIMESTAMP_PATH)));
     }
@@ -338,9 +343,16 @@ public class TransactionManagersTest {
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
         TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                createLockAndTimestampServicesForConfig(config, runtimeConfig);
-        lockAndTimestampServices.time().getFreshTimestamp();
-        lockAndTimestampServices.lock().currentTimeMillis();
+                TransactionManagers.createLockAndTimestampServices(
+                        config,
+                        () -> ImmutableTimestampClientConfig.of(false),
+                        environment,
+                        LockServiceImpl::create,
+                        InMemoryTimestampService::new,
+                        invalidator,
+                        USER_AGENT);
+        lockAndTimestampServices.timelock().getFreshTimestamp();
+        lockAndTimestampServices.timelock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(timestampPath))
                 .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));

@@ -32,6 +32,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.TimelockService;
 
 /**
  * This {@link TransactionManager} will provide transactions that will read the most recently
@@ -160,6 +161,11 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
 
     @Override
     public LockService getLockService() {
+        return null;
+    }
+
+    @Override
+    public TimelockService getTimelockService() {
         return null;
     }
 }
