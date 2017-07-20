@@ -51,3 +51,5 @@ org.slf4j:* = 1.7.5
 org.yaml:snakeyaml = 1.12
 
 com.netflix.feign:* = 8.17.0
+
+io.reactivex.rxjava2:rxjava = 2.1.1
