@@ -49,7 +49,7 @@ import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
-import com.palantir.atlasdb.factory.timestamp.DynamicDecoratedTimestampService;
+import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -427,7 +427,7 @@ public final class TransactionManagers {
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawServices(config, env, lock, time, invalidator, userAgent);
-        return withRateLimitedTimestampService(
+        return withRequestBatchingTimestampService(
                 runtimeConfigSupplier,
                 withRefreshingLockService(lockAndTimestampServices));
     }
@@ -441,14 +441,17 @@ public final class TransactionManagers {
                 .build();
     }
 
-    private static LockAndTimestampServices withRateLimitedTimestampService(
+    private static LockAndTimestampServices withRequestBatchingTimestampService(
             java.util.function.Supplier<TimestampClientConfig> timestampClientConfigSupplier,
             LockAndTimestampServices lockAndTimestampServices) {
+        TimelockService timelockServiceWithBatching =
+                DecoratedTimelockServices.createTimelockServiceWithTimestampBatching(
+                        lockAndTimestampServices.timelock(), timestampClientConfigSupplier);
+
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .timestamp(DynamicDecoratedTimestampService.createWithRateLimiting(
-                        lockAndTimestampServices.timestamp(),
-                        timestampClientConfigSupplier))
+                .timestamp(new TimelockTimestampServiceAdapter(timelockServiceWithBatching))
+                .timelock(timelockServiceWithBatching)
                 .build();
     }
 

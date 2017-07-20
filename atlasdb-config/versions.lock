@@ -284,7 +284,10 @@
             ]
         },
         "com.palantir.atlasdb:timestamp-client": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
             "locked": "1.0.0",
@@ -789,7 +792,10 @@
             ]
         },
         "com.palantir.atlasdb:timestamp-client": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
             "locked": "1.0.0",
