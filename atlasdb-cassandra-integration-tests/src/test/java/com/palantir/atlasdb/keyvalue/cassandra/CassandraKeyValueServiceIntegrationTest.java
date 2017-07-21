@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -29,6 +30,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.nio.charset.StandardCharsets;
@@ -49,7 +51,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
@@ -75,6 +79,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private final Logger logger = mock(Logger.class);
 
     private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
+
+    private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
+    private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
+
     private byte[] tableMetadata = new TableDefinition() {
         {
             rowName();
@@ -93,10 +101,14 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Override
     protected KeyValueService getKeyValueService() {
+        return createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), logger);
+    }
+
+    private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
                 CassandraContainer.LEADER_CONFIG,
-                logger);
+                testLogger);
     }
 
     @Override
@@ -125,6 +137,41 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
+    public void testGcGraceSecondsUpgradeIsApplied() throws TException {
+        Logger testLogger = mock(Logger.class);
+        CassandraKeyValueService kvs = createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), testLogger);
+        //first startup same as initial - no upgrade
+        verify(testLogger, times(1))
+                .info(startsWith("No tables are being upgraded on startup. No updated table-related settings found."));
+        kvs.createTable(testTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        assertThatGcGraceSecondsIs(kvs, FOUR_DAYS_IN_SECONDS);
+        kvs.close();
+
+        CassandraKeyValueService kvs2 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), testLogger);
+        assertThatGcGraceSecondsIs(kvs2, ONE_HOUR_IN_SECONDS);
+        kvs2.close();
+        //startup with different GC grace seconds - should upgrade
+        verify(testLogger, times(1))
+                .info(startsWith("New table-related settings were applied on startup!!"));
+
+        CassandraKeyValueService kvs3 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), testLogger);
+        assertThatGcGraceSecondsIs(kvs3, ONE_HOUR_IN_SECONDS);
+        //startup with same gc grace seconds as previous one - no upgrade
+        verify(testLogger, times(2))
+                .info(startsWith("No tables are being upgraded on startup. No updated table-related settings found."));
+        kvs3.close();
+    }
+
+    private void assertThatGcGraceSecondsIs(CassandraKeyValueService kvs, int gcGraceSeconds) throws TException {
+        List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
+                client.describe_keyspace("atlasdb").getCf_defs());
+        CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
+                .filter(cf -> cf.getName().equals(getInternalTestTableName()))
+                .collect(Collectors.toList()));
+        assertThat(clusterSideCf.gc_grace_seconds, equalTo(gcGraceSeconds));
+    }
+
+    @Test
     public void testCfEqualityChecker() throws TException {
         CassandraKeyValueService kvs;
         if (keyValueService instanceof CassandraKeyValueService) {
@@ -143,11 +190,22 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
                 client.describe_keyspace("atlasdb").getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
-                .filter(cf -> cf.getName().equals("ns__never_seen"))
+                .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));
 
         assertTrue("After serialization and deserialization to database, Cf metadata did not match.",
-                ColumnFamilyDefinitions.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata), clusterSideCf));
+                ColumnFamilyDefinitions.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata,
+                        FOUR_DAYS_IN_SECONDS), clusterSideCf));
+    }
+
+    private ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
+        return ImmutableCassandraKeyValueServiceConfig
+                .copyOf(CassandraContainer.KVS_CONFIG)
+                .withGcGraceSeconds(gcGraceSeconds);
+    }
+
+    private String getInternalTestTableName() {
+        return testTable.getQualifiedName().replaceFirst("\\.", "__");
     }
 
     @SuppressFBWarnings("SLF4J_FORMAT_SHOULD_BE_CONST")

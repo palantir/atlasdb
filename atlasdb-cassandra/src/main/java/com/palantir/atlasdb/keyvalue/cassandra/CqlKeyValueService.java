@@ -1242,7 +1242,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         } finally {
             alterTableForCompaction(
                     tableRef,
-                    CassandraConstants.GC_GRACE_SECONDS,
+                    config.gcGraceSeconds(),
                     CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
             CqlKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables post-compaction", this);
         }
