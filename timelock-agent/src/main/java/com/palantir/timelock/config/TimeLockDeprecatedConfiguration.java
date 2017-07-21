@@ -10,7 +10,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 
 /**
  * Items in {@link TimeLockServerConfiguration} that are in neither {@link TimeLockInstallConfiguration} nor
