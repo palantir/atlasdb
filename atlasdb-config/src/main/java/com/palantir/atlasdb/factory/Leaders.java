@@ -54,6 +54,9 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 
 public final class Leaders {
+    // Random high number to not leave thread pool unbounded.
+    private static final int THREAD_POOL_SIZE = 346;
+
     private Leaders() {
         // Utility class
     }
@@ -125,7 +128,7 @@ public final class Leaders {
                 remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory, userAgent);
 
         InstrumentedExecutorService proposerExecutorService = new InstrumentedExecutorService(
-                Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                Executors.newFixedThreadPool(THREAD_POOL_SIZE, new ThreadFactoryBuilder()
                         .setNameFormat("atlas-proposer-%d")
                         .setDaemon(true)
                         .build()),
@@ -136,7 +139,7 @@ public final class Leaders {
                 leaderUuid, proposerExecutorService));
 
         InstrumentedExecutorService leaderElectionExecutor = new InstrumentedExecutorService(
-                Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                Executors.newFixedThreadPool(THREAD_POOL_SIZE, new ThreadFactoryBuilder()
                         .setNameFormat("atlas-leaders-election-%d")
                         .setDaemon(true)
                         .build()),
