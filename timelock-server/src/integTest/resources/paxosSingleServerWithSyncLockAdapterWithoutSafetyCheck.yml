@@ -15,7 +15,10 @@ clients:
   - acceptor
 
 useClientRequestLimit: true
-useAsyncLockService: false
+
+asyncLock:
+  useAsyncLockService: false
+  useLegacySafetyChecks: false
 
 server:
   minThreads: 1

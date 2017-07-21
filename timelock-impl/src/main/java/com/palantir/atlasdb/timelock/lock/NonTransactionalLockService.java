@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
+import javax.ws.rs.BadRequestException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +57,7 @@ public class NonTransactionalLockService extends ForwardingRemoteLockService {
                         + " your timelock server configuration, but note that this may cause *DATA CORRUPTION* if"
                         + " performing a rolling upgrade of an AtlasDB client to >= 0.49.0.",
                 UnsafeArg.of("client", client));
-        throw new UnsupportedOperationException("getMinLockedInVersionId() not supported on non-transactional lock"
+        throw new BadRequestException("getMinLockedInVersionId() not supported on non-transactional lock"
                 + " service. Please consult the server logs for more detail.");
     }
 }

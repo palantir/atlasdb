@@ -28,33 +28,45 @@ import com.google.common.collect.ImmutableList;
 @RunWith(Parameterized.class)
 public abstract class AbstractAsyncTimelockServiceIntegrationTest {
 
+    protected static final String LOCALHOST = "http://localhost";
     protected static final String CLIENT = "test";
 
-    protected static final TestableTimelockCluster CLUSTER_WITH_SYNC_ADAPTER = new TestableTimelockCluster(
-            "http://localhost",
-            CLIENT,
-            "paxosSingleServerWithSyncLockAdapter.yml");
     protected static final TestableTimelockCluster CLUSTER_WITH_ASYNC = new TestableTimelockCluster(
             "http://localhost",
             CLIENT,
             "paxosSingleServerWithAsyncLock.yml");
+    protected static final TestableTimelockCluster CLUSTER_WITH_SYNC_ADAPTER_WITH_CHECK = new TestableTimelockCluster(
+            LOCALHOST,
+            CLIENT,
+            "paxosSingleServerWithSyncLockAdapterWithSafetyCheck.yml");
+    protected static final TestableTimelockCluster CLUSTER_WITH_SYNC_ADAPTER_WITHOUT_CHECK =
+            new TestableTimelockCluster(
+                    "http://localhost",
+                    CLIENT,
+                    "paxosSingleServerWithSyncLockAdapterWithoutSafetyCheck.yml");
 
     @ClassRule
     public static final RuleChain ASYNC_RULE_CHAIN = CLUSTER_WITH_ASYNC.getRuleChain();
     @ClassRule
-    public static final RuleChain SYNC_RULE_CHAIN = CLUSTER_WITH_SYNC_ADAPTER.getRuleChain();
+    public static final RuleChain SYNC_CHECK_RULE_CHAIN = CLUSTER_WITH_SYNC_ADAPTER_WITH_CHECK.getRuleChain();
+    @ClassRule
+    public static final RuleChain SYNC_NO_CHECK_RULE_CHAIN = CLUSTER_WITH_SYNC_ADAPTER_WITHOUT_CHECK.getRuleChain();
 
     protected final TestableTimelockCluster cluster;
 
     @Parameterized.Parameters
     public static Collection<TestableTimelockCluster> clusters() {
         return ImmutableList.of(
-                CLUSTER_WITH_SYNC_ADAPTER,
-                CLUSTER_WITH_ASYNC);
+                CLUSTER_WITH_ASYNC,
+                CLUSTER_WITH_SYNC_ADAPTER_WITH_CHECK,
+                CLUSTER_WITH_SYNC_ADAPTER_WITHOUT_CHECK);
     }
 
     protected AbstractAsyncTimelockServiceIntegrationTest(TestableTimelockCluster cluster) {
         this.cluster = cluster;
     }
 
+    protected static boolean isUsingSyncAdapter(TestableTimelockCluster cluster) {
+        return cluster == CLUSTER_WITH_SYNC_ADAPTER_WITH_CHECK || cluster == CLUSTER_WITH_SYNC_ADAPTER_WITHOUT_CHECK;
+    }
 }

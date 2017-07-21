@@ -26,10 +26,15 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import javax.ws.rs.BadRequestException;
+
+import org.assertj.core.api.ThrowableAssert;
+import org.eclipse.jetty.http.HttpStatus;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
@@ -78,6 +83,10 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void canLockImmutableTimestamp() {
+        if (cluster == CLUSTER_WITH_SYNC_ADAPTER_WITH_CHECK) {
+            // should fail - covered by the cannotLockImmutableTimestampIfQueryingAsyncServiceViaSyncApi test
+            return;
+        }
         LockImmutableTimestampResponse response1 = cluster.timelockService()
                 .lockImmutableTimestamp(LockImmutableTimestampRequest.create());
         LockImmutableTimestampResponse response2 = cluster.timelockService()
@@ -94,11 +103,34 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     @Test
+    public void cannotLockImmutableTimestampIfQueryingAsyncServiceViaSyncApi() {
+        if (cluster != CLUSTER_WITH_SYNC_ADAPTER_WITH_CHECK) {
+            // should pass - covered by the canLockImmutableTimestamp test
+            return;
+        }
+        assertBadRequest(() -> cluster.timelockService().lockImmutableTimestamp(
+                LockImmutableTimestampRequest.create()));
+    }
+
+    @Test
     public void immutableTimestampIsGreaterThanFreshTimestampWhenNotLocked() {
+        if (cluster == CLUSTER_WITH_SYNC_ADAPTER_WITH_CHECK) {
+            // should fail - covered by the cannotRetrieveImmutableTimestampIfQueryingAsyncServiceViaSyncApi test
+            return;
+        }
         long freshTs = cluster.getFreshTimestamp();
         long immutableTs = cluster.timelockService().getImmutableTimestamp();
 
         assertThat(immutableTs).isGreaterThan(freshTs);
+    }
+
+    @Test
+    public void cannotRetrieveImmutableTimestampIfQueryingAsyncServiceViaSyncApi() {
+        if (cluster != CLUSTER_WITH_SYNC_ADAPTER_WITH_CHECK) {
+            // should pass - covered by the immutableTimestampIsGreaterThanFreshTimestampWhenNotLocked test
+            return;
+        }
+        assertBadRequest(() -> cluster.timelockService().getImmutableTimestamp());
     }
 
     @Test
@@ -148,7 +180,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void waitForLocksRequestCanTimeOut() {
-        if (cluster == CLUSTER_WITH_SYNC_ADAPTER) {
+        if (isUsingSyncAdapter(cluster)) {
             // legacy API does not support timeouts on this endpoint
             return;
         }
@@ -168,7 +200,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void lockRequestsAreIdempotent() {
-        if (cluster == CLUSTER_WITH_SYNC_ADAPTER) {
+        if (isUsingSyncAdapter(cluster)) {
             // legacy API does not support idempotence
             return;
         }
@@ -188,7 +220,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void waitForLockRequestsAreIdempotent() {
-        if (cluster == CLUSTER_WITH_SYNC_ADAPTER) {
+        if (isUsingSyncAdapter(cluster)) {
             // legacy API does not support idempotence
             return;
         }
@@ -245,4 +277,15 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         }
     }
 
+    private static void assertBadRequest(ThrowableAssert.ThrowingCallable throwingCallable) {
+        assertThatThrownBy(throwingCallable)
+                .isInstanceOf(AtlasDbRemoteException.class)
+                .satisfies(remoteException -> {
+                    AtlasDbRemoteException atlasDbRemoteException = (AtlasDbRemoteException) remoteException;
+                    assertThat(atlasDbRemoteException.getErrorName())
+                            .isEqualTo(BadRequestException.class.getCanonicalName());
+                    assertThat(atlasDbRemoteException.getStatus())
+                            .isEqualTo(HttpStatus.BAD_REQUEST_400);
+                });
+    }
 }
