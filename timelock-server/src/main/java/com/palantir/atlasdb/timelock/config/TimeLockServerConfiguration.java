@@ -109,12 +109,8 @@ public class TimeLockServerConfiguration extends Configuration {
         return timeLimiterConfiguration;
     }
 
-    public boolean useAsyncLockService() {
-        return asyncLockConfiguration.useAsyncLockService();
-    }
-
-    public boolean useLegacySafetyChecks() {
-        return asyncLockConfiguration.useLegacySafetyChecks();
+    public AsyncLockConfiguration asyncLockConfiguration() {
+        return asyncLockConfiguration;
     }
 
     public int availableThreads() {

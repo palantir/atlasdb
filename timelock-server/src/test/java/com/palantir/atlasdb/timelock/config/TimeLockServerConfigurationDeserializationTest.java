@@ -65,6 +65,9 @@ public class TimeLockServerConfigurationDeserializationTest {
 
         assertThat(configuration.timeLimiterConfiguration().enableTimeLimiting()).isTrue();
         assertThat(configuration.timeLimiterConfiguration().blockingTimeoutErrorMargin()).isEqualTo(0.03);
+
+        assertThat(configuration.asyncLockConfiguration().useAsyncLockService()).isTrue();
+        assertThat(configuration.asyncLockConfiguration().useLegacySafetyChecks()).isFalse();
     }
 
     private void assertAlgorithmConfigurationCorrect(TimeLockAlgorithmConfiguration configuration) {

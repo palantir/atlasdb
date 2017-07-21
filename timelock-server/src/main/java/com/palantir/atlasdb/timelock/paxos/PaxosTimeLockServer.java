@@ -196,7 +196,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         LockLog.setSlowLockThresholdMillis(slowLogTriggerMillis);
 
-        if (timeLockServerConfiguration.useAsyncLockService()) {
+        if (timeLockServerConfiguration.asyncLockConfiguration().useAsyncLockService()) {
             return createTimeLockServicesWithAsync(client, rawTimestampServiceSupplier, lockService);
         }
         return createLegacyTimeLockServices(rawTimestampServiceSupplier, lockService);
@@ -317,7 +317,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
         };
 
         LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions);
-        if (timeLockServerConfiguration.useLegacySafetyChecks()) {
+        if (timeLockServerConfiguration.asyncLockConfiguration().useLegacySafetyChecks()) {
             return new NonTransactionalLockService(rawLockService);
         }
         return rawLockService;
