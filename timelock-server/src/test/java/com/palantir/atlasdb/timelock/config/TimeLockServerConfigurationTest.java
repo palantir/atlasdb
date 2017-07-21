@@ -34,9 +34,9 @@ public class TimeLockServerConfigurationTest {
     private static final Set<String> CLIENTS = ImmutableSet.of("client1", "client2");
 
     private static final TimeLockServerConfiguration CONFIGURATION_WITH_REQUEST_LIMIT =
-            new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, null, true, null);
+            new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, true, null);
     private static final TimeLockServerConfiguration CONFIGURATION_WITHOUT_REQUEST_LIMIT =
-            new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, null, false, null);
+            new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, false, null);
 
     @Test
     public void shouldAddDefaultConfigurationIfNotIncluded() {
@@ -104,6 +104,6 @@ public class TimeLockServerConfigurationTest {
     }
 
     private static TimeLockServerConfiguration createSimpleConfig(ClusterConfiguration cluster, Set<String> clients) {
-        return new TimeLockServerConfiguration(null, cluster, clients, null, null, null, null);
+        return new TimeLockServerConfiguration(null, cluster, clients, null, null, null);
     }
 }

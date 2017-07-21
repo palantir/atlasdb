@@ -58,6 +58,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
@@ -316,7 +317,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
         };
 
         LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions);
-        if (timeLockServerConfiguration.useAsyncSafetyCheck()) {
+        if (timeLockServerConfiguration.useLegacySafetyChecks()) {
             return new NonTransactionalLockService(rawLockService);
         }
         return rawLockService;

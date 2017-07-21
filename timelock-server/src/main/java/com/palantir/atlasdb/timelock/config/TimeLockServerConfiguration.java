@@ -38,8 +38,7 @@ public class TimeLockServerConfiguration extends Configuration {
     private final TimeLockAlgorithmConfiguration algorithm;
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
-    private final boolean useAsyncLockService;
-    private final boolean useAsyncSafetyCheck;
+    private final AsyncLockConfiguration asyncLockConfiguration;
     private final boolean useClientRequestLimit;
     private final TimeLimiterConfiguration timeLimiterConfiguration;
 
@@ -47,8 +46,7 @@ public class TimeLockServerConfiguration extends Configuration {
             @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients,
-            @JsonProperty(value = "useAsyncLockService", required = false) Boolean useAsyncLockService,
-            @JsonProperty(value = "useAsyncSafetyCheck", required = false) Boolean useAsyncSafetyCheck,
+            @JsonProperty(value = "asyncLock", required = false) AsyncLockConfiguration asyncLockConfiguration,
             @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit,
             @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration) {
         checkClientNames(clients);
@@ -60,15 +58,15 @@ public class TimeLockServerConfiguration extends Configuration {
         this.algorithm = MoreObjects.firstNonNull(algorithm, PaxosConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
-        this.useAsyncLockService = MoreObjects.firstNonNull(useAsyncLockService, true);
-        this.useAsyncSafetyCheck = MoreObjects.firstNonNull(useAsyncSafetyCheck, true);
+        this.asyncLockConfiguration = MoreObjects.firstNonNull(
+                asyncLockConfiguration, ImmutableAsyncLockConfiguration.builder().build());
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
         this.timeLimiterConfiguration =
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
 
         if (clients.isEmpty()) {
-            log.warn("TimeLockServer initialised with an empty list of 'clients'. "
-                    + "When adding clients, you will need to amend the config and restart TimeLock.");
+            log.warn("TimeLockServer initialised with an empty list of 'clients'."
+                    + " When adding clients, you will need to amend the config and restart TimeLock.");
         }
     }
 
@@ -112,11 +110,11 @@ public class TimeLockServerConfiguration extends Configuration {
     }
 
     public boolean useAsyncLockService() {
-        return useAsyncLockService;
+        return asyncLockConfiguration.useAsyncLockService();
     }
 
-    public boolean useAsyncSafetyCheck() {
-        return useAsyncSafetyCheck;
+    public boolean useLegacySafetyChecks() {
+        return asyncLockConfiguration.useLegacySafetyChecks();
     }
 
     public int availableThreads() {
