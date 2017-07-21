@@ -61,6 +61,7 @@ public class PaxosTimeLockServerTest {
                     .build(),
             TEST_CLIENTS,
             null,
+            null,
             false,
             null);
 
