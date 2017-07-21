@@ -39,11 +39,10 @@ public abstract class AbstractAsyncTimelockServiceIntegrationTest {
             LOCALHOST,
             CLIENT,
             "paxosSingleServerWithAsyncLockCheckDisabled.yml");
-    protected static final TestableTimelockCluster CLUSTER_WITH_SYNC_ADAPTER =
-            new TestableTimelockCluster(
-                    "http://localhost",
-                    CLIENT,
-                    "paxosSingleServerWithSyncLockAdapter.yml");
+    protected static final TestableTimelockCluster CLUSTER_WITH_SYNC_ADAPTER = new TestableTimelockCluster(
+            "http://localhost",
+            CLIENT,
+            "paxosSingleServerWithSyncLockAdapter.yml");
 
     @ClassRule
     public static final RuleChain ASYNC_RULE_CHAIN = CLUSTER_WITH_ASYNC.getRuleChain();
