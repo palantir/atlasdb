@@ -49,7 +49,7 @@ final class ColumnFamilyDefinitions {
      *  Warning to developers: you must update CKVS.isMatchingCf if you update this method
      */
     @SuppressWarnings("CyclomaticComplexity")
-    static CfDef getCfDef(String keyspace, TableReference tableRef, byte[] rawMetadata) {
+    static CfDef getCfDef(String keyspace, TableReference tableRef, int gcGraceSeconds, byte[] rawMetadata) {
         Map<String, String> compressionOptions = Maps.newHashMap();
         CfDef cf = getStandardCfDef(keyspace, AbstractKeyValueService.internalTableName(tableRef));
 
@@ -116,6 +116,7 @@ final class ColumnFamilyDefinitions {
                 throw new PalantirRuntimeException("Unknown cache priority: " + cachePriority);
         }
 
+        cf.setGc_grace_seconds(gcGraceSeconds);
         cf.setBloom_filter_fp_chance(falsePositiveChance);
         cf.setCompression_options(compressionOptions);
         return cf;
@@ -133,7 +134,7 @@ final class ColumnFamilyDefinitions {
         cf.setCompaction_strategy(CassandraConstants.LEVELED_COMPACTION_STRATEGY);
         cf.setCompaction_strategy_options(ImmutableMap.of("sstable_size_in_mb", CassandraConstants.SSTABLE_SIZE_IN_MB));
         cf.setCompression_options(Maps.<String, String>newHashMap());
-        cf.setGc_grace_seconds(CassandraConstants.GC_GRACE_SECONDS);
+        cf.setGc_grace_seconds(CassandraConstants.DEFAULT_GC_GRACE_SECONDS);
 
         // explicitly set fields to default values
         cf.setCaching("KEYS_ONLY");

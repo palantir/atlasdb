@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.remoting2.config.ssl.SslConfiguration;
 
@@ -87,6 +88,15 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @Value.Default
     public int unresponsiveHostBackoffTimeSeconds() {
         return 2 * 60;
+    }
+
+    /**
+     * The gc_grace_seconds for all tables(column families). This is the maximum TTL for tombstones in Cassandra
+     * as data marked with a tombstone is removed during the normal compaction process every gc_grace_seconds.
+     */
+    @Value.Default
+    public int gcGraceSeconds() {
+        return CassandraConstants.DEFAULT_GC_GRACE_SECONDS;
     }
 
     public abstract String keyspace();
