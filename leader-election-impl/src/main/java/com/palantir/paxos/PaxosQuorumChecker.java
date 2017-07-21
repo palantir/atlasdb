@@ -122,16 +122,16 @@ public final class PaxosQuorumChecker {
         List<Throwable> toLog = Lists.newArrayList();
         boolean interrupted = false;
         List<RESPONSE> receivedResponses = new ArrayList<RESPONSE>();
-        int acksRecieved = 0;
-        int nacksRecieved = 0;
+        int acksReceived = 0;
+        int nacksReceived = 0;
 
         try {
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(remoteRequestTimeoutInSec);
             // handle responses
-            while (acksRecieved < quorumSize) {
+            while (acksReceived < quorumSize) {
                 try {
                     // check if quorum is impossible (nack quorum failure)
-                    if (shortcircuitIfQuorumImpossible && nacksRecieved > remotes.size() - quorumSize) {
+                    if (shortcircuitIfQuorumImpossible && nacksReceived > remotes.size() - quorumSize) {
                         break;
                     }
 
@@ -146,9 +146,9 @@ public final class PaxosQuorumChecker {
                     // reject invalid or repeat promises
                     RESPONSE response = responseFuture.get();
                     if (response.isSuccessful()) {
-                        acksRecieved++;
+                        acksReceived++;
                     } else {
-                        nacksRecieved++;
+                        nacksReceived++;
                     }
 
                     // record response
@@ -158,7 +158,7 @@ public final class PaxosQuorumChecker {
                     interrupted = true;
                     break;
                 } catch (ExecutionException e) {
-                    nacksRecieved++;
+                    nacksReceived++;
                     if (onlyLogOnQuorumFailure) {
                         toLog.add(e.getCause());
                     } else {
@@ -192,7 +192,7 @@ public final class PaxosQuorumChecker {
                 Thread.currentThread().interrupt();
             }
 
-            if (onlyLogOnQuorumFailure && acksRecieved < quorumSize) {
+            if (onlyLogOnQuorumFailure && acksReceived < quorumSize) {
                 for (Throwable throwable : toLog) {
                     log.warn(PAXOS_MESSAGE_ERROR, throwable);
                 }
