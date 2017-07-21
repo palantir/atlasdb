@@ -100,6 +100,7 @@ public class TimeLockServerLauncherTest {
                         .build(),
                 ImmutableSet.of(TEST_CLIENT),
                 null,
+                null,
                 false,
                 null);
     }

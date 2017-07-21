@@ -296,6 +296,18 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private CloseableRemoteLockService createTimeLimitedLockService(long slowLogTriggerMillis) {
+        CloseableRemoteLockService lockServiceWithoutTimeLimiting
+                = createMaybeNonTransactionalLockService(slowLogTriggerMillis);
+
+        if (timeLockServerConfiguration.timeLimiterConfiguration().enableTimeLimiting()) {
+            return BlockingTimeLimitedLockService.create(
+                    lockServiceWithoutTimeLimiting,
+                    BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), timeLockServerConfiguration));
+        }
+        return lockServiceWithoutTimeLimiting;
+    }
+
+    private CloseableRemoteLockService createMaybeNonTransactionalLockService(long slowLogTriggerMillis) {
         LockServerOptions lockServerOptions = new LockServerOptions() {
             @Override
             public long slowLogTriggerMillis() {
@@ -304,11 +316,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
         };
 
         LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions);
-
-        if (timeLockServerConfiguration.timeLimiterConfiguration().enableTimeLimiting()) {
-            return BlockingTimeLimitedLockService.create(
-                    rawLockService,
-                    BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), timeLockServerConfiguration));
+        if (timeLockServerConfiguration.useAsyncSafetyCheck()) {
+            return new NonTransactionalLockService(rawLockService);
         }
         return rawLockService;
     }
