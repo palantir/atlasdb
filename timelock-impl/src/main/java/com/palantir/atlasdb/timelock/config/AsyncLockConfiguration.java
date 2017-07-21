@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 
 @JsonSerialize(as = ImmutableAsyncLockConfiguration.class)
 @JsonDeserialize(as = ImmutableAsyncLockConfiguration.class)
@@ -46,6 +47,12 @@ public abstract class AsyncLockConfiguration {
     @Value.Default
     @Value.Parameter
     public boolean useLegacySafetyChecks() {
-        return true;
+        return useAsyncLockService();
+    }
+
+    @Value.Check
+    public void check() {
+        Preconditions.checkState(!(useLegacySafetyChecks() && !useAsyncLockService()),
+                "Cannot disable the legacy synchronous service without using the async lock service!");
     }
 }
