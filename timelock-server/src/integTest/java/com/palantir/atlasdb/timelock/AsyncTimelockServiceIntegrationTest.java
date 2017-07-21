@@ -83,10 +83,6 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void canLockImmutableTimestamp() {
-        if (cluster == CLUSTER_WITH_SYNC_ADAPTER_WITH_CHECK) {
-            // should fail - covered by the cannotLockImmutableTimestampIfQueryingAsyncServiceViaSyncApi test
-            return;
-        }
         LockImmutableTimestampResponse response1 = cluster.timelockService()
                 .lockImmutableTimestamp(LockImmutableTimestampRequest.create());
         LockImmutableTimestampResponse response2 = cluster.timelockService()
@@ -103,21 +99,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     @Test
-    public void cannotLockImmutableTimestampIfQueryingAsyncServiceViaSyncApi() {
-        if (cluster != CLUSTER_WITH_SYNC_ADAPTER_WITH_CHECK) {
-            // should pass - covered by the canLockImmutableTimestamp test
-            return;
-        }
-        assertBadRequest(() -> cluster.timelockService().lockImmutableTimestamp(
-                LockImmutableTimestampRequest.create()));
-    }
-
-    @Test
     public void immutableTimestampIsGreaterThanFreshTimestampWhenNotLocked() {
-        if (cluster == CLUSTER_WITH_SYNC_ADAPTER_WITH_CHECK) {
-            // should fail - covered by the cannotRetrieveImmutableTimestampIfQueryingAsyncServiceViaSyncApi test
-            return;
-        }
         long freshTs = cluster.getFreshTimestamp();
         long immutableTs = cluster.timelockService().getImmutableTimestamp();
 
@@ -125,12 +107,21 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     @Test
-    public void cannotRetrieveImmutableTimestampIfQueryingAsyncServiceViaSyncApi() {
-        if (cluster != CLUSTER_WITH_SYNC_ADAPTER_WITH_CHECK) {
-            // should pass - covered by the immutableTimestampIsGreaterThanFreshTimestampWhenNotLocked test
+    public void cannotRetrieveImmutableTimestampViaSyncApiForAsyncService() {
+        if (cluster != CLUSTER_WITH_ASYNC) {
+            // safety check only applies if the cluster is indeed async
             return;
         }
-        assertBadRequest(() -> cluster.timelockService().getImmutableTimestamp());
+        assertBadRequest(() -> cluster.lockService().getMinLockedInVersionId("foo"));
+    }
+
+    @Test
+    public void canRetrieveImmutableTimestampViaSyncApiForSyncServiceOrAsyncWithoutSafetyCheck() {
+        if (cluster == CLUSTER_WITH_ASYNC) {
+            // will fail - ensuring this fails is covered by cannotRetrieveImmutableTimestampViaSyncApiForAsyncService
+            return;
+        }
+        cluster.lockService().getMinLockedInVersionId("foo");
     }
 
     @Test
