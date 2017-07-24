@@ -76,6 +76,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.random.SecureRandomPool;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.lock.BlockingMode;
+import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.ExpiringToken;
 import com.palantir.lock.HeldLocksGrant;
@@ -111,7 +112,7 @@ import com.palantir.util.JMXUtils;
  */
 @ThreadSafe
 public final class LockServiceImpl
-        implements LockService, CloseableRemoteLockService, RemoteLockService, LockServiceImplMBean {
+        implements LockService, CloseableRemoteLockService, CloseableLockService, RemoteLockService, LockServiceImplMBean {
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
