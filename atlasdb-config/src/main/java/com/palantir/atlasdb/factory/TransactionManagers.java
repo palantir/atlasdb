@@ -58,6 +58,7 @@ import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
@@ -255,6 +256,10 @@ public final class TransactionManagers {
         for (Schema schema : allSchemas) {
             Schemas.createTablesAndIndexes(schema, kvs);
         }
+
+        // Prime the key value service with logging information.
+        // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
+        LoggingArgs.hydrate(kvs.getMetadataForTables());
 
         CleanupFollower follower = CleanupFollower.create(schemas);
 
