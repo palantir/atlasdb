@@ -62,6 +62,10 @@ develop
            are now disabled. To enable them, run AtlasConsole with the ``--mutations_enabled`` flag
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2155>`__)
 
+    *    - |fixed|
+         - For DbKvs, the ``actualValues`` field is now populated when a ``CheckAndSetException`` is thrown.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2196>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -81,23 +85,23 @@ v0.49.0
          - Timelock server now can process lock requests using async Jetty servlets, rather than blocking request threads. This leads to more stability and higher throughput during periods of heavy lock contention.
            To enable this behavior, use the ``useAsyncLockService`` option to switch between the new and old lock service implementation. This option defaults to ``true``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2084>`__)
-           
+
     *    - |devbreak| |improved|
          - The maximum time that a transaction will block while waiting for commit locks is now configurable, and defaults to 1 minute. This can be configured via the ``transaction.lockAcquireTimeoutMillis`` option in ``AtlasDbRuntimeConfig``.
            This differs from the previous behavior, which was to block indefinitely. However, the previous behavior can be effectively restored by configuring a large timeout.
            If creating a ``SerializableTransactionManager`` directly, use the new constructor which accepts a timeout parameter.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2158>`__)
-           
+
     *    - |devbreak|
          - ``randomBitCount`` and ``maxAllowedBlockingDuration`` are deprecated and no longer configurable in ``LockServerOptions``. If specified, they will be silently ignored.
            If your service relies on either of these configuration options, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2161>`__)
-           
+
     *    - |userbreak|
-         - This version of the AtlasDB client will **require** a version of Timelock server that exposes the new ``/timelock`` endpoints. 
+         - This version of the AtlasDB client will **require** a version of Timelock server that exposes the new ``/timelock`` endpoints.
            Note that this only applies if running against Timelock server; clients running with embedded leader mode are not affected.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2135>`__)   
-	   
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2135>`__)
+
     *    - |userbreak|
          - The timestamp batching functionality introduced in 0.48.0 is temporarily no longer supported when running with Timelock server. We will re-enable support for this in a future release.
 
@@ -384,12 +388,12 @@ v0.45.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2037>`__)
 
     *    - |new|
-         - The default lock timeout is now configurable. 
+         - The default lock timeout is now configurable.
            Currently, the default lock timeout is 2 minutes.
            This can cause a large delay if a lock requester's connection has died at the time it receives the lock.
            Since TransactionManagers#create provides an auto-refreshing lock service, it is safe to lower the default timeout to reduce the delay that happens in this case.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2026>`__)
-           
+
     *    - |improved|
          - The priority of logging on background sweep was increased from debug to info or warn.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
@@ -434,7 +438,7 @@ v0.44.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1970>`__)
 
     *    - |improved|
-         - Read-only transactions will no longer make a remote call to fetch a timestamp, if no work is done on the transaction. 
+         - Read-only transactions will no longer make a remote call to fetch a timestamp, if no work is done on the transaction.
            This will benefit services that execute read-only transactions around in-memory cache operations, and frequently never fall through to perform a read.
            (`Pull Request <https://github.com/palantir/1996>`__)
 
