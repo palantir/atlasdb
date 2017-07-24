@@ -247,7 +247,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     public Table table(String name) {
-        if (!atlasConsoleServiceWrapper.tables().contains("name")) {
+        if (!atlasConsoleServiceWrapper.tables().contains(name)) {
             throw new InvalidTableException("Table '" + name + "' does not exist")
         }
         new Table(name, atlasConsoleServiceWrapper, mutationsEnabled)
