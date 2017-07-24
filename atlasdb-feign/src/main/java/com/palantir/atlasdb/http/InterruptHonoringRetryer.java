@@ -30,14 +30,15 @@ public class InterruptHonoringRetryer implements Retryer {
     private final Retryer delegate = new Retryer.Default();
 
     @Override
-    public void continueOrPropagate(RetryableException e) {
-        if (e.getCause() instanceof InterruptedIOException) {
-            throw new RuntimeException(e.getCause());
+    public void continueOrPropagate(RetryableException error) {
+        if (error.getCause() instanceof InterruptedIOException) {
+            throw new RuntimeException(error.getCause());
         }
 
-        delegate.continueOrPropagate(e);
+        delegate.continueOrPropagate(error);
     }
 
+    @SuppressWarnings({"checkstyle:NoClone", "checkstyle:SuperClone"})
     @Override
     public Retryer clone() {
         return new InterruptHonoringRetryer();
