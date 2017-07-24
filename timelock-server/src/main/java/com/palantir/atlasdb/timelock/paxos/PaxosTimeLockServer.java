@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.net.InetSocketAddress;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
@@ -34,18 +35,22 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.factory.ServiceCreator;
+import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
@@ -78,6 +83,8 @@ import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.remoting2.config.ssl.SslSocketFactories;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampBoundStore;
+import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.setup.Environment;
 
@@ -186,8 +193,22 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     @Override
     public TimeLockServices createInvalidatingTimeLockServices(String client, long slowLogTriggerMillis) {
-        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = createRawPaxosBackedTimestampServiceSupplier(
-                client);
+        KeyValueServiceConfig blah = ImmutableCassandraKeyValueServiceConfig.builder()
+                .keyspace("atlasete")
+                .addServers(new InetSocketAddress("localhost", 9160))
+                .replicationFactor(1)
+                .build();
+        ServiceDiscoveringAtlasSupplier atlasFactory =
+                new ServiceDiscoveringAtlasSupplier(blah, Optional.empty()); // we are not using the timestamp service
+        Supplier<ManagedTimestampService> rawTs = () -> {
+            TimestampService ts = atlasFactory.getTimestampService();
+            Preconditions.checkState(ts instanceof TimestampManagementService, "ts not persistent");
+            return new DelegatingManagedTimestampService(ts, (TimestampManagementService) ts);
+        };
+
+
+//        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = createRawPaxosBackedTimestampServiceSupplier(
+//                client);
         RemoteLockService lockService = instrument(
                 RemoteLockService.class,
                 createLockService(slowLogTriggerMillis),
@@ -196,9 +217,9 @@ public class PaxosTimeLockServer implements TimeLockServer {
         LockLog.setSlowLockThresholdMillis(slowLogTriggerMillis);
 
         if (timeLockServerConfiguration.useAsyncLockService()) {
-            return createTimeLockServicesWithAsync(client, rawTimestampServiceSupplier, lockService);
+            return createTimeLockServicesWithAsync(client, rawTs, lockService);
         }
-        return createLegacyTimeLockServices(rawTimestampServiceSupplier, lockService);
+        return createLegacyTimeLockServices(rawTs, lockService);
     }
 
     private TimeLockServices createTimeLockServicesWithAsync(String client,
