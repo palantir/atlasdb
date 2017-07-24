@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+package com.palantir.timelock;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.ExecutorService;
@@ -24,7 +26,6 @@ import java.util.function.Supplier;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.timelock.Observables;
 
 import io.reactivex.Observable;
 import io.reactivex.schedulers.Schedulers;
