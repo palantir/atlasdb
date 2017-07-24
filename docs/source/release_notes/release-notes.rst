@@ -65,6 +65,11 @@ develop
     *    - |fixed|
          - Fixed a bug in AtlasConsole that caused valid table names to not be recognized.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2192>`__)
+           
+    *    - |new|
+         - Timelock server now supports a ``NonBlockingFileAppenderFactory`` which prevents requests from blocking if the request log queue is full. 
+           To use this appender, the ``type`` property should be set to ``non-blocking-file`` in the logging appender configuration. Note that using this appender may result in request logs being dropped.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2198>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
