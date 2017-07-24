@@ -75,6 +75,10 @@ develop
          - By default, AtlasConsole database mutation commands (namely ``put()`` and ``delete()``)
            are now disabled. To enable them, run AtlasConsole with the ``--mutations_enabled`` flag
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2155>`__)
+           
+    *    - |fixed|
+         - ``PaxosQuorumChecker`` will now interrupt outstanding requests after a quorum response has been collected. This prevents the number of paxos request threads from growing without bound.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2193>`__)
 
     *    - |improved| |devbreak|
          - OkHttp clients (created with ``FeignOkHttpClients``) will no longer silently retry connections.
