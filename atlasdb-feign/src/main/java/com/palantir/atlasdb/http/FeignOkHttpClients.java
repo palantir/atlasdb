@@ -93,7 +93,8 @@ public final class FeignOkHttpClients {
         return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, userAgent));
     }
 
-    private static okhttp3.OkHttpClient newRawOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory,
+    @VisibleForTesting
+    static okhttp3.OkHttpClient newRawOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory,
             String userAgent) {
         // Don't allow retrying on connection failures - see ticket #2194
         okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
