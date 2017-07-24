@@ -15,10 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import com.google.common.collect.ImmutableList;
+import static com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs.VAL;
+
+import java.util.List;
+
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 import com.palantir.nexus.db.sql.PalantirSqlConnection;
 
 public class UpdateExecutor {
@@ -55,8 +60,24 @@ public class UpdateExecutor {
         int updated = ((PalantirSqlConnection) conns.get()).updateCountRowsUnregisteredQuery(sqlString,
                 args);
         if (updated == 0) {
-            // right now we don't know what's actually in the db :-(
-            throw new CheckAndSetException(cell, tableRef, oldValue, ImmutableList.of());
+            throw new CheckAndSetException(cell, tableRef, oldValue, getCurrentValues(cell, ts, prefixedTableName));
         }
+    }
+
+    private List<byte[]> getCurrentValues(Cell cell, long ts, String prefixedTableName) {
+        String sqlString = "/* SELECT (" + prefixedTableName + ") */"
+                + " SELECT val FROM " + prefixedTableName
+                + " WHERE row_name = ?"
+                + " AND col_name = ?"
+                + " AND ts = ?";
+        Object[] args = new Object[] {
+                cell.getRowName(),
+                cell.getColumnName(),
+                ts
+        };
+        AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(sqlString, args);
+        List<byte[]> actualValues = Lists.newArrayList();
+        results.iterator().forEachRemaining(row -> actualValues.add(row.getBlob(VAL)));
+        return actualValues;
     }
 }
