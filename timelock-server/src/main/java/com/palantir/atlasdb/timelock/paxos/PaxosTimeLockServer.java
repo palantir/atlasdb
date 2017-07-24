@@ -63,10 +63,10 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
-import com.palantir.lock.CloseableRemoteLockService;
+import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.impl.ThreadPooledLockService;
@@ -188,8 +188,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
     public TimeLockServices createInvalidatingTimeLockServices(String client, long slowLogTriggerMillis) {
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier = createRawPaxosBackedTimestampServiceSupplier(
                 client);
-        RemoteLockService lockService = instrument(
-                RemoteLockService.class,
+        LockService lockService = instrument(
+                LockService.class,
                 createLockService(slowLogTriggerMillis),
                 client);
 
@@ -202,7 +202,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private TimeLockServices createTimeLockServicesWithAsync(String client,
-            Supplier<ManagedTimestampService> rawTimestampServiceSupplier, RemoteLockService lockService) {
+            Supplier<ManagedTimestampService> rawTimestampServiceSupplier, LockService lockService) {
         AsyncTimelockService asyncTimelockService = instrument(
                 AsyncTimelockService.class,
                 createAsyncTimelockService(client, rawTimestampServiceSupplier),
@@ -247,7 +247,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     private TimeLockServices createLegacyTimeLockServices(
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
-            RemoteLockService lockService) {
+            LockService lockService) {
         log.info("Creating non-async timelock service.");
         ManagedTimestampService timestampService = AwaitingLeadershipProxy.newProxyInstance(
                 ManagedTimestampService.class,
@@ -265,15 +265,15 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 timestampService);
     }
 
-    private RemoteLockService createLockService(long slowLogTriggerMillis) {
+    private LockService createLockService(long slowLogTriggerMillis) {
         return AwaitingLeadershipProxy.newProxyInstance(
-                RemoteLockService.class,
+                LockService.class,
                 () -> createThreadPoolingLockService(slowLogTriggerMillis),
                 leaderElectionService);
     }
 
-    private CloseableRemoteLockService createThreadPoolingLockService(long slowLogTriggerMillis) {
-        CloseableRemoteLockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(
+    private CloseableLockService createThreadPoolingLockService(long slowLogTriggerMillis) {
+        CloseableLockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(
                 slowLogTriggerMillis);
 
         if (!timeLockServerConfiguration.useClientRequestLimit()) {
@@ -295,7 +295,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
         return new ThreadPooledLockService(lockServiceNotUsingThreadPooling, localThreadPoolSize, sharedThreadPool);
     }
 
-    private CloseableRemoteLockService createTimeLimitedLockService(long slowLogTriggerMillis) {
+    private CloseableLockService createTimeLimitedLockService(long slowLogTriggerMillis) {
         LockServerOptions lockServerOptions = new LockServerOptions() {
             @Override
             public long slowLogTriggerMillis() {

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -32,15 +33,21 @@ import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
+import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.CloseableRemoteLockService;
+import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockResponse;
+import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class BlockingTimeLimitedLockService implements CloseableRemoteLockService {
+public class BlockingTimeLimitedLockService implements CloseableLockService {
     private static final Logger log = LoggerFactory.getLogger(BlockingTimeLimitedLockService.class);
 
     private final CloseableRemoteLockService delegate;
@@ -92,6 +99,79 @@ public class BlockingTimeLimitedLockService implements CloseableRemoteLockServic
     @Override
     public Long getMinLockedInVersionId(@PathParam("client") String client) {
         return delegate.getMinLockedInVersionId(client);
+    }
+
+    @Override
+    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
+        return null;
+    }
+
+    @Override
+    public boolean unlock(HeldLocksToken token) {
+        return false;
+    }
+
+    @Override
+    public boolean unlockSimple(SimpleHeldLocksToken token) {
+        return false;
+    }
+
+    @Override
+    public boolean unlockAndFreeze(HeldLocksToken token) {
+        return false;
+    }
+
+    @Override
+    public Set<HeldLocksToken> getTokens(LockClient client) {
+        return null;
+    }
+
+    @Override
+    public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public HeldLocksGrant refreshGrant(HeldLocksGrant grant) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public HeldLocksGrant refreshGrant(BigInteger grantId) {
+        return null;
+    }
+
+    @Override
+    public HeldLocksGrant convertToGrant(HeldLocksToken token) {
+        return null;
+    }
+
+    @Override
+    public HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant) {
+        return null;
+    }
+
+    @Override
+    public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Long getMinLockedInVersionId() {
+        return null;
+    }
+
+    @Override
+    public Long getMinLockedInVersionId(LockClient client) {
+        return null;
+    }
+
+    @Override
+    public LockServerOptions getLockServerOptions() {
+        return null;
     }
 
     @Override
