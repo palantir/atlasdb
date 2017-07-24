@@ -48,7 +48,7 @@ public final class PaxosQuorumChecker {
     // responses
     private static final ScheduledExecutorService CANCELLATION_EXECUTOR = Executors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory("paxos-quorum-checker-canceller", true));
-    private static final long OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS = 10;
+    private static final long OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS = 2;
 
     private PaxosQuorumChecker() {
         // Private constructor. Disallow instantiation.
@@ -223,7 +223,7 @@ public final class PaxosQuorumChecker {
             for (Future<?> future : responseFutures) {
                 future.cancel(true);
             }
-        }, 10, TimeUnit.MILLISECONDS);
+        }, OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
     }
 
     public static boolean hasQuorum(List<? extends PaxosResponse> responses, int quorumSize) {
