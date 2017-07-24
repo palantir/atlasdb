@@ -68,6 +68,10 @@ develop
            If you require silent retry, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/TODO>`__)
 
+    *    - |fixed|
+         - Fixed a bug in AtlasConsole that caused valid table names to not be recognized.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2192>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
