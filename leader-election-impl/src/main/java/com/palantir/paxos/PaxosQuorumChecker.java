@@ -21,7 +21,9 @@ import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -30,7 +32,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.palantir.common.concurrent.NamedThreadFactory;
 
 public final class PaxosQuorumChecker {
 
@@ -39,6 +43,12 @@ public final class PaxosQuorumChecker {
     private static final String PAXOS_MESSAGE_ERROR =
                     "We encountered an error while trying to request an acknowledgement from another paxos node. " +
                     "This could mean the node is down, or we cannot connect to it for some other reason.";
+
+    // used to cancel outstanding reqeusts after we have already achieved a quorum or otherwise finished collecting
+    // responses
+    private static final ScheduledExecutorService CANCELLATION_EXECUTOR = Executors.newSingleThreadScheduledExecutor(
+            new NamedThreadFactory("paxos-quorum-checker-canceller", true));
+    private static final long OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS = 10;
 
     private PaxosQuorumChecker() {
         // Private constructor. Disallow instantiation.
@@ -183,9 +193,7 @@ public final class PaxosQuorumChecker {
 
         } finally {
             // cancel pending futures (during failures)
-            for (Future<RESPONSE> future : allFutures) {
-                future.cancel(true);
-            }
+            cancelOutstandingRequestsAfterTimeout(allFutures);
 
             // reset interrupted flag
             if (interrupted) {
@@ -200,6 +208,22 @@ public final class PaxosQuorumChecker {
         }
 
         return receivedResponses;
+    }
+
+    private static <RESPONSE extends PaxosResponse> void cancelOutstandingRequestsAfterTimeout(
+            List<Future<RESPONSE>> responseFutures) {
+        boolean areAllRequestsComplete = Iterables.all(responseFutures, Future::isDone);
+        if (areAllRequestsComplete) {
+            return;
+        }
+
+        // give the remaining tasks some time to finish before interrupting them; this reduces overhead of
+        // throwing exceptions
+        CANCELLATION_EXECUTOR.schedule(() -> {
+            for (Future<?> future : responseFutures) {
+                future.cancel(true);
+            }
+        }, 10, TimeUnit.MILLISECONDS);
     }
 
     public static boolean hasQuorum(List<? extends PaxosResponse> responses, int quorumSize) {
