@@ -1,0 +1,25 @@
+algorithm:
+  type: paxos
+  paxosDataDir: <TEMP_DATA_DIR>
+
+cluster:
+  localServer: localhost:9030
+  servers:
+    - localhost:9030
+
+clients:
+  - test
+
+server:
+  requestLog:
+    appenders:
+      - archivedFileCount: 10
+        maxFileSize: 1GB
+        archivedLogFilenamePattern: "var/log/timelock-server-request-%i.log.gz"
+        currentLogFilename: var/log/timelock-server-request.log
+        threshold: INFO
+        timeZone: UTC
+        type: non-blocking-file
+  applicationConnectors:
+    - type: http
+      port: 9030
