@@ -19,7 +19,6 @@ package com.palantir.timelock.paxos;
 import java.util.function.Consumer;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -33,7 +32,6 @@ import com.palantir.timelock.TimeLockAgent;
 import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
-import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
@@ -107,13 +105,6 @@ public class PaxosAgent extends TimeLockAgent {
                 client);
 
         return TimeLockServices.create(timestampService, lockService, timestampService);
-    }
-
-    @Override
-    protected boolean configurationFilter(TimeLockRuntimeConfiguration runtimeConfiguration) {
-        // Note: Allow empty, in which case we use the default params
-        return !runtimeConfiguration.algorithm().isPresent()
-                || runtimeConfiguration.algorithm().get() instanceof PaxosRuntimeConfiguration;
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {
