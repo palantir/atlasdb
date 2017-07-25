@@ -62,9 +62,16 @@ develop
            are now disabled. To enable them, run AtlasConsole with the ``--mutations_enabled`` flag
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2155>`__)
 
+    *    - |improved| |devbreak|
+         - OkHttp clients (created with ``FeignOkHttpClients``) will no longer silently retry connections.
+           We have already implemented retries, including retries from connection failures, at the Feign level in ``FailoverFeignTarget``.
+           If you require silent retry, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/TODO>`__)
+
     *    - |fixed|
          - Fixed a bug in AtlasConsole that caused valid table names to not be recognized.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2192>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

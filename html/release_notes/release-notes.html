@@ -217,7 +217,13 @@ Previously in 0.49.0, clients using TimeLock Server and request batching would s
 are now disabled. To enable them, run AtlasConsole with the <code class="docutils literal"><span class="pre">--mutations_enabled</span></code> flag
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2155">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>OkHttp clients (created with <code class="docutils literal"><span class="pre">FeignOkHttpClients</span></code>) will no longer silently retry connections.
+We have already implemented retries, including retries from connection failures, at the Feign level in <code class="docutils literal"><span class="pre">FailoverFeignTarget</span></code>.
+If you require silent retry, please contact the AtlasDB team.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/TODO">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug in AtlasConsole that caused valid table names to not be recognized.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2192">Pull Request</a>)</td>
 </tr>
