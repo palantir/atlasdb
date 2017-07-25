@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -84,6 +85,7 @@ public final class ClockSkewMonitor {
                             runInternal();
                         }
                     } catch (Throwable t) {
+                        METRIC_REGISTRY.counter("clock-monitor-exception-counter").inc();
                         log.warn("ClockSkewMonitor threw an exception", t);
                     }
                 }, SLEEP_TIME_SECONDS, TimeUnit.SECONDS
@@ -111,6 +113,13 @@ public final class ClockSkewMonitor {
         long maxElapsedTime = newRequest.localTimeAtEnd - previousRequest.localTimeAtStart;
         long minElapsedTime = newRequest.localTimeAtStart - previousRequest.localTimeAtEnd;
         long remoteElapsedTime = newRequest.remoteSystemTime - previousRequest.remoteSystemTime;
+
+        Preconditions.checkArgument(maxElapsedTime > 0,
+                "Apart from overflow, we expect a positive maxElapsedTime");
+        Preconditions.checkArgument(minElapsedTime > 0,
+                "Apart from overflow, we expect a positive minElapsedTime");
+        Preconditions.checkArgument(remoteElapsedTime > 0,
+                "Apart from overflow, we expect a positive remoteElapsedTime");
 
         if (minElapsedTime > MAX_TIME_SINCE_PREVIOUS_REQUEST_NANOS) {
             log.debug("It's been a long time since we last queried the server."
