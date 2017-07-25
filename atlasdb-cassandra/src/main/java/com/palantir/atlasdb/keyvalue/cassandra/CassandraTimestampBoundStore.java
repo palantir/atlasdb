@@ -134,9 +134,13 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     public synchronized void storeUpperLimit(final long limit) {
         DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
 
-        clientPool.runWithRetry((FunctionCheckedException<Client, Void, RuntimeException>) client -> {
-            cas(client, currentLimit, limit);
-            return null;
+        clientPool.runWithRetry(new FunctionCheckedException<Client, Void, RuntimeException>() {
+            @GuardedBy("CassandraTimestampBoundStore.this")
+            @Override
+            public Void apply(Client client) {
+                cas(client, currentLimit, limit);
+                return null;
+            }
         });
     }
 
