@@ -26,4 +26,4 @@ timeLimiter:
 
 asyncLock:
   useAsyncLockService: true
-  useLegacySafetyChecks: false
+  disableLegacySafetyChecksWarningPotentialDataCorruption: false

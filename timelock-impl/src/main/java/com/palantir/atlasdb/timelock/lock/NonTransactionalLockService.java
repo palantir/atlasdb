@@ -52,10 +52,7 @@ public class NonTransactionalLockService extends ForwardingRemoteLockService {
         log.warn("Client {} attempted to getMinLockedInVersionId() on a non-transactional lock service!"
                         + " If you are using async timelock, this suggests that one of your AtlasDB clients still"
                         + " expects synchronous lock (i.e. is on a version of AtlasDB prior to 0.49.0). Please check"
-                        + " that all AtlasDB clients are using AtlasDB >= 0.49.0."
-                        + " This check may be disabled by explicitly setting 'useAsyncSafetyCheck' to false in"
-                        + " your timelock server configuration, but note that this may cause *DATA CORRUPTION* if"
-                        + " performing a rolling upgrade of an AtlasDB client to >= 0.49.0.",
+                        + " that all AtlasDB clients are using AtlasDB >= 0.49.0.",
                 UnsafeArg.of("client", client));
         throw new BadRequestException("getMinLockedInVersionId() not supported on non-transactional lock"
                 + " service. Please consult the server logs for more detail.");

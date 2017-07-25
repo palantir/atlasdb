@@ -46,13 +46,13 @@ public abstract class AsyncLockConfiguration {
      */
     @Value.Default
     @Value.Parameter
-    public boolean useLegacySafetyChecks() {
-        return useAsyncLockService();
+    public boolean disableLegacySafetyChecksWarningPotentialDataCorruption() {
+        return !useAsyncLockService();
     }
 
     @Value.Check
     public void check() {
-        Preconditions.checkState(!(useLegacySafetyChecks() && !useAsyncLockService()),
-                "Cannot disable the legacy synchronous service without using the async lock service!");
+        Preconditions.checkState(disableLegacySafetyChecksWarningPotentialDataCorruption() || useAsyncLockService(),
+                "Cannot enable legacy safety checks without using the async lock service!");
     }
 }

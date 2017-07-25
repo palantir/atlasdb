@@ -32,7 +32,7 @@ public class AsyncLockConfigurationTest {
         AsyncLockConfiguration configuration = ImmutableAsyncLockConfiguration.builder()
                 .useAsyncLockService(true)
                 .build();
-        assertThat(configuration.useLegacySafetyChecks()).isTrue();
+        assertThat(configuration.disableLegacySafetyChecksWarningPotentialDataCorruption()).isTrue();
     }
 
     @Test
@@ -40,7 +40,7 @@ public class AsyncLockConfigurationTest {
         AsyncLockConfiguration configuration = ImmutableAsyncLockConfiguration.builder()
                 .useAsyncLockService(false)
                 .build();
-        assertThat(configuration.useLegacySafetyChecks()).isFalse();
+        assertThat(configuration.disableLegacySafetyChecksWarningPotentialDataCorruption()).isFalse();
     }
 
     @Test

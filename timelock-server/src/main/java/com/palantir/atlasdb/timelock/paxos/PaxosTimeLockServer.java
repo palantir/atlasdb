@@ -317,10 +317,11 @@ public class PaxosTimeLockServer implements TimeLockServer {
         };
 
         LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions);
-        if (timeLockServerConfiguration.asyncLockConfiguration().useLegacySafetyChecks()) {
-            return new NonTransactionalLockService(rawLockService);
+        if (timeLockServerConfiguration.asyncLockConfiguration()
+                .disableLegacySafetyChecksWarningPotentialDataCorruption()) {
+            return rawLockService;
         }
-        return rawLockService;
+        return new NonTransactionalLockService(rawLockService);
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {
