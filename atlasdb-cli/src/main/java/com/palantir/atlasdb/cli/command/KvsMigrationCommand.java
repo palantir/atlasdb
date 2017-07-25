@@ -136,9 +136,8 @@ public class KvsMigrationCommand implements Callable<Integer> {
                     threads,
                     batchSize,
                     ImmutableMap.of(),
-                    (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
-                        printer.info(level.toString() + ": " + message);
-                    },
+                    (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) ->
+                            printer.info(level.toString() + ": " + message),
                     ImmutableSet.of());
             validator.validate(true);
         }
