@@ -94,7 +94,7 @@ public class PaxosAgent extends TimeLockAgent {
     }
 
     @Override
-    public TimeLockServices createInvalidatingTimeLockServices(String client) {
+    protected TimeLockServices createInvalidatingTimeLockServices(String client) {
         ManagedTimestampService timestampService = instrument(
                 ManagedTimestampService.class,
                 leadershipAgent.wrapInLeadershipProxy(

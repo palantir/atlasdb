@@ -62,7 +62,7 @@ public abstract class TimeLockAgent {
      * @param client Client namespace to create the services for
      * @return Invalidating timestamp and lock services
      */
-    public abstract TimeLockServices createInvalidatingTimeLockServices(String client);
+    protected abstract TimeLockServices createInvalidatingTimeLockServices(String client);
 
     /**
      * Returns whether the given runtimeConfiguration should be permitted to be live reloaded.
