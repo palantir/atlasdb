@@ -46,6 +46,7 @@ public class PaxosAgent extends TimeLockAgent {
     private final PaxosLeadershipCreator leadershipCreator;
     private final LockCreator lockCreator;
     private final PaxosTimestampCreator timestampCreator;
+    private final TimeLockServicesCreator servicesCreator;
 
     public PaxosAgent(TimeLockInstallConfiguration install,
             Observable<TimeLockRuntimeConfiguration> runtime,
@@ -69,6 +70,9 @@ public class PaxosAgent extends TimeLockAgent {
                 PaxosRemotingUtils.getRemoteServerPaths(install),
                 install.cluster().cluster().security().map(SslSocketFactories::createSslSocketFactory),
                 runtime.map(x -> x.algorithm().orElse(ImmutablePaxosRuntimeConfiguration.builder().build())));
+        this.servicesCreator = install.asyncLock().useAsyncLockService() ?
+                new AsyncTimeLockServicesCreator(leadershipCreator) :
+                new LegacyTimeLockServicesCreator(leadershipCreator);
     }
 
     @Override
@@ -98,8 +102,7 @@ public class PaxosAgent extends TimeLockAgent {
                 timestampCreator.createPaxosBackedTimestampService(client);
         Supplier<RemoteLockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
 
-        return new LegacyTimeLockServicesCreator(leadershipCreator).createLegacyTimeLockServices(
-                client, rawTimestampServiceSupplier, rawLockServiceSupplier);
+        return servicesCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);
     }
 
     @Override

@@ -31,7 +31,7 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
 
-public class LegacyTimeLockServicesCreator {
+public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
     private static final Logger log = LoggerFactory.getLogger(LegacyTimeLockServicesCreator.class);
     private static final LockClient LEGACY_LOCK_CLIENT = LockClient.of("legacy");
 
@@ -41,7 +41,9 @@ public class LegacyTimeLockServicesCreator {
         this.leadershipCreator = leadershipCreator;
     }
 
-    public TimeLockServices createLegacyTimeLockServices(String client,
+    @Override
+    public TimeLockServices createTimeLockServices(
+            String client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<RemoteLockService> rawLockServiceSupplier) {
         log.info("Creating legacy timelock service for client {}", client);

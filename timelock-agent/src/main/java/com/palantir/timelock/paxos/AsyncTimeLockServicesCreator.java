@@ -32,34 +32,31 @@ import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.RemoteLockService;
 
-public class AsyncTimeLockServicesCreator {
+public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private final PaxosLeadershipCreator leadershipCreator;
 
     public AsyncTimeLockServicesCreator(PaxosLeadershipCreator leadershipCreator) {
         this.leadershipCreator = leadershipCreator;
     }
 
-    private TimeLockServices createAsyncTimeLockServices(
+    @Override
+    public TimeLockServices createTimeLockServices(
             String client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
-            RemoteLockService lockService) {
+            Supplier<RemoteLockService> rawLockServiceSupplier) {
         AsyncOrLegacyTimelockService asyncOrLegacyTimelockService;// create async lock
-        AsyncTimelockService asyncTimelockService = instrument(
+        AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
                 AsyncTimelockService.class,
-                leadershipCreator.wrapInLeadershipProxy(
-                        () -> AsyncTimeLockServicesCreator.createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
-                        AsyncTimelockService.class),
+                () -> AsyncTimeLockServicesCreator.createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
                 client);
         asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromAsyncTimelock(
                 new AsyncTimelockResource(asyncTimelockService));
         return TimeLockServices.create(
                 asyncTimelockService,
-                lockService,
+                instrumentInLeadershipProxy(RemoteLockService.class, rawLockServiceSupplier, client),
                 asyncOrLegacyTimelockService,
                 asyncTimelockService);
     }
-
-
 
     private static AsyncTimelockService createRawAsyncTimelockService(
             String client,

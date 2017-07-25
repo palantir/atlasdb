@@ -21,7 +21,6 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 
 @JsonSerialize(as = ImmutableAsyncLockConfiguration.class)
 @JsonDeserialize(as = ImmutableAsyncLockConfiguration.class)
