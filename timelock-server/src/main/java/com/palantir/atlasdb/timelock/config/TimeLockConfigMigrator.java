@@ -7,15 +7,9 @@ package com.palantir.atlasdb.timelock.config;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
 import com.palantir.remoting2.config.service.ServiceConfiguration;
+import com.palantir.timelock.config.*;
+import com.palantir.timelock.config.ImmutableAsyncLockConfiguration;
 import com.palantir.timelock.config.ImmutableClusterConfiguration;
-import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
-import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
-import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
-import com.palantir.timelock.config.ImmutableTimeLockInstallConfiguration;
-import com.palantir.timelock.config.ImmutableTimeLockRuntimeConfiguration;
-import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
-import com.palantir.timelock.config.TimeLockInstallConfiguration;
-import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
 import io.dropwizard.setup.Environment;
 
@@ -41,6 +35,7 @@ public final class TimeLockConfigMigrator {
                                 .build())
                         .localServer(config.cluster().localServer())
                         .build())
+                .asyncLock(createAsyncLockConfiguration(config))
                 .build();
 
         TimeLockRuntimeConfiguration runtime = ImmutableTimeLockRuntimeConfiguration.builder()
@@ -59,6 +54,15 @@ public final class TimeLockConfigMigrator {
                 .install(install)
                 .runtime(runtime)
                 .deprecated(deprecated)
+                .build();
+    }
+
+    private static com.palantir.timelock.config.AsyncLockConfiguration createAsyncLockConfiguration(
+            TimeLockServerConfiguration config) {
+        return ImmutableAsyncLockConfiguration.builder()
+                .useAsyncLockService(config.asyncLockConfiguration().useAsyncLockService())
+                .disableLegacySafetyChecksWarningPotentialDataCorruption(
+                        config.asyncLockConfiguration().disableLegacySafetyChecksWarningPotentialDataCorruption())
                 .build();
     }
 

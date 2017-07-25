@@ -19,4 +19,6 @@ public interface TimeLockInstallConfiguration {
     TimeLockAlgorithmInstallConfiguration algorithm();
 
     ClusterConfiguration cluster();
+
+    AsyncLockConfiguration asyncLock();
 }
