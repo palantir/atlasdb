@@ -19,6 +19,12 @@ import java.math.BigInteger;
 import java.util.Set;
 
 import javax.annotation.Nullable;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
 import com.google.common.annotations.Beta;
 import com.marathon.util.spring.CancelableServerCall;
@@ -39,9 +45,21 @@ import com.palantir.common.annotation.NonIdempotent;
      * @return a token for the set of locks that were acquired, or <code>null</code>
      *         if no locks were acquired
      */
+    @Path("lockWithFullLockResponse/{client: .*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @CancelableServerCall
     @NonIdempotent
-    LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException;
+    LockResponse lockWithFullLockResponse(@PathParam("client") LockClient client, LockRequest request) throws InterruptedException;
+
+
+//    @POST
+//    @Path("lockWithFullLockResponse/{client: .*}")
+//    @Produces(MediaType.APPLICATION_JSON)
+//    @Consumes(MediaType.APPLICATION_JSON)
+//    @CancelableServerCall
+//    @NonIdempotent
+//    LockResponse lockWithFullLockResponse(String client, LockRequest request) throws InterruptedException;
 
     /**
      * Unlocks a lock, given a provided lock token.

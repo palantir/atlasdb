@@ -420,6 +420,11 @@ public final class LockServiceImpl
         }
     }
 
+//    @Override
+//    public LockResponse lockWithFullLockResponse(String client, LockRequest request) throws InterruptedException {
+//        return lockWithFullLockResponse(LockClient.of(client), request);
+//    }
+
     private void logNullResponse(LockClient client, LockRequest request, @Nullable HeldLocksToken token) {
         log.trace(".lock({}, {}) returns {}",
                 SafeArg.of("client", client),
