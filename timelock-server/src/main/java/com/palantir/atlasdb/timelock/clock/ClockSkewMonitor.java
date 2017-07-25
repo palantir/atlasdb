@@ -25,15 +25,10 @@ import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.logsafe.SafeArg;
 
 /**
  * ClockSkewMonitor keeps track of the system time of the other nodes in the cluster, and compares it to the local
@@ -45,13 +40,10 @@ public final class ClockSkewMonitor {
     private static final long NANOS_PER_SECOND = 1_000_000_000; // 10^9
     private static final long MAX_TIME_SINCE_PREVIOUS_REQUEST_NANOS = 10 * SLEEP_TIME_SECONDS * NANOS_PER_SECOND; // 10s
     private static final long MAX_REQUEST_TIME_NANOS = 10_000_000; // 10 ms
-    private static final long WARN_SKEW_THRESHOLD_NANOS = 10_000_000; // 10 ms
-    private static final long ERROR_SKEW_THRESHOLD_NANOS = 50_000_000; // 50 ms
 
-    private static final MetricRegistry METRIC_REGISTRY = AtlasDbMetrics.getMetricRegistry();
+    private static final ClockSkewEvents events = new ClockSkewEvents(AtlasDbMetrics.getMetricRegistry());
 
-    private final Logger log = LoggerFactory.getLogger(ClockSkewMonitor.class);
-    private final Map<String, ClockService> monitorsByServer;
+    private final Map<String, ClockService> monitorByServer;
     private final Map<String, RequestTime> previousRequestsByServer;
     private final Supplier<Boolean> shouldRunClockSkewMonitor;
 
@@ -69,10 +61,10 @@ public final class ClockSkewMonitor {
     }
 
     private ClockSkewMonitor(
-            Map<String, ClockService> monitorsByServer,
+            Map<String, ClockService> monitorByServer,
             Map<String, RequestTime> previousRequestsByServer,
             Supplier<Boolean> shouldRunClockSkewMonitor) {
-        this.monitorsByServer = monitorsByServer;
+        this.monitorByServer = monitorByServer;
         this.previousRequestsByServer = previousRequestsByServer;
         this.shouldRunClockSkewMonitor = shouldRunClockSkewMonitor;
     }
@@ -85,15 +77,14 @@ public final class ClockSkewMonitor {
                             runInternal();
                         }
                     } catch (Throwable t) {
-                        METRIC_REGISTRY.counter("clock-monitor-exception-counter").inc();
-                        log.warn("ClockSkewMonitor threw an exception", t);
+                        events.exception(t);
                     }
                 }, SLEEP_TIME_SECONDS, TimeUnit.SECONDS
         );
     }
 
     private void runInternal() {
-        monitorsByServer.forEach((server, monitor) -> {
+        monitorByServer.forEach((server, monitor) -> {
             long localTimeAtStart = System.nanoTime();
             long remoteSystemTime = monitor.getSystemTimeInNanos();
             long localTimeAtEnd = System.nanoTime();
@@ -115,25 +106,21 @@ public final class ClockSkewMonitor {
         long remoteElapsedTime = newRequest.remoteSystemTime - previousRequest.remoteSystemTime;
 
         Preconditions.checkArgument(maxElapsedTime > 0,
-                "Apart from overflow, we expect a positive maxElapsedTime");
+                "A positive maxElapsedTime is expected");
         Preconditions.checkArgument(minElapsedTime > 0,
-                "Apart from overflow, we expect a positive minElapsedTime");
+                "A positive minElapsedTime is expected");
         Preconditions.checkArgument(remoteElapsedTime > 0,
-                "Apart from overflow, we expect a positive remoteElapsedTime");
+                "A positive remoteElapsedTime is expected");
 
         if (minElapsedTime > MAX_TIME_SINCE_PREVIOUS_REQUEST_NANOS) {
-            log.debug("It's been a long time since we last queried the server."
-                            + " Ignoring the skew, since it's not representative.",
-                    SafeArg.of("remoteElapsedTime", remoteElapsedTime));
+            events.tooMuchTimeSinceLastRequest(remoteElapsedTime);
             previousRequestsByServer.put(server, newRequest);
             return;
         }
 
         // maxElapsedTime - minElapsedTime = time for previous request and current request to complete.
         if (maxElapsedTime - minElapsedTime > 2 * MAX_REQUEST_TIME_NANOS) {
-            log.debug("A request took too long to complete."
-                            + " Ignoring the skew, since it's not representative.",
-                    SafeArg.of("requestsDuration", maxElapsedTime - minElapsedTime));
+            events.requestsTookTooLong(minElapsedTime, maxElapsedTime);
             previousRequestsByServer.put(server, newRequest);
             return;
         }
@@ -147,25 +134,12 @@ public final class ClockSkewMonitor {
                 skew = maxElapsedTime - remoteElapsedTime;
             }
 
-            if (skew > WARN_SKEW_THRESHOLD_NANOS && skew < ERROR_SKEW_THRESHOLD_NANOS) {
-                log.warn("Skew (in nanos) greater than expected", skew);
-            } else if (skew >= ERROR_SKEW_THRESHOLD_NANOS) {
-                log.error("Skew (in nanos) much greater than expected", skew);
-            }
-
-            METRIC_REGISTRY.histogram(String.format("clock-skew-%s-histogram", server))
-                    .update(skew);
-            METRIC_REGISTRY.counter(String.format("clock-skew-%s-counter", server)).inc();
+            events.clockSkew(server, skew);
         }
 
         previousRequestsByServer.put(server, newRequest);
 
-        METRIC_REGISTRY.histogram(String.format("clock-pace-%s-local-min", server))
-                .update(minElapsedTime);
-        METRIC_REGISTRY.histogram(String.format("clock-pace-%s-local-max", server))
-                .update(maxElapsedTime);
-        METRIC_REGISTRY.histogram(String.format("clock-pace-%s-remote", server))
-                .update(remoteElapsedTime);
+        events.requestPace(server, minElapsedTime, maxElapsedTime, remoteElapsedTime);
     }
 
     private static class RequestTime {
