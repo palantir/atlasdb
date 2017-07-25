@@ -22,6 +22,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
@@ -40,6 +41,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         MetricRegistry metricRegistry = MetricRegistries.createWithHdrHistogramReservoirs();
         AtlasDbMetrics.setMetricRegistry(metricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);
+        bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
         super.initialize(bootstrap);
     }
 
