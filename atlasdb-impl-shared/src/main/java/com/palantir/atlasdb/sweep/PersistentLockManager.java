@@ -62,25 +62,32 @@ public class PersistentLockManager {
         log.info("Shutdown completed!");
     }
 
-    public synchronized void acquirePersistentLockWithRetry() {
+    // We don't synchronize this method, to avoid deadlocking if {@link #shutdown} is called while attempting
+    // to acquire a lock.
+    public void acquirePersistentLockWithRetry() {
+        while (!tryAcquirePersistentLock()) {
+            waitForRetry();
+        }
+    }
+
+    private synchronized boolean tryAcquirePersistentLock() {
         if (isShutDown) {
             // To avoid a race condition on shutdown, we don't want to acquire any more.
             log.info("The PersistentLockManager is shut down, and therefore rejected a request to acquire the lock.");
-            return;
+            return true;
         }
 
-        Preconditions.checkState(lockId == null, "Acquiring a lock is unsupported when we've already acquired a lock");
+        Preconditions.checkState(lockId == null,
+                "Acquiring a lock is unsupported when we've already acquired a lock");
 
-        while (true) {
-            try {
-                lockId = persistentLockService.acquireBackupLock("Sweep");
-                log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lock id", lockId));
-                return;
-            } catch (CheckAndSetException e) {
-                lockFailureMeter.mark();
-                log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
-                waitForRetry();
-            }
+        try {
+            lockId = persistentLockService.acquireBackupLock("Sweep");
+            log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lock id", lockId));
+            return true;
+        } catch (CheckAndSetException e) {
+            lockFailureMeter.mark();
+            log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
+            return false;
         }
     }
 

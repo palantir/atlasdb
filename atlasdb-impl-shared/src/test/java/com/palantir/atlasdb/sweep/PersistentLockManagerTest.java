@@ -28,6 +28,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,6 +42,7 @@ import com.palantir.atlasdb.persistentlock.PersistentLockService;
 public class PersistentLockManagerTest {
     private PersistentLockService mockPls = mock(PersistentLockService.class);
     private PersistentLockId mockLockId = mock(PersistentLockId.class);
+    private ExecutorService executor = Executors.newCachedThreadPool();
 
     private PersistentLockManager manager;
 
@@ -119,4 +124,19 @@ public class PersistentLockManagerTest {
 
         verifyZeroInteractions(mockPls);
     }
+
+    @Test
+    public void doesNotDeadlockOnShutdownIfLockCannotBeAcquired() throws InterruptedException {
+        CountDownLatch acquireStarted = new CountDownLatch(1);
+        when(mockPls.acquireBackupLock(any())).then(inv -> {
+            acquireStarted.countDown();
+            throw new CheckAndSetException("foo");
+        });
+
+        executor.submit(manager::acquirePersistentLockWithRetry);
+        acquireStarted.await();
+
+        manager.shutdown();
+    }
+
 }
