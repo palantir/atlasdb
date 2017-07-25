@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.annotation.Nullable;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -56,29 +54,24 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogImpl.class);
 
     private static Predicate<File> nameIsALongPredicate() {
-        return new Predicate<File>() {
-            @Override
-            public boolean apply(@Nullable File file) {
-                if (file == null) {
-                    return false;
-                }
-                try {
-                    getSeqFromFilename(file);
-                    return true;
-                } catch (NumberFormatException e) {
-                    return false;
-                }
-            }};
+        return file -> {
+            if (file == null) {
+                return false;
+            }
+            try {
+                getSeqFromFilename(file);
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        };
     }
 
     private static final Comparator<File> nameAsLongComparator() {
-        return new Comparator<File>() {
-            @Override
-            public int compare(File f1, File f2) {
-                Long s1 = getSeqFromFilename(f1);
-                Long s2 = getSeqFromFilename(f2);
-                return s1.compareTo(s2);
-            }
+        return (f1, f2) -> {
+            Long s1 = getSeqFromFilename(f1);
+            Long s2 = getSeqFromFilename(f2);
+            return s1.compareTo(s2);
         };
     }
 

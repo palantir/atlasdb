@@ -25,7 +25,6 @@ import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -256,18 +255,13 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
         if (allAtSameTimestamp) {
             Multimap<Cell, byte[]> cellValuesWithStrippedTimestamp = Multimaps.transformValues(cellValues, Value.GET_VALUE);
 
-            Map<Cell, byte[]> putMap = Maps.transformValues(cellValuesWithStrippedTimestamp.asMap(), new Function<Collection<byte[]>, byte[]>() {
-
-                @Override
-                public byte[] apply(Collection<byte[]> input) {
-                    try {
-                        return Iterables.getOnlyElement(input);
-                    } catch (IllegalArgumentException e) {
-                        log.error("Application tried to put multiple same-cell values in at same timestamp; attempting to perform last-write-wins, but ordering is not guaranteed.");
-                        return Iterables.getLast(input);
-                    }
+            Map<Cell, byte[]> putMap = Maps.transformValues(cellValuesWithStrippedTimestamp.asMap(), input -> {
+                try {
+                    return Iterables.getOnlyElement(input);
+                } catch (IllegalArgumentException e) {
+                    log.error("Application tried to put multiple same-cell values in at same timestamp; attempting to perform last-write-wins, but ordering is not guaranteed.");
+                    return Iterables.getLast(input);
                 }
-
             });
 
             put(tableRef, putMap, lastTimestamp);

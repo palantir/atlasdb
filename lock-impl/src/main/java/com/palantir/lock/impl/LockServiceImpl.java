@@ -133,12 +133,7 @@ public final class LockServiceImpl
             new NamedThreadFactory(LockServiceImpl.class.getName(), true)));
 
     private static final Function<HeldLocksToken, String> TOKEN_TO_ID =
-            new Function<HeldLocksToken, String>() {
-        @Override
-        public String apply(HeldLocksToken from) {
-            return from.getTokenId().toString(Character.MAX_RADIX);
-        }
-    };
+            from -> from.getTokenId().toString(Character.MAX_RADIX);
 
     @Immutable
     public static class HeldLocks<T extends ExpiringToken> {
@@ -220,12 +215,7 @@ public final class LockServiceImpl
             Sets.newConcurrentHashSet();
 
     private final Multimap<LockClient, Long> versionIdMap = Multimaps.synchronizedMultimap(
-            Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), new Supplier<TreeMultiset<Long>>() {
-                @Override
-                public TreeMultiset<Long> get() {
-                    return TreeMultiset.create();
-                }
-            }));
+            Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), () -> TreeMultiset.create()));
 
     private static final AtomicInteger instanceCount = new AtomicInteger();
     private static final int MAX_FAILED_LOCKS_TO_LOG = 20;
@@ -242,11 +232,8 @@ public final class LockServiceImpl
             log.trace("Creating LockService with options={}", options);
         }
         final String jmxBeanRegistrationName = "com.palantir.lock:type=LockServer_" + instanceCount.getAndIncrement();
-        LockServiceImpl lockService = new LockServiceImpl(options, new Runnable() {
-            @Override public void run() {
-                JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName);
-            }
-        });
+        LockServiceImpl lockService = new LockServiceImpl(options,
+                () -> JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName));
         JMXUtils.registerMBeanCatchAndLogExceptions(lockService, jmxBeanRegistrationName);
         return lockService;
     }

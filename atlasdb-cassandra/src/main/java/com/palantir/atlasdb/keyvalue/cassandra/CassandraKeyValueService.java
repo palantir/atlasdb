@@ -1967,12 +1967,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         try {
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
-            putInternal(tableRef, Iterables.transform(cells, new Function<Cell, Map.Entry<Cell, Value>>() {
-                @Override
-                public Entry<Cell, Value> apply(Cell cell) {
-                    return Maps.immutableEntry(cell, value);
-                }
-            }));
+            putInternal(tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -2304,12 +2299,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
         Map<InetSocketAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
-                partitionByHost(cells, new Function<Map.Entry<Cell, V>, byte[]>() {
-                    @Override
-                    public byte[] apply(Entry<Cell, V> entry) {
-                        return entry.getKey().getRowName();
-                    }
-                });
+                partitionByHost(cells, entry -> entry.getKey().getRowName());
         Map<InetSocketAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
         for (Map.Entry<InetSocketAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
             Map<Cell, V> cellsForHost = Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());

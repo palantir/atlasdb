@@ -69,12 +69,7 @@ public class IteratorUtils {
      * </code>
      */
     public static <T> Iterable<T> forEach(final Iterator<T> it) {
-        return new Iterable<T>() {
-            @Override
-            public Iterator<T> iterator() {
-                return it;
-            }
-        };
+        return () -> it;
     }
 
     public static <T> Collection<T> chooseRandomElements(Iterator<? extends T> it, final int k) {

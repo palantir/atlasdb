@@ -67,7 +67,6 @@ import javax.sql.DataSource;
 
 import org.jooq.BatchBindStep;
 import org.jooq.Condition;
-import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep4;
 import org.jooq.Query;
@@ -84,7 +83,6 @@ import org.jooq.SelectField;
 import org.jooq.SelectOffsetStep;
 import org.jooq.Table;
 import org.jooq.TableLike;
-import org.jooq.TransactionalCallable;
 import org.jooq.conf.RenderNameStyle;
 import org.jooq.conf.Settings;
 import org.jooq.exception.DataAccessException;
@@ -764,38 +762,35 @@ public class JdbcKeyValueService implements KeyValueService {
     private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPageWithValues(final TableReference tableRef,
                                                                                     final RangeRequest rangeRequest,
                                                                                     final long timestamp) {
-        return run(new Function<DSLContext, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>() {
-            @Override
-            public TokenBackedBasicResultsPage<RowResult<Value>, byte[]> apply(DSLContext ctx) {
-                int maxRows = rangeRequest.getBatchHint() == null ? 100 : (int) (1.1 * rangeRequest.getBatchHint());
-                Select<Record1<byte[]>> rangeQuery = getRangeQuery(ctx, tableRef, rangeRequest, timestamp, maxRows);
-                Select<? extends Record> query;
-                if (rangeRequest.getColumnNames().isEmpty()) {
-                    query = getLatestTimestampQueryAllColumnsSubQuery(ctx, tableRef, rangeQuery, timestamp);
-                } else {
-                    query = getLatestTimestampQuerySomeColumnsSubQuery(ctx, tableRef, rangeQuery, rangeRequest.getColumnNames(), timestamp);
-                }
-                Result<? extends Record> records = fetchValues(ctx, tableRef, query);
-                if (records.isEmpty()) {
-                    return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Value>>of(), false);
-                }
-                NavigableMap<byte[], SortedMap<byte[], Value>> valuesByRow = breakUpValuesByRow(records);
-                if (rangeRequest.isReverse()) {
-                    valuesByRow = valuesByRow.descendingMap();
-                }
-                List<RowResult<Value>> finalResults = Lists.newArrayListWithCapacity(valuesByRow.size());
-                for (Entry<byte[], SortedMap<byte[], Value>> entry : valuesByRow.entrySet()) {
-                    finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
-                }
-                byte[] nextRow = null;
-                boolean mayHaveMoreResults = false;
-                byte[] lastRow = Iterables.getLast(finalResults).getRowName();
-                if (!RangeRequests.isTerminalRow(rangeRequest.isReverse(), lastRow)) {
-                    nextRow = RangeRequests.getNextStartRow(rangeRequest.isReverse(), lastRow);
-                    mayHaveMoreResults = finalResults.size() == maxRows;
-                }
-                return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
+        return run((Function<DSLContext, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>) ctx -> {
+            int maxRows = rangeRequest.getBatchHint() == null ? 100 : (int) (1.1 * rangeRequest.getBatchHint());
+            Select<Record1<byte[]>> rangeQuery = getRangeQuery(ctx, tableRef, rangeRequest, timestamp, maxRows);
+            Select<? extends Record> query;
+            if (rangeRequest.getColumnNames().isEmpty()) {
+                query = getLatestTimestampQueryAllColumnsSubQuery(ctx, tableRef, rangeQuery, timestamp);
+            } else {
+                query = getLatestTimestampQuerySomeColumnsSubQuery(ctx, tableRef, rangeQuery, rangeRequest.getColumnNames(), timestamp);
             }
+            Result<? extends Record> records = fetchValues(ctx, tableRef, query);
+            if (records.isEmpty()) {
+                return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Value>>of(), false);
+            }
+            NavigableMap<byte[], SortedMap<byte[], Value>> valuesByRow = breakUpValuesByRow(records);
+            if (rangeRequest.isReverse()) {
+                valuesByRow = valuesByRow.descendingMap();
+            }
+            List<RowResult<Value>> finalResults = Lists.newArrayListWithCapacity(valuesByRow.size());
+            for (Entry<byte[], SortedMap<byte[], Value>> entry : valuesByRow.entrySet()) {
+                finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
+            }
+            byte[] nextRow = null;
+            boolean mayHaveMoreResults = false;
+            byte[] lastRow = Iterables.getLast(finalResults).getRowName();
+            if (!RangeRequests.isTerminalRow(rangeRequest.isReverse(), lastRow)) {
+                nextRow = RangeRequests.getNextStartRow(rangeRequest.isReverse(), lastRow);
+                mayHaveMoreResults = finalResults.size() == maxRows;
+            }
+            return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
         });
     }
 
@@ -816,38 +811,35 @@ public class JdbcKeyValueService implements KeyValueService {
     private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getPageWithTimestamps(final TableReference tableRef,
                                                                                             final RangeRequest rangeRequest,
                                                                                             final long timestamp) {
-        return run(new Function<DSLContext, TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]>>() {
-            @Override
-            public TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> apply(DSLContext ctx) {
-                int maxRows = rangeRequest.getBatchHint() == null ? 100 : (int) (1.1 * rangeRequest.getBatchHint());
-                Select<Record1<byte[]>> rangeQuery = getRangeQuery(ctx, tableRef, rangeRequest, timestamp, maxRows);
-                Select<? extends Record> query;
-                if (rangeRequest.getColumnNames().isEmpty()) {
-                    query = getAllTimestampsQueryAllColumns(ctx, tableRef, rangeQuery, timestamp);
-                } else {
-                    query = getAllTimestampsQuerySomeColumns(ctx, tableRef, rangeQuery, rangeRequest.getColumnNames(), timestamp);
-                }
-                Result<? extends Record> records = query.fetch();
-                if (records.isEmpty()) {
-                    return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Set<Long>>>of(), false);
-                }
-                NavigableMap<byte[], SortedMap<byte[], Set<Long>>> timestampsByRow = breakUpTimestampsByRow(records);
-                if (rangeRequest.isReverse()) {
-                    timestampsByRow = timestampsByRow.descendingMap();
-                }
-                List<RowResult<Set<Long>>> finalResults = Lists.newArrayListWithCapacity(timestampsByRow.size());
-                for (Entry<byte[], SortedMap<byte[], Set<Long>>> entry : timestampsByRow.entrySet()) {
-                    finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
-                }
-                byte[] nextRow = null;
-                boolean mayHaveMoreResults = false;
-                byte[] lastRow = Iterables.getLast(finalResults).getRowName();
-                if (!RangeRequests.isTerminalRow(rangeRequest.isReverse(), lastRow)) {
-                    nextRow = RangeRequests.getNextStartRow(rangeRequest.isReverse(), lastRow);
-                    mayHaveMoreResults = finalResults.size() == maxRows;
-                }
-                return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
+        return run((Function<DSLContext, TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]>>) ctx -> {
+            int maxRows = rangeRequest.getBatchHint() == null ? 100 : (int) (1.1 * rangeRequest.getBatchHint());
+            Select<Record1<byte[]>> rangeQuery = getRangeQuery(ctx, tableRef, rangeRequest, timestamp, maxRows);
+            Select<? extends Record> query;
+            if (rangeRequest.getColumnNames().isEmpty()) {
+                query = getAllTimestampsQueryAllColumns(ctx, tableRef, rangeQuery, timestamp);
+            } else {
+                query = getAllTimestampsQuerySomeColumns(ctx, tableRef, rangeQuery, rangeRequest.getColumnNames(), timestamp);
             }
+            Result<? extends Record> records = query.fetch();
+            if (records.isEmpty()) {
+                return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Set<Long>>>of(), false);
+            }
+            NavigableMap<byte[], SortedMap<byte[], Set<Long>>> timestampsByRow = breakUpTimestampsByRow(records);
+            if (rangeRequest.isReverse()) {
+                timestampsByRow = timestampsByRow.descendingMap();
+            }
+            List<RowResult<Set<Long>>> finalResults = Lists.newArrayListWithCapacity(timestampsByRow.size());
+            for (Entry<byte[], SortedMap<byte[], Set<Long>>> entry : timestampsByRow.entrySet()) {
+                finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
+            }
+            byte[] nextRow = null;
+            boolean mayHaveMoreResults = false;
+            byte[] lastRow = Iterables.getLast(finalResults).getRowName();
+            if (!RangeRequests.isTerminalRow(rangeRequest.isReverse(), lastRow)) {
+                nextRow = RangeRequests.getNextStartRow(rangeRequest.isReverse(), lastRow);
+                mayHaveMoreResults = finalResults.size() == maxRows;
+            }
+            return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
         });
     }
 
@@ -925,45 +917,37 @@ public class JdbcKeyValueService implements KeyValueService {
         if (tableRefToTableMetadata.isEmpty()) {
             return;
         }
-        run(new Function<DSLContext, Void>() {
-            @Override
-            public Void apply(DSLContext ctx) {
-                for (TableReference tableRef : Sets.difference(tableRefToTableMetadata.keySet(), getAllTableNames(ctx))) {
-                    byte[] metadata = tableRefToTableMetadata.get(tableRef);
-                    // TODO: Catch and ignore table exists error.
-                    String partialSql = ctx.createTable(tableName(tableRef))
-                        .column(ROW_NAME, VARBINARY.nullable(false))
-                        .column(COL_NAME, VARBINARY.nullable(false))
-                        .column(TIMESTAMP, BIGINT.nullable(false))
-                        .column(VALUE, BLOB)
-                        .getSQL();
-                    int endIndex = partialSql.lastIndexOf(')');
-                    String fullSql = partialSql.substring(0, endIndex) + "," +
-                            " CONSTRAINT " + primaryKey(tableRef) +
-                            " PRIMARY KEY (" + ROW_NAME + ", " + COL_NAME + ", " + TIMESTAMP + ")" +
-                            partialSql.substring(endIndex);
-                    try {
-                        ctx.execute(fullSql);
-                    } catch (DataAccessException e) {
-                        handleTableCreationException(e);
-                    }
-                    ctx.insertInto(METADATA_TABLE, TABLE_NAME, METADATA)
-                        .values(tableRef.getQualifiedName(), metadata)
-                        .execute();
+        run((Function<DSLContext, Void>) ctx -> {
+            for (TableReference tableRef : Sets.difference(tableRefToTableMetadata.keySet(), getAllTableNames(ctx))) {
+                byte[] metadata = tableRefToTableMetadata.get(tableRef);
+                // TODO: Catch and ignore table exists error.
+                String partialSql = ctx.createTable(tableName(tableRef))
+                    .column(ROW_NAME, VARBINARY.nullable(false))
+                    .column(COL_NAME, VARBINARY.nullable(false))
+                    .column(TIMESTAMP, BIGINT.nullable(false))
+                    .column(VALUE, BLOB)
+                    .getSQL();
+                int endIndex = partialSql.lastIndexOf(')');
+                String fullSql = partialSql.substring(0, endIndex) + "," +
+                        " CONSTRAINT " + primaryKey(tableRef) +
+                        " PRIMARY KEY (" + ROW_NAME + ", " + COL_NAME + ", " + TIMESTAMP + ")" +
+                        partialSql.substring(endIndex);
+                try {
+                    ctx.execute(fullSql);
+                } catch (DataAccessException e) {
+                    handleTableCreationException(e);
                 }
-                return null;
+                ctx.insertInto(METADATA_TABLE, TABLE_NAME, METADATA)
+                    .values(tableRef.getQualifiedName(), metadata)
+                    .execute();
             }
+            return null;
         });
     }
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return run(new Function<DSLContext, Set<TableReference>>() {
-            @Override
-            public Set<TableReference> apply(DSLContext ctx) {
-                return getAllTableNames(ctx);
-            }
-        });
+        return run(ctx -> getAllTableNames(ctx));
     }
 
     private Set<TableReference> getAllTableNames(DSLContext ctx) {
@@ -980,34 +964,28 @@ public class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public byte[] getMetadataForTable(final TableReference tableRef) {
-        return run(new Function<DSLContext, byte[]>() {
-            @Override
-            public byte[] apply(DSLContext ctx) {
-                byte[] metadata = ctx
-                        .select(METADATA)
-                        .from(METADATA_TABLE)
-                        .where(TABLE_NAME.eq(tableRef.getQualifiedName()))
-                        .fetchOne(METADATA);
-                return MoreObjects.firstNonNull(metadata, new byte[0]);
-            }
+        return run(ctx -> {
+            byte[] metadata = ctx
+                    .select(METADATA)
+                    .from(METADATA_TABLE)
+                    .where(TABLE_NAME.eq(tableRef.getQualifiedName()))
+                    .fetchOne(METADATA);
+            return MoreObjects.firstNonNull(metadata, new byte[0]);
         });
     }
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
-        return run(new Function<DSLContext, Map<TableReference, byte[]>>() {
-            @Override
-            public Map<TableReference, byte[]> apply(DSLContext ctx) {
-                Result<? extends Record> records = ctx
-                        .select(TABLE_NAME, METADATA)
-                        .from(METADATA_TABLE)
-                        .fetch();
-                Map<TableReference, byte[]> metadata = Maps.newHashMapWithExpectedSize(records.size());
-                for (Record record : records) {
-                    metadata.put(TableReference.createUnsafe(record.getValue(TABLE_NAME)), record.getValue(METADATA));
-                }
-                return metadata;
+        return run(ctx -> {
+            Result<? extends Record> records = ctx
+                    .select(TABLE_NAME, METADATA)
+                    .from(METADATA_TABLE)
+                    .fetch();
+            Map<TableReference, byte[]> metadata = Maps.newHashMapWithExpectedSize(records.size());
+            for (Record record : records) {
+                metadata.put(TableReference.createUnsafe(record.getValue(TABLE_NAME)), record.getValue(METADATA));
             }
+            return metadata;
         });
     }
 
@@ -1021,32 +999,26 @@ public class JdbcKeyValueService implements KeyValueService {
         if (tableRefToMetadata.isEmpty()) {
             return;
         }
-        run(new Function<DSLContext, Void>() {
-            @Override
-            public Void apply(DSLContext ctx) {
-                Query query = ctx
-                        .update(METADATA_TABLE)
-                        .set(METADATA, (byte[]) null)
-                        .where(TABLE_NAME.eq((String) null));
-                BatchBindStep batch = ctx.batch(query);
-                for (Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
-                    batch = batch.bind(entry.getValue(), entry.getKey().getQualifiedName());
-                }
-                batch.execute();
-                return null;
+        run((Function<DSLContext, Void>) ctx -> {
+            Query query = ctx
+                    .update(METADATA_TABLE)
+                    .set(METADATA, (byte[]) null)
+                    .where(TABLE_NAME.eq((String) null));
+            BatchBindStep batch = ctx.batch(query);
+            for (Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
+                batch = batch.bind(entry.getValue(), entry.getKey().getQualifiedName());
             }
+            batch.execute();
+            return null;
         });
     }
 
     @Override
     public void compactInternally(final TableReference tableRef) {
         if (sqlDialect.family() == SQLDialect.POSTGRES) {
-            run(new Function<DSLContext, Void>() {
-                @Override
-                public Void apply(DSLContext ctx) {
-                    ctx.execute("VACUUM ANALYZE " + tableName(tableRef));
-                    return null;
-                }
+            run((Function<DSLContext, Void>) ctx -> {
+                ctx.execute("VACUUM ANALYZE " + tableName(tableRef));
+                return null;
             });
         }
     }
@@ -1079,12 +1051,7 @@ public class JdbcKeyValueService implements KeyValueService {
     <T> T runInTransaction(final Function<DSLContext, T> fun) {
         try (Connection connection = dataSource.getConnection()) {
             final DSLContext ctx = DSL.using(connection, sqlDialect, settings);
-            return ctx.transactionResult(new TransactionalCallable<T>() {
-                @Override
-                public T run(Configuration configuration) throws Exception {
-                    return fun.apply(ctx);
-                }
-            });
+            return ctx.transactionResult(configuration -> fun.apply(ctx));
         } catch (SQLException e) {
             throw new DataAccessException("Error handling connection from data source " + dataSource, e);
         }

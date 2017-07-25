@@ -126,21 +126,18 @@ public class MutuallyExclusiveSetLockTest {
         final List<String> toLock = Arrays.asList("whatup", "dog");
 
         // Spawn a thread to lock and hold a lock until a variable is toggled
-        Thread locker = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                LockState<String> locked = setLock.lockOnObjects(toLock);
-                try {
-                    while (!unlock) {
-                        try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException ignored) {
-                            // Ignored.
-                        }
+        Thread locker = new Thread(() -> {
+            LockState<String> locked = setLock.lockOnObjects(toLock);
+            try {
+                while (!unlock) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException ignored) {
+                        // Ignored.
                     }
-                } finally {
-                    setLock.unlock(locked);
                 }
+            } finally {
+                setLock.unlock(locked);
             }
         });
 
@@ -160,15 +157,12 @@ public class MutuallyExclusiveSetLockTest {
     private Thread createThread(final MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock,
             final Collection<String> toLock) {
         final Thread thread;
-        thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                LockState<String> locked = mutuallyExclusiveSetLock.lockOnObjects(toLock);
-                try {
-                    //stuff
-                } finally {
-                    mutuallyExclusiveSetLock.unlock(locked);
-                }
+        thread = new Thread(() -> {
+            LockState<String> locked = mutuallyExclusiveSetLock.lockOnObjects(toLock);
+            try {
+                //stuff
+            } finally {
+                mutuallyExclusiveSetLock.unlock(locked);
             }
         });
         return thread;

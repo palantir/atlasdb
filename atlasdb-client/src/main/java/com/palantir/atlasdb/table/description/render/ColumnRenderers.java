@@ -17,7 +17,6 @@ package com.palantir.atlasdb.table.description.render;
 
 import java.util.SortedSet;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
@@ -62,11 +61,6 @@ public class ColumnRenderers {
     }
 
     static SortedSet<NamedColumnDescription> namedColumns(TableMetadata table) {
-        return ImmutableSortedSet.copyOf(Ordering.natural().onResultOf(new Function<NamedColumnDescription, String>() {
-            @Override
-            public String apply(NamedColumnDescription col) {
-                return col.getLongName();
-            }
-        }), table.getColumns().getNamedColumns());
+        return ImmutableSortedSet.copyOf(Ordering.natural().onResultOf(col -> col.getLongName()), table.getColumns().getNamedColumns());
     }
 }

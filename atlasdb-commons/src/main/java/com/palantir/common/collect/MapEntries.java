@@ -30,21 +30,11 @@ public class MapEntries {
     private MapEntries() { /* */ }
 
     public static <L, R> Function<Entry<L, R>, L> getKeyFunction() {
-        return new Function<Entry<L,R>, L>() {
-            @Override
-            public L apply(Entry<L, R> from) {
-                return from.getKey();
-            }
-        };
+        return from -> from.getKey();
     }
 
     public static <L, R> Function<Entry<L, R>, R> getValueFunction() {
-        return new Function<Entry<L,R>, R>() {
-            @Override
-            public R apply(Entry<L, R> from) {
-                return from.getValue();
-            }
-        };
+        return from -> from.getValue();
     }
 
     public static <K, V> Map<K, V> putAll(Map<K, V> map, Iterable<? extends Entry<? extends K, ? extends V>> it) {
@@ -67,56 +57,26 @@ public class MapEntries {
     }
 
     public static <L, F, T>  Function<Entry<L, F>, Entry<L, T>> applyValue(final Function<F, T> f) {
-        return new Function<Map.Entry<L,F>, Map.Entry<L,T>>() {
-            @Override
-            public Entry<L, T> apply(Entry<L, F> from) {
-                return Maps.immutableEntry(from.getKey(), f.apply(from.getValue()));
-            }
-        };
+        return from -> Maps.immutableEntry(from.getKey(), f.apply(from.getValue()));
     }
 
     public static <F, T, R>  Function<Entry<F, R>, Entry<T, R>> applyKey(final Function<F, T> f) {
-        return new Function<Map.Entry<F,R>, Map.Entry<T,R>>() {
-            @Override
-            public Entry<T, R> apply(Entry<F, R> from) {
-                return Maps.immutableEntry(f.apply(from.getKey()), from.getValue());
-            }
-        };
+        return from -> Maps.immutableEntry(f.apply(from.getKey()), from.getValue());
     }
 
     public static <K, V>  Predicate<Map.Entry<K, V>> applyValue(final Predicate<V> f) {
-        return new Predicate<Map.Entry<K,V>>() {
-            @Override
-            public boolean apply(Entry<K, V> input) {
-                return f.apply(input.getValue());
-            }
-        };
+        return input -> f.apply(input.getValue());
     }
 
     public static <K, V>  Predicate<Map.Entry<K, V>> applyKey(final Predicate<K> f) {
-        return new Predicate<Map.Entry<K,V>>() {
-            @Override
-            public boolean apply(Entry<K, V> input) {
-                return f.apply(input.getKey());
-            }
-        };
+        return input -> f.apply(input.getKey());
     }
 
     public static <K, V1, V2> Function<Entry<K, V1>, V2> funFromEntryTransformer(final EntryTransformer<K, V1, V2> et) {
-        return new Function<Map.Entry<K,V1>, V2>() {
-            @Override
-            public V2 apply(Entry<K, V1> input) {
-                return et.transformEntry(input.getKey(), input.getValue());
-            }
-        };
+        return input -> et.transformEntry(input.getKey(), input.getValue());
     }
 
     public static <K, V1, V2> EntryTransformer<K, V1, V2> entryTransformerFromFun(final Function<Entry<K, V1>, V2> f) {
-        return new EntryTransformer<K, V1, V2>() {
-            @Override
-            public V2 transformEntry(K k, V1 v1) {
-                return f.apply(Maps.immutableEntry(k, v1));
-            }
-        };
+        return (k, v1) -> f.apply(Maps.immutableEntry(k, v1));
     }
 }

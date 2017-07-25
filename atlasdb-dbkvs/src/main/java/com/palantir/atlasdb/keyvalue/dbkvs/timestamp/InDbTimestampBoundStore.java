@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -25,7 +24,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.commons.dbutils.QueryRunner;
-import org.apache.commons.dbutils.ResultSetHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +36,6 @@ import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.RetriableTransactions;
 import com.palantir.nexus.db.pool.RetriableTransactions.TransactionResult;
-import com.palantir.nexus.db.pool.RetriableWriteTransaction;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -97,37 +94,33 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
 
     @GuardedBy("this")
     private long runOperation(final Operation operation) {
-        TransactionResult<Long> result = RetriableTransactions.run(connManager, new RetriableWriteTransaction<Long>() {
-            @GuardedBy("InDbTimestampBoundStore.this")
-            @Override
-            public Long run(Connection connection) throws SQLException {
-                Long oldLimit = readLimit(connection);
-                if (currentLimit != null) {
-                    if (oldLimit != null) {
-                        if (currentLimit.equals(oldLimit)) {
-                            // match, good
-                        } else {
-                            // mismatch
-                            throw new MultipleRunningTimestampServiceError(
-                                    "Timestamp limit changed underneath us (limit in memory: " + currentLimit
-                                            + ", limit in DB: " + oldLimit + "). This may indicate that "
-                                            + "another timestamp service is running against this database!  "
-                                            + "This may indicate that your services are not properly configured "
-                                            + "to run in an HA configuration, or to have a CLI run against them.");
-                        }
+        TransactionResult<Long> result = RetriableTransactions.run(connManager, connection -> {
+            Long oldLimit = readLimit(connection);
+            if (currentLimit != null) {
+                if (oldLimit != null) {
+                    if (currentLimit.equals(oldLimit)) {
+                        // match, good
                     } else {
-                        // disappearance
-                        throw new IllegalStateException(
-                                "Unable to retrieve a timestamp when expected. "
-                                        + "This service is in a dangerous state and should be taken down "
-                                        + "until a new safe timestamp value can be established in the KVS. "
-                                        + "Please contact support.");
+                        // mismatch
+                        throw new MultipleRunningTimestampServiceError(
+                                "Timestamp limit changed underneath us (limit in memory: " + currentLimit
+                                        + ", limit in DB: " + oldLimit + "). This may indicate that "
+                                        + "another timestamp service is running against this database!  "
+                                        + "This may indicate that your services are not properly configured "
+                                        + "to run in an HA configuration, or to have a CLI run against them.");
                     }
                 } else {
-                    // first read, no check to be done
+                    // disappearance
+                    throw new IllegalStateException(
+                            "Unable to retrieve a timestamp when expected. "
+                                    + "This service is in a dangerous state and should be taken down "
+                                    + "until a new safe timestamp value can be established in the KVS. "
+                                    + "Please contact support.");
                 }
-                return operation.run(connection, oldLimit);
+            } else {
+                // first read, no check to be done
             }
+            return operation.run(connection, oldLimit);
         });
         switch (result.getStatus()) {
             case SUCCESSFUL:
@@ -152,47 +145,38 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized long getUpperLimit() {
-        return runOperation(new Operation() {
-            @Override
-            public long run(Connection connection, Long oldLimit) throws SQLException {
-                if (oldLimit != null) {
-                    return oldLimit;
-                }
-
-                final long startVal = 10000;
-                createLimit(connection, startVal);
-                return startVal;
+        return runOperation((connection, oldLimit) -> {
+            if (oldLimit != null) {
+                return oldLimit;
             }
+
+            final long startVal = 10000;
+            createLimit(connection, startVal);
+            return startVal;
         });
     }
 
     @Override
     public synchronized void storeUpperLimit(final long limit) {
-        runOperation(new Operation() {
-            @Override
-            public long run(Connection connection, Long oldLimit) throws SQLException {
-                if (oldLimit != null) {
-                    writeLimit(connection, limit);
-                } else {
-                    createLimit(connection, limit);
-                }
-
-                return limit;
+        runOperation((connection, oldLimit) -> {
+            if (oldLimit != null) {
+                writeLimit(connection, limit);
+            } else {
+                createLimit(connection, limit);
             }
+
+            return limit;
         });
     }
 
     private Long readLimit(Connection connection) throws SQLException {
         String sql = "SELECT last_allocated FROM " + prefixedTimestampTableName() + " FOR UPDATE";
         QueryRunner run = new QueryRunner();
-        return run.query(connection, sql, new ResultSetHandler<Long>() {
-            @Override
-            public Long handle(ResultSet rs) throws SQLException {
-                if (rs.next()) {
-                    return rs.getLong("last_allocated");
-                } else {
-                    return null;
-                }
+        return run.query(connection, sql, rs -> {
+            if (rs.next()) {
+                return rs.getLong("last_allocated");
+            } else {
+                return null;
             }
         });
     }
