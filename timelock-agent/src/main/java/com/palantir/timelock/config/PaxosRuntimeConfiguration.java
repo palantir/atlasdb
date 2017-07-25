@@ -14,7 +14,7 @@ import com.google.common.base.Preconditions;
 @JsonDeserialize(as = ImmutablePaxosRuntimeConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosRuntimeConfiguration.class)
 @Value.Immutable
-public interface PaxosRuntimeConfiguration extends TimeLockAlgorithmRuntimeConfiguration {
+public interface PaxosRuntimeConfiguration {
     @JsonProperty("ping-rate-in-ms")
     @Value.Default
     default long pingRateMs() {

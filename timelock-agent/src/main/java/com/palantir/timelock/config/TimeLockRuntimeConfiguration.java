@@ -24,7 +24,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 public abstract class TimeLockRuntimeConfiguration {
     private static final String CLIENT_NAME_REGEX = "[a-zA-Z0-9_-]+";
 
-    public abstract Optional<TimeLockAlgorithmRuntimeConfiguration> algorithm();
+    public abstract Optional<PaxosRuntimeConfiguration> algorithm();
 
     public abstract Set<String> clients();
 

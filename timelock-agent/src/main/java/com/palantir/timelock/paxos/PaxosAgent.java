@@ -59,9 +59,7 @@ public class PaxosAgent extends TimeLockAgent {
             TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
         super(install, runtime, deprecated, registrar);
-        Preconditions.checkState(install.algorithm() instanceof PaxosInstallConfiguration,
-                "Cannot initialize a Paxos agent with a non-Paxos algorithm configuration.");
-        this.paxosInstall = (PaxosInstallConfiguration) install.algorithm();
+        this.paxosInstall = install.algorithm();
 
         this.paxosResource = PaxosResource.create(paxosInstall.dataDirectory().toString());
         this.leadershipAgent = new PaxosLeadershipCreator(install, runtime, registrar);
