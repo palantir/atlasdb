@@ -51,7 +51,7 @@ public abstract class TimeLockAgent {
             TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
         this.install = install;
-        this.runtime = runtime.filter(this::configurationFilter);
+        this.runtime = runtime;
         this.deprecated = deprecated;
         this.registrar = registrar;
     }
@@ -63,13 +63,6 @@ public abstract class TimeLockAgent {
      * @return Invalidating timestamp and lock services
      */
     protected abstract TimeLockServices createInvalidatingTimeLockServices(String client);
-
-    /**
-     * Returns whether the given runtimeConfiguration should be permitted to be live reloaded.
-     * @param runtimeConfiguration Configuration to check the validity of
-     * @return true if and only if the configuration should be allowed
-     */
-    protected abstract boolean configurationFilter(TimeLockRuntimeConfiguration runtimeConfiguration);
 
     public void createAndRegisterResources() {
         Set<String> clients =
