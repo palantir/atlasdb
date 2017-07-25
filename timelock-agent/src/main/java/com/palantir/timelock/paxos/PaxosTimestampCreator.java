@@ -43,7 +43,6 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.timelock.Observables;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
-import com.palantir.timelock.config.TimeLockAlgorithmRuntimeConfiguration;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -58,11 +57,11 @@ public class PaxosTimestampCreator {
     public PaxosTimestampCreator(PaxosResource paxosResource,
             Set<String> remoteServers,
             Optional<SSLSocketFactory> optionalSecurity,
-            Observable<TimeLockAlgorithmRuntimeConfiguration> paxosRuntime) {
+            Observable<PaxosRuntimeConfiguration> paxosRuntime) {
         this.paxosResource = paxosResource;
         this.remoteServers = remoteServers;
         this.optionalSecurity = optionalSecurity;
-        this.paxosRuntime = paxosRuntime.map(config -> (PaxosRuntimeConfiguration) config);
+        this.paxosRuntime = paxosRuntime;
     }
 
     public Supplier<ManagedTimestampService> createPaxosBackedTimestampService(String client) {

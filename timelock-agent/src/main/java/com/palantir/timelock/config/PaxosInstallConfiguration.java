@@ -22,7 +22,7 @@ import io.reactivex.Observable;
 @JsonDeserialize(as = ImmutablePaxosInstallConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosInstallConfiguration.class)
 @Value.Immutable
-public interface PaxosInstallConfiguration extends TimeLockAlgorithmInstallConfiguration {
+public interface PaxosInstallConfiguration{
     @JsonProperty("data-directory")
     @Value.Default
     default File dataDirectory() {
@@ -40,7 +40,6 @@ public interface PaxosInstallConfiguration extends TimeLockAlgorithmInstallConfi
     }
 
     @JsonIgnore
-    @Override
     default TimeLockAgent createTimeLockAgent(
             TimeLockInstallConfiguration install,
             Observable<TimeLockRuntimeConfiguration> runtime,
