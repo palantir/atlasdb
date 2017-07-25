@@ -29,6 +29,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
+import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.logsafe.SafeArg;
@@ -194,19 +196,22 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     private Optional<TableToSweep> getTableToSweep() {
         return specificTableSweeper.getTxManager().runTaskWithRetry(
-                tx -> {
-                    Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress(
-                            tx);
-                    if (progress.isPresent()) {
-                        return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
-                    } else {
-                        Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
-                                tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
-                        if (nextTable.isPresent()) {
-                            log.debug("Now starting to sweep next table.", UnsafeArg.of("table name", nextTable));
-                            return Optional.of(new TableToSweep(nextTable.get(), null));
+                new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
+                    @Override
+                    public Optional<TableToSweep> execute(Transaction tx) {
+                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress(
+                                tx);
+                        if (progress.isPresent()) {
+                            return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
                         } else {
-                            return Optional.empty();
+                            Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
+                                    tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
+                            if (nextTable.isPresent()) {
+                                log.debug("Now starting to sweep next table.", UnsafeArg.of("table name", nextTable));
+                                return Optional.of(new TableToSweep(nextTable.get(), null));
+                            } else {
+                                return Optional.empty();
+                            }
                         }
                     }
                 });
