@@ -20,6 +20,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -33,11 +36,14 @@ public class TodoClient {
     private final TransactionManager transactionManager;
     private final Random random = new Random();
 
+    public static Logger log = LoggerFactory.getLogger(TodoClient.class);
+
     public TodoClient(TransactionManager transactionManager) {
         this.transactionManager = transactionManager;
     }
 
     public void addTodo(Todo todo) {
+        log.warn("TRYING TO ADD TODO");
         transactionManager.runTaskWithRetry((transaction) -> {
             Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(random.nextLong()),
                     TodoSchema.todoTextColumn());

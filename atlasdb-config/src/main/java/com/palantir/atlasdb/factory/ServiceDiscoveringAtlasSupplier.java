@@ -52,9 +52,11 @@ public class ServiceDiscoveringAtlasSupplier {
     private final KeyValueServiceConfig keyValueServiceConfig;
     private final Optional<LeaderConfig> leaderConfig;
 
-    private final Supplier<KeyValueService> keyValueService;
+    private final Supplier<KeyValueService> keyValueServiceSupplier;
     private final Supplier<TimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
+
+    private volatile KeyValueService keyValueService = null;
 
     public ServiceDiscoveringAtlasSupplier(AtlasDbConfig config) {
         atlasDbConfig = config;
@@ -67,13 +69,17 @@ public class ServiceDiscoveringAtlasSupplier {
                         "No atlas provider for KeyValueService type " + keyValueServiceConfig.type()
                                 + " could be found. Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
-        keyValueService = Suppliers.memoize(() -> pollOrCreateRawKeyValueService(atlasFactory));
+//        keyValueServiceSupplier = Suppliers.memoize(() -> pollOrCreateRawKeyValueService(atlasFactory));
+        keyValueServiceSupplier = () -> pollOrCreateRawKeyValueService(atlasFactory);
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 
     public KeyValueService getKeyValueService() {
-        return keyValueService.get();
+        if (keyValueService == null) {
+            keyValueService = keyValueServiceSupplier.get();
+        }
+        return keyValueService;
     }
 
     private KeyValueService pollOrCreateRawKeyValueService(AtlasDbFactory atlasFactory) {
@@ -82,19 +88,22 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     private KeyValueService pollForKeyValueService(AtlasDbFactory atlasFactory) {
-        int failureCount = 0;
-        while (true) {
-            try {
+//        int failureCount = 0;
+//        while (true) {
+//            try {
                 return atlasFactory.createRawKeyValueService(keyValueServiceConfig, leaderConfig);
-            } catch (Exception ex) {
-                failureCount++;
-                log.warn("The KVS could not be instantiated, retrying with backoff");
-                KvsBackoff.pauseForBackOff(failureCount);
-            }
-        }
+//            } catch (Exception ex) {
+//                failureCount++;
+//                log.warn("The KVS could not be instantiated, retrying with backoff");
+//                KvsBackoff.pauseForBackOff(failureCount);
+//            }
+//        }
     }
 
     public synchronized TimestampService getTimestampService() {
+        if (getKeyValueService() == null) {
+            return null;
+        }
         log.info("[timestamp-service-creation] Fetching timestamp service from "
                         + "thread {}. This should only happen once.", Thread.currentThread().getName());
 

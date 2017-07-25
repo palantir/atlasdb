@@ -54,6 +54,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.impl.RawTransaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManagerInterface;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -74,10 +75,10 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     @Inject
     public AtlasDbServiceImpl(KeyValueService kvs,
-            SerializableTransactionManager txManager,
+            SnapshotTransactionManagerInterface txManager,
             TableMetadataCache metadataCache) {
         this.kvs = kvs;
-        this.txManager = txManager;
+        this.txManager = (SerializableTransactionManager) txManager;
         this.metadataCache = metadataCache;
     }
 

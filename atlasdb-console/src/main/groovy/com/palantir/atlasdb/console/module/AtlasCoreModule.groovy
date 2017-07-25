@@ -32,6 +32,7 @@ import com.palantir.atlasdb.impl.TableMetadataCache
 import com.palantir.atlasdb.jackson.AtlasJacksonModule
 import com.palantir.atlasdb.table.description.Schema
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager
+import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManagerInterface
 import groovy.json.JsonBuilder
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
@@ -206,7 +207,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     private setupConnection(AtlasDbConfig config) {
-        SerializableTransactionManager tm = TransactionManagers.create(
+        SnapshotTransactionManagerInterface tm = TransactionManagers.create(
                 config,
                 new Supplier<Optional<AtlasDbRuntimeConfig>>() {
                     @Override

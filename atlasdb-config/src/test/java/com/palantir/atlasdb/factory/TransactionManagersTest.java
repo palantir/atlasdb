@@ -66,6 +66,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManagerInterface;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
@@ -316,7 +317,7 @@ public class TransactionManagersTest {
 
         Runnable callback = mock(Runnable.class);
 
-        SerializableTransactionManager manager = TransactionManagers.create(
+        SnapshotTransactionManagerInterface manager = TransactionManagers.create(
                 realConfig, Optional::empty, ImmutableSet.of(), environment, false);
         manager.registerClosingCallback(callback);
         manager.close();

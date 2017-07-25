@@ -60,6 +60,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void initialize(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
+        log.warn("INITIALIZING ATLASDBETE SERVER");
         bootstrap.setMetricRegistry(MetricRegistries.createWithHdrHistogramReservoirs());
         enableEnvironmentVariablesInConfig(bootstrap);
         bootstrap.addBundle(new AtlasDbBundle<>());
@@ -67,11 +68,13 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     }
 
     @Override
-    public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
+    public void run(AtlasDbEteConfiguration config, Environment environment) throws Exception {
         TransactionManager transactionManager = createTransactionManager(config, environment);
+        log.warn("TRANSACTIONMANAGER " + transactionManager);
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
+        log.warn("DONE REGISTERING FOR ATLASDBETE SERVER");
     }
 
     private TransactionManager createTransactionManager(AtlasDbEteConfiguration config, Environment environment)
@@ -87,6 +90,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                         DONT_SHOW_HIDDEN_TABLES);
             } catch (RuntimeException e) {
                 log.warn("An error occurred while trying to create transaction manager. Retrying...", e);
+                log.warn("END OF ERROR");
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
             }
         }
