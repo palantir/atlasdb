@@ -24,7 +24,7 @@ import org.junit.Test;
 public class AsyncLockConfigurationTest {
     @Test
     public void canDisableSyncLockSafetyChecks() {
-        assertThat(ImmutableAsyncLockConfiguration.of(true, false)).isNotNull();
+        assertThat(ImmutableAsyncLockConfiguration.of(true, true)).isNotNull();
     }
 
     @Test
@@ -32,7 +32,7 @@ public class AsyncLockConfigurationTest {
         AsyncLockConfiguration configuration = ImmutableAsyncLockConfiguration.builder()
                 .useAsyncLockService(true)
                 .build();
-        assertThat(configuration.disableLegacySafetyChecksWarningPotentialDataCorruption()).isTrue();
+        assertThat(configuration.disableLegacySafetyChecksWarningPotentialDataCorruption()).isFalse();
     }
 
     @Test
@@ -40,12 +40,12 @@ public class AsyncLockConfigurationTest {
         AsyncLockConfiguration configuration = ImmutableAsyncLockConfiguration.builder()
                 .useAsyncLockService(false)
                 .build();
-        assertThat(configuration.disableLegacySafetyChecksWarningPotentialDataCorruption()).isFalse();
+        assertThat(configuration.disableLegacySafetyChecksWarningPotentialDataCorruption()).isTrue();
     }
 
     @Test
     public void cannotEnableSyncLockSafetyChecksWithoutUsingAsyncLock() {
-        assertThatThrownBy(() -> ImmutableAsyncLockConfiguration.of(false, true))
+        assertThatThrownBy(() -> ImmutableAsyncLockConfiguration.of(false, false))
                 .isInstanceOf(IllegalStateException.class);
     }
 }
