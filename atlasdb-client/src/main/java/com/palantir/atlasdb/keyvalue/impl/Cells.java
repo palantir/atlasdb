@@ -112,11 +112,8 @@ public class Cells {
         NavigableMap<byte[], SortedMap<byte[], T>> ret = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         for (Map.Entry<Cell, T> e : map) {
             byte[] row = e.getKey().getRowName();
-            SortedMap<byte[], T> sortedMap = ret.get(row);
-            if (sortedMap == null) {
-                sortedMap = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-                ret.put(row, sortedMap);
-            }
+            SortedMap<byte[], T> sortedMap = ret.computeIfAbsent(row,
+                    rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
             sortedMap.put(e.getKey().getColumnName(), e.getValue());
         }
         return ret;

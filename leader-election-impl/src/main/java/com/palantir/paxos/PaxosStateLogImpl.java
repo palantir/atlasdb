@@ -208,7 +208,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
             }
             File dir = new File(path);
             List<File> files = getLogEntries(dir);
-            Collections.<File> sort(files, nameAsLongComparator());
+            files.sort(nameAsLongComparator());
             for (File file : files) {
                 long fileSeq = getSeqFromFilename(file);
                 if (fileSeq <= toDeleteInclusive) {

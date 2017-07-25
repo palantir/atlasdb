@@ -798,11 +798,8 @@ public class JdbcKeyValueService implements KeyValueService {
         NavigableMap<byte[], SortedMap<byte[], Value>> ret = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         for (Record record : records) {
             byte[] row = record.getValue(A_ROW_NAME);
-            SortedMap<byte[], Value> colMap = ret.get(row);
-            if (colMap == null) {
-                colMap = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-                ret.put(row, colMap);
-            }
+            SortedMap<byte[], Value> colMap = ret.computeIfAbsent(row,
+                    rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
             colMap.put(record.getValue(A_COL_NAME), Value.create(record.getValue(A_VALUE), record.getValue(A_TIMESTAMP)));
         }
         return ret;
@@ -848,16 +845,9 @@ public class JdbcKeyValueService implements KeyValueService {
         for (Record record : records) {
             byte[] row = record.getValue(A_ROW_NAME);
             byte[] col = record.getValue(A_COL_NAME);
-            SortedMap<byte[], Set<Long>> colMap = ret.get(row);
-            if (colMap == null) {
-                colMap = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-                ret.put(row, colMap);
-            }
-            Set<Long> tsSet = colMap.get(col);
-            if (tsSet == null) {
-                tsSet = Sets.newHashSet();
-                colMap.put(col, tsSet);
-            }
+            SortedMap<byte[], Set<Long>> colMap = ret.computeIfAbsent(row,
+                    rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
+            Set<Long> tsSet = colMap.computeIfAbsent(col, ts -> Sets.newHashSet());
             tsSet.add(record.getValue(A_TIMESTAMP));
         }
         return ret;

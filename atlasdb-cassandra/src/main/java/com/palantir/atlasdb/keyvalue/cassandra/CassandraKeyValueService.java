@@ -969,17 +969,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                         ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
 
-                        Map<String, List<Mutation>> rowPuts = map.get(rowName);
-                        if (rowPuts == null) {
-                            rowPuts = Maps.newHashMap();
-                            map.put(rowName, rowPuts);
-                        }
+                        Map<String, List<Mutation>> rowPuts = map.computeIfAbsent(rowName, row -> Maps.newHashMap());
 
-                        List<Mutation> tableMutations = rowPuts.get(internalTableName(tableRef));
-                        if (tableMutations == null) {
-                            tableMutations = Lists.newArrayList();
-                            rowPuts.put(internalTableName(tableRef), tableMutations);
-                        }
+                        List<Mutation> tableMutations = rowPuts.computeIfAbsent(
+                                internalTableName(tableRef),
+                                k -> Lists.newArrayList());
 
                         tableMutations.add(mutation);
                     }
@@ -1090,17 +1084,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
             ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
 
-            Map<String, List<Mutation>> rowPuts = map.get(rowName);
-            if (rowPuts == null) {
-                rowPuts = Maps.<String, List<Mutation>>newHashMap();
-                map.put(rowName, rowPuts);
-            }
+            Map<String, List<Mutation>> rowPuts = map.computeIfAbsent(rowName,
+                    row -> Maps.<String, List<Mutation>>newHashMap());
 
-            List<Mutation> tableMutations = rowPuts.get(internalTableName(tableCellAndValue.tableRef));
-            if (tableMutations == null) {
-                tableMutations = Lists.<Mutation>newArrayList();
-                rowPuts.put(internalTableName(tableCellAndValue.tableRef), tableMutations);
-            }
+            List<Mutation> tableMutations = rowPuts.computeIfAbsent(
+                    internalTableName(tableCellAndValue.tableRef),
+                    k -> Lists.<Mutation>newArrayList());
 
             tableMutations.add(mutation);
         }

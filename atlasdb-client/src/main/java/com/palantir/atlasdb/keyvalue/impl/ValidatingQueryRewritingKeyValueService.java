@@ -89,7 +89,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         tableRefToTableMetadata.keySet().forEach(this::sanityCheckTableName);
-        tableRefToTableMetadata.entrySet().forEach(entry -> sanityCheckTableMetadata(entry.getKey(), entry.getValue()));
+        tableRefToTableMetadata.forEach((key, value) -> sanityCheckTableMetadata(key, value));
         delegate.createTables(tableRefToTableMetadata);
     }
 
@@ -221,7 +221,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             putMetadataForTable(entry.getKey(), entry.getValue());
             return;
         }
-        tableRefToMetadata.entrySet().forEach(entry -> sanityCheckTableMetadata(entry.getKey(), entry.getValue()));
+        tableRefToMetadata.forEach((key, value) -> sanityCheckTableMetadata(key, value));
         delegate.putMetadataForTables(tableRefToMetadata);
     }
 

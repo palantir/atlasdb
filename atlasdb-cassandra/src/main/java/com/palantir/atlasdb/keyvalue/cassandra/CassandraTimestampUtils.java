@@ -85,10 +85,9 @@ public final class CassandraTimestampUtils {
         builder.append("BEGIN UNLOGGED BATCH\n"); // Safe, because all updates are on the same partition key
 
         // Safe, because ordering does not apply in batches
-        checkAndSetRequest.entrySet().forEach(entry -> {
-            String columnName = entry.getKey();
-            byte[] expected = entry.getValue().getLhSide();
-            byte[] target = entry.getValue().getRhSide();
+        checkAndSetRequest.forEach((columnName, value) -> {
+            byte[] expected = value.getLhSide();
+            byte[] target = value.getRhSide();
             builder.append(constructCheckAndSetQuery(columnName, expected, target));
         });
         builder.append("APPLY BATCH;");
