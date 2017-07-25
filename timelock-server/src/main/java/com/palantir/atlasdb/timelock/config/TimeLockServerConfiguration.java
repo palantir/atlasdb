@@ -38,6 +38,7 @@ public class TimeLockServerConfiguration extends Configuration {
     private final TimeLockAlgorithmConfiguration algorithm;
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
+    private final boolean useAsyncLockService;
     private final boolean useClientRequestLimit;
     private final TimeLimiterConfiguration timeLimiterConfiguration;
 
@@ -45,6 +46,7 @@ public class TimeLockServerConfiguration extends Configuration {
             @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients,
+            @JsonProperty(value = "useAsyncLockService", required = false) Boolean useAsyncLockService,
             @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit,
             @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration) {
         checkClientNames(clients);
@@ -56,6 +58,7 @@ public class TimeLockServerConfiguration extends Configuration {
         this.algorithm = MoreObjects.firstNonNull(algorithm, PaxosConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
+        this.useAsyncLockService = MoreObjects.firstNonNull(useAsyncLockService, true);
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
         this.timeLimiterConfiguration =
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
@@ -103,6 +106,10 @@ public class TimeLockServerConfiguration extends Configuration {
 
     public TimeLimiterConfiguration timeLimiterConfiguration() {
         return timeLimiterConfiguration;
+    }
+
+    public boolean useAsyncLockService() {
+        return useAsyncLockService;
     }
 
     public int availableThreads() {

@@ -29,6 +29,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 import org.junit.Before;
@@ -36,6 +37,7 @@ import org.junit.Test;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.PaxosLeadershipToken;
@@ -173,6 +175,7 @@ public class AwaitingLeadershipProxyTest {
 
         // wait for leadership to be gained
         verify(leaderElectionService, timeout(5_000)).blockOnBecomingLeader();
+        Uninterruptibles.sleepUninterruptibly(100L, TimeUnit.MILLISECONDS);
         return proxy;
     }
 

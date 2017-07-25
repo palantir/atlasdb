@@ -50,7 +50,6 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
         mutationBatchCount: 10000
         mutationBatchSizeBytes: 10000000
         fetchBatchCount: 1000
-        safetyDisabled: false
         autoRefreshNodes: false
 
       leader:

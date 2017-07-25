@@ -281,8 +281,9 @@
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
@@ -829,8 +830,9 @@
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:timestamp-impl"
             ]

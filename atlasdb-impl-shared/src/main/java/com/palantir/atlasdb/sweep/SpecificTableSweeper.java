@@ -31,6 +31,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
@@ -136,7 +137,7 @@ public class SpecificTableSweeper {
                     startRow);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
             log.info("Swept successfully.",
-                    UnsafeArg.of("tableRef", tableRef),
+                    LoggingArgs.tableRef("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
                     SafeArg.of("unique cells swept", results.getCellTsPairsExamined()),
                     SafeArg.of("deletion count", results.getStaleValuesDeleted()),
@@ -154,7 +155,7 @@ public class SpecificTableSweeper {
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
             log.info("Failed to sweep.",
-                    UnsafeArg.of("tableRef", tableRef),
+                    LoggingArgs.tableRef("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
                     SafeArg.of("batchConfig", batchConfig));
             throw e;
@@ -199,7 +200,7 @@ public class SpecificTableSweeper {
             saveFinalSweepResults(tableToSweep, cumulativeResults);
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
             log.debug("Finished sweeping.",
-                    UnsafeArg.of("tableRef", tableToSweep.getTableRef()),
+                    LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
                     SafeArg.of("unique cells examined count", cellsExamined),
                     SafeArg.of("stale values deleted count", staleValuesDeleted));
             sweepProgressStore.clearProgress();
@@ -235,7 +236,9 @@ public class SpecificTableSweeper {
             Stopwatch watch = Stopwatch.createStarted();
             kvs.compactInternally(tableRef);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.debug("Finished performing compactInternally on {} in {} ms.", tableRef, elapsedMillis);
+            log.debug("Finished performing compactInternally on {} in {} ms.",
+                    LoggingArgs.tableRef("tableRef", tableRef),
+                    SafeArg.of("elapsedMillis", elapsedMillis));
             sweepPerfLogger.logInternalCompaction(
                     SweepCompactionPerformanceResults.builder()
                             .tableName(tableRef.getQualifiedName())

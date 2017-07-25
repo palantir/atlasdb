@@ -71,6 +71,7 @@ public class BlockingTimeoutsTest {
                 CLUSTER,
                 CLIENTS,
                 null,
+                null,
                 ImmutableTimeLimiterConfiguration.of(true, TEST_ERROR_MARGIN));
 
         long expectedMargin = scaleForErrorMarginReferenceImplementation(
