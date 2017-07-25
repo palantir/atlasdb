@@ -70,9 +70,9 @@ public class PaxosAgent extends TimeLockAgent {
                 PaxosRemotingUtils.getRemoteServerPaths(install),
                 install.cluster().cluster().security().map(SslSocketFactories::createSslSocketFactory),
                 runtime.map(x -> x.algorithm().orElse(ImmutablePaxosRuntimeConfiguration.builder().build())));
-        this.servicesCreator = install.asyncLock().useAsyncLockService() ?
-                new AsyncTimeLockServicesCreator(leadershipCreator) :
-                new LegacyTimeLockServicesCreator(leadershipCreator);
+        this.servicesCreator = install.asyncLock().useAsyncLockService()
+                ? new AsyncTimeLockServicesCreator(leadershipCreator)
+                : new LegacyTimeLockServicesCreator(leadershipCreator);
     }
 
     @Override

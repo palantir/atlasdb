@@ -20,5 +20,8 @@ public interface TimeLockInstallConfiguration {
 
     ClusterConfiguration cluster();
 
-    AsyncLockConfiguration asyncLock();
+    @Value.Default
+    default AsyncLockConfiguration asyncLock() {
+        return ImmutableAsyncLockConfiguration.builder().build();
+    }
 }

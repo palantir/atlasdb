@@ -44,7 +44,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             String client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<RemoteLockService> rawLockServiceSupplier) {
-        AsyncOrLegacyTimelockService asyncOrLegacyTimelockService;// create async lock
+        AsyncOrLegacyTimelockService asyncOrLegacyTimelockService;
         AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
                 AsyncTimelockService.class,
                 () -> AsyncTimeLockServicesCreator.createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
