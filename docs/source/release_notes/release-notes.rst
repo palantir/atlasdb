@@ -46,7 +46,7 @@ develop
 
     *    - |fixed| |userbreak|
          - TimeLock Server, if configured to use the async lock service, will now throw if a client attempts to start a transaction via the sync lock service.
-           Previously, users which have clients (for the same namespace) running both pre- and post-0.49.0 versions of AtlasDB were able to run transactions against the sync and async lock services concurrently, thus ignoring write-write conflict checks.
+           Previously, users which have clients (for the same namespace) running both pre- and post-0.49.0 versions of AtlasDB were able to run transactions against the sync and async lock services concurrently, thus breaking the guarantees of the lock service.
            AtlasDB does not support having clients (for the same namespace) running both pre- and post-0.49.0 versions.
            Note that TimeLock users which have clients (for different namespaces) running both pre- and post-0.49.0 versions will need to turn this feature off for clients on pre-0.49.0 versions to continue working with TimeLock, and should exercise caution in ensuring that, for each namespace, clients use only pre- or post-0.49.0 versions of AtlasDB.
            Please see :ref:`Async Lock Service Configuration <async-lock-service>` for the new configuration.

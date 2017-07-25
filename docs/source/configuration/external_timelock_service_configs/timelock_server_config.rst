@@ -196,7 +196,7 @@ the asynchronous lock service may be done as follows:
 
       asyncLock:
         useAsyncLockService: true
-        useLegacySafetyChecks: true
+        disableLegacySafetyChecksWarningPotentialDataCorruption: false
 
 .. list-table::
    :widths: 5 40
@@ -208,16 +208,17 @@ the asynchronous lock service may be done as follows:
    * - useAsyncLockService
      - Whether to enable the asynchronous lock service or not (default: ``true``).
 
-   * - useLegacySafetyChecks
+   * - disableLegacySafetyChecksWarningPotentialDataCorruption
      - A value indicating whether safety checks to prohibit legacy lock services from participating in the AtlasDB
-       transaction protocol should be enabled. This is important for avoiding concurrency issues if clients for a
-       given namespace may be running both pre- and post-0.49.0 versions of AtlasDB, but may need to be disabled
-       if one is running clients for multiple namespaces that separately run both pre- and post-0.49.0 versions of
-       AtlasDB (default: ``true``).
+       transaction protocol should be disabled. The safety checks are important for avoiding concurrency issues if
+       clients for a given namespace may be running both pre- and post-0.49.0 versions of AtlasDB, but may need to be
+       disabled if one is running clients for multiple namespaces that separately run both pre- and post-0.49.0
+       versions of AtlasDB.
 
-If ``useAsyncLockService`` is specified whilst ``useLegacySafetyChecks`` is not, then ``useLegacySafetyChecks``
-defaults to the value of ``useAsyncLockService``. Note that we do not support enabling safety checks whilst not using
-the async lock service (as there will be no way for client transactions to commit)!
+If ``useAsyncLockService`` is specified whilst ``disableLegacySafetyChecksWarningPotentialDataCorruption`` is not, then
+``disableLegacySafetyChecksWarningPotentialDataCorruption`` defaults to the complement of ``useAsyncLockService``.
+Note that we do not support enabling safety checks whilst not using the async lock service (as there will be no way for
+client transactions to commit)!
 
 .. _timelock-server-further-config:
 
