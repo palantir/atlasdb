@@ -52,6 +52,7 @@ import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
@@ -317,11 +318,13 @@ public class PaxosTimeLockServer implements TimeLockServer {
         };
 
         LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions);
-        if (timeLockServerConfiguration.asyncLockConfiguration()
-                .disableLegacySafetyChecksWarningPotentialDataCorruption()) {
-            return rawLockService;
+
+        AsyncLockConfiguration asyncLockConfiguration = timeLockServerConfiguration.asyncLockConfiguration();
+        if (asyncLockConfiguration.useAsyncLockService()
+                && !asyncLockConfiguration.disableLegacySafetyChecksWarningPotentialDataCorruption()) {
+            return new NonTransactionalLockService(rawLockService);
         }
-        return new NonTransactionalLockService(rawLockService);
+        return rawLockService;
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {

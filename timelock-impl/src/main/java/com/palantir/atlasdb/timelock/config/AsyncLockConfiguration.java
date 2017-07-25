@@ -20,7 +20,6 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Preconditions;
 
 @JsonSerialize(as = ImmutableAsyncLockConfiguration.class)
 @JsonDeserialize(as = ImmutableAsyncLockConfiguration.class)
@@ -37,8 +36,11 @@ public abstract class AsyncLockConfiguration {
     }
 
     /**
-     * If enabled, prevents the legacy synchronous lock service from being used for the AtlasDB transaction protocol.
+     * If enabled AND the async lock service is being used, prevents the legacy synchronous lock service from being
+     * used for the AtlasDB transaction protocol.
      * Note that other uses of lock service (e.g. advisory locks) are still allowed.
+     * This flag has no effect if the sync lock service is being used - this is not a 'safety check' then, as only one
+     * lock service is being run in that case.
      *
      * This may be disabled to allow backwards compatibility with clients using versions of AtlasDB < 0.49.0.
      * However, rolling upgrades to versions up to and including 0.49.0 MUST NOT be done - doing them can result in
@@ -47,12 +49,6 @@ public abstract class AsyncLockConfiguration {
     @Value.Default
     @Value.Parameter
     public boolean disableLegacySafetyChecksWarningPotentialDataCorruption() {
-        return !useAsyncLockService();
-    }
-
-    @Value.Check
-    public void check() {
-        Preconditions.checkState(disableLegacySafetyChecksWarningPotentialDataCorruption() || useAsyncLockService(),
-                "Cannot enable legacy safety checks without using the async lock service!");
+        return false;
     }
 }

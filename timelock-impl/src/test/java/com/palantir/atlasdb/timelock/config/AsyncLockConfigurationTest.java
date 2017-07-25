@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -36,16 +35,16 @@ public class AsyncLockConfigurationTest {
     }
 
     @Test
-    public void safetyChecksDefaultToDisabledIfAsyncLockDisabled() {
+    public void safetyChecksDefaultToEnabledIfAsyncLockDisabled() {
         AsyncLockConfiguration configuration = ImmutableAsyncLockConfiguration.builder()
                 .useAsyncLockService(false)
                 .build();
-        assertThat(configuration.disableLegacySafetyChecksWarningPotentialDataCorruption()).isTrue();
+        assertThat(configuration.disableLegacySafetyChecksWarningPotentialDataCorruption()).isFalse();
     }
 
     @Test
-    public void cannotEnableSyncLockSafetyChecksWithoutUsingAsyncLock() {
-        assertThatThrownBy(() -> ImmutableAsyncLockConfiguration.of(false, false))
-                .isInstanceOf(IllegalStateException.class);
+    public void legacySafetyChecksUnimportantIfUsingSyncLock() {
+        assertThat(ImmutableAsyncLockConfiguration.of(false, true)).isNotNull();
+        assertThat(ImmutableAsyncLockConfiguration.of(false, false)).isNotNull();
     }
 }
