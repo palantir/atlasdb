@@ -30,11 +30,11 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 
 public class ThreadPooledLockService implements CloseableLockService {
-    private final ThreadPooledWrapper<RemoteLockService> wrapper;
+    private final ThreadPooledWrapper<LockService> wrapper;
     private final CloseableLockService delegate;
 
     public ThreadPooledLockService(CloseableLockService delegate, int localThreadPoolSize, Semaphore sharedThreadPool) {
@@ -71,75 +71,80 @@ public class ThreadPooledLockService implements CloseableLockService {
 
     @Override
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
-        return null;
+        return wrapper.applyWithPermit(lockService -> lockService.lockWithFullLockResponse(client, request));
     }
+
+//    @Override
+//    public LockResponse lockWithFullLockResponse(String client, LockRequest request) throws InterruptedException {
+//        return lockWithFullLockResponse(LockClient.of(client), request);
+//    }
 
     @Override
     public boolean unlock(HeldLocksToken token) {
-        return false;
+        return delegate.unlock(token);
     }
 
     @Override
     public boolean unlockSimple(SimpleHeldLocksToken token) {
-        return false;
+        return delegate.unlockSimple(token);
     }
 
     @Override
     public boolean unlockAndFreeze(HeldLocksToken token) {
-        return false;
+        return delegate.unlockAndFreeze(token);
     }
 
     @Override
     public Set<HeldLocksToken> getTokens(LockClient client) {
-        return null;
+        return delegate.getTokens(client);
     }
 
     @Override
     public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
-        return null;
+        return delegate.refreshTokens(tokens);
     }
 
     @Nullable
     @Override
     public HeldLocksGrant refreshGrant(HeldLocksGrant grant) {
-        return null;
+        return delegate.refreshGrant(grant);
     }
 
     @Nullable
     @Override
     public HeldLocksGrant refreshGrant(BigInteger grantId) {
-        return null;
+        return delegate.refreshGrant(grantId);
     }
 
     @Override
     public HeldLocksGrant convertToGrant(HeldLocksToken token) {
-        return null;
+        return delegate.convertToGrant(token);
     }
 
     @Override
     public HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant) {
-        return null;
+        return delegate.useGrant(client, grant);
     }
 
     @Override
     public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
-        return null;
+        return delegate.useGrant(client, grantId);
     }
 
     @Nullable
     @Override
     public Long getMinLockedInVersionId() {
-        return null;
+        return delegate.getMinLockedInVersionId();
     }
 
     @Override
     public Long getMinLockedInVersionId(LockClient client) {
-        return null;
+        return delegate.getMinLockedInVersionId(client);
     }
 
     @Override
     public LockServerOptions getLockServerOptions() {
-        return null;
+        return delegate.getLockServerOptions();
     }
 
     @Override

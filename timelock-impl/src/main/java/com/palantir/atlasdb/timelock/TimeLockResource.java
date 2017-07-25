@@ -21,7 +21,7 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -34,7 +34,7 @@ public class TimeLockResource {
     }
 
     @Path("/lock")
-    public RemoteLockService getLockService(@PathParam("client") String client) {
+    public LockService getLockService(@PathParam("client") String client) {
         return getTimeLockServicesForClient(client).getLockService();
     }
 
