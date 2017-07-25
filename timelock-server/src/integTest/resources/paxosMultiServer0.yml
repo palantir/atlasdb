@@ -10,7 +10,8 @@ cluster:
     - localhost:9081
     - localhost:9082
 
-useAsyncLockService: true
+asyncLock:
+  useAsyncLockService: true
 
 clients:
   - test
