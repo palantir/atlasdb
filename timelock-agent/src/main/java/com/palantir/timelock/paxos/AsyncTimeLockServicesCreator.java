@@ -27,16 +27,22 @@ import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
+import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.timelock.config.AsyncLockConfiguration;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private final PaxosLeadershipCreator leadershipCreator;
+    private final AsyncLockConfiguration asyncLockConfiguration;
 
-    public AsyncTimeLockServicesCreator(PaxosLeadershipCreator leadershipCreator) {
+    public AsyncTimeLockServicesCreator(PaxosLeadershipCreator leadershipCreator,
+            AsyncLockConfiguration asyncLockConfiguration) {
         this.leadershipCreator = leadershipCreator;
+        this.asyncLockConfiguration = asyncLockConfiguration;
     }
 
     @Override
@@ -51,9 +57,15 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 client);
         asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromAsyncTimelock(
                 new AsyncTimelockResource(asyncTimelockService));
+
+        Supplier<RemoteLockService> lockServiceSupplier =
+                asyncLockConfiguration.disableLegacySafetyChecksWarningPotentialDataCorruption()
+                        ? rawLockServiceSupplier
+                        : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier);
+
         return TimeLockServices.create(
                 asyncTimelockService,
-                instrumentInLeadershipProxy(RemoteLockService.class, rawLockServiceSupplier, client),
+                instrumentInLeadershipProxy(RemoteLockService.class, lockServiceSupplier, client),
                 asyncOrLegacyTimelockService,
                 asyncTimelockService);
     }
