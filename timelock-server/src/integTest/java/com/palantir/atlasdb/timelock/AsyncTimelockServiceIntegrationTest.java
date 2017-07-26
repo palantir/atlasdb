@@ -26,10 +26,15 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import javax.ws.rs.BadRequestException;
+
+import org.assertj.core.api.ThrowableAssert;
+import org.eclipse.jetty.http.HttpStatus;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
@@ -102,6 +107,24 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     @Test
+    public void cannotRetrieveImmutableTimestampViaSyncApiForAsyncService() {
+        if (cluster != CLUSTER_WITH_ASYNC) {
+            // safety check only applies if the cluster is indeed async
+            return;
+        }
+        assertBadRequest(() -> cluster.lockService().getMinLockedInVersionId("foo"));
+    }
+
+    @Test
+    public void canRetrieveImmutableTimestampViaSyncApiForSyncServiceOrAsyncWithoutSafetyCheck() {
+        if (cluster == CLUSTER_WITH_ASYNC) {
+            // will fail - ensuring this fails is covered by cannotRetrieveImmutableTimestampViaSyncApiForAsyncService
+            return;
+        }
+        cluster.lockService().getMinLockedInVersionId("foo");
+    }
+
+    @Test
     public void canWaitForLocks() {
         LockToken token = cluster.lock(requestFor(LOCK_A, LOCK_B)).getToken();
 
@@ -148,7 +171,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void waitForLocksRequestCanTimeOut() {
-        if (cluster == CLUSTER_WITH_SYNC_ADAPTER) {
+        if (isUsingSyncAdapter(cluster)) {
             // legacy API does not support timeouts on this endpoint
             return;
         }
@@ -168,7 +191,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void lockRequestsAreIdempotent() {
-        if (cluster == CLUSTER_WITH_SYNC_ADAPTER) {
+        if (isUsingSyncAdapter(cluster)) {
             // legacy API does not support idempotence
             return;
         }
@@ -188,7 +211,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void waitForLockRequestsAreIdempotent() {
-        if (cluster == CLUSTER_WITH_SYNC_ADAPTER) {
+        if (isUsingSyncAdapter(cluster)) {
             // legacy API does not support idempotence
             return;
         }
@@ -245,4 +268,15 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         }
     }
 
+    private static void assertBadRequest(ThrowableAssert.ThrowingCallable throwingCallable) {
+        assertThatThrownBy(throwingCallable)
+                .isInstanceOf(AtlasDbRemoteException.class)
+                .satisfies(remoteException -> {
+                    AtlasDbRemoteException atlasDbRemoteException = (AtlasDbRemoteException) remoteException;
+                    assertThat(atlasDbRemoteException.getErrorName())
+                            .isEqualTo(BadRequestException.class.getCanonicalName());
+                    assertThat(atlasDbRemoteException.getStatus())
+                            .isEqualTo(HttpStatus.BAD_REQUEST_400);
+                });
+    }
 }

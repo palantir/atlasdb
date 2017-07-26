@@ -52,12 +52,14 @@ import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
@@ -195,7 +197,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         LockLog.setSlowLockThresholdMillis(slowLogTriggerMillis);
 
-        if (timeLockServerConfiguration.useAsyncLockService()) {
+        if (timeLockServerConfiguration.asyncLockConfiguration().useAsyncLockService()) {
             return createTimeLockServicesWithAsync(client, rawTimestampServiceSupplier, lockService);
         }
         return createLegacyTimeLockServices(rawTimestampServiceSupplier, lockService);
@@ -296,6 +298,18 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private CloseableRemoteLockService createTimeLimitedLockService(long slowLogTriggerMillis) {
+        CloseableRemoteLockService lockServiceWithoutTimeLimiting
+                = createMaybeNonTransactionalLockService(slowLogTriggerMillis);
+
+        if (timeLockServerConfiguration.timeLimiterConfiguration().enableTimeLimiting()) {
+            return BlockingTimeLimitedLockService.create(
+                    lockServiceWithoutTimeLimiting,
+                    BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), timeLockServerConfiguration));
+        }
+        return lockServiceWithoutTimeLimiting;
+    }
+
+    private CloseableRemoteLockService createMaybeNonTransactionalLockService(long slowLogTriggerMillis) {
         LockServerOptions lockServerOptions = new LockServerOptions() {
             @Override
             public long slowLogTriggerMillis() {
@@ -305,10 +319,10 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions);
 
-        if (timeLockServerConfiguration.timeLimiterConfiguration().enableTimeLimiting()) {
-            return BlockingTimeLimitedLockService.create(
-                    rawLockService,
-                    BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), timeLockServerConfiguration));
+        AsyncLockConfiguration asyncLockConfiguration = timeLockServerConfiguration.asyncLockConfiguration();
+        if (asyncLockConfiguration.useAsyncLockService()
+                && !asyncLockConfiguration.disableLegacySafetyChecksWarningPotentialDataCorruption()) {
+            return new NonTransactionalLockService(rawLockService);
         }
         return rawLockService;
     }

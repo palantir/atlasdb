@@ -14,9 +14,11 @@ clients:
   - learner
   - acceptor
 
-useAsyncLockService: true
 useClientRequestLimit: true
-useAsyncLockService: true
+
+asyncLock:
+  useAsyncLockService: true
+  disableLegacySafetyChecksWarningPotentialDataCorruption: false
 
 server:
   minThreads: 1
