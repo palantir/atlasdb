@@ -125,7 +125,7 @@ public class PersistentLockManagerTest {
         verifyZeroInteractions(mockPls);
     }
 
-    @Test
+    @Test(timeout = 10_000)
     public void doesNotDeadlockOnShutdownIfLockCannotBeAcquired() throws InterruptedException {
         CountDownLatch acquireStarted = new CountDownLatch(1);
         when(mockPls.acquireBackupLock(any())).then(inv -> {
