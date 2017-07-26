@@ -22,8 +22,8 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.ForwardingObject;
 
-public class InitialisingRemoteLockService extends ForwardingObject implements RemoteLockService {
-    private RemoteLockService delegate;
+public final class InitialisingRemoteLockService extends ForwardingObject implements RemoteLockService {
+    private volatile RemoteLockService delegate;
 
     private InitialisingRemoteLockService(RemoteLockService remoteLockService) {
         delegate = remoteLockService;
@@ -33,22 +33,8 @@ public class InitialisingRemoteLockService extends ForwardingObject implements R
         return new InitialisingRemoteLockService(null);
     }
 
-    public static InitialisingRemoteLockService create(RemoteLockService remoteLockService) {
-        return new InitialisingRemoteLockService(remoteLockService);
-    }
-
     public void initialise(RemoteLockService remoteLockService) {
         delegate = remoteLockService;
-    }
-
-    private RemoteLockService getDelegate() {
-        return (RemoteLockService) delegate();
-    }
-
-    @Override
-    protected Object delegate() {
-        checkInitialised();
-        return delegate;
     }
 
     @Nullable
@@ -86,6 +72,16 @@ public class InitialisingRemoteLockService extends ForwardingObject implements R
     @Override
     public void logCurrentState() {
         getDelegate().logCurrentState();
+    }
+
+    private RemoteLockService getDelegate() {
+        return (RemoteLockService) delegate();
+    }
+
+    @Override
+    protected Object delegate() {
+        checkInitialised();
+        return delegate;
     }
 
     void checkInitialised() {

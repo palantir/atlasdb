@@ -122,6 +122,7 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
@@ -710,6 +711,7 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",

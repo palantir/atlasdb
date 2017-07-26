@@ -46,12 +46,11 @@ import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
@@ -63,7 +62,6 @@ public final class TransactionManagers {
 
     private static final int LOGGING_INTERVAL = 60;
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
-    public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
     @VisibleForTesting
     static Consumer<Runnable> runAsync = task -> {
@@ -166,8 +164,8 @@ public final class TransactionManagers {
 
         checkInstallConfig(config);
 
-        return new InitialisingTransactionManager(config, runtimeConfigSupplier, schemas, env, lockServerOptions, allowHiddenTableAccess,
-                userAgent);
+        return new InitialisingTransactionManager(config, runtimeConfigSupplier, schemas, env, lockServerOptions,
+                allowHiddenTableAccess, userAgent);
     }
 
     private static void checkInstallConfig(AtlasDbConfig config) {

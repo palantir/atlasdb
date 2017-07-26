@@ -21,8 +21,8 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.ForwardingObject;
 
-public class InitialisingSweeperService extends ForwardingObject implements SweeperService {
-    private SweeperService delegate;
+public final class InitialisingSweeperService extends ForwardingObject implements SweeperService {
+    private volatile SweeperService delegate;
 
     private InitialisingSweeperService(SweeperService sweeperService) {
         delegate = sweeperService;
@@ -32,28 +32,8 @@ public class InitialisingSweeperService extends ForwardingObject implements Swee
         return new InitialisingSweeperService(null);
     }
 
-    public static InitialisingSweeperService create(SweeperService sweeperService) {
-        return new InitialisingSweeperService(sweeperService);
-    }
-
     public void initialise(SweeperService sweeperService) {
         delegate = sweeperService;
-    }
-
-    private SweeperService getDelegate() {
-        return (SweeperService) delegate();
-    }
-
-    @Override
-    protected Object delegate() {
-        checkInitialised();
-        return delegate;
-    }
-
-    void checkInitialised() {
-        if (delegate == null) {
-            throw new IllegalStateException("Not initialised");
-        }
     }
 
     @Override
@@ -70,6 +50,23 @@ public class InitialisingSweeperService extends ForwardingObject implements Swee
     public void sweepTableFromStartRowWithBatchConfig(String tableName, @Nullable String startRow,
             @Nullable Integer maxCellTsPairsToExamine, @Nullable Integer candidateBatchSize,
             @Nullable Integer deleteBatchSize) {
-        getDelegate().sweepTableFromStartRowWithBatchConfig(tableName, startRow, maxCellTsPairsToExamine, candidateBatchSize, deleteBatchSize);
+        getDelegate().sweepTableFromStartRowWithBatchConfig(tableName, startRow, maxCellTsPairsToExamine,
+                candidateBatchSize, deleteBatchSize);
+    }
+
+    private SweeperService getDelegate() {
+        return (SweeperService) delegate();
+    }
+
+    @Override
+    protected Object delegate() {
+        checkInitialised();
+        return delegate;
+    }
+
+    void checkInitialised() {
+        if (delegate == null) {
+            throw new IllegalStateException("Not initialised");
+        }
     }
 }

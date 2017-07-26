@@ -34,7 +34,8 @@
         "com.google.guava:guava": {
             "locked": "18.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "com.palantir.atlasdb:atlasdb-commons": {
@@ -119,7 +120,8 @@
         "com.google.guava:guava": {
             "locked": "18.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "com.palantir.atlasdb:atlasdb-commons": {

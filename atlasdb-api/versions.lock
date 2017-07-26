@@ -38,6 +38,7 @@
             "locked": "18.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting2:ssl-config"
             ]
         },
@@ -137,6 +138,7 @@
             "locked": "18.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting2:ssl-config"
             ]
         },

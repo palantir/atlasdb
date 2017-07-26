@@ -17,13 +17,8 @@ package com.palantir.atlasdb;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
@@ -72,12 +67,12 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     private TransactionManager createTransactionManager(AtlasDbEteConfiguration config, Environment environment)
             throws InterruptedException {
-                return TransactionManagers.create(
-                        config.getAtlasDbConfig(),
-                        Optional::empty,
-                        ETE_SCHEMAS,
-                        environment.jersey()::register,
-                        DONT_SHOW_HIDDEN_TABLES);
+        return TransactionManagers.create(
+                config.getAtlasDbConfig(),
+                Optional::empty,
+                ETE_SCHEMAS,
+                environment.jersey()::register,
+                DONT_SHOW_HIDDEN_TABLES);
     }
 
     private void enableEnvironmentVariablesInConfig(Bootstrap<AtlasDbEteConfiguration> bootstrap) {

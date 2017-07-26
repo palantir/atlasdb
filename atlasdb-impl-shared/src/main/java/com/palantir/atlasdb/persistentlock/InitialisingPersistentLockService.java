@@ -18,8 +18,8 @@ package com.palantir.atlasdb.persistentlock;
 
 import com.google.common.collect.ForwardingObject;
 
-public class InitialisingPersistentLockService extends ForwardingObject implements PersistentLockService {
-    private PersistentLockService delegate;
+public final class InitialisingPersistentLockService extends ForwardingObject implements PersistentLockService {
+    private volatile PersistentLockService delegate;
 
     private InitialisingPersistentLockService(PersistentLockService persistentLockService) {
         delegate = persistentLockService;
@@ -27,10 +27,6 @@ public class InitialisingPersistentLockService extends ForwardingObject implemen
 
     public static InitialisingPersistentLockService create() {
         return new InitialisingPersistentLockService(null);
-    }
-
-    public static InitialisingPersistentLockService create(PersistentLockService persistentLockService) {
-        return new InitialisingPersistentLockService(persistentLockService);
     }
 
     public void initialise(PersistentLockService persistentLockService) {
@@ -47,14 +43,14 @@ public class InitialisingPersistentLockService extends ForwardingObject implemen
         getDelegate().releaseBackupLock(lockId);
     }
 
+    private PersistentLockService getDelegate() {
+        return (PersistentLockService) delegate();
+    }
+
     @Override
     protected Object delegate() {
         checkInitialised();
         return delegate;
-    }
-
-    private PersistentLockService getDelegate() {
-        return (PersistentLockService) delegate();
     }
 
     void checkInitialised() {

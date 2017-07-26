@@ -18,8 +18,8 @@ package com.palantir.timestamp;
 
 import com.google.common.collect.ForwardingObject;
 
-public class InitialisingTimestampService extends ForwardingObject implements TimestampService {
-    private TimestampService delegate;
+public final class InitialisingTimestampService extends ForwardingObject implements TimestampService {
+    private volatile TimestampService delegate;
 
     private InitialisingTimestampService(TimestampService timestampService) {
         delegate = timestampService;
@@ -37,15 +37,6 @@ public class InitialisingTimestampService extends ForwardingObject implements Ti
         delegate = timestampService;
     }
 
-    private TimestampService getDelegate() {
-        return (TimestampService) delegate();
-    }
-
-    @Override
-    protected Object delegate() {
-        checkInitialised();
-        return delegate;    }
-
     @Override
     public long getFreshTimestamp() {
         return getDelegate().getFreshTimestamp();
@@ -54,6 +45,16 @@ public class InitialisingTimestampService extends ForwardingObject implements Ti
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         return getDelegate().getFreshTimestamps(numTimestampsRequested);
+    }
+
+    private TimestampService getDelegate() {
+        return (TimestampService) delegate();
+    }
+
+    @Override
+    protected Object delegate() {
+        checkInitialised();
+        return delegate;
     }
 
     void checkInitialised() {
