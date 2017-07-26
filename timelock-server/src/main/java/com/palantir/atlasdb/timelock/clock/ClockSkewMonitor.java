@@ -20,11 +20,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -36,16 +38,21 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
  */
 public final class ClockSkewMonitor {
 
+
     private static final long SLEEP_TIME_SECONDS = 1; // 1 s
     private static final long NANOS_PER_SECOND = 1_000_000_000; // 10^9
-    private static final long MAX_TIME_SINCE_PREVIOUS_REQUEST_NANOS = 10 * SLEEP_TIME_SECONDS * NANOS_PER_SECOND; // 10s
-    private static final long MAX_REQUEST_TIME_NANOS = 10_000_000; // 10 ms
 
-    private static final ClockSkewEvents events = new ClockSkewEvents(AtlasDbMetrics.getMetricRegistry());
+    @VisibleForTesting
+    static final long MAX_TIME_SINCE_PREVIOUS_REQUEST_NANOS = 10 * SLEEP_TIME_SECONDS * NANOS_PER_SECOND; // 10s
+    @VisibleForTesting
+    static final long MAX_REQUEST_TIME_NANOS = 10_000_000; // 10 ms
 
+    private final ClockSkewEvents events;
     private final Map<String, ClockService> monitorByServer;
     private final Map<String, RequestTime> previousRequestsByServer;
     private final Supplier<Boolean> shouldRunClockSkewMonitor;
+    private final ScheduledExecutorService executorService;
+    private final Supplier<Long> localTimeSupplier;
 
     public static ClockSkewMonitor create(Set<String> remoteServers, Optional<SSLSocketFactory> optionalSecurity,
             Supplier<Boolean> shouldRunClockSkewMonitor) {
@@ -57,20 +64,30 @@ public final class ClockSkewMonitor {
             previousRequests.put(server, RequestTime.EMPTY);
         }
 
-        return new ClockSkewMonitor(monitors, previousRequests, shouldRunClockSkewMonitor);
+        return new ClockSkewMonitor(monitors, previousRequests, shouldRunClockSkewMonitor,
+                new ClockSkewEvents(AtlasDbMetrics.getMetricRegistry()),
+                Executors.newSingleThreadScheduledExecutor(),
+                System::nanoTime);
     }
 
-    private ClockSkewMonitor(
+    @VisibleForTesting
+    public ClockSkewMonitor(
             Map<String, ClockService> monitorByServer,
             Map<String, RequestTime> previousRequestsByServer,
-            Supplier<Boolean> shouldRunClockSkewMonitor) {
+            Supplier<Boolean> shouldRunClockSkewMonitor,
+            ClockSkewEvents events,
+            ScheduledExecutorService executorService,
+            Supplier<Long> localTimeSupplier) {
         this.monitorByServer = monitorByServer;
         this.previousRequestsByServer = previousRequestsByServer;
         this.shouldRunClockSkewMonitor = shouldRunClockSkewMonitor;
+        this.events = events;
+        this.executorService = executorService;
+        this.localTimeSupplier = localTimeSupplier;
     }
 
     public void run() {
-        Executors.newSingleThreadScheduledExecutor().schedule(
+        executorService.schedule(
                 () -> {
                     try {
                         if (shouldRunClockSkewMonitor.get()) {
@@ -83,11 +100,12 @@ public final class ClockSkewMonitor {
         );
     }
 
-    private void runInternal() {
+    @VisibleForTesting
+    public void runInternal() {
         monitorByServer.forEach((server, monitor) -> {
-            long localTimeAtStart = System.nanoTime();
+            long localTimeAtStart = localTimeSupplier.get();
             long remoteSystemTime = monitor.getSystemTimeInNanos();
-            long localTimeAtEnd = System.nanoTime();
+            long localTimeAtEnd = localTimeSupplier.get();
 
             RequestTime previousRequest = previousRequestsByServer.get(server);
             RequestTime newRequest = new RequestTime(localTimeAtStart, localTimeAtEnd, remoteSystemTime);
@@ -113,7 +131,7 @@ public final class ClockSkewMonitor {
                 "A positive remoteElapsedTime is expected");
 
         if (minElapsedTime > MAX_TIME_SINCE_PREVIOUS_REQUEST_NANOS) {
-            events.tooMuchTimeSinceLastRequest(remoteElapsedTime);
+            events.tooMuchTimeSinceLastRequest(minElapsedTime);
             previousRequestsByServer.put(server, newRequest);
             return;
         }
@@ -131,7 +149,7 @@ public final class ClockSkewMonitor {
             if (remoteElapsedTime < minElapsedTime) {
                 skew = minElapsedTime - remoteElapsedTime;
             } else {
-                skew = maxElapsedTime - remoteElapsedTime;
+                skew = remoteElapsedTime - maxElapsedTime;
             }
 
             events.clockSkew(server, skew);
@@ -142,13 +160,14 @@ public final class ClockSkewMonitor {
         events.requestPace(server, minElapsedTime, maxElapsedTime, remoteElapsedTime);
     }
 
-    private static class RequestTime {
+    @VisibleForTesting
+    public static class RequestTime {
         // Since we expect localTimeAtStart != localTimeAtEnd, it's safe to have an empty request time.
-        private static final RequestTime EMPTY = new RequestTime(0L, 0L, 0L);
+        public static final RequestTime EMPTY = new RequestTime(0L, 0L, 0L);
 
-        private final long localTimeAtStart;
-        private final long localTimeAtEnd;
-        private final long remoteSystemTime;
+        public final long localTimeAtStart;
+        public final long localTimeAtEnd;
+        public final long remoteSystemTime;
 
         RequestTime(long localTimeAtStart, long localTimeAtEnd, long remoteSystemTime) {
             this.localTimeAtStart = localTimeAtStart;
