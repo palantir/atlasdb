@@ -49,7 +49,7 @@ import com.palantir.atlasdb.services.test.TestSweeperModule;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.timestamp.TimestampService;
 
 import io.airlift.airline.Command;
@@ -100,7 +100,7 @@ public class TestSweepCommand {
         try (SingleBackendCliTestRunner runner = makeRunner(
                 paramsWithDryRunSet(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName()))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
-            SerializableTransactionManager txm = services.getTransactionManager();
+            SerializableTransactionManagerImpl txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
             KeyValueService kvs = services.getKeyValueService();
 
@@ -150,7 +150,7 @@ public class TestSweepCommand {
     public void testSweepNamespace() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(paramsWithDryRunSet(SWEEP_COMMAND, "-n", NS1.getName()))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
-            SerializableTransactionManager txm = services.getTransactionManager();
+            SerializableTransactionManagerImpl txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
             KeyValueService kvs = services.getKeyValueService();
 
@@ -182,7 +182,7 @@ public class TestSweepCommand {
     public void testSweepAll() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(paramsWithDryRunSet(SWEEP_COMMAND, "-a"))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
-            SerializableTransactionManager txm = services.getTransactionManager();
+            SerializableTransactionManagerImpl txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
             KeyValueService kvs = services.getKeyValueService();
 
@@ -216,7 +216,7 @@ public class TestSweepCommand {
                 paramsWithDryRunSet(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName(),
                         "-r", BaseEncoding.base16().encode("foo".getBytes(StandardCharsets.UTF_8))))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
-            SerializableTransactionManager txm = services.getTransactionManager();
+            SerializableTransactionManagerImpl txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
             KeyValueService kvs = services.getKeyValueService();
 
@@ -277,7 +277,7 @@ public class TestSweepCommand {
         return ImmutableSet.copyOf(kvs.getAllTimestamps(table, ImmutableSet.of(cell), Long.MAX_VALUE).get(cell));
     }
 
-    private long put(SerializableTransactionManager txm, TableReference table, String row, String val) {
+    private long put(SerializableTransactionManagerImpl txm, TableReference table, String row, String val) {
         Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), COL.getBytes(StandardCharsets.UTF_8));
         return txm.runTaskWithRetry(t -> {
             t.put(table, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8)));

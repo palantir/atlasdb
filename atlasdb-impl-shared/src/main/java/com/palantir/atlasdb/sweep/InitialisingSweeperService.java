@@ -28,7 +28,7 @@ public class InitialisingSweeperService extends ForwardingObject implements Swee
         delegate = sweeperService;
     }
 
-    public static InitialisingSweeperService createUninitialised() {
+    public static InitialisingSweeperService create() {
         return new InitialisingSweeperService(null);
     }
 

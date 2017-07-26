@@ -29,7 +29,7 @@ public class InitialisingRemoteLockService extends ForwardingObject implements R
         delegate = remoteLockService;
     }
 
-    public static InitialisingRemoteLockService createUninitialised() {
+    public static InitialisingRemoteLockService create() {
         return new InitialisingRemoteLockService(null);
     }
 

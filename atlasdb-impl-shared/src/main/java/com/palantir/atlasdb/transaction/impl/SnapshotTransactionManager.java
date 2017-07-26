@@ -55,7 +55,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
-/* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager implements SnapshotTransactionManagerInterface{
+/* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final int NUM_RETRIES = 10;
 
     final KeyValueService keyValueService;
@@ -136,7 +136,7 @@ import com.palantir.timestamp.TimestampService;
         return finishRunTaskWithLockThrowOnConflict(tx, LockAwareTransactionTasks.asLockUnaware(task, lockTokens));
     }
 
-    @Override
+    //@Override
     public RawTransaction setupRunTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens) {
         long immutableLockTs = timestampService.getFreshTimestamp();
         Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
@@ -164,7 +164,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    @Override
+    //@Override
     public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
                                                                            TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
@@ -235,7 +235,7 @@ import com.palantir.timestamp.TimestampService;
      *
      * Concurrency: If this method races with close(), then closingCallback may not be called.
      */
-    @Override
+    //@Override
     public void registerClosingCallback(Runnable closingCallback) {
         Preconditions.checkNotNull(closingCallback, "Cannot register a null callback.");
         closingCallbacks.add(closingCallback);
@@ -328,17 +328,17 @@ import com.palantir.timestamp.TimestampService;
         return cleaner.getUnreadableTimestamp();
     }
 
-    @Override
+    //@Override
     public Cleaner getCleaner() {
         return cleaner;
     }
 
-    @Override
+    //@Override
     public KeyValueService getKeyValueService() {
         return keyValueService;
     }
 
-    @Override
+    //@Override
     public TimestampService getTimestampService() {
         return timestampService;
     }

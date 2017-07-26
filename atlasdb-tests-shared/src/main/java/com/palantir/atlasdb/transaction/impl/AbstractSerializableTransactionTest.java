@@ -65,7 +65,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Override
     protected TransactionManager getManager() {
-        return new SerializableTransactionManager(
+        return new SerializableTransactionManagerImpl(
                 keyValueService,
                 timestampService,
                 lockClient,

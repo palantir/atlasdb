@@ -25,7 +25,7 @@ public class InitialisingPersistentLockService extends ForwardingObject implemen
         delegate = persistentLockService;
     }
 
-    public static InitialisingPersistentLockService createUninitialised() {
+    public static InitialisingPersistentLockService create() {
         return new InitialisingPersistentLockService(null);
     }
 

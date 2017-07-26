@@ -40,6 +40,8 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 
+import feign.RetryableException;
+
 @RunWith(Parameterized.class)
 public class MultiCassandraStartupOrderingEteTest {
 
@@ -48,8 +50,6 @@ public class MultiCassandraStartupOrderingEteTest {
     public MultiCassandraStartupOrderingEteTest(List<String> cassandraNodesToStartorStop) {
         this.cassandraNodesToStartOrStop = cassandraNodesToStartorStop;
     }
-
-    public static Logger log = LoggerFactory.getLogger(MultiCassandraStartupOrderingEteTest.class);
 
     @Parameterized.Parameters
     public static Collection<Object[]> testCases() {
@@ -65,27 +65,16 @@ public class MultiCassandraStartupOrderingEteTest {
     public void shouldBeAbleToStartUpIfCassandraIsDownAndRunTransactionsWhenCassandraIsUp()
             throws IOException, InterruptedException {
         addATodo();
-        stopTheAtlasClient();
-        System.out.println("STOPPED CLIENT");
-        runOnCassandraNodes(MultiCassandraTestSuite::killCassandraContainer);
-        System.out.println("KILLED NODES");
-        startTheAtlasClient();
-        System.out.println("STARTED CLIENT");
 
-////        if (quorumIsAlive()) {
-//        try {
-//            addATodo();
-//        }
-//        catch (Throwable th) {
-//            System.out.println(th);
-//        }
-////        } else {
-            assertThatThrownBy(this::addATodo)
+        stopTheAtlasClient();
+        runOnCassandraNodes(MultiCassandraTestSuite::killCassandraContainer);
+        startTheAtlasClient();
+
+        assertThatThrownBy(this::addATodo)
                     .isInstanceOf(AtlasDbRemoteException.class);
-//                    .hasMessageContaining("IllegalStateException thrown");
-//        Uninterruptibles.sleepUninterruptibly(20, TimeUnit.SECONDS);
 
         runOnCassandraNodes(MultiCassandraTestSuite::startCassandraContainer);
+
         while (true) {
             try {
                 addATodo();
@@ -96,18 +85,12 @@ public class MultiCassandraStartupOrderingEteTest {
         }
     }
 
-    private boolean quorumIsAlive() {
-        return cassandraNodesToStartOrStop.size() < 2;
-    }
-
     private void stopTheAtlasClient() throws IOException, InterruptedException {
-        System.out.println("STOPPING CLIENT");
-        System.out.println(EteSetup.runCliCommand("service/bin/init.sh stop"));
+        EteSetup.runCliCommand("service/bin/init.sh stop");
     }
 
     private void startTheAtlasClient() throws IOException, InterruptedException {
-        System.out.println("STARTING CLIENT");
-        System.out.println(EteSetup.runCliCommand("service/bin/init.sh start"));
+        EteSetup.runCliCommand("service/bin/init.sh start");
     }
 
     private void runOnCassandraNodes(CassandraContainerOperator operator)
@@ -120,8 +103,6 @@ public class MultiCassandraStartupOrderingEteTest {
     }
 
     private void addATodo() {
-        System.out.println("CREATING TODORESOURCE");
-        log.warn("CREATING TODORESOURCE");
         TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
         Todo todo = getUniqueTodo();
 

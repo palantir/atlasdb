@@ -21,7 +21,7 @@ import javax.inject.Singleton;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
@@ -42,7 +42,7 @@ public abstract class AtlasDbServices implements AutoCloseable {
     @Named("kvs")
     public abstract KeyValueService getKeyValueService();
 
-    public abstract SerializableTransactionManager getTransactionManager();
+    public abstract SerializableTransactionManagerImpl getTransactionManager();
 
     public abstract SweepTaskRunner getSweepTaskRunner();
 

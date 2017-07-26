@@ -32,7 +32,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampService;
 
-public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
+public class TestTransactionManagerImpl extends SerializableTransactionManagerImpl implements TestTransactionManager {
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
 

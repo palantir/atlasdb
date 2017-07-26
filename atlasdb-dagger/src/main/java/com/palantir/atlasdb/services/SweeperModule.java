@@ -23,7 +23,7 @@ import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
@@ -35,7 +35,7 @@ public class SweeperModule {
 
     @Provides
     @Singleton
-    public SweepTaskRunner provideSweepTaskRunner(SerializableTransactionManager txm,
+    public SweepTaskRunner provideSweepTaskRunner(SerializableTransactionManagerImpl txm,
                                                   @Named("kvs") KeyValueService kvs,
                                                   TransactionService transactionService,
                                                   SweepStrategyManager sweepStrategyManager,
