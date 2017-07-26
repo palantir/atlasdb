@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.SSLSocketFactory;
+import javax.ws.rs.BadRequestException;
 
 import org.assertj.core.util.Lists;
 import org.eclipse.jetty.http.HttpStatus;
@@ -346,6 +347,20 @@ public class PaxosTimeLockServerIntegrationTest {
         timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion + 1);
         assertThat(timestampService.getFreshTimestamp())
                 .isGreaterThan(currentTimestampIncrementedByOneMillion + FORTY_TWO);
+    }
+
+    @Test
+    public void lockServiceShouldDisallowGettingMinLockedInVersionId() {
+        RemoteLockService remoteLockService = getLockService(CLIENT_1);
+        assertThatThrownBy(() -> remoteLockService.getMinLockedInVersionId(CLIENT_1))
+                .isInstanceOf(AtlasDbRemoteException.class)
+                .satisfies(remoteException -> {
+                    AtlasDbRemoteException atlasDbRemoteException = (AtlasDbRemoteException) remoteException;
+                    assertThat(atlasDbRemoteException.getErrorName())
+                            .isEqualTo(BadRequestException.class.getCanonicalName());
+                    assertThat(atlasDbRemoteException.getStatus())
+                            .isEqualTo(HttpStatus.BAD_REQUEST_400);
+                });
     }
 
     private static void getFortyTwoFreshTimestamps(TimestampService timestampService) {

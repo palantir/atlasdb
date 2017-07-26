@@ -58,15 +58,15 @@ public class TimeLockServerConfiguration extends Configuration {
         this.algorithm = MoreObjects.firstNonNull(algorithm, PaxosConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
-        this.asyncLockConfiguration = MoreObjects.firstNonNull(asyncLockConfiguration,
-                ImmutableAsyncLockConfiguration.builder().build());
+        this.asyncLockConfiguration = MoreObjects.firstNonNull(
+                asyncLockConfiguration, ImmutableAsyncLockConfiguration.builder().build());
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
         this.timeLimiterConfiguration =
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
 
         if (clients.isEmpty()) {
-            log.warn("TimeLockServer initialised with an empty list of 'clients'. "
-                    + "When adding clients, you will need to amend the config and restart TimeLock.");
+            log.warn("TimeLockServer initialised with an empty list of 'clients'."
+                    + " When adding clients, you will need to amend the config and restart TimeLock.");
         }
     }
 

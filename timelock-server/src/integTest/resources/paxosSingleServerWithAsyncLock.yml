@@ -18,6 +18,7 @@ useClientRequestLimit: true
 
 asyncLock:
   useAsyncLockService: true
+  disableLegacySafetyChecksWarningPotentialDataCorruption: false
 
 server:
   minThreads: 1

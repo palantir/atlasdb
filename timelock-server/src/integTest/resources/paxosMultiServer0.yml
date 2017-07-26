@@ -12,6 +12,7 @@ cluster:
 
 asyncLock:
   useAsyncLockService: true
+  disableLegacySafetyChecksWarningPotentialDataCorruption: false
 
 clients:
   - test

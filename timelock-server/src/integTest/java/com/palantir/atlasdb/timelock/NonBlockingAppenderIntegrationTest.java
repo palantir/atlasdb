@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock;
 
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -30,6 +31,11 @@ public class NonBlockingAppenderIntegrationTest {
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
+
+    @BeforeClass
+    public static void setUp() {
+        CLUSTER.waitUntilLeaderIsElected();
+    }
 
     @Test
     public void canDeserializeConfigAndStart() {
