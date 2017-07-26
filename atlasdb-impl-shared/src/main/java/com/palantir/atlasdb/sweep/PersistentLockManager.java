@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,8 +43,10 @@ public class PersistentLockManager {
     private final Meter lockFailureMeter;
 
     @VisibleForTesting
+    @GuardedBy("this")
     PersistentLockId lockId;
 
+    @GuardedBy("this")
     private boolean isShutDown = false;
 
     public PersistentLockManager(PersistentLockService persistentLockService, long persistentLockRetryWaitMillis) {
