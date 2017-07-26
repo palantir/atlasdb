@@ -1337,9 +1337,9 @@ public final class UserProfileTable implements
             }
 
             @Override
-            public int compareTo(CookiesIdxRow cookiesIdxRow) {
+            public int compareTo(CookiesIdxRow o) {
                 return ComparisonChain.start()
-                    .compare(this.cookie, cookiesIdxRow.cookie)
+                    .compare(this.cookie, o.cookie)
                     .result();
             }
         }

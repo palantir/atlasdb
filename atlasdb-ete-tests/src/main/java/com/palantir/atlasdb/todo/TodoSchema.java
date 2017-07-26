@@ -21,6 +21,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.AtlasSchema;
+import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -34,7 +35,8 @@ public class TodoSchema implements AtlasSchema {
         Schema schema = new Schema(
                 TodoSchema.class.getSimpleName(),
                 TodoSchema.class.getPackage().getName() + ".generated",
-                Namespace.DEFAULT_NAMESPACE);
+                Namespace.DEFAULT_NAMESPACE,
+                OptionalType.JAVA8);
 
         schema.addTableDefinition(TODO_TABLE, new TableDefinition() {{
                 rowName();

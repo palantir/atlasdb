@@ -121,7 +121,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         UserPhotosStreamMetadataTable metaTable = tables.getUserPhotosStreamMetadataTable(t);
         UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow row = UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.of(id);
         StreamMetadata metadata = metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();
-        Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks: " + id);
+        Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks: %s", id);
         Builder builder = StreamMetadata.newBuilder(metadata);
         builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);
         metaTable.putMetadata(row, builder.build());
@@ -219,7 +219,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
                 Long streamId = v.getColumnName().getStreamId();
                 Sha256Hash hash = r.getHash();
                 if (hashForStreams.containsKey(streamId)) {
-                    AssertUtils.assertAndLog(log, hashForStreams.get(streamId).equals(hash), "(BUG) Stream ID has 2 different hashes: " + streamId);
+                    AssertUtils.assertAndLog(hashForStreams.get(streamId).equals(hash), "(BUG) Stream ID has 2 different hashes: " + streamId);
                 }
                 hashForStreams.put(streamId, hash);
             }
@@ -357,7 +357,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         for (Map.Entry<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             StreamMetadata metadata = e.getValue();
             Preconditions.checkState(metadata.getStatus() == Status.STORED,
-            "Stream: " + e.getKey().getId() + " has status: " + metadata.getStatus());
+            "Stream: %s has status: %s", e.getKey().getId(), metadata.getStatus());
             metaTable.putMetadata(e.getKey(), metadata);
         }
         SetView<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> missingRows = Sets.difference(rows, metadatas.keySet());
