@@ -22,7 +22,7 @@ import io.reactivex.Observable;
 @JsonDeserialize(as = ImmutablePaxosInstallConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosInstallConfiguration.class)
 @Value.Immutable
-public interface PaxosInstallConfiguration{
+public interface PaxosInstallConfiguration {
     @JsonProperty("data-directory")
     @Value.Default
     default File dataDirectory() {
