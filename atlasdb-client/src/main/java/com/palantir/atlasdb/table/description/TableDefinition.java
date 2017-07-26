@@ -68,7 +68,7 @@ public class TableDefinition extends AbstractDefinition {
     public void tableNameIsSafeLoggable() {
         Preconditions.checkState(state == State.NONE, "Specifying a table name is safe should be done outside of the"
                 + " subscopes of TableDefinition.");
-        tableNameLoggable = true;
+        tableNameSafety = LogSafety.SAFE;
     }
 
     /**
@@ -80,7 +80,7 @@ public class TableDefinition extends AbstractDefinition {
     public void namedComponentsSafeByDefault() {
         Preconditions.checkState(state == State.NONE, "Specifying components are safe by default should be done outside"
                 + " of the subscopes of TableDefinition.");
-        defaultNamedComponentLogSafety = true;
+        defaultNamedComponentLogSafety = LogSafety.SAFE;
     }
 
     public void column(String columnName, String shortName, Class<?> protoOrPersistable) {
@@ -111,12 +111,15 @@ public class TableDefinition extends AbstractDefinition {
         column(columnName, shortName, valueType, defaultNamedComponentLogSafety);
     }
 
-    public void column(String columnName, String shortName, ValueType valueType, boolean columnNameLoggable) {
+    public void column(String columnName, String shortName, ValueType valueType, LogSafety columnNameLoggable) {
         checkStateForNamedColumnDefinition();
         checkUniqueColumnNames(columnName, shortName);
         fixedColumns.add(
                 new NamedColumnDescription(
-                        shortName, columnName, ColumnValueDescription.forType(valueType), columnNameLoggable));
+                        shortName,
+                        columnName,
+                        ColumnValueDescription.forType(valueType),
+                        columnNameLoggable.isSafeForLogging()));
     }
 
     private void checkStateForNamedColumnDefinition() {
@@ -169,10 +172,15 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     public void rowComponent(
-            String componentName, ValueType valueType, ValueByteOrder valueByteOrder, boolean rowNameLoggable) {
+            String componentName, ValueType valueType, ValueByteOrder valueByteOrder, LogSafety rowNameLoggable) {
         Preconditions.checkState(state == State.DEFINING_ROW_NAME,
                 "Can only declare a row component inside the rowName scope.");
-        rowNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder, rowNameLoggable));
+        rowNameComponents.add(
+                new NameComponentDescription(
+                        componentName,
+                        valueType,
+                        valueByteOrder,
+                        rowNameLoggable.isSafeForLogging()));
     }
 
     /**
@@ -317,8 +325,8 @@ public class TableDefinition extends AbstractDefinition {
     private Set<String> fixedColumnShortNames = Sets.newHashSet();
     private Set<String> fixedColumnLongNames = Sets.newHashSet();
     private boolean noColumns = false;
-    private boolean tableNameLoggable = false;
-    private boolean defaultNamedComponentLogSafety = false;
+    private LogSafety tableNameSafety = LogSafety.UNSAFE;
+    private LogSafety defaultNamedComponentLogSafety = LogSafety.UNSAFE;
 
     public TableMetadata toTableMetadata() {
         Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
@@ -343,7 +351,7 @@ public class TableDefinition extends AbstractDefinition {
                 sweepStrategy,
                 expirationStrategy,
                 appendHeavyAndReadLight,
-                tableNameLoggable);
+                tableNameSafety.isSafeForLogging());
     }
 
     private ColumnMetadataDescription getColumnMetadataDescription() {

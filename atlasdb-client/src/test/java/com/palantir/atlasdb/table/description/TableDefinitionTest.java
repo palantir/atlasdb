@@ -27,7 +27,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 
 public class TableDefinitionTest {
-    private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, "foo");
+    private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE,
+            TableDefinitionTest.class.getSimpleName());
     private static final String ROW_NAME = "foo";
     private static final String COLUMN_NAME = "bar";
     private static final String COLUMN_SHORTNAME = "b";
@@ -131,7 +132,8 @@ public class TableDefinitionTest {
         TableDefinition definition = new TableDefinition() {{
             javaTableName(TABLE_REF.getTablename());
             rowName();
-            rowComponent(ROW_NAME, ValueType.STRING, TableMetadataPersistence.ValueByteOrder.ASCENDING, true);
+            rowComponent(
+                    ROW_NAME, ValueType.STRING, TableMetadataPersistence.ValueByteOrder.ASCENDING, LogSafety.SAFE);
             columns();
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }};
@@ -146,7 +148,8 @@ public class TableDefinitionTest {
             namedComponentsSafeByDefault();
             javaTableName(TABLE_REF.getTablename());
             rowName();
-            rowComponent(ROW_NAME, ValueType.STRING, TableMetadataPersistence.ValueByteOrder.ASCENDING, false);
+            rowComponent(
+                    ROW_NAME, ValueType.STRING, TableMetadataPersistence.ValueByteOrder.ASCENDING, LogSafety.UNSAFE);
             columns();
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }};
