@@ -58,7 +58,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     }
 
     @Override
-    public void run(AtlasDbEteConfiguration config, Environment environment) throws Exception {
+    public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
         TransactionManager transactionManager = createTransactionManager(config, environment);
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));

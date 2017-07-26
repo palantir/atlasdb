@@ -41,6 +41,8 @@ import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.execution.DockerComposeExecArgument;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
+import com.palantir.docker.compose.execution.DockerComposeRunArgument;
+import com.palantir.docker.compose.execution.DockerComposeRunOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
 
@@ -105,6 +107,13 @@ public abstract class EteSetup {
     }
 
     static String runCliCommand(String command) throws IOException, InterruptedException {
+        return docker.run(
+                DockerComposeRunOption.options("-T"),
+                "ete-cli",
+                DockerComposeRunArgument.arguments("bash", "-c", command));
+    }
+
+    static String execCliCommand(String command) throws IOException, InterruptedException {
         return docker.exec(
                 DockerComposeExecOption.options("-T"),
                 "ete1",

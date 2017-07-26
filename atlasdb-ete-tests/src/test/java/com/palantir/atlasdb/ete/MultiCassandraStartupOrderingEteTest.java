@@ -82,11 +82,11 @@ public class MultiCassandraStartupOrderingEteTest {
     }
 
     private void stopTheAtlasClient() throws IOException, InterruptedException {
-        EteSetup.runCliCommand("service/bin/init.sh stop");
+        EteSetup.execCliCommand("service/bin/init.sh stop");
     }
 
     private void startTheAtlasClient() throws IOException, InterruptedException {
-        EteSetup.runCliCommand("service/bin/init.sh start");
+        EteSetup.execCliCommand("service/bin/init.sh start");
     }
 
     private void runOnCassandraNodes(CassandraContainerOperator operator)

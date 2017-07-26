@@ -47,7 +47,6 @@ import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -84,7 +83,7 @@ public final class TransactionManagers {
     }
 
     /**
-     * Create a {@link SerializableTransactionManagerImpl} backed by an
+     * Create a {@link SerializableTransactionManager} backed by an
      * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}. This should be used for testing
      * purposes only.
      */
@@ -99,7 +98,7 @@ public final class TransactionManagers {
     }
 
     /**
-     * Create a {@link SerializableTransactionManagerImpl} with provided configurations, {@link Schema},
+     * Create a {@link SerializableTransactionManager} with provided configurations, {@link Schema},
      * and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
@@ -112,7 +111,7 @@ public final class TransactionManagers {
     }
 
     /**
-     * Create a {@link SerializableTransactionManagerImpl} with provided configurations, a set of
+     * Create a {@link SerializableTransactionManager} with provided configurations, a set of
      * {@link Schema}s, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
@@ -127,7 +126,7 @@ public final class TransactionManagers {
     }
 
     /**
-     * Create a {@link SerializableTransactionManagerImpl} with provided configurations, a set of
+     * Create a {@link SerializableTransactionManager} with provided configurations, a set of
      * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(

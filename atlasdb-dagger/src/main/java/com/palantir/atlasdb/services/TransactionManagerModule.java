@@ -29,6 +29,7 @@ import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -82,7 +83,7 @@ public class TransactionManagerModule {
 
     @Provides
     @Singleton
-    public SerializableTransactionManagerImpl provideTransactionManager(ServicesConfig config,
+    public SerializableTransactionManager provideTransactionManager(ServicesConfig config,
                                                                     @Named("kvs") KeyValueService kvs,
                                                                     TransactionManagers.LockAndTimestampServices lts,
                                                                     LockClient lockClient,
