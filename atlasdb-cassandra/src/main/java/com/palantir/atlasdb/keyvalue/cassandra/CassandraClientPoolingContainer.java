@@ -264,6 +264,18 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 pool::getMeanBorrowWaitTimeMillis);
         metricsManager.registerMetric(
                 CassandraClientPoolingContainer.class,
+                metricPrefix, "numIdle",
+                pool::getNumIdle);
+        metricsManager.registerMetric(
+                CassandraClientPoolingContainer.class,
+                metricPrefix, "numActive",
+                pool::getNumActive);
+        metricsManager.registerMetric(
+                CassandraClientPoolingContainer.class,
+                metricPrefix, "approximatePoolSize",
+                () -> pool.getNumIdle() + pool.getNumActive());
+        metricsManager.registerMetric(
+                CassandraClientPoolingContainer.class,
                 metricPrefix, "proportionDestroyedByEvictor",
                 () -> ((double) pool.getDestroyedByEvictorCount()) / ((double) pool.getCreatedCount()));
         metricsManager.registerMetric(
