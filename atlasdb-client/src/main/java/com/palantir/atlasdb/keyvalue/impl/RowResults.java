@@ -48,13 +48,11 @@ public class RowResults {
     }
 
     private static <T> Function<Entry<byte[], SortedMap<byte[], T>>, RowResult<T>> createRowResultFunction() {
-        Function<Entry<byte[], SortedMap<byte[], T>>, RowResult<T>> function = e -> RowResult.create(e.getKey(), e.getValue());
-        return function;
+        return entry -> RowResult.create(entry.getKey(), entry.getValue());
     }
 
     public static <T> Iterator<RowResult<T>> viewOfEntries(Iterator<Map.Entry<byte[], SortedMap<byte[], T>>> mapEntries) {
-        Function<Entry<byte[], SortedMap<byte[], T>>, RowResult<T>> f = createRowResultFunction();
-        return Iterators.transform(mapEntries, f);
+        return Iterators.transform(mapEntries, createRowResultFunction());
     }
 
     public static <T> IterableView<Map.Entry<byte[], SortedMap<byte[], T>>> entriesViewFromRows(Iterable<RowResult<T>> rows) {

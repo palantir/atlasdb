@@ -61,6 +61,8 @@ public class ColumnRenderers {
     }
 
     static SortedSet<NamedColumnDescription> namedColumns(TableMetadata table) {
-        return ImmutableSortedSet.copyOf(Ordering.natural().onResultOf(col -> col.getLongName()), table.getColumns().getNamedColumns());
+        return ImmutableSortedSet.copyOf(
+                Ordering.natural().onResultOf(col -> col.getLongName()),
+                table.getColumns().getNamedColumns());
     }
 }
