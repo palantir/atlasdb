@@ -79,6 +79,8 @@ public abstract class LeaderConfig {
 
     @Value.Check
     protected final void check() {
+        Preconditions.checkState(quorumSize() == 1 && leaders().size() > 2,
+                "The quorumSize must not be 1 if there is more than 2 leaders");
         Preconditions.checkState(quorumSize() > leaders().size() / 2,
                 "The quorumSize '%s' must be over half the amount of leader entries %s.", quorumSize(), leaders());
         Preconditions.checkState(leaders().size() >= quorumSize(),
