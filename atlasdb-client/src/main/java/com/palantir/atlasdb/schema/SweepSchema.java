@@ -20,7 +20,6 @@ import java.io.File;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -40,8 +39,7 @@ public enum SweepSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema("Sweep",
                 SweepSchema.class.getPackage().getName() + ".generated",
-                NAMESPACE,
-                OptionalType.JAVA8);
+                NAMESPACE);
 
         // This table tracks progress on a sweep job of a single table.
         schema.addTableDefinition("progress", new TableDefinition() {{
