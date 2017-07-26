@@ -101,6 +101,18 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void canLockWithFullLockResponse() throws InterruptedException {
+        LockDescriptor lock1 = StringLockDescriptor.of("lock1");
+        LockDescriptor lock2 = StringLockDescriptor.of("lock2");
+        com.palantir.lock.LockRequest lockRequestV1 = com.palantir.lock.LockRequest.builder(ImmutableSortedMap.of(
+                lock1, LockMode.READ, lock2, LockMode.WRITE))
+                .withLockedInVersionId(10).doNotBlock().build();
+        CLUSTER.lockWithFullLockResponse(lockRequestV1);
+        //        Assert.assertEquals(10, (long) cluster.lockService().getMinLockedInVersionId(LockClient.ANONYMOUS.getClientId()));
+    }
+
+
+    @Test
     public void blockedLockRequestThrows503OnLeaderElectionForAsyncLock() throws InterruptedException {
         CLUSTER.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 

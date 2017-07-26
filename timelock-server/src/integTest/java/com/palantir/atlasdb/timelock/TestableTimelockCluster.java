@@ -33,8 +33,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -164,6 +165,10 @@ public class TestableTimelockCluster {
         return timelockService().lock(requestV2);
     }
 
+    public void lockWithFullLockResponse(com.palantir.lock.LockRequest requestV1) throws InterruptedException {
+         lockService().lockWithFullLockResponse(LockClient.of(defaultClient), requestV1);
+    }
+
     public CompletableFuture<LockResponse> lockAsync(LockRequest requestV2) {
         return CompletableFuture.supplyAsync(() -> lock(requestV2), executor);
     }
@@ -192,8 +197,8 @@ public class TestableTimelockCluster {
         return proxies.failoverForClient(defaultClient, TimestampService.class);
     }
 
-    public RemoteLockService lockService() {
-        return proxies.failoverForClient(defaultClient, RemoteLockService.class);
+    public LockService lockService() {
+        return proxies.failoverForClient(defaultClient, LockService.class);
     }
 
     public TimelockService timelockService() {

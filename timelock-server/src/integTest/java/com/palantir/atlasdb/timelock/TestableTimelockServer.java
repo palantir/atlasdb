@@ -23,8 +23,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockService;
@@ -64,6 +65,10 @@ public class TestableTimelockServer {
         return timelockService().lock(lockRequest);
     }
 
+    public com.palantir.lock.LockResponse lockWithFullLockResponse(com.palantir.lock.LockRequest requestV1) throws InterruptedException {
+        return lockService().lockWithFullLockResponse(LockClient.of(defaultClient), requestV1);
+    }
+
     public void kill() {
         serverHolder.kill();
     }
@@ -84,8 +89,8 @@ public class TestableTimelockServer {
         return proxies.singleNodeForClient(defaultClient, serverHolder, TimestampManagementService.class);
     }
 
-    public RemoteLockService lockService() {
-        return proxies.singleNodeForClient(defaultClient, serverHolder, RemoteLockService.class);
+    public LockService lockService() {
+        return proxies.singleNodeForClient(defaultClient, serverHolder, LockService.class);
     }
 
     public TimelockService timelockService() {
