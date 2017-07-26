@@ -70,6 +70,10 @@ import com.google.common.base.Strings;
         return new LockClient(clientId);
     }
 
+    public static LockClient valueOf(String clientId) {
+        return LockClient.of(clientId);
+    }
+
     // XXX ONLY use this for deserialization!
     @JsonCreator
     public LockClient(@JsonProperty("clientId") @Nullable String clientId) {
