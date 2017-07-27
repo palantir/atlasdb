@@ -19,6 +19,7 @@ package com.palantir.timelock.paxos;
 import java.util.concurrent.Semaphore;
 
 import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
+import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -40,11 +41,11 @@ public class LockCreator {
         this.deprecated = deprecated;
     }
 
-    public CloseableRemoteLockService createThreadPoolingLockService() {
+    public CloseableLockService createThreadPoolingLockService() {
         // TODO (jkong): Live reload slow lock timeout, plus clients
         // TODO (?????): Rewrite ThreadPooled to cope with live reload, and/or remove ThreadPooled (if using Async)
         TimeLockRuntimeConfiguration timeLockRuntimeConfiguration = Observables.blockingMostRecent(runtime).get();
-        CloseableRemoteLockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(
+        CloseableLockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(
                 timeLockRuntimeConfiguration.slowLockLogTriggerMillis());
 
         if (!deprecated.useClientRequestLimit()) {
@@ -65,7 +66,7 @@ public class LockCreator {
         return new ThreadPooledLockService(lockServiceNotUsingThreadPooling, localThreadPoolSize, sharedThreadPool);
     }
 
-    private CloseableRemoteLockService createTimeLimitedLockService(long slowLogTriggerMillis) {
+    private CloseableLockService createTimeLimitedLockService(long slowLogTriggerMillis) {
         LockServerOptions lockServerOptions = new LockServerOptions() {
             @Override
             public long slowLogTriggerMillis() {

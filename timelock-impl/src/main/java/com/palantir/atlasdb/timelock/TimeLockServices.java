@@ -19,6 +19,7 @@ import org.immutables.value.Value;
 
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 

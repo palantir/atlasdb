@@ -27,6 +27,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockService;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
@@ -45,14 +46,14 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
     public TimeLockServices createTimeLockServices(
             String client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
-            Supplier<RemoteLockService> rawLockServiceSupplier) {
+            Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating legacy timelock service for client {}", client);
         ManagedTimestampService timestampService = instrumentInLeadershipProxy(
                 ManagedTimestampService.class,
                 rawTimestampServiceSupplier,
                 client);
-        RemoteLockService remoteLockService = instrumentInLeadershipProxy(
-                RemoteLockService.class,
+        LockService remoteLockService = instrumentInLeadershipProxy(
+                LockService.class,
                 rawLockServiceSupplier,
                 client);
 

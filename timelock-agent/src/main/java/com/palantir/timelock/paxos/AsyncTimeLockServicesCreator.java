@@ -32,7 +32,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.JavaSuppliers;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.timelock.config.AsyncLockConfiguration;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
@@ -49,7 +49,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     public TimeLockServices createTimeLockServices(
             String client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
-            Supplier<RemoteLockService> rawLockServiceSupplier) {
+            Supplier<LockService> rawLockServiceSupplier) {
         AsyncOrLegacyTimelockService asyncOrLegacyTimelockService;
         AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
                 AsyncTimelockService.class,
@@ -58,14 +58,14 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromAsyncTimelock(
                 new AsyncTimelockResource(asyncTimelockService));
 
-        Supplier<RemoteLockService> lockServiceSupplier =
+        Supplier<LockService> lockServiceSupplier =
                 asyncLockConfiguration.disableLegacySafetyChecksWarningPotentialDataCorruption()
                         ? rawLockServiceSupplier
                         : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier);
 
         return TimeLockServices.create(
                 asyncTimelockService,
-                instrumentInLeadershipProxy(RemoteLockService.class, lockServiceSupplier, client),
+                instrumentInLeadershipProxy(LockService.class, lockServiceSupplier, client),
                 asyncOrLegacyTimelockService,
                 asyncTimelockService);
     }
