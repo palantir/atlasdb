@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.clock;
 
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -71,6 +72,26 @@ public class ClockSkewMonitorIntegrationTest {
 
         verify(mockedEvents, times(1))
                 .requestPace(anyString(), anyLong(), anyLong(), anyLong());
+    }
+
+    @Test
+    public void logsRequestsWithSkew() {
+        monitor.runInBackground();
+        RequestTime requestTime = new RequestTime(1L, 1L, 1L);
+        mockLocalAndRemoteClockSuppliers(requestTime);
+        executorService.tick(1, TimeUnit.NANOSECONDS);
+
+        RequestTime remoteTime = new RequestTime.Builder(requestTime)
+                .progressLocalClock(100L)
+                .progressRemoteClock(200L)
+                .build();
+        mockLocalAndRemoteClockSuppliers(remoteTime);
+        executorService.tick(ClockSkewMonitor.PAUSE_BETWEEN_REQUESTS.toNanos(), TimeUnit.NANOSECONDS);
+
+        verify(mockedEvents, times(1))
+                .requestPace(anyString(), anyLong(), anyLong(), anyLong());
+        verify(mockedEvents, times(1))
+                .clockSkew(anyString(), eq(100L));
     }
 
     private void mockLocalAndRemoteClockSuppliers(RequestTime request) {
