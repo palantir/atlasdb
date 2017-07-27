@@ -60,6 +60,7 @@ public final class AtlasDbFeignTargetFactory {
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
+                .retryer(new InterruptHonoringRetryer())
                 .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, userAgent))
                 .target(type, uri);
     }
@@ -129,4 +130,5 @@ public final class AtlasDbFeignTargetFactory {
                 .options(feignOptions)
                 .target(failoverFeignTarget);
     }
+
 }

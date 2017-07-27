@@ -74,6 +74,10 @@ develop
            Previously in 0.49.0, clients using TimeLock Server and request batching would still request timestamps one at a time from the TimeLock Server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2182>`__)
 
+    *    - |fixed|
+         - ``PaxosQuorumChecker`` will now interrupt outstanding requests after a quorum response has been collected. This prevents the number of paxos request threads from growing without bound.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2193>`__)
+
     *    - |improved| |devbreak|
          - OkHttp clients (created with ``FeignOkHttpClients``) will no longer silently retry connections.
            We have already implemented retries, including retries from connection failures, at the Feign level in ``FailoverFeignTarget``.
@@ -93,6 +97,10 @@ develop
          - TimeLock Server now supports a ``NonBlockingFileAppenderFactory`` which prevents requests from blocking if the request log queue is full.
            To use this appender, the ``type`` property should be set to ``non-blocking-file`` in the logging appender configuration. Note that using this appender may result in request logs being dropped.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2198>`__)
+           
+    *    - |fixed|
+         - Fixed a potential deadlock in ``PersistentLockManager`` that could prevent clients from shutting down if the persistent backup lock could not be acquired.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2208>`__)
 
     *    - |new|
          - New metrics have been added for tracking Cassandra's approximate pool size, number of idle connections, and number of active connections. (:ref:`Docs <dropwizard-metrics>`)
