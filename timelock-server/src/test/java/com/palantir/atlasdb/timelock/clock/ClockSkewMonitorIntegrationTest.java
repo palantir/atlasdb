@@ -24,21 +24,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.timelock.clock.ClockSkewMonitor.PAUSE_BETWEEN_REQUESTS;
-
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.internal.util.collections.Sets;
-
-import com.google.common.collect.Maps;
 
 public class ClockSkewMonitorIntegrationTest {
     private final String server = "test";
@@ -69,12 +62,12 @@ public class ClockSkewMonitorIntegrationTest {
         mockLocalAndRemoteClockSuppliers(requestTime);
         executorService.tick(1, TimeUnit.NANOSECONDS);
 
-        RequestTime remoteTime = new RequestTimeBuilder(requestTime)
+        RequestTime remoteTime = new RequestTime.Builder(requestTime)
                 .progressLocalClock(100L)
                 .progressRemoteClock(100L)
                 .build();
         mockLocalAndRemoteClockSuppliers(remoteTime);
-        executorService.tick(PAUSE_BETWEEN_REQUESTS.toNanos(), TimeUnit.NANOSECONDS);
+        executorService.tick(ClockSkewMonitor.PAUSE_BETWEEN_REQUESTS.toNanos(), TimeUnit.NANOSECONDS);
 
         verify(mockedEvents, times(1))
                 .requestPace(anyString(), anyLong(), anyLong(), anyLong());
@@ -89,34 +82,5 @@ public class ClockSkewMonitorIntegrationTest {
     @After
     public void tearDown() throws InterruptedException {
         verifyNoMoreInteractions(mockedEvents);
-        monitorByServer.clear();
-        previousRequestsByServer.clear();
-    }
-
-    private class RequestTimeBuilder {
-        private long localTimeAtStart;
-        private long localTimeAtEnd;
-        private long remoteSystemTime;
-
-        private RequestTimeBuilder(RequestTime requestTime) {
-            localTimeAtStart = requestTime.localTimeAtStart;
-            localTimeAtEnd = requestTime.localTimeAtEnd;
-            remoteSystemTime = requestTime.remoteSystemTime;
-        }
-
-        private RequestTimeBuilder progressLocalClock(long delta) {
-            localTimeAtStart += delta;
-            localTimeAtEnd += delta;
-            return this;
-        }
-
-        private RequestTimeBuilder progressRemoteClock(long delta) {
-            remoteSystemTime += delta;
-            return this;
-        }
-
-        private RequestTime build() {
-            return new RequestTime(localTimeAtStart, localTimeAtEnd, remoteSystemTime);
-        }
     }
 }

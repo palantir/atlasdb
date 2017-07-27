@@ -24,9 +24,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import static com.palantir.atlasdb.timelock.clock.ClockSkewComparer.MAX_INTERVAL_SINCE_PREVIOUS_REQUEST;
-import static com.palantir.atlasdb.timelock.clock.ClockSkewComparer.MAX_REQUEST_DURATION;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +42,7 @@ public class ClockSkewComparerTest {
     public void throwsIfElapsedTimeIsNegative() {
         // Make remote clock go back in time. Since time just goes forward, this would only happen when time
         // overflows.
-        RequestTime nextRequest = new RequestTimeBuilder(originalRequest)
+        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
                 .progressLocalClock(1L)
                 .progressRemoteClock(-1L)
                 .build();
@@ -58,7 +55,7 @@ public class ClockSkewComparerTest {
     public void throwsOnLocalOverflow() {
         // Make local clock go back in time. Since time just goes forward, this would only happen when time
         // overflows.
-        RequestTime nextRequest = new RequestTimeBuilder(originalRequest)
+        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
                 .progressLocalClock(-1L)
                 .progressRemoteClock(1L)
                 .build();
@@ -69,8 +66,8 @@ public class ClockSkewComparerTest {
 
     @Test
     public void logsWhenServerHasNotBeenQueriedForTooLong() {
-        RequestTime nextRequest = new RequestTimeBuilder(originalRequest)
-                .progressLocalClock(MAX_INTERVAL_SINCE_PREVIOUS_REQUEST.toNanos() + 2)
+        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
+                .progressLocalClock(ClockSkewComparer.MAX_INTERVAL_SINCE_PREVIOUS_REQUEST.toNanos() + 2)
                 .progressRemoteClock(1L)
                 .build();
         compare(originalRequest, nextRequest);
@@ -80,9 +77,9 @@ public class ClockSkewComparerTest {
 
     @Test
     public void logsWhenRequestsTakeTooLong() {
-        originalRequest = new RequestTime(0L, MAX_REQUEST_DURATION.toNanos() + 1, 0L);
-        RequestTime nextRequest = new RequestTimeBuilder(originalRequest)
-                .progressLocalClock(MAX_INTERVAL_SINCE_PREVIOUS_REQUEST.toNanos() + 2)
+        originalRequest = new RequestTime(0L, ClockSkewComparer.MAX_REQUEST_DURATION.toNanos() + 1, 0L);
+        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
+                .progressLocalClock(ClockSkewComparer.MAX_REQUEST_DURATION.toNanos() + 2)
                 .progressRemoteClock(1L)
                 .build();
         compare(originalRequest, nextRequest);
@@ -92,7 +89,7 @@ public class ClockSkewComparerTest {
 
     @Test
     public void logsRequestsWithoutSkew() {
-        RequestTime nextRequest = new RequestTimeBuilder(originalRequest)
+        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
                 .progressLocalClock(100L)
                 .progressRemoteClock(100L)
                 .build();
@@ -104,7 +101,7 @@ public class ClockSkewComparerTest {
 
     @Test
     public void logsRequestsWithSlowRemote() {
-        RequestTime nextRequest = new RequestTimeBuilder(originalRequest)
+        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
                 .progressLocalClock(3L)
                 .progressRemoteClock(1L)
                 .build();
@@ -118,7 +115,7 @@ public class ClockSkewComparerTest {
 
     @Test
     public void logsRequestsWithFastRemote() {
-        RequestTime nextRequest = new RequestTimeBuilder(originalRequest)
+        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
                 .progressLocalClock(2L)
                 .progressRemoteClock(4L)
                 .build();
@@ -137,32 +134,5 @@ public class ClockSkewComparerTest {
 
     private void compare(RequestTime previousRequest, RequestTime nextRequest) {
         new ClockSkewComparer(server, mockedEvents, previousRequest, nextRequest).compare();
-    }
-
-    private class RequestTimeBuilder {
-        private long localTimeAtStart;
-        private long localTimeAtEnd;
-        private long remoteSystemTime;
-
-        private RequestTimeBuilder(RequestTime requestTime) {
-            localTimeAtStart = requestTime.localTimeAtStart;
-            localTimeAtEnd = requestTime.localTimeAtEnd;
-            remoteSystemTime = requestTime.remoteSystemTime;
-        }
-
-        private RequestTimeBuilder progressLocalClock(long delta) {
-            localTimeAtStart += delta;
-            localTimeAtEnd += delta;
-            return this;
-        }
-
-        private RequestTimeBuilder progressRemoteClock(long delta) {
-            remoteSystemTime += delta;
-            return this;
-        }
-
-        private RequestTime build() {
-            return new RequestTime(localTimeAtStart, localTimeAtEnd, remoteSystemTime);
-        }
     }
 }

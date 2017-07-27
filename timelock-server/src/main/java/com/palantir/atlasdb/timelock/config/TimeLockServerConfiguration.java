@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
-import java.util.Optional;
 import java.util.Set;
 
 import org.immutables.value.Value;

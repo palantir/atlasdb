@@ -24,9 +24,9 @@ import com.google.common.base.Preconditions;
 
 public class ClockSkewComparer {
     @VisibleForTesting
-    public static final Duration MAX_INTERVAL_SINCE_PREVIOUS_REQUEST = Duration.of(10, ChronoUnit.SECONDS);
+    static final Duration MAX_INTERVAL_SINCE_PREVIOUS_REQUEST = Duration.of(10, ChronoUnit.SECONDS);
     @VisibleForTesting
-    public static final Duration MAX_REQUEST_DURATION = Duration.of(10, ChronoUnit.MILLIS);
+    static final Duration MAX_REQUEST_DURATION = Duration.of(10, ChronoUnit.MILLIS);
 
     private String server;
     private ClockSkewEvents events;
@@ -76,7 +76,7 @@ public class ClockSkewComparer {
 
         if (remoteElapsedTime < minElapsedTime) {
             skew = minElapsedTime - remoteElapsedTime;
-        } else if (remoteElapsedTime > maxElapsedTime){
+        } else if (remoteElapsedTime > maxElapsedTime) {
             skew = remoteElapsedTime - maxElapsedTime;
         }
 

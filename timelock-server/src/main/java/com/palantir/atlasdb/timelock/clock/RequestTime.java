@@ -29,4 +29,31 @@ public class RequestTime {
         this.localTimeAtEnd = localTimeAtEnd;
         this.remoteSystemTime = remoteSystemTime;
     }
+
+    public static class Builder {
+        private long localTimeAtStart;
+        private long localTimeAtEnd;
+        private long remoteSystemTime;
+
+        public Builder(RequestTime requestTime) {
+            localTimeAtStart = requestTime.localTimeAtStart;
+            localTimeAtEnd = requestTime.localTimeAtEnd;
+            remoteSystemTime = requestTime.remoteSystemTime;
+        }
+
+        public Builder progressLocalClock(long delta) {
+            localTimeAtStart += delta;
+            localTimeAtEnd += delta;
+            return this;
+        }
+
+        public Builder progressRemoteClock(long delta) {
+            remoteSystemTime += delta;
+            return this;
+        }
+
+        public RequestTime build() {
+            return new RequestTime(localTimeAtStart, localTimeAtEnd, remoteSystemTime);
+        }
+    }
 }

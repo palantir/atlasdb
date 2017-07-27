@@ -39,7 +39,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
  */
 public final class ClockSkewMonitor {
     @VisibleForTesting
-    public static final Duration PAUSE_BETWEEN_REQUESTS = Duration.of(1, ChronoUnit.SECONDS);
+    static final Duration PAUSE_BETWEEN_REQUESTS = Duration.of(1, ChronoUnit.SECONDS);
 
     private final ClockSkewEvents events;
     private final Map<String, ClockService> monitorByServer;
@@ -63,7 +63,7 @@ public final class ClockSkewMonitor {
     }
 
     @VisibleForTesting
-    public ClockSkewMonitor(
+    ClockSkewMonitor(
             Map<String, ClockService> monitorByServer,
             Map<String, RequestTime> previousRequestsByServer,
             ClockSkewEvents events,
