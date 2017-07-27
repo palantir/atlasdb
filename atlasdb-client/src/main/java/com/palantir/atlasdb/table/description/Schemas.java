@@ -30,6 +30,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public final class Schemas {
     private static final String INDEX_SUFFIX = "idx";
+    private static final int CASSANDRA_TABLE_NAME_CHAR_LIMIT = 48;
+    private static final int POSTGRES_TABLE_NAME_CHAR_LIMIT = 63;
 
     public static TableReference appendIndexSuffix(String indexName, IndexDefinition definition) {
         Preconditions.checkArgument(
@@ -81,6 +83,23 @@ public final class Schemas {
             }
         }
         return true;
+    }
+
+    public static void checkTableNameLength(String tableName, Namespace namespace) {
+        // The table name computed at run-time is (generally) the concatenation of the namespace name
+        // with the raw table name, separated by two underscores.
+        int internalTableNameLength = tableName.length() + namespace.getName().length() + 2;
+
+        Preconditions.checkArgument(
+                internalTableNameLength < POSTGRES_TABLE_NAME_CHAR_LIMIT,
+                "Table name %s is too long, exceeds Cassandra and Postgres limits. " +
+                        "If running using a different KVS, set the ignoreTableNameLength flag.",
+                tableName);
+        Preconditions.checkArgument(
+                internalTableNameLength < CASSANDRA_TABLE_NAME_CHAR_LIMIT,
+                "Table name %s is too long, exceeds Cassandra limit. " +
+                        "If running using a different KVS, set the ignoreTableNameLength flag.",
+                tableName);
     }
 
     private Schemas() {
