@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -105,7 +106,9 @@ public class PersistentLockManagerTest {
     @Test
     public void cannotAcquireAfterShutdown() {
         manager.shutdown();
-        manager.acquirePersistentLockWithRetry();
+        assertThatThrownBy(() -> manager.acquirePersistentLockWithRetry())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("shut down");
 
         verify(mockPls, never()).acquireBackupLock("Sweep");
     }

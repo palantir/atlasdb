@@ -75,14 +75,9 @@ public class PersistentLockManager {
     }
 
     private synchronized boolean tryAcquirePersistentLock() {
-        if (isShutDown) {
-            // To avoid a race condition on shutdown, we don't want to acquire any more.
-            log.info("The PersistentLockManager is shut down, and therefore rejected a request to acquire the lock.");
-            return true;
-        }
-
-        Preconditions.checkState(lockId == null,
-                "Acquiring a lock is unsupported when we've already acquired a lock");
+        Preconditions.checkState(!isShutDown,
+                "This PersistentLockManager is shut down, and cannot be used to acquire locks.");
+        Preconditions.checkState(lockId == null, "Acquiring a lock is unsupported when we've already acquired a lock");
 
         try {
             lockId = persistentLockService.acquireBackupLock("Sweep");
