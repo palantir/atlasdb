@@ -278,3 +278,29 @@ Note that because Timelock Server uses the OkHttp library, it is currently not c
    Thus, clients that are unable to use HTTP/2 may see a significant slowdown when the Timelock Server switches from an
    ``https`` connector to an ``h2`` connector. It may be possible to get around this by exposing multiple application
    connectors, though the AtlasDB team has not tested this approach.
+
+Non-Blocking Appender
+~~~~~~~~~~~~~~~~~~~~~
+
+We have experienced issues with Logback (the logging library which Dropwizard uses) under high load.
+This is because rolling of request logs required synchronization among threads that wanted to write logs; given high
+load it was possible for requests to build up and, eventually, servers being unable to respond to pings quickly enough.
+
+We thus implemented a ``NonBlockingFileAppenderFactory`` which never blocks when writing logs (even when files are
+rolled), though this could mean that some log lines may be dropped.
+
+This is configured in the same way as a standard Dropwizard
+`file <http://www.dropwizard.io/1.0.6/docs/manual/configuration.html#file>`__ appender, except that the ``type``
+should be ``non-blocking-file`` instead of just ``file``.
+
+.. code:: yaml
+
+   requestLog:
+     appenders:
+       - archivedFileCount: 10
+         maxFileSize: 1GB
+         archivedLogFilenamePattern: "var/log/timelock-server-request-%i.log.gz"
+         currentLogFilename: var/log/timelock-server-request.log
+         threshold: INFO
+         timeZone: UTC
+         type: non-blocking-file
