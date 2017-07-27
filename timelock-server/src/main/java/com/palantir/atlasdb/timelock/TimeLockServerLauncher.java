@@ -15,18 +15,24 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.Optional;
 import java.util.function.Consumer;
+
+import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
+import com.palantir.atlasdb.timelock.clock.ClockSkewMonitor;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.remoting2.config.ssl.SslSocketFactories;
 import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.timelock.TimeLockAgent;
+import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
@@ -62,6 +68,15 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
                 registrar);
         agent.createAndRegisterResources();
 
+        registerClockServices(environment, combined);
+    }
+
+    private void registerClockServices(Environment environment, CombinedTimeLockServerConfiguration combined) {
+        Optional<SSLSocketFactory> sslSocketFactory =
+                PaxosRemotingUtils.getSslConfigurationOptional(combined.install())
+                        .map(SslSocketFactories::createSslSocketFactory);
+        ClockSkewMonitor.create(PaxosRemotingUtils.getRemoteServerPaths(combined.install()), sslSocketFactory)
+                .runInBackground();
         environment.jersey().register(new ClockServiceImpl());
     }
 }
