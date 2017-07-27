@@ -19,6 +19,7 @@ import java.util.function.Consumer;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
@@ -60,5 +61,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
                 combined.deprecated(),
                 registrar);
         agent.createAndRegisterResources();
+
+        environment.jersey().register(new ClockServiceImpl());
     }
 }
