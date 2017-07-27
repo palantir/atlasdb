@@ -52,9 +52,8 @@ public class ClockSkewEvents {
             log.error("Skew (in nanos) much greater than expected", skew);
         }
 
-        metricRegistry.histogram(String.format("clock-skew-%s-histogram", server))
+        metricRegistry.histogram(String.format("clock-skew-%s", server))
                 .update(skew);
-        metricRegistry.counter(String.format("clock-skew-%s-counter", server)).inc();
     }
 
     public void requestPace(String server, long minElapsedTime, long maxElapsedTime, long remoteElapsedTime) {
