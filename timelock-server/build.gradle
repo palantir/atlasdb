@@ -5,6 +5,8 @@ apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 apply from: "../gradle/timelock.gradle"
 
+apply plugin: 'application'
+
 testSets {
     integTest
 }
@@ -40,4 +42,11 @@ dependencies {
     testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.timelock_dropwizard
+}
+
+
+task runTimeLock(type: JavaExec) {
+  classpath sourceSets.main.runtimeClasspath
+  main = "com.palantir.atlasdb.timelock.TimeLockServerLauncher"
+  args "server", "/Users/davidt/repos/atlasdb/timelock-server-distribution/var/conf/timelock.yml"
 }
