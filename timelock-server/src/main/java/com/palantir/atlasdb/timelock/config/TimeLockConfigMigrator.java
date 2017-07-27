@@ -41,6 +41,7 @@ public final class TimeLockConfigMigrator {
                                 .build())
                         .localServer(config.cluster().localServer())
                         .build())
+                .asyncLock(config.asyncLockConfiguration())
                 .build();
 
         TimeLockRuntimeConfiguration runtime = ImmutableTimeLockRuntimeConfiguration.builder()
