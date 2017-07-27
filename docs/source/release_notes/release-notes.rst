@@ -96,8 +96,9 @@ develop
     *    - |new|
          - TimeLock Server now supports a ``NonBlockingFileAppenderFactory`` which prevents requests from blocking if the request log queue is full.
            To use this appender, the ``type`` property should be set to ``non-blocking-file`` in the logging appender configuration. Note that using this appender may result in request logs being dropped.
+           (:ref:`Docs <non-blocking-appender>`)
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2198>`__)
-           
+
     *    - |fixed|
          - Fixed a potential deadlock in ``PersistentLockManager`` that could prevent clients from shutting down if the persistent backup lock could not be acquired.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2208>`__)
