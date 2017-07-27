@@ -231,7 +231,8 @@ defined for this table will be assumed to be safe for logging unless
 specifically indicated as unsafe. By default, row components and named
 columns are assumed unsafe unless specifically indicated as safe.
 
-Note that the ambit of this method does not extend to the table name itself.
+Note that specifying named components as safe by default does not
+also make the table name considered safe.
 
 Index-specific Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~
