@@ -279,6 +279,8 @@ Note that because Timelock Server uses the OkHttp library, it is currently not c
    ``https`` connector to an ``h2`` connector. It may be possible to get around this by exposing multiple application
    connectors, though the AtlasDB team has not tested this approach.
 
+.. _non-blocking-appender:
+
 Non-Blocking Appender
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -287,7 +289,7 @@ This is because rolling of request logs required synchronization among threads t
 load it was possible for requests to build up and, eventually, servers being unable to respond to pings quickly enough.
 
 We thus implemented a ``NonBlockingFileAppenderFactory`` which never blocks when writing logs (even when files are
-rolled), though this could mean that some log lines may be dropped.
+rolled), though this could mean that a very small proportion of log lines may be dropped.
 
 This is configured in the same way as a standard Dropwizard
 `file <http://www.dropwizard.io/1.0.6/docs/manual/configuration.html#file>`__ appender, except that the ``type``
