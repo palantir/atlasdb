@@ -159,6 +159,10 @@ import com.google.common.collect.ImmutableSortedMap;
             isBlockAndRelease = lockResponse.isBlockAndRelease;
         }
 
+        public LockResponse build() {
+            return (LockResponse) readResolve();
+        }
+
         Object readResolve() {
             if (isBlockAndRelease) {
                 return new LockResponse(lockHolders);
