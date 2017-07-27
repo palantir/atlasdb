@@ -52,6 +52,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
 
     private static final int QUORUM_OF_ONE = 1;
     private static final boolean ONLY_LOG_ON_QUORUM_FAILURE = true;
+    // Random high number to not leave thread pool unbounded.
+    private static final int THREAD_POOL_SIZE = 368;
 
     private final PaxosProposer proposer;
     private final PaxosLearner knowledge;
@@ -63,8 +65,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     @GuardedBy("this")
     private SequenceAndBound agreedState;
 
-    private final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
-            PTExecutors.newNamedThreadFactory(true)));
+    private final ExecutorService executor = Tracers.wrap(PTExecutors.newFixedThreadPool(
+            THREAD_POOL_SIZE, PTExecutors.newNamedThreadFactory(true)));
 
     public PaxosTimestampBoundStore(PaxosProposer proposer,
             PaxosLearner knowledge,
