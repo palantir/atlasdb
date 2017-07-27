@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
@@ -32,6 +34,9 @@ import com.google.common.base.Objects;
  *
  * @author jtamer
  */
+
+@JsonDeserialize(builder =
+        LockServerOptions.SerializationProxy.class)
 @Immutable public class LockServerOptions implements Serializable {
     private static final long serialVersionUID = 2930574230723753879L;
 
@@ -45,6 +50,7 @@ import com.google.common.base.Objects;
      * <code>false</code> if the lock server code is running in-process with the only
      * client accessing it.
      */
+    @JsonIgnore
     public boolean isStandaloneServer() {
         return true;
     }
@@ -157,7 +163,7 @@ import com.google.common.base.Objects;
         return "log/state";
     }
 
-    private static class SerializationProxy implements Serializable {
+    static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 4043798817916565364L;
 
         private final boolean isStandaloneServer;

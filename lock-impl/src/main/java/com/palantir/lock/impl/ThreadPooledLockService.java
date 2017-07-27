@@ -16,22 +16,28 @@
 package com.palantir.lock.impl;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
 
-import com.palantir.lock.CloseableRemoteLockService;
+import com.palantir.lock.CloseableLockService;
+import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockResponse;
+import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.LockService;
+import com.palantir.lock.SimpleHeldLocksToken;
 
-public class ThreadPooledLockService implements CloseableRemoteLockService {
-    private final ThreadPooledWrapper<RemoteLockService> wrapper;
-    private final CloseableRemoteLockService delegate;
+public class ThreadPooledLockService implements CloseableLockService {
+    private final ThreadPooledWrapper<LockService> wrapper;
+    private final CloseableLockService delegate;
 
-    public ThreadPooledLockService(CloseableRemoteLockService delegate, int localThreadPoolSize, Semaphore sharedThreadPool) {
+    public ThreadPooledLockService(CloseableLockService delegate, int localThreadPoolSize, Semaphore sharedThreadPool) {
         this.delegate = delegate;
         wrapper = new ThreadPooledWrapper<>(delegate, localThreadPoolSize, sharedThreadPool);
     }
@@ -61,6 +67,84 @@ public class ThreadPooledLockService implements CloseableRemoteLockService {
     @Override
     public Long getMinLockedInVersionId(String client) {
         return delegate.getMinLockedInVersionId(client);
+    }
+
+    @Override
+    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
+        return wrapper.applyWithPermit(lockService -> lockService.lockWithFullLockResponse(client, request));
+    }
+
+//    @Override
+//    public LockResponse lockWithFullLockResponse(String client, LockRequest request) throws InterruptedException {
+//        return lockWithFullLockResponse(LockClient.of(client), request);
+//    }
+
+    @Override
+    public boolean unlock(HeldLocksToken token) {
+        return delegate.unlock(token);
+    }
+
+    @Override
+    public boolean unlockSimple(SimpleHeldLocksToken token) {
+        return delegate.unlockSimple(token);
+    }
+
+    @Override
+    public boolean unlockAndFreeze(HeldLocksToken token) {
+        return delegate.unlockAndFreeze(token);
+    }
+
+    @Override
+    public Set<HeldLocksToken> getTokens(LockClient client) {
+        return delegate.getTokens(client);
+    }
+
+    @Override
+    public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
+        return delegate.refreshTokens(tokens);
+    }
+
+    @Nullable
+    @Override
+    public HeldLocksGrant refreshGrant(HeldLocksGrant grant) {
+        return delegate.refreshGrant(grant);
+    }
+
+    @Nullable
+    @Override
+    public HeldLocksGrant refreshGrant(BigInteger grantId) {
+        return delegate.refreshGrant(grantId);
+    }
+
+    @Override
+    public HeldLocksGrant convertToGrant(HeldLocksToken token) {
+        return delegate.convertToGrant(token);
+    }
+
+    @Override
+    public HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant) {
+        return delegate.useGrant(client, grant);
+    }
+
+    @Override
+    public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
+        return delegate.useGrant(client, grantId);
+    }
+
+    @Nullable
+    @Override
+    public Long getMinLockedInVersionId() {
+        return delegate.getMinLockedInVersionId();
+    }
+
+    @Override
+    public Long getMinLockedInVersionId(LockClient client) {
+        return delegate.getMinLockedInVersionId(client);
+    }
+
+    @Override
+    public LockServerOptions getLockServerOptions() {
+        return delegate.getLockServerOptions();
     }
 
     @Override

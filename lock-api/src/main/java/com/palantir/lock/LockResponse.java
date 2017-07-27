@@ -27,6 +27,7 @@ import javax.annotation.concurrent.Immutable;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
@@ -39,6 +40,8 @@ import com.google.common.collect.ImmutableSortedMap;
  *
  * @author jtamer
  */
+@JsonDeserialize(builder =
+        LockResponse.SerializationProxy.class)
 @Immutable public final class LockResponse implements Serializable {
     private static final long serialVersionUID = 0xd67972b13e30eff7L;
 
@@ -103,6 +106,7 @@ import com.google.common.collect.ImmutableSortedMap;
         return token;
     }
 
+    @JsonIgnore
     @Nullable public LockRefreshToken getLockRefreshToken() {
         return token == null ? null : token.getLockRefreshToken();
     }
@@ -142,7 +146,7 @@ import com.google.common.collect.ImmutableSortedMap;
         return new SerializationProxy(this);
     }
 
-    private static class SerializationProxy implements Serializable {
+    static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 0xcff22b33b08dd857L;
 
         @Nullable private final HeldLocksToken token;
