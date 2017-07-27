@@ -74,16 +74,16 @@ develop
            Previously in 0.49.0, clients using TimeLock Server and request batching would still request timestamps one at a time from the TimeLock Server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2182>`__)
 
-    *    - |improved|
-         - AtlasConsole database mutation commands (namely ``put()`` and ``delete()``) are now disabled by default.
-           To enable them, run AtlasConsole with the ``--mutations_enabled`` flag
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2155>`__)
-
     *    - |improved| |devbreak|
          - OkHttp clients (created with ``FeignOkHttpClients``) will no longer silently retry connections.
            We have already implemented retries, including retries from connection failures, at the Feign level in ``FailoverFeignTarget``.
            If you require silent retry, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2197>`__)
+
+    *    - |userbreak|
+         - AtlasConsole database mutation commands (namely ``put()`` and ``delete()``) are now disabled by default.
+           To enable them, run AtlasConsole with the ``--mutations_enabled`` flag
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2155>`__)
 
     *    - |fixed|
          - Fixed a bug in AtlasConsole that caused valid table names not to be recognized.
