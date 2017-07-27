@@ -58,29 +58,29 @@ public class ClockSkewComparer {
             return;
         }
 
-        // maxElapsedTime - minElapsedTime = time for previous request and current request to complete.
         if (requestsTookTooLongToComplete()) {
             events.requestsTookTooLong(minElapsedTime, maxElapsedTime);
             return;
         }
 
-        if (hasSkew()) {
-            long skew;
-
-            if (remoteElapsedTime < minElapsedTime) {
-                skew = minElapsedTime - remoteElapsedTime;
-            } else {
-                skew = remoteElapsedTime - maxElapsedTime;
-            }
-
+        long skew = getSkew();
+        if (skew != 0) {
             events.clockSkew(server, skew);
         }
 
         events.requestPace(server, minElapsedTime, maxElapsedTime, remoteElapsedTime);
     }
 
-    private boolean hasSkew() {
-        return remoteElapsedTime < minElapsedTime || remoteElapsedTime > maxElapsedTime;
+    private long getSkew() {
+        long skew = 0;
+
+        if (remoteElapsedTime < minElapsedTime) {
+            skew = minElapsedTime - remoteElapsedTime;
+        } else if (remoteElapsedTime > maxElapsedTime){
+            skew = remoteElapsedTime - maxElapsedTime;
+        }
+
+        return skew;
     }
 
     private boolean requestsTookTooLongToComplete() {
