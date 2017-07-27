@@ -163,7 +163,6 @@ public class PaxosTimeLockServer implements TimeLockServer {
         environment.healthChecks().register("leader-ping", new LeaderPingHealthCheck(pingableLeaders));
     }
 
-
     private void registerClockService() {
         environment.jersey().register(new ClockServiceImpl());
     }
