@@ -113,8 +113,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         registerHealthCheck(configuration);
 
-        registerClockMonitor();
-        ClockSkewMonitor.create(remoteServers, optionalSecurity).run();
+        registerClockService();
+        ClockSkewMonitor.create(remoteServers, optionalSecurity).runInBackground();
     }
 
     private void registerExceptionMappers() {
@@ -161,7 +161,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
         environment.healthChecks().register("leader-ping", new LeaderPingHealthCheck(pingableLeaders));
     }
 
-    private void registerClockMonitor() {
+
+    private void registerClockService() {
         environment.jersey().register(new ClockServiceImpl());
     }
 

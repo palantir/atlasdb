@@ -22,10 +22,12 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import static com.palantir.atlasdb.timelock.clock.ClockSkewComparer.MAX_INTERVAL_SINCE_PREVIOUS_REQUEST;
 import static com.palantir.atlasdb.timelock.clock.ClockSkewComparer.MAX_REQUEST_DURATION;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,7 +43,7 @@ public class ClockSkewComparerTest {
     }
 
     @Test
-    public void throwsOnRemoteOverflow() {
+    public void throwsIfElapsedTimeIsNegative() {
         // Make remote clock go back in time. Since time just goes forward, this would only happen when time
         // overflows.
         RequestTime nextRequest = new RequestTimeBuilder(originalRequest)
@@ -49,7 +51,7 @@ public class ClockSkewComparerTest {
                 .progressRemoteClock(-1L)
                 .build();
 
-        assertThatThrownBy(() -> createComparer(originalRequest, nextRequest).compare())
+        assertThatThrownBy(() -> compare(originalRequest, nextRequest))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -62,7 +64,7 @@ public class ClockSkewComparerTest {
                 .progressRemoteClock(1L)
                 .build();
 
-        assertThatThrownBy(() -> createComparer(originalRequest, nextRequest).compare())
+        assertThatThrownBy(() -> compare(originalRequest, nextRequest))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -73,7 +75,7 @@ public class ClockSkewComparerTest {
                 .progressLocalClock(MAX_INTERVAL_SINCE_PREVIOUS_REQUEST.toNanos() + 2)
                 .progressRemoteClock(1L)
                 .build();
-        createComparer(originalRequest, nextRequest).compare();
+        compare(originalRequest, nextRequest);
 
         verify(mockedEvents, times(1)).tooMuchTimeSincePreviousRequest(anyLong());
     }
@@ -85,7 +87,7 @@ public class ClockSkewComparerTest {
                 .progressLocalClock(MAX_INTERVAL_SINCE_PREVIOUS_REQUEST.toNanos() + 2)
                 .progressRemoteClock(1L)
                 .build();
-        createComparer(originalRequest, nextRequest).compare();
+        compare(originalRequest, nextRequest);
 
         verify(mockedEvents, times(1)).requestsTookTooLong(anyLong(), anyLong());
     }
@@ -96,7 +98,7 @@ public class ClockSkewComparerTest {
                 .progressLocalClock(100L)
                 .progressRemoteClock(100L)
                 .build();
-        createComparer(originalRequest, nextRequest).compare();
+        compare(originalRequest, nextRequest);
 
         verify(mockedEvents, times(1))
                 .requestPace(anyString(), anyLong(), anyLong(), anyLong());
@@ -108,7 +110,7 @@ public class ClockSkewComparerTest {
                 .progressLocalClock(3L)
                 .progressRemoteClock(1L)
                 .build();
-        createComparer(originalRequest, nextRequest).compare();
+        compare(originalRequest, nextRequest);
 
         verify(mockedEvents, times(1))
                 .requestPace(anyString(), anyLong(), anyLong(), anyLong());
@@ -122,7 +124,7 @@ public class ClockSkewComparerTest {
                 .progressLocalClock(2L)
                 .progressRemoteClock(4L)
                 .build();
-        createComparer(originalRequest, nextRequest).compare();
+        compare(originalRequest, nextRequest);
 
         verify(mockedEvents, times(1))
                 .requestPace(anyString(), anyLong(), anyLong(), anyLong());
@@ -130,8 +132,13 @@ public class ClockSkewComparerTest {
                 .clockSkew(server, 1L);
     }
 
-    private ClockSkewComparer createComparer(RequestTime previousRequest, RequestTime nextRequest) {
-        return new ClockSkewComparer(server, mockedEvents, previousRequest, nextRequest);
+    @After
+    public void tearDown() {
+        verifyNoMoreInteractions(mockedEvents);
+    }
+
+    private void compare(RequestTime previousRequest, RequestTime nextRequest) {
+        new ClockSkewComparer(server, mockedEvents, previousRequest, nextRequest).compare();
     }
 
     private class RequestTimeBuilder {

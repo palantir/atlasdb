@@ -30,6 +30,7 @@ import javax.net.ssl.SSLSocketFactory;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.common.concurrent.NamedThreadFactory;
 
 /**
  * ClockSkewMonitor keeps track of the system time of the other nodes in the cluster, and compares it to the local
@@ -55,7 +56,7 @@ public final class ClockSkewMonitor {
 
         return new ClockSkewMonitor(monitors, previousRequests,
                 new ClockSkewEvents(AtlasDbMetrics.getMetricRegistry()),
-                Executors.newSingleThreadScheduledExecutor(),
+                Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("clock-skew-monitor", true)),
                 new ClockServiceImpl());
     }
 
@@ -72,7 +73,7 @@ public final class ClockSkewMonitor {
         this.localClockService = localClockService;
     }
 
-    public void run() {
+    public void runInBackground() {
         executorService.schedule(this::runOnce, PAUSE_BETWEEN_REQUESTS.getSeconds(), TimeUnit.SECONDS);
     }
 
@@ -92,7 +93,7 @@ public final class ClockSkewMonitor {
 
             RequestTime previousRequest = previousRequestsByServer.get(server);
             RequestTime newRequest = new RequestTime(localTimeAtStart, localTimeAtEnd, remoteSystemTime);
-            if (previousRequest.equals(RequestTime.EMPTY)) {
+            if (!previousRequest.equals(RequestTime.EMPTY)) {
                 new ClockSkewComparer(server, events, previousRequest, newRequest).compare();
             }
 
