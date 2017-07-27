@@ -192,7 +192,7 @@ public final class PaxosQuorumChecker {
             }
 
         } finally {
-            // cancel pending futures (during failures)
+            // cancel pending futures
             cancelOutstandingRequestsAfterTimeout(allFutures);
 
             // reset interrupted flag
