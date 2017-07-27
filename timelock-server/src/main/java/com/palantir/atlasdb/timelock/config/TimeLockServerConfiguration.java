@@ -106,11 +106,6 @@ public class TimeLockServerConfiguration extends Configuration {
         return useClientRequestLimit;
     }
 
-    @Value.Default
-    public Optional<Boolean> enableClockSkewMonitorExperiment() {
-        return Optional.of(Boolean.FALSE);
-    }
-
     public TimeLimiterConfiguration timeLimiterConfiguration() {
         return timeLimiterConfiguration;
     }

@@ -116,8 +116,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
         registerHealthCheck(configuration);
 
         registerClockMonitor();
-        ClockSkewMonitor.create(remoteServers, optionalSecurity,
-                () -> configuration.enableClockSkewMonitorExperiment().orElse(Boolean.FALSE)).run();
+        ClockSkewMonitor.create(remoteServers, optionalSecurity).run();
     }
 
     private void registerExceptionMappers() {

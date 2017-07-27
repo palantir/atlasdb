@@ -33,7 +33,7 @@ public class ClockSkewEvents {
         this.metricRegistry = metricRegistry;
     }
 
-    public void tooMuchTimeSinceLastRequest(long remoteElapsedTime) {
+    public void tooMuchTimeSincePreviousRequest(long remoteElapsedTime) {
         log.debug("It's been a long time since we last queried the server."
                         + " Ignoring the skew, since it's not representative.",
                 SafeArg.of("remoteElapsedTime", remoteElapsedTime));
