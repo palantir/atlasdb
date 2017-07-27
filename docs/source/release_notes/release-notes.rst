@@ -44,6 +44,24 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.50.0
+=======
+
+27 July 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed| |userbreak|
          - TimeLock Server, if configured to use the async lock service, will now throw if a client attempts to start a transaction via the sync lock service.
 
@@ -84,7 +102,7 @@ develop
            If you require silent retry, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2197>`__)
 
-    *    - |userbreak|
+    *    - |improved| |userbreak|
          - AtlasConsole database mutation commands (namely ``put()`` and ``delete()``) are now disabled by default.
            To enable them, run AtlasConsole with the ``--mutations_enabled`` flag
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2155>`__)
