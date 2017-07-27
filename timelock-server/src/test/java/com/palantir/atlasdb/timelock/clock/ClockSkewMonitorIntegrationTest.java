@@ -21,6 +21,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import static com.palantir.atlasdb.timelock.clock.ClockSkewMonitor.PAUSE_BETWEEN_REQUESTS;
@@ -43,8 +44,8 @@ public class ClockSkewMonitorIntegrationTest {
     private final String server = "test";
     private final ClockService mockedLocalTimeSupplier = mock(ClockService.class);
     private final ClockService mockedRemoteClockService = mock(ClockService.class);
-    private final ClockSkewEvents mockedEvents = mock(ClockSkewEvents.class);
 
+    private ClockSkewEvents mockedEvents;
     private final Map<String, ClockService> monitorByServer = new HashMap<>();
     private final Map<String, RequestTime> previousRequestsByServer = new HashMap<>();
 
@@ -54,6 +55,7 @@ public class ClockSkewMonitorIntegrationTest {
 
     @Before
     public void setUp() {
+        mockedEvents = mock(ClockSkewEvents.class);
         monitorByServer.put(server, mockedRemoteClockService);
         previousRequestsByServer.put(server, RequestTime.EMPTY);
         monitor = new ClockSkewMonitor(monitorByServer, previousRequestsByServer,
@@ -63,30 +65,30 @@ public class ClockSkewMonitorIntegrationTest {
     @Test
     public void logsRequestsWithoutSkew() {
         monitor.runInBackground();
-
-        RequestTime requestTime = new RequestTime(0L, 1L, 0L);
+        RequestTime requestTime = new RequestTime(1L, 1L, 1L);
         mockLocalAndRemoteClockSuppliers(requestTime);
-        executorService.tick(PAUSE_BETWEEN_REQUESTS.toNanos() + 1, TimeUnit.NANOSECONDS);
+        executorService.tick(1, TimeUnit.NANOSECONDS);
 
         RequestTime remoteTime = new RequestTimeBuilder(requestTime)
                 .progressLocalClock(100L)
                 .progressRemoteClock(100L)
                 .build();
         mockLocalAndRemoteClockSuppliers(remoteTime);
-        executorService.tick(PAUSE_BETWEEN_REQUESTS.toNanos() + 1, TimeUnit.NANOSECONDS);
+        executorService.tick(PAUSE_BETWEEN_REQUESTS.toNanos(), TimeUnit.NANOSECONDS);
 
         verify(mockedEvents, times(1))
                 .requestPace(anyString(), anyLong(), anyLong(), anyLong());
     }
 
-    private void mockLocalAndRemoteClockSuppliers(RequestTime originalRequest) {
-        when(mockedLocalTimeSupplier.getSystemTimeInNanos()).thenReturn(originalRequest.localTimeAtStart,
-                originalRequest.localTimeAtEnd);
-        when(mockedRemoteClockService.getSystemTimeInNanos()).thenReturn(originalRequest.remoteSystemTime);
+    private void mockLocalAndRemoteClockSuppliers(RequestTime request) {
+        when(mockedLocalTimeSupplier.getSystemTimeInNanos()).thenReturn(request.localTimeAtStart,
+                request.localTimeAtEnd);
+        when(mockedRemoteClockService.getSystemTimeInNanos()).thenReturn(request.remoteSystemTime);
     }
 
     @After
     public void tearDown() throws InterruptedException {
+        verifyNoMoreInteractions(mockedEvents);
         monitorByServer.clear();
         previousRequestsByServer.clear();
     }

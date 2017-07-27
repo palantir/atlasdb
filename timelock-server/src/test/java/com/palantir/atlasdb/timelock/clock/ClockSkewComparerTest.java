@@ -36,7 +36,6 @@ public class ClockSkewComparerTest {
     private final ClockSkewEvents mockedEvents = mock(ClockSkewEvents.class);
     private RequestTime originalRequest;
 
-
     @Before
     public void setUp() {
         originalRequest = new RequestTime(0L, 1L, 0L);
@@ -67,7 +66,6 @@ public class ClockSkewComparerTest {
         assertThatThrownBy(() -> compare(originalRequest, nextRequest))
                 .isInstanceOf(IllegalArgumentException.class);
     }
-
 
     @Test
     public void logsWhenServerHasNotBeenQueriedForTooLong() {
