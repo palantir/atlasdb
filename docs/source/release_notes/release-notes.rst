@@ -94,6 +94,9 @@ develop
            To use this appender, the ``type`` property should be set to ``non-blocking-file`` in the logging appender configuration. Note that using this appender may result in request logs being dropped.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2198>`__)
 
+    *    - |new|
+         - New metrics have been added for tracking Cassandra's approximate pool size, number of idle connections, and number of active connections. (:ref:`Docs <dropwizard-metrics>`)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2214>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
