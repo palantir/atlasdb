@@ -15,6 +15,7 @@
  */
 package com.palantir.lock;
 
+import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
@@ -31,6 +32,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
@@ -231,6 +233,20 @@ import com.google.common.collect.Iterables;
 
     private Object writeReplace() {
         return new SerializationProxy(this);
+    }
+
+    public static void main(String[] args) {
+        LockDescriptor lock1 = StringLockDescriptor.of("lock1");
+        LockDescriptor lock2 = StringLockDescriptor.of("lock2");
+        LockRequest lr = com.palantir.lock.LockRequest.builder(ImmutableSortedMap.of(
+                lock1, LockMode.READ, lock2, LockMode.WRITE))
+                .withLockedInVersionId(10).doNotBlock().build();
+
+        try {
+            new ObjectMapper().writeValue(System.out, lr);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
