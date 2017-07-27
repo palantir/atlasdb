@@ -28,11 +28,13 @@ import java.io.IOException;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.timestamp.InMemoryTimestampService;
 
 public class SnapshotTransactionManagerTest {
@@ -42,14 +44,16 @@ public class SnapshotTransactionManagerTest {
 
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
             keyValueService,
-            new InMemoryTimestampService(),
-            LockClient.of("lock"),
+            new LegacyTimelockService(new InMemoryTimestampService(), closeableRemoteLockService,
+                    LockClient.of("lock")),
             closeableRemoteLockService,
             null,
             null,
             null,
             null,
-            cleaner);
+            cleaner,
+            false,
+            () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
 
     @Test
     public void closesKeyValueServiceOnClose() {
@@ -73,14 +77,16 @@ public class SnapshotTransactionManagerTest {
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 keyValueService,
-                new InMemoryTimestampService(),
-                LockClient.of("lock"),
+                new LegacyTimelockService(new InMemoryTimestampService(), closeableRemoteLockService,
+                        LockClient.of("lock")),
                 mock(RemoteLockService.class), // not closeable
                 null,
                 null,
                 null,
                 null,
-                cleaner);
+                cleaner,
+                false,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
         newTransactionManager.close(); // should not throw
     }
 

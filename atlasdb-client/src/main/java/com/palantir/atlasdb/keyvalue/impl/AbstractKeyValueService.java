@@ -59,11 +59,13 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting2.tracing.Tracers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -111,7 +113,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
-        for (Entry<TableReference, byte[]> entry : tableRefToTableMetadata.entrySet()) {
+        for (Map.Entry<TableReference, byte[]> entry : tableRefToTableMetadata.entrySet()) {
             createTable(entry.getKey(), entry.getValue());
         }
     }
@@ -258,7 +260,11 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                             } else {
                                 final String longerMessage = ENTRY_TOO_BIG_MESSAGE
                                         + " This can potentially cause out-of-memory errors.";
-                                log.warn(longerMessage, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
+                                log.warn(longerMessage,
+                                        SafeArg.of("approximatePutSize", sizingFunction.apply(firstEntry)),
+                                        SafeArg.of("maximumPutSize", maximumBytesPerPartition),
+                                        LoggingArgs.tableRef("table",
+                                                TableReference.createFromFullyQualifiedName(tableName)));
                             }
                         }
 

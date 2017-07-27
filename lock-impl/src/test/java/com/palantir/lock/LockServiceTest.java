@@ -1030,12 +1030,6 @@ public abstract class LockServiceTest {
                 server.getLockServerOptions().getMaxAllowedBlockingDuration().toSeconds() + 10, TimeUnit.SECONDS);
         request2 = LockRequest.builder(ImmutableSortedMap.of(
                 lock, LockMode.READ)).blockForAtMost(beyondMaxDuration).build();
-        try {
-            token2 = server.lockWithFullLockResponse(client, request2).getToken();
-            Assert.fail();
-        } catch (IllegalArgumentException expected) {
-            /* Expected: exceeded maximum allowed blocking duration */
-        }
         TimeDuration negativeDuration = SimpleTimeDuration.of(-10, TimeUnit.SECONDS);
         try {
             request2 = LockRequest.builder(ImmutableSortedMap.of(

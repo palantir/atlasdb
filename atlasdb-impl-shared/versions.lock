@@ -7,7 +7,8 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
@@ -32,6 +33,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
@@ -83,6 +85,7 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.tritium:tritium-api",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -152,7 +155,8 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:lock-impl"
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {
@@ -180,8 +184,13 @@
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-client"
             ]
+        },
+        "com.palantir.atlasdb:timestamp-client": {
+            "project": true
         },
         "com.palantir.patches.sourceforge:trove3": {
             "locked": "3.0.3-p5",
@@ -221,10 +230,11 @@
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:lock-api"
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:lock-impl"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -358,7 +368,8 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
@@ -383,6 +394,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
@@ -434,6 +446,7 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-api",
+                "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.tritium:tritium-api",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -503,7 +516,8 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:lock-impl"
+                "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {
@@ -531,8 +545,13 @@
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-client"
             ]
+        },
+        "com.palantir.atlasdb:timestamp-client": {
+            "project": true
         },
         "com.palantir.patches.sourceforge:trove3": {
             "locked": "3.0.3-p5",
@@ -572,10 +591,11 @@
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:lock-api"
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:lock-impl"
             ]
         },
         "com.palantir.tritium:tritium-api": {

@@ -17,37 +17,16 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Optional;
 
 import org.junit.Test;
 
-import com.palantir.lock.RemoteLockService;
-import com.palantir.lock.client.LockRefreshingRemoteLockService;
+import okhttp3.OkHttpClient;
 
 public class FeignOkHttpClientsTest {
     @Test
-    public void classesSpecifiedNotToRetryAreNotRetriable() {
-        FeignOkHttpClients.CLASSES_TO_NOT_RETRY.forEach(
-                clazz -> assertThat(FeignOkHttpClients.shouldAllowRetrying(clazz)).isFalse());
-    }
-
-    @Test
-    public void remoteLockServiceIsNotRetriable() {
-        assertThat(FeignOkHttpClients.shouldAllowRetrying(RemoteLockService.class)).isFalse();
-    }
-
-    @Test
-    public void subclassesOfClassesSpecifiedNotToRetryAreRetriable() {
-        assertThat(FeignOkHttpClients.shouldAllowRetrying(ExtendedRemoteLockService.class)).isTrue();
-        assertThat(FeignOkHttpClients.shouldAllowRetrying(LockRefreshingRemoteLockService.class)).isTrue();
-    }
-
-    @Test
-    public void classesNotSpecifiedNotToRetryAreRetriable() {
-        assertThat(FeignOkHttpClients.shouldAllowRetrying(AtomicReference.class)).isTrue();
-    }
-
-    private interface ExtendedRemoteLockService extends RemoteLockService {
-        // Marker interface used for testing that subclasses aren't affected
+    public void clientDoesNotRetryAtTheOkHttpLevel() {
+        OkHttpClient okHttpClient = FeignOkHttpClients.newRawOkHttpClient(Optional.empty(), "userAgent");
+        assertThat(okHttpClient.retryOnConnectionFailure()).isFalse();
     }
 }
