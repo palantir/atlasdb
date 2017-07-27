@@ -47,26 +47,24 @@ public class ClockSkewEvents {
 
     public void clockSkew(String server, long skew) {
         if (skew > WARN_SKEW_THRESHOLD_NANOS && skew < ERROR_SKEW_THRESHOLD_NANOS) {
-            log.warn("Skew (in nanos) greater than expected", skew);
+            log.warn("Skew {} (in nanos) greater than expected on server {}", SafeArg.of("skew", skew),
+                    SafeArg.of("server", server));
         } else if (skew >= ERROR_SKEW_THRESHOLD_NANOS) {
-            log.error("Skew (in nanos) much greater than expected", skew);
+            log.error("Skew {} (in nanos) much greater than expected on server {}", SafeArg.of("skew", skew),
+                    SafeArg.of("server", server));
         }
 
-        metricRegistry.histogram(String.format("clock-skew-%s", server))
-                .update(skew);
+        metricRegistry.histogram("clock-skew").update(skew);
     }
 
     public void requestPace(String server, long minElapsedTime, long maxElapsedTime, long remoteElapsedTime) {
-        metricRegistry.histogram(String.format("clock-pace-%s-local-min", server))
-                .update(minElapsedTime);
-        metricRegistry.histogram(String.format("clock-pace-%s-local-max", server))
-                .update(maxElapsedTime);
-        metricRegistry.histogram(String.format("clock-pace-%s-remote", server))
-                .update(remoteElapsedTime);
+        metricRegistry.histogram("clock-pace-local-min").update(minElapsedTime);
+        metricRegistry.histogram("clock-pace-local-max").update(maxElapsedTime);
+        metricRegistry.histogram("clock-pace-remote").update(remoteElapsedTime);
     }
 
-    public void exception(Throwable t) {
-        metricRegistry.counter("clock-monitor-exception-counter").inc();
-        log.warn("ClockSkewMonitor threw an exception", t);
+    public void exception(Throwable throwable) {
+        metricRegistry.counter("clock-monitor-exception").inc();
+        log.warn("ClockSkewMonitor threw an exception", throwable);
     }
 }

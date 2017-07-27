@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -37,7 +38,8 @@ import com.palantir.common.concurrent.NamedThreadFactory;
  * clock. It's purpose is to monitor if the other nodes' clock progress at the same pace as the local clock.
  */
 public final class ClockSkewMonitor {
-    private static final Duration PAUSE_BETWEEN_REQUESTS = Duration.of(1, ChronoUnit.SECONDS);
+    @VisibleForTesting
+    public static final Duration PAUSE_BETWEEN_REQUESTS = Duration.of(1, ChronoUnit.SECONDS);
 
     private final ClockSkewEvents events;
     private final Map<String, ClockService> monitorByServer;
@@ -60,7 +62,8 @@ public final class ClockSkewMonitor {
                 new ClockServiceImpl());
     }
 
-    private ClockSkewMonitor(
+    @VisibleForTesting
+    public ClockSkewMonitor(
             Map<String, ClockService> monitorByServer,
             Map<String, RequestTime> previousRequestsByServer,
             ClockSkewEvents events,
@@ -74,7 +77,7 @@ public final class ClockSkewMonitor {
     }
 
     public void runInBackground() {
-        executorService.schedule(this::runOnce, PAUSE_BETWEEN_REQUESTS.getSeconds(), TimeUnit.SECONDS);
+        executorService.scheduleAtFixedRate(this::runOnce, 0, PAUSE_BETWEEN_REQUESTS.toNanos(), TimeUnit.NANOSECONDS);
     }
 
     private void runOnce() {
