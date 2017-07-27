@@ -77,6 +77,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
+    private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3);
     private static final String NONEXISTENT_CLIENT = "nonexistent";
     private static final String INVALID_CLIENT = "test2\b";
 
@@ -128,7 +129,16 @@ public class PaxosTimeLockServerIntegrationTest {
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
-                .until(leader::ping);
+                .until(() -> {
+                    try {
+                        // Returns true only if this node is ready to serve timestamps and locks on all clients.
+                        CLIENTS.forEach(client -> getTimestampService(client).getFreshTimestamp());
+                        CLIENTS.forEach(client -> getLockService(client).currentTimeMillis());
+                        return leader.ping();
+                    } catch (Throwable t) {
+                        return false;
+                    }
+                });
     }
 
     @Test
@@ -198,7 +208,6 @@ public class PaxosTimeLockServerIntegrationTest {
             try {
                 assertNull(future.get());
             } catch (ExecutionException e) {
-                // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
                 Throwable cause = e.getCause();
                 assertThat(cause.getClass().getName()).contains("RetryableException");
                 assertRemoteExceptionWithStatus(cause.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);

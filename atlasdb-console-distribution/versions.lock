@@ -500,7 +500,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:leader-election-impl",
-                "com.palantir.atlasdb:lock-api"
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.tritium:tritium-api": {

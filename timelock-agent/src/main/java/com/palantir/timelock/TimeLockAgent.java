@@ -16,13 +16,11 @@
 package com.palantir.timelock;
 
 import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
@@ -64,39 +62,15 @@ public abstract class TimeLockAgent {
      * @param client Client namespace to create the services for
      * @return Invalidating timestamp and lock services
      */
-    abstract TimeLockServices createInvalidatingTimeLockServices(String client);
+    protected abstract TimeLockServices createInvalidatingTimeLockServices(String client);
 
     public void createAndRegisterResources() {
-        // TODO: actually implement this correctly, and not just to make it compile
-        runtime.map(config -> config.clients());
-        Map<String, TimeLockServices> clientToServices = ImmutableMap.copyOf(Maps.asMap(
-                blockingMostRecent(runtime.map(TimeLockRuntimeConfiguration::clients)).get(),
-                client -> createInvalidatingTimeLockServices(client)));
-
+        Set<String> clients =
+                Observables.blockingMostRecent(runtime.map(TimeLockRuntimeConfiguration::clients)).get();
+        Map<String, TimeLockServices> clientToServices =
+                clients.stream().collect(Collectors.toMap(
+                        Function.identity(),
+                        this::createInvalidatingTimeLockServices));
         registrar.accept(new TimeLockResource(clientToServices));
-    }
-
-    // copied the below from WC internally
-    // will need this functionality in a utility class somewhere
-
-    /**
-     * Returns a {@link Supplier} that always returns the most recent value on the given {@link Observable}, blocking if
-     * the observable has not emitted a value when {@link Supplier#get} is called.
-     *
-     * @throws NoSuchElementException if the given observable emits no items
-     */
-    private static <T> Supplier<T> blockingMostRecent(Observable<T> obs) {
-        AtomicReference<T> reference = new AtomicReference<>();
-        subscribe(obs, reference::set);
-        return () -> {
-            if (reference.get() == null) {
-                return obs.blockingFirst();
-            }
-            return reference.get();
-        };
-    }
-
-    private static <T> void subscribe(Observable<T> observable, io.reactivex.functions.Consumer<? super T> onNext) {
-        observable.subscribe(onNext);
     }
 }

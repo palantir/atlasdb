@@ -336,7 +336,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:leader-election-impl",
-                "com.palantir.atlasdb:lock-api"
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -408,6 +409,9 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.1.1"
+        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
@@ -464,6 +468,12 @@
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -830,7 +840,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:leader-election-impl",
-                "com.palantir.atlasdb:lock-api"
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -902,6 +913,9 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.1.1"
+        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
@@ -958,6 +972,12 @@
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.slf4j:slf4j-api": {

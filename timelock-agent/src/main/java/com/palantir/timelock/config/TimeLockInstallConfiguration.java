@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableTimeLockInstallConfiguration.class)
 @Value.Immutable
 public interface TimeLockInstallConfiguration {
-    TimeLockAlgorithmInstallConfiguration algorithm();
+    PaxosInstallConfiguration algorithm();
 
     ClusterConfiguration cluster();
 }

@@ -24,7 +24,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 public abstract class TimeLockRuntimeConfiguration {
     private static final String CLIENT_NAME_REGEX = "[a-zA-Z0-9_-]+";
 
-    public abstract Optional<TimeLockAlgorithmRuntimeConfiguration> algorithm();
+    public abstract Optional<PaxosRuntimeConfiguration> algorithm();
 
     public abstract Set<String> clients();
 
@@ -40,6 +40,8 @@ public abstract class TimeLockRuntimeConfiguration {
 
     @Value.Check
     public void check() {
+        Preconditions.checkState(slowLockLogTriggerMillis() >= 0,
+                "Slow lock log trigger threshold must be nonnegative, but found %s", slowLockLogTriggerMillis());
         clients().forEach(client -> Preconditions.checkState(
                 client.matches(CLIENT_NAME_REGEX),
                 "Client names must consist of alphanumeric characters, underscores, or dashes. Illegal name: %s",

@@ -15,4 +15,10 @@ dependencies {
     compile group: 'io.reactivex.rxjava2', name: 'rxjava'
 
     processor group: 'org.immutables', name: 'value'
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile (group: 'org.mockito', name: 'mockito-core') {
+        // used by rxjava
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
 }

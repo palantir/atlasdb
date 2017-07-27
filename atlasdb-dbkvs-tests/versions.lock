@@ -353,7 +353,8 @@
             "locked": "0.1.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:lock-api"
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -923,7 +924,8 @@
             "locked": "0.1.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:lock-api"
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.tritium:tritium-api": {
