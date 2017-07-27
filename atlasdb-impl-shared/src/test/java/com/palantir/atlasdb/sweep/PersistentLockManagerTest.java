@@ -40,6 +40,8 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 
+import net.jcip.annotations.GuardedBy;
+
 public class PersistentLockManagerTest {
     private PersistentLockService mockPls = mock(PersistentLockService.class);
     private PersistentLockId mockLockId = mock(PersistentLockId.class);
@@ -55,6 +57,7 @@ public class PersistentLockManagerTest {
     }
 
     @Test
+    @GuardedBy("manager")
     public void canAcquireLock() {
         manager.acquirePersistentLockWithRetry();
 
@@ -80,6 +83,7 @@ public class PersistentLockManagerTest {
     }
 
     @Test
+    @GuardedBy("manager")
     public void canAcquireAndReleaseLock() {
         manager.acquirePersistentLockWithRetry();
         manager.releasePersistentLock();
