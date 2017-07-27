@@ -68,6 +68,7 @@ public class Schema {
     private final String packageName;
     private final Namespace namespace;
     private final OptionalType optionalType;
+    private boolean ignoreTableNameLength = false;
 
 
     private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
@@ -109,6 +110,9 @@ public class Schema {
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(tableName),
                 "Invalid table name " + tableName);
+        if (!ignoreTableNameLength) {
+            Schemas.checkTableNameLength(tableName, namespace);
+        }
         tableDefinitions.put(tableName, definition);
     }
 
@@ -178,7 +182,8 @@ public class Schema {
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(idxName),
                 "Invalid table name " + idxName);
-        Preconditions.checkArgument(!tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns() || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
+        Preconditions.checkArgument(
+                !tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns() || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
                 "Cell referencing indexes not implemented for tables with dynamic columns.");
     }
 
@@ -366,5 +371,9 @@ public class Schema {
             ret.put(TableReference.create(namespace, e.getKey()), e.getValue().get());
         }
         return ret;
+    }
+
+    public void ignoreTableNameLength() {
+        ignoreTableNameLength = true;
     }
 }

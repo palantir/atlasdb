@@ -76,6 +76,17 @@ public class SchemaTest {
                         containsString("import java.util.Optional")));
     }
 
+    @Test
+    public void testIgnoreTableNameLengthFlag() throws IOException {
+        Schema schema = new Schema(
+                "Table",
+                TEST_PACKAGE,
+                Namespace.create("VeryLongNamespaceName"));
+        schema.ignoreTableNameLength();
+        schema.addTableDefinition("VeryLongTableNameUsedForTesting", getSimpleTableDefinition(TABLE_REF));
+        schema.renderTables(testFolder.getRoot());
+    }
+
     private String readFileIntoString(File baseDir, String path) throws IOException {
         return new String(Files.toByteArray(new File(baseDir, path)), StandardCharsets.UTF_8);
     }
