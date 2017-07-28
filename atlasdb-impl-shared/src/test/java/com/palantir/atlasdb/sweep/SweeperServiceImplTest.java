@@ -50,6 +50,9 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
             new CheckAndSetExceptionMapper(),
             HttpRemotingJerseyFeature.DEFAULT);
 
+    // This method overrides the SweeperTestSetup method. Not sure if this is the intention, but leaving
+    // as such for now.
+    @Override
     @Before
     public void setup() {
         sweeperService = JaxRsClient.builder().build(
