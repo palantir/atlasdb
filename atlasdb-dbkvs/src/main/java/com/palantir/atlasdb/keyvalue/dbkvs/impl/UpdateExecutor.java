@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import static com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs.VAL;
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -91,7 +89,7 @@ public class UpdateExecutor {
                 cell.getColumnName(),
                 ts);
         List<byte[]> actualValues = Lists.newArrayList();
-        results.iterator().forEachRemaining(row -> actualValues.add(row.getBlob(VAL)));
+        results.iterator().forEachRemaining(row -> actualValues.add(row.getBlob(DbKvs.VAL)));
         return actualValues;
     }
 }
