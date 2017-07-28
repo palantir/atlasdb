@@ -15,28 +15,30 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.Uninterruptibles;
+import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
+
+import feign.RetryableException;
 
 @RunWith(Parameterized.class)
 public class MultiCassandraStartupOrderingEteTest {
@@ -60,32 +62,49 @@ public class MultiCassandraStartupOrderingEteTest {
     @Test
     public void shouldBeAbleToStartUpIfCassandraIsDownAndRunTransactionsWhenCassandraIsUp()
             throws IOException, InterruptedException {
-        addATodo();
+        Assert.assertTrue(canAddTodo());
 
-        stopTheAtlasClient();
+        stopTheAtlasServer();
         runOnCassandraNodes(MultiCassandraTestSuite::killCassandraContainer);
-        startTheAtlasClient();
+        startTheAtlasServer();
 
-        assertThatThrownBy(this::addATodo)
-                    .isInstanceOf(AtlasDbRemoteException.class);
+        waitUntil(this::serverStarted);
 
         runOnCassandraNodes(MultiCassandraTestSuite::startCassandraContainer);
 
-        while (true) {
-            try {
-                addATodo();
-                return;
-            } catch (Exception e) {
-                Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
-            }
+        waitUntil(this::canAddTodo);
+        Assert.assertTrue(canAddTodo());
+    }
+
+    private void waitUntil(Callable<Boolean> condition) {
+        Awaitility.waitAtMost(120, TimeUnit.SECONDS).pollInterval(10, TimeUnit.SECONDS).until(condition);
+    }
+
+    private boolean canAddTodo() {
+        try {
+            addATodo();
+            return true;
+        } catch (AtlasDbRemoteException e) {
+            return false;
         }
     }
 
-    private void stopTheAtlasClient() throws IOException, InterruptedException {
+    private boolean serverStarted() {
+        try {
+            canAddTodo();
+            return true;
+        } catch (AtlasDbRemoteException e) {
+            return true;
+        } catch (RetryableException e) {
+            return false;
+        }
+    }
+
+    private void stopTheAtlasServer() throws IOException, InterruptedException {
         EteSetup.execCliCommand("service/bin/init.sh stop");
     }
 
-    private void startTheAtlasClient() throws IOException, InterruptedException {
+    private void startTheAtlasServer() throws IOException, InterruptedException {
         EteSetup.execCliCommand("service/bin/init.sh start");
     }
 

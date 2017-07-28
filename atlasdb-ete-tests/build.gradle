@@ -32,6 +32,7 @@ dependencies {
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
     testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'com.netflix.feign', name: 'feign-core'
 }
 
 task prepareForEteTests(type: Copy, dependsOn: 'distTar') {

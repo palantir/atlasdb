@@ -164,7 +164,12 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
 
         registerEndpoints();
 
-        initialiseAsync();
+        try {
+            initialise();
+        } catch (Throwable th) {
+            log.error("Synchronous initialisation failed, initialisation will be done asynchronously", th);
+            initialiseAsync();
+        }
     }
 
     private void registerEndpoints() {
@@ -184,6 +189,7 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
                 try {
                     initialise();
                 } catch (Throwable th) {
+                    log.warn("Async initialisation failed, retrying in 30 seconds.", th);
                     Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
                 }
             }

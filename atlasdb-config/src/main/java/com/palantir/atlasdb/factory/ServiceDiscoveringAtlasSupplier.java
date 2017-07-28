@@ -85,7 +85,7 @@ public class ServiceDiscoveringAtlasSupplier {
                 : atlasFactory.createRawKeyValueService(keyValueServiceConfig, leaderConfig);
     }
 
-    // todo implement if we want this
+    // todo implement
     private KeyValueService pollForKeyValueService(AtlasDbFactory atlasFactory) {
         return atlasFactory.createRawKeyValueService(keyValueServiceConfig, leaderConfig);
     }
