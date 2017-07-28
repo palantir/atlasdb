@@ -207,9 +207,6 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator());
 
-        remoteLockService.initialise(lockAndTimestampServices.lock());
-        timestampService.initialise(lockAndTimestampServices.time());
-
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
         kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
@@ -313,7 +310,10 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
             TimestampStoreInvalidator invalidator) {
 
         if (config.leader().isPresent()) {
-            return initialiseRawLeaderServices(config.leader().get(), lock, time);
+            LockAndTimestampServices services = createRawLeaderServices(config.leader().get(), lock, time);
+            remoteLockService.initialise(services.lock());
+            timestampService.initialise(services.time());
+            return services;
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices();
         } else if (config.timelock().isPresent()) {
@@ -321,11 +321,14 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
             TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
             return createNamespacedRawRemoteServices(timeLockClientConfig);
         } else {
-            return createRawEmbeddedServices(lock, time);
+            LockAndTimestampServices services = createRawEmbeddedServices(lock, time);
+            remoteLockService.initialise(services.lock());
+            timestampService.initialise(services.time());
+            return services;
         }
     }
 
-    private LockAndTimestampServices initialiseRawLeaderServices(
+    private LockAndTimestampServices createRawLeaderServices(
             LeaderConfig leaderConfig,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {

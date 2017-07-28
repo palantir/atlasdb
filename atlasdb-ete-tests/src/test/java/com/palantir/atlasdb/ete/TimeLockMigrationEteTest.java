@@ -76,6 +76,7 @@ public class TimeLockMigrationEteTest {
         waitUntil(serversAreReady());
     }
 
+    // todo gmaretic: Fix suboptimal error messages
     @Test
     public void automaticallyMigratesTimestampsAndFailsOnRestart() throws Exception {
         TimestampService timestampClient = createEteClientFor(TimestampService.class);
@@ -130,7 +131,7 @@ public class TimeLockMigrationEteTest {
         // http://joel-costigliola.github.io/assertj/core/api/org/assertj/core/api/Assertions.html
         softAssertions.assertThat(
                 ((AtlasDbRemoteException) catchThrowable(timestampClient::getFreshTimestamp)).getStatus())
-                .isEqualTo(404)
+                .isEqualTo(500)
                 .as("no longer exposes an embedded timestamp service");
     }
 
@@ -138,10 +139,10 @@ public class TimeLockMigrationEteTest {
         TodoResource todoClient = createEteClientFor(TodoResource.class);
         softAssertions.assertThat(catchThrowable(() -> todoClient.addTodo(TODO_3)))
                 .as("cannot write using embedded service after migration to TimeLock")
-                .hasMessageContaining("Connection refused");
+                .hasMessageContaining("Refer to the server logs with this errorId");
         softAssertions.assertThat(catchThrowable(todoClient::getTodoList))
                 .as("cannot read using embedded service after migration to TimeLock")
-                .hasMessageContaining("Connection refused");
+                .hasMessageContaining("Refer to the server logs with this errorId");
     }
 
     private void assertTimeLockGivesHigherTimestampThan(long timestamp) {
@@ -166,7 +167,7 @@ public class TimeLockMigrationEteTest {
     private static Callable<Boolean> logsContainTransactionManagerCreationFailure() {
         return () -> {
             String serverLogs = CLIENT_ORCHESTRATION_RULE.getClientLogs();
-            return serverLogs.contains("An error occurred while trying to create transaction manager.");
+            return serverLogs.contains("IllegalArgumentException trying to convert the stored value to a long.");
         };
     }
 
