@@ -15,26 +15,36 @@
  */
 package com.palantir.lock.logger;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
+import org.hamcrest.core.Is;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
+import com.palantir.common.annotation.Immutable;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockCollections;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockResponse;
+import com.palantir.lock.LockWithClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -94,6 +104,27 @@ public class LockServiceStateLoggerTest {
                 outstandingLockRequestMultimap,
                 LockServiceLoggerTestUtils.TEST_LOG_STATE_DIR);
         logger.logLocks();
+    }
+
+    @Test
+    public void testSerialisationAndDeserialisationOfLockResponse() throws Exception {
+        HeldLocksToken token = getFakeHeldLocksToken("client A", "Fake thread", new BigInteger("1"), "held-lock-1",
+                "logger-lock");
+        LockResponse response = new LockResponse(token);
+        ObjectMapper mapper = new ObjectMapper();
+        LockResponse deserializedLockResponse = mapper.readValue(mapper.writeValueAsString(response), LockResponse.class);
+        assertEquals(deserializedLockResponse, response);
+    }
+
+    @Test
+    public void testSerialisationAndDeserialisationOfLockResponseWithLockHolders() throws Exception {
+        HeldLocksToken token = getFakeHeldLocksToken("client A", "Fake thread", new BigInteger("1"), "held-lock-1",
+                "logger-lock");
+        Map<LockDescriptor, LockClient> lockHolders = ImmutableMap.of(StringLockDescriptor.of("lockdid"), LockClient.ANONYMOUS);
+        LockResponse response = new LockResponse(token, lockHolders);
+        ObjectMapper mapper = new ObjectMapper();
+        LockResponse deserializedLockResponse = mapper.readValue(mapper.writeValueAsString(response), LockResponse.class);
+        assertEquals(deserializedLockResponse, response);
     }
 
     @After
