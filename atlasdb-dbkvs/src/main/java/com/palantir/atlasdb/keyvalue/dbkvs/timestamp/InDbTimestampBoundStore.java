@@ -36,6 +36,7 @@ import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.RetriableTransactions;
 import com.palantir.nexus.db.pool.RetriableTransactions.TransactionResult;
+import com.palantir.nexus.db.pool.RetriableWriteTransaction;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -94,33 +95,37 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
 
     @GuardedBy("this")
     private long runOperation(final Operation operation) {
-        TransactionResult<Long> result = RetriableTransactions.run(connManager, connection -> {
-            Long oldLimit = readLimit(connection);
-            if (currentLimit != null) {
-                if (oldLimit != null) {
-                    if (currentLimit.equals(oldLimit)) {
-                        // match, good
+        TransactionResult<Long> result = RetriableTransactions.run(connManager, new RetriableWriteTransaction<Long>() {
+            @GuardedBy("InDbTimestampBoundStore.this")
+            @Override
+            public Long run(Connection connection) throws SQLException {
+                Long oldLimit = readLimit(connection);
+                if (currentLimit != null) {
+                    if (oldLimit != null) {
+                        if (currentLimit.equals(oldLimit)) {
+                            // match, good
+                        } else {
+                            // mismatch
+                            throw new MultipleRunningTimestampServiceError(
+                                    "Timestamp limit changed underneath us (limit in memory: " + currentLimit
+                                            + ", limit in DB: " + oldLimit + "). This may indicate that "
+                                            + "another timestamp service is running against this database!  "
+                                            + "This may indicate that your services are not properly configured "
+                                            + "to run in an HA configuration, or to have a CLI run against them.");
+                        }
                     } else {
-                        // mismatch
-                        throw new MultipleRunningTimestampServiceError(
-                                "Timestamp limit changed underneath us (limit in memory: " + currentLimit
-                                        + ", limit in DB: " + oldLimit + "). This may indicate that "
-                                        + "another timestamp service is running against this database!  "
-                                        + "This may indicate that your services are not properly configured "
-                                        + "to run in an HA configuration, or to have a CLI run against them.");
+                        // disappearance
+                        throw new IllegalStateException(
+                                "Unable to retrieve a timestamp when expected. "
+                                        + "This service is in a dangerous state and should be taken down "
+                                        + "until a new safe timestamp value can be established in the KVS. "
+                                        + "Please contact support.");
                     }
                 } else {
-                    // disappearance
-                    throw new IllegalStateException(
-                            "Unable to retrieve a timestamp when expected. "
-                                    + "This service is in a dangerous state and should be taken down "
-                                    + "until a new safe timestamp value can be established in the KVS. "
-                                    + "Please contact support.");
+                    // first read, no check to be done
                 }
-            } else {
-                // first read, no check to be done
+                return operation.run(connection, oldLimit);
             }
-            return operation.run(connection, oldLimit);
         });
         switch (result.getStatus()) {
             case SUCCESSFUL:
