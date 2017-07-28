@@ -63,18 +63,19 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     /**
-     * Indicates that the name of the table being defined is safe for logging.
+     * Indicates that the name of the table being defined is safe or unsafe for logging.
+     * If specified multiple times, the last value passed in is used.
      */
-    public void tableNameIsSafeLoggable() {
-        Preconditions.checkState(state == State.NONE, "Specifying a table name is safe should be done outside of the"
-                + " subscopes of TableDefinition.");
-        tableNameSafety = LogSafety.SAFE;
+    public void tableNameLogSafety(LogSafety logSafety) {
+        Preconditions.checkState(state == State.NONE, "Specifying a table name is safe or unsafe should be done outside"
+                + " of the subscopes of TableDefinition.");
+        tableNameSafety = logSafety;
     }
 
     /**
      * If specified, this indicates that the names of all row components and named columns should be marked as safe by
      * default. Individual row components or named columns may still be marked as unsafe by explicitly creating them
-     * as unsafe (i.e. by constructing them with rowNameLoggable or columnNameLoggable as false, respectively).
+     * as unsafe (by constructing them with UNSAFE values of LogSafety).
      * Note that specifying this by itself does NOT make the table name safe for logging.
      */
     public void namedComponentsSafeByDefault() {
@@ -83,12 +84,22 @@ public class TableDefinition extends AbstractDefinition {
         defaultNamedComponentLogSafety = LogSafety.SAFE;
     }
 
+    /**
+     * If specified, makes both the table name and ALL named components safe by default.
+     * The table name may still be marked as unsafe by setting tableNameLogSafety(), and individual row components
+     * or named columns may still be marked as unsafe by explicitly creating them as unsafe.
+     */
+    public void allSafeForLoggingByDefault() {
+        tableNameLogSafety(LogSafety.SAFE);
+        namedComponentsSafeByDefault();
+    }
+
     public void column(String columnName, String shortName, Class<?> protoOrPersistable) {
         column(columnName, shortName, protoOrPersistable, Compression.NONE);
     }
 
     public void column(String columnName, String shortName, Class<?> protoOrPersistable, Compression compression) {
-        column(columnName, shortName, protoOrPersistable, compression, false);
+        column(columnName, shortName, protoOrPersistable, compression, defaultNamedComponentLogSafety);
     }
 
     public void column(
@@ -96,7 +107,7 @@ public class TableDefinition extends AbstractDefinition {
             String shortName,
             Class<?> protoOrPersistable,
             Compression compression,
-            boolean columnNameLoggable) {
+            LogSafety columnNameLoggable) {
         checkStateForNamedColumnDefinition();
         checkUniqueColumnNames(columnName, shortName);
         fixedColumns.add(
@@ -104,7 +115,7 @@ public class TableDefinition extends AbstractDefinition {
                         shortName,
                         columnName,
                         getColumnValueDescription(protoOrPersistable, compression),
-                        columnNameLoggable));
+                        columnNameLoggable.isSafeForLogging()));
     }
 
     public void column(String columnName, String shortName, ValueType valueType) {

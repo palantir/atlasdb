@@ -44,8 +44,7 @@ public enum SweepSchema implements AtlasSchema {
         // This table tracks progress on a sweep job of a single table.
         schema.addTableDefinition("progress", new TableDefinition() {{
             javaTableName("SweepProgress");
-            tableNameIsSafeLoggable();
-            namedComponentsSafeByDefault();
+            allSafeForLoggingByDefault();
             rowName();
                 // This table has at most one row.
                 rowComponent("dummy", ValueType.VAR_LONG);
@@ -70,8 +69,7 @@ public enum SweepSchema implements AtlasSchema {
         // in determining when and in which order they should be swept.
         schema.addTableDefinition("priority", new TableDefinition() {{
             javaTableName("SweepPriority");
-            tableNameIsSafeLoggable();
-            namedComponentsSafeByDefault();
+            allSafeForLoggingByDefault();
             rowName();
                 rowComponent("full_table_name", ValueType.STRING);
             columns();
