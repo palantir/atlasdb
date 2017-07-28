@@ -62,10 +62,6 @@ import com.google.common.collect.Iterables;
         this(token, ImmutableSortedMap.of());
     }
 
-    public boolean isBlockAndRelease() {
-        return isBlockAndRelease;
-    }
-
     /**
      * This should only get created by the Lock Service.
      */
@@ -147,7 +143,7 @@ import com.google.common.collect.Iterables;
      * not be empty if the lock request specified
      * {@link LockGroupBehavior#LOCK_AS_MANY_AS_POSSIBLE}.
      */
-    //@JsonIgnore
+    @JsonIgnore
     public ImmutableSortedMap<LockDescriptor, LockClient> getLockHolders() {
         return lockHolders;
     }
@@ -208,11 +204,10 @@ import com.google.common.collect.Iterables;
             blockAndRelease = lockResponse.isBlockAndRelease;
         }
 
-		@JsonCreator
-		SerializationProxy(@JsonProperty("token") HeldLocksToken token,
-						   @JsonProperty("lockHolders") Map<LockDescriptor, LockClient> lockHolders,
-						   @JsonProperty("blockAndRelease") boolean blockAndRelease) {
-
+        @JsonCreator
+        SerializationProxy(@JsonProperty("token") HeldLocksToken token,
+                @JsonProperty("locks") List<LockWithClient> lockWithClients,
+                @JsonProperty("blockAndRelease") boolean isBlockAndRelease) {
             if (lockWithClients == null) {
                 lockHolders = ImmutableSortedMap.of();
             } else {
@@ -223,8 +218,9 @@ import com.google.common.collect.Iterables;
                 this.lockHolders = lockHoldersBuilder.build();
             }
             this.token = token;
-            this.isBlockAndRelease = isBlockAndRelease;
+            this.blockAndRelease = isBlockAndRelease;
         }
+
 
         public LockResponse build() {
             return (LockResponse) readResolve();

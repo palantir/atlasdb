@@ -77,7 +77,7 @@ import com.google.common.base.Objects;
      * <code>false</code> if the lock server code is running in-process with the only
      * client accessing it.
      */
-    @JsonIgnore
+    //@JsonIgnore
     public boolean isStandaloneServer() {
         return isStandaloneServer;
     }
@@ -87,7 +87,7 @@ import com.google.common.base.Objects;
      * {@link LockRequest.Builder#timeoutAfter(TimeDuration)}. The default value
      * is 10 minutes.
      */
-    @JsonIgnore
+    //@JsonIgnore
     public TimeDuration getMaxAllowedLockTimeout() {
         return maxAllowedLockTimeout;
     }
@@ -96,7 +96,7 @@ import com.google.common.base.Objects;
      * Returns the maximum permitted clock drift between the server and any
      * client. The default value is 5 seconds.
      */
-    @JsonIgnore
+    //@JsonIgnore
     public TimeDuration getMaxAllowedClockDrift() {
         return maxAllowedClockDrift;
     }
@@ -108,7 +108,7 @@ import com.google.common.base.Objects;
      *
      * @deprecated this value is no longer used or respected.
      */
-    @JsonIgnore
+    //@JsonIgnore
     @Deprecated
     public TimeDuration getMaxAllowedBlockingDuration() {
         return maxAllowedBlockingDuration;
@@ -118,7 +118,7 @@ import com.google.common.base.Objects;
      * Returns the maximum amount of time a lock is usually held for.
      * The default value is 1 hour.
      */
-    @JsonIgnore
+    //@JsonIgnore
     public TimeDuration getMaxNormalLockAge() {
         return maxNormalLockAge;
     }
@@ -129,7 +129,7 @@ import com.google.common.base.Objects;
      *
      * @deprecated this value is no longer used or respected
      */
-    @JsonIgnore
+    //@JsonIgnore
     @Deprecated
     public int getRandomBitCount() {
         return randomBitCount;
@@ -222,7 +222,7 @@ import com.google.common.base.Objects;
         }
 
         @JsonCreator
-        SerializationProxy(@JsonProperty("isStandaloneServer") boolean isStandaloneServer,
+        SerializationProxy(@JsonProperty("standaloneServer") boolean isStandaloneServer,
                 @JsonProperty("maxAllowedLockTimeout") SimpleTimeDuration maxAllowedLockTimeout,
                 @JsonProperty("maxAllowedClockDrift") SimpleTimeDuration maxAllowedClockDrift,
                 @JsonProperty("maxAllowedBlockingDuration") SimpleTimeDuration maxAllowedBlockingDuration,
