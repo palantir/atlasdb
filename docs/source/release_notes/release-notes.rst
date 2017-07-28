@@ -44,8 +44,15 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |devbreak|
+         - Removed unused classes on AtlasDB.
+
+              - ``FutureClosableIteratorTask``
+              - ``ClosableMergedIterator``
+              - ``ThrowingKeyValueService``
+
+           If any issues arise from this change, please contact the development team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1933>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
