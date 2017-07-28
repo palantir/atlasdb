@@ -54,6 +54,10 @@ import com.google.common.collect.ImmutableSortedMap;
         this(token, ImmutableSortedMap.<LockDescriptor, LockClient>of());
     }
 
+    public boolean isBlockAndRelease() {
+        return isBlockAndRelease;
+    }
+
     /**
      * This should only get created by the Lock Service.
      */
@@ -125,7 +129,7 @@ import com.google.common.collect.ImmutableSortedMap;
      * not be empty if the lock request specified
      * {@link LockGroupBehavior#LOCK_AS_MANY_AS_POSSIBLE}.
      */
-    @JsonIgnore
+    //@JsonIgnore
     public SortedMap<LockDescriptor, LockClient> getLockHolders() {
         return lockHolders;
     }
@@ -150,22 +154,22 @@ import com.google.common.collect.ImmutableSortedMap;
         private static final long serialVersionUID = 0xcff22b33b08dd857L;
 
         @Nullable private final HeldLocksToken token;
-        private final ImmutableSortedMap<LockDescriptor, LockClient> lockHolders;
-        private final boolean isBlockAndRelease;
+        private final Map<LockDescriptor, LockClient> lockHolders;
+        private final boolean blockAndRelease;
 
         SerializationProxy(LockResponse lockResponse) {
             token = lockResponse.token;
             lockHolders = lockResponse.lockHolders;
-            isBlockAndRelease = lockResponse.isBlockAndRelease;
+            blockAndRelease = lockResponse.isBlockAndRelease;
         }
 
 		@JsonCreator
 		SerializationProxy(@JsonProperty("token") HeldLocksToken token,
-						   @JsonProperty("lockHolders") ImmutableSortedMap<LockDescriptor, LockClient> lockHolders,
-						   @JsonProperty("isBlockAndRelease") boolean isBlockAndRelease) {
+						   @JsonProperty("lockHolders") Map<LockDescriptor, LockClient> lockHolders,
+						   @JsonProperty("blockAndRelease") boolean blockAndRelease) {
             this.token = token;
             this.lockHolders = lockHolders;
-            this.isBlockAndRelease = isBlockAndRelease;
+            this.blockAndRelease = blockAndRelease;
         }
 
         public LockResponse build() {
@@ -173,7 +177,7 @@ import com.google.common.collect.ImmutableSortedMap;
         }
 
         Object readResolve() {
-            if (isBlockAndRelease) {
+            if (blockAndRelease) {
                 return new LockResponse(lockHolders);
             }
             return new LockResponse(token, lockHolders);

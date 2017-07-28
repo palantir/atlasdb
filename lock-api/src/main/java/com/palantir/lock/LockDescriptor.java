@@ -42,9 +42,13 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
 
     private final byte[] bytes;
 
-    @JsonCreator
-    LockDescriptor(@JsonProperty("bytes") byte[] bytes) {
+    LockDescriptor(byte[] bytes) {
         this.bytes = bytes;
+    }
+
+    @JsonCreator
+    LockDescriptor(@JsonProperty("bytes") String bytes) {
+        this.bytes = bytes.getBytes();
     }
 
     @JsonIgnore
