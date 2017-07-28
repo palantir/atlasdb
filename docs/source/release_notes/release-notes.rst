@@ -44,53 +44,6 @@ develop
     *    - Type
          - Change
 
-    *    - |fixed| |userbreak|
-         - TimeLock Server, if configured to use the async lock service, will now throw if a client attempts to start a transaction via the sync lock service.
-           Previously, users which have clients (for the same namespace) running both pre- and post-0.49.0 versions of AtlasDB were able to run transactions against the sync and async lock services concurrently, thus breaking the guarantees of the lock service.
-           AtlasDB does not support having clients (for the same namespace) running both pre- and post-0.49.0 versions.
-           Note that TimeLock users which have clients (for different namespaces) running both pre- and post-0.49.0 versions will need to turn this feature off for clients on pre-0.49.0 versions to continue working with TimeLock, and should exercise caution in ensuring that, for each namespace, clients use only pre- or post-0.49.0 versions of AtlasDB.
-           Please see :ref:`Async Lock Service Configuration <async-lock-service>` for the new configuration.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2189>`__)
-
-    *    - |userbreak|
-         - TimeLock Server has moved its parameter ``useAsyncLockService`` to be within an ``asyncLock`` block.
-           This was done as we wanted to keep the configuration options for the async lock service together.
-           The parameter remains optional, and users not configuring this parameter are unaffected.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2189>`__)
-
-    *    - |improved|
-         - ``gc_grace_seconds`` will now be automatically updated for services running against CassandraKVS on startup.
-            We reduced ``gc_grace_seconds`` from four days to one hour in ``0.42.0`` but that is enforced for new tables and not the existing ones.
-            Updating ``gc_grace_seconds`` can be an expensive operation and users should expect the service to block for a while on startup.
-            However, this shouldn't be a concern unless the count of tables is in the order of 100s. If you think this will be an issue,
-            please configure the ``gcGraceSeconds`` parameter in Cassandra keyValueService config to 4 days (``4 * 24 * 60 * 60``) which was the previous default.
-            (`Pull Request <https://github.com/palantir/atlasdb/pull/2129>`__)
-
-    *    - |fixed|
-         - ``RequestBatchingTimestampService`` now works for AtlasDB clients using TimeLock Server once again.
-           Previously in 0.49.0, clients using TimeLock Server and request batching would still request timestamps one at a time from the timelock server.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2182>`__)
-
-    *    - |improved|
-         - By default, AtlasConsole database mutation commands (namely ``put()`` and ``delete()``)
-           are now disabled. To enable them, run AtlasConsole with the ``--mutations_enabled`` flag
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2155>`__)
-
-    *    - |improved| |devbreak|
-         - OkHttp clients (created with ``FeignOkHttpClients``) will no longer silently retry connections.
-           We have already implemented retries, including retries from connection failures, at the Feign level in ``FailoverFeignTarget``.
-           If you require silent retry, please contact the AtlasDB team.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/TODO>`__)
-
-    *    - |fixed|
-         - Fixed a bug in AtlasConsole that caused valid table names to not be recognized.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2192>`__)
-           
-    *    - |new|
-         - Timelock server now supports a ``NonBlockingFileAppenderFactory`` which prevents requests from blocking if the request log queue is full. 
-           To use this appender, the ``type`` property should be set to ``non-blocking-file`` in the logging appender configuration. Note that using this appender may result in request logs being dropped.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2198>`__)
-
     *    - |new|
          - AtlasDB now supports specifying the safety of table names as well as row and column component names following the `palantir/safe-logging <https://github.com/palantir/safe-logging>`__ library.
            Please consult the documentation for :ref:`Tables and Indices <tables-and-indices>` for details on how to set this up.
@@ -104,6 +57,83 @@ develop
          - The ``ProfilingKeyValueService`` and ``SpecificTableSweeper`` now log table names as safe arguments, if and only if these have been specified as safe in one's schemas.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2172>`__)
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.50.0
+=======
+
+27 July 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed| |userbreak|
+         - TimeLock Server, if configured to use the async lock service, will now throw if a client attempts to start a transaction via the sync lock service.
+
+           Previously, users which have clients (for the same namespace) running both pre- and post-0.49.0 versions of AtlasDB were able to run transactions against the sync and async lock services concurrently, thus breaking the guarantees of the lock service.
+           AtlasDB does not support having clients (for the same namespace) running both pre- and post-0.49.0 versions.
+
+           Note that TimeLock users which have clients (for different namespaces) running both pre- and post-0.49.0 versions will need to turn this feature off for clients on pre-0.49.0 versions to continue working with TimeLock, and should exercise caution in ensuring that, for each namespace, clients use only pre- or post-0.49.0 versions of AtlasDB.
+           Please see :ref:`Async Lock Service Configuration <async-lock-service>` for documentation.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2189>`__)
+
+    *    - |userbreak|
+         - TimeLock Server has moved its parameter ``useAsyncLockService`` to be within an ``asyncLock`` block.
+           This was done as we wanted to keep the configuration options for the async lock service together.
+           The parameter remains optional, and users not configuring this parameter are unaffected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2189>`__)
+
+    *    - |improved|
+         - ``gc_grace_seconds`` will now be automatically updated for services running against CassandraKVS on startup.
+
+           We reduced ``gc_grace_seconds`` from four days to one hour in 0.42.0 but that is enforced for new tables and not the existing ones.
+           Updating ``gc_grace_seconds`` can be an expensive operation and users should expect the service to block for a while on startup.
+           However, this shouldn't be a concern unless the count of tables is in the order of 100s. If you think this will be an issue,
+           please configure the ``gcGraceSeconds`` parameter in Cassandra KVS config to 4 days (``4 * 24 * 60 * 60``), which was the previous default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2129>`__)
+
+    *    - |fixed|
+         - ``RequestBatchingTimestampService`` now works for AtlasDB clients using TimeLock Server once again.
+           Previously in 0.49.0, clients using TimeLock Server and request batching would still request timestamps one at a time from the TimeLock Server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2182>`__)
+
+    *    - |fixed|
+         - ``PaxosQuorumChecker`` will now interrupt outstanding requests after a quorum response has been collected. This prevents the number of paxos request threads from growing without bound.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2193>`__)
+
+    *    - |improved| |devbreak|
+         - OkHttp clients (created with ``FeignOkHttpClients``) will no longer silently retry connections.
+           We have already implemented retries, including retries from connection failures, at the Feign level in ``FailoverFeignTarget``.
+           If you require silent retry, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2197>`__)
+
+    *    - |improved| |userbreak|
+         - AtlasConsole database mutation commands (namely ``put()`` and ``delete()``) are now disabled by default.
+           To enable them, run AtlasConsole with the ``--mutations_enabled`` flag
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2155>`__)
+
+    *    - |fixed|
+         - Fixed a bug in AtlasConsole that caused valid table names not to be recognized.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2192>`__)
+
+    *    - |new|
+         - TimeLock Server now supports a ``NonBlockingFileAppenderFactory`` which prevents requests from blocking if the request log queue is full.
+           To use this appender, the ``type`` property should be set to ``non-blocking-file`` in the logging appender configuration. Note that using this appender may result in request logs being dropped.
+           (:ref:`Docs <non-blocking-appender>`)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2198>`__)
+
+    *    - |fixed|
+         - Fixed a potential deadlock in ``PersistentLockManager`` that could prevent clients from shutting down if the persistent backup lock could not be acquired.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2208>`__)
+
+    *    - |new|
+         - New metrics have been added for tracking Cassandra's approximate pool size, number of idle connections, and number of active connections. (:ref:`Docs <dropwizard-metrics>`)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2214>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -121,31 +151,31 @@ v0.49.0
          - Change
 
     *    - |improved|
-         - Timelock server now can process lock requests using async Jetty servlets, rather than blocking request threads. This leads to more stability and higher throughput during periods of heavy lock contention.
+         - TimeLock Server now can process lock requests using async Jetty servlets, rather than blocking request threads. This leads to more stability and higher throughput during periods of heavy lock contention.
            To enable this behavior, use the ``useAsyncLockService`` option to switch between the new and old lock service implementation. This option defaults to ``true``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2084>`__)
-           
+
     *    - |devbreak| |improved|
          - The maximum time that a transaction will block while waiting for commit locks is now configurable, and defaults to 1 minute. This can be configured via the ``transaction.lockAcquireTimeoutMillis`` option in ``AtlasDbRuntimeConfig``.
            This differs from the previous behavior, which was to block indefinitely. However, the previous behavior can be effectively restored by configuring a large timeout.
            If creating a ``SerializableTransactionManager`` directly, use the new constructor which accepts a timeout parameter.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2158>`__)
-           
+
     *    - |devbreak|
          - ``randomBitCount`` and ``maxAllowedBlockingDuration`` are deprecated and no longer configurable in ``LockServerOptions``. If specified, they will be silently ignored.
            If your service relies on either of these configuration options, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2161>`__)
-           
+
     *    - |userbreak|
-         - This version of the AtlasDB client will **require** a version of Timelock server that exposes the new ``/timelock`` endpoints. 
+         - This version of the AtlasDB client will **require** a version of Timelock server that exposes the new ``/timelock`` endpoints.
            Note that this only applies if running against Timelock server; clients running with embedded leader mode are not affected.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2135>`__)   
-	   
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2135>`__)
+
     *    - |userbreak|
          - The timestamp batching functionality introduced in 0.48.0 is temporarily no longer supported when running with Timelock server. We will re-enable support for this in a future release.
 
     *    - |fixed|
-         - Fixed the broken put() command in AtlasConsole. You should now be able to insert and update data using Console.
+         - Fixed the broken ``put()`` command in AtlasConsole. You should now be able to insert and update data using Console.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2140>`__)
 
     *    - |fixed|
@@ -153,9 +183,9 @@ v0.49.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2130>`__)
 
     *    - |userbreak|
-         - Remove Cassandra config option 'safetyDisabled';
+         - Remove Cassandra config option ``safetyDisabled``;
            users should instead move to a more specific config for their situation, which are:
-           ignoreNodeTopologyChecks, ignoreInconsistentRingChecks, ignoreDatacenterConfigurationChecks, ignorePartitionerChecks
+           ``ignoreNodeTopologyChecks``, ``ignoreInconsistentRingChecks``, ``ignoreDatacenterConfigurationChecks``, ``ignorePartitionerChecks``
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2024>`__)
 
     *    - |fixed|
@@ -163,7 +193,7 @@ v0.49.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2160>`__)
 
     *    - |new|
-         - TransactionManagers exposes a method in which it is possible to specify the user agent to be used.
+         - ``TransactionManagers`` exposes a method in which it is possible to specify the user agent to be used.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2162>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -427,12 +457,12 @@ v0.45.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2037>`__)
 
     *    - |new|
-         - The default lock timeout is now configurable. 
+         - The default lock timeout is now configurable.
            Currently, the default lock timeout is 2 minutes.
            This can cause a large delay if a lock requester's connection has died at the time it receives the lock.
            Since TransactionManagers#create provides an auto-refreshing lock service, it is safe to lower the default timeout to reduce the delay that happens in this case.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2026>`__)
-           
+
     *    - |improved|
          - The priority of logging on background sweep was increased from debug to info or warn.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2031>`__)
@@ -477,7 +507,7 @@ v0.44.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1970>`__)
 
     *    - |improved|
-         - Read-only transactions will no longer make a remote call to fetch a timestamp, if no work is done on the transaction. 
+         - Read-only transactions will no longer make a remote call to fetch a timestamp, if no work is done on the transaction.
            This will benefit services that execute read-only transactions around in-memory cache operations, and frequently never fall through to perform a read.
            (`Pull Request <https://github.com/palantir/1996>`__)
 
