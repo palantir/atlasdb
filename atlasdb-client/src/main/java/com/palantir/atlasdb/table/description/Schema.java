@@ -68,7 +68,9 @@ public class Schema {
     private final String packageName;
     private final Namespace namespace;
     private final OptionalType optionalType;
-    private boolean ignoreTableNameLength = false;
+    private boolean ignoreTableNameLengthChecks = false;
+    private static final int CASSANDRA_TABLE_NAME_CHAR_LIMIT = 48;
+    private static final int POSTGRES_TABLE_NAME_CHAR_LIMIT = 63;
 
 
     private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
@@ -110,8 +112,18 @@ public class Schema {
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(tableName),
                 "Invalid table name " + tableName);
-        if (!ignoreTableNameLength) {
-            Schemas.checkTableNameLength(tableName, namespace);
+        if (!ignoreTableNameLengthChecks) {
+            int internalTableNameLength = Schemas.getInternalTableNameLength(tableName, namespace);
+            Preconditions.checkArgument(
+                    internalTableNameLength < POSTGRES_TABLE_NAME_CHAR_LIMIT,
+                    "Table name %s is too long, exceeds Cassandra and Postgres limits. " +
+                            "If running using a different KVS, set the ignoreTableNameLength flag.",
+                    tableName);
+            Preconditions.checkArgument(
+                    internalTableNameLength < CASSANDRA_TABLE_NAME_CHAR_LIMIT,
+                    "Table name %s is too long, exceeds Cassandra limit. " +
+                            "If running using a different KVS, set the ignoreTableNameLength flag.",
+                    tableName);
         }
         tableDefinitions.put(tableName, definition);
     }
@@ -360,7 +372,7 @@ public class Schema {
         return ret;
     }
 
-    public void ignoreTableNameLength() {
-        ignoreTableNameLength = true;
+    public void ignoreTableNameLengthChecks() {
+        ignoreTableNameLengthChecks = true;
     }
 }

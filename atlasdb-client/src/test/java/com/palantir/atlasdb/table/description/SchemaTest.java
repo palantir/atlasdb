@@ -82,7 +82,7 @@ public class SchemaTest {
                 "Table",
                 TEST_PACKAGE,
                 Namespace.create("VeryLongNamespaceName"));
-        schema.ignoreTableNameLength();
+        schema.ignoreTableNameLengthChecks();
         schema.addTableDefinition("VeryLongTableNameUsedForTesting", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
     }
