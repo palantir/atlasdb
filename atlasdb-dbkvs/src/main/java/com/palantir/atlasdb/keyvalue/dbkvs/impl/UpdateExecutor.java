@@ -17,8 +17,10 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import static com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs.VAL;
 
+import java.util.Arrays;
 import java.util.List;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -57,25 +59,37 @@ public class UpdateExecutor {
                 + " AND col_name = ?"
                 + " AND ts = ?"
                 + " AND val = ?";
-        int updated = ((PalantirSqlConnection) conns.get()).updateCountRowsUnregisteredQuery(sqlString,
-                args);
-        if (updated == 0) {
-            throw new CheckAndSetException(cell, tableRef, oldValue, getCurrentValues(cell, ts, prefixedTableName));
+
+        PalantirSqlConnection connection = (PalantirSqlConnection) conns.get();
+        while (true) {
+            int updated = connection.updateCountRowsUnregisteredQuery(sqlString, args);
+            if (updated != 0) {
+                return;
+            }
+            List<byte[]> currentValue = getCurrentValue(connection, cell, ts, prefixedTableName);
+            byte[] onlyValue = Iterables.getOnlyElement(currentValue, null);
+            if (!Arrays.equals(onlyValue, oldValue)) {
+                throw new CheckAndSetException(cell, tableRef, oldValue, currentValue);
+            }
         }
     }
 
-    private List<byte[]> getCurrentValues(Cell cell, long ts, String prefixedTableName) {
+    // A list, but in practice at most one value
+    private List<byte[]> getCurrentValue(
+            PalantirSqlConnection connection,
+            Cell cell,
+            long ts,
+            String prefixedTableName) {
         String sqlString = "/* SELECT (" + prefixedTableName + ") */"
                 + " SELECT val FROM " + prefixedTableName
                 + " WHERE row_name = ?"
                 + " AND col_name = ?"
                 + " AND ts = ?";
-        Object[] args = new Object[] {
+        AgnosticLightResultSet results = connection.selectLightResultSetUnregisteredQuery(
+                sqlString,
                 cell.getRowName(),
                 cell.getColumnName(),
-                ts
-        };
-        AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(sqlString, args);
+                ts);
         List<byte[]> actualValues = Lists.newArrayList();
         results.iterator().forEachRemaining(row -> actualValues.add(row.getBlob(VAL)));
         return actualValues;
