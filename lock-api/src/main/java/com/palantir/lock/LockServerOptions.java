@@ -23,7 +23,10 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
@@ -37,22 +40,46 @@ import com.google.common.base.Objects;
 
 @JsonDeserialize(builder =
         LockServerOptions.SerializationProxy.class)
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Immutable public class LockServerOptions implements Serializable {
     private static final long serialVersionUID = 2930574230723753879L;
 
-    /** The default lock server option values. */
+    private boolean isStandaloneServer = true;
+    private SimpleTimeDuration maxAllowedLockTimeout = SimpleTimeDuration.of(10, TimeUnit.MINUTES);
+    private SimpleTimeDuration maxAllowedClockDrift = SimpleTimeDuration.of(5, TimeUnit.SECONDS);
+    private SimpleTimeDuration maxAllowedBlockingDuration = SimpleTimeDuration.of(60, TimeUnit.SECONDS);
+    private SimpleTimeDuration maxNormalLockAge = SimpleTimeDuration.of(1, TimeUnit.HOURS);
+    private int randomBitCount = Long.SIZE;
+    private String lockStateLoggerDir = "log/state";
+
     public static final LockServerOptions DEFAULT = new LockServerOptions();
 
-    protected LockServerOptions() { /* empty */ }
+
+    /** The default lock server option values. */
+    protected LockServerOptions() {
+        /* empty */
+    }
+
+    protected LockServerOptions(boolean isStandaloneServer, SimpleTimeDuration maxAllowedLockTimeout,
+            SimpleTimeDuration maxAllowedClockDrift, SimpleTimeDuration maxAllowedBlockingDuration,
+            SimpleTimeDuration maxNormalLockAge, int randomBitCount, String lockStateLoggerDir) {
+        this.isStandaloneServer = isStandaloneServer;
+        this.maxAllowedLockTimeout = maxAllowedLockTimeout;
+        this.maxAllowedClockDrift = maxAllowedClockDrift;
+        this.maxAllowedBlockingDuration = maxAllowedBlockingDuration; /* empty */
+        this.maxNormalLockAge = maxNormalLockAge;
+        this.randomBitCount = randomBitCount;
+        this.lockStateLoggerDir = lockStateLoggerDir;
+    }
 
     /**
      * Returns <code>true</code> if this is a standalone lock server or
      * <code>false</code> if the lock server code is running in-process with the only
      * client accessing it.
      */
-    @JsonIgnore
+    //@JsonIgnore
     public boolean isStandaloneServer() {
-        return true;
+        return isStandaloneServer;
     }
 
     /**
@@ -60,16 +87,18 @@ import com.google.common.base.Objects;
      * {@link LockRequest.Builder#timeoutAfter(TimeDuration)}. The default value
      * is 10 minutes.
      */
+    //@JsonIgnore
     public TimeDuration getMaxAllowedLockTimeout() {
-        return SimpleTimeDuration.of(10, TimeUnit.MINUTES);
+        return maxAllowedLockTimeout;
     }
 
     /**
      * Returns the maximum permitted clock drift between the server and any
      * client. The default value is 5 seconds.
      */
+    //@JsonIgnore
     public TimeDuration getMaxAllowedClockDrift() {
-        return SimpleTimeDuration.of(5, TimeUnit.SECONDS);
+        return maxAllowedClockDrift;
     }
 
     /**
@@ -79,17 +108,19 @@ import com.google.common.base.Objects;
      *
      * @deprecated this value is no longer used or respected.
      */
+    //@JsonIgnore
     @Deprecated
     public TimeDuration getMaxAllowedBlockingDuration() {
-        return SimpleTimeDuration.of(60, TimeUnit.SECONDS);
+        return maxAllowedBlockingDuration;
     }
 
     /**
      * Returns the maximum amount of time a lock is usually held for.
      * The default value is 1 hour.
      */
+    //@JsonIgnore
     public TimeDuration getMaxNormalLockAge() {
-        return SimpleTimeDuration.of(1, TimeUnit.HOURS);
+        return maxNormalLockAge;
     }
 
     /**
@@ -98,9 +129,10 @@ import com.google.common.base.Objects;
      *
      * @deprecated this value is no longer used or respected
      */
+    //@JsonIgnore
     @Deprecated
     public int getRandomBitCount() {
-        return Long.SIZE;
+        return randomBitCount;
     }
 
     /**
@@ -159,8 +191,9 @@ import com.google.common.base.Objects;
         return new SerializationProxy(this);
     }
 
+    @JsonIgnore
     public String getLockStateLoggerDir() {
-        return "log/state";
+        return lockStateLoggerDir;
     }
 
     static class SerializationProxy implements Serializable {
@@ -186,6 +219,27 @@ import com.google.common.base.Objects;
                     lockServerOptions.getMaxNormalLockAge());
             randomBitCount = lockServerOptions.getRandomBitCount();
             lockStateLoggerDir = lockServerOptions.getLockStateLoggerDir();
+        }
+
+        @JsonCreator
+        SerializationProxy(@JsonProperty("standaloneServer") boolean isStandaloneServer,
+                @JsonProperty("maxAllowedLockTimeout") SimpleTimeDuration maxAllowedLockTimeout,
+                @JsonProperty("maxAllowedClockDrift") SimpleTimeDuration maxAllowedClockDrift,
+                @JsonProperty("maxAllowedBlockingDuration") SimpleTimeDuration maxAllowedBlockingDuration,
+                @JsonProperty("maxNormalLockAge") SimpleTimeDuration maxNormalLockAge,
+                @JsonProperty("randomBitCount") int randomBitCount,
+                @JsonProperty("lockStateLoggerDir") String lockStateLoggerDir) {
+            this.isStandaloneServer = isStandaloneServer;
+            this.maxAllowedLockTimeout = maxAllowedLockTimeout;
+            this.maxAllowedClockDrift = maxAllowedClockDrift;
+            this.maxAllowedBlockingDuration = maxAllowedBlockingDuration;
+            this.maxNormalLockAge = maxNormalLockAge;
+            this.randomBitCount = randomBitCount;
+            this.lockStateLoggerDir = lockStateLoggerDir;
+        }
+
+        public LockServerOptions build() {
+            return (LockServerOptions) readResolve();
         }
 
         Object readResolve() {

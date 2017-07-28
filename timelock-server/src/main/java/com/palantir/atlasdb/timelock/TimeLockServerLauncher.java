@@ -40,6 +40,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
     @Override
     public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
+        bootstrap.getObjectMapper().registerModule(new Jdk8Module());
         MetricRegistry metricRegistry = MetricRegistries.createWithHdrHistogramReservoirs();
         AtlasDbMetrics.setMetricRegistry(metricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);
