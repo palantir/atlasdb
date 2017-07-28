@@ -22,6 +22,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata.Builder;
@@ -42,7 +43,7 @@ public class TableMetadata implements Persistable {
     final SweepStrategy sweepStrategy;
     final ExpirationStrategy expirationStrategy;
     final boolean appendHeavyAndReadLight;
-    final boolean nameLoggable;
+    final LogSafety nameLogSafety;
 
     public TableMetadata() {
         this(
@@ -91,7 +92,7 @@ public class TableMetadata implements Persistable {
                 sweepStrategy,
                 expirationStrategy,
                 appendHeavyAndReadLight,
-                false);
+                LogSafety.UNSAFE);
     }
 
     public TableMetadata(NameMetadataDescription rowMetadata,
@@ -105,7 +106,7 @@ public class TableMetadata implements Persistable {
                          SweepStrategy sweepStrategy,
                          ExpirationStrategy expirationStrategy,
                          boolean appendHeavyAndReadLight,
-                         boolean nameLoggable) {
+                         LogSafety nameLogSafety) {
         if (rangeScanAllowed) {
             Preconditions.checkArgument(
                     partitionStrategy == PartitionStrategy.ORDERED,
@@ -122,7 +123,7 @@ public class TableMetadata implements Persistable {
         this.sweepStrategy = sweepStrategy;
         this.expirationStrategy = expirationStrategy;
         this.appendHeavyAndReadLight = appendHeavyAndReadLight;
-        this.nameLoggable = nameLoggable;
+        this.nameLogSafety = nameLogSafety;
     }
 
     public NameMetadataDescription getRowMetadata() {
@@ -173,8 +174,8 @@ public class TableMetadata implements Persistable {
         return appendHeavyAndReadLight;
     }
 
-    public boolean isNameLoggable() {
-        return nameLoggable;
+    public LogSafety getNameLogSafety() {
+        return nameLogSafety;
     }
 
     @Override
@@ -209,7 +210,7 @@ public class TableMetadata implements Persistable {
         builder.setSweepStrategy(sweepStrategy);
         // expiration strategy doesn't need to be persisted.
         builder.setAppendHeavyAndReadLight(appendHeavyAndReadLight);
-        builder.setNameLoggable(nameLoggable);
+        builder.setNameLogSafety(nameLogSafety);
         return builder;
     }
 
@@ -242,9 +243,9 @@ public class TableMetadata implements Persistable {
         if (message.hasAppendHeavyAndReadLight()) {
             appendHeavyAndReadLight = message.getAppendHeavyAndReadLight();
         }
-        boolean nameLoggable = false;
-        if (message.hasNameLoggable()) {
-            nameLoggable = message.getNameLoggable();
+        LogSafety nameLogSafety = LogSafety.UNSAFE;
+        if (message.hasNameLogSafety()) {
+            nameLogSafety = message.getNameLogSafety();
         }
 
         return new TableMetadata(
@@ -259,7 +260,7 @@ public class TableMetadata implements Persistable {
                 sweepStrategy,
                 ExpirationStrategy.NEVER,
                 appendHeavyAndReadLight,
-                nameLoggable);
+                nameLogSafety);
     }
 
     @Override
@@ -275,7 +276,7 @@ public class TableMetadata implements Persistable {
                 + ", negativeLookups = " + negativeLookups
                 + ", sweepStrategy = " + sweepStrategy
                 + ", appendHeavyAndReadLight = " + appendHeavyAndReadLight
-                + ", nameLoggable = " + nameLoggable
+                + ", nameLogSafety = " + nameLogSafety
                 + "]";
     }
 
@@ -294,7 +295,7 @@ public class TableMetadata implements Persistable {
         result = prime * result + (negativeLookups? 0 : 1);
         result = prime * result + (sweepStrategy.hashCode());
         result = prime * result + (appendHeavyAndReadLight? 0 : 1);
-        result = prime * result + (nameLoggable? 0 : 1);
+        result = prime * result + nameLogSafety.hashCode(); // Nonnull, because it has a default value
         return result;
     }
 
@@ -351,7 +352,7 @@ public class TableMetadata implements Persistable {
         if (appendHeavyAndReadLight != other.appendHeavyAndReadLight) {
             return false;
         }
-        if (nameLoggable != other.nameLoggable) {
+        if (nameLogSafety != other.nameLogSafety) {
             return false;
         }
         return true;

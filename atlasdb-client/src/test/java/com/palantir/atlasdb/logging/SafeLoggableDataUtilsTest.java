@@ -23,6 +23,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -48,11 +49,11 @@ public class SafeLoggableDataUtilsTest {
                             TableMetadataPersistence.ValueByteOrder.ASCENDING,
                             new UniformRowNamePartitioner(ValueType.VAR_LONG),
                             null,
-                            true)),
+                            LogSafety.SAFE)),
             false);
     private static final ColumnMetadataDescription COLUMN_METADATA_DESCRIPTION =
             new ColumnMetadataDescription(ImmutableList.of(new NamedColumnDescription("bar", COLUMN_LONG_NAME,
-                    ColumnValueDescription.forType(ValueType.VAR_LONG), true)));
+                    ColumnValueDescription.forType(ValueType.VAR_LONG), LogSafety.SAFE)));
 
     private static final TableMetadata TABLE_METADATA_1 = new TableMetadata(
             NameMetadataDescription.create(
@@ -136,6 +137,6 @@ public class SafeLoggableDataUtilsTest {
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
                 TableMetadataPersistence.ExpirationStrategy.NEVER,
                 false,
-                true);
+                LogSafety.SAFE);
     }
 }

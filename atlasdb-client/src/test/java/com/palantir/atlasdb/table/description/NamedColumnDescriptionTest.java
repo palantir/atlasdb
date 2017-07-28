@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
 
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 
 public class NamedColumnDescriptionTest {
     private static final String SHORT_NAME = "shortName";
@@ -32,47 +33,47 @@ public class NamedColumnDescriptionTest {
             new NamedColumnDescription(SHORT_NAME, LONG_NAME, COLUMN_VALUE_DESCRIPTION);
 
     private static final NamedColumnDescription NAME_LOGGABLE_DESCRIPTION =
-            new NamedColumnDescription(SHORT_NAME, LONG_NAME, COLUMN_VALUE_DESCRIPTION, true);
+            new NamedColumnDescription(SHORT_NAME, LONG_NAME, COLUMN_VALUE_DESCRIPTION, LogSafety.SAFE);
     private static final NamedColumnDescription NAME_NOT_LOGGABLE_DESCRIPTION =
-            new NamedColumnDescription(SHORT_NAME, LONG_NAME, COLUMN_VALUE_DESCRIPTION, false);
+            new NamedColumnDescription(SHORT_NAME, LONG_NAME, COLUMN_VALUE_DESCRIPTION, LogSafety.UNSAFE);
 
     @Test
     public void nameIsNotLoggableByDefault() {
-        assertThat(LOGGABILITY_UNSPECIFIED_DESCRIPTION.isNameLoggable()).isFalse();
+        assertThat(LOGGABILITY_UNSPECIFIED_DESCRIPTION.getLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test
     public void nameCanBeSpecifiedToBeLoggable() {
-        assertThat(NAME_LOGGABLE_DESCRIPTION.isNameLoggable()).isTrue();
+        assertThat(NAME_LOGGABLE_DESCRIPTION.getLogSafety()).isEqualTo(LogSafety.SAFE);
     }
 
     @Test
     public void nameCanBeSpecifiedToBeNotLoggable() {
-        assertThat(NAME_NOT_LOGGABLE_DESCRIPTION.isNameLoggable()).isFalse();
+        assertThat(NAME_NOT_LOGGABLE_DESCRIPTION.getLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeLoggabilityUnspecifiedDescription() {
-        assertCanSerializeAndDeserializeWithLoggability(LOGGABILITY_UNSPECIFIED_DESCRIPTION, false);
+        assertCanSerializeAndDeserializeWithLoggability(LOGGABILITY_UNSPECIFIED_DESCRIPTION, LogSafety.UNSAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeKeepingLoggability() {
-        assertCanSerializeAndDeserializeWithLoggability(NAME_LOGGABLE_DESCRIPTION, true);
+        assertCanSerializeAndDeserializeWithLoggability(NAME_LOGGABLE_DESCRIPTION, LogSafety.SAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeKeepingNonLoggability() {
-        assertCanSerializeAndDeserializeWithLoggability(NAME_NOT_LOGGABLE_DESCRIPTION, false);
+        assertCanSerializeAndDeserializeWithLoggability(NAME_NOT_LOGGABLE_DESCRIPTION, LogSafety.UNSAFE);
     }
 
     private static void assertCanSerializeAndDeserializeWithLoggability(
             NamedColumnDescription componentDescription,
-            boolean loggable) {
+            LogSafety logSafety) {
         TableMetadataPersistence.NamedColumnDescription.Builder builder =
                 componentDescription.persistToProto();
         assertThat(NamedColumnDescription.hydrateFromProto(builder.build()))
                 .isEqualTo(componentDescription)
-                .matches(description -> description.isNameLoggable() == loggable);
+                .matches(description -> description.logSafety == logSafety);
     }
 }

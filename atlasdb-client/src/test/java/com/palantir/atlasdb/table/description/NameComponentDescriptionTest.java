@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
 
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 
 public class NameComponentDescriptionTest {
     private static final String COMPONENT_NAME = "rowComponent";
@@ -40,77 +41,77 @@ public class NameComponentDescriptionTest {
                     null);
 
     private static final NameComponentDescription NAME_LOGGABLE_DESCRIPTION =
-            createWithSpecifiedLoggability(true);
+            createWithSpecifiedLogSafety(LogSafety.SAFE);
     private static final NameComponentDescription NAME_NOT_LOGGABLE_DESCRIPTION =
-            createWithSpecifiedLoggability(false);
+            createWithSpecifiedLogSafety(LogSafety.UNSAFE);
 
     @Test
     public void nameIsNotLoggableInDefaultDescription() {
-        assertThat(DEFAULT_UNNAMED_DESCRIPTION.isNameLoggable()).isFalse();
+        assertThat(DEFAULT_UNNAMED_DESCRIPTION.getLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test
     public void nameIsNotLoggableIfNotSpecified() {
-        assertThat(LOGGABILITY_UNSPECIFIED_DESCRIPTION.isNameLoggable()).isFalse();
+        assertThat(LOGGABILITY_UNSPECIFIED_DESCRIPTION.getLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test
     public void nameCanBeSpecifiedToBeLoggable() {
-        assertThat(NAME_LOGGABLE_DESCRIPTION.isNameLoggable()).isTrue();
+        assertThat(NAME_LOGGABLE_DESCRIPTION.getLogSafety()).isEqualTo(LogSafety.SAFE);
     }
 
     @Test
     public void nameCanBeSpecifiedToBeNotLoggable() {
-        assertThat(NAME_NOT_LOGGABLE_DESCRIPTION.isNameLoggable()).isFalse();
+        assertThat(NAME_NOT_LOGGABLE_DESCRIPTION.getLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeDefaultDescription() {
-        assertCanSerializeAndDeserializeWithLoggability(DEFAULT_UNNAMED_DESCRIPTION, false);
+        assertCanSerializeAndDeserializeWithSafety(DEFAULT_UNNAMED_DESCRIPTION, LogSafety.UNSAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeLoggabilityUnspecifiedDescription() {
-        assertCanSerializeAndDeserializeWithLoggability(LOGGABILITY_UNSPECIFIED_DESCRIPTION, false);
+        assertCanSerializeAndDeserializeWithSafety(LOGGABILITY_UNSPECIFIED_DESCRIPTION, LogSafety.UNSAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeKeepingLoggability() {
-        assertCanSerializeAndDeserializeWithLoggability(NAME_LOGGABLE_DESCRIPTION, true);
+        assertCanSerializeAndDeserializeWithSafety(NAME_LOGGABLE_DESCRIPTION, LogSafety.SAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeKeepingNonLoggability() {
-        assertCanSerializeAndDeserializeWithLoggability(NAME_NOT_LOGGABLE_DESCRIPTION, false);
+        assertCanSerializeAndDeserializeWithSafety(NAME_NOT_LOGGABLE_DESCRIPTION, LogSafety.UNSAFE);
     }
 
     @Test
     public void withPartitionersPreservesLoggabilityOfName() {
-        assertThat(NAME_LOGGABLE_DESCRIPTION.withPartitioners().isNameLoggable()).isTrue();
+        assertThat(NAME_LOGGABLE_DESCRIPTION.withPartitioners().getLogSafety()).isEqualTo(LogSafety.SAFE);
     }
 
     @Test
     public void withPartitionersPreservesNonLoggabilityOfName() {
-        assertThat(LOGGABILITY_UNSPECIFIED_DESCRIPTION.withPartitioners().isNameLoggable()).isFalse();
+        assertThat(LOGGABILITY_UNSPECIFIED_DESCRIPTION.withPartitioners().getLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
-    private static void assertCanSerializeAndDeserializeWithLoggability(
+    private static void assertCanSerializeAndDeserializeWithSafety(
             NameComponentDescription componentDescription,
-            boolean loggable) {
+            LogSafety logSafety) {
         TableMetadataPersistence.NameComponentDescription.Builder builder =
                 componentDescription.persistToProto();
         assertThat(NameComponentDescription.hydrateFromProto(builder.build()))
                 .isEqualTo(componentDescription)
-                .matches(description -> description.isNameLoggable() == loggable);
+                .matches(description -> description.getLogSafety() == logSafety);
     }
 
-    private static NameComponentDescription createWithSpecifiedLoggability(boolean loggable) {
+    private static NameComponentDescription createWithSpecifiedLogSafety(LogSafety logSafety) {
         return new NameComponentDescription(
                 COMPONENT_NAME,
                 VALUE_TYPE,
                 VALUE_BYTE_ORDER,
                 UNIFORM_ROW_NAME_PARTITIONER,
                 null,
-                loggable);
+                logSafety);
     }
 }

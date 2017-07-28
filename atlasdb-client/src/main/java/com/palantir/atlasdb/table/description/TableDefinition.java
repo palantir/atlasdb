@@ -25,6 +25,7 @@ import com.google.common.collect.Sets;
 import com.google.protobuf.GeneratedMessage;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.persist.api.Persister;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.constraints.ConstraintMetadata;
@@ -115,7 +116,7 @@ public class TableDefinition extends AbstractDefinition {
                         shortName,
                         columnName,
                         getColumnValueDescription(protoOrPersistable, compression),
-                        columnNameLoggable.isSafeForLogging()));
+                        columnNameLoggable));
     }
 
     public void column(String columnName, String shortName, ValueType valueType) {
@@ -130,7 +131,7 @@ public class TableDefinition extends AbstractDefinition {
                         shortName,
                         columnName,
                         ColumnValueDescription.forType(valueType),
-                        columnNameLoggable.isSafeForLogging()));
+                        columnNameLoggable));
     }
 
     private void checkStateForNamedColumnDefinition() {
@@ -191,7 +192,7 @@ public class TableDefinition extends AbstractDefinition {
                         componentName,
                         valueType,
                         valueByteOrder,
-                        rowNameLoggable.isSafeForLogging()));
+                        rowNameLoggable));
     }
 
     /**
@@ -362,7 +363,7 @@ public class TableDefinition extends AbstractDefinition {
                 sweepStrategy,
                 expirationStrategy,
                 appendHeavyAndReadLight,
-                tableNameSafety.isSafeForLogging());
+                tableNameSafety);
     }
 
     private ColumnMetadataDescription getColumnMetadataDescription() {

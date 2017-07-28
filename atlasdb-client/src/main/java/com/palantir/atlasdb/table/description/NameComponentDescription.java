@@ -24,6 +24,7 @@ import org.apache.commons.lang.Validate;
 
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 
@@ -34,7 +35,7 @@ public class NameComponentDescription {
     final ValueByteOrder order;
     @Nullable final UniformRowNamePartitioner uniformPartitioner;
     @Nullable final ExplicitRowNamePartitioner explicitPartitioner;
-    final boolean nameLoggable;
+    final LogSafety logSafety;
 
     public NameComponentDescription() {
         this("name", ValueType.BLOB);
@@ -51,20 +52,20 @@ public class NameComponentDescription {
         this.order = reverseOrder ? ValueByteOrder.DESCENDING : ValueByteOrder.ASCENDING;
         this.uniformPartitioner = new UniformRowNamePartitioner(type);
         this.explicitPartitioner = null;
-        this.nameLoggable = false;
+        this.logSafety = LogSafety.UNSAFE;
     }
 
     public NameComponentDescription(String componentName,
             ValueType type,
             ValueByteOrder order) {
-        this(componentName, type, order, false);
+        this(componentName, type, order, LogSafety.UNSAFE);
     }
 
     public NameComponentDescription(String componentName,
             ValueType type,
             ValueByteOrder order,
-            boolean nameLoggable) {
-        this(componentName, type, order, new UniformRowNamePartitioner(type), null, nameLoggable);
+            LogSafety logSafety) {
+        this(componentName, type, order, new UniformRowNamePartitioner(type), null, logSafety);
     }
 
     public NameComponentDescription(String componentName,
@@ -72,7 +73,7 @@ public class NameComponentDescription {
                                     ValueByteOrder order,
                                     UniformRowNamePartitioner uniform,
                                     ExplicitRowNamePartitioner explicit) {
-        this(componentName, type, order, uniform, explicit, false);
+        this(componentName, type, order, uniform, explicit, LogSafety.UNSAFE);
     }
 
     public NameComponentDescription(String componentName,
@@ -80,7 +81,7 @@ public class NameComponentDescription {
                                     ValueByteOrder order,
                                     UniformRowNamePartitioner uniform,
                                     ExplicitRowNamePartitioner explicit,
-                                    boolean nameLoggable) {
+                                    LogSafety logSafety) {
         Validate.notNull(componentName);
         Validate.notNull(type);
         Validate.notNull(order);
@@ -89,7 +90,7 @@ public class NameComponentDescription {
         this.order = order;
         this.uniformPartitioner = uniform;
         this.explicitPartitioner = explicit;
-        this.nameLoggable = nameLoggable;
+        this.logSafety = logSafety;
     }
 
     public String getComponentName() {
@@ -108,8 +109,8 @@ public class NameComponentDescription {
         return order;
     }
 
-    public boolean isNameLoggable() {
-        return nameLoggable;
+    public LogSafety getLogSafety() {
+        return logSafety;
     }
 
     public TableMetadataPersistence.NameComponentDescription.Builder persistToProto() {
@@ -121,22 +122,27 @@ public class NameComponentDescription {
         if (explicitPartitioner != null) {
             builder.addAllExplicitPartitions(explicitPartitioner.values);
         }
-        builder.setNameLoggable(nameLoggable);
+        builder.setLogSafety(logSafety);
         return builder;
     }
 
     public static NameComponentDescription hydrateFromProto(TableMetadataPersistence.NameComponentDescription message) {
         ValueType type = ValueType.hydrateFromProto(message.getType());
-        UniformRowNamePartitioner u = new UniformRowNamePartitioner(type);
+        UniformRowNamePartitioner uniformPartitioner = new UniformRowNamePartitioner(type);
         if (message.hasHasUniformPartitioner()) {
-            u = message.getHasUniformPartitioner() ? new UniformRowNamePartitioner(type) : null;
+            uniformPartitioner = message.getHasUniformPartitioner() ? new UniformRowNamePartitioner(type) : null;
         }
-        ExplicitRowNamePartitioner e = null;
+        ExplicitRowNamePartitioner explicitPartitioner = null;
         if (message.getExplicitPartitionsCount() > 0) {
-            e = new ExplicitRowNamePartitioner(type, message.getExplicitPartitionsList());
+            explicitPartitioner = new ExplicitRowNamePartitioner(type, message.getExplicitPartitionsList());
         }
-        boolean nameLoggable = message.hasNameLoggable() && message.getNameLoggable();
-        return new NameComponentDescription(message.getComponentName(), type, message.getOrder(), u, e, nameLoggable);
+        return new NameComponentDescription(
+                message.getComponentName(),
+                type,
+                message.getOrder(),
+                uniformPartitioner,
+                explicitPartitioner,
+                message.getLogSafety());
     }
 
     /**
@@ -171,13 +177,13 @@ public class NameComponentDescription {
         if (!explicit.isEmpty()) {
             e = new ExplicitRowNamePartitioner(type, explicit);
         }
-        return new NameComponentDescription(componentName, type, order, u, e, nameLoggable);
+        return new NameComponentDescription(componentName, type, order, u, e, logSafety);
     }
 
     @Override
     public String toString() {
         return "NameComponentDescription [componentName=" + componentName
-                + ", order=" + order + ", type=" + type + "]";
+                + ", order=" + order + ", type=" + type + ", logSafety=" + logSafety + "]";
     }
 
     @Override
@@ -188,6 +194,7 @@ public class NameComponentDescription {
         result = prime * result + (componentName == null ? 0 : componentName.hashCode());
         result = prime * result + (type == null ? 0 : type.hashCode());
         result = prime * result + (order == null ? 0 : order.hashCode());
+        result = prime * result + logSafety.hashCode();
         return result;
     }
 
@@ -219,6 +226,9 @@ public class NameComponentDescription {
                 return false;
             }
         } else if (!order.equals(other.getOrder())) {
+            return false;
+        }
+        if (logSafety != other.logSafety) {
             return false;
         }
         return true;

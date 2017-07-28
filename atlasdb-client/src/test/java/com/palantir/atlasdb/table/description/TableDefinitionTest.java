@@ -25,6 +25,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 
 public class TableDefinitionTest {
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE,
@@ -43,19 +44,19 @@ public class TableDefinitionTest {
 
     @Test
     public void tableNameNotLoggableByDefault() {
-        assertThat(BASE_DEFINITION.toTableMetadata().isNameLoggable()).isFalse();
+        assertThat(BASE_DEFINITION.toTableMetadata().getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test
     public void canSpecifyTableNameAsLoggable() {
         TableDefinition definition = new TableDefinition() {{
-            tableNameIsSafeLoggable();
+            tableNameLogSafety(LogSafety.SAFE);
             javaTableName(TABLE_REF.getTablename());
             rowName();
             rowComponent(ROW_NAME, ValueType.STRING);
             noColumns();
         }};
-        assertThat(definition.toTableMetadata().isNameLoggable()).isTrue();
+        assertThat(definition.toTableMetadata().getNameLogSafety()).isEqualTo(LogSafety.SAFE);
     }
 
     @Test
@@ -63,7 +64,7 @@ public class TableDefinitionTest {
         assertThatThrownBy(() -> new TableDefinition() {{
             javaTableName(TABLE_REF.getTablename());
             rowName();
-            tableNameIsSafeLoggable();
+            tableNameLogSafety(LogSafety.SAFE);
             rowComponent(ROW_NAME, ValueType.STRING);
             columns();
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
@@ -77,15 +78,15 @@ public class TableDefinitionTest {
             rowName();
             rowComponent(ROW_NAME, ValueType.STRING);
             columns();
-            tableNameIsSafeLoggable();
+            tableNameLogSafety(LogSafety.SAFE);
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }}).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void componentsAreNotSafeByDefault() {
-        assertRowComponentSafety(BASE_DEFINITION, false);
-        assertNamedColumnSafety(BASE_DEFINITION, false);
+        assertRowComponentSafety(BASE_DEFINITION, LogSafety.UNSAFE);
+        assertNamedColumnSafety(BASE_DEFINITION, LogSafety.UNSAFE);
     }
 
     @Test
@@ -99,8 +100,8 @@ public class TableDefinitionTest {
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }};
 
-        assertRowComponentSafety(definition, true);
-        assertNamedColumnSafety(definition, true);
+        assertRowComponentSafety(definition, LogSafety.SAFE);
+        assertNamedColumnSafety(definition, LogSafety.SAFE);
     }
 
     @Test
@@ -138,8 +139,8 @@ public class TableDefinitionTest {
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }};
 
-        assertRowComponentSafety(definition, true);
-        assertNamedColumnSafety(definition, false);
+        assertRowComponentSafety(definition, LogSafety.SAFE);
+        assertNamedColumnSafety(definition, LogSafety.UNSAFE);
     }
 
     @Test
@@ -154,8 +155,8 @@ public class TableDefinitionTest {
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }};
 
-        assertRowComponentSafety(definition, false);
-        assertNamedColumnSafety(definition, true);
+        assertRowComponentSafety(definition, LogSafety.UNSAFE);
+        assertNamedColumnSafety(definition, LogSafety.SAFE);
     }
 
     /**
@@ -163,10 +164,10 @@ public class TableDefinitionTest {
      * expectedSafety. Throws if the actual safety doesn't match the expected safety, or if it is not the case that
      * there is exactly one row component.
      */
-    private static void assertRowComponentSafety(TableDefinition tableDefinition, boolean expectedSafety) {
+    private static void assertRowComponentSafety(TableDefinition tableDefinition, LogSafety expectedSafety) {
         TableMetadata metadata = tableDefinition.toTableMetadata();
         NameComponentDescription nameComponent = Iterables.getOnlyElement(metadata.getRowMetadata().getRowParts());
-        assertThat(nameComponent.isNameLoggable()).isEqualTo(expectedSafety);
+        assertThat(nameComponent.getLogSafety()).isEqualTo(expectedSafety);
     }
 
     /**
@@ -174,9 +175,9 @@ public class TableDefinitionTest {
      * expectedSafety. Throws if the actual safety doesn't match the expected safety, or if it is not the case that
      * there is exactly one named column.
      */
-    private static void assertNamedColumnSafety(TableDefinition tableDefinition, boolean expectedSafety) {
+    private static void assertNamedColumnSafety(TableDefinition tableDefinition, LogSafety expectedSafety) {
         TableMetadata metadata = tableDefinition.toTableMetadata();
         NamedColumnDescription namedColumn = Iterables.getOnlyElement(metadata.getColumns().getNamedColumns());
-        assertThat(namedColumn.isNameLoggable()).isEqualTo(expectedSafety);
+        assertThat(namedColumn.getLogSafety()).isEqualTo(expectedSafety);
     }
 }
