@@ -87,8 +87,11 @@ public class TableDefinition extends AbstractDefinition {
 
     /**
      * If specified, makes both the table name and ALL named components safe by default.
-     * The table name may still be marked as unsafe by setting tableNameLogSafety(), and individual row components
-     * or named columns may still be marked as unsafe by explicitly creating them as unsafe.
+     * Individual row components or named columns may still be marked as unsafe by explicitly creating them as unsafe.
+     *
+     * This method has UNDEFINED BEHAVIOUR if used with tableNameLogSafety(LogSafety.UNSAFE) on the same table.
+     * If you wish to have a table with an unsafe name but safe components, please use namedComponentsSafeByDefault()
+     * instead.
      */
     public void allSafeForLoggingByDefault() {
         tableNameLogSafety(LogSafety.SAFE);

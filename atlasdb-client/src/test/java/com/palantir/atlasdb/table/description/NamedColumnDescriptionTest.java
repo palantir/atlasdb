@@ -54,20 +54,20 @@ public class NamedColumnDescriptionTest {
 
     @Test
     public void canSerializeAndDeserializeLoggabilityUnspecifiedDescription() {
-        assertCanSerializeAndDeserializeWithLoggability(LOGGABILITY_UNSPECIFIED_DESCRIPTION, LogSafety.UNSAFE);
+        assertCanSerializeAndDeserializeWithSafety(LOGGABILITY_UNSPECIFIED_DESCRIPTION, LogSafety.UNSAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeKeepingLoggability() {
-        assertCanSerializeAndDeserializeWithLoggability(NAME_LOGGABLE_DESCRIPTION, LogSafety.SAFE);
+        assertCanSerializeAndDeserializeWithSafety(NAME_LOGGABLE_DESCRIPTION, LogSafety.SAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeKeepingNonLoggability() {
-        assertCanSerializeAndDeserializeWithLoggability(NAME_NOT_LOGGABLE_DESCRIPTION, LogSafety.UNSAFE);
+        assertCanSerializeAndDeserializeWithSafety(NAME_NOT_LOGGABLE_DESCRIPTION, LogSafety.UNSAFE);
     }
 
-    private static void assertCanSerializeAndDeserializeWithLoggability(
+    private static void assertCanSerializeAndDeserializeWithSafety(
             NamedColumnDescription componentDescription,
             LogSafety logSafety) {
         TableMetadataPersistence.NamedColumnDescription.Builder builder =
