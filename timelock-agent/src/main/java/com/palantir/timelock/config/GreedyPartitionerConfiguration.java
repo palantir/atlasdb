@@ -18,10 +18,18 @@ package com.palantir.timelock.config;
 
 import org.immutables.value.Value;
 
+import com.palantir.timelock.partition.GreedyTimeLockPartitioner;
+import com.palantir.timelock.partition.TimeLockPartitioner;
+
 @Value.Immutable
 public abstract class GreedyPartitionerConfiguration implements PartitionerConfiguration {
     @Override
     public String type() {
         return "greedy";
+    }
+
+    @Override
+    public TimeLockPartitioner createPartitioner() {
+        return new GreedyTimeLockPartitioner(miniclusterSize());
     }
 }

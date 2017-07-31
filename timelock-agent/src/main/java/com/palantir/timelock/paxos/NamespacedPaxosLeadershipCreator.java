@@ -23,6 +23,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
@@ -63,15 +65,15 @@ public class NamespacedPaxosLeadershipCreator {
         registrar.accept(locator);
     }
 
-    public synchronized void registerLeaderElectionServiceForClient(String client) {
+    public synchronized void registerLeaderElectionServiceForClient(String client, Set<String> hosts) {
         if (locator.hasClient(client)) {
             return;
         }
-        Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
+        LeaderConfig leaderConfig = getLeaderConfig(client, hosts);
 
-        LeaderConfig leaderConfig = getLeaderConfig(client);
-
-        Set<String> paxosSubresourceUris = getNamespacedUris(remoteServers,
+        Set<String> remoteHosts = Sets.difference(hosts,
+                ImmutableSet.of(PaxosRemotingUtils.addProtocol(install, install.cluster().localServer())));
+        Set<String> paxosSubresourceUris = getNamespacedUris(remoteHosts,
                 PaxosTimeLockConstants.INTERNAL_NAMESPACE,
                 PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
                 client,
@@ -80,11 +82,8 @@ public class NamespacedPaxosLeadershipCreator {
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createInstrumentedLocalServices(
                 leaderConfig,
                 ImmutableRemotePaxosServerSpec.builder()
-                        .remoteLeaderUris(
-                                getNamespacedUris(
-                                        remoteServers,
-                                        client)
-                        ).remoteAcceptorUris(paxosSubresourceUris)
+                        .remoteLeaderUris(getNamespacedUris(remoteHosts, client))
+                        .remoteAcceptorUris(paxosSubresourceUris)
                         .remoteLearnerUris(paxosSubresourceUris)
                         .build(),
                 "leader-election-service");
@@ -107,13 +106,13 @@ public class NamespacedPaxosLeadershipCreator {
                 namespacedLeaderElectionService);
     }
 
-    private LeaderConfig getLeaderConfig(String client) {
+    private LeaderConfig getLeaderConfig(String client, Set<String> hosts) {
         // TODO (jkong): Live Reload Paxos Ping Rates
         PaxosRuntimeConfiguration paxosRuntimeConfiguration = Observables.blockingMostRecent(runtime).get().orElse(
                 ImmutablePaxosRuntimeConfiguration.builder().build());
         return ImmutableLeaderConfig.builder()
                 .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
-                .leaders(PaxosRemotingUtils.addProtocols(install, PaxosRemotingUtils.getClusterAddresses(install)))
+                .leaders(hosts)
                 .localServer(PaxosRemotingUtils.addProtocol(install,
                         PaxosRemotingUtils.getClusterConfiguration(install).localServer()))
                 .acceptorLogDir(Paths.get(install.algorithm().dataDirectory().toString(),
@@ -125,7 +124,7 @@ public class NamespacedPaxosLeadershipCreator {
                         PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE,
                         PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toFile())
                 .pingRateMs(paxosRuntimeConfiguration.pingRateMs())
-                .quorumSize(PaxosRemotingUtils.getQuorumSize(PaxosRemotingUtils.getClusterAddresses(install)))
+                .quorumSize(PaxosRemotingUtils.getQuorumSize(hosts))
                 .leaderPingResponseWaitMs(paxosRuntimeConfiguration.pingRateMs())
                 .randomWaitBeforeProposingLeadershipMs(paxosRuntimeConfiguration.pingRateMs())
                 .build();

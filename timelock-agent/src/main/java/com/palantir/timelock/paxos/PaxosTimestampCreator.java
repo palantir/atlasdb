@@ -67,7 +67,8 @@ public class PaxosTimestampCreator {
 
     public Supplier<ManagedTimestampService> createPaxosBackedTimestampService(
             String client,
-            LeadershipResource leadershipResource) {
+            LeadershipResource leadershipResource,
+            Set<String> remoteHosts) {
         paxosResource.addInstrumentedClient(client, leadershipResource);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
@@ -75,7 +76,7 @@ public class PaxosTimestampCreator {
                 .setDaemon(true)
                 .build());
 
-        Set<String> namespacedUris = PaxosTimeLockUriUtils.getClientPaxosUris(remoteServers, client);
+        Set<String> namespacedUris = PaxosTimeLockUriUtils.getClientPaxosUris(remoteHosts, client);
         List<PaxosAcceptor> acceptors = Leaders.createProxyAndLocalList(
                 paxosResource.getPaxosAcceptor(client),
                 namespacedUris,

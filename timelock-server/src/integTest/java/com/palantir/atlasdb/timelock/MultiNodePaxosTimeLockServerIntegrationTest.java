@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
@@ -197,6 +198,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    @Ignore // ignoring for now as these are super noisy
     public void clockSkewMetricsSmokeTest() {
         Uninterruptibles.sleepUninterruptibly(3, TimeUnit.SECONDS);
 
