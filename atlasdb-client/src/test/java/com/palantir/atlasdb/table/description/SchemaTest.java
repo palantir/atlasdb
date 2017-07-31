@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -78,13 +79,24 @@ public class SchemaTest {
 
     @Test
     public void testIgnoreTableNameLengthFlag() throws IOException {
-        Schema schema = new Schema(
-                "Table",
-                TEST_PACKAGE,
-                Namespace.create("VeryLongNamespaceName"));
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         schema.ignoreTableNameLengthChecks();
-        schema.addTableDefinition("VeryLongTableNameUsedForTesting", getSimpleTableDefinition(TABLE_REF));
-        schema.renderTables(testFolder.getRoot());
+        String longTableName = String.join("", Collections.nCopies(100, "x"));
+        schema.addTableDefinition(longTableName, getSimpleTableDefinition(TABLE_REF));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testLongTableNameLengthFailsCassandra() throws IOException {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+        String longTableName = String.join("", Collections.nCopies(49, "x"));
+        schema.addTableDefinition(longTableName, getSimpleTableDefinition(TABLE_REF));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testLongTableNameLengthFailsPostgres() throws IOException {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+        String longTableName = String.join("", Collections.nCopies(65, "x"));
+        schema.addTableDefinition(longTableName, getSimpleTableDefinition(TABLE_REF));
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {

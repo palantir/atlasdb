@@ -115,12 +115,12 @@ public class Schema {
         if (!ignoreTableNameLengthChecks) {
             int internalTableNameLength = Schemas.getInternalTableNameLength(tableName, namespace);
             Preconditions.checkArgument(
-                    internalTableNameLength < POSTGRES_TABLE_NAME_CHAR_LIMIT,
+                    internalTableNameLength <= POSTGRES_TABLE_NAME_CHAR_LIMIT,
                     "Table name %s is too long, exceeds Cassandra and Postgres limits. " +
                             "If running using a different KVS, set the ignoreTableNameLength flag.",
                     tableName);
             Preconditions.checkArgument(
-                    internalTableNameLength < CASSANDRA_TABLE_NAME_CHAR_LIMIT,
+                    internalTableNameLength <= CASSANDRA_TABLE_NAME_CHAR_LIMIT,
                     "Table name %s is too long, exceeds Cassandra limit. " +
                             "If running using a different KVS, set the ignoreTableNameLength flag.",
                     tableName);
