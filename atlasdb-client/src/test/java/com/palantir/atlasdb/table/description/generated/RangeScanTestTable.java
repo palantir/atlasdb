@@ -711,5 +711,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ef8yxFRHZOgjdg0lSSe1EQ==";
+    static String __CLASS_HASH = "C1hK8v63iXd9NQCibpQkWQ==";
 }
