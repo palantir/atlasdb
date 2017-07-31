@@ -42,9 +42,6 @@ public final class TimeLockConfigMigrator {
                                 .build())
                         .localServer(config.cluster().localServer())
                         .build())
-                .partitionerConfiguration(ImmutableNopPartitionerConfiguration.builder()
-                        .miniclusterSize(config.cluster().servers().size() == 1 ? 1 : 3)
-                        .build())
                 .asyncLock(config.asyncLockConfiguration())
                 .build();
 
@@ -53,6 +50,9 @@ public final class TimeLockConfigMigrator {
                         .leaderPingResponseWaitMs(paxos.leaderPingResponseWaitMs())
                         .maximumWaitBeforeProposalMs(paxos.maximumWaitBeforeProposalMs())
                         .pingRateMs(paxos.pingRateMs())
+                        .build())
+                .partitioner(ImmutableNopPartitionerConfiguration.builder()
+                        .miniclusterSize(config.cluster().servers().size() == 1 ? 1 : 3)
                         .build())
                 .clients(config.clients())
                 .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())

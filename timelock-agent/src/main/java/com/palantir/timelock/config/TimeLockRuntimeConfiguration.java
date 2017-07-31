@@ -38,6 +38,14 @@ public abstract class TimeLockRuntimeConfiguration {
         return 10000;
     }
 
+    @JsonProperty("partitioner")
+    @Value.Default
+    public PartitionerConfiguration partitioner() {
+        return ImmutableGreedyPartitionerConfiguration.builder()
+                .miniclusterSize(3)
+                .build();
+    }
+
     @Value.Check
     public void check() {
         Preconditions.checkState(slowLockLogTriggerMillis() >= 0,

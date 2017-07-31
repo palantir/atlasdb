@@ -45,6 +45,6 @@ public interface PaxosInstallConfiguration {
             Observable<TimeLockRuntimeConfiguration> runtime,
             TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
-        return new PaxosAgent(install, runtime, deprecated, registrar);
+        return PaxosAgent.create(install, runtime, deprecated, registrar);
     }
 }

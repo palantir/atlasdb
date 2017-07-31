@@ -55,32 +55,11 @@ public class PaxosAgent extends TimeLockAgent {
         this(install, runtime, ImmutableTimeLockDeprecatedConfiguration.builder().build(), registrar);
     }
 
-    public PaxosAgent(TimeLockInstallConfiguration install,
+    private PaxosAgent(TimeLockInstallConfiguration install,
             Observable<TimeLockRuntimeConfiguration> runtime,
             TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
-        super(install,
-                runtime.map(
-                runtimeConfig -> ImmutableTimeLockRuntimeConfiguration.builder()
-                        .from(runtimeConfig)
-                        .clients(install.partitionerConfiguration().createPartitioner().clientsForHost(
-                                runtimeConfig.clients(),
-                                ImmutableSet.copyOf(install.cluster().cluster().uris()),
-                                0,
-                                install.cluster().localServer()))
-                        .build()),
-                deprecated,
-                registrar);
-
-        runtime = runtime.map(
-                runtimeConfig -> ImmutableTimeLockRuntimeConfiguration.builder()
-                .from(runtimeConfig)
-                .clients(install.partitionerConfiguration().createPartitioner().clientsForHost(
-                        runtimeConfig.clients(),
-                        ImmutableSet.copyOf(install.cluster().cluster().uris()),
-                        0,
-                        install.cluster().localServer()))
-                .build());
+        super(install, runtime, deprecated, registrar);
 
         this.paxosInstall = install.algorithm();
 
@@ -95,6 +74,21 @@ public class PaxosAgent extends TimeLockAgent {
         this.timelockCreator = install.asyncLock().useAsyncLockService()
                 ? new AsyncTimeLockServicesCreator(namespacedPaxosLeadershipCreator, install.asyncLock())
                 : new LegacyTimeLockServicesCreator(namespacedPaxosLeadershipCreator);
+    }
+
+    public static PaxosAgent create(TimeLockInstallConfiguration install,
+            Observable<TimeLockRuntimeConfiguration> runtime,
+            TimeLockDeprecatedConfiguration deprecated,
+            Consumer<Object> registrar) {
+        runtime = runtime.map(runtimeConfig -> ImmutableTimeLockRuntimeConfiguration.builder()
+                .from(runtimeConfig)
+                .clients(runtimeConfig.partitioner().createPartitioner().clientsForHost(
+                        runtimeConfig.clients(),
+                        ImmutableSet.copyOf(install.cluster().cluster().uris()),
+                        0L,
+                        install.cluster().localServer()))
+                .build());
+        return new PaxosAgent(install, runtime, deprecated, registrar);
     }
 
     @Override
