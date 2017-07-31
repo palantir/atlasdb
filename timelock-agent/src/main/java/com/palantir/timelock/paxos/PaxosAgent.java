@@ -19,7 +19,7 @@ package com.palantir.timelock.paxos;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -83,8 +83,8 @@ public class PaxosAgent extends TimeLockAgent {
         runtime = runtime.map(runtimeConfig -> ImmutableTimeLockRuntimeConfiguration.builder()
                 .from(runtimeConfig)
                 .clients(runtimeConfig.partitioner().createPartitioner().clientsForHost(
-                        runtimeConfig.clients(),
-                        ImmutableSet.copyOf(install.cluster().cluster().uris()),
+                        ImmutableList.copyOf(runtimeConfig.clients()),
+                        install.cluster().cluster().uris(),
                         0L,
                         install.cluster().localServer()))
                 .build());

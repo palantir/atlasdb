@@ -16,11 +16,8 @@
 
 package com.palantir.timelock.partition;
 
+import java.util.List;
 import java.util.Set;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 
 /**
  * A TimeLockPartitioner constructs mappings from sets of nodes to sets of clients.
@@ -30,10 +27,9 @@ public interface TimeLockPartitioner {
      * This function should return a mapping from hosts to multiple clients, such that for each client, the cluster
      * returned is at least the preferred mini-cluster size.
      */
-    Multimap<String, String> partition(Set<String> clients, Set<String> hosts, long seed);
+    Assignment partition(List<String> clients, List<String> hosts, long seed);
 
-    default Set<String> clientsForHost(Set<String> clients, Set<String> hosts, long seed, String host) {
-        Preconditions.checkState(hosts.contains(host), "clientsForHost() nonsensical");
-        return ImmutableSet.copyOf(partition(clients, hosts, seed).get(host));
+    default Set<String> clientsForHost(List<String> clients, List<String> hosts, long seed, String host) {
+        return partition(clients, hosts, seed).getClientsForHost(host);
     }
 }

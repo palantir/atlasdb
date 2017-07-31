@@ -16,13 +16,33 @@
 
 package com.palantir.timelock.partition;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
-public class NopTimeLockPartitioner implements TimeLockPartitioner {
+import com.google.common.collect.Lists;
+
+public class GreedyTimeLockPartitioner implements TimeLockPartitioner {
+    private final int miniclusterSize;
+
+    public GreedyTimeLockPartitioner(int miniclusterSize) {
+        this.miniclusterSize = miniclusterSize;
+    }
+
     @Override
     public Assignment partition(List<String> clients, List<String> hosts, long seed) {
+        List<String> newHosts = Lists.newArrayList(hosts);
+        Collections.shuffle(newHosts, new Random(seed));
+
+        int numHosts = hosts.size();
+
         Assignment.Builder builder = Assignment.builder();
-        clients.forEach(client -> hosts.forEach(host -> builder.addMapping(client, host)));
+        int index = 0;
+        for (String client : clients) {
+            for (int i = 0; i < miniclusterSize; i++, index++) {
+                builder.addMapping(client, hosts.get(index % numHosts));
+            }
+        }
         return builder.build();
     }
 }
