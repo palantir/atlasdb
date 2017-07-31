@@ -121,7 +121,7 @@ public final class StreamTestMaxMemStreamStore extends AbstractPersistentStreamS
         StreamTestMaxMemStreamMetadataTable metaTable = tables.getStreamTestMaxMemStreamMetadataTable(t);
         StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow row = StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow.of(id);
         StreamMetadata metadata = metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();
-        Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks: " + id);
+        Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks: %s", id);
         Builder builder = StreamMetadata.newBuilder(metadata);
         builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);
         metaTable.putMetadata(row, builder.build());
@@ -357,7 +357,7 @@ public final class StreamTestMaxMemStreamStore extends AbstractPersistentStreamS
         for (Map.Entry<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             StreamMetadata metadata = e.getValue();
             Preconditions.checkState(metadata.getStatus() == Status.STORED,
-            "Stream: " + e.getKey().getId() + " has status: " + metadata.getStatus());
+            "Stream: %s has status: %s", e.getKey().getId(), metadata.getStatus());
             metaTable.putMetadata(e.getKey(), metadata);
         }
         SetView<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow> missingRows = Sets.difference(rows, metadatas.keySet());

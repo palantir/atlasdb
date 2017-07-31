@@ -736,5 +736,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Mu6B5QoZdNdjqBkkg+bUvA==";
+    static String __CLASS_HASH = "wfMeqg8S7VOA5eMlxMSwqw==";
 }

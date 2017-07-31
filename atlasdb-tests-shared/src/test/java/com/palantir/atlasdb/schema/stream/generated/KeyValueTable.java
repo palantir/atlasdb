@@ -681,5 +681,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jD95e2JCtR+7/hh6Wo9LkA==";
+    static String __CLASS_HASH = "0U6JekDY5e0lxHGKzyr2nA==";
 }
