@@ -72,6 +72,7 @@ import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
 import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
+import com.palantir.atlasdb.sweep.ParallelBackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SpecificTableSweeper;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
@@ -347,13 +348,12 @@ public final class TransactionManagers {
                 sweepBatchConfig,
                 sweepMetrics);
 
-        BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
+        ParallelBackgroundSweeperImpl backgroundSweeper = ParallelBackgroundSweeperImpl.create(
                 () -> runtimeConfigSupplier.get().sweep().enabled(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
-                persistentLockManager,
-                specificTableSweeper);
+                specificTableSweeper,
+                2);
 
-        transactionManager.registerClosingCallback(backgroundSweeper::shutdown);
         backgroundSweeper.runInBackground();
     }
 

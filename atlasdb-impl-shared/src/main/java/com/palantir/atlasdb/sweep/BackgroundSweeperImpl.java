@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -31,110 +30,67 @@ import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.common.base.Throwables;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public final class BackgroundSweeperImpl implements BackgroundSweeper {
+public final class BackgroundSweeperImpl implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
     private final RemoteLockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
     private final Supplier<Boolean> isSweepEnabled;
-    private final Supplier<Long> sweepPauseMillis;
-    private final PersistentLockManager persistentLockManager;
     private final SpecificTableSweeper specificTableSweeper;
+    private final int numberOfConcurrentSweeps;
 
     static volatile double batchSizeMultiplier = 1.0;
-
-    private Thread daemon;
 
     @VisibleForTesting
     BackgroundSweeperImpl(
             RemoteLockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             Supplier<Boolean> isSweepEnabled,
-            Supplier<Long> sweepPauseMillis,
-            PersistentLockManager persistentLockManager,
-            SpecificTableSweeper specificTableSweeper) {
+            SpecificTableSweeper specificTableSweeper,
+            int numberOfConcurrentSweeps) {
         this.lockService = lockService;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
         this.isSweepEnabled = isSweepEnabled;
-        this.sweepPauseMillis = sweepPauseMillis;
-        this.persistentLockManager = persistentLockManager;
         this.specificTableSweeper = specificTableSweeper;
+        this.numberOfConcurrentSweeps = numberOfConcurrentSweeps;
     }
 
     public static BackgroundSweeperImpl create(
             Supplier<Boolean> isSweepEnabled,
-            Supplier<Long> sweepPauseMillis,
-            PersistentLockManager persistentLockManager,
-            SpecificTableSweeper specificTableSweeper) {
+            SpecificTableSweeper specificTableSweeper,
+            int numberOfConcurrentSweeps) {
         NextTableToSweepProvider nextTableToSweepProvider = new NextTableToSweepProviderImpl(
                 specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
         return new BackgroundSweeperImpl(
                 specificTableSweeper.getTxManager().getLockService(),
                 nextTableToSweepProvider,
                 isSweepEnabled,
-                sweepPauseMillis,
-                persistentLockManager,
-                specificTableSweeper);
-    }
-
-    @Override
-    public synchronized void runInBackground() {
-        Preconditions.checkState(daemon == null);
-        daemon = new Thread(this);
-        daemon.setDaemon(true);
-        daemon.setName("BackgroundSweeper");
-        daemon.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            log.info("Shutting down persistent lock manager");
-            try {
-                persistentLockManager.shutdown();
-                log.info("Shutdown complete!");
-            } catch (Exception e) {
-                log.warn("An exception occurred while shutting down. This means that we had the backup lock out when"
-                         + "the shutdown was triggered, but failed to release it. If this is the case, sweep or backup"
-                         + "may fail to take out the lock in future. If this happens consistently, "
-                         + "consult the following documentation on how to release the dead lock: "
-                         + "https://palantir.github.io/atlasdb/html/troubleshooting/index.html#clearing-the-backup-lock",
-                        e);
-            }
-        }));
+                specificTableSweeper,
+                numberOfConcurrentSweeps);
     }
 
     @Override
     public void run() {
         try (SweepLocks locks = createSweepLocks()) {
             // Wait a while before starting so short lived clis don't try to sweep.
-            Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
             log.info("Starting background sweeper.");
             while (true) {
-                long millisToSleep = checkConfigAndRunSweep(locks);
-                Thread.sleep(millisToSleep);
+                if (isSweepEnabled.get()) {
+                    grabLocksAndRun(locks);
+                }
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
         }
     }
 
-    // Returns milliseconds to sleep
-    @VisibleForTesting
-    long checkConfigAndRunSweep(SweepLocks locks) throws InterruptedException {
-        if (isSweepEnabled.get()) {
-            return grabLocksAndRun(locks);
-        } else {
-            log.debug("Skipping sweep because it is currently disabled.");
-        }
-        return getBackoffTimeWhenSweepHasNotRun();
-    }
-
-    private long grabLocksAndRun(SweepLocks locks) throws InterruptedException {
+    private void grabLocksAndRun(SweepLocks locks) throws InterruptedException {
         boolean sweptSuccessfully = false;
         try {
-            locks.lockOrRefresh();
-            if (locks.haveLocks()) {
+            if (locks.lockOrRefreshSweepLease()) {
                 sweptSuccessfully = runOnce();
             } else {
                 log.debug("Skipping sweep because sweep is running elsewhere.");
@@ -158,14 +114,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
         if (sweptSuccessfully) {
             batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
-            return sweepPauseMillis.get();
-        } else {
-            return getBackoffTimeWhenSweepHasNotRun();
         }
-    }
-
-    private long getBackoffTimeWhenSweepHasNotRun() {
-        return 20 * (1000 + sweepPauseMillis.get());
     }
 
     @VisibleForTesting
@@ -242,21 +191,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @VisibleForTesting
     SweepLocks createSweepLocks() {
-        return new SweepLocks(lockService);
-    }
-
-    @Override
-    public synchronized void shutdown() {
-        if (daemon == null) {
-            return;
-        }
-        log.debug("Signalling background sweeper to shut down.");
-        daemon.interrupt();
-        try {
-            daemon.join();
-            daemon = null;
-        } catch (InterruptedException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
+        return new SweepLocks(lockService, numberOfConcurrentSweeps);
     }
 }

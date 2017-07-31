@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
@@ -29,11 +32,15 @@ import com.palantir.lock.StringLockDescriptor;
 
 class SweepLocks implements AutoCloseable {
     private final RemoteLockService lockService;
+    private final int numberOfParallelSweeps;
 
     private LockRefreshToken token = null;
 
-    SweepLocks(RemoteLockService lockService) {
+    private LockRefreshToken sweepLeaseToken = null;
+
+    SweepLocks(RemoteLockService lockService, int numberOfParallelSweeps) {
         this.lockService = lockService;
+        this.numberOfParallelSweeps = numberOfParallelSweeps;
     }
 
     void lockOrRefresh() throws InterruptedException {
@@ -59,5 +66,41 @@ class SweepLocks implements AutoCloseable {
         if (token != null) {
             lockService.unlock(token);
         }
+    }
+
+    boolean lockOrRefreshSweepLease() throws InterruptedException {
+        sweepLeaseToken = lockOrRefreshSweepLeaseInternal(sweepLeaseToken);
+        return sweepLeaseToken == null;
+    }
+
+    private LockRefreshToken lockOrRefreshSweepLeaseInternal(LockRefreshToken possibleToken)
+            throws InterruptedException {
+        if (possibleToken != null) {
+            Set<LockRefreshToken> refreshedTokens = lockService.refreshLockRefreshTokens(ImmutableList.of(
+                    possibleToken));
+
+            if (!refreshedTokens.isEmpty()) {
+                return possibleToken;
+            }
+        }
+
+        List<Integer> possibleGrants = new ArrayList<>(numberOfParallelSweeps);
+        for (int i = 1; i <= numberOfParallelSweeps; i++) {
+            possibleGrants.add(i);
+        }
+        Collections.shuffle(possibleGrants);
+
+        for (int i : possibleGrants) {
+            LockDescriptor lock = StringLockDescriptor.of("sweep" + i);
+            LockRequest request = LockRequest.builder(
+                    ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
+            LockRefreshToken possibleGrant = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
+
+            if (possibleGrant != null) {
+                return possibleGrant;
+            }
+        }
+
+        return null;
     }
 }
