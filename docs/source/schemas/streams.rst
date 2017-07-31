@@ -59,7 +59,7 @@ Users have two options to store streams.
 1. ``getByHashOrStoreStreamAndMarkAsUsed(Transaction t, Sha256Hash hash, InputStream stream, byte[] reference)`` is called *within* a transaction. It will store the stream and mark it as used by ``reference``. This method is the preferred method to store small (<100 MB) streams. 
 2. ``storeStream(InputStream stream)`` is called *outside* a transaction. It will store a stream without marking it as used, and users should mark the stream as used via ``markStreamAsUsed(Transaction t, long streamId, byte[] reference)`` immediately after. Users of this method need to retry if their stream was cleaned up between storing and marking. This method is the preferred method for very large streams (>100 MB) that would otherwise cause the transaction within which the stream is being stored to be too long running.
 
-Regular AtlasDB tables should refer to the object stored in stream stores by their ``streamId``, and the ``reference`` that users mark the stream with should correspond to a value computable based on the parameters of the cell the ``streamId`` is stored in. If the ``streamId`` is deleted from that cell, users need to mark the stream as unused by that reference to enable garbage collection.
+Regular AtlasDB tables should refer to the object stored in stream stores by their ``streamId``, and the ``reference`` that users mark the stream with should correspond to a value computable based on the parameters of the cell the ``streamId`` is stored in. If the ``streamId`` is deleted from a cell, users need to mark the stream as unused by the reference corresponding to that cell to enable garbage collection.
 
 .. note::
     
