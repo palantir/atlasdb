@@ -26,4 +26,11 @@ public interface TimeLockInstallConfiguration {
     default AsyncLockConfiguration asyncLock() {
         return ImmutableAsyncLockConfiguration.builder().build();
     }
+
+    @Value.Default
+    default PartitionerConfiguration partitionerConfiguration() {
+        return ImmutableGreedyPartitionerConfiguration.builder()
+                .miniclusterSize(3)
+                .build();
+    }
 }
