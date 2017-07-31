@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.timelock.config.PartitionerConfiguration;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.jetty.HttpConnectorFactory;
@@ -41,6 +42,7 @@ public class TimeLockServerConfiguration extends Configuration {
     private final AsyncLockConfiguration asyncLockConfiguration;
     private final boolean useClientRequestLimit;
     private final TimeLimiterConfiguration timeLimiterConfiguration;
+    private final PartitionerConfiguration partitionerConfiguration;
 
     public TimeLockServerConfiguration(
             @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
@@ -48,11 +50,16 @@ public class TimeLockServerConfiguration extends Configuration {
             @JsonProperty(value = "clients", required = true) Set<String> clients,
             @JsonProperty(value = "asyncLock", required = false) AsyncLockConfiguration asyncLockConfiguration,
             @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit,
-            @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration) {
+            @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration,
+            @JsonProperty(value = "partitioner", required = false) PartitionerConfiguration partitionerConfiguration) {
         checkClientNames(clients);
         if (Boolean.TRUE.equals(useClientRequestLimit)) {
             Preconditions.checkState(computeNumberOfAvailableThreads() > 0,
                     "Configuration enables clientRequestLimit but specifies non-positive number of available threads.");
+        }
+        if (partitionerConfiguration != null) {
+            Preconditions.checkState(partitionerConfiguration.miniclusterSize() <= cluster.servers().size(),
+                    "Can't generate clusters larger than the number of servers overall!");
         }
 
         this.algorithm = MoreObjects.firstNonNull(algorithm, PaxosConfiguration.DEFAULT);
@@ -63,6 +70,8 @@ public class TimeLockServerConfiguration extends Configuration {
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
         this.timeLimiterConfiguration =
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
+        this.partitionerConfiguration =
+                MoreObjects.firstNonNull(partitionerConfiguration, PartitionerConfiguration.getDefaultConfiguration());
 
         if (clients.isEmpty()) {
             log.warn("TimeLockServer initialised with an empty list of 'clients'."
@@ -119,6 +128,10 @@ public class TimeLockServerConfiguration extends Configuration {
         }
 
         return computeNumberOfAvailableThreads();
+    }
+
+    public PartitionerConfiguration partitionerConfiguration() {
+        return partitionerConfiguration;
     }
 
     private int computeNumberOfAvailableThreads() {

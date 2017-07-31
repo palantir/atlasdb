@@ -18,14 +18,22 @@ package com.palantir.timelock.config;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.timelock.partition.GreedyTimeLockPartitioner;
 import com.palantir.timelock.partition.TimeLockPartitioner;
 
 @Value.Immutable
+@JsonDeserialize(as = ImmutableGreedyPartitionerConfiguration.class)
+@JsonSerialize(as = ImmutableGreedyPartitionerConfiguration.class)
+@JsonTypeName(GreedyPartitionerConfiguration.TYPE)
 public abstract class GreedyPartitionerConfiguration implements PartitionerConfiguration {
+    public static final String TYPE = "greedy";
+
     @Override
     public String type() {
-        return "greedy";
+        return TYPE;
     }
 
     @Override

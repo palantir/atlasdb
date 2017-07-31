@@ -62,6 +62,7 @@ public class PaxosTimeLockServerTest {
             TEST_CLIENTS,
             null,
             false,
+            null,
             null);
 
     private final Environment environment = mock(Environment.class);

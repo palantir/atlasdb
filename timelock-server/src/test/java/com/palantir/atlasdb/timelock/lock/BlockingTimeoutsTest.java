@@ -72,7 +72,8 @@ public class BlockingTimeoutsTest {
                 CLIENTS,
                 null,
                 null,
-                ImmutableTimeLimiterConfiguration.of(true, TEST_ERROR_MARGIN));
+                ImmutableTimeLimiterConfiguration.of(true, TEST_ERROR_MARGIN),
+                null);
 
         long expectedMargin = scaleForErrorMarginReferenceImplementation(
                 BlockingTimeouts.DEFAULT_IDLE_TIMEOUT,

@@ -16,10 +16,14 @@
 
 package com.palantir.timelock.config;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.palantir.timelock.partition.TimeLockPartitioner;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = GreedyPartitionerConfiguration.class, name = "greedy"),
+        @JsonSubTypes.Type(value = NopPartitionerConfiguration.class, name = "nop")})
 public interface PartitionerConfiguration {
     // Each client is given a cluster of this size.
     int miniclusterSize();
@@ -27,4 +31,13 @@ public interface PartitionerConfiguration {
     String type();
 
     TimeLockPartitioner createPartitioner();
+
+    /**
+     * Default configuration does not engage the time limiter at all.
+     */
+    static PartitionerConfiguration getDefaultConfiguration() {
+        return ImmutableNopPartitionerConfiguration.builder()
+                .miniclusterSize(1) // not used in Nop Partitioner, in any case
+                .build();
+    }
 }

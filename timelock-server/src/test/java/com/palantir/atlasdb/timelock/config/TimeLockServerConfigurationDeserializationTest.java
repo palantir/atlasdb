@@ -31,6 +31,7 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.timelock.config.GreedyPartitionerConfiguration;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
@@ -69,6 +70,9 @@ public class TimeLockServerConfigurationDeserializationTest {
         assertThat(configuration.asyncLockConfiguration().useAsyncLockService()).isTrue();
         assertThat(configuration.asyncLockConfiguration().disableLegacySafetyChecksWarningPotentialDataCorruption())
                 .isFalse();
+
+        assertThat(configuration.partitionerConfiguration().type()).isEqualTo(GreedyPartitionerConfiguration.TYPE);
+        assertThat(configuration.partitionerConfiguration().miniclusterSize()).isEqualTo(3);
     }
 
     private void assertAlgorithmConfigurationCorrect(TimeLockAlgorithmConfiguration configuration) {

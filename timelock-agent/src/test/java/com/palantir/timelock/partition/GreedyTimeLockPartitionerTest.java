@@ -18,6 +18,7 @@ package com.palantir.timelock.partition;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -32,6 +33,7 @@ public class GreedyTimeLockPartitionerTest {
     public void partitionsSixClientsInThreeNodeClusterWithMiniclusterSizeOne() {
         GreedyTimeLockPartitioner partitioner = new GreedyTimeLockPartitioner(1);
         Assignment assignment = invokePartitioner(partitioner, 6, 3);
+        assertClientsHaveAdequateNodes(assignment, 1);
         assertThat(getNumClientsOnHosts(assignment)).containsExactlyInAnyOrder(2, 2, 2);
     }
 
@@ -39,25 +41,43 @@ public class GreedyTimeLockPartitionerTest {
     public void assignsAllClientsToAllNodesInThreeNodeClusterWithMiniclusterSizeThree() {
         int numClients = 4242;
         Assignment assignment = invokePartitioner(THREE_NODE_MINICLUSTER_PARTITIONER, numClients, 3);
+        assertClientsHaveAdequateNodes(assignment, 3);
         assertThat(getNumClientsOnHosts(assignment)).containsExactlyInAnyOrder(numClients, numClients, numClients);
     }
 
     @Test
     public void assignsClientToOnlyThreeNodesInFiveNodeClusterWithMiniclusterSizeThree() {
         Assignment assignment = invokePartitioner(THREE_NODE_MINICLUSTER_PARTITIONER, 1, 5);
+        assertClientsHaveAdequateNodes(assignment, 3);
         assertThat(getNumClientsOnHosts(assignment)).containsExactlyInAnyOrder(1, 1, 1);
     }
 
     @Test
     public void onlyOneNodeHasTwoClientsInFiveNodeClusterWithTwoClientsAndMiniclusterSizeThree() {
         Assignment assignment = invokePartitioner(THREE_NODE_MINICLUSTER_PARTITIONER, 2, 5);
+        assertClientsHaveAdequateNodes(assignment, 3);
         assertThat(getNumClientsOnHosts(assignment)).containsExactlyInAnyOrder(2, 1, 1, 1, 1);
     }
 
     @Test
     public void onlyTwoNodesHaveThreeClientsInFiveNodeClusterWithFourClientsAndMiniclusterSizeThree() {
         Assignment assignment = invokePartitioner(THREE_NODE_MINICLUSTER_PARTITIONER, 4, 5);
+        assertClientsHaveAdequateNodes(assignment, 3);
         assertThat(getNumClientsOnHosts(assignment)).containsExactlyInAnyOrder(3, 3, 2, 2, 2);
+    }
+
+    @Test
+    public void partitionsSixClientsInTwelveNodeClusterWithMiniclusterSizeSix() {
+        GreedyTimeLockPartitioner partitioner = new GreedyTimeLockPartitioner(6);
+        Assignment assignment = invokePartitioner(partitioner, 6, 12);
+        assertClientsHaveAdequateNodes(assignment, 6);
+        assertThat(getNumClientsOnHosts(assignment)).containsExactlyElementsOf(Collections.nCopies(12, 3));
+    }
+
+    private static void assertClientsHaveAdequateNodes(Assignment assignment, int minNodes) {
+        for (String client : assignment.getKnownClients()) {
+            assertThat(assignment.getHostsForClient(client).size()).isGreaterThanOrEqualTo(minNodes);
+        }
     }
 
     private static Assignment invokePartitioner(

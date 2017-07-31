@@ -18,6 +18,10 @@ clients:
   - learner
   - acceptor
 
+partitioner:
+  type: greedy
+  miniclusterSize: 3
+
 useClientRequestLimit: true
 
 timeLimiter:
