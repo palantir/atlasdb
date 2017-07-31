@@ -45,6 +45,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Fixed a critical bug in Oracle that limits the number of writes with values greater than 2000 bytes to ``Integer.MAX_VALUE``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2224>`__)
+
+    *    - |fixed|
          - Change schemas in the codebase so that they use JAVA8 Optionals instead of Guava.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2210>`__)
 
