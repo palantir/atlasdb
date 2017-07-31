@@ -36,10 +36,10 @@ import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.RemoteLockService;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
-    private final PaxosLeadershipCreator leadershipCreator;
+    private final NamespacedPaxosLeadershipCreator leadershipCreator;
     private final AsyncLockConfiguration asyncLockConfiguration;
 
-    public AsyncTimeLockServicesCreator(PaxosLeadershipCreator leadershipCreator,
+    public AsyncTimeLockServicesCreator(NamespacedPaxosLeadershipCreator leadershipCreator,
             AsyncLockConfiguration asyncLockConfiguration) {
         this.leadershipCreator = leadershipCreator;
         this.asyncLockConfiguration = asyncLockConfiguration;

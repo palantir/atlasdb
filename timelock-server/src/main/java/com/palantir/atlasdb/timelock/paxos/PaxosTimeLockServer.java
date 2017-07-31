@@ -341,7 +341,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private Supplier<ManagedTimestampService> createRawPaxosBackedTimestampServiceSupplier(String client) {
-        paxosResource.addInstrumentedClient(client);
+//        paxosResource.addInstrumentedClient(client);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-" + client + "-%d")

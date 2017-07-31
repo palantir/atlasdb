@@ -42,6 +42,7 @@ public class PaxosAgent extends TimeLockAgent {
 
     private final PaxosResource paxosResource;
     private final PaxosLeadershipCreator leadershipCreator;
+    private final NamespacedPaxosLeadershipCreator namespacedPaxosLeadershipCreator;
     private final LockCreator lockCreator;
     private final PaxosTimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
@@ -62,13 +63,14 @@ public class PaxosAgent extends TimeLockAgent {
         this.paxosResource = PaxosResource.create(paxosInstall.dataDirectory().toString());
         this.leadershipCreator = new PaxosLeadershipCreator(install, runtime, registrar);
         this.lockCreator = new LockCreator(runtime, deprecated);
+        this.namespacedPaxosLeadershipCreator = new NamespacedPaxosLeadershipCreator(install, runtime, registrar);
         this.timestampCreator = new PaxosTimestampCreator(paxosResource,
                 PaxosRemotingUtils.getRemoteServerPaths(install),
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory),
                 runtime.map(x -> x.algorithm().orElse(ImmutablePaxosRuntimeConfiguration.builder().build())));
         this.timelockCreator = install.asyncLock().useAsyncLockService()
-                ? new AsyncTimeLockServicesCreator(leadershipCreator, install.asyncLock())
-                : new LegacyTimeLockServicesCreator(leadershipCreator);
+                ? new AsyncTimeLockServicesCreator(namespacedPaxosLeadershipCreator, install.asyncLock())
+                : new LegacyTimeLockServicesCreator(namespacedPaxosLeadershipCreator);
     }
 
     @Override
@@ -83,6 +85,7 @@ public class PaxosAgent extends TimeLockAgent {
 
     // No runtime configuration at the moment.
     private void registerPaxosResource() {
+        namespacedPaxosLeadershipCreator.registerLeaderLocator();
         registrar.accept(paxosResource);
     }
 
@@ -94,8 +97,10 @@ public class PaxosAgent extends TimeLockAgent {
 
     @Override
     protected TimeLockServices createInvalidatingTimeLockServices(String client) {
+        namespacedPaxosLeadershipCreator.registerLeaderElectionServiceForClient(client);
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier =
-                timestampCreator.createPaxosBackedTimestampService(client);
+                timestampCreator.createPaxosBackedTimestampService(client,
+                        namespacedPaxosLeadershipCreator.getNamespacedLeadershipResource());
         Supplier<RemoteLockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
 
         return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);

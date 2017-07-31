@@ -35,9 +35,9 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
     private static final Logger log = LoggerFactory.getLogger(LegacyTimeLockServicesCreator.class);
     private static final LockClient LEGACY_LOCK_CLIENT = LockClient.of("legacy");
 
-    private final PaxosLeadershipCreator leadershipCreator;
+    private final NamespacedPaxosLeadershipCreator leadershipCreator;
 
-    public LegacyTimeLockServicesCreator(PaxosLeadershipCreator leadershipCreator) {
+    public LegacyTimeLockServicesCreator(NamespacedPaxosLeadershipCreator leadershipCreator) {
         this.leadershipCreator = leadershipCreator;
     }
 

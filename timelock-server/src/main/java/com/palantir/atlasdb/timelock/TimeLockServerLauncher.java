@@ -22,8 +22,6 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
-import com.palantir.atlasdb.timelock.clock.ClockSkewMonitor;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
@@ -75,8 +73,8 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         Optional<SSLSocketFactory> sslSocketFactory =
                 PaxosRemotingUtils.getSslConfigurationOptional(combined.install())
                         .map(SslSocketFactories::createSslSocketFactory);
-        ClockSkewMonitor.create(PaxosRemotingUtils.getRemoteServerPaths(combined.install()), sslSocketFactory)
-                .runInBackground();
-        environment.jersey().register(new ClockServiceImpl());
+//        ClockSkewMonitor.create(PaxosRemotingUtils.getRemoteServerPaths(combined.install()), sslSocketFactory)
+//                .runInBackground();
+//        environment.jersey().register(new ClockServiceImpl());
     }
 }

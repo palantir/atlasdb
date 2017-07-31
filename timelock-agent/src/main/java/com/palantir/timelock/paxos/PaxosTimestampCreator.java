@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
+import com.palantir.atlasdb.timelock.paxos.LeadershipResource;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.timelock.paxos.PaxosSynchronizer;
@@ -64,8 +65,10 @@ public class PaxosTimestampCreator {
         this.paxosRuntime = paxosRuntime;
     }
 
-    public Supplier<ManagedTimestampService> createPaxosBackedTimestampService(String client) {
-        paxosResource.addInstrumentedClient(client);
+    public Supplier<ManagedTimestampService> createPaxosBackedTimestampService(
+            String client,
+            LeadershipResource leadershipResource) {
+        paxosResource.addInstrumentedClient(client, leadershipResource);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-" + client + "-%d")
