@@ -44,6 +44,24 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.51.0
+=======
+
+28 July 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
          - For DbKvs, the ``actualValues`` field is now populated when a ``CheckAndSetException`` is thrown.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2196>`__)
