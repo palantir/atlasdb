@@ -29,6 +29,7 @@ public final class ParallelBackgroundSweeperImpl {
     private final Supplier<Long> sweepPauseMillis;
     private final SpecificTableSweeper specificTableSweeper;
     private final int numberOfConcurrentSweeps;
+    private final SweepLocks sweepLocks;
 
     private ParallelBackgroundSweeperImpl(
             Supplier<Boolean> isSweepEnabled,
@@ -39,6 +40,7 @@ public final class ParallelBackgroundSweeperImpl {
         this.sweepPauseMillis = sweepPauseMillis;
         this.specificTableSweeper = specificTableSweeper;
         this.numberOfConcurrentSweeps = numberOfConcurrentSweeps;
+        this.sweepLocks = createSweepLocks();
     }
 
     public static ParallelBackgroundSweeperImpl create(
@@ -58,12 +60,16 @@ public final class ParallelBackgroundSweeperImpl {
                 new NamedThreadFactory("BackgroundSweeper", true));
         for (int i = 0; i < numberOfConcurrentSweeps; i++) {
             executorService.scheduleAtFixedRate(
-                    () -> BackgroundSweeperImpl.create(isSweepEnabled, specificTableSweeper, numberOfConcurrentSweeps).run(),
+                    () -> BackgroundSweeperImpl.create(sweepLocks, isSweepEnabled, specificTableSweeper).run(),
                     getBackoffTimeForFirstRun(),
                     getBackoffTimeBetweenSweepRuns(),
                     TimeUnit.MILLISECONDS);
         }
     }
+
+    private SweepLocks createSweepLocks() {
+        return new SweepLocks(specificTableSweeper.getTxManager().getLockService(), numberOfConcurrentSweeps);
+    };
 
     private long getBackoffTimeForFirstRun() {
         return 20 * (1000 + sweepPauseMillis.get());

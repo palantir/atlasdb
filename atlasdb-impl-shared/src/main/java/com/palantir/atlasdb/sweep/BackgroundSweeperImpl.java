@@ -30,57 +30,48 @@ import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.lock.RemoteLockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 public final class BackgroundSweeperImpl implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
-    private final RemoteLockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
     private final Supplier<Boolean> isSweepEnabled;
     private final SpecificTableSweeper specificTableSweeper;
-    private final int numberOfConcurrentSweeps;
+    private final SweepLocks sweepLocks;
 
     static volatile double batchSizeMultiplier = 1.0;
 
     @VisibleForTesting
     BackgroundSweeperImpl(
-            RemoteLockService lockService,
+            SweepLocks sweepLocks,
             NextTableToSweepProvider nextTableToSweepProvider,
             Supplier<Boolean> isSweepEnabled,
-            SpecificTableSweeper specificTableSweeper,
-            int numberOfConcurrentSweeps) {
-        this.lockService = lockService;
+            SpecificTableSweeper specificTableSweeper) {
+        this.sweepLocks = sweepLocks;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
         this.isSweepEnabled = isSweepEnabled;
         this.specificTableSweeper = specificTableSweeper;
-        this.numberOfConcurrentSweeps = numberOfConcurrentSweeps;
     }
 
     public static BackgroundSweeperImpl create(
+            SweepLocks sweepLocks,
             Supplier<Boolean> isSweepEnabled,
-            SpecificTableSweeper specificTableSweeper,
-            int numberOfConcurrentSweeps) {
+            SpecificTableSweeper specificTableSweeper) {
         NextTableToSweepProvider nextTableToSweepProvider = new NextTableToSweepProviderImpl(
                 specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
         return new BackgroundSweeperImpl(
-                specificTableSweeper.getTxManager().getLockService(),
+                sweepLocks,
                 nextTableToSweepProvider,
                 isSweepEnabled,
-                specificTableSweeper,
-                numberOfConcurrentSweeps);
+                specificTableSweeper);
     }
 
     @Override
     public void run() {
-        try (SweepLocks locks = createSweepLocks()) {
-            // Wait a while before starting so short lived clis don't try to sweep.
-            log.info("Starting background sweeper.");
-            while (true) {
-                if (isSweepEnabled.get()) {
-                    grabLocksAndRun(locks);
-                }
+        try {
+            if (isSweepEnabled.get()) {
+                grabLocksAndRun(sweepLocks);
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
@@ -187,10 +178,5 @@ public final class BackgroundSweeperImpl implements Runnable {
                     + " Continuing under the assumption that it wasn't...", e);
             return false;
         }
-    }
-
-    @VisibleForTesting
-    SweepLocks createSweepLocks() {
-        return new SweepLocks(lockService, numberOfConcurrentSweeps);
     }
 }
