@@ -16,15 +16,21 @@
 
 package com.palantir.timelock.config;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.immutables.value.Value;
+
+import com.palantir.timelock.partition.NopTimeLockPartitioner;
 import com.palantir.timelock.partition.TimeLockPartitioner;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
-public interface PartitionerConfiguration {
-    // Each client is given a cluster of this size.
-    int miniclusterSize();
+@Value.Immutable
+public abstract class NopPartitionerConfiguration implements PartitionerConfiguration {
+    // The partitioner assigns all nodes to all clients.
+    @Override
+    public String type() {
+        return "nop";
+    }
 
-    String type();
-
-    TimeLockPartitioner createPartitioner();
+    @Override
+    public TimeLockPartitioner createPartitioner() {
+        return new NopTimeLockPartitioner();
+    }
 }

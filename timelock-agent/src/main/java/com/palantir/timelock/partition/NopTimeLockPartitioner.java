@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.config;
+package com.palantir.timelock.partition;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.palantir.timelock.partition.TimeLockPartitioner;
+import java.util.Set;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
-public interface PartitionerConfiguration {
-    // Each client is given a cluster of this size.
-    int miniclusterSize();
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.SetMultimap;
 
-    String type();
-
-    TimeLockPartitioner createPartitioner();
+public class NopTimeLockPartitioner implements TimeLockPartitioner {
+    @Override
+    public Multimap<String, String> partition(Set<String> clients, Set<String> hosts, long seed) {
+        SetMultimap<String, String> setMultimap = MultimapBuilder.hashKeys().hashSetValues().build();
+        hosts.forEach(host -> setMultimap.putAll(host, clients));
+        return setMultimap;
+    }
 }

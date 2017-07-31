@@ -8,6 +8,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 
@@ -30,7 +31,15 @@ public interface TimeLockInstallConfiguration {
     @Value.Default
     default PartitionerConfiguration partitionerConfiguration() {
         return ImmutableGreedyPartitionerConfiguration.builder()
-                .miniclusterSize(3)
+                .miniclusterSize(cluster().cluster().uris().size() == 1 ? 1 : 3)
                 .build();
+    }
+
+    @Value.Check
+    default void check() {
+        Preconditions.checkState(partitionerConfiguration().miniclusterSize() <= cluster().cluster().uris().size(),
+                "Cannot recommend mini-clusters of size %s which are larger than your entire cluster of %s!",
+                partitionerConfiguration().miniclusterSize(),
+                cluster().cluster().uris().size());
     }
 }

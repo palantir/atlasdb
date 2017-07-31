@@ -19,6 +19,7 @@ package com.palantir.timelock.paxos;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -30,6 +31,7 @@ import com.palantir.remoting2.config.ssl.SslSocketFactories;
 import com.palantir.timelock.TimeLockAgent;
 import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
+import com.palantir.timelock.config.ImmutableTimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -57,7 +59,29 @@ public class PaxosAgent extends TimeLockAgent {
             Observable<TimeLockRuntimeConfiguration> runtime,
             TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
-        super(install, runtime, deprecated, registrar);
+        super(install,
+                runtime.map(
+                runtimeConfig -> ImmutableTimeLockRuntimeConfiguration.builder()
+                        .from(runtimeConfig)
+                        .clients(install.partitionerConfiguration().createPartitioner().clientsForHost(
+                                runtimeConfig.clients(),
+                                ImmutableSet.copyOf(install.cluster().cluster().uris()),
+                                0,
+                                install.cluster().localServer()))
+                        .build()),
+                deprecated,
+                registrar);
+
+        runtime = runtime.map(
+                runtimeConfig -> ImmutableTimeLockRuntimeConfiguration.builder()
+                .from(runtimeConfig)
+                .clients(install.partitionerConfiguration().createPartitioner().clientsForHost(
+                        runtimeConfig.clients(),
+                        ImmutableSet.copyOf(install.cluster().cluster().uris()),
+                        0,
+                        install.cluster().localServer()))
+                .build());
+
         this.paxosInstall = install.algorithm();
 
         this.paxosResource = PaxosResource.create(paxosInstall.dataDirectory().toString());
