@@ -36,7 +36,7 @@ public class OverflowSequenceSupplierTest {
         final SqlConnection sqlConnection = mock(SqlConnection.class);
 
         when(conns.get()).thenReturn(sqlConnection);
-        when(sqlConnection.selectIntegerUnregisteredQuery(anyString())).thenReturn(1);
+        when(sqlConnection.selectLongUnregisteredQuery(anyString())).thenReturn(1L);
 
         OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(conns, "a_");
         long firstSequenceId = sequenceSupplier.get();
@@ -51,7 +51,7 @@ public class OverflowSequenceSupplierTest {
         final SqlConnection sqlConnection = mock(SqlConnection.class);
 
         when(conns.get()).thenReturn(sqlConnection);
-        when(sqlConnection.selectIntegerUnregisteredQuery(anyString())).thenReturn(1, 1001);
+        when(sqlConnection.selectLongUnregisteredQuery(anyString())).thenReturn(1L, 1001L);
 
         long firstSequenceId = OverflowSequenceSupplier.create(conns, "a_").get();
         long secondSequenceId = OverflowSequenceSupplier.create(conns, "a_").get();
@@ -65,7 +65,7 @@ public class OverflowSequenceSupplierTest {
         final SqlConnection sqlConnection = mock(SqlConnection.class);
 
         when(conns.get()).thenReturn(sqlConnection);
-        when(sqlConnection.selectIntegerUnregisteredQuery(anyString())).thenReturn(1, 1001, 2001);
+        when(sqlConnection.selectLongUnregisteredQuery(anyString())).thenReturn(1L, 1001L, 2001L);
 
         OverflowSequenceSupplier firstSupplier = OverflowSequenceSupplier.create(conns, "a_");
         firstSupplier.get(); // gets 1
