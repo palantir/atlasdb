@@ -21,6 +21,8 @@ import java.util.Set;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -28,32 +30,48 @@ import com.google.common.collect.MultimapBuilder;
 
 @ThreadSafe // Is immutable.
 public class Assignment {
+    @JsonProperty("clientsToHosts")
     private final ImmutableMultimap<String, String> clientsToHosts;
+    @JsonProperty("hostsToClients")
     private final ImmutableMultimap<String, String> hostsToClients;
 
-    private Assignment(Multimap<String, String> clientsToHosts, Multimap<String, String> hostsToClients) {
+    private Assignment(
+            @JsonProperty("clientsToHosts") Multimap<String, String> clientsToHosts,
+            @JsonProperty("hostsToClients") Multimap<String, String> hostsToClients) {
         this.clientsToHosts = ImmutableMultimap.copyOf(clientsToHosts);
         this.hostsToClients = ImmutableMultimap.copyOf(hostsToClients);
     }
 
+    @JsonIgnore
     public Set<String> getKnownClients() {
         return clientsToHosts.keySet();
     }
 
+    @JsonIgnore
     public Set<String> getKnownHosts() {
         return hostsToClients.keySet();
     }
 
+    @JsonIgnore
     public Set<String> getClientsForHost(String host) {
         return ImmutableSet.copyOf(hostsToClients.get(host));
     }
 
+    @JsonIgnore
     public Set<String> getHostsForClient(String client) {
         return ImmutableSet.copyOf(clientsToHosts.get(client));
     }
 
     public static Assignment.Builder builder() {
         return new Builder();
+    }
+
+    @Override
+    public String toString() {
+        return "Assignment{" +
+                "clientsToHosts=" + clientsToHosts +
+                ", hostsToClients=" + hostsToClients +
+                '}';
     }
 
     @NotThreadSafe

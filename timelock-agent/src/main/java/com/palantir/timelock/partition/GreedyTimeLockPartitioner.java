@@ -31,8 +31,9 @@ public class GreedyTimeLockPartitioner implements TimeLockPartitioner {
 
     @Override
     public Assignment partition(List<String> clients, List<String> hosts, long seed) {
-        List<String> newHosts = Lists.newArrayList(hosts);
-        Collections.shuffle(newHosts, new Random(seed));
+        List<String> clientsCopy = Lists.newArrayList(clients);
+        List<String> hostsCopy = Lists.newArrayList(hosts);
+        shuffle(clientsCopy, hostsCopy, seed);
 
         int numHosts = hosts.size();
 
@@ -44,5 +45,11 @@ public class GreedyTimeLockPartitioner implements TimeLockPartitioner {
             }
         }
         return builder.build();
+    }
+
+    private void shuffle(List<String> clientsCopy, List<String> hostsCopy, long seed) {
+        Random random = new Random(seed);
+        Collections.shuffle(clientsCopy, random);
+        Collections.shuffle(hostsCopy, random);
     }
 }
