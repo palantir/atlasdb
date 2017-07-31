@@ -44,8 +44,19 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |devbreak|
+         - Removed unused classes on AtlasDB.
+
+              - ``FutureClosableIteratorTask``
+              - ``ClosableMergedIterator``
+              - ``ThrowingKeyValueService``
+
+           If any issues arise from this change, please contact the development team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1933>`__)
+
+    *    - |fixed|
+         - Change schemas in the codebase so that they use JAVA8 Optionals instead of Guava.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2210>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -61,10 +72,6 @@ v0.51.0
 
     *    - Type
          - Change
-
-    *    - |fixed|
-         - Change schemas in the codebase so that they use JAVA8 Optionals instead of Guava.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2210>`__)
 
     *    - |fixed|
          - For DbKvs, the ``actualValues`` field is now populated when a ``CheckAndSetException`` is thrown.
