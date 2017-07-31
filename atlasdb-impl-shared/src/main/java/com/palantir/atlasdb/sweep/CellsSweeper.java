@@ -38,27 +38,14 @@ public class CellsSweeper {
     private final TransactionManager txManager;
     private final KeyValueService keyValueService;
     private final Collection<Follower> followers;
-    private final PersistentLockManager persistentLockManager;
 
     public CellsSweeper(
             TransactionManager txManager,
             KeyValueService keyValueService,
-            PersistentLockManager persistentLockManager,
             Collection<Follower> followers) {
         this.txManager = txManager;
         this.keyValueService = keyValueService;
         this.followers = followers;
-        this.persistentLockManager = persistentLockManager;
-    }
-
-    public CellsSweeper(
-            TransactionManager txManager,
-            KeyValueService keyValueService,
-            Collection<Follower> followers) {
-        this(txManager, keyValueService,
-                new PersistentLockManager(getPersistentLockService(keyValueService),
-                        AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS),
-                followers);
     }
 
     private static PersistentLockService getPersistentLockService(KeyValueService kvs) {
@@ -89,12 +76,6 @@ public class CellsSweeper {
                     sentinelsToAdd);
         }
 
-        persistentLockManager.acquirePersistentLockWithRetry();
-
-        try {
-            keyValueService.delete(tableRef, cellTsPairsToSweep);
-        } finally {
-            persistentLockManager.releasePersistentLock();
-        }
+        keyValueService.delete(tableRef, cellTsPairsToSweep);
     }
 }

@@ -288,17 +288,13 @@ public final class TransactionManagers {
                 allowHiddenTableAccess,
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis());
 
-        PersistentLockManager persistentLockManager = new PersistentLockManager(
-                persistentLockService,
-                config.getSweepPersistentLockWaitMillis());
         initializeSweepEndpointAndBackgroundProcess(runtimeConfigSupplier,
                 env,
                 kvs,
                 transactionService,
                 sweepStrategyManager,
                 follower,
-                transactionManager,
-                persistentLockManager);
+                transactionManager);
 
         return transactionManager;
     }
@@ -321,12 +317,10 @@ public final class TransactionManagers {
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CleanupFollower follower,
-            SerializableTransactionManager transactionManager,
-            PersistentLockManager persistentLockManager) {
+            SerializableTransactionManager transactionManager) {
         CellsSweeper cellsSweeper = new CellsSweeper(
                 transactionManager,
                 kvs,
-                persistentLockManager,
                 ImmutableList.of(follower));
         SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,
