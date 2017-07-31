@@ -13,12 +13,12 @@ characteristics. Postgres has a 1GB entry limit, and Cassandra generally
 does not like transmissions of over 30MB over the wire at a time. 
 
 If it is known beforehand that a particular column of a table will store
-large objects, the objects should instead be stored in a stream store table
+large objects, the objects should instead be stored in a stream store table.
 AtlasDB will automatically segment large objects in a stream store into 
-smaller chunks. Storage of streams happens on separate transactions and
+smaller chunks, and storage of streams happens on separate transactions and
 does not count toward your byte limit for your local trasaction.
 
-The minimal parameters to define a stream store are shown below:
+The minimal parameters required to define a stream store are shown below:
 
 .. code:: java
 
@@ -35,7 +35,7 @@ Additional options for the builder include:
 - ``hashFirstRowComponent``
 - ``isAppendHeavyAndReadLight``
 - ``compressBlocksInDb``
-- ``compressStreamInClient`: transparently decompresses and compresses the 
+- ``compressStreamInClient``: transparently decompresses and compresses the 
   stream via the LZ4 algorithm upon reads and writes, respectively. 
   Compression is performed client side before any network communication to 
   the underlying database.
@@ -54,7 +54,7 @@ Users have two options to store streams.
 1. ``getByHashOrStoreStreamAndMarkAsUsed(Transaction t, Sha256Hash hash, InputStream stream, byte[] reference)`` is called *within* a transaction. It will store the stream and mark it as used by ``reference``. This method is the preferred method to store small (<100 MB) streams. 
 2. ``storeStream(InputStream stream)`` is called *outside* a transaction. It will store a stream without marking it as used, and users should mark the stream as used via ``markStreamAsUsed(Transaction t, long streamId, byte[] reference)`` immediately after. Users of this method need to retry if their stream was cleaned up between storing and marking. This method is the preferred method for very large streams (>100 MB) that would otherwise cause the transaction within which the stream is being stored to be too long running.
 
-Regular Atlas tables should refer to the object stored in stream stores by their ``streamId``, and the ``reference`` that users mark the stream with should correspond to a value computable based on the parameters of the cell the ``streamId`` is stored in. If the reference to the stream is deleted, you need to mark the stream as unused by that reference to enable garbage collection.
+Regular AtlasDB tables should refer to the object stored in stream stores by their ``streamId``, and the ``reference`` that users mark the stream with should correspond to a value computable based on the parameters of the cell the ``streamId`` is stored in. If the ``streamId`` is deleted from that cell, users need to mark the stream as unused by that reference to enable garbage collection.
 
 .. note::
     
