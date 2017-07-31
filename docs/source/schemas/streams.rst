@@ -42,6 +42,11 @@ Additional options for the builder include:
 - ``inMemoryThreshold(int inMemoryThreshold)``: specifies the largest size
   object (in bytes) which AtlasDB will cache in memory in order to boost
   retrieval performance.
+  
+For an example of streams in use, see `ProfileSchema`_ and `ProfileStore`_.
+
+.. _ProfileSchema: ../../../examples/profile-client/src/main/java/com/palantir/example/profile/schema/ProfileSchema.java
+.. _ProfileStore: ../../../examples/profile-client/src/main/java/com/palantir/example/profile/ProfileStore.java
 
 .. note::
 
