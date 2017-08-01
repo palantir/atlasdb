@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
@@ -42,6 +43,8 @@ import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
+import com.palantir.timelock.coordination.DrainService;
+import com.palantir.timelock.coordination.DrainServiceImpl;
 import com.palantir.timelock.partition.Assignment;
 import com.palantir.timelock.partition.TimeLockPartitioner;
 
@@ -58,6 +61,8 @@ public class PaxosAgent extends TimeLockAgent {
     private final LockCreator lockCreator;
     private final PaxosTimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
+
+    private DrainService drainService;
 
     private PaxosAgent(TimeLockInstallConfiguration install,
             Observable<TimeLockRuntimeConfiguration> runtime,
@@ -122,10 +127,14 @@ public class PaxosAgent extends TimeLockAgent {
         Set<String> clients =
                 Observables.blockingMostRecent(assignment.map(assign -> assign.getClientsForHost(localServer))).get();
 
-        Map<String, TimeLockServices> clientToServices =
+        Map<String, TimeLockServices> clientToServices = Maps.newHashMap();
+        drainService = new DrainServiceImpl(clientToServices);
+        Map<String, TimeLockServices> actualClientToServices =
                 clients.stream().collect(Collectors.toMap(
                         Function.identity(),
                         this::createInvalidatingTimeLockServices));
+        clientToServices.putAll(actualClientToServices);
+        registrar.accept(drainService);
         registrar.accept(new TimeLockResource(clientToServices));
     }
 
@@ -142,6 +151,11 @@ public class PaxosAgent extends TimeLockAgent {
                                 PaxosRemotingUtils.addProtocol(install, localServer))));
         Supplier<RemoteLockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
 
-        return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);
+        Supplier<TimeLockServices> services =
+                () -> timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier,
+                        rawLockServiceSupplier);
+        TimeLockServices actual = services.get();
+        drainService.register(client, services);
+        return actual;
     }
 }

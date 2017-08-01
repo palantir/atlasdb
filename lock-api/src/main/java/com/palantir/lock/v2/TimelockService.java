@@ -67,5 +67,4 @@ public interface TimelockService {
     @POST
     @Path("current-time-millis")
     long currentTimeMillis();
-
 }

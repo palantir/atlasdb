@@ -43,6 +43,7 @@ public class NamespaceCoordinatingProxy<T> extends AbstractInvocationHandler {
     private final String localhost;
     private final ExecutorService executor;
     private volatile boolean isClosed;
+    private SequenceAndAssignment knownState;
 
     private NamespaceCoordinatingProxy(CoordinationService coordinationService, Supplier<T> delegateSupplier,
             String client, String localhost, Class<T> clazz) {
@@ -54,6 +55,7 @@ public class NamespaceCoordinatingProxy<T> extends AbstractInvocationHandler {
         this.delegateReference = new AtomicReference<T>();
         this.executor = Executors.newSingleThreadExecutor(
                 new ThreadFactoryBuilder().setNameFormat("namespace-coordinator").build());
+        this.knownState = coordinationService.getCoordinatedValue();
     }
 
     @SuppressWarnings("unchecked") // We know this cast is safe.
@@ -85,7 +87,7 @@ public class NamespaceCoordinatingProxy<T> extends AbstractInvocationHandler {
             return null;
         }
 
-        if (!isAssigned()) {
+        if (!isKnownToBeInCurrentCluster()) {
             markAsOutsideCluster();
         }
 
@@ -96,7 +98,7 @@ public class NamespaceCoordinatingProxy<T> extends AbstractInvocationHandler {
             delegate = delegateReference.get();
 
             // TODO (jkong): Is this needed for correctness?
-            if (!isAssigned()) {
+            if (!isKnownToBeInCurrentCluster()) {
                 markAsOutsideCluster();
             }
         }
@@ -113,8 +115,9 @@ public class NamespaceCoordinatingProxy<T> extends AbstractInvocationHandler {
                         client));
     }
 
-    private boolean isAssigned() {
-        return coordinationService.getCoordinatedValue().assignment().getHostsForClient(client).contains(localhost);
+    private boolean isKnownToBeInCurrentCluster() {
+        knownState = coordinationService.getCoordinatedValue();
+        return knownState.assignment().getClientsForHost(localhost).contains(client);
     }
 
     private void clearDelegate() throws IOException {
