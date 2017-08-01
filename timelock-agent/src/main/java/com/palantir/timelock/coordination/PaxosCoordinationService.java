@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
@@ -98,9 +99,13 @@ public class PaxosCoordinationService implements CoordinationService {
         if (ourAcceptor.getLatestSequencePreparedOrAccepted() == knowledgeSeq) {
             // Since we require consistency all, we are up to date.
             if (agreedState.sequenceNumber() != knowledgeSeq) {
+                SequenceAndAssignment oldState = agreedState;
                 agreedState = ImmutableSequenceAndAssignment.of(
                         knowledgeSeq,
                         decodeAssignment(greatestKnown.getData()));
+                log.info("Updated agreed state from {} to {}",
+                        SafeArg.of("oldState", oldState),
+                        SafeArg.of("newState", agreedState));
             }
             return agreedState.assignment();
         }
@@ -195,6 +200,9 @@ public class PaxosCoordinationService implements CoordinationService {
     @Override
     public synchronized void proposeAssignment(Assignment assignment) {
         long newSeq = getLatestSequenceNumber() + 1;
+        log.info("Trying to propose {} at sequence {}",
+                SafeArg.of("assignment", assignment),
+                SafeArg.of("sequence", newSeq));
 
         while (true) {
             try {
@@ -202,6 +210,9 @@ public class PaxosCoordinationService implements CoordinationService {
                 PaxosValue value = knowledge.getLearnedValue(newSeq);
                 Assignment actualAssignment = decodeAssignment(value.getData());
                 agreedState = ImmutableSequenceAndAssignment.of(newSeq, actualAssignment);
+                log.info("Reached consensus on {} at sequence {}",
+                        SafeArg.of("assignment", actualAssignment),
+                        SafeArg.of("sequence", newSeq));
                 return;
             } catch (PaxosRoundFailureException e) {
                 newSeq = getLatestSequenceNumber();

@@ -86,10 +86,7 @@ public class NamespaceCoordinatingProxy<T> extends AbstractInvocationHandler {
         }
 
         if (!isAssigned()) {
-            throw new NotCurrentLeaderException(
-                    String.format(
-                            "This node isn't part of the coordination cluster for %s, and is thus not the leader.",
-                            client));
+            markAsOutsideCluster();
         }
 
         // the coordination service assigned us to our client.
@@ -100,15 +97,20 @@ public class NamespaceCoordinatingProxy<T> extends AbstractInvocationHandler {
 
             // TODO (jkong): Is this needed for correctness?
             if (!isAssigned()) {
-                throw new NotCurrentLeaderException(
-                        String.format(
-                                "This node isn't part of the coordination cluster for %s, and is thus not the leader.",
-                                client));
+                markAsOutsideCluster();
             }
         }
 
         // atomic read passed, so we can go ahead
         return method.invoke(delegate, args);
+    }
+
+    private void markAsOutsideCluster() throws IOException {
+        clearDelegate();
+        throw new NotCurrentLeaderException(
+                String.format(
+                        "This node isn't part of the coordination cluster for %s, and is thus not the leader.",
+                        client));
     }
 
     private boolean isAssigned() {
