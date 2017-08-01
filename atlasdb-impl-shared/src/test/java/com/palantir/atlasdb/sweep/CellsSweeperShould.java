@@ -62,7 +62,7 @@ public class CellsSweeperShould {
     private final Follower mockFollower = mock(Follower.class);
     private final PersistentLockManager mockPlm = mock(PersistentLockManager.class);
 
-    private final CellsSweeper sweeper = new CellsSweeper(null, mockKvs, mockPlm, ImmutableList.of(mockFollower));
+    private final CellsSweeper sweeper = new CellsSweeper(null, mockKvs, ImmutableList.of(mockFollower));
 
     @Test
     public void ensureCellSweepDeletesCells() {

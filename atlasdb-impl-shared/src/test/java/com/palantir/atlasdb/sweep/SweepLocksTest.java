@@ -38,10 +38,11 @@ import com.palantir.lock.RemoteLockService;
 public class SweepLocksTest {
     private SweepLocks sweepLocks;
     private RemoteLockService mockLockService = mock(RemoteLockService.class);
+    private final int numberOfParallelSweeps = 1;
 
     @Before
     public void setUp() {
-        sweepLocks = new SweepLocks(mockLockService);
+        sweepLocks = new SweepLocks(mockLockService, numberOfParallelSweeps);
     }
 
     @Test

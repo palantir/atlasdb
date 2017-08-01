@@ -27,7 +27,7 @@ import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
     @Test
-    public void testWritePriorityAfterCompleteFreshRun() {
+    public void testWritePriorityAfterCompleteFreshRun() throws InterruptedException {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
@@ -49,7 +49,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
-    public void testWritePriorityAfterSecondRunCompletesSweep() {
+    public void testWritePriorityAfterSecondRunCompletesSweep() throws InterruptedException {
         setProgress(ImmutableSweepProgress.builder()
                 .tableRef(TABLE_REF)
                 .staleValuesDeleted(3)
@@ -76,7 +76,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
-    public void testWriteProgressAfterIncompleteRun() {
+    public void testWriteProgressAfterIncompleteRun() throws InterruptedException {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
@@ -98,7 +98,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
-    public void testPutZeroWriteCountAfterFreshIncompleteRun() {
+    public void testPutZeroWriteCountAfterFreshIncompleteRun() throws InterruptedException {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
@@ -117,7 +117,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
-    public void testMetricsNotRecordedAfterIncompleteRun() {
+    public void testMetricsNotRecordedAfterIncompleteRun() throws InterruptedException {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
@@ -131,7 +131,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
-    public void testRecordCumulativeMetricsAfterCompleteRun() {
+    public void testRecordCumulativeMetricsAfterCompleteRun() throws InterruptedException {
         setProgress(
                 ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
@@ -151,7 +151,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
-    public void testCompactInternallyAfterCompleteRunIfNonZeroDeletes() {
+    public void testCompactInternallyAfterCompleteRunIfNonZeroDeletes() throws InterruptedException {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
@@ -164,7 +164,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
-    public void testDontCompactInternallyAfterCompleteRunIfZeroDeletes() {
+    public void testDontCompactInternallyAfterCompleteRunIfZeroDeletes() throws InterruptedException {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()

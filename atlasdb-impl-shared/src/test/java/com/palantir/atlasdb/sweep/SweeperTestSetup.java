@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -32,7 +33,6 @@ import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.lock.RemoteLockService;
 
 public class SweeperTestSetup {
 
@@ -51,14 +51,16 @@ public class SweeperTestSetup {
     protected long currentTimeMillis = 1000200300L;
 
     @Before
-    public void setup() {
+    public void setup() throws InterruptedException {
         specificTableSweeper = getSpecificTableSweeperService();
+        SweepLocks sweepLocks = Mockito.mock(SweepLocks.class);
+        Mockito.doReturn(true).when(sweepLocks).lockOrRefreshSweepLease();
+        Mockito.doReturn(true).when(sweepLocks).lockTableToSweep(Mockito.any());
+
         backgroundSweeper = new BackgroundSweeperImpl(
-                Mockito.mock(RemoteLockService.class),
+                sweepLocks,
                 nextTableToSweepProvider,
                 () -> sweepEnabled,
-                () -> 0L, // pauseMillis
-                Mockito.mock(PersistentLockManager.class),
                 specificTableSweeper);
     }
 
@@ -103,7 +105,9 @@ public class SweeperTestSetup {
 
     protected void setNextTableToSweep(TableReference tableRef) {
         Mockito.doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider)
-                .chooseNextTableToSweep(Mockito.any(), Mockito.anyLong());
+                .chooseNextTableToSweep(Mockito.any(), Mockito.anyLong(), Mockito.any());
+        Mockito.doReturn(Sets.newHashSet(tableRef)).when(kvs)
+                .getAllTableNames();
     }
 
     protected void setupTaskRunner(SweepResults results) {
