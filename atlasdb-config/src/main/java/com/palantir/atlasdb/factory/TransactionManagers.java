@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.AtlasDbConsoleUiServiceImpl;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -245,6 +246,8 @@ public final class TransactionManagers {
 
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 
+        env.register(new AtlasDbConsoleUiServiceImpl());
+
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
@@ -290,6 +293,7 @@ public final class TransactionManagers {
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
                 config.getSweepPersistentLockWaitMillis());
+
         initializeSweepEndpointAndBackgroundProcess(runtimeConfigSupplier,
                 env,
                 kvs,
