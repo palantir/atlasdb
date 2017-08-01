@@ -16,12 +16,15 @@
 
 package com.palantir.timelock.coordination;
 
+import org.immutables.value.Value;
+
 import com.palantir.timelock.partition.Assignment;
 
-public interface CoordinationService {
-    SequenceAndAssignment getCoordinatedValue();
+@Value.Immutable
+public interface SequenceAndAssignment {
+    @Value.Parameter
+    long sequenceNumber();
 
-    // This method returns the assignment eventually decided upon, which may not be the same as the provided
-    // assignment.
-    SequenceAndAssignment proposeAssignment(Assignment assignment);
+    @Value.Parameter
+    Assignment assignment();
 }

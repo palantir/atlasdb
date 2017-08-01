@@ -35,6 +35,10 @@ public class NamespaceCoordinatingProxyTest {
     private static final String LOCALHOST = "me";
     private static final Assignment ACTIVE_ASSIGNMENT = Assignment.builder().addMapping(CLIENT, LOCALHOST).build();
     private static final Assignment INACTIVE_ASSIGNMENT = Assignment.builder().addMapping(CLIENT, "other").build();
+    private static final SequenceAndAssignment ACTIVE_SEQ_ASSIGNMENT =
+            ImmutableSequenceAndAssignment.of(1L, ACTIVE_ASSIGNMENT);
+    private static final SequenceAndAssignment INACTIVE_SEQ_ASSIGNMENT =
+            ImmutableSequenceAndAssignment.of(1L, INACTIVE_ASSIGNMENT);
 
     private final CoordinationService coordinationService = mock(CoordinationService.class);
     private final AtomicLong creationCounter = new AtomicLong();
@@ -50,21 +54,21 @@ public class NamespaceCoordinatingProxyTest {
 
     @Test
     public void throwsNotCurrentLeaderExceptionIfWeDontKnowThePartition() {
-        when(coordinationService.getAssignment()).thenReturn(Assignment.nopAssignment());
+        when(coordinationService.getCoordinatedValue()).thenReturn(INACTIVE_SEQ_ASSIGNMENT);
         assertThatThrownBy(timestampService::getFreshTimestamp)
                 .isInstanceOf(NotCurrentLeaderException.class);
     }
 
     @Test
     public void throwsNotCurrentLeaderExceptionIfWeAreNotPartOfTheKnownPartition() {
-        when(coordinationService.getAssignment()).thenReturn(INACTIVE_ASSIGNMENT);
+        when(coordinationService.getCoordinatedValue()).thenReturn(INACTIVE_SEQ_ASSIGNMENT);
         assertThatThrownBy(timestampService::getFreshTimestamp)
                 .isInstanceOf(NotCurrentLeaderException.class);
     }
 
     @Test
     public void callsRealMethodIfWeArePartOfTheKnownPartition() {
-        when(coordinationService.getAssignment()).thenReturn(ACTIVE_ASSIGNMENT);
+        when(coordinationService.getCoordinatedValue()).thenReturn(ACTIVE_SEQ_ASSIGNMENT);
         long ts1 = timestampService.getFreshTimestamp();
         long ts2 = timestampService.getFreshTimestamp();
         assertThat(ts1).isLessThan(ts2);
@@ -72,12 +76,12 @@ public class NamespaceCoordinatingProxyTest {
 
     @Test
     public void recreatesClassIfWeLoseLeadership() {
-        when(coordinationService.getAssignment()).thenReturn(ACTIVE_ASSIGNMENT);
+        when(coordinationService.getCoordinatedValue()).thenReturn(ACTIVE_SEQ_ASSIGNMENT);
         timestampService.getFreshTimestamp();
-        when(coordinationService.getAssignment()).thenReturn(INACTIVE_ASSIGNMENT);
+        when(coordinationService.getCoordinatedValue()).thenReturn(INACTIVE_SEQ_ASSIGNMENT);
         assertThatThrownBy(timestampService::getFreshTimestamp)
                 .isInstanceOf(NotCurrentLeaderException.class);
-        when(coordinationService.getAssignment()).thenReturn(ACTIVE_ASSIGNMENT);
+        when(coordinationService.getCoordinatedValue()).thenReturn(ACTIVE_SEQ_ASSIGNMENT);
         timestampService.getFreshTimestamp();
         assertThat(creationCounter.get()).isEqualTo(2L);
     }

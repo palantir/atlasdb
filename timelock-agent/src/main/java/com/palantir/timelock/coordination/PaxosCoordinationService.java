@@ -91,7 +91,7 @@ public class PaxosCoordinationService implements CoordinationService {
     }
 
     @Override
-    public synchronized Assignment getAssignment() {
+    public synchronized SequenceAndAssignment getCoordinatedValue() {
         // This MUST be read before the value from the acceptor.
         PaxosValue greatestKnown = knowledge.getGreatestLearnedValue();
         long knowledgeSeq = greatestKnown == null ? PaxosAcceptor.NO_LOG_ENTRY : greatestKnown.getRound();
@@ -107,15 +107,15 @@ public class PaxosCoordinationService implements CoordinationService {
                         SafeArg.of("oldState", oldState),
                         SafeArg.of("newState", agreedState));
             }
-            return agreedState.assignment();
+            return agreedState;
         }
 
         // In this case we actually need to read the world.
         return readAssignment();
     }
 
-    private Assignment readAssignment() {
-        return getAgreedState(getLatestSequenceNumber()).assignment();
+    private SequenceAndAssignment readAssignment() {
+        return getAgreedState(getLatestSequenceNumber());
     }
 
     private long getLatestSequenceNumber() {
@@ -198,7 +198,7 @@ public class PaxosCoordinationService implements CoordinationService {
     }
 
     @Override
-    public synchronized void proposeAssignment(Assignment assignment) {
+    public synchronized SequenceAndAssignment proposeAssignment(Assignment assignment) {
         long newSeq = getLatestSequenceNumber() + 1;
         log.info("Trying to propose {} at sequence {}",
                 SafeArg.of("assignment", assignment),
@@ -213,7 +213,7 @@ public class PaxosCoordinationService implements CoordinationService {
                 log.info("Reached consensus on {} at sequence {}",
                         SafeArg.of("assignment", actualAssignment),
                         SafeArg.of("sequence", newSeq));
-                return;
+                return agreedState;
             } catch (PaxosRoundFailureException e) {
                 newSeq = getLatestSequenceNumber();
                 try {
@@ -261,15 +261,6 @@ public class PaxosCoordinationService implements CoordinationService {
         default boolean isSuccessful() {
             return true;
         }
-
-        @Value.Parameter
-        Assignment assignment();
-    }
-
-    @Value.Immutable
-    interface SequenceAndAssignment {
-        @Value.Parameter
-        long sequenceNumber();
 
         @Value.Parameter
         Assignment assignment();

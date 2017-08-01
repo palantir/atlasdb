@@ -114,7 +114,7 @@ public class NamespaceCoordinatingProxy<T> extends AbstractInvocationHandler {
     }
 
     private boolean isAssigned() {
-        return coordinationService.getAssignment().getHostsForClient(client).contains(localhost);
+        return coordinationService.getCoordinatedValue().assignment().getHostsForClient(client).contains(localhost);
     }
 
     private void clearDelegate() throws IOException {

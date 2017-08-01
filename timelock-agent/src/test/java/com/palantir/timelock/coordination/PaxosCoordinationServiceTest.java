@@ -112,22 +112,22 @@ public class PaxosCoordinationServiceTest {
 
     @Test
     public void getsNopAssignmentIfNothingAgreedYet() {
-        assertThat(coordinationService.getAssignment()).isEqualTo(Assignment.nopAssignment());
+        assertThat(coordinationService.getCoordinatedValue().assignment()).isEqualTo(Assignment.nopAssignment());
     }
 
     @Test
     public void canProposeAndReadNewAssignment() {
         coordinationService.proposeAssignment(ASSIGNMENT_1);
-        assertThat(coordinationService.getAssignment()).isEqualTo(ASSIGNMENT_1);
+        assertThat(coordinationService.getCoordinatedValue().assignment()).isEqualTo(ASSIGNMENT_1);
     }
 
     @Test
     public void assignmentChangesPropagatedAcrossNodes() {
         coordinationService.proposeAssignment(ASSIGNMENT_1);
         PaxosCoordinationService service2 = createCoordinationService(1);
-        assertThat(service2.getAssignment()).isEqualTo(ASSIGNMENT_1);
+        assertThat(service2.getCoordinatedValue().assignment()).isEqualTo(ASSIGNMENT_1);
         service2.proposeAssignment(ASSIGNMENT_2);
-        assertThat(coordinationService.getAssignment()).isEqualTo(ASSIGNMENT_2);
+        assertThat(coordinationService.getCoordinatedValue().assignment()).isEqualTo(ASSIGNMENT_2);
     }
 
     @Test
@@ -145,22 +145,22 @@ public class PaxosCoordinationServiceTest {
         failureToggles.get(1).set(false);
 
         coordinationService.proposeAssignment(ASSIGNMENT_1);
-        assertThat(coordinationService.getAssignment()).isEqualTo(ASSIGNMENT_1);
-        assertThat(createCoordinationService(1).getAssignment()).isEqualTo(ASSIGNMENT_1);
+        assertThat(coordinationService.getCoordinatedValue().assignment()).isEqualTo(ASSIGNMENT_1);
+        assertThat(createCoordinationService(1).getCoordinatedValue().assignment()).isEqualTo(ASSIGNMENT_1);
     }
 
     @Test
     public void canReadAssignmentWithoutQuorumIfUpToDate() {
         coordinationService.proposeAssignment(ASSIGNMENT_1);
         failureToggles.get(1).set(true);
-        assertThat(coordinationService.getAssignment()).isEqualTo(ASSIGNMENT_1);
+        assertThat(coordinationService.getCoordinatedValue().assignment()).isEqualTo(ASSIGNMENT_1);
     }
 
     @Test
     public void canReadAssignmentWithAllOtherNodesDownIfUpToDate() {
         coordinationService.proposeAssignment(ASSIGNMENT_1);
         IntStream.range(1, NUM_NODES).forEach(index -> failureToggles.get(index).set(true));
-        assertThat(coordinationService.getAssignment()).isEqualTo(ASSIGNMENT_1);
+        assertThat(coordinationService.getCoordinatedValue().assignment()).isEqualTo(ASSIGNMENT_1);
     }
 
     @Test
@@ -170,7 +170,8 @@ public class PaxosCoordinationServiceTest {
         for (int i = 0; i < 100; i++) {
             Assignment assignmentToAdd = i % 2 == 0 ? ASSIGNMENT_1 : ASSIGNMENT_2;
             services.get(i % NUM_NODES).proposeAssignment(assignmentToAdd);
-            services.forEach(service -> assertThat(service.getAssignment()).isEqualTo(assignmentToAdd));
+            services.forEach(service -> assertThat(service.getCoordinatedValue().assignment())
+                    .isEqualTo(assignmentToAdd));
         }
     }
 
@@ -193,9 +194,9 @@ public class PaxosCoordinationServiceTest {
             Futures.getUnchecked(future);
         }
 
-        Assignment consensus = services.get(0).getAssignment();
+        Assignment consensus = services.get(0).getCoordinatedValue().assignment();
         for (int i = 0; i < NUM_NODES; i++) {
-            assertThat(services.get(i).getAssignment()).isEqualTo(consensus);
+            assertThat(services.get(i).getCoordinatedValue().assignment()).isEqualTo(consensus);
         }
     }
 
