@@ -19,6 +19,8 @@ package com.palantir.timelock.coordination;
 import com.palantir.timelock.partition.Assignment;
 
 public interface CoordinationService {
+    long getSeed();
+
     SequenceAndAssignment getCoordinatedValue();
 
     // This method returns the assignment eventually decided upon, which may not be the same as the provided

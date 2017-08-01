@@ -16,91 +16,50 @@
 
 package com.palantir.timelock.partition;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
+import java.util.Map;
+import java.util.Set;
 
-import org.immutables.value.Value;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.paxos.PaxosAcceptor;
-import com.palantir.paxos.PaxosLearner;
-import com.palantir.paxos.PaxosProposer;
-import com.palantir.paxos.PaxosRoundFailureException;
-import com.palantir.paxos.PaxosValue;
+import com.palantir.timelock.coordination.CoordinationService;
+import com.palantir.timelock.coordination.DrainService;
 
 public class PaxosPartitionService implements PartitionService {
-    private final PaxosProposer proposer;
-    private final PaxosLearner knowledge;
-    private final List<PaxosAcceptor> acceptors;
-    private final List<PaxosLearner> learners;
+    private final CoordinationService coordinationService;
+    private final Map<String, DrainService> drainServices;
+    private final TimeLockPartitioner partitioner;
 
-    private final Supplier<Assignment> partitioner;
+    private final List<String> clients;
+    private final List<String> hosts;
 
-    private AtomicReference<Assignment> reference;
-    private SequenceAndAssignment agreedState;
-
-    public PaxosPartitionService(
-            PaxosProposer proposer,
-            PaxosLearner knowledge,
-            List<PaxosAcceptor> acceptors,
-            List<PaxosLearner> learners,
-            Supplier<Assignment> partitioner) {
-        this.proposer = proposer;
-        this.knowledge = knowledge;
-        this.acceptors = acceptors;
-        this.learners = learners;
+    public PaxosPartitionService(CoordinationService coordinationService,
+            Map<String, DrainService> drainServices,
+            TimeLockPartitioner partitioner,
+            List<String> clients,
+            List<String> hosts) {
+        this.coordinationService = coordinationService;
+        this.drainServices = drainServices;
         this.partitioner = partitioner;
+        this.clients = clients;
+        this.hosts = hosts;
     }
 
     @Override
-    public Assignment getPartition() {
-        Assignment assignment = reference.get();
-        if (assignment != null) {
-            return assignment;
-        }
-        // block for 5 ms and try again
-        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
-        assignment = reference.get();
-        if (assignment != null) {
-            return assignment;
-        }
-        throw new ServiceNotAvailableException("The partition service seems to be deadlocked, please try again later");
-    }
+    public void repartition() {
+        // TODO (jkong): Fix issues if this crashes mid-way.
+        // Currently if this crashes halfway, we need to restart the entire timelock cluster.
+        // TODO (jkong): Find a way to throw MultipleRunningCoordinationServiceError if this goes bad?
+        Assignment currentAssignment = coordinationService.getCoordinatedValue().assignment();
+        Assignment newAssignment = coordinationService.proposeAssignment(
+                partitioner.partition(clients, hosts, coordinationService.getSeed())).assignment();
 
-    public void updateAssignment() {
-        // TODO (jkong): Computing nextPartition requires information from the Paxos
-        Assignment nextPartition = partitioner.get();
+        for (String client : currentAssignment.getKnownClients()) {
+            Set<String> currentHosts = currentAssignment.getHostsForClient(client);
+            Set<String> newHosts = newAssignment.getHostsForClient(client);
 
-        long newSeq = agreedState == null ? PaxosAcceptor.NO_LOG_ENTRY + 1 : agreedState.sequenceNumber() + 1;
-        while (true) {
-            try {
-                proposer.propose(newSeq, new ObjectMapper().writeValueAsBytes(nextPartition));
-                PaxosValue value = knowledge.getLearnedValue(newSeq);
-                Assignment newAssignment = new ObjectMapper().readValue(value.getData(), Assignment.class);
-            } catch (PaxosRoundFailureException e) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e1) {
-                    Thread.currentThread().interrupt();
-                }
-            } catch (IOException e) {
-                throw Throwables.propagate(e);
+            if (!currentHosts.equals(newHosts)) {
+                currentHosts.forEach(host -> drainServices.get(host).drain(client));
+                newHosts.forEach(host -> drainServices.get(host).regenerate(client));
             }
         }
-    }
-
-    @Value.Immutable
-    interface SequenceAndAssignment {
-        @Value.Parameter
-        long sequenceNumber();
-
-        @Value.Parameter
-        Assignment assignment();
     }
 }

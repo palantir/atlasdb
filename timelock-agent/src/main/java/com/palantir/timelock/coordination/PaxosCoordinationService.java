@@ -49,10 +49,9 @@ import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.timelock.partition.Assignment;
-import com.palantir.timelock.partition.PaxosPartitionService;
 
 public class PaxosCoordinationService implements CoordinationService {
-    private static final Logger log = LoggerFactory.getLogger(PaxosPartitionService.class);
+    private static final Logger log = LoggerFactory.getLogger(PaxosCoordinationService.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .registerModule(new GuavaModule())
             .registerModule(new Jdk8Module());
@@ -88,6 +87,11 @@ public class PaxosCoordinationService implements CoordinationService {
         this.learners = learners;
 
         this.agreedState = ImmutableSequenceAndAssignment.of(PaxosAcceptor.NO_LOG_ENTRY, Assignment.nopAssignment());
+    }
+
+    @Override
+    public long getSeed() {
+        return agreedState == null ? PaxosAcceptor.NO_LOG_ENTRY : agreedState.sequenceNumber();
     }
 
     @Override

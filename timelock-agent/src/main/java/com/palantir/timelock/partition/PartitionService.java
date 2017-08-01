@@ -16,9 +16,12 @@
 
 package com.palantir.timelock.partition;
 
-/**
- * The PartitionService returns an Assignment between clients and nodes.
- */
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+
+@Path("/partition")
 public interface PartitionService {
-    Assignment getPartition();
+    @POST
+    @Path("repartition")
+    void repartition();
 }
