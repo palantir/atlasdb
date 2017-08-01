@@ -20,16 +20,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.timelock.coordination.CoordinationService;
 import com.palantir.timelock.coordination.DrainService;
+import com.palantir.timelock.coordination.ImmutableHostTransition;
 
 public class PaxosPartitionService implements PartitionService {
+    private static final Logger log = LoggerFactory.getLogger(PaxosPartitionService.class);
+
     private final CoordinationService coordinationService;
     private final Map<String, DrainService> drainServices;
     private final TimeLockPartitioner partitioner;
 
     private final List<String> clients;
     private final List<String> hosts;
+
+    private boolean firstRepartition;
 
     public PaxosPartitionService(CoordinationService coordinationService,
             Map<String, DrainService> drainServices,
@@ -41,10 +49,11 @@ public class PaxosPartitionService implements PartitionService {
         this.partitioner = partitioner;
         this.clients = clients;
         this.hosts = hosts;
+        this.firstRepartition = true;
     }
 
     @Override
-    public void repartition() {
+    public synchronized void repartition() {
         // TODO (jkong): Fix issues if this crashes mid-way.
         // Currently if this crashes halfway, we need to restart the entire timelock cluster.
         // TODO (jkong): Find a way to throw MultipleRunningCoordinationServiceError if this goes bad?
@@ -52,13 +61,24 @@ public class PaxosPartitionService implements PartitionService {
         Assignment newAssignment = coordinationService.proposeAssignment(
                 partitioner.partition(clients, hosts, coordinationService.getSeed())).assignment();
 
-        for (String client : currentAssignment.getKnownClients()) {
+        if (firstRepartition) {
+            firstRepartition = false;
+            for (String client : clients) {
+                for (String host : hosts) {
+                    drainServices.get(host).drain(client);
+                }
+            }
+        }
+
+        for (String client : newAssignment.getKnownClients()) {
             Set<String> currentHosts = currentAssignment.getHostsForClient(client);
             Set<String> newHosts = newAssignment.getHostsForClient(client);
 
             if (!currentHosts.equals(newHosts)) {
+                log.info("Now repartitioning client {}: {} to {}", client, currentHosts, newHosts);
                 currentHosts.forEach(host -> drainServices.get(host).drain(client));
-                newHosts.forEach(host -> drainServices.get(host).regenerate(client));
+                newHosts.forEach(host -> drainServices.get(host).regenerate(client,
+                        ImmutableHostTransition.of(currentHosts, newHosts)));
             }
         }
     }

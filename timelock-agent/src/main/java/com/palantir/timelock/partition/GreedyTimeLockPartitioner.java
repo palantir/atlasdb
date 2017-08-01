@@ -39,9 +39,9 @@ public class GreedyTimeLockPartitioner implements TimeLockPartitioner {
 
         Assignment.Builder builder = Assignment.builder();
         int index = 0;
-        for (String client : clients) {
+        for (String client : clientsCopy) {
             for (int i = 0; i < miniclusterSize; i++, index++) {
-                builder.addMapping(client, hosts.get(index % numHosts));
+                builder.addMapping(client, hostsCopy.get(index % numHosts));
             }
         }
         return builder.build();

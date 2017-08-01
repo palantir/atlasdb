@@ -84,9 +84,6 @@ public final class PaxosResource {
     }
 
     public void addInstrumentedClient(String client, LeadershipResource resource) {
-        Preconditions.checkState(!paxosLearners.containsKey(client),
-                "Paxos resource already has client '%s' registered", client);
-
         String learnerLogDir = Paths.get(logDirectory, client, PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH)
                 .toString();
         PaxosLearner learner = instrument(

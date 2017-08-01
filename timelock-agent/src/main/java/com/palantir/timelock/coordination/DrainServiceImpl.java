@@ -17,9 +17,10 @@
 package com.palantir.timelock.coordination;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import javax.ws.rs.BadRequestException;
 
@@ -28,18 +29,18 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.leader.Drainable;
 
 public class DrainServiceImpl implements DrainService {
-    private final Map<String, Supplier<TimeLockServices>> serviceSuppliers;
+    private final Map<String, Function<HostTransition, TimeLockServices>> serviceSuppliers;
     private final Map<String, TimeLockServices> actualServices;
-    private final Consumer<String> regenCallback;
+    private final BiConsumer<String, HostTransition> regenCallback;
 
-    public DrainServiceImpl(Map<String, TimeLockServices> actualServices, Consumer<String> regenCallback) {
+    public DrainServiceImpl(Map<String, TimeLockServices> actualServices,
+            BiConsumer<String, HostTransition> regenCallback) {
         this.serviceSuppliers = Maps.newConcurrentMap();
         this.actualServices = actualServices;
         this.regenCallback = regenCallback;
     }
 
-    @Override
-    public void register(String client, Supplier<TimeLockServices> timeLockServices) {
+    public void register(String client, Function<HostTransition, TimeLockServices> timeLockServices) {
         serviceSuppliers.put(client, timeLockServices);
     }
 
@@ -64,13 +65,12 @@ public class DrainServiceImpl implements DrainService {
     }
 
     @Override
-    public synchronized TimeLockServices regenerateInternal(String client) {
+    public synchronized void regenerate(String client, HostTransition hostsForClient) {
         if (!serviceSuppliers.containsKey(client)) {
             throw new BadRequestException("Client " + client + " not defined!");
         }
-        TimeLockServices newServices = serviceSuppliers.get(client).get();
+        TimeLockServices newServices = serviceSuppliers.get(client).apply(hostsForClient);
         actualServices.put(client, newServices);
-        regenCallback.accept(client);
-        return newServices;
+        regenCallback.accept(client, hostsForClient);
     }
 }

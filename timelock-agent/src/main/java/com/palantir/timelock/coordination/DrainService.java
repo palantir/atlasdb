@@ -16,15 +16,12 @@
 
 package com.palantir.timelock.coordination;
 
-import java.util.function.Supplier;
-
+import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.atlasdb.timelock.TimeLockServices;
 
 /**
  * Shuts timestamp and lock services down for a single client.
@@ -36,19 +33,14 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
  */
 @Path("/drain")
 public interface DrainService {
-    void register(String client, Supplier<TimeLockServices> timeLockServices);
-
     @POST
-    @Path("drain")
+    @Path("/drain")
     @Produces(MediaType.APPLICATION_JSON)
     void drain(@QueryParam("client") String client);
 
     @POST
-    @Path("regenerate")
+    @Path("/regenerate")
     @Produces(MediaType.APPLICATION_JSON)
-    default void regenerate(@QueryParam("client") String client) {
-        regenerateInternal(client);
-    }
-
-    TimeLockServices regenerateInternal(String client);
+    @Consumes(MediaType.APPLICATION_JSON)
+    void regenerate(@QueryParam("client") String client, HostTransition hostsForClient);
 }

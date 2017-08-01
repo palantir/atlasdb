@@ -139,7 +139,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
-        Preconditions.checkState(!draining, "draining");
+        if (draining) {
+            throw new NotCurrentLeaderException("draining");
+        }
         openTasks.incrementAndGet();
         try {
             for (;;) {
@@ -230,7 +232,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public Optional<HostAndPort> getSuspectedLeaderInMemory() {
-        Preconditions.checkState(!draining, "draining");
+        if (draining) {
+            throw new NotCurrentLeaderException("draining");
+        }
         openTasks.incrementAndGet();
         try {
             Optional<PingableLeader> maybeLeader = getSuspectedLeader(false /* use network */);
@@ -377,13 +381,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public String getUUID() {
-        Preconditions.checkState(!draining, "draining");
         return proposer.getUuid();
     }
 
     @Override
     public boolean ping() {
-        Preconditions.checkState(!draining, "draining");
         return isLastConfirmedLeader(knowledge.getGreatestLearnedValue());
     }
 

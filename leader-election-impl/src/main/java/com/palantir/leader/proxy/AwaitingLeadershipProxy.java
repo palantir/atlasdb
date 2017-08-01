@@ -183,7 +183,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
 
         if (isClosed) {
-            throw new IllegalStateException("already closed proxy for " + interfaceClass.getName());
+            throw new NotCurrentLeaderException("already closed - maybe relocated");
+            //throw new IllegalStateException("already closed proxy for " + interfaceClass.getName());
         }
 
         Preconditions.checkNotNull(delegate, interfaceClass.getName() + " backing is null");
