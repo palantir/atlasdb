@@ -17,28 +17,75 @@ package com.palantir.atlasdb.console;
 
 import java.io.IOException;
 
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+
 import com.palantir.atlasdb.api.TransactionToken;
 
+
+@Path("/console2")
 public interface AtlasConsoleService {
+
+    @POST
+    @Path("tables")
+    @Produces(MediaType.APPLICATION_JSON)
     String tables() throws IOException;
 
-    String getMetadata(String table) throws IOException;
+    @POST
+    @Path("metadata")
+    @Produces(MediaType.APPLICATION_JSON)
+    String getMetadata(@QueryParam("table") String table) throws IOException;
 
-    String getRows(TransactionToken token, String data) throws IOException;
+    @POST
+    @Path("get-rows/{token}")
+    @Produces(MediaType.APPLICATION_JSON)
+    String getRows(@PathParam("token") TransactionToken token, @QueryParam("data") String data) throws IOException;
 
-    String getCells(TransactionToken token, String data) throws IOException;
+    @POST
+    @Path("get-cells/{token}")
+    @Produces(MediaType.APPLICATION_JSON)
+    String getCells(@PathParam("token") TransactionToken token, @QueryParam("data") String data) throws IOException;
 
-    String getRange(TransactionToken token, String data) throws IOException;
+    @POST
+    @Path("get-range/{token}")
+    @Produces(MediaType.APPLICATION_JSON)
+    String getRange(@PathParam("token") TransactionToken token, @QueryParam("data") String data) throws IOException;
 
-    void put(TransactionToken token, String data) throws IOException;
+    @POST
+    @Path("put/{token}")
+    @Produces(MediaType.APPLICATION_JSON)
+    void put(@PathParam("token") TransactionToken token, @QueryParam("data") String data) throws IOException;
 
-    void delete(TransactionToken token, String data) throws IOException;
 
-    void truncate(String table) throws IOException;
+    @POST
+    @Path("delete/{token}")
+    @Produces(MediaType.APPLICATION_JSON)
+    void delete(@PathParam("token") TransactionToken token, @QueryParam("data") String data) throws IOException;
 
+
+    @POST
+    @Path("truncate")
+    @Produces(MediaType.APPLICATION_JSON)
+    void truncate(@QueryParam("table") String table) throws IOException;
+
+
+    @GET
+    @Path("start-transaction")
+    @Produces(MediaType.APPLICATION_JSON)
     TransactionToken startTransaction();
 
-    void commit(TransactionToken token);
+    @POST
+    @Path("commit/{token}")
+    @Produces(MediaType.APPLICATION_JSON)
+    void commit(@PathParam("token") TransactionToken token);
 
-    void abort(TransactionToken token);
+    @POST
+    @Path("abort/{token}")
+    @Produces(MediaType.APPLICATION_JSON)
+    void abort(@PathParam("token") TransactionToken token);
 }
