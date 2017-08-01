@@ -16,14 +16,24 @@
 
 package com.palantir.atlasdb;
 
+import java.nio.charset.Charset;
+
+import com.google.common.io.Files;
+
 public class AtlasDbConsoleUiServiceImpl implements AtlasDbConsoleUiService {
     @Override
     public String runQuery(String query) {
-        return "<form>\n"
-                + "  First name:<br>\n"
-                + "  <input type=\"text\" name=\"firstname\"><br>\n"
-                + "  Last name:<br>\n"
-                + "  <input type=\"text\" name=\"lastname\">\n"
-                + "</form>\n";
+        System.out.println("Query is: " + query);
+        System.out.println("Done");
+        try {
+            String content = Files.toString(
+                    new java.io.File("/Volumes/git/atlasdb/atlasdb-config/src/main/java/com/palantir/atlasdb/index.js"),
+                    Charset.defaultCharset());
+            //System.out.println(content);
+            return content;
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return null;
+        }
     }
 }

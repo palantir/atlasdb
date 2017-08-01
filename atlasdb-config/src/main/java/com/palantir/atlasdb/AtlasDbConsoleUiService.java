@@ -25,7 +25,7 @@ import javax.ws.rs.core.MediaType;
 @Path("/console")
 public interface AtlasDbConsoleUiService {
 
-    @GET
+    @GET // This has to be POST because we can't allow caching.
     @Produces(MediaType.TEXT_HTML)
     String runQuery(@QueryParam("query") String query);
 }
