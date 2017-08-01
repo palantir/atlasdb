@@ -273,7 +273,7 @@ import com.palantir.timestamp.TimestampService;
      * This method is used to optimize the perf of read only transactions because getting a new immutableTs requires
      * 2 extra remote calls which we can skip.
      */
-    private long getApproximateImmutableTimestamp() {
+    protected long getApproximateImmutableTimestamp() {
         long recentTs = recentImmutableTs.get();
         if (recentTs >= 0) {
             return recentTs;
