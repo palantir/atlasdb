@@ -66,12 +66,40 @@ public class Assignment {
         return new Builder();
     }
 
+    public static Assignment nopAssignment() {
+        return builder().build();
+    }
+
     @Override
     public String toString() {
         return "Assignment{" +
                 "clientsToHosts=" + clientsToHosts +
                 ", hostsToClients=" + hostsToClients +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Assignment that = (Assignment) o;
+
+        if (!clientsToHosts.equals(that.clientsToHosts)) {
+            return false;
+        }
+        return hostsToClients.equals(that.hostsToClients);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = clientsToHosts.hashCode();
+        result = 31 * result + hostsToClients.hashCode();
+        return result;
     }
 
     @NotThreadSafe
