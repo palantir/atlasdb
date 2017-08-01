@@ -153,6 +153,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             isClosed = true;
             executor.shutdownNow();
             clearDelegate();
+            leaderElectionService.drain();
             return null;
         }
 
@@ -160,6 +161,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         if (method.getName().equals("drain") && args.length == 0) {
             isClosed = true;
             executor.shutdownNow();
+            leaderElectionService.drain();
             CompletableFuture<Void> completableFuture = leaderElectionService.drain();
             if (delegate instanceof Drainable) {
                 completableFuture.thenCompose(unused -> ((Drainable) delegate).drain());

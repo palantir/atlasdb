@@ -68,6 +68,7 @@ import com.palantir.timelock.coordination.CoordinationService;
 import com.palantir.timelock.coordination.DrainService;
 import com.palantir.timelock.coordination.DrainServiceImpl;
 import com.palantir.timelock.coordination.HostTransition;
+import com.palantir.timelock.coordination.ImmutableHostTransition;
 import com.palantir.timelock.coordination.PaxosCoordinationService;
 import com.palantir.timelock.partition.Assignment;
 import com.palantir.timelock.partition.GreedyTimeLockPartitioner;
@@ -247,7 +248,8 @@ public class PaxosAgent extends TimeLockAgent {
         Set<String> hostsForClient = PaxosRemotingUtils.addProtocols(install, Observables.blockingMostRecent(
                 assignment.map(assign -> assign.getHostsForClient(client))).get());
 
-        namespacedPaxosLeadershipCreator.registerLeaderElectionServiceForClient(client, hostsForClient);
+        namespacedPaxosLeadershipCreator.registerLeaderElectionServiceForClient(client,
+                ImmutableHostTransition.of(ImmutableSet.of(), hostsForClient));
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier =
                 timestampCreator.createPaxosBackedTimestampService(client,
                         namespacedPaxosLeadershipCreator.getNamespacedLeadershipResource(),
@@ -264,7 +266,7 @@ public class PaxosAgent extends TimeLockAgent {
     }
 
     private TimeLockServices createServicesForClient(String client, HostTransition hosts) {
-        namespacedPaxosLeadershipCreator.registerLeaderElectionServiceForClient(client, hosts.newHostSet());
+        namespacedPaxosLeadershipCreator.registerLeaderElectionServiceForClient(client, hosts);
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier =
                 timestampCreator.createPaxosBackedTimestampService(client,
                         namespacedPaxosLeadershipCreator.getNamespacedLeadershipResource(),

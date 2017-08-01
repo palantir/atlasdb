@@ -17,7 +17,6 @@
 package com.palantir.timelock.coordination;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -52,6 +51,8 @@ public class DrainServiceImpl implements DrainService {
         TimeLockServices timeLockServices = actualServices.get(client);
         CompletableFuture<Void> future = new CompletableFuture<>();
         future.complete(null);
+        // TODO (jkong): Implement drain with NamespaceCoordinatingProxys properly
+        // Current drain won't admit any more requests but could lead to MRTSEs.
         if (timeLockServices.getTimestampManagementService() instanceof Drainable) {
             future.thenCompose(unused -> ((Drainable) timeLockServices.getTimestampManagementService()).drain());
         }

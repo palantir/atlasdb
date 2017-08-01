@@ -29,16 +29,21 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.paxos.LeadershipResource;
+import com.palantir.atlasdb.timelock.paxos.PaxosSynchronizer;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PingableLeaderLocator;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.paxos.PaxosLearner;
+import com.palantir.remoting2.config.ssl.SslSocketFactories;
 import com.palantir.timelock.Observables;
 import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
+import com.palantir.timelock.coordination.HostTransition;
 
 import io.reactivex.Observable;
 
@@ -65,10 +70,10 @@ public class NamespacedPaxosLeadershipCreator {
         registrar.accept(locator);
     }
 
-    public synchronized void registerLeaderElectionServiceForClient(String client, Set<String> hosts) {
-        LeaderConfig leaderConfig = getLeaderConfig(client, hosts);
+    public synchronized void registerLeaderElectionServiceForClient(String client, HostTransition transition) {
+        LeaderConfig leaderConfig = getLeaderConfig(client, transition.newHostSet());
 
-        Set<String> remoteHosts = Sets.difference(hosts,
+        Set<String> remoteHosts = Sets.difference(transition.newHostSet(),
                 ImmutableSet.of(PaxosRemotingUtils.addProtocol(install, install.cluster().localServer())));
         Set<String> paxosSubresourceUris = getNamespacedUris(remoteHosts,
                 PaxosTimeLockConstants.INTERNAL_NAMESPACE,
@@ -84,6 +89,20 @@ public class NamespacedPaxosLeadershipCreator {
                         .remoteLearnerUris(paxosSubresourceUris)
                         .build(),
                 "leader-election-service");
+
+        if (!transition.oldHostSet().isEmpty()) {
+            PaxosSynchronizer.blockingSynchronizeLearner(localPaxosServices.ourLearner(),
+                    AtlasDbHttpClients.createProxies(
+                            PaxosRemotingUtils.getSslConfigurationOptional(install)
+                                    .map(SslSocketFactories::createSslSocketFactory),
+                            getNamespacedUris(
+                                    transition.oldHostSet(),
+                                    PaxosTimeLockConstants.INTERNAL_NAMESPACE,
+                                    PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
+                                    client,
+                                    "leadership"),
+                            PaxosLearner.class));
+        }
 
         namespacedLeadershipResource = new LeadershipResource(
                 localPaxosServices.ourAcceptor(),
