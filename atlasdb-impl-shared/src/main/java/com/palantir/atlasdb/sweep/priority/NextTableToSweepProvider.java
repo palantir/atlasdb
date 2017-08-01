@@ -16,10 +16,12 @@
 package com.palantir.atlasdb.sweep.priority;
 
 import java.util.Optional;
+import java.util.Set;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public interface NextTableToSweepProvider {
-    Optional<TableReference> chooseNextTableToSweep(Transaction tx, long conservativeSweepTs);
+    Optional<TableReference> chooseNextTableToSweep(Transaction tx, long conservativeSweepTs,
+            Set<TableReference> tablesNotSweeping);
 }

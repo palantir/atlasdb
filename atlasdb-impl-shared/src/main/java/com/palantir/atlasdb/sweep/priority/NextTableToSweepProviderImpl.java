@@ -43,8 +43,9 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
     }
 
     @Override
-    public Optional<TableReference> chooseNextTableToSweep(Transaction tx, long conservativeSweepTs) {
-        Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), AtlasDbConstants.hiddenTables);
+    public Optional<TableReference> chooseNextTableToSweep(Transaction tx, long conservativeSweepTs,
+            Set<TableReference> tablesNotSweeping) {
+        Set<TableReference> allTables = Sets.difference(tablesNotSweeping, AtlasDbConstants.hiddenTables);
 
         // We read priorities from the past because we should prioritize based on what the sweeper will
         // actually be able to sweep. We read priorities from the present to make sure we don't repeatedly

@@ -19,24 +19,26 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.TimeDuration;
 
 class SweepLocks implements AutoCloseable {
     private final RemoteLockService lockService;
     private final int numberOfParallelSweeps;
 
     private LockRefreshToken token = null;
-
-    private LockRefreshToken sweepLeaseToken = null;
 
     SweepLocks(RemoteLockService lockService, int numberOfParallelSweeps) {
         this.lockService = lockService;
@@ -67,6 +69,10 @@ class SweepLocks implements AutoCloseable {
             lockService.unlock(token);
         }
     }
+
+    //TODO: unlock lease and table tokens.
+
+    private LockRefreshToken sweepLeaseToken = null;
 
     boolean lockOrRefreshSweepLease() throws InterruptedException {
         sweepLeaseToken = lockOrRefreshSweepLeaseInternal(sweepLeaseToken);
@@ -102,5 +108,15 @@ class SweepLocks implements AutoCloseable {
         }
 
         return null;
+    }
+
+    private LockRefreshToken sweepTableToken = null;
+
+    boolean lockTableToSweep(TableReference tableRef) throws InterruptedException {
+        LockDescriptor lock = StringLockDescriptor.of("sweep-" + tableRef.getQualifiedName());
+        LockRequest request = LockRequest.builder(
+                ImmutableSortedMap.of(lock, LockMode.WRITE)).blockForAtMost(SimpleTimeDuration.of(2, TimeUnit.MINUTES)).build();
+        sweepTableToken = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
+        return sweepLeaseToken == null;
     }
 }

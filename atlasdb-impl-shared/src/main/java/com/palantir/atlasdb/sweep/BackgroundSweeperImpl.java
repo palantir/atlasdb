@@ -109,13 +109,14 @@ public final class BackgroundSweeperImpl implements Runnable {
     }
 
     @VisibleForTesting
-    boolean runOnce() {
+    boolean runOnce() throws InterruptedException {
         Optional<TableToSweep> tableToSweep = getTableToSweep();
         if (!tableToSweep.isPresent()) {
             // Don't change this log statement. It's parsed by test automation code.
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             return false;
         } else {
+            log.debug("Now starting to sweep next table.", UnsafeArg.of("table name", tableToSweep.get()));
             specificTableSweeper.runOnceForTable(tableToSweep.get(), Optional.empty(), true);
             return true;
         }
@@ -134,27 +135,37 @@ public final class BackgroundSweeperImpl implements Runnable {
         return Math.max(1, (int) (batchSizeMultiplier * parameterValue));
     }
 
-    private Optional<TableToSweep> getTableToSweep() {
-        return specificTableSweeper.getTxManager().runTaskWithRetry(
-                new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
-                    @Override
-                    public Optional<TableToSweep> execute(Transaction tx) {
-                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress(
-                                tx);
-                        if (progress.isPresent()) {
-                            return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
-                        } else {
-                            Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
-                                    tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
-                            if (nextTable.isPresent()) {
-                                log.debug("Now starting to sweep next table.", UnsafeArg.of("table name", nextTable));
-                                return Optional.of(new TableToSweep(nextTable.get(), null));
-                            } else {
-                                return Optional.empty();
-                            }
-                        }
-                    }
-                });
+    private Optional<TableToSweep> getTableToSweep() throws InterruptedException {
+        return specificTableSweeper.getTxManager().runTaskWithRetry(tx -> {
+            Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress(
+                    tx);
+            if (progress.isPresent()) {
+                return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
+            }
+
+            return getNextTableToSweepAccordingToPriority(tx);
+        });
+    }
+
+    private Optional<TableToSweep> getNextTableToSweepAccordingToPriority(Transaction tx) throws InterruptedException {
+        Optional<TableReference> nextTable = Optional.empty();
+        Set<TableReference> tablesNotSweeping = specificTableSweeper.getKvs().getAllTableNames();
+
+        while (!tablesNotSweeping.isEmpty()) {
+            nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
+                    tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp(), tablesNotSweeping);
+            if (nextTable.isPresent()) {
+                if (sweepLocks.lockTableToSweep(nextTable.get())) {
+                    // If we've successfully acquired the sweep lock of a table, we can't start to sweep it.
+                    break;
+                } else {
+                    tablesNotSweeping.remove(nextTable.get());
+                }
+            }
+
+        }
+
+        return nextTable.map(tableRefToSweep -> new TableToSweep(tableRefToSweep, null));
     }
 
     /**
