@@ -28,8 +28,10 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.factory.Leaders;
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.LeadershipResource;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
@@ -65,10 +67,19 @@ public class PaxosTimestampCreator {
         this.paxosRuntime = paxosRuntime;
     }
 
+
     public Supplier<ManagedTimestampService> createPaxosBackedTimestampService(
             String client,
             LeadershipResource leadershipResource,
             Set<String> remoteHosts) {
+        return createPaxosBackedTimestampService(client, leadershipResource, remoteHosts, ImmutableSet.of());
+    }
+
+    public Supplier<ManagedTimestampService> createPaxosBackedTimestampService(
+            String client,
+            LeadershipResource leadershipResource,
+            Set<String> remoteHosts,
+            Set<String> oldHosts) {
         paxosResource.addInstrumentedClient(client, leadershipResource);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
@@ -103,6 +114,11 @@ public class PaxosTimestampCreator {
                 client);
 
         PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
+        if (!oldHosts.isEmpty()) {
+            PaxosSynchronizer.blockingSynchronizeLearner(ourLearner,
+                    AtlasDbHttpClients.createProxies(optionalSecurity,
+                            PaxosTimeLockUriUtils.getClientPaxosUris(oldHosts, client), PaxosLearner.class));
+        }
 
         return () -> createManagedPaxosTimestampService(proposer, client, acceptors, learners);
     }

@@ -269,7 +269,8 @@ public class PaxosAgent extends TimeLockAgent {
                 timestampCreator.createPaxosBackedTimestampService(client,
                         namespacedPaxosLeadershipCreator.getNamespacedLeadershipResource(),
                         Sets.difference(hosts.newHostSet(), ImmutableSet.of(
-                                PaxosRemotingUtils.addProtocol(install, localServer))));
+                                PaxosRemotingUtils.addProtocol(install, localServer))),
+                        hosts.oldHostSet());
         Supplier<RemoteLockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
 
         Supplier<TimeLockServices> services =

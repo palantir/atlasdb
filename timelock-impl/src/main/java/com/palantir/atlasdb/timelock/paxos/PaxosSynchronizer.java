@@ -27,6 +27,7 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosQuorumChecker;
@@ -67,6 +68,45 @@ public final class PaxosSynchronizer {
                 .filter(response -> response.paxosValue() != null)
                 .map(PaxosValueResponse::paxosValue)
                 .max(Comparator.comparingLong(PaxosValue::getRound));
+    }
+
+    public static void blockingSynchronizeLearner(PaxosLearner learnerToSynchronize,
+            List<PaxosLearner> otherLearners) {
+        if (otherLearners.isEmpty()) {
+            return;
+        }
+        ExecutorService executor = Executors.newCachedThreadPool();
+        while (true) {
+            List<PaxosValueResponse> responses = PaxosQuorumChecker.collectQuorumResponses(
+                    ImmutableList.copyOf(otherLearners),
+                    learner -> ImmutablePaxosValueResponse.of(learner.getGreatestLearnedValue()),
+                    otherLearners.size(),
+                    executor,
+                    PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
+            if (PaxosQuorumChecker.hasQuorum(responses, otherLearners.size())) {
+                // We have quorum with the old world.
+
+                // Must exist, since if there were no other leanrers
+                Optional<PaxosValue> response = responses.stream()
+                        .filter(oneResponse -> oneResponse.paxosValue() != null)
+                        .map(PaxosValueResponse::paxosValue)
+                        .max(Comparator.comparingLong(PaxosValue::getRound));
+                if (response.isPresent()) {
+                    PaxosValue value = response.get();
+                    learnerToSynchronize.learn(value.getRound(), value);
+                }
+                return;
+            } else {
+                // No quorum
+                // TODO (jkong): Backoff properly
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw Throwables.propagate(e);
+                }
+            }
+        }
     }
 
     @Value.Immutable

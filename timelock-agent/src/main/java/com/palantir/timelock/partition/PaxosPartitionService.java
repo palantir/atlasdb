@@ -60,6 +60,7 @@ public class PaxosPartitionService implements PartitionService {
         Assignment currentAssignment = coordinationService.getCoordinatedValue().assignment();
         Assignment newAssignment = coordinationService.proposeAssignment(
                 partitioner.partition(clients, hosts, coordinationService.getSeed())).assignment();
+        log.info("Repartitioning! Old assignment was {}, new assignment is {}", currentAssignment, newAssignment);
 
         if (firstRepartition) {
             firstRepartition = false;
