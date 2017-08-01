@@ -17,14 +17,16 @@
 package com.palantir.leader;
 
 import java.io.Closeable;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 
 public class DrainConsciousProxy<T> extends AbstractInvocationHandler {
     private final T delegate;
@@ -41,7 +43,7 @@ public class DrainConsciousProxy<T> extends AbstractInvocationHandler {
 
     public static <U> U newProxyInstance(Class<U> interfaceClass,
             U delegate) {
-        DrainConsciousProxy<U> proxy = new DrainConsciousProxy<U>(
+        DrainConsciousProxy<U> proxy = new DrainConsciousProxy<>(
                 delegate,
                 interfaceClass);
 
@@ -53,8 +55,9 @@ public class DrainConsciousProxy<T> extends AbstractInvocationHandler {
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        Preconditions.checkState(!draining.get(), "draining!");
-
+        if (draining.get()) {
+            return new NotCurrentLeaderException("draining!");
+        }
         if (method.getName().equals("drain") && args.length == 0) {
             if (delegate instanceof Closeable) {
                 ((Closeable) delegate).close();
@@ -67,7 +70,13 @@ public class DrainConsciousProxy<T> extends AbstractInvocationHandler {
 
         remainingOperations.incrementAndGet();
         try {
-            return method.invoke(proxy, args);
+            return method.invoke(delegate, args);
+        } catch (InvocationTargetException e) {
+            if (e.getCause() instanceof ServiceNotAvailableException) {
+                throw new NotCurrentLeaderException("service unavailable");
+            } else {
+                throw Throwables.propagate(e.getCause());
+            }
         } finally {
             long remaining = remainingOperations.decrementAndGet();
             if (draining.get() && remaining == 0) {

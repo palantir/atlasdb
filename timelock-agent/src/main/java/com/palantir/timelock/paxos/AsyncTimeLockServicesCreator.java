@@ -33,6 +33,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.JavaSuppliers;
+import com.palantir.leader.DrainConsciousProxy;
 import com.palantir.lock.RemoteLockService;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
@@ -89,7 +90,9 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     private <T> T instrumentInLeadershipProxy(Class<T> serviceClass, Supplier<T> serviceSupplier, String client) {
-        return instrument(serviceClass, leadershipCreator.wrapInLeadershipProxy(serviceSupplier, serviceClass), client);
+        return instrument(serviceClass, leadershipCreator.wrapInLeadershipProxy(
+                () -> DrainConsciousProxy.newProxyInstance(serviceClass, serviceSupplier.get()), serviceClass),
+                client);
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {
