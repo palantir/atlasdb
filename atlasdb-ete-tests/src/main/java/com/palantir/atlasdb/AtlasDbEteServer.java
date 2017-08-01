@@ -28,13 +28,17 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
+import com.palantir.atlasdb.console.AtlasConsoleServiceImpl;
 import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
+import com.palantir.atlasdb.impl.TableMetadataCache;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
 
@@ -68,13 +72,19 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
-        TransactionManager transactionManager = createTransactionManager(config, environment);
+        SerializableTransactionManager transactionManager = createTransactionManager(config, environment);
+
+        KeyValueService keyValueService = transactionManager.getKeyValueService();
+        environment.jersey().register(new AtlasConsoleServiceImpl(new AtlasDbServiceImpl(
+                keyValueService, transactionManager, new TableMetadataCache(
+                keyValueService)), environment.getObjectMapper()));
+
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
     }
 
-    private TransactionManager createTransactionManager(AtlasDbEteConfiguration config, Environment environment)
+    private SerializableTransactionManager createTransactionManager(AtlasDbEteConfiguration config, Environment environment)
             throws InterruptedException {
         Stopwatch sw = Stopwatch.createStarted();
         while (sw.elapsed(TimeUnit.SECONDS) < CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS) {
