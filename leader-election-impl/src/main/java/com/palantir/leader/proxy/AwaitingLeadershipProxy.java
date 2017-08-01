@@ -21,6 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,6 +37,7 @@ import com.google.common.net.HostAndPort;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.leader.Drainable;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
@@ -60,7 +62,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
         return (U) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
-                new Class<?>[] { interfaceClass, Closeable.class },
+                new Class<?>[] {interfaceClass, Closeable.class, Drainable.class},
                 proxy);
     }
 
@@ -155,6 +157,16 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
 
         Object delegate = delegateRef.get();
+        if (method.getName().equals("drain") && args.length == 0) {
+            isClosed = true;
+            executor.shutdownNow();
+            CompletableFuture<Void> completableFuture = leaderElectionService.drain();
+            if (delegate instanceof Drainable) {
+                completableFuture.thenCompose(unused -> ((Drainable) delegate).drain());
+            }
+            return completableFuture;
+        }
+
         StillLeadingStatus leading = null;
         for (int i = 0; i < MAX_NO_QUORUM_RETRIES; i++) {
             // TODO(nziebart): check if leadershipTokenRef has been nulled out between iterations?

@@ -17,6 +17,7 @@ package com.palantir.leader;
 
 import java.io.Serializable;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import com.google.common.net.HostAndPort;
 
@@ -60,4 +61,12 @@ public interface LeaderElectionService {
      * leader or can't cheaply find one.
      */
     Optional<HostAndPort> getSuspectedLeaderInMemory();
+
+    /**
+     * Prevents this leadership election service from taking any more requests.
+     * After this method is called, all future requests on this node will FAIL.
+     * The CompletableFuture returned by this method will be completed once all outstanding requests on this node
+     * have been completed.
+     */
+    CompletableFuture<Void> drain();
 }

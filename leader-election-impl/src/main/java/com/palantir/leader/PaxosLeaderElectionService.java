@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -33,6 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nullable;
@@ -85,6 +87,10 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     final ExecutorService executor;
 
     final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
+    final AtomicLong openTasks;
+
+    private volatile boolean draining;
+    private volatile CompletableFuture<Void> drainFuture;
 
     private final PaxosLeaderElectionEventRecorder eventRecorder;
 
@@ -125,39 +131,49 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
         lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
+        this.openTasks = new AtomicLong(0);
+
+        this.draining = false;
+        this.drainFuture = null;
     }
 
     @Override
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
-        for (;;) {
-            PaxosValue greatestLearned = knowledge.getGreatestLearnedValue();
-            LeadershipToken token = genTokenFromValue(greatestLearned);
+        Preconditions.checkState(!draining, "draining");
+        openTasks.incrementAndGet();
+        try {
+            for (;;) {
+                PaxosValue greatestLearned = knowledge.getGreatestLearnedValue();
+                LeadershipToken token = genTokenFromValue(greatestLearned);
 
-            if (isLastConfirmedLeader(greatestLearned)) {
-                StillLeadingStatus leadingStatus = isStillLeading(token);
-                if (leadingStatus == StillLeadingStatus.LEADING) {
-                    return token;
-                } else if (leadingStatus == StillLeadingStatus.NO_QUORUM) {
-                    // If we don't have quorum we should just retry our calls.
+                if (isLastConfirmedLeader(greatestLearned)) {
+                    StillLeadingStatus leadingStatus = isStillLeading(token);
+                    if (leadingStatus == StillLeadingStatus.LEADING) {
+                        return token;
+                    } else if (leadingStatus == StillLeadingStatus.NO_QUORUM) {
+                        // If we don't have quorum we should just retry our calls.
+                        continue;
+                    }
+                } else {
+                    // We are not the leader, so we should ping them to see if they are still up.
+                    if (pingLeader()) {
+                        Thread.sleep(updatePollingRateInMs);
+                        continue;
+                    }
+                }
+
+                boolean learnedNewState = updateLearnedStateFromPeers(greatestLearned);
+                if (learnedNewState) {
                     continue;
                 }
-            } else {
-                // We are not the leader, so we should ping them to see if they are still up.
-                if (pingLeader()) {
-                    Thread.sleep(updatePollingRateInMs);
-                    continue;
-                }
+
+                long backoffTime = (long) (randomWaitBeforeProposingLeadership * Math.random());
+                Thread.sleep(backoffTime);
+
+                proposeLeadership(token);
             }
-
-            boolean learnedNewState = updateLearnedStateFromPeers(greatestLearned);
-            if (learnedNewState) {
-                continue;
-            }
-
-            long backoffTime = (long) (randomWaitBeforeProposingLeadership * Math.random());
-            Thread.sleep(backoffTime);
-
-            proposeLeadership(token);
+        } finally {
+            markCompleted();
         }
     }
 
@@ -214,11 +230,17 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public Optional<HostAndPort> getSuspectedLeaderInMemory() {
-        Optional<PingableLeader> maybeLeader = getSuspectedLeader(false /* use network */);
-        if (!maybeLeader.isPresent()) {
-            return Optional.empty();
+        Preconditions.checkState(!draining, "draining");
+        openTasks.incrementAndGet();
+        try {
+            Optional<PingableLeader> maybeLeader = getSuspectedLeader(false /* use network */);
+            if (!maybeLeader.isPresent()) {
+                return Optional.empty();
+            }
+            return Optional.of(potentialLeadersToHosts.get(maybeLeader.get()));
+        } finally {
+            markCompleted();
         }
-        return Optional.of(potentialLeadersToHosts.get(maybeLeader.get()));
     }
 
     private Optional<PingableLeader> getSuspectedLeader(boolean useNetwork) {
@@ -237,6 +259,13 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             return getSuspectedLeaderOverNetwork(uuid);
         } else {
             return Optional.empty();
+        }
+    }
+
+    private void markCompleted() {
+        long remaining = openTasks.decrementAndGet();
+        if (draining && remaining == 0) {
+            drainFuture.complete(null);
         }
     }
 
@@ -348,11 +377,13 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public String getUUID() {
+        Preconditions.checkState(!draining, "draining");
         return proposer.getUuid();
     }
 
     @Override
     public boolean ping() {
+        Preconditions.checkState(!draining, "draining");
         return isLastConfirmedLeader(knowledge.getGreatestLearnedValue());
     }
 
@@ -664,5 +695,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
 
         return learned;
+    }
+
+    public CompletableFuture<Void> drain() {
+        draining = true;
+        drainFuture = new CompletableFuture<>();
+        return drainFuture;
     }
 }
