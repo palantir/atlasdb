@@ -44,11 +44,11 @@ public interface DrainService {
     void drain(@QueryParam("client") String client);
 
     @POST
-    @Path("undrain")
+    @Path("regenerate")
     @Produces(MediaType.APPLICATION_JSON)
-    default void undrain(@QueryParam("client") String client) {
-        undrainInternal(client);
+    default void regenerate(@QueryParam("client") String client) {
+        regenerateInternal(client);
     }
 
-    TimeLockServices undrainInternal(String client);
+    TimeLockServices regenerateInternal(String client);
 }

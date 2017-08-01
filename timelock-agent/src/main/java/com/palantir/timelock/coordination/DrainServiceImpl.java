@@ -18,6 +18,7 @@ package com.palantir.timelock.coordination;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.ws.rs.BadRequestException;
@@ -29,10 +30,12 @@ import com.palantir.leader.Drainable;
 public class DrainServiceImpl implements DrainService {
     private final Map<String, Supplier<TimeLockServices>> serviceSuppliers;
     private final Map<String, TimeLockServices> actualServices;
+    private final Consumer<String> regenCallback;
 
-    public DrainServiceImpl(Map<String, TimeLockServices> actualServices) {
+    public DrainServiceImpl(Map<String, TimeLockServices> actualServices, Consumer<String> regenCallback) {
         this.serviceSuppliers = Maps.newConcurrentMap();
         this.actualServices = actualServices;
+        this.regenCallback = regenCallback;
     }
 
     @Override
@@ -61,12 +64,13 @@ public class DrainServiceImpl implements DrainService {
     }
 
     @Override
-    public synchronized TimeLockServices undrainInternal(String client) {
+    public synchronized TimeLockServices regenerateInternal(String client) {
         if (!serviceSuppliers.containsKey(client)) {
             throw new BadRequestException("Client " + client + " not defined!");
         }
         TimeLockServices newServices = serviceSuppliers.get(client).get();
         actualServices.put(client, newServices);
+        regenCallback.accept(client);
         return newServices;
     }
 }

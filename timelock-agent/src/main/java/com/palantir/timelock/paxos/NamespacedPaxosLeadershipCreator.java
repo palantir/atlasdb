@@ -66,9 +66,6 @@ public class NamespacedPaxosLeadershipCreator {
     }
 
     public synchronized void registerLeaderElectionServiceForClient(String client, Set<String> hosts) {
-        if (locator.hasClient(client)) {
-            return;
-        }
         LeaderConfig leaderConfig = getLeaderConfig(client, hosts);
 
         Set<String> remoteHosts = Sets.difference(hosts,

@@ -37,7 +37,7 @@ public final class PingableLeaderLocator {
     }
 
     public void register(String client, PingableLeader pingableLeader) {
-        leaders.putIfAbsent(client, pingableLeader);
+        leaders.put(client, pingableLeader);
     }
 
     public boolean hasClient(String client) {

@@ -128,7 +128,12 @@ public class PaxosAgent extends TimeLockAgent {
                 Observables.blockingMostRecent(assignment.map(assign -> assign.getClientsForHost(localServer))).get();
 
         Map<String, TimeLockServices> clientToServices = Maps.newHashMap();
-        drainService = new DrainServiceImpl(clientToServices);
+        drainService = new DrainServiceImpl(clientToServices,
+                client -> {
+            Set<String> hostsForClient = PaxosRemotingUtils.addProtocols(install, Observables.blockingMostRecent(
+                            assignment.map(assign -> assign.getHostsForClient(client))).get());
+            namespacedPaxosLeadershipCreator.registerLeaderElectionServiceForClient(client, hostsForClient);
+                });
         Map<String, TimeLockServices> actualClientToServices =
                 clients.stream().collect(Collectors.toMap(
                         Function.identity(),
