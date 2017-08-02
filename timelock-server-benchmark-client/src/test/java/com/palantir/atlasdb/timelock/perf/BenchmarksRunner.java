@@ -25,38 +25,48 @@ import org.junit.Test;
 public class BenchmarksRunner extends BenchmarkRunnerBase {
 
     @Test
-    public void timestamp() {
-        runAndPrintResults(client::timestamp, 32, 5000);
+    public void timestampMixed() {
+        runAndPrintResults((x, y) -> client.jkongTimestamp(), 1, 2);
     }
 
     @Test
-    public void writeTransaction() {
-        runAndPrintResults(client::writeTransaction, 10, 100);
+    public void timestampAL() {
+        runAndPrintResults((x, y) -> client.jkongTimestampAL(), 1, 2);
     }
 
     @Test
-    public void readTransaction() {
-        runAndPrintResults(client::readTransaction, 1, 500);
+    public void timestampAH() {
+        runAndPrintResults((x, y) -> client.jkongTimestampAH(), 1, 2);
     }
 
-    @Test
-    public void kvsCas() {
-        runAndPrintResults(client::kvsCas, 1, 5000);
-    }
-
-    @Test
-    public void kvsWrite() {
-        runAndPrintResults(client::kvsWrite, 1, 1000);
-    }
-
-    @Test
-    public void kvsRead() {
-        runAndPrintResults(client::kvsRead, 1, 5000);
-    }
-
-    @Test
-    public void contendedWriteTransaction() {
-        runAndPrintResults(client::contendedWriteTransaction, 2000, 1);
-    }
+//    @Test
+//    public void writeTransaction() {
+//        runAndPrintResults(client::writeTransaction, 10, 100);
+//    }
+//
+//    @Test
+//    public void readTransaction() {
+//        runAndPrintResults(client::readTransaction, 1, 500);
+//    }
+//
+//    @Test
+//    public void kvsCas() {
+//        runAndPrintResults(client::kvsCas, 1, 5000);
+//    }
+//
+//    @Test
+//    public void kvsWrite() {
+//        runAndPrintResults(client::kvsWrite, 1, 1000);
+//    }
+//
+//    @Test
+//    public void kvsRead() {
+//        runAndPrintResults(client::kvsRead, 1, 5000);
+//    }
+//
+//    @Test
+//    public void contendedWriteTransaction() {
+//        runAndPrintResults(client::contendedWriteTransaction, 2000, 1);
+//    }
 
 }

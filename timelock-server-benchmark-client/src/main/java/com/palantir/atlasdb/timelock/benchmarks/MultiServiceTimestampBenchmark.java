@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.timelock.benchmarks;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -26,24 +28,41 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.remoting2.config.ssl.SslSocketFactories;
+import com.palantir.timestamp.TimestampService;
 
-public abstract class AbstractBenchmark {
-
+public class MultiServiceTimestampBenchmark {
     private static final Logger log = LoggerFactory.getLogger(AbstractBenchmark.class);
 
-    protected final int numClients;
-    private final int requestsPerClient;
+    private final Map<String, Integer> clientToNumClients;
+    private final Map<String, Integer> clientToRequestsPerClient;
+    private final Set<String> timelocks;
+    private final Map<String, TimestampService> clientToTimestampServices;
 
     protected final ExecutorService executor;
     private final List<Long> times = Lists.newArrayList();
     private volatile long totalTime;
     private volatile Throwable error = null;
 
-    protected AbstractBenchmark(int numClients, int requestsPerClient) {
-        this.numClients = numClients;
-        this.requestsPerClient = requestsPerClient;
+    protected MultiServiceTimestampBenchmark(Map<String, Integer> clientToNumClients,
+            Map<String, Integer> clientToRequestsPerClient,
+            AtlasDbConfig config) {
+        this.clientToNumClients = clientToNumClients;
+        this.clientToRequestsPerClient = clientToRequestsPerClient;
+        this.timelocks = config.timelock().get().serversList().servers();
 
-        executor = Executors.newFixedThreadPool(numClients);
+        clientToTimestampServices = Maps.newHashMap();
+        for (String s : clientToNumClients.keySet()) {
+            clientToTimestampServices.put(s,
+                    AtlasDbHttpClients.createProxyWithFailover(
+                            config.timelock().get().serversList().sslConfiguration().map(SslSocketFactories::createSslSocketFactory),
+                            timelocks,
+                            TimestampService.class));
+        }
+
+        executor = Executors.newFixedThreadPool(clientToNumClients.values().stream().mapToInt(x -> x).sum());
     }
 
     public Map<String, Object> execute() {
@@ -67,21 +86,23 @@ public abstract class AbstractBenchmark {
     }
 
     private void scheduleTests() {
-        for (int i = 0; i < numClients; i++) {
-            executor.submit(this::runTestForSingleClient);
+        for (Map.Entry<String, Integer> numClients : clientToNumClients.entrySet()) {
+            for (int i = 0; i < numClients.getValue(); i++) {
+                executor.submit(() -> runTestForSingleClient(numClients.getKey()));
+            }
         }
     }
 
-    private void runTestForSingleClient() {
+    private void runTestForSingleClient(String clientName) {
         try {
-            recordTimesForSingleClient();
+            recordTimesForSingleClient(clientName);
         } catch (Throwable t) {
             error = t;
         }
     }
 
-    private void recordTimesForSingleClient() {
-        List<Long> timesForClient = getTimesForSingleClient();
+    private void recordTimesForSingleClient(String clientName) {
+        List<Long> timesForClient = getTimesForSingleClient(clientName);
         synchronized (times) {
             times.addAll(timesForClient);
             if (areTestsCompleted()) {
@@ -90,10 +111,12 @@ public abstract class AbstractBenchmark {
         }
     }
 
-    private List<Long> getTimesForSingleClient() {
+    private List<Long> getTimesForSingleClient(String clientName) {
         List<Long> timesForClient = Lists.newArrayList();
-        for (int i = 0; i < requestsPerClient; i++) {
-            timesForClient.add(timeOneCall());
+        int requests = clientToRequestsPerClient.get(clientName);
+        TimestampService service = clientToTimestampServices.get(clientName);
+        for (int i = 0; i < requests; i++) {
+            timesForClient.add(timeOneCall(service));
         }
         return timesForClient;
     }
@@ -110,8 +133,17 @@ public abstract class AbstractBenchmark {
     private boolean areTestsCompleted() {
         synchronized (times) {
             log.info("{} calls completed", times.size());
-            return times.size() >= numClients * requestsPerClient;
+            int total = getTotalRequests();
+            return times.size() >= total;
         }
+    }
+
+    private int getTotalRequests() {
+        int total = 0;
+        for (String s : clientToNumClients.keySet()) {
+            total += (clientToNumClients.get(s) * clientToRequestsPerClient.get(s));
+        }
+        return total;
     }
 
     private void throwIfAnyCallsFailed() {
@@ -125,24 +157,26 @@ public abstract class AbstractBenchmark {
     }
 
 
-    private long timeOneCall() {
+    private long timeOneCall(TimestampService service) {
         long start = System.nanoTime();
-        performOneCall();
+        performOneCall(service);
         long end = System.nanoTime();
 
         return end - start;
     }
 
-    protected abstract void performOneCall();
+    protected void performOneCall(TimestampService timestampService) {
+        long timestamp = timestampService.getFreshTimestamp();
+        assert timestamp > 0;
+    }
 
     private Map<String, Object> getStatistics() {
         Map<String, Object> result = Maps.newHashMap();
-        result.put("numClients", numClients);
-        result.put("requestsPerClient", requestsPerClient);
         result.put("average", getAverageTimeInMillis());
         result.put("p50", getPercentile(0.5));
         result.put("p95", getPercentile(0.95));
         result.put("p99", getPercentile(0.99));
+        result.put("p999", getPercentile(0.999));
         result.put("totalTime", totalTime / 1_000_000.0);
         result.put("throughput", getThroughput());
         result.put("name", getClass().getSimpleName());
@@ -160,6 +194,7 @@ public abstract class AbstractBenchmark {
     }
 
     public double getThroughput() {
-        return (double)(numClients * requestsPerClient) / (totalTime / 1_000_000_000.0);
+        return (double)(getTotalRequests()) / (totalTime / 1_000_000_000.0);
     }
+
 }

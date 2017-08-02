@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.benchmarks;
 
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
@@ -66,5 +67,95 @@ public class BenchmarksResource implements BenchmarksService {
     @Override
     public Map<String, Object> timestamp(int numClients, int numRequestsPerClient) {
         return TimestampBenchmark.execute(txnManager, numClients, numRequestsPerClient);
+    }
+
+    @Override
+    public Map<String, Object> jkongTimestamp() {
+        return new MultiServiceTimestampBenchmark(
+                ImmutableMap.<String, Integer>builder()
+                        .put("l1", 8)
+                        .put("l2", 8)
+                        .put("l3", 8)
+                        .put("l4", 8)
+                        .put("l5", 8)
+                        .put("h1", 1024)
+                        .put("h2", 1024)
+                        .put("h3", 1024)
+                        .put("h4", 1024)
+                        .put("h5", 1024)
+                        .build(),
+                ImmutableMap.<String, Integer>builder()
+                        .put("l1", 12800)
+                        .put("l2", 12800)
+                        .put("l3", 12800)
+                        .put("l4", 12800)
+                        .put("l5", 12800)
+                        .put("h1", 100)
+                        .put("h2", 100)
+                        .put("h3", 100)
+                        .put("h4", 100)
+                        .put("h5", 100)
+                        .build(),
+                config).execute();
+    }
+
+    @Override
+    public Map<String, Object> jkongTimestampAL() {
+        return new MultiServiceTimestampBenchmark(
+                ImmutableMap.<String, Integer>builder()
+                        .put("l1", 8)
+                        .put("l2", 8)
+                        .put("l3", 8)
+                        .put("l4", 8)
+                        .put("l5", 8)
+                        .put("h1", 8)
+                        .put("h2", 8)
+                        .put("h3", 8)
+                        .put("h4", 8)
+                        .put("h5", 8)
+                        .build(),
+                ImmutableMap.<String, Integer>builder()
+                        .put("l1", 12800)
+                        .put("l2", 12800)
+                        .put("l3", 12800)
+                        .put("l4", 12800)
+                        .put("l5", 12800)
+                        .put("h1", 12800)
+                        .put("h2", 12800)
+                        .put("h3", 12800)
+                        .put("h4", 12800)
+                        .put("h5", 12800)
+                        .build(),
+                config).execute();
+    }
+
+    @Override
+    public Map<String, Object> jkongTimestampAH() {
+        return new MultiServiceTimestampBenchmark(
+                ImmutableMap.<String, Integer>builder()
+                        .put("l1", 128)
+                        .put("l2", 128)
+                        .put("l3", 128)
+                        .put("l4", 128)
+                        .put("l5", 128)
+                        .put("h1", 128)
+                        .put("h2", 128)
+                        .put("h3", 128)
+                        .put("h4", 128)
+                        .put("h5", 128)
+                        .build(),
+                ImmutableMap.<String, Integer>builder()
+                        .put("l1", 100)
+                        .put("l2", 100)
+                        .put("l3", 100)
+                        .put("l4", 100)
+                        .put("l5", 100)
+                        .put("h1", 100)
+                        .put("h2", 100)
+                        .put("h3", 100)
+                        .put("h4", 100)
+                        .put("h5", 100)
+                        .build(),
+                config).execute();
     }
 }
