@@ -15,7 +15,9 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-public enum ConflictHandler {
+import java.io.Serializable;
+
+public enum ConflictHandler implements Serializable {
     /**
      * If two transactions write to the same cell the one that was committed later will win.  We
      * are ignoring write conflicts in this case.

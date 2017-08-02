@@ -15,8 +15,11 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import java.io.Serializable;
+
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -30,7 +33,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 
 @Immutable
-public class TableMetadata implements Persistable {
+public class TableMetadata implements Persistable, Serializable {
     final NameMetadataDescription rowMetadata;
     final ColumnMetadataDescription columns;
     final ConflictHandler conflictHandler;
@@ -125,14 +128,17 @@ public class TableMetadata implements Persistable {
         this.nameLoggable = nameLoggable;
     }
 
+    @JsonIgnore
     public NameMetadataDescription getRowMetadata() {
         return rowMetadata;
     }
 
+    @JsonIgnore
     public ColumnMetadataDescription getColumns() {
         return columns;
     }
 
+    @JsonIgnore
     public boolean isWriteWriteConflict() {
         return conflictHandler != ConflictHandler.IGNORE_ALL;
     }
