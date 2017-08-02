@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -49,19 +50,32 @@ public class LptPartitioner implements TimeLockPartitioner {
     @Override
     public Assignment weightedPartition(List<String> clients, List<String> hosts, long seed,
             Map<String, Double> clientToWeight) {
+        Random random = new Random(seed);
         Preconditions.checkArgument(hosts.size() >= miniclusterSize,
                 "Cannot partition hosts into miniclusters larger than the number of hosts.");
         Assignment.Builder assignmentBuilder = Assignment.builder();
 
+        clients.forEach(client -> {
+            if (!clientToWeight.containsKey(client)) {
+                clientToWeight.put(client, 0.2);
+            }
+        });
+
+        Map<String, Double> jitterWeights = clientToWeight.entrySet().stream()
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey(),
+                        entry -> entry.getValue() + random.nextDouble() * 0.2
+                ));
+
         PriorityQueue<HostAndWeight> queue = new PriorityQueue<>(Comparator.comparingDouble(HostAndWeight::weight));
 
-        List<String> clientsInDescendingWeight = clientToWeight.entrySet().stream()
+        List<String> clientsInDescendingWeight = jitterWeights.entrySet().stream()
                 .sorted((entry1, entry2) -> {
-                    int delta = Double.compare(entry1.getValue(), entry2.getValue());
+                    int delta = Double.compare(entry2.getValue(), entry1.getValue());
                     if (delta != 0) {
                         return delta;
                     }
-                    return entry1.getKey().compareTo(entry2.getKey());
+                    return entry2.getKey().compareTo(entry1.getKey());
                 })
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
@@ -71,7 +85,7 @@ public class LptPartitioner implements TimeLockPartitioner {
                 .forEach(queue::add);
 
         for (String client : clientsInDescendingWeight) {
-            double clientWeight = clientToWeight.get(client);
+            double clientWeight = jitterWeights.get(client);
 
             // Pull minicluster many nodes
             Set<HostAndWeight> hostsToAssign = Sets.newHashSet();

@@ -71,7 +71,9 @@ import com.palantir.timelock.coordination.HostTransition;
 import com.palantir.timelock.coordination.ImmutableHostTransition;
 import com.palantir.timelock.coordination.PaxosCoordinationService;
 import com.palantir.timelock.partition.Assignment;
+import com.palantir.timelock.partition.ClientMetricsService;
 import com.palantir.timelock.partition.DropwizardClientMetricsService;
+import com.palantir.timelock.partition.MetricAggregatingPartitioner;
 import com.palantir.timelock.partition.PartitionService;
 import com.palantir.timelock.partition.PaxosPartitionService;
 import com.palantir.timelock.partition.TimeLockPartitioner;
@@ -82,6 +84,7 @@ public class PaxosAgent extends TimeLockAgent {
     private final PaxosInstallConfiguration paxosInstall;
     private final String localServer;
     private final Observable<Assignment> assignment;
+    private final Observable<TimeLockRuntimeConfiguration> runtime;
 
     private final PaxosResource paxosResource;
     private final PaxosLeadershipCreator leadershipCreator;
@@ -101,6 +104,7 @@ public class PaxosAgent extends TimeLockAgent {
         super(install, runtime, deprecated, registrar);
 
         this.paxosInstall = install.algorithm();
+        this.runtime = runtime;
         this.localServer = install.cluster().localServer();
         this.assignment = assignment;
 
@@ -154,7 +158,7 @@ public class PaxosAgent extends TimeLockAgent {
         registerPaxosExceptionMappers();
 
         Set<String> clients =
-                Observables.blockingMostRecent(assignment.map(assign -> assign.getClientsForHost(localServer))).get();
+                Observables.blockingMostRecent(runtime.map(r -> r.clients())).get();
 
         Map<String, TimeLockServices> clientToServices = Maps.newHashMap();
         drainService = new DrainServiceImpl(clientToServices, (unused, unused2) -> {});
@@ -166,13 +170,12 @@ public class PaxosAgent extends TimeLockAgent {
         clientToServices.putAll(actualClientToServices);
         registrar.accept(drainService);
         registrar.accept(new TimeLockResource(clientToServices));
-        registrar.accept(new DropwizardClientMetricsService());
     }
 
     private void createAndRegisterPartitionService() {
         Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
         Set<String> clients =
-                Observables.blockingMostRecent(assignment.map(assign -> assign.getClientsForHost(localServer))).get();
+                Observables.blockingMostRecent(runtime.map(r -> r.clients())).get();
 
         // TODO (jkong): Don't hard-code
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(
@@ -220,10 +223,19 @@ public class PaxosAgent extends TimeLockAgent {
                 learners);
         registrar.accept(new CoordinationPaxosResource(ourAcceptor, ourLearner));
 
+        ClientMetricsService metricsService = new DropwizardClientMetricsService(); // should be timelock-server
+        registrar.accept(metricsService);
+
         PartitionService partitionService = new PaxosPartitionService(
                 coordinationService,
                 createDrainServicesMap(),
-                Observables.blockingMostRecent(runtime).get().partitioner().createPartitioner(),
+                new MetricAggregatingPartitioner(Observables.blockingMostRecent(runtime).get().partitioner().createPartitioner(),
+                        ImmutableSet.copyOf(createProxyAndLocalList(
+                                metricsService,
+                                getNamespacedUris(remoteServers),
+                                sslSocketFactory,
+                                ClientMetricsService.class)
+                        )),
                 ImmutableList.copyOf(clients),
                 ImmutableList.copyOf(PaxosRemotingUtils.addProtocols(install,
                         ImmutableSet.copyOf(install.cluster().cluster().uris()))));
@@ -246,11 +258,12 @@ public class PaxosAgent extends TimeLockAgent {
 
     @Override
     protected TimeLockServices createInvalidatingTimeLockServices(String client) {
-        Set<String> hostsForClient = PaxosRemotingUtils.addProtocols(install, Observables.blockingMostRecent(
-                assignment.map(assign -> assign.getHostsForClient(client))).get());
+        Set<String> hostsForClient = PaxosRemotingUtils.addProtocols(install,
+                ImmutableSet.copyOf(install.cluster().cluster().uris()));
 
-        namespacedPaxosLeadershipCreator.registerLeaderElectionServiceForClient(client,
-                ImmutableHostTransition.of(ImmutableSet.of(), hostsForClient));
+            namespacedPaxosLeadershipCreator.registerLeaderElectionServiceForClient(client,
+                    ImmutableHostTransition.of(ImmutableSet.of(), hostsForClient));
+
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier =
                 timestampCreator.createPaxosBackedTimestampService(client,
                         namespacedPaxosLeadershipCreator.getNamespacedLeadershipResource(),

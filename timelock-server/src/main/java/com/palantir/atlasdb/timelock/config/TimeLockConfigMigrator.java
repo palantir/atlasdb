@@ -8,7 +8,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
 import com.palantir.remoting2.config.service.ServiceConfiguration;
 import com.palantir.timelock.config.ImmutableClusterConfiguration;
-import com.palantir.timelock.config.ImmutableGreedyPartitionerConfiguration;
+import com.palantir.timelock.config.ImmutableLptPartitionerConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
@@ -51,8 +51,8 @@ public final class TimeLockConfigMigrator {
                         .maximumWaitBeforeProposalMs(paxos.maximumWaitBeforeProposalMs())
                         .pingRateMs(paxos.pingRateMs())
                         .build())
-                .partitioner(ImmutableGreedyPartitionerConfiguration.builder()
-                        .miniclusterSize(config.cluster().servers().size() < 3 ? 1 : 3)
+                .partitioner(ImmutableLptPartitionerConfiguration.builder()
+                        .miniclusterSize(config.cluster().servers().size() < 3 ? 1 : 2)
                         .build())
                 .clients(config.clients())
                 .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())

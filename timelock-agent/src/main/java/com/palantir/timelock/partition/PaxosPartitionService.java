@@ -75,12 +75,11 @@ public class PaxosPartitionService implements PartitionService {
             Set<String> currentHosts = currentAssignment.getHostsForClient(client);
             Set<String> newHosts = newAssignment.getHostsForClient(client);
 
-            if (!currentHosts.equals(newHosts)) {
-                log.info("Now repartitioning client {}: {} to {}", client, currentHosts, newHosts);
-                currentHosts.forEach(host -> drainServices.get(host).drain(client));
-                newHosts.forEach(host -> drainServices.get(host).regenerate(client,
-                        ImmutableHostTransition.of(currentHosts, newHosts)));
-            }
+            // TODO (jkong): Optimize
+            log.info("Now repartitioning client {}: {} to {}", client, currentHosts, newHosts);
+            currentHosts.forEach(host -> drainServices.get(host).drain(client));
+            newHosts.forEach(host -> drainServices.get(host).regenerate(client,
+                    ImmutableHostTransition.of(currentHosts, newHosts)));
         }
     }
 }

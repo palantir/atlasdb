@@ -42,7 +42,7 @@ public abstract class TimeLockRuntimeConfiguration {
     @Value.Default
     public PartitionerConfiguration partitioner() {
         return ImmutableLptPartitionerConfiguration.builder()
-                .miniclusterSize(3)
+                .miniclusterSize(2)
                 .build();
     }
 
