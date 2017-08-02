@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.junit.AfterClass;
@@ -30,8 +29,6 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -69,7 +66,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     @Test
     public void returnCandidateIfPossiblyUncommittedTimestamp() {
-        new TestDataBuilder().put(1, 1, 10L).store();
+        testDataBuilder().put(1, 1, 10L).store();
         assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 5L)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
@@ -81,13 +78,13 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     @Test
     public void doNotReturnCandidateIfOnlyCommittedTimestamp() {
-        new TestDataBuilder().put(1, 1, 10L).store();
+        testDataBuilder().put(1, 1, 10L).store();
         assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30L))).isEmpty();
     }
 
     @Test
     public void returnCandidateIfTwoCommittedTimestamps() {
-        new TestDataBuilder().put(1, 1, 10L).put(1, 1, 20L).store();
+        testDataBuilder().put(1, 1, 10L).put(1, 1, 20L).store();
         assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30L)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
@@ -99,13 +96,13 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     @Test
     public void doNotReturnCandidateWithCommitedEmptyValueIfConservative() {
-        new TestDataBuilder().putEmpty(1, 1, 10L).store();
+        testDataBuilder().putEmpty(1, 1, 10L).store();
         assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30L))).isEmpty();
     }
 
     @Test
     public void returnCandidateWithCommitedEmptyValueIfThorough() {
-        new TestDataBuilder().putEmpty(1, 1, 10L).store();
+        testDataBuilder().putEmpty(1, 1, 10L).store();
         assertThat(getAllCandidates(thoroughRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30L)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
@@ -117,7 +114,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     @Test
     public void returnCellsInOrder() {
-        new TestDataBuilder()
+        testDataBuilder()
                 .putEmpty(1, 1, 10L)
                 .putEmpty(1, 2, 10L)
                 .putEmpty(2, 2, 10L)
@@ -132,7 +129,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     @Test
     public void startFromGivenRow() {
-        new TestDataBuilder()
+        testDataBuilder()
                 .putEmpty(1, 1, 10L)
                 .putEmpty(1, 2, 10L)
                 .putEmpty(2, 1, 10L)
@@ -147,7 +144,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     @Test
     public void largerTableWithSmallBatchSizeReturnsCorrectResults() {
-        TestDataBuilder builder = new TestDataBuilder();
+        TestDataBuilder builder = testDataBuilder();
         List<Cell> expectedCells = Lists.newArrayList();
         for (int rowNum = 1; rowNum <= 50; ++rowNum) {
             for (int colNum = 1; colNum <= rowNum; ++colNum) {
@@ -206,36 +203,12 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .build();
     }
 
-    private class TestDataBuilder {
-        private Map<Long, Map<Cell, byte[]>> cellsByTimestamp = Maps.newHashMap();
-
-        TestDataBuilder put(int row, int col, long ts) {
-            return put(row, col, ts, new byte[] { 1, 2, 3 });
-        }
-
-        TestDataBuilder put(int row, int col, long ts, byte[] value) {
-            cellsByTimestamp.computeIfAbsent(ts, key -> Maps.newHashMap())
-                    .put(cell(row, col), value);
-            return this;
-        }
-
-        TestDataBuilder putEmpty(int row, int col, long ts) {
-            return put(row, col, ts, PtBytes.EMPTY_BYTE_ARRAY);
-        }
-
-        void store() {
-            for (Map.Entry<Long, Map<Cell, byte[]>> e : cellsByTimestamp.entrySet()) {
-                kvs.put(TEST_TABLE, e.getValue(), e.getKey());
-            }
-        }
+    private Cell cell(int row, int col) {
+        return TestDataBuilder.cell(row, col);
     }
 
-    private static Cell cell(int rowNum, int colNum) {
-        return Cell.create(row(rowNum), row(colNum));
-    }
-
-    private static byte[] row(int rowNum) {
-        return Ints.toByteArray(rowNum);
+    private static TestDataBuilder testDataBuilder() {
+        return new TestDataBuilder(kvs, TEST_TABLE);
     }
 
     protected abstract KeyValueService createKeyValueService();
