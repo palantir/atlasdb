@@ -17,9 +17,14 @@
 package com.palantir.atlasdb.timelock.benchmarks;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -71,31 +76,22 @@ public class BenchmarksResource implements BenchmarksService {
 
     @Override
     public Map<String, Object> jkongTimestamp() {
+        int n = config.timelock().get().serversList().servers().size();
+        Set<String> clientSet = IntStream.rangeClosed(1, n)
+                .boxed()
+                .flatMap(i -> Stream.of("l" + i, "h" + i))
+                .collect(Collectors.toSet());
+
+        Map<String, Integer> clientToNumClients = Maps.newHashMap();
+        Map<String, Integer> clientToTimestampsPerClient = Maps.newHashMap();
+        for (String client : clientSet) {
+            clientToNumClients.put(client, client.startsWith("h") ? 128 : 8);
+            clientToTimestampsPerClient.put(client, 500);
+        }
+
         return new MultiServiceTimestampBenchmark(
-                ImmutableMap.<String, Integer>builder()
-                        .put("l1", 8)
-                        .put("l2", 8)
-                        .put("l3", 8)
-                        .put("l4", 8)
-                        .put("l5", 8)
-                        .put("h1", 128)
-                        .put("h2", 128)
-                        .put("h3", 128)
-                        .put("h4", 128)
-                        .put("h5", 128)
-                        .build(),
-                ImmutableMap.<String, Integer>builder()
-                        .put("l1", 500)
-                        .put("l2", 500)
-                        .put("l3", 500)
-                        .put("l4", 500)
-                        .put("l5", 500)
-                        .put("h1", 500)
-                        .put("h2", 500)
-                        .put("h3", 500)
-                        .put("h4", 500)
-                        .put("h5", 500)
-                        .build(),
+                clientToNumClients,
+                clientToTimestampsPerClient,
                 config).execute();
     }
 

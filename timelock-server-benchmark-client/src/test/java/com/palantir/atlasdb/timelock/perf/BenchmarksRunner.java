@@ -28,16 +28,16 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
     public void timestampMixed() {
         runAndPrintResults((x, y) -> client.jkongTimestamp(), 1, 2);
     }
-
-    @Test
-    public void timestampAL() {
-        runAndPrintResults((x, y) -> client.jkongTimestampAL(), 1, 2);
-    }
-
-    @Test
-    public void timestampAH() {
-        runAndPrintResults((x, y) -> client.jkongTimestampAH(), 1, 2);
-    }
+//
+//    @Test
+//    public void timestampAL() {
+//        runAndPrintResults((x, y) -> client.jkongTimestampAL(), 1, 2);
+//    }
+//
+//    @Test
+//    public void timestampAH() {
+//        runAndPrintResults((x, y) -> client.jkongTimestampAH(), 1, 2);
+//    }
 
 //    @Test
 //    public void writeTransaction() {
