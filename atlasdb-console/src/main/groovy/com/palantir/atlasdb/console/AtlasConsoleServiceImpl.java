@@ -110,7 +110,7 @@ public class AtlasConsoleServiceImpl implements AtlasConsoleService {
     }
 
     private <T> String toJson(T value, Class<T> type) throws IOException {
-        return mapper.writerWithType(type).writeValueAsString(value);
+        return mapper.writerFor(type).writeValueAsString(value);
     }
 
     private <T> T fromJson(String data, Class<T> type) throws IOException {
