@@ -15,8 +15,10 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -32,7 +34,6 @@ import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 public final class BackgroundSweeperImpl implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
@@ -90,6 +91,7 @@ public final class BackgroundSweeperImpl implements Runnable {
         } catch (InsufficientConsistencyException e) {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
         } catch (RuntimeException e) {
+            // Consider unlocking.
             specificTableSweeper.getSweepMetrics().sweepError();
             if (checkAndRepairTableDrop()) {
                 log.info("The table being swept by the background sweeper was dropped, moving on...");
@@ -118,9 +120,8 @@ public final class BackgroundSweeperImpl implements Runnable {
             sweepLocks.unlockSweepLease();
             return false;
         } else {
-            if (specificTableSweeper.runOnceForTable(tableToSweep.get(), Optional.empty(), true)) {
-                sweepLocks.unlockTableToSweep();
-            }
+            specificTableSweeper.runOnceForTable(tableToSweep.get(), Optional.empty(), true);
+            sweepLocks.unlockTableToSweep();
             return true;
         }
     }
@@ -151,25 +152,28 @@ public final class BackgroundSweeperImpl implements Runnable {
 
     private Optional<TableToSweep> getSweepingTable(Transaction tx) throws InterruptedException {
         Set<SweepProgress> tablesWithProgress = specificTableSweeper.getSweepProgressStore().loadOpenProgress(tx);
-        Set<TableReference> tableReferenceSet = tablesWithProgress.stream().map(SweepProgress::tableRef)
-                .collect(Collectors.toSet());
+        Map<TableReference, SweepProgress> tableRefToProgress = tablesWithProgress.stream()
+                .collect(Collectors.toMap(SweepProgress::tableRef, Function.identity()));
 
-        return getSweepableTable(tableReferenceSet, () -> {
+        Optional<TableReference> tableWithProgress = acquireTableLock(tableRefToProgress.keySet(), () -> {
             if (tablesWithProgress.size() > 0) {
-                return Optional.empty();
+                return Optional.of(tablesWithProgress.iterator().next().tableRef());
             }
-            return Optional.of(tablesWithProgress.iterator().next().tableRef());
+            return Optional.empty();
         });
+
+        return tableWithProgress.map(tableRef -> new TableToSweep(tableRef, tableRefToProgress.get(tableRef)));
     }
 
     private Optional<TableToSweep> getNewTableToSweep(Transaction tx) throws InterruptedException {
         Set<TableReference> allTables = Sets.newHashSet(specificTableSweeper.getKvs().getAllTableNames());
-        return getSweepableTable(allTables, () ->
+        Optional<TableReference> newTable = acquireTableLock(allTables, () ->
                 nextTableToSweepProvider.chooseNextTableToSweep(
                         tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp(), allTables));
+        return newTable.map(table -> new TableToSweep(table, null));
     }
 
-    private Optional<TableToSweep> getSweepableTable(Set<TableReference> allTables,
+    private Optional<TableReference> acquireTableLock(Set<TableReference> allTables,
             Supplier<Optional<TableReference>> nextTableSupplier) throws InterruptedException {
         Optional<TableReference> nextTable = Optional.empty();
 
@@ -186,11 +190,7 @@ public final class BackgroundSweeperImpl implements Runnable {
             }
         }
 
-        if (nextTable.isPresent()) {
-            log.debug("Now starting to sweep next table.", UnsafeArg.of("table name", nextTable.get()));
-            return Optional.of(new TableToSweep(nextTable.get(), null));
-        }
-        return Optional.empty();
+        return nextTable;
     }
 
     /**

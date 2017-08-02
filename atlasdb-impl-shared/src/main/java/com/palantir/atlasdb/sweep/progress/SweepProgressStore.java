@@ -49,9 +49,7 @@ public class SweepProgressStore {
         SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
         Set<SweepProgress> tablesWithProgress = Sets.newHashSet();
 
-        progressTable.getAllRowsUnordered().forEach(rr -> {
-            tablesWithProgress.add(hydrateProgress(rr));
-        });
+        progressTable.getAllRowsUnordered().forEach(rr -> tablesWithProgress.add(hydrateProgress(rr)));
 
         return tablesWithProgress;
     }
@@ -68,7 +66,7 @@ public class SweepProgressStore {
 
     public void saveProgress(Transaction tx, SweepProgress progress, TableReference tableRef) {
         SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
-        SweepProgressRow row = SweepProgressRow.of(tableRef.hashCode());
+        SweepProgressRow row = SweepProgressRow.of(rowIndex(tableRef));
         progressTable.putFullTableName(row, progress.tableRef().getQualifiedName());
         progressTable.putStartRow(row, progress.startRow());
         progressTable.putCellsDeleted(row, progress.staleValuesDeleted());
@@ -93,7 +91,7 @@ public class SweepProgressStore {
         // 2) Truncate takes an exclusive lock in Postgres, which can interfere
         // with concurrently running backups.
         SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
-        progressTable.deleteStartRow(SweepProgressRow.of(tableRef.hashCode()));
+        progressTable.delete(SweepProgressRow.of(rowIndex(tableRef)));
     }
 
     private static SweepProgress hydrateProgress(SweepProgressTable.SweepProgressRowResult rr) {
@@ -106,4 +104,8 @@ public class SweepProgressStore {
                 .build();
     }
 
+    // Should be unsigned long
+    private long rowIndex(TableReference tableReference) {
+        return Math.abs(tableReference.hashCode());
+    }
 }

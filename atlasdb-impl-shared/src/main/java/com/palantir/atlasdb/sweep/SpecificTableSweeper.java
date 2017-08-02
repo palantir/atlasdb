@@ -207,7 +207,10 @@ public class SpecificTableSweeper {
                     LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
                     SafeArg.of("unique cells examined count", cellsExamined),
                     SafeArg.of("stale values deleted count", staleValuesDeleted));
-            sweepProgressStore.clearProgress();
+            txManager.runTaskWithRetry(tx -> {
+                sweepProgressStore.clearProgress(tx, tableToSweep.getTableRef());
+                return null;
+            });
             return true;
         }
     }
