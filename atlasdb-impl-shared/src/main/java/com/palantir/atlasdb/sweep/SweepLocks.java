@@ -70,13 +70,11 @@ class SweepLocks implements AutoCloseable {
         }
     }
 
-    //TODO: unlock lease and table tokens.
-
     private LockRefreshToken sweepLeaseToken = null;
 
     boolean lockOrRefreshSweepLease() throws InterruptedException {
         sweepLeaseToken = lockOrRefreshSweepLeaseInternal(sweepLeaseToken);
-        return sweepLeaseToken == null;
+        return sweepLeaseToken != null;
     }
 
     private LockRefreshToken lockOrRefreshSweepLeaseInternal(LockRefreshToken possibleToken)
@@ -110,6 +108,11 @@ class SweepLocks implements AutoCloseable {
         return null;
     }
 
+    void unlockSweepLease() {
+        lockService.unlock(sweepLeaseToken);
+        sweepLeaseToken = null;
+    }
+
     private LockRefreshToken sweepTableToken = null;
 
     boolean lockTableToSweep(TableReference tableRef) throws InterruptedException {
@@ -117,6 +120,11 @@ class SweepLocks implements AutoCloseable {
         LockRequest request = LockRequest.builder(
                 ImmutableSortedMap.of(lock, LockMode.WRITE)).blockForAtMost(SimpleTimeDuration.of(2, TimeUnit.MINUTES)).build();
         sweepTableToken = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
-        return sweepLeaseToken == null;
+        return sweepLeaseToken != null;
+    }
+
+    void unlockTableToSweep() {
+        lockService.unlock(sweepTableToken);
+        sweepTableToken = null;
     }
 }

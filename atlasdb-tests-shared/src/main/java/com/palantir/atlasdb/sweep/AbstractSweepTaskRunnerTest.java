@@ -42,7 +42,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
@@ -87,7 +86,6 @@ public abstract class AbstractSweepTaskRunnerTest {
     protected SweepTaskRunner sweepRunner;
     protected LockAwareTransactionManager txManager;
     protected TransactionService txService;
-    protected PersistentLockManager persistentLockManager;
     protected SweepStrategyManager ssm;
     protected LongSupplier tsSupplier;
 
@@ -99,10 +97,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         txService = TransactionServices.createTransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
         tsSupplier = sweepTimestamp::get;
-        persistentLockManager = new PersistentLockManager(
-                SweepTestUtils.getPersistentLockService(kvs),
-                AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
-        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
+        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
     }
 

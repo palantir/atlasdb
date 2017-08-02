@@ -56,11 +56,13 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     protected static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
+    private static final int NUMBER_OF_PARALLEL_SWEEPS = 1;
 
     protected KeyValueService kvs;
     protected LockAwareTransactionManager txManager;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
     private BackgroundSweeperImpl backgroundSweeper;
+    private SweepLocks sweepLocks;
     private SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
             .deleteBatchSize(8)
             .candidateBatchSize(15)
@@ -76,11 +78,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
+        sweepLocks = new SweepLocks(txManager.getLockService(), NUMBER_OF_PARALLEL_SWEEPS);
         LongSupplier tsSupplier = sweepTimestamp::get;
-        PersistentLockManager persistentLockManager = new PersistentLockManager(
-                SweepTestUtils.getPersistentLockService(kvs),
-                AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
-        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
+        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
         SweepMetrics sweepMetrics = new SweepMetrics();
         specificTableSweeper = SpecificTableSweeper.create(
@@ -93,9 +93,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 sweepMetrics);
 
         backgroundSweeper = BackgroundSweeperImpl.create(
+                sweepLocks,
                 () -> true, // sweepEnabled
-                () -> 10L, // sweepPauseMillis
-                persistentLockManager,
                 specificTableSweeper);
     }
 
@@ -111,10 +110,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         putManyCells(TABLE_2, 104, 114);
         putManyCells(TABLE_3, 120, 130);
         sweepTimestamp.set(150);
-        try (SweepLocks sweepLocks = backgroundSweeper.createSweepLocks()) {
-            for (int i = 0; i < 50; ++i) {
-                backgroundSweeper.checkConfigAndRunSweep(sweepLocks);
-            }
+        for (int i = 0; i < 50; ++i) {
+            backgroundSweeper.run();
         }
         verifyTableSwept(TABLE_1, 75, true);
         verifyTableSwept(TABLE_2, 58, false);

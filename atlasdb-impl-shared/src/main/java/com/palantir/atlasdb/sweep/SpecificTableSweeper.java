@@ -123,7 +123,8 @@ public class SpecificTableSweeper {
         return sweepMetrics;
     }
 
-    void runOnceForTable(TableToSweep tableToSweep,
+    // true for completely swept a table.
+    boolean runOnceForTable(TableToSweep tableToSweep,
             Optional<SweepBatchConfig> newSweepBatchConfig,
             boolean saveSweepResults) {
         Stopwatch watch = Stopwatch.createStarted();
@@ -150,7 +151,7 @@ public class SpecificTableSweeper {
                             .elapsedMillis(elapsedMillis)
                             .build());
             if (saveSweepResults) {
-                saveSweepResults(tableToSweep, results);
+                return saveSweepResults(tableToSweep, results);
             }
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
@@ -160,6 +161,7 @@ public class SpecificTableSweeper {
                     SafeArg.of("batchConfig", batchConfig));
             throw e;
         }
+        return true;
     }
 
     private SweepBatchConfig getAdjustedBatchConfig() {
@@ -181,7 +183,8 @@ public class SpecificTableSweeper {
     }
 
 
-    private void saveSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
+    // true for swept a table completely.
+    private boolean saveSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
         long staleValuesDeleted = tableToSweep.getStaleValuesDeletedPreviously()
                 + currentIteration.getStaleValuesDeleted();
         long cellsExamined = tableToSweep.getCellsExaminedPreviously() + currentIteration.getCellTsPairsExamined();
@@ -196,6 +199,7 @@ public class SpecificTableSweeper {
                 .build();
         if (currentIteration.getNextStartRow().isPresent()) {
             saveIntermediateSweepResults(tableToSweep, cumulativeResults);
+            return false;
         } else {
             saveFinalSweepResults(tableToSweep, cumulativeResults);
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
@@ -204,6 +208,7 @@ public class SpecificTableSweeper {
                     SafeArg.of("unique cells examined count", cellsExamined),
                     SafeArg.of("stale values deleted count", staleValuesDeleted));
             sweepProgressStore.clearProgress();
+            return true;
         }
     }
 
