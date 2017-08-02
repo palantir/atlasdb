@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +35,7 @@ import com.palantir.remoting2.config.ssl.SslSocketFactories;
 import com.palantir.timestamp.TimestampService;
 
 public class MultiServiceTimestampBenchmark {
-    private static final Logger log = LoggerFactory.getLogger(AbstractBenchmark.class);
+    private static final Logger log = LoggerFactory.getLogger(MultiServiceTimestampBenchmark.class);
 
     private final Map<String, Integer> clientToNumClients;
     private final Map<String, Integer> clientToRequestsPerClient;
@@ -55,10 +56,15 @@ public class MultiServiceTimestampBenchmark {
 
         clientToTimestampServices = Maps.newHashMap();
         for (String s : clientToNumClients.keySet()) {
+            log.info("Priming at {}", timelocks.stream()
+                    .map(x -> x + "/" + s)
+                    .collect(Collectors.toList()));
             clientToTimestampServices.put(s,
                     AtlasDbHttpClients.createProxyWithFailover(
                             config.timelock().get().serversList().sslConfiguration().map(SslSocketFactories::createSslSocketFactory),
-                            timelocks,
+                            timelocks.stream()
+                            .map(x -> x + "/" + s)
+                            .collect(Collectors.toList()),
                             TimestampService.class));
         }
 
