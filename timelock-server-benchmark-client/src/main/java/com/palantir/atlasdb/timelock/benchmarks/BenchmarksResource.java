@@ -76,8 +76,7 @@ public class BenchmarksResource implements BenchmarksService {
 
     @Override
     public Map<String, Object> jkongTimestamp() {
-        int n = config.timelock().get().serversList().servers().size();
-        Set<String> clientSet = IntStream.rangeClosed(1, n)
+        Set<String> clientSet = IntStream.rangeClosed(1, 6)
                 .boxed()
                 .flatMap(i -> Stream.of("l" + i, "h" + i))
                 .collect(Collectors.toSet());
