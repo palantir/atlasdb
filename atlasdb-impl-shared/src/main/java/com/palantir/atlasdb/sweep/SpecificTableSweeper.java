@@ -231,7 +231,7 @@ public class SpecificTableSweeper {
                     .startRow(results.getNextStartRow().get())
                     .minimumSweptTimestamp(results.getSweptTimestamp())
                     .build();
-            sweepProgressStore.saveProgress(tx, newProgress);
+            sweepProgressStore.saveProgress(tx, newProgress, tableToSweep.getTableRef());
             return null;
         });
     }

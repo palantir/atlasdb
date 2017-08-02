@@ -16,7 +16,9 @@
 package com.palantir.atlasdb.sweep.progress;
 
 import java.util.Optional;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -43,9 +45,30 @@ public class SweepProgressStore {
         return result.map(SweepProgressStore::hydrateProgress);
     }
 
+    public Set<SweepProgress> loadOpenProgress(Transaction tx)  {
+        SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
+        Set<SweepProgress> tablesWithProgress = Sets.newHashSet();
+
+        progressTable.getAllRowsUnordered().forEach(rr -> {
+            tablesWithProgress.add(hydrateProgress(rr));
+        });
+
+        return tablesWithProgress;
+    }
+
     public void saveProgress(Transaction tx, SweepProgress progress) {
         SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
         SweepProgressRow row = SweepProgressRow.of(0);
+        progressTable.putFullTableName(row, progress.tableRef().getQualifiedName());
+        progressTable.putStartRow(row, progress.startRow());
+        progressTable.putCellsDeleted(row, progress.staleValuesDeleted());
+        progressTable.putCellsExamined(row, progress.cellTsPairsExamined());
+        progressTable.putMinimumSweptTimestamp(row, progress.minimumSweptTimestamp());
+    }
+
+    public void saveProgress(Transaction tx, SweepProgress progress, TableReference tableRef) {
+        SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
+        SweepProgressRow row = SweepProgressRow.of(tableRef.hashCode());
         progressTable.putFullTableName(row, progress.tableRef().getQualifiedName());
         progressTable.putStartRow(row, progress.startRow());
         progressTable.putCellsDeleted(row, progress.staleValuesDeleted());
@@ -62,6 +85,15 @@ public class SweepProgressStore {
         // 2) Truncate takes an exclusive lock in Postgres, which can interfere
         // with concurrently running backups.
         kvs.deleteRange(tableFactory.getSweepProgressTable(null).getTableRef(), RangeRequest.all());
+    }
+
+    public void clearProgress(Transaction tx, TableReference tableRef) {
+        // Use deleteRange instead of truncate
+        // 1) The table should be small, performance difference should be negligible.
+        // 2) Truncate takes an exclusive lock in Postgres, which can interfere
+        // with concurrently running backups.
+        SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
+        progressTable.deleteStartRow(SweepProgressRow.of(tableRef.hashCode()));
     }
 
     private static SweepProgress hydrateProgress(SweepProgressTable.SweepProgressRowResult rr) {

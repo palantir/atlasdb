@@ -17,12 +17,14 @@ package com.palantir.atlasdb.sweep;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
@@ -138,31 +140,49 @@ public final class BackgroundSweeperImpl implements Runnable {
 
     private Optional<TableToSweep> getTableToSweep() throws InterruptedException {
         return specificTableSweeper.getTxManager().runTaskWithRetry(tx -> {
-            Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress(
-                    tx);
-            if (progress.isPresent()) {
-                return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
+            Optional<TableToSweep> sweepingTable = getSweepingTable(tx);
+            if (sweepingTable.isPresent()) {
+                return sweepingTable;
             }
 
             return getNewTableToSweep(tx);
         });
     }
 
-    private Optional<TableToSweep> getNewTableToSweep(Transaction tx) throws InterruptedException {
-        Optional<TableReference> nextTable = Optional.empty();
-        Set<TableReference> tablesNotSweeping = specificTableSweeper.getKvs().getAllTableNames();
+    private Optional<TableToSweep> getSweepingTable(Transaction tx) throws InterruptedException {
+        Set<SweepProgress> tablesWithProgress = specificTableSweeper.getSweepProgressStore().loadOpenProgress(tx);
+        Set<TableReference> tableReferenceSet = tablesWithProgress.stream().map(SweepProgress::tableRef)
+                .collect(Collectors.toSet());
 
-        while (!tablesNotSweeping.isEmpty()) {
-            nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
-                    tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp(), tablesNotSweeping);
+        return getSweepableTable(tableReferenceSet, () -> {
+            if (tablesWithProgress.size() > 0) {
+                return Optional.empty();
+            }
+            return Optional.of(tablesWithProgress.iterator().next().tableRef());
+        });
+    }
+
+    private Optional<TableToSweep> getNewTableToSweep(Transaction tx) throws InterruptedException {
+        Set<TableReference> allTables = Sets.newHashSet(specificTableSweeper.getKvs().getAllTableNames());
+        return getSweepableTable(allTables, () ->
+                nextTableToSweepProvider.chooseNextTableToSweep(
+                        tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp(), allTables));
+    }
+
+    private Optional<TableToSweep> getSweepableTable(Set<TableReference> allTables,
+            Supplier<Optional<TableReference>> nextTableSupplier) throws InterruptedException {
+        Optional<TableReference> nextTable = Optional.empty();
+
+        while (!allTables.isEmpty()) {
+            nextTable = nextTableSupplier.get();
             if (!nextTable.isPresent()) {
                 break;
             }
             if (sweepLocks.lockTableToSweep(nextTable.get())) {
-                // If we've successfully acquired the sweep lock of a table, we can't start to sweep it.
+                // If we've successfully acquired the sweep lock of a table, we can start to sweep it.
                 break;
             } else {
-                tablesNotSweeping.remove(nextTable.get());
+                allTables.remove(nextTable.get());
             }
         }
 
@@ -178,11 +198,12 @@ public final class BackgroundSweeperImpl implements Runnable {
      *
      * @return Whether the table being swept was dropped
      */
+    // TODO(ssouza): adapt this method to a world of multiple tables in SweepProgressStore.
     boolean checkAndRepairTableDrop() {
         try {
             Set<TableReference> tables = specificTableSweeper.getKvs().getAllTableNames();
-            Optional<SweepProgress> progress = specificTableSweeper.getTxManager().runTaskReadOnly(
-                    specificTableSweeper.getSweepProgressStore()::loadProgress);
+            Optional<SweepProgress> progress = specificTableSweeper.getTxManager().runTaskReadOnly(tx ->
+                specificTableSweeper.getSweepProgressStore().loadProgress(tx));
             if (!progress.isPresent() || tables.contains(progress.get().tableRef())) {
                 return false;
             } else {
