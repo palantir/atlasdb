@@ -123,8 +123,7 @@ public class SpecificTableSweeper {
         return sweepMetrics;
     }
 
-    // true for completely swept a table.
-    boolean runOnceForTable(TableToSweep tableToSweep,
+    void runOnceForTable(TableToSweep tableToSweep,
             Optional<SweepBatchConfig> newSweepBatchConfig,
             boolean saveSweepResults) {
         Stopwatch watch = Stopwatch.createStarted();
@@ -151,7 +150,7 @@ public class SpecificTableSweeper {
                             .elapsedMillis(elapsedMillis)
                             .build());
             if (saveSweepResults) {
-                return saveSweepResults(tableToSweep, results);
+                saveSweepResults(tableToSweep, results);
             }
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
@@ -161,7 +160,6 @@ public class SpecificTableSweeper {
                     SafeArg.of("batchConfig", batchConfig));
             throw e;
         }
-        return true;
     }
 
     private SweepBatchConfig getAdjustedBatchConfig() {
@@ -182,9 +180,7 @@ public class SpecificTableSweeper {
         }
     }
 
-
-    // true for swept a table completely.
-    private boolean saveSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
+    private void saveSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
         long staleValuesDeleted = tableToSweep.getStaleValuesDeletedPreviously()
                 + currentIteration.getStaleValuesDeleted();
         long cellsExamined = tableToSweep.getCellsExaminedPreviously() + currentIteration.getCellTsPairsExamined();
@@ -199,7 +195,6 @@ public class SpecificTableSweeper {
                 .build();
         if (currentIteration.getNextStartRow().isPresent()) {
             saveIntermediateSweepResults(tableToSweep, cumulativeResults);
-            return false;
         } else {
             saveFinalSweepResults(tableToSweep, cumulativeResults);
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
@@ -211,7 +206,6 @@ public class SpecificTableSweeper {
                 sweepProgressStore.clearProgress(tx, tableToSweep.getTableRef());
                 return null;
             });
-            return true;
         }
     }
 
