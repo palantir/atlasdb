@@ -3,6 +3,8 @@
 
 package com.palantir.atlasdb.protos.generated;
 
+import java.io.Serializable;
+
 public final class TableMetadataPersistence {
   private TableMetadataPersistence() {}
   public static void registerAllExtensions(
@@ -548,7 +550,7 @@ public final class TableMetadataPersistence {
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.CachePriority}
    */
   public enum CachePriority
-      implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum, Serializable {
     /**
      * <code>COLDEST = 0;</code>
      */
@@ -657,7 +659,7 @@ public final class TableMetadataPersistence {
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.PartitionStrategy}
    */
   public enum PartitionStrategy
-      implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum, Serializable {
     /**
      * <code>ORDERED = 0;</code>
      */
@@ -739,7 +741,7 @@ public final class TableMetadataPersistence {
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.SweepStrategy}
    */
   public enum SweepStrategy
-      implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum, Serializable {
     /**
      * <code>NOTHING = 0;</code>
      */
@@ -830,7 +832,7 @@ public final class TableMetadataPersistence {
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.ExpirationStrategy}
    */
   public enum ExpirationStrategy
-      implements com.google.protobuf.ProtocolMessageEnum {
+      implements com.google.protobuf.ProtocolMessageEnum, Serializable {
     /**
      * <code>NEVER = 0;</code>
      */
