@@ -17,6 +17,7 @@
 package com.palantir.timelock.partition;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -31,5 +32,15 @@ public interface TimeLockPartitioner {
 
     default Set<String> clientsForHost(List<String> clients, List<String> hosts, long seed, String host) {
         return partition(clients, hosts, seed).getClientsForHost(host);
+    }
+
+    /**
+     * This function uses information about the heterogeneity of clients to more intelligently derive a partition
+     * that would utilise resources.
+     * Default implementation doesn't use the weights in any way.
+     */
+    default Assignment weightedPartition(List<String> clients, List<String> hosts, long seed,
+            Map<String, Double> clientToWeight) {
+        return partition(clients, hosts, seed);
     }
 }

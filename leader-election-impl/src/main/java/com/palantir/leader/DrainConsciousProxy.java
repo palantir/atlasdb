@@ -62,10 +62,13 @@ public class DrainConsciousProxy<T> extends AbstractInvocationHandler {
             if (delegate instanceof Closeable) {
                 ((Closeable) delegate).close();
             }
+            if (delegate instanceof Drainable) {
+                ((Drainable) delegate).drain();
+            }
             if (draining.compareAndSet(false, true)) {
                 drainFuture = new CompletableFuture<>();
-                return drainFuture;
             }
+            return drainFuture;
         }
 
         remainingOperations.incrementAndGet();

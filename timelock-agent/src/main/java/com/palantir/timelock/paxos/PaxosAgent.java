@@ -71,7 +71,7 @@ import com.palantir.timelock.coordination.HostTransition;
 import com.palantir.timelock.coordination.ImmutableHostTransition;
 import com.palantir.timelock.coordination.PaxosCoordinationService;
 import com.palantir.timelock.partition.Assignment;
-import com.palantir.timelock.partition.GreedyTimeLockPartitioner;
+import com.palantir.timelock.partition.DropwizardClientMetricsService;
 import com.palantir.timelock.partition.PartitionService;
 import com.palantir.timelock.partition.PaxosPartitionService;
 import com.palantir.timelock.partition.TimeLockPartitioner;
@@ -166,6 +166,7 @@ public class PaxosAgent extends TimeLockAgent {
         clientToServices.putAll(actualClientToServices);
         registrar.accept(drainService);
         registrar.accept(new TimeLockResource(clientToServices));
+        registrar.accept(new DropwizardClientMetricsService());
     }
 
     private void createAndRegisterPartitionService() {
@@ -222,7 +223,7 @@ public class PaxosAgent extends TimeLockAgent {
         PartitionService partitionService = new PaxosPartitionService(
                 coordinationService,
                 createDrainServicesMap(),
-                new GreedyTimeLockPartitioner(2), // TODO
+                Observables.blockingMostRecent(runtime).get().partitioner().createPartitioner(),
                 ImmutableList.copyOf(clients),
                 ImmutableList.copyOf(PaxosRemotingUtils.addProtocols(install,
                         ImmutableSet.copyOf(install.cluster().cluster().uris()))));

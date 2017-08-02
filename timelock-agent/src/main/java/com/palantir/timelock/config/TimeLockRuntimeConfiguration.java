@@ -41,7 +41,7 @@ public abstract class TimeLockRuntimeConfiguration {
     @JsonProperty("partitioner")
     @Value.Default
     public PartitionerConfiguration partitioner() {
-        return ImmutableGreedyPartitionerConfiguration.builder()
+        return ImmutableLptPartitionerConfiguration.builder()
                 .miniclusterSize(3)
                 .build();
     }

@@ -51,16 +51,14 @@ public class DrainServiceImpl implements DrainService {
         TimeLockServices timeLockServices = actualServices.get(client);
         CompletableFuture<Void> future = new CompletableFuture<>();
         future.complete(null);
-        // TODO (jkong): Implement drain with NamespaceCoordinatingProxys properly
-        // Current drain won't admit any more requests but could lead to MRTSEs.
         if (timeLockServices.getTimestampManagementService() instanceof Drainable) {
-            future.thenCompose(unused -> ((Drainable) timeLockServices.getTimestampManagementService()).drain());
+            future.thenComposeAsync(unused -> ((Drainable) timeLockServices.getTimestampManagementService()).drain());
         }
         if (timeLockServices.getLockService() instanceof Drainable) {
-            future.thenCompose(unused -> ((Drainable) timeLockServices.getLockService()).drain());
+            future.thenComposeAsync(unused -> ((Drainable) timeLockServices.getLockService()).drain());
         }
         if (timeLockServices.getTimelockService() instanceof Drainable) {
-            future.thenCompose(unused -> ((Drainable) timeLockServices.getTimelockService()).drain());
+            future.thenComposeAsync(unused -> ((Drainable) timeLockServices.getTimelockService()).drain());
         }
         future.join();
     }

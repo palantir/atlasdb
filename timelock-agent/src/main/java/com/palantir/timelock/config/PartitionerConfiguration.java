@@ -23,7 +23,8 @@ import com.palantir.timelock.partition.TimeLockPartitioner;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
 @JsonSubTypes({
         @JsonSubTypes.Type(value = GreedyPartitionerConfiguration.class, name = "greedy"),
-        @JsonSubTypes.Type(value = NopPartitionerConfiguration.class, name = "nop")})
+        @JsonSubTypes.Type(value = NopPartitionerConfiguration.class, name = "nop"),
+        @JsonSubTypes.Type(value = LptPartitionerConfiguration.class, name = "lpt")})
 public interface PartitionerConfiguration {
     // Each client is given a cluster of this size.
     int miniclusterSize();

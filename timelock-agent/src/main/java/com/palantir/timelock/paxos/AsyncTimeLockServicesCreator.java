@@ -86,7 +86,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         .build());
         return new AsyncTimelockServiceImpl(
                 AsyncLockService.createDefault(reaperExecutor, timeoutExecutor),
-                timestampServiceSupplier.get());
+                instrument(ManagedTimestampService.class, timestampServiceSupplier.get(), client));
     }
 
     private <T> T instrumentInLeadershipProxy(Class<T> serviceClass, Supplier<T> serviceSupplier, String client) {
