@@ -21,6 +21,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -31,6 +34,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.Validate;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,9 +42,10 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.proxy.DelegatingInvocationHandler;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
@@ -222,5 +227,52 @@ public class PaxosCoordinationServiceTest {
                 NUM_NODES,
                 UUID.randomUUID(),
                 executor);
+    }
+
+    public static class ToggleableExceptionProxy implements DelegatingInvocationHandler {
+
+        @SuppressWarnings("unchecked")
+        public static <T> T newProxyInstance(Class<T> interfaceClass,
+                T delegate,
+                AtomicBoolean throwException,
+                Exception exception) {
+            return (T) Proxy.newProxyInstance(
+                    interfaceClass.getClassLoader(),
+                    new Class<?>[] { interfaceClass },
+                    new ToggleableExceptionProxy(delegate, throwException, exception));
+        }
+
+        final Object delegate;
+        final AtomicBoolean throwException;
+        final Exception exception;
+
+        private ToggleableExceptionProxy(Object delegate,
+                AtomicBoolean throwException,
+                Exception exception) {
+            Validate.notNull(delegate);
+            Validate.notNull(throwException);
+            Validate.notNull(exception);
+            this.delegate = delegate;
+            this.throwException = throwException;
+            this.exception = exception;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if (throwException.get()) {
+                throw Throwables.rewrap(exception);
+            }
+            try {
+                return method.invoke(delegate, args);
+            } catch (InvocationTargetException e) {
+                throw e.getCause();
+            }
+        }
+
+        @Override
+        public Object getDelegate() {
+            return delegate;
+        }
+
     }
 }
