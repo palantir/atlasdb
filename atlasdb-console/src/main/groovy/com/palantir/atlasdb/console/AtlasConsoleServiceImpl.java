@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.RangeToken;
 import com.palantir.atlasdb.api.TableCell;
@@ -27,6 +28,7 @@ import com.palantir.atlasdb.api.TableRange;
 import com.palantir.atlasdb.api.TableRowResult;
 import com.palantir.atlasdb.api.TableRowSelection;
 import com.palantir.atlasdb.api.TransactionToken;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class AtlasConsoleServiceImpl implements AtlasConsoleService {
@@ -73,6 +75,13 @@ public class AtlasConsoleServiceImpl implements AtlasConsoleService {
         TableCell cells = fromJson(data, TableCell.class);
         TableCellVal result = service.getCells(token, cells);
         return toJson(result, TableCellVal.class);
+    }
+
+    @Override
+    public String getFullRange(TransactionToken token, String tableName) throws IOException {
+        TableRange range = new TableRange(tableName, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, ImmutableList.of(), 100);
+        RangeToken result = service.getRange(token, range);
+        return toJson(result, RangeToken.class);
     }
 
     @Override

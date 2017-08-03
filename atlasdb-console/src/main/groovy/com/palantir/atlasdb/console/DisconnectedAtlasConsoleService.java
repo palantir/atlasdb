@@ -46,6 +46,11 @@ public class DisconnectedAtlasConsoleService implements AtlasConsoleService {
     }
 
     @Override
+    public String getFullRange(TransactionToken token, String tableName) throws IOException {
+        return fail();
+    }
+
+    @Override
     public String getRange(TransactionToken token, String data) throws IOException {
         return fail();
     }

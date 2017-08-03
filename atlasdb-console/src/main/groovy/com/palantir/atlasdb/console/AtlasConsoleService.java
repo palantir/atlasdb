@@ -51,6 +51,12 @@ public interface AtlasConsoleService {
     @Produces(MediaType.APPLICATION_JSON)
     String getCells(@PathParam("token") TransactionToken token, @QueryParam("data") String data) throws IOException;
 
+
+    @POST
+    @Path("get-full-range/{token}")
+    @Produces(MediaType.APPLICATION_JSON)
+    String getFullRange(@PathParam("token") TransactionToken token, @QueryParam("tableName") String tableName) throws IOException;
+
     @POST
     @Path("get-range/{token}")
     @Produces(MediaType.APPLICATION_JSON)
