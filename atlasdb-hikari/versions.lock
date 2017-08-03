@@ -13,6 +13,7 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -32,6 +33,12 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
@@ -168,26 +175,26 @@
             ]
         },
         "com.palantir.remoting2:jackson-support": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.remoting2:tracing"
             ]
         },
         "com.palantir.remoting2:ssl-config": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.remoting2:tracing": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
@@ -232,6 +239,13 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.squareup.okio:okio": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.zaxxer:HikariCP": {
@@ -331,6 +345,7 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -350,6 +365,12 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
@@ -486,26 +507,26 @@
             ]
         },
         "com.palantir.remoting2:jackson-support": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.remoting2:tracing"
             ]
         },
         "com.palantir.remoting2:ssl-config": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.remoting2:tracing": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
@@ -550,6 +571,13 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.squareup.okio:okio": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting2:tracing"
             ]
         },
         "com.zaxxer:HikariCP": {

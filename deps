@@ -1,0 +1,1124 @@
+:timestamp-impl:dependencies
+
+------------------------------------------------------------
+Project :timestamp-impl
+------------------------------------------------------------
+
+apiElements - API elements for main. (n)
+No dependencies
+
+archives - Configuration for archive artifacts.
+No dependencies
+
+checkstyle - The Checkstyle libraries to be used for this project.
+\--- com.puppycrawl.tools:checkstyle:6.18
+     +--- antlr:antlr:2.7.7
+     +--- org.antlr:antlr4-runtime:4.5.3
+     +--- commons-beanutils:commons-beanutils:1.9.2
+     |    \--- commons-collections:commons-collections:3.2.1
+     +--- commons-cli:commons-cli:1.3.1 -> 1.2
+     \--- com.google.guava:guava:19.0 -> 18.0
+
+compile - Dependencies for source set 'main' (deprecated, use 'implementation ' instead).
+The ProjectDependency.getProjectConfiguration() method has been deprecated and is scheduled to be removed in Gradle 4.0.
+ModuleDependency.getConfiguration() has been deprecated and is scheduled to be removed in Gradle 4.0. Use ModuleDependency.getTargetConfiguration() instead.
++--- com.google.code.findbugs:annotations: -> 2.0.3
++--- project :timestamp-api
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    \--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
++--- project :timestamp-client
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :timestamp-api (*)
+|    +--- project :atlasdb-commons
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- com.google.code.findbugs:jsr305: -> 1.3.9
+|    |    +--- com.google.guava:guava: -> 18.0
+|    |    +--- org.slf4j:slf4j-api: -> 1.7.5
+|    |    +--- project :commons-executors
+|    |    |    \--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    +--- io.dropwizard.metrics:metrics-core: -> 3.1.2
+|    |    |    \--- org.slf4j:slf4j-api:1.7.7 -> 1.7.5
+|    |    \--- net.jpountz.lz4:lz4: -> 1.3.0
+|    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    \--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7
+|         +--- com.fasterxml.jackson.core:jackson-annotations:2.6.0 -> 2.6.7
+|         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
++--- project :atlasdb-commons (*)
++--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83
+|    +--- com.palantir.remoting2:jackson-support:2.6.3-6-g3c8cb83
+|    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.google.guava:guava:15.0 -> 18.0
+|    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    \--- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.7
+|    |         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    +--- com.google.guava:guava:18.0
+|    +--- com.squareup.okio:okio:1.9.0
+|    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+\--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+
+compileClasspath - Compile classpath for source set 'main'.
++--- com.google.code.findbugs:annotations: -> 2.0.3
++--- project :timestamp-api
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    \--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
++--- project :timestamp-client
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :timestamp-api (*)
+|    +--- project :atlasdb-commons
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- com.google.code.findbugs:jsr305: -> 1.3.9
+|    |    +--- com.google.guava:guava: -> 18.0
+|    |    +--- org.slf4j:slf4j-api: -> 1.7.5
+|    |    +--- project :commons-executors
+|    |    |    \--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    +--- io.dropwizard.metrics:metrics-core: -> 3.1.2
+|    |    |    \--- org.slf4j:slf4j-api:1.7.7 -> 1.7.5
+|    |    \--- net.jpountz.lz4:lz4: -> 1.3.0
+|    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    \--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7
+|         +--- com.fasterxml.jackson.core:jackson-annotations:2.6.0 -> 2.6.7
+|         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
++--- project :atlasdb-commons (*)
++--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83 -> 2.3.0
+|    +--- com.palantir.remoting2:jackson-support:2.3.0
+|    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.google.guava:guava:15.0 -> 18.0
+|    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    \--- com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.6.7
+|    |         +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |         \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    +--- com.google.guava:guava:18.0
+|    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+\--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+
+compileOnly - Compile only dependencies for source set 'main'.
+No dependencies
+
+default - Configuration for default artifacts.
++--- com.google.code.findbugs:annotations: -> 2.0.3
++--- project :timestamp-api
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    \--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
++--- project :timestamp-client
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :timestamp-api (*)
+|    +--- project :atlasdb-commons
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- com.google.code.findbugs:jsr305: -> 1.3.9
+|    |    +--- com.google.guava:guava: -> 18.0
+|    |    +--- org.slf4j:slf4j-api: -> 1.7.5
+|    |    +--- project :commons-executors
+|    |    |    \--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    +--- io.dropwizard.metrics:metrics-core: -> 3.1.2
+|    |    |    \--- org.slf4j:slf4j-api:1.7.7 -> 1.7.5
+|    |    \--- net.jpountz.lz4:lz4: -> 1.3.0
+|    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    \--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7
+|         +--- com.fasterxml.jackson.core:jackson-annotations:2.6.0 -> 2.6.7
+|         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
++--- project :atlasdb-commons (*)
++--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83
+|    +--- com.palantir.remoting2:jackson-support:2.6.3-6-g3c8cb83
+|    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.google.guava:guava:15.0 -> 18.0
+|    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    \--- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.7
+|    |         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    +--- com.google.guava:guava:18.0
+|    +--- com.squareup.okio:okio:1.9.0
+|    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+\--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+
+implementation - Implementation only dependencies for source set 'main'. (n)
+No dependencies
+
+jacocoAgent - The Jacoco agent to use to get coverage data.
+\--- org.jacoco:org.jacoco.agent:0.7.7.201606060606
+
+jacocoAnt - The Jacoco ant tasks to use to get execute Gradle tasks.
+\--- org.jacoco:org.jacoco.ant:0.7.7.201606060606
+     +--- org.jacoco:org.jacoco.core:0.7.7.201606060606
+     |    \--- org.ow2.asm:asm-debug-all:5.1
+     +--- org.jacoco:org.jacoco.report:0.7.7.201606060606
+     |    +--- org.jacoco:org.jacoco.core:0.7.7.201606060606 (*)
+     |    \--- org.ow2.asm:asm-debug-all:5.1
+     \--- org.jacoco:org.jacoco.agent:0.7.7.201606060606
+
+runtime - Runtime dependencies for source set 'main' (deprecated, use 'runtimeOnly ' instead).
++--- com.google.code.findbugs:annotations: -> 2.0.3
++--- project :timestamp-api
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    \--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
++--- project :timestamp-client
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :timestamp-api (*)
+|    +--- project :atlasdb-commons
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- com.google.code.findbugs:jsr305: -> 1.3.9
+|    |    +--- com.google.guava:guava: -> 18.0
+|    |    +--- org.slf4j:slf4j-api: -> 1.7.5
+|    |    +--- project :commons-executors
+|    |    |    \--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    +--- io.dropwizard.metrics:metrics-core: -> 3.1.2
+|    |    |    \--- org.slf4j:slf4j-api:1.7.7 -> 1.7.5
+|    |    \--- net.jpountz.lz4:lz4: -> 1.3.0
+|    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    \--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7
+|         +--- com.fasterxml.jackson.core:jackson-annotations:2.6.0 -> 2.6.7
+|         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
++--- project :atlasdb-commons (*)
++--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83 -> 2.3.0
+|    +--- com.palantir.remoting2:jackson-support:2.3.0
+|    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.google.guava:guava:15.0 -> 18.0
+|    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    \--- com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.6.7
+|    |         +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |         \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    +--- com.google.guava:guava:18.0
+|    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+\--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+
+runtimeClasspath - Runtime classpath of source set 'main'.
++--- com.google.code.findbugs:annotations: -> 2.0.3
++--- project :timestamp-api
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    \--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
++--- project :timestamp-client
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :timestamp-api (*)
+|    +--- project :atlasdb-commons
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- com.google.code.findbugs:jsr305: -> 1.3.9
+|    |    +--- com.google.guava:guava: -> 18.0
+|    |    +--- org.slf4j:slf4j-api: -> 1.7.5
+|    |    +--- project :commons-executors
+|    |    |    \--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    +--- io.dropwizard.metrics:metrics-core: -> 3.1.2
+|    |    |    \--- org.slf4j:slf4j-api:1.7.7 -> 1.7.5
+|    |    \--- net.jpountz.lz4:lz4: -> 1.3.0
+|    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    \--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7
+|         +--- com.fasterxml.jackson.core:jackson-annotations:2.6.0 -> 2.6.7
+|         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
++--- project :atlasdb-commons (*)
++--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83
+|    +--- com.palantir.remoting2:jackson-support:2.6.3-6-g3c8cb83
+|    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.google.guava:guava:15.0 -> 18.0
+|    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    \--- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.7
+|    |         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    +--- com.google.guava:guava:18.0
+|    +--- com.squareup.okio:okio:1.9.0
+|    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+\--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+
+runtimeElements - Elements of runtime for main. (n)
+No dependencies
+
+runtimeOnly - Runtime only dependencies for source set 'main'. (n)
+No dependencies
+
+testCompile - Dependencies for source set 'test' (deprecated, use 'testImplementation ' instead).
++--- com.google.code.findbugs:annotations: -> 2.0.3
++--- project :timestamp-api
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    \--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
++--- project :timestamp-client
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :timestamp-api (*)
+|    +--- project :atlasdb-commons
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- com.google.code.findbugs:jsr305: -> 1.3.9
+|    |    +--- com.google.guava:guava: -> 18.0
+|    |    +--- org.slf4j:slf4j-api: -> 1.7.5
+|    |    +--- project :commons-executors
+|    |    |    \--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    +--- io.dropwizard.metrics:metrics-core: -> 3.1.2
+|    |    |    \--- org.slf4j:slf4j-api:1.7.7 -> 1.7.5
+|    |    \--- net.jpountz.lz4:lz4: -> 1.3.0
+|    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    \--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7
+|         +--- com.fasterxml.jackson.core:jackson-annotations:2.6.0 -> 2.6.7
+|         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
++--- project :atlasdb-commons (*)
++--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83
+|    +--- com.palantir.remoting2:jackson-support:2.6.3-6-g3c8cb83
+|    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.google.guava:guava:15.0 -> 18.0
+|    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    \--- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.7
+|    |         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    +--- com.google.guava:guava:18.0
+|    +--- com.squareup.okio:okio:1.9.0
+|    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
++--- com.palantir.safe-logging:safe-logging: -> 0.1.3
++--- junit:junit: -> 4.12
+|    \--- org.hamcrest:hamcrest-core:1.3
++--- project :atlasdb-tests-shared
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :atlasdb-impl-shared
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- project :atlasdb-commons (*)
+|    |    +--- project :atlasdb-lock-api
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- project :atlasdb-api
+|    |    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    |    +--- project :atlasdb-commons (*)
+|    |    |    |    +--- project :timestamp-api (*)
+|    |    |    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    |    |    +--- org.apache.commons:commons-lang3: -> 3.1
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |    |    +--- javax.validation:validation-api: -> 1.1.0.Final
+|    |    |    |    \--- com.palantir.remoting2:ssl-config: -> 2.6.3-6-g3c8cb83
+|    |    |    |         +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |         \--- com.google.guava:guava:18.0
+|    |    |    \--- project :lock-api
+|    |    |         +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |         +--- project :atlasdb-commons (*)
+|    |    |         +--- project :timestamp-api (*)
+|    |    |         +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    |         +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    |         +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |         \--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    |    +--- project :atlasdb-persistent-lock-api
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |    \--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- project :lock-impl
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- project :lock-api (*)
+|    |    |    +--- project :atlasdb-commons (*)
+|    |    |    +--- com.palantir.patches.sourceforge:trove3:3.0.3-p5
+|    |    |    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    |    |    +--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    |    |    +--- joda-time:joda-time: -> 2.7
+|    |    |    \--- org.yaml:snakeyaml: -> 1.12
+|    |    +--- project :timestamp-api (*)
+|    |    +--- project :timestamp-client (*)
+|    |    +--- project :atlasdb-client
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- project :atlasdb-commons (*)
+|    |    |    +--- project :atlasdb-api (*)
+|    |    |    +--- project :atlasdb-client-protobufs
+|    |    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    |    \--- com.google.protobuf:protobuf-java:2.6.0
+|    |    |    +--- com.googlecode.json-simple:json-simple: -> 1.1.1
+|    |    |    +--- commons-lang:commons-lang:2.6
+|    |    |    +--- org.xerial.snappy:snappy-java:1.1.1.7
+|    |    |    +--- com.googlecode.protobuf-java-format:protobuf-java-format:1.2
+|    |    |    +--- com.google.protobuf:protobuf-java:2.6.0
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core: -> 2.6.7
+|    |    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava: -> 2.6.7 (*)
+|    |    |    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    |    |    +--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    |    |    \--- com.palantir.tritium:tritium-lib: -> 0.6.0
+|    |    |         +--- com.palantir.tritium:tritium-api:0.6.0
+|    |    |         |    \--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         +--- com.palantir.tritium:tritium-core:0.6.0
+|    |    |         |    +--- com.palantir.tritium:tritium-api:0.6.0 (*)
+|    |    |         |    +--- com.google.guava:guava:18.0
+|    |    |         |    +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |         +--- com.palantir.tritium:tritium-metrics:0.6.0
+|    |    |         |    +--- com.palantir.tritium:tritium-api:0.6.0 (*)
+|    |    |         |    +--- com.palantir.tritium:tritium-core:0.6.0 (*)
+|    |    |         |    +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         |    +--- com.google.guava:guava:18.0
+|    |    |         |    +--- io.dropwizard.metrics:metrics-core:3.1.2 (*)
+|    |    |         |    +--- org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir:1.1.2
+|    |    |         |    |    +--- com.google.code.findbugs:jsr305:3.0.1 -> 1.3.9
+|    |    |         |    |    +--- io.dropwizard.metrics:metrics-core:3.1.2 (*)
+|    |    |         |    |    \--- org.hdrhistogram:HdrHistogram:2.1.9
+|    |    |         |    +--- org.hdrhistogram:HdrHistogram:2.1.9
+|    |    |         |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |         +--- com.palantir.tritium:tritium-slf4j:0.6.0
+|    |    |         |    +--- com.palantir.tritium:tritium-api:0.6.0 (*)
+|    |    |         |    +--- com.palantir.tritium:tritium-core:0.6.0 (*)
+|    |    |         |    +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |         +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         +--- com.google.guava:guava:18.0
+|    |    |         \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    +--- com.palantir.patches.sourceforge:trove3:3.0.3-p5
+|    |    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    |    +--- com.palantir.remoting2:jersey-servers: -> 2.6.3-6-g3c8cb83
+|    |    |    +--- com.palantir.remoting2:error-handling:2.6.3-6-g3c8cb83
+|    |    |    |    +--- com.palantir.remoting2:jackson-support:2.6.3-6-g3c8cb83 (*)
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    |    |    |    +--- com.google.code.findbugs:jsr305:3.0.0 -> 1.3.9
+|    |    |    |    +--- com.google.guava:guava:18.0
+|    |    |    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    |    |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |    +--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83 (*)
+|    |    |    +--- com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider:2.6.7
+|    |    |    |    +--- com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:2.6.7
+|    |    |    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.7 (*)
+|    |    |    |    \--- com.fasterxml.jackson.module:jackson-module-jaxb-annotations:2.6.7
+|    |    |    |         +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    |         \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    |    |    +--- com.jcraft:jzlib:1.1.3
+|    |    |    \--- com.palantir.safe-logging:safe-logging:0.1.3
+|    |    \--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    +--- project :atlasdb-feign
+|    |    +--- project :lock-api (*)
+|    |    \--- com.squareup.okhttp3:okhttp: -> 3.4.1
+|    |         \--- com.squareup.okio:okio:1.9.0
+|    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    +--- com.palantir.tritium:tritium-lib: -> 0.6.0 (*)
+|    +--- junit:junit: -> 4.12 (*)
+|    +--- org.hamcrest:hamcrest-core: -> 1.3
+|    +--- org.hamcrest:hamcrest-library: -> 1.3
+|    |    \--- org.hamcrest:hamcrest-core:1.3
+|    +--- org.assertj:assertj-core: -> 3.5.2
+|    +--- org.mockito:mockito-core: -> 1.10.17
+|    |    +--- org.hamcrest:hamcrest-core:1.1 -> 1.3
+|    |    \--- org.objenesis:objenesis:2.1 -> 2.2
+|    \--- com.jayway.awaitility:awaitility: -> 1.6.5
+|         +--- org.hamcrest:hamcrest-library:1.3 (*)
+|         +--- org.hamcrest:hamcrest-core:1.3
+|         +--- cglib:cglib-nodep:3.1
+|         \--- org.objenesis:objenesis:2.1 -> 2.2
++--- org.jmock:jmock:2.8.2
+|    +--- junit:junit:4.12 (*)
+|    +--- org.jmock:jmock-testjar:2.8.2
+|    +--- cglib:cglib:3.2.0
+|    |    +--- org.ow2.asm:asm:5.0.3 -> 5.0.4
+|    |    \--- org.apache.ant:ant:1.9.4
+|    |         \--- org.apache.ant:ant-launcher:1.9.4
+|    +--- org.ow2.asm:asm:5.0.4
+|    +--- org.beanshell:bsh:1.3.0
+|    \--- org.hamcrest:hamcrest-library:1.3 (*)
++--- com.jayway.awaitility:awaitility: -> 1.6.5 (*)
+\--- org.mockito:mockito-core: -> 1.10.17 (*)
+
+testCompileClasspath - Compile classpath for source set 'test'.
++--- com.google.code.findbugs:annotations: -> 2.0.3
++--- project :timestamp-api
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    \--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
++--- project :timestamp-client
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :timestamp-api (*)
+|    +--- project :atlasdb-commons
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- com.google.code.findbugs:jsr305: -> 1.3.9
+|    |    +--- com.google.guava:guava: -> 18.0
+|    |    +--- org.slf4j:slf4j-api: -> 1.7.5
+|    |    +--- project :commons-executors
+|    |    |    \--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    +--- io.dropwizard.metrics:metrics-core: -> 3.1.2
+|    |    |    \--- org.slf4j:slf4j-api:1.7.7 -> 1.7.5
+|    |    \--- net.jpountz.lz4:lz4: -> 1.3.0
+|    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    \--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7
+|         +--- com.fasterxml.jackson.core:jackson-annotations:2.6.0 -> 2.6.7
+|         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
++--- project :atlasdb-commons (*)
++--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83
+|    +--- com.palantir.remoting2:jackson-support:2.6.3-6-g3c8cb83
+|    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.google.guava:guava:15.0 -> 18.0
+|    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    \--- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.7
+|    |         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    +--- com.google.guava:guava:18.0
+|    +--- com.squareup.okio:okio:1.9.0
+|    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
++--- com.palantir.safe-logging:safe-logging: -> 0.1.3
++--- junit:junit: -> 4.12
+|    \--- org.hamcrest:hamcrest-core:1.3
++--- project :atlasdb-tests-shared
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :atlasdb-impl-shared
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- project :atlasdb-commons (*)
+|    |    +--- project :atlasdb-lock-api
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- project :atlasdb-api
+|    |    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    |    +--- project :atlasdb-commons (*)
+|    |    |    |    +--- project :timestamp-api (*)
+|    |    |    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    |    |    +--- org.apache.commons:commons-lang3: -> 3.1
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |    |    +--- javax.validation:validation-api: -> 1.1.0.Final
+|    |    |    |    \--- com.palantir.remoting2:ssl-config: -> 2.6.3-6-g3c8cb83
+|    |    |    |         +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |         \--- com.google.guava:guava:18.0
+|    |    |    \--- project :lock-api
+|    |    |         +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |         +--- project :atlasdb-commons (*)
+|    |    |         +--- project :timestamp-api (*)
+|    |    |         +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    |         +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    |         +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |         \--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    |    +--- project :atlasdb-persistent-lock-api
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |    \--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- project :lock-impl
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- project :lock-api (*)
+|    |    |    +--- project :atlasdb-commons (*)
+|    |    |    +--- com.palantir.patches.sourceforge:trove3:3.0.3-p5
+|    |    |    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    |    |    +--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    |    |    +--- joda-time:joda-time: -> 2.7
+|    |    |    \--- org.yaml:snakeyaml: -> 1.12
+|    |    +--- project :timestamp-api (*)
+|    |    +--- project :timestamp-client (*)
+|    |    +--- project :atlasdb-client
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- project :atlasdb-commons (*)
+|    |    |    +--- project :atlasdb-api (*)
+|    |    |    +--- project :atlasdb-client-protobufs
+|    |    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    |    \--- com.google.protobuf:protobuf-java:2.6.0
+|    |    |    +--- com.googlecode.json-simple:json-simple: -> 1.1.1
+|    |    |    +--- commons-lang:commons-lang:2.6
+|    |    |    +--- org.xerial.snappy:snappy-java:1.1.1.7
+|    |    |    +--- com.googlecode.protobuf-java-format:protobuf-java-format:1.2
+|    |    |    +--- com.google.protobuf:protobuf-java:2.6.0
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core: -> 2.6.7
+|    |    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava: -> 2.6.7 (*)
+|    |    |    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    |    |    +--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    |    |    \--- com.palantir.tritium:tritium-lib: -> 0.6.0
+|    |    |         +--- com.palantir.tritium:tritium-api:0.6.0
+|    |    |         |    \--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         +--- com.palantir.tritium:tritium-core:0.6.0
+|    |    |         |    +--- com.palantir.tritium:tritium-api:0.6.0 (*)
+|    |    |         |    +--- com.google.guava:guava:18.0
+|    |    |         |    +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |         +--- com.palantir.tritium:tritium-metrics:0.6.0
+|    |    |         |    +--- com.palantir.tritium:tritium-api:0.6.0 (*)
+|    |    |         |    +--- com.palantir.tritium:tritium-core:0.6.0 (*)
+|    |    |         |    +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         |    +--- com.google.guava:guava:18.0
+|    |    |         |    +--- io.dropwizard.metrics:metrics-core:3.1.2 (*)
+|    |    |         |    +--- org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir:1.1.2
+|    |    |         |    |    +--- com.google.code.findbugs:jsr305:3.0.1 -> 1.3.9
+|    |    |         |    |    +--- io.dropwizard.metrics:metrics-core:3.1.2 (*)
+|    |    |         |    |    \--- org.hdrhistogram:HdrHistogram:2.1.9
+|    |    |         |    +--- org.hdrhistogram:HdrHistogram:2.1.9
+|    |    |         |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |         +--- com.palantir.tritium:tritium-slf4j:0.6.0
+|    |    |         |    +--- com.palantir.tritium:tritium-api:0.6.0 (*)
+|    |    |         |    +--- com.palantir.tritium:tritium-core:0.6.0 (*)
+|    |    |         |    +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |         +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         +--- com.google.guava:guava:18.0
+|    |    |         \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    +--- com.palantir.patches.sourceforge:trove3:3.0.3-p5
+|    |    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    |    +--- com.palantir.remoting2:jersey-servers: -> 2.6.3-6-g3c8cb83
+|    |    |    +--- com.palantir.remoting2:error-handling:2.6.3-6-g3c8cb83
+|    |    |    |    +--- com.palantir.remoting2:jackson-support:2.6.3-6-g3c8cb83 (*)
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    |    |    |    +--- com.google.code.findbugs:jsr305:3.0.0 -> 1.3.9
+|    |    |    |    +--- com.google.guava:guava:18.0
+|    |    |    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    |    |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |    +--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83 (*)
+|    |    |    +--- com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider:2.6.7
+|    |    |    |    +--- com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:2.6.7
+|    |    |    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.7 (*)
+|    |    |    |    \--- com.fasterxml.jackson.module:jackson-module-jaxb-annotations:2.6.7
+|    |    |    |         +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    |         \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    |    |    +--- com.jcraft:jzlib:1.1.3
+|    |    |    \--- com.palantir.safe-logging:safe-logging:0.1.3
+|    |    \--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    +--- project :atlasdb-feign
+|    |    +--- project :lock-api (*)
+|    |    \--- com.squareup.okhttp3:okhttp: -> 3.4.1
+|    |         \--- com.squareup.okio:okio:1.9.0
+|    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    +--- com.palantir.tritium:tritium-lib: -> 0.6.0 (*)
+|    +--- junit:junit: -> 4.12 (*)
+|    +--- org.hamcrest:hamcrest-core: -> 1.3
+|    +--- org.hamcrest:hamcrest-library: -> 1.3
+|    |    \--- org.hamcrest:hamcrest-core:1.3
+|    +--- org.assertj:assertj-core: -> 3.5.2
+|    +--- org.mockito:mockito-core: -> 1.10.17
+|    |    +--- org.hamcrest:hamcrest-core:1.1 -> 1.3
+|    |    \--- org.objenesis:objenesis:2.1 -> 2.2
+|    \--- com.jayway.awaitility:awaitility: -> 1.6.5
+|         +--- org.hamcrest:hamcrest-library:1.3 (*)
+|         +--- org.hamcrest:hamcrest-core:1.3
+|         +--- cglib:cglib-nodep:3.1
+|         \--- org.objenesis:objenesis:2.1 -> 2.2
++--- org.jmock:jmock:2.8.2
+|    +--- junit:junit:4.12 (*)
+|    +--- org.jmock:jmock-testjar:2.8.2
+|    +--- cglib:cglib:3.2.0
+|    |    +--- org.ow2.asm:asm:5.0.3 -> 5.0.4
+|    |    \--- org.apache.ant:ant:1.9.4
+|    |         \--- org.apache.ant:ant-launcher:1.9.4
+|    +--- org.ow2.asm:asm:5.0.4
+|    +--- org.beanshell:bsh:1.3.0
+|    \--- org.hamcrest:hamcrest-library:1.3 (*)
++--- com.jayway.awaitility:awaitility: -> 1.6.5 (*)
+\--- org.mockito:mockito-core: -> 1.10.17 (*)
+
+testCompileOnly - Compile only dependencies for source set 'test'.
+No dependencies
+
+testImplementation - Implementation only dependencies for source set 'test'. (n)
+No dependencies
+
+testRuntime - Runtime dependencies for source set 'test' (deprecated, use 'testRuntimeOnly ' instead).
++--- com.google.code.findbugs:annotations: -> 2.0.3
++--- project :timestamp-api
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    \--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
++--- project :timestamp-client
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :timestamp-api (*)
+|    +--- project :atlasdb-commons
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- com.google.code.findbugs:jsr305: -> 1.3.9
+|    |    +--- com.google.guava:guava: -> 18.0
+|    |    +--- org.slf4j:slf4j-api: -> 1.7.5
+|    |    +--- project :commons-executors
+|    |    |    \--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    +--- io.dropwizard.metrics:metrics-core: -> 3.1.2
+|    |    |    \--- org.slf4j:slf4j-api:1.7.7 -> 1.7.5
+|    |    \--- net.jpountz.lz4:lz4: -> 1.3.0
+|    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    \--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7
+|         +--- com.fasterxml.jackson.core:jackson-annotations:2.6.0 -> 2.6.7
+|         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
++--- project :atlasdb-commons (*)
++--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83
+|    +--- com.palantir.remoting2:jackson-support:2.6.3-6-g3c8cb83
+|    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.google.guava:guava:15.0 -> 18.0
+|    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    \--- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.7
+|    |         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    +--- com.google.guava:guava:18.0
+|    +--- com.squareup.okio:okio:1.9.0
+|    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
++--- com.palantir.safe-logging:safe-logging: -> 0.1.3
++--- junit:junit: -> 4.12
+|    \--- org.hamcrest:hamcrest-core:1.3
++--- project :atlasdb-tests-shared
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :atlasdb-impl-shared
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- project :atlasdb-commons (*)
+|    |    +--- project :atlasdb-lock-api
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- project :atlasdb-api
+|    |    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    |    +--- project :atlasdb-commons (*)
+|    |    |    |    +--- project :timestamp-api (*)
+|    |    |    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    |    |    +--- org.apache.commons:commons-lang3: -> 3.1
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |    |    +--- javax.validation:validation-api: -> 1.1.0.Final
+|    |    |    |    \--- com.palantir.remoting2:ssl-config: -> 2.6.3-6-g3c8cb83
+|    |    |    |         +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |         \--- com.google.guava:guava:18.0
+|    |    |    \--- project :lock-api
+|    |    |         +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |         +--- project :atlasdb-commons (*)
+|    |    |         +--- project :timestamp-api (*)
+|    |    |         +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    |         +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    |         +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |         \--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    |    +--- project :atlasdb-persistent-lock-api
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |    \--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- project :lock-impl
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- project :lock-api (*)
+|    |    |    +--- project :atlasdb-commons (*)
+|    |    |    +--- com.palantir.patches.sourceforge:trove3:3.0.3-p5
+|    |    |    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    |    |    +--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    |    |    +--- joda-time:joda-time: -> 2.7
+|    |    |    \--- org.yaml:snakeyaml: -> 1.12
+|    |    +--- project :timestamp-api (*)
+|    |    +--- project :timestamp-client (*)
+|    |    +--- project :atlasdb-client
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- project :atlasdb-commons (*)
+|    |    |    +--- project :atlasdb-api (*)
+|    |    |    +--- project :atlasdb-client-protobufs
+|    |    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    |    \--- com.google.protobuf:protobuf-java:2.6.0
+|    |    |    +--- com.googlecode.json-simple:json-simple: -> 1.1.1
+|    |    |    +--- commons-lang:commons-lang:2.6
+|    |    |    +--- org.xerial.snappy:snappy-java:1.1.1.7
+|    |    |    +--- com.googlecode.protobuf-java-format:protobuf-java-format:1.2
+|    |    |    +--- com.google.protobuf:protobuf-java:2.6.0
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core: -> 2.6.7
+|    |    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava: -> 2.6.7 (*)
+|    |    |    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    |    |    +--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    |    |    \--- com.palantir.tritium:tritium-lib: -> 0.6.0
+|    |    |         +--- com.palantir.tritium:tritium-api:0.6.0
+|    |    |         |    \--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         +--- com.palantir.tritium:tritium-core:0.6.0
+|    |    |         |    +--- com.palantir.tritium:tritium-api:0.6.0 (*)
+|    |    |         |    +--- com.google.guava:guava:18.0
+|    |    |         |    +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |         +--- com.palantir.tritium:tritium-metrics:0.6.0
+|    |    |         |    +--- com.palantir.tritium:tritium-api:0.6.0 (*)
+|    |    |         |    +--- com.palantir.tritium:tritium-core:0.6.0 (*)
+|    |    |         |    +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         |    +--- com.google.guava:guava:18.0
+|    |    |         |    +--- io.dropwizard.metrics:metrics-core:3.1.2 (*)
+|    |    |         |    +--- org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir:1.1.2
+|    |    |         |    |    +--- com.google.code.findbugs:jsr305:3.0.1 -> 1.3.9
+|    |    |         |    |    +--- io.dropwizard.metrics:metrics-core:3.1.2 (*)
+|    |    |         |    |    \--- org.hdrhistogram:HdrHistogram:2.1.9
+|    |    |         |    +--- org.hdrhistogram:HdrHistogram:2.1.9
+|    |    |         |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |         +--- com.palantir.tritium:tritium-slf4j:0.6.0
+|    |    |         |    +--- com.palantir.tritium:tritium-api:0.6.0 (*)
+|    |    |         |    +--- com.palantir.tritium:tritium-core:0.6.0 (*)
+|    |    |         |    +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |         +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         +--- com.google.guava:guava:18.0
+|    |    |         \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    +--- com.palantir.patches.sourceforge:trove3:3.0.3-p5
+|    |    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    |    +--- com.palantir.remoting2:jersey-servers: -> 2.6.3-6-g3c8cb83
+|    |    |    +--- com.palantir.remoting2:error-handling:2.6.3-6-g3c8cb83
+|    |    |    |    +--- com.palantir.remoting2:jackson-support:2.6.3-6-g3c8cb83 (*)
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    |    |    |    +--- com.google.code.findbugs:jsr305:3.0.0 -> 1.3.9
+|    |    |    |    +--- com.google.guava:guava:18.0
+|    |    |    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    |    |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |    +--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83 (*)
+|    |    |    +--- com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider:2.6.7
+|    |    |    |    +--- com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:2.6.7
+|    |    |    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.7 (*)
+|    |    |    |    \--- com.fasterxml.jackson.module:jackson-module-jaxb-annotations:2.6.7
+|    |    |    |         +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    |         \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    |    |    +--- com.jcraft:jzlib:1.1.3
+|    |    |    \--- com.palantir.safe-logging:safe-logging:0.1.3
+|    |    \--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    +--- project :atlasdb-feign
+|    |    +--- project :lock-api (*)
+|    |    \--- com.squareup.okhttp3:okhttp: -> 3.4.1
+|    |         \--- com.squareup.okio:okio:1.9.0
+|    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    +--- com.palantir.tritium:tritium-lib: -> 0.6.0 (*)
+|    +--- junit:junit: -> 4.12 (*)
+|    +--- org.hamcrest:hamcrest-core: -> 1.3
+|    +--- org.hamcrest:hamcrest-library: -> 1.3
+|    |    \--- org.hamcrest:hamcrest-core:1.3
+|    +--- org.assertj:assertj-core: -> 3.5.2
+|    +--- org.mockito:mockito-core: -> 1.10.17
+|    |    +--- org.hamcrest:hamcrest-core:1.1 -> 1.3
+|    |    \--- org.objenesis:objenesis:2.1 -> 2.2
+|    \--- com.jayway.awaitility:awaitility: -> 1.6.5
+|         +--- org.hamcrest:hamcrest-library:1.3 (*)
+|         +--- org.hamcrest:hamcrest-core:1.3
+|         +--- cglib:cglib-nodep:3.1
+|         \--- org.objenesis:objenesis:2.1 -> 2.2
++--- org.jmock:jmock:2.8.2
+|    +--- junit:junit:4.12 (*)
+|    +--- org.jmock:jmock-testjar:2.8.2
+|    +--- cglib:cglib:3.2.0
+|    |    +--- org.ow2.asm:asm:5.0.3 -> 5.0.4
+|    |    \--- org.apache.ant:ant:1.9.4
+|    |         \--- org.apache.ant:ant-launcher:1.9.4
+|    +--- org.ow2.asm:asm:5.0.4
+|    +--- org.beanshell:bsh:1.3.0
+|    \--- org.hamcrest:hamcrest-library:1.3 (*)
++--- com.jayway.awaitility:awaitility: -> 1.6.5 (*)
+\--- org.mockito:mockito-core: -> 1.10.17 (*)
+
+testRuntimeClasspath - Runtime classpath of source set 'test'.
++--- com.google.code.findbugs:annotations: -> 2.0.3
++--- project :timestamp-api
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    \--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
++--- project :timestamp-client
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :timestamp-api (*)
+|    +--- project :atlasdb-commons
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- com.google.code.findbugs:jsr305: -> 1.3.9
+|    |    +--- com.google.guava:guava: -> 18.0
+|    |    +--- org.slf4j:slf4j-api: -> 1.7.5
+|    |    +--- project :commons-executors
+|    |    |    \--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    +--- io.dropwizard.metrics:metrics-core: -> 3.1.2
+|    |    |    \--- org.slf4j:slf4j-api:1.7.7 -> 1.7.5
+|    |    \--- net.jpountz.lz4:lz4: -> 1.3.0
+|    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    \--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7
+|         +--- com.fasterxml.jackson.core:jackson-annotations:2.6.0 -> 2.6.7
+|         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
++--- project :atlasdb-commons (*)
++--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83
+|    +--- com.palantir.remoting2:jackson-support:2.6.3-6-g3c8cb83
+|    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.google.guava:guava:15.0 -> 18.0
+|    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.6.7
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    \--- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.7
+|    |         \--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    +--- com.google.guava:guava:18.0
+|    +--- com.squareup.okio:okio:1.9.0
+|    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
++--- com.palantir.safe-logging:safe-logging: -> 0.1.3
++--- junit:junit: -> 4.12
+|    \--- org.hamcrest:hamcrest-core:1.3
++--- project :atlasdb-tests-shared
+|    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    +--- project :atlasdb-impl-shared
+|    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    +--- project :atlasdb-commons (*)
+|    |    +--- project :atlasdb-lock-api
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- project :atlasdb-api
+|    |    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    |    +--- project :atlasdb-commons (*)
+|    |    |    |    +--- project :timestamp-api (*)
+|    |    |    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    |    |    +--- org.apache.commons:commons-lang3: -> 3.1
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |    |    +--- javax.validation:validation-api: -> 1.1.0.Final
+|    |    |    |    \--- com.palantir.remoting2:ssl-config: -> 2.6.3-6-g3c8cb83
+|    |    |    |         +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |         \--- com.google.guava:guava:18.0
+|    |    |    \--- project :lock-api
+|    |    |         +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |         +--- project :atlasdb-commons (*)
+|    |    |         +--- project :timestamp-api (*)
+|    |    |         +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    |         +--- com.fasterxml.jackson.core:jackson-annotations: -> 2.6.7
+|    |    |         +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |         \--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    |    +--- project :atlasdb-persistent-lock-api
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |    \--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    +--- project :lock-impl
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- project :lock-api (*)
+|    |    |    +--- project :atlasdb-commons (*)
+|    |    |    +--- com.palantir.patches.sourceforge:trove3:3.0.3-p5
+|    |    |    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    |    |    +--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    |    |    +--- joda-time:joda-time: -> 2.7
+|    |    |    \--- org.yaml:snakeyaml: -> 1.12
+|    |    +--- project :timestamp-api (*)
+|    |    +--- project :timestamp-client (*)
+|    |    +--- project :atlasdb-client
+|    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    +--- project :atlasdb-commons (*)
+|    |    |    +--- project :atlasdb-api (*)
+|    |    |    +--- project :atlasdb-client-protobufs
+|    |    |    |    +--- com.google.code.findbugs:annotations: -> 2.0.3
+|    |    |    |    \--- com.google.protobuf:protobuf-java:2.6.0
+|    |    |    +--- com.googlecode.json-simple:json-simple: -> 1.1.1
+|    |    |    +--- commons-lang:commons-lang:2.6
+|    |    |    +--- org.xerial.snappy:snappy-java:1.1.1.7
+|    |    |    +--- com.googlecode.protobuf-java-format:protobuf-java-format:1.2
+|    |    |    +--- com.google.protobuf:protobuf-java:2.6.0
+|    |    |    +--- com.fasterxml.jackson.core:jackson-databind: -> 2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.core:jackson-core: -> 2.6.7
+|    |    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava: -> 2.6.7 (*)
+|    |    |    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    |    |    +--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    |    |    \--- com.palantir.tritium:tritium-lib: -> 0.6.0
+|    |    |         +--- com.palantir.tritium:tritium-api:0.6.0
+|    |    |         |    \--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         +--- com.palantir.tritium:tritium-core:0.6.0
+|    |    |         |    +--- com.palantir.tritium:tritium-api:0.6.0 (*)
+|    |    |         |    +--- com.google.guava:guava:18.0
+|    |    |         |    +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |         +--- com.palantir.tritium:tritium-metrics:0.6.0
+|    |    |         |    +--- com.palantir.tritium:tritium-api:0.6.0 (*)
+|    |    |         |    +--- com.palantir.tritium:tritium-core:0.6.0 (*)
+|    |    |         |    +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         |    +--- com.google.guava:guava:18.0
+|    |    |         |    +--- io.dropwizard.metrics:metrics-core:3.1.2 (*)
+|    |    |         |    +--- org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir:1.1.2
+|    |    |         |    |    +--- com.google.code.findbugs:jsr305:3.0.1 -> 1.3.9
+|    |    |         |    |    +--- io.dropwizard.metrics:metrics-core:3.1.2 (*)
+|    |    |         |    |    \--- org.hdrhistogram:HdrHistogram:2.1.9
+|    |    |         |    +--- org.hdrhistogram:HdrHistogram:2.1.9
+|    |    |         |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |         +--- com.palantir.tritium:tritium-slf4j:0.6.0
+|    |    |         |    +--- com.palantir.tritium:tritium-api:0.6.0 (*)
+|    |    |         |    +--- com.palantir.tritium:tritium-core:0.6.0 (*)
+|    |    |         |    +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |         +--- com.google.code.findbugs:annotations:3.0.0 -> 2.0.3
+|    |    |         +--- com.google.guava:guava:18.0
+|    |    |         \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    +--- com.palantir.patches.sourceforge:trove3:3.0.3-p5
+|    |    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    |    +--- com.palantir.remoting2:jersey-servers: -> 2.6.3-6-g3c8cb83
+|    |    |    +--- com.palantir.remoting2:error-handling:2.6.3-6-g3c8cb83
+|    |    |    |    +--- com.palantir.remoting2:jackson-support:2.6.3-6-g3c8cb83 (*)
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-guava:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    |    |    |    +--- com.google.code.findbugs:jsr305:3.0.0 -> 1.3.9
+|    |    |    |    +--- com.google.guava:guava:18.0
+|    |    |    |    +--- javax.ws.rs:javax.ws.rs-api:2.0.1
+|    |    |    |    \--- org.slf4j:slf4j-api:1.7.12 -> 1.7.5
+|    |    |    +--- com.palantir.remoting2:tracing:2.6.3-6-g3c8cb83 (*)
+|    |    |    +--- com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider:2.6.7
+|    |    |    |    +--- com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:2.6.7
+|    |    |    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    |    |    \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    |    +--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    |    +--- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.7 (*)
+|    |    |    |    \--- com.fasterxml.jackson.module:jackson-module-jaxb-annotations:2.6.7
+|    |    |    |         +--- com.fasterxml.jackson.core:jackson-core:2.6.7
+|    |    |    |         \--- com.fasterxml.jackson.core:jackson-databind:2.6.7 (*)
+|    |    |    +--- com.fasterxml.jackson.module:jackson-module-afterburner:2.6.7 (*)
+|    |    |    +--- com.jcraft:jzlib:1.1.3
+|    |    |    \--- com.palantir.safe-logging:safe-logging:0.1.3
+|    |    \--- com.palantir.safe-logging:safe-logging: -> 0.1.3
+|    +--- project :atlasdb-feign
+|    |    +--- project :lock-api (*)
+|    |    \--- com.squareup.okhttp3:okhttp: -> 3.4.1
+|    |         \--- com.squareup.okio:okio:1.9.0
+|    +--- com.palantir.remoting2:tracing: -> 2.6.3-6-g3c8cb83 (*)
+|    +--- com.palantir.tritium:tritium-lib: -> 0.6.0 (*)
+|    +--- junit:junit: -> 4.12 (*)
+|    +--- org.hamcrest:hamcrest-core: -> 1.3
+|    +--- org.hamcrest:hamcrest-library: -> 1.3
+|    |    \--- org.hamcrest:hamcrest-core:1.3
+|    +--- org.assertj:assertj-core: -> 3.5.2
+|    +--- org.mockito:mockito-core: -> 1.10.17
+|    |    +--- org.hamcrest:hamcrest-core:1.1 -> 1.3
+|    |    \--- org.objenesis:objenesis:2.1 -> 2.2
+|    \--- com.jayway.awaitility:awaitility: -> 1.6.5
+|         +--- org.hamcrest:hamcrest-library:1.3 (*)
+|         +--- org.hamcrest:hamcrest-core:1.3
+|         +--- cglib:cglib-nodep:3.1
+|         \--- org.objenesis:objenesis:2.1 -> 2.2
++--- org.jmock:jmock:2.8.2
+|    +--- junit:junit:4.12 (*)
+|    +--- org.jmock:jmock-testjar:2.8.2
+|    +--- cglib:cglib:3.2.0
+|    |    +--- org.ow2.asm:asm:5.0.3 -> 5.0.4
+|    |    \--- org.apache.ant:ant:1.9.4
+|    |         \--- org.apache.ant:ant-launcher:1.9.4
+|    +--- org.ow2.asm:asm:5.0.4
+|    +--- org.beanshell:bsh:1.3.0
+|    \--- org.hamcrest:hamcrest-library:1.3 (*)
++--- com.jayway.awaitility:awaitility: -> 1.6.5 (*)
+\--- org.mockito:mockito-core: -> 1.10.17 (*)
+
+testRuntimeOnly - Runtime only dependencies for source set 'test'. (n)
+No dependencies
+
+(*) - dependencies omitted (listed previously)
+
+BUILD SUCCESSFUL
+
+Total time: 4.237 secs

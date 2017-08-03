@@ -44,6 +44,7 @@ dependencies {
   compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
   compile group: 'com.palantir.remoting2', name: 'tracing'
   compile group: 'com.palantir.tritium', name: 'tritium-lib'
+  compile group: 'com.squareup.okio', name: 'okio'
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'

@@ -41,13 +41,17 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
+                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.palantir.atlasdb:atlasdb-client",
                 "io.dropwizard:dropwizard-jackson"
             ]
@@ -60,7 +64,10 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
+                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
@@ -73,6 +80,13 @@
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
                 "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
+                "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -126,7 +140,14 @@
         "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base": {
             "locked": "2.7.8",
             "transitive": [
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider"
+            ]
+        },
+        "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting2:jersey-servers"
             ]
         },
         "com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider": {
@@ -148,6 +169,7 @@
         "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
             "locked": "2.7.8",
             "transitive": [
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider"
             ]
         },
@@ -234,6 +256,12 @@
             "locked": "1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "com.jcraft:jzlib": {
+            "locked": "1.1.3",
+            "transitive": [
+                "com.palantir.remoting2:jersey-servers"
             ]
         },
         "com.palantir.atlasdb:atlasdb-api": {
@@ -366,32 +394,32 @@
             ]
         },
         "com.palantir.remoting2:error-handling": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.remoting2:jersey-servers"
             ]
         },
         "com.palantir.remoting2:jackson-support": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:tracing"
             ]
         },
         "com.palantir.remoting2:jersey-servers": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.remoting2:ssl-config": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.remoting2:tracing": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
@@ -402,7 +430,7 @@
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
@@ -419,7 +447,8 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-api",
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.palantir.atlasdb:timestamp-impl",
+                "com.palantir.remoting2:jersey-servers"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -467,6 +496,8 @@
         "com.squareup.okio:okio": {
             "locked": "1.9.0",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting2:tracing",
                 "com.squareup.okhttp3:okhttp"
             ]
         },
@@ -1251,13 +1282,17 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
+                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.palantir.atlasdb:atlasdb-client",
                 "io.dropwizard:dropwizard-jackson"
             ]
@@ -1270,7 +1305,10 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
+                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
@@ -1283,6 +1321,13 @@
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
                 "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
+                "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -1336,7 +1381,14 @@
         "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base": {
             "locked": "2.7.8",
             "transitive": [
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider"
+            ]
+        },
+        "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.remoting2:jersey-servers"
             ]
         },
         "com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider": {
@@ -1358,6 +1410,7 @@
         "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
             "locked": "2.7.8",
             "transitive": [
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider"
             ]
         },
@@ -1444,6 +1497,12 @@
             "locked": "1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "com.jcraft:jzlib": {
+            "locked": "1.1.3",
+            "transitive": [
+                "com.palantir.remoting2:jersey-servers"
             ]
         },
         "com.palantir.atlasdb:atlasdb-api": {
@@ -1576,32 +1635,32 @@
             ]
         },
         "com.palantir.remoting2:error-handling": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.remoting2:jersey-servers"
             ]
         },
         "com.palantir.remoting2:jackson-support": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:tracing"
             ]
         },
         "com.palantir.remoting2:jersey-servers": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.remoting2:ssl-config": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.remoting2:tracing": {
-            "locked": "2.3.0",
+            "locked": "2.6.3-6-g3c8cb83",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
@@ -1612,7 +1671,7 @@
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
@@ -1629,7 +1688,8 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-api",
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.palantir.atlasdb:timestamp-impl",
+                "com.palantir.remoting2:jersey-servers"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -1677,6 +1737,8 @@
         "com.squareup.okio:okio": {
             "locked": "1.9.0",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.remoting2:tracing",
                 "com.squareup.okhttp3:okhttp"
             ]
         },

@@ -4,7 +4,7 @@
             "locked": "2.0.3"
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1"
+            "locked": "0.1.3"
         },
         "commons-io:commons-io": {
             "locked": "2.1"
@@ -27,7 +27,7 @@
             "locked": "2.0.3"
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1"
+            "locked": "0.1.3"
         },
         "commons-io:commons-io": {
             "locked": "2.1"
