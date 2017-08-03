@@ -36,29 +36,27 @@ public final class AtlasCli {
 
     private AtlasCli() {}
 
-    public static Cli<Callable> buildCli() {
-        Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("atlasdb")
+    public static Cli<Callable<?>> buildCli() {
+        Cli.CliBuilder<Callable<?>> builder = Cli.<Callable<?>>builder("atlasdb")
                 .withDescription("Perform common AtlasDB tasks")
                 .withDefaultCommand(Help.class)
-                .withCommands(
-                        Help.class,
-                        SweepCommand.class,
-                        KvsMigrationCommand.class,
-                        CleanCassLocksStateCommand.class);
+                .withCommand(Help.class)
+                .withCommand(SweepCommand.class)
+                .withCommand(KvsMigrationCommand.class)
+                .withCommand(CleanCassLocksStateCommand.class);
 
         builder.withGroup("timestamp")
                 .withDescription("Timestamp-centric commands")
                 .withDefaultCommand(Help.class)
-                .withCommands(
-                        FetchTimestamp.class,
-                        CleanTransactionRange.class,
-                        FastForwardTimestamp.class);
+                .withCommand(FetchTimestamp.class)
+                .withCommand(CleanTransactionRange.class)
+                .withCommand(FastForwardTimestamp.class);
 
         return builder.build();
     }
 
     public static void main(String[] args) {
-        Cli<Callable> parser = buildCli();
+        Cli<Callable<?>> parser = buildCli();
         try {
             Object ret = parser.parse(args).call();
             if (ret instanceof Integer) {
